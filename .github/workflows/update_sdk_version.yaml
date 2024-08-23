@@ -67,4 +67,3 @@ jobs:
           GITHUB_TOKEN: ${{ steps.org-pr-create-token.outputs.token }}
         run: |
           gh pr create --fill
-          gh pr merge --auto --squash --delete-branch
