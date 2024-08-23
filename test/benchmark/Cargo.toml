@@ -1,0 +1,29 @@
+[package]
+description  = "Logger benchmark runners"
+edition      = "2021"
+license-file = "LICENSE"
+name         = "logger_benchmark"
+publish      = false
+version      = "1.0.0"
+
+[dependencies]
+bd-api.workspace           = true
+bd-buffer.workspace        = true
+bd-client-common.workspace = true
+bd-hyper-network.workspace = true
+bd-key-value.workspace     = true
+bd-logger.workspace        = true
+bd-noop-network.workspace  = true
+bd-session.workspace       = true
+bd-shutdown.workspace      = true
+bd-test-helpers.workspace  = true
+criterion                  = "0.5.1"
+protobuf.workspace         = true
+tempdir.workspace          = true
+time.workspace             = true
+
+[[bin]]
+name = "live_benchmark"
+
+[[bin]]
+name = "logger_benchmark"

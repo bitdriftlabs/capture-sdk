@@ -1,0 +1,35 @@
+name: linux_test
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+# Cancel in-progress CI jobs when a new commit is pushed to a PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  linux_test:
+    runs-on: ubuntu-latest
+    steps:
+      # --- Build the project for release
+
+      # Checkout repo to Github Actions runner
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set cores to get stored in /cores
+        run: |
+          sudo mkdir /cores
+          sudo chmod 777 /cores
+          # Core filenames will be of the form executable.pid.timestamp:
+          sudo bash -c 'echo "/cores/%e.%p.%t" > /proc/sys/kernel/core_pattern'
+      - name: test
+        run: |
+          ulimit -c unlimited
+          CC=$(which clang) CXX=$(which clang++) ./bazelw test //core/... //platform/... //test/... --config ci --config nomacos --config libunwind --test_output=errors --test_env=RUST_LOG=debug
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}  # Run only if something went wrong
+        with:
+          name: cores
+          path: /cores

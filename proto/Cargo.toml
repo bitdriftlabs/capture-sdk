@@ -1,0 +1,16 @@
+[package]
+edition = "2021"
+name    = "proto"
+version = "0.1.0"
+license-file = "LICENSE"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+[[bin]]
+name = "proto_bin"
+path = "src/main.rs"

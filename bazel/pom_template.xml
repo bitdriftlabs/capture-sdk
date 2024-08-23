@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>io.bitdrift</groupId>
+    <artifactId>capture</artifactId>
+    <version>{pom_version}</version>
+    <packaging>aar</packaging>
+    <name>Capture</name>
+    <description>A dynamic observability SDK for mobile developers.</description>
+    <url>https://bitdrift.io</url>    
+    <dependencies>
+        {generated_bzl_deps}
+    </dependencies>
+    <licenses>
+        <license>
+            <name>BITDRIFT SOFTWARE DEVELOPMENT KIT LICENSE AGREEMENT</name>
+            <url>https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture/{pom_version}/LICENSE.txt</url>
+            <distribution>repo</distribution>
+        </license>
+        <license>
+            <name>NOTICE</name>
+            <url>https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture/{pom_version}/NOTICE.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+        <id>bitdriftlabs</id>
+        <name>Bitdrift, Inc.</name>
+        <email>info@bitdrift.io</email>
+        <url>https://github.com/bitdriftlabs</url>
+        </developer>
+        <developer>
+        <id>Augustyniak</id>
+        <name>Rafał Augustyniak</name>
+        <email>rafal@bitdrift.io</email>
+        <url>https://github.com/Augustyniak</url>
+        </developer>
+        <developer>
+        <id>murki</id>
+        <name>Miguel Angel Juárez López</name>
+        <email>miguel@bitdrift.io</email>
+        <url>https://github.com/murki</url>
+        </developer>
+    </developers>    
+</project>

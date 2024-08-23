@@ -1,0 +1,32 @@
+workspace_type: android
+
+bazel_binary: bazelw
+
+directories:
+  -bazel-bin
+  -bazel-out
+  -bazel-testlogs
+  -build
+  examples/android
+  platform/jvm
+  test/platform/jvm
+
+import_run_configurations:
+  examples/android/run_configuration_example_debug_arm64.xml
+
+targets:
+  //examples/android:android_app
+  //platform/jvm/...
+  //test/platform/jvm/...
+
+test_sources:
+  test/platform/jvm/*
+
+build_flags:
+  --config=android
+
+additional_languages:
+  kotlin
+  java
+  android
+  c

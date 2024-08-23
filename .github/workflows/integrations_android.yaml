@@ -1,0 +1,47 @@
+name: Build Android Integrations
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'The new version to tag, ex: 0.9.102'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The new version to release, ex: 0.9.102'
+        required: true
+        type: string
+jobs:
+  build-capture-timber:
+    name: Build Capture Timber
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./platform/jvm
+    steps:
+    - name: Checkout project sources
+      uses: actions/checkout@v4
+
+    - name: Install JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        cache: gradle
+    - name: Install Rust target
+      run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
+    - name: Build artifacts with Gradle
+      run: ./gradlew :capture-timber:publish -PVERSION_NAME="${{ inputs.version }}" --info
+      env:
+        SKIP_PROTO_GEN: 1
+    - name: Compress artifacts
+      run: |
+        readonly dir=$(pwd)
+        (cd capture-timber/build/repos/releases/io/bitdrift/capture-timber/${{ inputs.version }} && zip -r "$dir/capture-timber.zip" ./*)
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: capture-timber.zip
+        path: platform/jvm/capture-timber.zip
+        if-no-files-found: error

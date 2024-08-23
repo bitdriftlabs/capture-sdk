@@ -1,0 +1,168 @@
+only_rules:
+  - array_init
+  - attributes
+  - block_based_kvo
+  - class_delegate_protocol
+  - closing_brace
+  - closure_end_indentation
+  - closure_parameter_position
+  - closure_spacing
+  - collection_alignment
+  - colon
+  - comma
+  - comment_spacing
+  - conditional_returns_on_newline
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - contains_over_range_nil_comparison
+  - control_statement
+  - custom_rules
+  - cyclomatic_complexity
+  - deployment_target
+  - direct_return
+  - discarded_notification_center_observer
+  - discouraged_direct_init
+  - discouraged_object_literal
+  - duplicate_conditions
+  - duplicate_enum_cases
+  - duplicate_imports
+  - dynamic_inline
+  - empty_collection_literal
+  - empty_enum_arguments
+  - empty_parameters
+  - empty_parentheses_with_trailing_closure
+  - empty_string
+  - empty_xctest_method
+  - explicit_init
+  - fallthrough
+  - fatal_error_message
+  - file_header
+  - file_length
+  - file_name_no_space
+  - first_where
+  - flatmap_over_map_reduce
+  - for_where
+  - force_cast
+  - force_try
+  - force_unwrapping
+  - function_body_length
+  - generic_type_name
+  - identical_operands
+  - identifier_name
+  - implicit_getter
+  - inclusive_language
+  - invalid_swiftlint_command
+  - is_disjoint
+  - leading_whitespace
+  - legacy_cggeometry_functions
+  - legacy_constant
+  - legacy_constructor
+  - legacy_multiple
+  - legacy_nsgeometry_functions
+  - legacy_random
+  - line_length
+  - literal_expression_end_indentation
+  - lower_acl_than_parent
+  - mark
+  - modifier_order
+  - no_space_in_method_call
+  - nsobject_prefer_isequal
+  - operator_whitespace
+  - optional_enum_case_matching
+  - orphaned_doc_comment
+  - overridden_super_call
+  - period_spacing
+  - prefer_self_type_over_type_of_self
+  - prefixed_toplevel_constant
+  - private_outlet
+  - private_over_fileprivate
+  - private_unit_test
+  - prohibited_super_call
+  - protocol_property_accessors_order
+  - reduce_boolean
+  - redundant_discardable_let
+  - redundant_nil_coalescing
+  - redundant_objc_attribute
+  - redundant_optional_initialization
+  - redundant_set_access_control
+  - redundant_void_return
+  - return_arrow_whitespace
+  - self_binding
+  - self_in_property_initialization
+  - shorthand_operator
+  - shorthand_optional_binding
+  - single_test_class
+  - sorted_imports
+  - statement_position
+  - superfluous_disable_command
+  - switch_case_alignment
+  - switch_case_on_newline
+  - syntactic_sugar
+  - test_case_accessibility
+  - toggle_bool
+  - trailing_comma
+  - trailing_newline
+  - trailing_semicolon
+  - trailing_whitespace
+  - type_body_length
+  - unavailable_function
+  - unneeded_break_in_switch
+  - unneeded_parentheses_in_closure_argument
+  - unused_closure_parameter
+  - unused_control_flow_label
+  - unused_enumerated
+  - unused_optional_binding
+  - valid_ibinspectable
+  - vertical_parameter_alignment
+  - vertical_parameter_alignment_on_call
+  - vertical_whitespace
+  - vertical_whitespace_closing_braces
+  - vertical_whitespace_opening_braces
+  - void_return
+  - xctfail_message
+  - yoda_condition
+file_header:
+  required_pattern: |
+                    \/\/ capture-sdk - bitdrift's client SDK
+                    \/\/ Copyright Bitdrift, Inc. All rights reserved.
+                    \/\/
+                    \/\/ Use of this source code is governed by a source available license that can be found in the
+                    \/\/ LICENSE file or at:
+                    \/\/ https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+trailing_comma:
+  mandatory_comma: true
+custom_rules:
+  no_background_qos:
+    name: "Don't use `background` QoS since tasks with this priority may end up not being executed for hours (see https://developer.apple.com/library/archive/documentation/Performance/Conceptual/EnergyGuide-iOS/PrioritizeWorkWithQoS.html)."
+    regex: '(qos: \.background|qualityOfService = \.background)'
+  no_notification_center_remove_observer_in_deinit:
+    name: "Don't remove self from NotificationCenter observers in deinit. This happens automatically since iOS 9."
+    regex: 'deinit\s*\{.*NotificationCenter\.default\.removeObserver\(self\).*\}'
+# Remove ambiguity around protocol access levels influencing protocol members.
+# Members of `public` protocols are `public` by default which is not consistent
+# with standard default `internal` access level for members in Swift.
+  no_public_extension:
+    name: "Don't make extensions public, make members public instead"
+    regex: '^\s*public\s+extension\s+'
+  no_void:
+    name: "Use () instead of Void()"
+    regex: '\bVoid\(\)'
+  no_xctestcase_wait:
+    name: "Use XCTWaiter.wait instead of self.wait"
+    regex: '^\s*(self\.)?wait\(for:'
+  singleline_foreach:
+    name: "Use of forEach should not exceed a single line"
+    regex: '\.forEach\s*\(?\s*\{[^\n}]*\n'
+  use_static_string_url_init:
+    name: "Use `URL(staticString:)`."
+    regex: 'URL\(string: "[/\w.:?%]+"\)!'
+trailing_whitespace:
+  ignores_comments: false
+  ignores_empty_lines: false
+line_length:
+  - 110
+function_body_length:
+  - 50
+type_body_length:
+  - 400

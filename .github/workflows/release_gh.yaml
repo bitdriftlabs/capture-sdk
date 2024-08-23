@@ -1,0 +1,229 @@
+name: Release to GitHub
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'The new version to tag, ex: 0.9.102'
+        required: true
+        type: string
+      sha:
+        description: '[Optional] Commit SHA1, branch or tag to build. The latest SHA1 on a given branch is used if no value is provided.'
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The new version to tag, ex: 0.9.102'
+        required: true
+        type: string
+      sha:
+        description: '[Optional] Commit SHA1, branch or tag to build. The latest SHA1 on a given branch is used if no value is provided.'
+        required: false
+        type: string
+jobs:
+  verify-version:
+    name: Verify arguments
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print & verify entered "version"
+        run: |
+          echo "$VERSION"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+(\.[0-9]+)?)?$ ]]; then exit 1; fi
+      - name: Print entered "sha"
+        run: echo "$SHA"
+    env:
+      VERSION: ${{ inputs.version }}
+      SHA: ${{ inputs.sha }}
+  # The iOS release build builds the xcframework in release mode and uploads it to the artifact store for later use.
+  ios-release-build:
+    name: Capture.xcframework with artifacts
+    needs: ["verify-version"]
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+
+      - name: 'Install dependencies'
+        run: ./ci/mac_ci_setup.sh
+      - name: Build xcframework + artifacts
+        run: |
+          ./tools/ios_release.sh Capture "${{ inputs.version }}"
+          mv ./dist/Capture.ios.zip ./Capture.ios.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Capture.ios.zip
+          path: ./Capture.ios.zip
+  build-ios-example-apps:
+    needs: ["verify-version"]
+    permissions:
+      contents: write
+    uses: ./.github/workflows/example_apps_ios.yaml
+    with:
+      sha: ${{ inputs.sha }}
+    secrets: inherit
+
+  # The Android release build builds capture.aar and accompanying artifacts, like the .pom xml and the symbols corresponding to the .so.
+  android-release-build:
+    name: Capture.aar with artifacts
+    needs: ["verify-version"]
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout repo to Github Actions runner
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+
+      - name: Install Clang
+        run: sudo apt-get install -y clang
+      - name: Build AAR + artifacts
+        run: ./tools/android_release.sh "$VERSION"
+        env:
+          VERSION: ${{ inputs.version }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Capture.android.zip
+          path: ./dist/Capture.android.zip
+  # Builds libcapture.so targeting Linux, to support instant-android using the .aar on Linux CI machines.
+  build-android-linux-so:
+    name: Linux x86_64 libcapture.so
+    # Running on ubuntu-latest builds againt a glibc that is more modern than what
+    # instant-android uses in CI, causing a load error. Use 20.04 to link against a compatible
+    # glibc.
+    runs-on: ubuntu-20.04
+    needs: ["verify-version"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+      - name: Install Clang
+        run: sudo apt-get install -y clang
+
+      - name: build
+        run: ./ci/create_linux_java_so.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libcapture.so
+          path: ./bazel-bin/platform/jvm/libcapture.so
+  # Builds libcapture.dylib targeting macos arm64, to support instant-android using the .aar on arm64 Macs.
+  build-android-macos-arm64:
+    name: arm64 libcapture.dylib
+    runs-on: macos-14
+    needs: ["verify-version"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+
+      - name: 'Install dependencies'
+        run: ./ci/mac_ci_setup.sh
+      - name: build
+        run: ./bazelw build --announce_rc --config=ci --config=release-common --cpu=darwin_arm64 --platforms @build_bazel_apple_support//platforms:macos_arm64 //platform/jvm:capture && cp bazel-bin/platform/jvm/libcapture.dylib libcapture.dylib.arm64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libcapture.dylib.arm64
+          path: libcapture.dylib.arm64
+  # Builds libcapture.dylib targeting macos x86_64, to support instant-android using the .aar on arm64 Macs.
+  build-android-macos-x86_64:
+    name: x86_64 libcapture.dylib
+    runs-on: macos-14
+    needs: ["verify-version"]
+    steps:
+      # Checkout repo to Github Actions runner
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+
+      - name: 'Install dependencies'
+        run: ./ci/mac_ci_setup.sh
+      - name: build
+        run: ./bazelw build --announce_rc --config=ci --config=release-common --cpu=darwin_x86_64 //platform/jvm:capture && cp bazel-bin/platform/jvm/libcapture.dylib libcapture.dylib.x86_64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libcapture.dylib.x86_64
+          path: libcapture.dylib.x86_64
+  build-android-example-apps:
+    needs: ["verify-version"]
+    permissions:
+      contents: write
+    uses: ./.github/workflows/example_apps_android.yaml
+    with:
+      sha: ${{ inputs.sha }}
+    secrets: inherit
+  build-android-capture-timber:
+    name: Build Capture Timber
+    needs: ["verify-version"]
+    permissions:
+      contents: write
+    uses: ./.github/workflows/integrations_android.yaml
+    with:
+      version: ${{ inputs.version }}
+    secrets: inherit
+  create-release:
+    permissions:
+      contents: write
+    name: GitHub release
+    runs-on: ubuntu-latest
+    needs: [
+      "ios-release-build",
+      "build-ios-example-apps",
+      "android-release-build",
+      "build-android-linux-so",
+      "build-android-macos-x86_64",
+      "build-android-macos-arm64",
+      "build-android-example-apps",
+      "build-android-capture-timber",
+    ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+
+      # Download all artifacts to current working directory
+      - uses: actions/download-artifact@v4
+        with:
+          name: Capture.android.zip
+      - uses: actions/download-artifact@v4
+        with:
+          name: libcapture.so
+      - uses: actions/download-artifact@v4
+        with:
+          name: libcapture.dylib.arm64
+      - uses: actions/download-artifact@v4
+        with:
+          name: libcapture.dylib.x86_64
+      - uses: actions/download-artifact@v4
+        with:
+          name: Android Example Apps
+      - uses: actions/download-artifact@v4
+        with:
+          name: capture-timber.zip
+      - name: Prepare Android artifacts
+        run: ./ci/gh_prepare_android_artifacts.sh "$VERSION"
+        env:
+          VERSION: ${{ inputs.version }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: Capture.ios.zip
+      - uses: actions/download-artifact@v4
+        with:
+          name: iOS Example Apps
+      - name: Prepare iOS artifacts
+        run: ./ci/gh_prepare_ios_artifacts.sh "$VERSION"
+        env:
+          VERSION: ${{ inputs.version }}
+        # Upload artifacts to the newly created release.
+        # Prefix release version with "v".
+      - name: Create release
+        run: |
+          gh release create "v$VERSION" \
+            --target "$GITHUB_REF_NAME" \
+            --generate-notes \
+            "Capture-$VERSION.ios.zip" \
+            "Capture-$VERSION.android.zip" \
+            "example-apps.ios.zip" \
+            "example-apps.android.zip" \
+            "capture-timber-$VERSION.android.zip"
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,74 @@
+load("@io_bazel_rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
+load("@rules_jvm_external//:defs.bzl", "artifact")
+load("//bazel/android:build.bzl", "bitdrift_kt_android_library", "bitdrift_kt_android_local_test")
+
+# export proguard library rules
+exports_files(["consumer-rules.pro"])
+
+# Separate target to avoid running lints against the generated file.
+kt_jvm_library(
+    name = "log_type",
+    srcs = ["//proto:log_type_kt_source"],
+)
+
+bitdrift_kt_android_library(
+    name = "capture_logger_lib",
+    srcs = glob([
+        "src/main/**/*.kt",
+    ]),
+    custom_package = "io.bitdrift.capture",
+    visibility = ["//visibility:public"],
+    # Exported dependencies will appear as dependencies in the generated .pom xml.
+    exports = [
+        ":log_type",
+        artifact("androidx.lifecycle:lifecycle-common"),
+        artifact("androidx.lifecycle:lifecycle-process"),
+        artifact("androidx.startup:startup-runtime"),
+        artifact("androidx.core:core"),
+        artifact("com.google.guava:listenablefuture"),
+        artifact("com.michael-bull.kotlin-result:kotlin-result-jvm"),
+        artifact("com.squareup.okhttp3:okhttp"),
+    ],
+    deps = [
+        ":log_type",
+        "//platform/jvm/common:lib",
+        "//platform/jvm/replay:lib",
+        artifact("androidx.lifecycle:lifecycle-common"),
+        artifact("androidx.lifecycle:lifecycle-process"),
+        artifact("androidx.startup:startup-runtime"),
+        artifact("androidx.core:core"),
+        artifact("com.google.guava:listenablefuture"),
+        artifact("com.michael-bull.kotlin-result:kotlin-result-jvm"),
+        artifact("com.squareup.okhttp3:okhttp"),
+        artifact("com.google.code.findbugs:jsr305"),
+        artifact("com.google.code.gson:gson"),
+    ],
+)
+
+bitdrift_kt_android_local_test(
+    name = "test",
+    associates = [
+        ":capture_logger_lib_kt",
+    ],
+    data = [
+        "//test/platform/jvm:capture",
+    ],
+    jvm_flags = [
+        "-Djava.library.path=test/platform/jvm",
+    ],
+    tags = [
+        "exclusive",
+    ],
+    deps = [
+        "//platform/jvm/capture:capture_logger_lib",
+        artifact("junit:junit"),
+        artifact("org.robolectric:robolectric"),
+        "@robolectric//bazel:android-all",
+        artifact("androidx.test:core"),
+        artifact("org.mockito:mockito-core"),
+        artifact("org.mockito:mockito-inline"),
+        artifact("com.nhaarman.mockitokotlin2:mockito-kotlin"),
+        artifact("com.squareup.okhttp3:mockwebserver"),
+        artifact("net.bytebuddy:byte-buddy"),
+    ],
+)

@@ -1,0 +1,21 @@
+[package]
+description  = "test swift crate"
+edition      = "2021"
+license-file = "LICENSE"
+name         = "test_swift_bridge"
+publish      = false
+version      = "1.0.0"
+
+[dependencies]
+bd-client-common          = { workspace = true }
+bd-key-value              = { workspace = true }
+bd-logger                 = { workspace = true }
+bd-proto                  = { workspace = true }
+bd-test-helpers           = { workspace = true }
+ctor                      = { workspace = true }
+objc-foundation.workspace = true
+objc.workspace            = true
+platform_test_helpers     = { path = "../../../../platform/test_helpers" }
+protobuf.workspace        = true
+swift_bridge              = { path = "../../../../platform/swift/source" }
+time.workspace            = true

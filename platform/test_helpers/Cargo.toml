@@ -1,0 +1,20 @@
+[package]
+description  = "platform test helpers crate"
+edition      = "2021"
+license-file = "LICENSE"
+name         = "platform_test_helpers"
+publish      = false
+version      = "1.0.0"
+
+[dependencies]
+anyhow.workspace           = true
+assert_matches             = "1.5.0"
+bd-api.workspace           = true
+bd-client-common.workspace = true
+bd-key-value.workspace     = true
+bd-logger.workspace        = true
+bd-proto.workspace         = true
+bd-runtime.workspace       = true
+bd-test-helpers.workspace  = true
+platform-shared            = { path = "../shared" }
+time.workspace             = true

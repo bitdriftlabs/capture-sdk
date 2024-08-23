@@ -1,0 +1,23 @@
+[package]
+description  = "test JNI crate"
+edition      = "2021"
+license-file = "LICENSE"
+name         = "test_jni"
+publish      = false
+version      = "1.0.0"
+
+[dependencies]
+anyhow                   = { workspace = true }
+assert_matches.workspace = true
+bd-client-common         = { workspace = true }
+bd-log                   = { workspace = true }
+bd-logger                = { workspace = true }
+bd-proto                 = { workspace = true }
+bd-test-helpers          = { workspace = true }
+capture                  = { path = "../../../platform/jvm" }
+chrono.workspace         = true
+ctor                     = { workspace = true }
+jni.workspace            = true
+platform-shared          = { path = "../../../platform/shared" }
+platform_test_helpers    = { path = "../../../platform/test_helpers" }
+time.workspace           = true

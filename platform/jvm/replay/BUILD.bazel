@@ -1,0 +1,36 @@
+load("@rules_jvm_external//:defs.bzl", "artifact")
+load("//bazel/android:build.bzl", "bitdrift_kt_android_library", "bitdrift_kt_android_local_test")
+
+# export proguard library rules
+exports_files(["consumer-rules.pro"])
+
+bitdrift_kt_android_library(
+    name = "lib",
+    srcs = glob([
+        "src/main/**/*.kt",
+    ]),
+    custom_package = "io.bitdrift.capture.replay",
+    plugins = ["//:jetpack_compose_compiler_plugin"],
+    require_javadocs = True,
+    visibility = ["//visibility:public"],
+    deps = [
+        "//platform/jvm/common:lib",
+        artifact("androidx.appcompat:appcompat"),
+        artifact("androidx.compose.ui:ui"),
+        artifact("org.jetbrains.kotlin:kotlin-stdlib"),
+        artifact("com.squareup.okhttp3:okhttp"),
+    ],
+)
+
+bitdrift_kt_android_local_test(
+    name = "test",
+    associates = [
+        ":lib_kt",
+    ],
+    deps = [
+        ":lib",
+        artifact("junit:junit"),
+        artifact("org.robolectric:robolectric"),
+        "@robolectric//bazel:android-all",
+    ],
+)

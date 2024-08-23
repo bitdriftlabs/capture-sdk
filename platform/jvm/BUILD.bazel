@@ -1,0 +1,66 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
+
+exports_files(["AndroidManifest.xml"])
+
+# JNI Implementation
+
+# This shared library is consumed by the jvm targets which produce a file located
+# at src/platform/jvm named either libcapture.so or libcapture.dylib depending on the platform.
+# This allows the JniLibrary to load this with the name "capture" when the library path is set
+# to src/platform/jvm.
+cc_binary(
+    name = "capture",
+    linkopts = [
+        "-lm",  # Required to avoid dlopen runtime failures unrelated to rust
+        "-lz",  # Link against system zlib library
+    ] + select({
+        "@platforms//os:android": ["-Wl,--retain-symbols-file=$(location :jni_symbols.lds)"],
+        "@platforms//os:linux": ["-Wl,--retain-symbols-file=$(location :jni_symbols.lds)"],
+        # The linker on macos doesn't support the same options or file formats as linux, so use a pattern match here (not availabile on linux).
+        # We could use another file which prefixes all the symbols with _, but this seems easier.
+        "@platforms//os:macos": [
+            "-Wl,-exported_symbol,_Java_io_bitdrift_capture_network*",
+            "-Wl,-exported_symbol,_Java_io_bitdrift_capture_CaptureJni*",
+            "-Wl,-exported_symbol,_Java_io_bitdrift_capture_Jni*",
+            "-Wl,-exported_symbol,_JNI_OnLoad",
+            "-Wl,-framework,Security",
+        ],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }) + select({
+        "//bazel:dbg_build": ["-Wl,--build-id"],
+        "//conditions:default": [],
+    }),
+    linkshared = True,
+    tags = [
+        "no-cache",
+        "no-remote",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "jni_symbols.lds",
+        ":capture_jni",
+    ],
+)
+
+# This is Rust JNI implementation. Most of the logic lives here.
+bitdrift_rust_library(
+    name = "capture_jni",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//platform/shared:platform-shared",
+    ],
+    alwayslink = True,
+)
+
+# Concatenate the proguard files from the capture and replay libraries
+genrule(
+    name = "proguard",
+    srcs = [
+        "//platform/jvm/capture:consumer-rules.pro",
+        "//platform/jvm/replay:consumer-rules.pro",
+    ],
+    outs = ["proguard.txt"],
+    cmd = "cat $(SRCS) > $@",
+    visibility = ["//visibility:public"],
+)
