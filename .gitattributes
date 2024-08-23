@@ -1,0 +1,4 @@
+Cargo.lock linguist-generated=true merge=binary
+Cargo.Bazel.lock linguist-generated=true merge=binary
+cargo-bazel-lock.json linguist-generated=true merge=binary
+

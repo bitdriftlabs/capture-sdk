@@ -1,0 +1,31 @@
+name: format_check
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+# Cancel in-progress CI jobs when a new commit is pushed to a PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  format_check:
+    runs-on: ubuntu-22.04
+    steps:
+      # --- Build the project for release
+
+      # Checkout repo to Github Actions runner
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: install formatters
+        run: ./ci/setup_linux_format.sh
+      - name: configure bazelrc
+        run: mkdir tmp/ && echo "build --config=ci" > tmp/ci-bazelrc
+      - name: test
+        run: PATH=./bin:./bin:$PATH make format
+      - name: check diff
+        run: git --no-pager diff && git diff --quiet
+      - name: Check license headers
+        run: ci/check_license.sh
+

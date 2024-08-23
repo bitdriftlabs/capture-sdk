@@ -1,0 +1,5 @@
+sh_binary(
+  name = "objcopy",
+  srcs = ["llvm-objcopy"],
+  visibility = ["//visibility:public"],
+)

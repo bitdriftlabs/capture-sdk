@@ -1,0 +1,32 @@
+flags:
+  --cpu=arm64-v8a
+    //bazel:android_aarch64
+
+  --cpu=armeabi-v7a
+    //bazel:android_armeabi
+
+  --cpu=x86
+    //bazel:android_x86
+
+  --cpu=x86_64
+    //bazel:android_x86_64
+
+  --cpu=darwin_x86_64
+  --apple_platform_type=macos
+    //bazel:macos_x86_64
+
+  --cpu=darwin_arm64
+  --apple_platform_type=macos
+    //bazel:macos_arm64
+
+  --cpu=ios_x86_64
+  --apple_platform_type=ios
+    //bazel:ios_x86_64
+
+  --cpu=ios_sim_arm64
+  --apple_platform_type=ios
+    //bazel:ios_sim_arm64
+
+  --cpu=ios_arm64
+  --apple_platform_type=ios
+    //bazel:ios_arm64

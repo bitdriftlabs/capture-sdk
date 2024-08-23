@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity"
+    >
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/session_id"
+        android:layout_margin="3dp"
+        />
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:text="Copy Session URL"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:layout_margin="3dp"
+            android:onClick="copySessionUrl"
+            />
+
+        <Button
+            android:text="Start New Session"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:layout_margin="3dp"
+            android:onClick="startNewSession"
+            />
+
+    </LinearLayout>
+
+    <Button
+        android:text="Generate Temporary Device Code"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAlignment="center"
+        android:layout_margin="3dp"
+        android:onClick="generateTmpDeviceCode"
+        />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/device_code"
+        android:layout_margin="3dp"
+        android:text="No Code Generated"
+        />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_margin="3dp"
+        >
+
+        <Spinner
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/spinner"
+            />
+
+        <Button
+            android:text="Log Message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/button"
+            android:onClick="runLogger"
+            />
+    </LinearLayout>
+
+    <Button
+        android:text="Make OkHttp Request"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/button2"
+        android:layout_margin="3dp"
+        android:onClick="makeOkHttpRequest"
+        />
+
+    <EditText
+        android:id="@+id/edit_text"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:text="EditText for Keyboard">
+    </EditText>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_margin="3dp">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Capture and Stream Replay Screen"
+            android:onClick="startReplayStream"/>
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/cop_replay_base64_btn"
+            android:text="Copy Replay Base64"
+            android:onClick="copyReplayBase64"
+            android:enabled="false"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        >
+
+        <Spinner
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/spinner2"
+            />
+
+        <Button
+            android:text="Force App Exit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/appExit"
+            android:onClick="forceAppExit"
+            />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:id="@+id/compose_container"
+        android:layout_margin="3dp"
+        >
+
+    </LinearLayout>
+
+</LinearLayout>

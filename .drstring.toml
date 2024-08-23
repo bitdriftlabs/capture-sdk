@@ -1,0 +1,9 @@
+align-after-colon = ["throws", "returns", "parameters"]
+column-limit      = 110
+empty-patterns    = true
+first-letter      = "lowercase"
+ignore-throws     = true
+include           = ["platform/swift/**.swift", "test/platform/swift/**.swift", "examples/swift/**.swift"]
+needs-separation  = ["description", "parameters"]
+parameter-style   = "separate"
+vertical-align    = true

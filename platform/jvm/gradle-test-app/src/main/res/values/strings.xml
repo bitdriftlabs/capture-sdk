@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Gradle Test App</string>
+    <string name="action_settings">Settings</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="first_fragment_label">First Fragment</string>
+    <string name="second_fragment_label">Second Fragment</string>
+    <string name="okhttp">Perform OkHttp Request</string>
+    <string name="graphql">Perform Apollo GraphQL Request</string>
+    <string name="compat_multiline_txt">Text Label on AppCompatTextView\nSecond Line on same Text Label</string>
+    <string name="log_msg">Log Message</string>
+    <string name="app_exit">Force App Exit</string>
+    <string name="navigate_second">Navigate to Compose Screen</string>
+    <string name="previous">Navigate Back</string>
+    <string name="log_level_label">Log Level</string>
+
+    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
+</resources>

@@ -1,0 +1,10 @@
+load("//bazel/android:build.bzl", "bitdrift_kt_android_library")
+
+bitdrift_kt_android_library(
+    name = "lib",
+    srcs = glob([
+        "src/main/**/*.kt",
+    ]),
+    custom_package = "io.bitdrift.capture.common",
+    visibility = ["//visibility:public"],
+)

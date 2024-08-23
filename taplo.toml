@@ -1,0 +1,12 @@
+exclude = ["bazel-*", "target/**", "proto/**"]
+
+[formatting]
+align_comments       = true
+align_entries        = true
+allowed_blank_lines  = 2
+array_auto_collapse  = true
+array_auto_expand    = true
+array_trailing_comma = true
+column_width         = 120
+reorder_keys         = true
+trailing_newline     = true

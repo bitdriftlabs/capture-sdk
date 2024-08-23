@@ -1,0 +1,98 @@
+name: Release to dl.bitdrift.io
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'The GitHub release to release publicly on dl.bitdrift.io, ex: 0.9.102'
+        required: true
+        type: string
+      emergency:
+        type: boolean
+        description: Ignore main branch requirement (SOC2 compliance)
+        required: true
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The GitHub release to release publicly on dl.bitdrift.io, ex: 0.9.102. It should *NOT* be prefixed with "v"'
+        required: true
+        type: string
+      emergency:
+        type: boolean
+        description: Ignore main branch requirement (SOC2 compliance)
+        required: true
+jobs:
+  release-ios:
+    name: Upload iOS artifacts to dl.bitdrift.io
+    environment: public
+    permissions:
+      id-token: write # required to use OIDC authentication
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: SOC2 Compliance
+      run: |
+        if [ "${{ github.event.inputs.emergency }}" == "true" ]; then
+          echo "Using emergency override"
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": ":cop: :rotating_light: <https://github.com/${{github.actor}}|${{github.actor}}> is trying to deploy <https://github.com/${{github.repository}}/commits/${{github.sha}}|this commit> from <https://github.com/${{github.repository}}|${{github.repository}}>. Please respond on this thread with the justification and approval."}}]}' \
+            '${{ secrets.DEPLOY_SLACK_WEBHOOK_AUDIT_BOT }}'
+          exit 0
+        fi
+        if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+          echo "Only main branch may be released to prod"
+          echo "Use emergency mode if you must deploy from another branch"
+          exit 1
+        fi
+    - name: Setup AWS credentials
+      uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
+      with:
+        role-to-assume: arn:aws:iam::750483288132:role/terraform-bitdriftlabs-capture-sdk-oidc
+        aws-region: us-east-1
+    - name: Download GH Release iOS artifacts
+      run: gh release download "v$VERSION" -p 'Capture*.ios.zip'
+      env:
+        VERSION: ${{ inputs.version }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload iOS Artifacts to aws bucket
+      run: ./ci/capture_ios_release.sh "$VERSION"
+      env:
+        VERSION: ${{ inputs.version }}
+  release-android:
+    name: Upload Android artifacts to dl.bitdrift.io
+    environment: public
+    permissions:
+      id-token: write # required to use OIDC authentication (set up aws credentials)
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: SOC2 Compliance
+      run: |
+        if [ "${{ github.event.inputs.emergency }}" == "true" ]; then
+          echo "Using emergency override"
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": ":cop: :rotating_light: <https://github.com/${{github.actor}}|${{github.actor}}> is trying to deploy <https://github.com/${{github.repository}}/commits/${{github.sha}}|this commit> from <https://github.com/${{github.repository}}|${{github.repository}}>. Please respond on this thread with the justification and approval."}}]}' \
+            '${{ secrets.DEPLOY_SLACK_WEBHOOK_AUDIT_BOT }}'
+          exit 0
+        fi
+        if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+          echo "Only main branch may be released to prod"
+          echo "Use emergency mode if you must deploy from another branch"
+          exit 1
+        fi
+    - name: Setup AWS credentials
+      uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
+      with:
+        role-to-assume: arn:aws:iam::750483288132:role/terraform-bitdriftlabs-capture-sdk-oidc
+        aws-region: us-east-1
+    - name: Download GH Release Android artifacts
+      run: |
+        gh release download "v$VERSION" -p 'Capture*.android.zip'
+        gh release download "v$VERSION" -p 'capture-timber*.android.zip'
+      env:
+        VERSION: ${{ inputs.version }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload Android Artifacts to aws bucket
+      run: ./ci/capture_android_release.sh ${{ inputs.version }} "Capture-${{ inputs.version }}.android.zip" "capture-timber-${{ inputs.version }}.android.zip"
+

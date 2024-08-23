@@ -1,0 +1,14 @@
+complexity:
+  active: false
+style:
+  MaxLineLength:
+    maxLineLength: 140
+  ReturnCount:
+    active: false
+  MagicNumber:
+    active: false
+  ForbiddenComment:
+    active: false
+exceptions:
+  TooGenericExceptionCaught:
+    active: false

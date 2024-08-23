@@ -1,0 +1,9 @@
+comments:
+  OutdatedDocumentation:
+    active: true
+  UndocumentedPublicProperty:
+    active: true
+  UndocumentedPublicFunction:
+    active: true
+  UndocumentedPublicClass:
+    active: true

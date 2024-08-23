@@ -1,0 +1,9 @@
+[package]
+edition      = "2021"
+license-file = "LICENSE"
+name         = "pom_checker"
+publish      = false
+version      = "0.1.0"
+
+[dependencies]
+simple-xml = "0.1.10"

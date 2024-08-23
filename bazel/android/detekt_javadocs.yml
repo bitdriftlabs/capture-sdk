@@ -1,0 +1,7 @@
+comments:
+  UndocumentedPublicProperty:
+    active: true
+  UndocumentedPublicFunction:
+    active: true
+  UndocumentedPublicClass:
+    active: true

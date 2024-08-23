@@ -1,0 +1,95 @@
+// capture-sdk - bitdrift's client SDK
+// Copyright Bitdrift, Inc. All rights reserved.
+//
+// Use of this source code is governed by a source available license that can be found in the
+// LICENSE file or at:
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+
+package io.bitdrift.capture.network
+
+import io.bitdrift.capture.CaptureJniLibrary
+import io.bitdrift.capture.InternalFieldsMap
+import io.bitdrift.capture.events.span.SpanField
+import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.toFields
+
+/**
+ * Class that encapsulates the information about the HTTP response.
+ * `request`, `response`, and `durationMs` parameters are required; the rest are optional.
+ *
+ * While response and request logs are logged separately, they are interconnected, and every
+ * response log contains all of the fields of the corresponding request log for matching purposes.
+ * To ensure key field uniqueness, the names of request log fields attached to the response log are
+ * prefixed with the "_request." string, so the field "query" from the request log becomes "_start.query" in
+ * the response log.
+ *
+ * `Host`, `path`, and `query` attributes captured by the request log are shared with the response log, with
+ * an option to override them by providing these attributes in the `HTTPResponse`. Refer to `HTTPResponse`
+ * for more details.
+ */
+data class HttpResponseInfo @JvmOverloads constructor(
+    private val request: HttpRequestInfo,
+    private val response: HttpResponse,
+    private val durationMs: Long,
+    private var metrics: HttpRequestMetrics? = null,
+    private val extraFields: Map<String, String> = mapOf(),
+) {
+    internal val name: String = "HTTPResponse"
+
+    // Lazy since the creation of the `HTTPResponseInfo` can happen before the logger is initialized
+    // and trying to call a native `CaptureJniLibrary.normalizeUrlPath` method before the `Capture`
+    // library is loaded leads to unsatisfied linking error.
+    internal val fields: InternalFieldsMap by lazy {
+        val fields = buildMap {
+            put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_END))
+            put(SpanField.Key.DURATION, FieldValue.StringField(durationMs.toString()))
+            put(SpanField.Key.RESULT, FieldValue.StringField(response.result.name.lowercase()))
+            putOptional("_status_code", response.statusCode)
+            putOptional("_error_type", response.error) { it::javaClass.get().simpleName }
+            putOptional("_error_message", response.error) { it.message.orEmpty() }
+            putOptional(HttpFieldKey.HOST, response.host)
+            putOptional(HttpFieldKey.PATH, response.path?.value)
+            putOptional(HttpFieldKey.QUERY, response.query)
+
+            response.path?.let {
+                val requestPathTemplate = if (request.path?.value == it.value) {
+                    // If the path between request and response did not change and an explicit path
+                    // template was provided as part of a request use it as path template on a response.
+                    request.path.template
+                } else {
+                    null
+                }
+
+                @Suppress("SwallowedException")
+                val normalized: String? = requestPathTemplate?.let { it }
+                    ?: it.template?.let { it }
+                    ?: try {
+                        CaptureJniLibrary.normalizeUrlPath(it.value)
+                    } catch (e: Throwable) {
+                        null
+                    }
+
+                putOptional(HttpFieldKey.PATH_TEMPLATE, normalized)
+            }
+
+            metrics?.let {
+                put("_request_body_bytes_sent_count", FieldValue.StringField(it.requestBodyBytesSentCount.toString()))
+                put("_response_body_bytes_received_count", FieldValue.StringField(it.responseBodyBytesReceivedCount.toString()))
+                put("_request_headers_bytes_count", FieldValue.StringField(it.requestHeadersBytesCount.toString()))
+                put("_response_headers_bytes_count", FieldValue.StringField(it.responseHeadersBytesCount.toString()))
+                putOptional("_dns_resolution_duration_ms", it.dnsResolutionDurationMs)
+            }
+        }
+
+        extraFields.toFields() + request.commonFields + fields
+    }
+
+    // Lazy since the creation of the `HTTPResponseInfo` can happen before the logger is initialized
+    // and trying to call a native `CaptureJniLibrary.normalizeUrlPath` method before the `Capture`
+    // library is loaded leads to unsatisfied linking error.
+    internal val matchingFields: InternalFieldsMap by lazy {
+        request.fields.mapKeys { "_request.${it.key}" } +
+            request.matchingFields.mapKeys { "_request.${it.key}" } +
+            response.headers?.let { HTTPHeaders.normalizeHeaders(it) }.toFields()
+    }
+}

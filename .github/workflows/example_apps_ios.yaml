@@ -1,0 +1,47 @@
+name: Build iOS example apps
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: '[Optional] Commit SHA1, branch or tag to build. The latest SHA1 on a given branch is used if no value is provided.'
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      sha:
+        description: '[Optional] Commit SHA1, branch or tag to build. The latest SHA1 on a given branch is used if no value is provided.'
+        required: false
+        type: string
+
+jobs:
+  print_arguments:
+    name: Print arguments
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print entered "sha"
+        run: echo "$SHA"
+    env:
+      SHA: ${{ inputs.sha }}
+
+  build:
+    name: Build & upload
+    permissions:
+      contents: write
+    runs-on: macos-14
+    steps:
+      # Checkout repo to Github Actions runner
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: ./ci/mac_ci_setup.sh
+      - name: Build iOS example apps
+        run: ./ci/prepare_example_apps_ios.sh
+      - name: Upload iOS example apps to GH
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS Example Apps
+          path: dist/example-apps.ios.zip
+          if-no-files-found: error

@@ -1,0 +1,63 @@
+#!/bin/bash
+
+set -euo pipefail
+
+readonly bazelisk_version="1.19.0"
+
+if [[ $OSTYPE == darwin* ]]; then
+  readonly bazel_os="darwin"
+else
+  readonly bazel_os="linux"
+fi
+
+readonly raw_arch="$(uname -m)"
+if [[ "$raw_arch" == "aarch64" || "$raw_arch" == "arm64" ]]; then
+  readonly bazel_arch="arm64"
+else
+  readonly bazel_arch="amd64"
+fi
+
+bazel_platform="$bazel_os-$bazel_arch"
+case "$bazel_platform" in
+  darwin-arm64)
+    readonly bazel_version_sha="69fa21cd2ccffc2f0970c21aa3615484ba89e3553ecce1233a9d8ad9570d170e"
+    ;;
+  darwin-amd64)
+    readonly bazel_version_sha="f2ba5f721a995b54bab68c6b76a340719888aa740310e634771086b6d1528ecd"
+    ;;
+  linux-arm64)
+    readonly bazel_version_sha="861a16ba9979613e70bd3d2f9d9ab5e3b59fe79471c5753acdc9c431ab6c9d94"
+    ;;
+  linux-amd64)
+    readonly bazel_version_sha="d28b588ac0916abd6bf02defb5433f6eddf7cba35ffa808eabb65a44aab226f7"
+    ;;
+
+  *)
+    echo "Unsupported platform $OSTYPE $raw_arch" >&2
+    exit 1
+esac
+
+readonly bazel_version_url="https://github.com/bazelbuild/bazelisk/releases/download/v$bazelisk_version/bazelisk-$bazel_platform"
+script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly bazelisk="$script_root/tmp/bazel/versions/bazelisk-$bazelisk_version-$bazel_platform"
+
+if [[ ! -x "$bazelisk" ]]; then
+  echo "Installing bazelisk..." >&2
+  mkdir -p "$(dirname "$bazelisk")"
+
+  download_bazelisk() {
+    curl --fail -L --retry 5 --retry-connrefused --silent --progress-bar \
+      --output "$bazelisk" "$bazel_version_url"
+  }
+
+  download_bazelisk || download_bazelisk
+  if echo "$bazel_version_sha  $bazelisk" | shasum --check --status; then
+    chmod +x "$bazelisk"
+  else
+    echo "Bazelisk sha mismatch" >&2
+    rm -f "$bazelisk"
+    exit 1
+  fi
+fi
+
+exec ./tools/android_sdk_wrapper.sh "$bazelisk" "$@"

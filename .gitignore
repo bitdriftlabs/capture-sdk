@@ -1,0 +1,30 @@
+# IDEA
+.aswb
+.idea
+.ijwb
+
+# Bazel
+/bazel-*
+
+compile_commands.json
+.DS_Store
+/dist
+!/dist/*.py
+!/dist/BUILD
+!/dist/file/BUILD
+!/dist/WORKSPACE
+*.egg-info/
+/external
+/tmp
+/target
+*.xcodeproj
+rust-project.json
+.cache
+
+# Profiling
+/buffers
+/config.pb
+/flame.svg
+/perf.data
+/perf.data.old
+vendor
