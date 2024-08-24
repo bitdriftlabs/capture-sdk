@@ -7,22 +7,24 @@ plugins {
     // Publish
     alias(libs.plugins.dokka) // Must be applied here for publish plugin.
     alias(libs.plugins.maven.publish)
+
+    id("dependency-license-config")
 }
 
 group = "io.bitdrift"
 
 dependencies {
-    api(project(":replay"))
+    api(project(path = ":replay", configuration = "default"))
     api(libs.androidx.lifecycle.common)
     api(libs.androidx.lifecycle.process)
     api(libs.kotlin.result.jvm)
     api(libs.okhttp)
 
+    implementation(project(path = ":common", configuration = "default"))
     implementation(libs.androidx.core)
     implementation(libs.androidx.startup.runtime)
     implementation(libs.jsr305)
     implementation(libs.gson)
-    implementation("androidx.tracing:tracing-ktx:1.2.0")
 
     testImplementation(libs.junit)
     testImplementation(libs.assertj.core)

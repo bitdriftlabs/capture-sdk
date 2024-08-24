@@ -1,11 +1,12 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+
+    id("dependency-license-config")
 }
 
 dependencies {
-    api(project(":common"))
-
+    implementation(project(":common"))
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.ui)
     implementation(libs.okhttp)

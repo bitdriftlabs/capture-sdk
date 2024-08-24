@@ -6,6 +6,8 @@ plugins {
     // Publish
     alias(libs.plugins.dokka) // Must be applied here for publish plugin.
     alias(libs.plugins.maven.publish)
+
+    id("dependency-license-config")
 }
 
 group = "io.bitdrift"

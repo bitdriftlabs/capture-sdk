@@ -1,0 +1,23 @@
+{
+  "allowedLicenses": [
+    {
+      "moduleLicense": "Apache-2.0"
+    },
+    {
+      "moduleLicense": "MIT"
+    },
+    {
+      "moduleLicense": "ISC License"
+    },
+    {
+      "moduleLicense": null,
+      "moduleVersion": "unspecified",
+      "moduleName": "capture-sdk:common"
+    },
+    {
+      "moduleLicense": null,
+      "moduleVersion": "unspecified",
+      "moduleName": "capture-sdk:replay"
+    }
+  ]
+}

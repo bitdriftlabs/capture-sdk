@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.detekt)
+
+    id("dependency-license-config")
 }
 
 group = "io.bitdrift"
