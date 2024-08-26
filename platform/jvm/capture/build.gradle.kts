@@ -14,13 +14,13 @@ plugins {
 group = "io.bitdrift"
 
 dependencies {
-    api(project(path = ":replay", configuration = "default"))
+    api(project(":replay"))
     api(libs.androidx.lifecycle.common)
     api(libs.androidx.lifecycle.process)
     api(libs.kotlin.result.jvm)
     api(libs.okhttp)
 
-    implementation(project(path = ":common", configuration = "default"))
+    implementation(project(":common"))
     implementation(libs.androidx.core)
     implementation(libs.androidx.startup.runtime)
     implementation(libs.jsr305)

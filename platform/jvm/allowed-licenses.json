@@ -7,6 +7,9 @@
       "moduleLicense": "MIT"
     },
     {
+      "moduleLicense": "ISC License",
+    },
+    {
       "moduleLicense": null,
       "moduleVersion": "unspecified",
       "moduleName": "capture-sdk:common"
