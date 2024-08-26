@@ -25,6 +25,7 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
 
+    androidTestImplementation(project(":common"))
     androidTestImplementation("com.google.truth:truth:1.1.4")
     androidTestImplementation("androidx.test:core:1.5.0")
     androidTestImplementation("androidx.test:core-ktx:1.5.0")
