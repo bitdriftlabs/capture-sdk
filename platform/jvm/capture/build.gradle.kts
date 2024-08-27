@@ -37,6 +37,8 @@ dependencies {
 }
 
 android {
+    namespace = "io.bitdrift.capture"
+
     compileSdk = 34
     buildToolsVersion = "34.0.0"
 
@@ -58,6 +60,8 @@ android {
         languageVersion = "1.9"
     }
 
+    // TODO(murki): Move this common configuration to a reusable buildSrc plugin once it's fully supported for kotlin DSL
+    //  see: https://github.com/gradle/kotlin-dsl-samples/issues/1287
     lint {
         quiet = false
         ignoreWarnings = false
@@ -67,8 +71,6 @@ android {
         checkDependencies = true
         checkReleaseBuilds = true
     }
-
-    namespace = "io.bitdrift.capture"
 
     ndkVersion = "27.0.12077973"
 }

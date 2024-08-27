@@ -1,3 +1,5 @@
+import com.android.build.gradle.internal.tasks.factory.dependsOn
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.apollo.graphql)
@@ -63,9 +65,9 @@ android {
     }
 
     // Run lint checks on every build
-    applicationVariants.all {
-        val lintTask = tasks["lint${name.capitalize()}"]
-        assembleProvider.get().dependsOn.add(lintTask)
+    applicationVariants.configureEach {
+        val lintTask = tasks.named("lint${name.replaceFirstChar(Char::titlecase)}")
+        assembleProvider.dependsOn(lintTask)
     }
     lint {
         checkDependencies = true
