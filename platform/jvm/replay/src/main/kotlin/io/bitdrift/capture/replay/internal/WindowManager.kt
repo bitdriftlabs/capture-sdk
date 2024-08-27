@@ -36,7 +36,7 @@ internal class WindowManager(private val errorHandler: ErrorHandler) {
     /**
      * Find all DecorViews from [android.view.WindowManagerGlobal]
      */
-    @Suppress("KDocUnresolvedReference")
+    @Suppress("KDocUnresolvedReference", "SwallowedException")
     fun findRootViews(): List<View> {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && tryWindowInspector) {
             try {
