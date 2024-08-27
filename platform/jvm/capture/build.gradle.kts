@@ -1,7 +1,9 @@
 plugins {
+    // The rust android gradle plugin needs to go first
+    //  see: https://github.com/mozilla/rust-android-gradle/issues/147
+    alias(libs.plugins.rust.android)
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.rust.android)
     alias(libs.plugins.detekt)
 
     // Publish
@@ -79,8 +81,8 @@ android {
 cargo {
     libname = "capture"
     extraCargoBuildArguments = listOf("--package", "capture")
-    module  = "../.."
-    targetDirectory =  "../../../target"
+    module = "../.."
+    targetDirectory = "../../../target"
     targets = listOf("arm64", "x86_64")
     pythonCommand = "python3"
 }

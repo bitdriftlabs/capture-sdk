@@ -1,5 +1,3 @@
-import com.android.build.gradle.internal.tasks.factory.dependsOn
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.apollo.graphql)
@@ -18,7 +16,7 @@ dependencies {
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
     implementation("com.apollographql.apollo3:apollo-runtime:3.8.3")
     implementation("com.apollographql.apollo3:apollo-runtime:3.8.3")
-    implementation ("com.jakewharton.timber:timber:5.0.1")
+    implementation("com.jakewharton.timber:timber:5.0.1")
     implementation("com.google.android.material:material:1.8.0")
     implementation(libs.androidx.material3.android)
 
@@ -41,7 +39,7 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.4.0")
 }
 
-android {   
+android {
     namespace = "io.bitdrift.gradletestapp"
     compileSdk = 34
 
@@ -67,7 +65,7 @@ android {
     // Run lint checks on every build
     applicationVariants.configureEach {
         val lintTask = tasks.named("lint${name.replaceFirstChar(Char::titlecase)}")
-        assembleProvider.dependsOn(lintTask)
+        assembleProvider.get().dependsOn(lintTask)
     }
     lint {
         checkDependencies = true

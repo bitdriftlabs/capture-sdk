@@ -1,6 +1,6 @@
 [versions]
 androidBenchkmarkPlugin = "1.2.4"
-androidGradlePlugin = "8.3.2"
+androidGradlePlugin = "8.2.2" # have to pin to this version due to 8.3.x breaking our lint https://issuetracker.google.com/issues/332755363
 apolloGraphqlPlugin = "3.8.3"
 appcompat = "1.5.1"
 assertjCore = "3.22.0"
@@ -57,7 +57,7 @@ android-benchmark = { id = "androidx.benchmark", version.ref = "androidBenchkmar
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
 apollo-graphql = { id = "com.apollographql.apollo3", version.ref = "apolloGraphqlPlugin" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detektPlugin" }
-dokka = { id = "org.jetbrains.dokka", version.ref = "dokkaPlugin"}
-maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublishPlugin"}
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokkaPlugin" }
+maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublishPlugin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinAndroidPlugin" }
-rust-android = { id = "org.mozilla.rust-android-gradle.rust-android", version.ref = "rustAndroidPlugin"}
+rust-android = { id = "org.mozilla.rust-android-gradle.rust-android", version.ref = "rustAndroidPlugin" }
