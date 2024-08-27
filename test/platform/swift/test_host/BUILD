@@ -23,6 +23,6 @@ ios_application(
 
 swift_library(
     name = "ios_main",
-    srcs = glob(["Sources/*.swift"]),
+    srcs = glob(["sources/*.swift"]),
     tags = ["manual"],
 )
