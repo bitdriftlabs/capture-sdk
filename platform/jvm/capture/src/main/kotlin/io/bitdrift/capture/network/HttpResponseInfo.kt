@@ -97,8 +97,6 @@ data class HttpResponseInfo @JvmOverloads constructor(
                     putOptional("_dns_resolution_duration_ms", it.dnsResolutionDurationMs)
                 }
             }
-            // If the path between request and response did not change and an explicit path
-            // template was provided as part of a request use it as path template on a response.
             extraFields.toFields() + request.commonFields + fields
         }
 
