@@ -97,7 +97,7 @@ Set up the environment, open Android Studio.
 To run only the JVM tests from command line with bazel use:
 `./bazelw test //platform/jvm/...`
 
-- If you get an error trying to run tests from Android Sutdio, you need to install LLVM
+- If you get an error trying to run tests from Android Studio, you need to install LLVM
 `brew install llvm`
 
 and add it to your path, e.g.
