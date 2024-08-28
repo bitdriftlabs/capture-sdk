@@ -37,6 +37,9 @@ data class HttpResponseInfo @JvmOverloads constructor(
 
     internal val fields: InternalFieldsMap =
         run {
+            // Collect out-of-the-box fields specific to HTTPResponse logs. The list consists of
+            // HTTP specific fields such as host, path, or query and HTTP request performance
+            // metrics such as DNS resolution time.
             val fields = buildMap {
                 this.put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_END))
                 this.put(
@@ -70,11 +73,10 @@ data class HttpResponseInfo @JvmOverloads constructor(
                             null
                         }
 
-                    @Suppress("SwallowedException")
-                    val normalized: String? = requestPathTemplate?.let { it }
-                        ?: it.template?.let { it }
-
-                    putOptional(HttpFieldKey.PATH_TEMPLATE, normalized)
+                    putOptional(
+                        HttpFieldKey.PATH_TEMPLATE,
+                        requestPathTemplate?.let { it } ?: it.template?.let { it },
+                    )
                 }
 
                 metrics?.let<HttpRequestMetrics, Unit> {
@@ -97,6 +99,9 @@ data class HttpResponseInfo @JvmOverloads constructor(
                     putOptional("_dns_resolution_duration_ms", it.dnsResolutionDurationMs)
                 }
             }
+
+            // Combine fields in the increasing order of their priority as the latter fields
+            // override the former ones in the case of field name conflicts.
             extraFields.toFields() + request.commonFields + fields
         }
 
