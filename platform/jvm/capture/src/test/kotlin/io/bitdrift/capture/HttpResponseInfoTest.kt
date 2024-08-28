@@ -17,9 +17,6 @@ import org.junit.Test
 import java.util.UUID
 
 class HttpResponseInfoTest {
-    init {
-        CaptureJniLibrary.load()
-    }
 
     @Test
     fun test_response_template_override() {
@@ -67,7 +64,7 @@ class HttpResponseInfoTest {
     }
 
     @Test
-    fun test_http_request_explicit_path_template() {
+    fun testHTTPRequestExplicitPathTemplate() {
         val spanId = UUID.randomUUID()
         val requestInfo = HttpRequestInfo(
             host = "foo.com",
@@ -129,7 +126,6 @@ class HttpResponseInfoTest {
                 "_host" to "api.bitdrift.io",
                 "_method" to "GET",
                 "_path" to "/my_path/12345",
-                "_path_template" to "/my_path/<id>",
                 "_query" to "my=query",
                 "_span_id" to spanId.toString(),
                 "_span_name" to "_http",
@@ -156,7 +152,6 @@ class HttpResponseInfoTest {
                 "_host" to "foo.com",
                 "_method" to "GET",
                 "_path" to "/foo_path/12345",
-                "_path_template" to "/foo_path/<id>",
                 "_query" to "foo_query",
                 "_span_id" to spanId.toString(),
                 "_span_name" to "_http",
@@ -175,7 +170,6 @@ class HttpResponseInfoTest {
                 "_request._host" to "api.bitdrift.io",
                 "_request._method" to "GET",
                 "_request._path" to "/my_path/12345",
-                "_request._path_template" to "/my_path/<id>",
                 "_request._span_id" to spanId.toString(),
                 "_request._span_name" to "_http",
                 "_request._span_type" to "start",

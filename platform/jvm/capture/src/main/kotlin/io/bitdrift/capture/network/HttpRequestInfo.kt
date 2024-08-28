@@ -35,16 +35,17 @@ data class HttpRequestInfo @JvmOverloads constructor(
 ) {
     internal val name: String = "HTTPRequest"
 
-    internal val fields: InternalFieldsMap =
+    internal val fields: InternalFieldsMap by lazy {
         // Do not put body bytes count as a common field since response log has a more accurate
         // measurement of request' body count anyway.
         buildMap {
             putAll(commonFields)
             putOptional("_request_body_bytes_expected_to_send_count", bytesExpectedToSendCount)
         }
+    }
 
     internal val commonFields: InternalFieldsMap by lazy {
-        val fields = buildMap {
+        extraFields.toFields() + buildMap {
             put(SpanField.Key.ID, FieldValue.StringField(spanId.toString()))
             put(SpanField.Key.NAME, FieldValue.StringField("_http"))
             put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_START))
@@ -58,8 +59,6 @@ data class HttpRequestInfo @JvmOverloads constructor(
                 }
             }
         }
-
-        extraFields.toFields() + fields
     }
 
     internal val matchingFields: InternalFieldsMap = headers?.let { HTTPHeaders.normalizeHeaders(it) }.toFields()
