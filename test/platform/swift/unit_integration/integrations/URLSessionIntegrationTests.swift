@@ -554,7 +554,6 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_host": "www.google.com",
                 "_method": "GET",
                 "_path": "/search",
-                "_path_template": "/search",
                 "_query": "q=test",
             ],
             requestInfoFields
@@ -576,7 +575,6 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_host": "www.google.com",
                 "_method": "GET",
                 "_path": "/search",
-                "_path_template": "/search",
                 "_query": "q=test",
                 "_result": "success",
                 "_status_code": "200",
@@ -623,7 +621,6 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_host": "www.google.com",
                 "_method": "GET",
                 "_path": "/search",
-                "_path_template": "/search",
                 "_query": "q=test",
             ],
             requestInfoFields
@@ -645,7 +642,6 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_host": "www.google.com",
                 "_method": "GET",
                 "_path": "/search",
-                "_path_template": "/search",
                 "_query": "q=test",
                 "_result": "canceled",
             ],

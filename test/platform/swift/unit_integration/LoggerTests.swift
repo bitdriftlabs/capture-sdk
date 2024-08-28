@@ -210,7 +210,6 @@ final class LoggerTests: XCTestCase {
             "_host": "api.bitdrift.io",
             "_method": "POST",
             "_path": "/ping/12345",
-            "_path_template": "/ping/<id>",
             "_span_id": requestInfo.spanID,
             "_query": "bar",
             "foo": "bar",
@@ -262,7 +261,6 @@ final class LoggerTests: XCTestCase {
             "_host": "api.bitdrift.io",
             "_method": "POST",
             "_path": "/ping/12345",
-            "_path_template": "/ping/<id>",
             "_result": "success",
             "_span_id": requestInfo.spanID,
             "_status_code": "200",
@@ -274,7 +272,6 @@ final class LoggerTests: XCTestCase {
             "_request._host": "api.bitdrift.io",
             "_request._method": "POST",
             "_request._path": "/ping/12345",
-            "_request._path_template": "/ping/<id>",
             "_request._span_id": requestInfo.spanID,
             "_request._query": "bar",
         ], try log.matchingFields?.toDictionary())

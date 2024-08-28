@@ -7,17 +7,14 @@
 
 pub mod error;
 pub mod metadata;
-pub mod url_normalizer;
 
 use bd_client_common::error::handle_unexpected;
 use bd_runtime::runtime::Snapshot;
 use std::future::Future;
 use std::ops::Deref;
 use std::pin::Pin;
-use std::sync::{Arc, LazyLock};
-use url_normalizer::URLNormalizer;
+use std::sync::Arc;
 
-static URL_NORMALIZER: LazyLock<URLNormalizer> = LazyLock::new(URLNormalizer::default);
 
 /// This is the logger ID that is passed to the platform code. It is a typed wrapper around an i64
 /// that encodes the pointer to the `LoggerHolder` object.
@@ -167,9 +164,4 @@ impl<'a> From<LoggerId<'a>> for i64 {
   fn from(logger: LoggerId<'a>) -> Self {
     logger.value
   }
-}
-
-#[must_use]
-pub fn normalize_url_path(url_path: &str) -> String {
-  URL_NORMALIZER.normalize(url_path)
 }
