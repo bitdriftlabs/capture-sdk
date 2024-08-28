@@ -26,9 +26,18 @@ brew install --cask zulu-jdk8 zulu-jdk11 zulu-jdk-17
 
 To install without Homebrew you can follow these instructions: [https://docs.azul.com/core/zulu-openjdk/install/macos](https://docs.azul.com/core/zulu-openjdk/install/macos)
 
-### 2. Import hello-world project into Android Studio
+### 2. Install Rust
 
-To use Android Studio:
+Install it locally using [their installation script](https://www.rust-lang.org/tools/install)
+
+`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
+make sure to add it to your path, e.g.
+
+`echo 'export PATH="~/.cargo/bin:$PATH"' >> ~/.zshrc`
+
+### 3. Import demo app project into Android Studio
+
 - Install [Android Studio](https://developer.android.com/studio/archive/). The latest verified-to-work version is Android Studio Jellyfish | 2023.3.1 Patch 1. When asked to choose between default or custom installation selecting standard works fine.
 
 #### Opening Loop SDK project in Android Studio with Gradle
@@ -41,7 +50,7 @@ Setup the environment, open Android Studio.
 
         ![](../docs/images/android_local_gradle_error.png)
 
-    - Go to Tools > SDK Manager > Android SDK > SDK Tools. Make sure that "Show Package Details" is checked and install the NDK version that is required by the project (currently `25.2.9519653`).
+    - Go to Tools > SDK Manager > Android SDK > SDK Tools. Make sure that "Show Package Details" is checked and install the NDK version that is required by the project (currently `27.0.12077973`).
 
         ![](../docs/images/android_local_gradle_ndk.png)
 
@@ -57,8 +66,6 @@ Setup the environment, open Android Studio.
             rustup target add aarch64-linux-android
             rustup target add x86_64-linux-android
         ```
-
-
 
 #### Opening Loop SDK project in Android Studio with Bazel
 
@@ -86,6 +93,17 @@ Set up the environment, open Android Studio.
 
 ![](../docs/images/android_local_dev_sync.png)
 
+#### Run tests
+To run only the JVM tests from command line with bazel use:
+`./bazelw test //platform/jvm/...`
+
+- If you get an error trying to run tests from Android Sutdio, you need to install LLVM
+`brew install llvm`
+
+and add it to your path, e.g.
+
+`echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.zshrc`
+
 #### Entering debugging session
 
 With the project ready, you can now start debugging with Android Studio.
@@ -93,11 +111,3 @@ With the project ready, you can now start debugging with Android Studio.
 1. From Android Studio select one of the available configurations. Note: If you do not see any configuration available either restart Android Studio or click "Add configuration" and select a desired configuration.
 1. Hit the debug icon.
 1. Optionally you could create symbolic breakpoints before running by going to the Debugger tab.
-
-### 3. Install LLVM so you can run unit tests in Android Studio
-
-`brew install llvm`
-
-and add it to your path, e.g.
-
-`echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.zshrc`
