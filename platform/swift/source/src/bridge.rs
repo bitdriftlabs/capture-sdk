@@ -34,7 +34,7 @@ use bd_noop_network::NoopNetwork;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use platform_shared::metadata::Mobile;
-use platform_shared::{normalize_url_path, LoggerHolder, LoggerId};
+use platform_shared::{LoggerHolder, LoggerId};
 use std::borrow::{Borrow, Cow};
 use std::boxed::Box;
 use std::collections::HashMap;
@@ -798,14 +798,6 @@ extern "C" fn capture_flush(logger_id: LoggerId<'_>, blocking: bool) {
     },
     "swift flush state",
   );
-}
-
-#[no_mangle]
-extern "C" fn capture_normalize_url_path(url_path: *const c_char) -> *const Object {
-  let url_path = unsafe { CStr::from_ptr(url_path) }.to_str().unwrap();
-
-  let normalized_url_path = normalize_url_path(url_path);
-  make_nsstring(&normalized_url_path).autorelease()
 }
 
 mod flags {

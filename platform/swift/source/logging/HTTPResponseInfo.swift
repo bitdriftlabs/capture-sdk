@@ -62,7 +62,7 @@ public struct HTTPResponseInfo {
     ///
     /// - returns: A fields map.
     func toFields() -> Fields {
-        // swiftlint:disable:previous cyclomatic_complexity function_body_length
+        // swiftlint:disable:previous cyclomatic_complexity
         var fields = self.requestInfo.toCommonFields()
         fields["_duration_ms"] = String(self.duration.toMilliseconds())
 
@@ -81,8 +81,7 @@ public struct HTTPResponseInfo {
                 // provided as part of a request use it as path template on a response.
                 requestPathTemplate = self.requestInfo.path?.template
             }
-            fields[HTTPFieldKey.pathTemplate.rawValue] =
-                requestPathTemplate ?? path.template ?? capture_normalize_url_path(path.value)
+            fields[HTTPFieldKey.pathTemplate.rawValue] = requestPathTemplate ?? path.template
         }
 
         if let query = self.response.query {

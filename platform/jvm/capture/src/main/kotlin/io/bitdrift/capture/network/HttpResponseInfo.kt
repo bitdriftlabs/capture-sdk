@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.network
 
-import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.InternalFieldsMap
 import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.FieldValue
@@ -36,60 +35,75 @@ data class HttpResponseInfo @JvmOverloads constructor(
 ) {
     internal val name: String = "HTTPResponse"
 
-    // Lazy since the creation of the `HTTPResponseInfo` can happen before the logger is initialized
-    // and trying to call a native `CaptureJniLibrary.normalizeUrlPath` method before the `Capture`
-    // library is loaded leads to unsatisfied linking error.
-    internal val fields: InternalFieldsMap by lazy {
-        val fields = buildMap {
-            put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_END))
-            put(SpanField.Key.DURATION, FieldValue.StringField(durationMs.toString()))
-            put(SpanField.Key.RESULT, FieldValue.StringField(response.result.name.lowercase()))
-            putOptional("_status_code", response.statusCode)
-            putOptional("_error_type", response.error) { it::javaClass.get().simpleName }
-            putOptional("_error_message", response.error) { it.message.orEmpty() }
-            putOptional(HttpFieldKey.HOST, response.host)
-            putOptional(HttpFieldKey.PATH, response.path?.value)
-            putOptional(HttpFieldKey.QUERY, response.query)
+    internal val fields: InternalFieldsMap =
+        run {
+            val fields = buildMap {
+                this.put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_END))
+                this.put(
+                    SpanField.Key.DURATION,
+                    FieldValue.StringField(durationMs.toString()),
+                )
+                this.put(
+                    SpanField.Key.RESULT,
+                    FieldValue.StringField(response.result.name.lowercase()),
+                )
+                putOptional("_status_code", response.statusCode)
+                putOptional(
+                    "_error_type",
+                    response.error,
+                ) { it::javaClass.get().simpleName }
+                putOptional(
+                    "_error_message",
+                    response.error,
+                ) { it.message.orEmpty() }
+                putOptional(HttpFieldKey.HOST, response.host)
+                putOptional(HttpFieldKey.PATH, response.path?.value)
+                putOptional(HttpFieldKey.QUERY, response.query)
 
-            response.path?.let {
-                val requestPathTemplate = if (request.path?.value == it.value) {
-                    // If the path between request and response did not change and an explicit path
-                    // template was provided as part of a request use it as path template on a response.
-                    request.path.template
-                } else {
-                    null
+                response.path?.let {
+                    val requestPathTemplate =
+                        if (request.path?.value == it.value) {
+                            // If the path between request and response did not change and an explicit path
+                            // template was provided as part of a request use it as path template on a response.
+                            request.path.template
+                        } else {
+                            null
+                        }
+
+                    @Suppress("SwallowedException")
+                    val normalized: String? = requestPathTemplate?.let { it }
+                        ?: it.template?.let { it }
+
+                    putOptional(HttpFieldKey.PATH_TEMPLATE, normalized)
                 }
 
-                @Suppress("SwallowedException")
-                val normalized: String? = requestPathTemplate?.let { it }
-                    ?: it.template?.let { it }
-                    ?: try {
-                        CaptureJniLibrary.normalizeUrlPath(it.value)
-                    } catch (e: Throwable) {
-                        null
-                    }
-
-                putOptional(HttpFieldKey.PATH_TEMPLATE, normalized)
+                metrics?.let<HttpRequestMetrics, Unit> {
+                    this.put(
+                        "_request_body_bytes_sent_count",
+                        FieldValue.StringField(it.requestBodyBytesSentCount.toString()),
+                    )
+                    this.put(
+                        "_response_body_bytes_received_count",
+                        FieldValue.StringField(it.responseBodyBytesReceivedCount.toString()),
+                    )
+                    this.put(
+                        "_request_headers_bytes_count",
+                        FieldValue.StringField(it.requestHeadersBytesCount.toString()),
+                    )
+                    this.put(
+                        "_response_headers_bytes_count",
+                        FieldValue.StringField(it.responseHeadersBytesCount.toString()),
+                    )
+                    putOptional("_dns_resolution_duration_ms", it.dnsResolutionDurationMs)
+                }
             }
-
-            metrics?.let {
-                put("_request_body_bytes_sent_count", FieldValue.StringField(it.requestBodyBytesSentCount.toString()))
-                put("_response_body_bytes_received_count", FieldValue.StringField(it.responseBodyBytesReceivedCount.toString()))
-                put("_request_headers_bytes_count", FieldValue.StringField(it.requestHeadersBytesCount.toString()))
-                put("_response_headers_bytes_count", FieldValue.StringField(it.responseHeadersBytesCount.toString()))
-                putOptional("_dns_resolution_duration_ms", it.dnsResolutionDurationMs)
-            }
+            // If the path between request and response did not change and an explicit path
+            // template was provided as part of a request use it as path template on a response.
+            extraFields.toFields() + request.commonFields + fields
         }
 
-        extraFields.toFields() + request.commonFields + fields
-    }
-
-    // Lazy since the creation of the `HTTPResponseInfo` can happen before the logger is initialized
-    // and trying to call a native `CaptureJniLibrary.normalizeUrlPath` method before the `Capture`
-    // library is loaded leads to unsatisfied linking error.
-    internal val matchingFields: InternalFieldsMap by lazy {
+    internal val matchingFields: InternalFieldsMap =
         request.fields.mapKeys { "_request.${it.key}" } +
             request.matchingFields.mapKeys { "_request.${it.key}" } +
             response.headers?.let { HTTPHeaders.normalizeHeaders(it) }.toFields()
-    }
 }

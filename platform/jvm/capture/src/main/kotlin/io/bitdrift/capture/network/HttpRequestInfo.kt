@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.network
 
-import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.InternalFieldsMap
 import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.FieldValue
@@ -36,17 +35,13 @@ data class HttpRequestInfo @JvmOverloads constructor(
 ) {
     internal val name: String = "HTTPRequest"
 
-    // Lazy since the creation of the `HTTPRequestInfo` can happen before the logger is initialized
-    // and trying to call a native `CaptureJniLibrary.normalizeUrlPath` method before the `Capture`
-    // library is loaded leads to unsatisfied linking error.
-    internal val fields: InternalFieldsMap by lazy {
+    internal val fields: InternalFieldsMap =
         // Do not put body bytes count as a common field since response log has a more accurate
         // measurement of request' body count anyway.
         buildMap {
             putAll(commonFields)
             putOptional("_request_body_bytes_expected_to_send_count", bytesExpectedToSendCount)
         }
-    }
 
     internal val commonFields: InternalFieldsMap by lazy {
         val fields = buildMap {
@@ -58,10 +53,9 @@ data class HttpRequestInfo @JvmOverloads constructor(
             putOptional(HttpFieldKey.PATH, path?.value)
             putOptional(HttpFieldKey.QUERY, query)
             path?.let {
-                @Suppress("SwallowedException")
-                val normalized: String? = it.template?.let { it }
-                    ?: try { CaptureJniLibrary.normalizeUrlPath(it.value) } catch (e: Throwable) { null }
-                putOptional(HttpFieldKey.PATH_TEMPLATE, normalized)
+                it.template?.let {
+                    put(HttpFieldKey.PATH_TEMPLATE, FieldValue.StringField(it))
+                }
             }
         }
 

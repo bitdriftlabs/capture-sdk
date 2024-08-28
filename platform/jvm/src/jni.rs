@@ -49,7 +49,7 @@ use jni::signature::{Primitive, ReturnType};
 use jni::sys::{jboolean, jbyteArray, jdouble, jint, jlong, jobject, jvalue, JNI_TRUE};
 use jni::{JNIEnv, JavaVM};
 use platform_shared::metadata::Mobile;
-use platform_shared::{normalize_url_path, LoggerHolder, LoggerId};
+use platform_shared::{LoggerHolder, LoggerId};
 use std::borrow::{Borrow, Cow};
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -1070,27 +1070,6 @@ fn exception_stacktrace(
 
   let stacktrace_str = unsafe { env.get_string_unchecked(stacktrace) }?;
   Ok(Some(stacktrace_str.to_string_lossy().to_string()))
-}
-
-#[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_normalizeUrlPath<'a>(
-  env: JNIEnv<'a>,
-  _class: JClass<'_>,
-  url_path: JString<'a>,
-) -> JString<'a> {
-  bd_client_common::error::with_handle_unexpected_or(
-    || {
-      let url_path = unsafe { env.get_string_unchecked(&url_path) }?
-        .to_string_lossy()
-        .to_string();
-
-      let normalized_url_path = normalize_url_path(&url_path);
-
-      Ok(env.new_string(normalized_url_path)?)
-    },
-    unsafe { JString::from_raw(core::ptr::null_mut()) },
-    "jni normalize_url_path",
-  )
 }
 
 #[no_mangle]
