@@ -48,7 +48,6 @@ final class HTTPRequestInfoTests: XCTestCase {
                 "_method": "method",
                 "_host": "host",
                 "_path": "/path/12345",
-                "_path_template": "/path/<id>",
                 "_query": "query",
                 "_span_id": "span_id",
                 "key": "value",
