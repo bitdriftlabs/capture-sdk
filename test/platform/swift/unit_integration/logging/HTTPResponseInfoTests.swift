@@ -59,7 +59,6 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_method": "method",
                 "_host": "host",
                 "_path": "/path/12345",
-                "_path_template": "/path/<id>",
                 "_query": "query",
                 "_span_id": "span_id",
                 "key2": "value2",
@@ -77,7 +76,6 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_request._host": "host",
                 "_request._method": "method",
                 "_request._path": "/path/12345",
-                "_request._path_template": "/path/<id>",
                 "_request._span_id": "span_id",
                 "_request.key": "value",
                 "_headers.header_1": "value_1",
@@ -126,7 +124,6 @@ final class HTTPResponseInfoTests: XCTestCase {
         )
     }
 
-    // swiftlint:disable:next function_body_length
     func testHTTPResponseRequestAttributesOverride() {
         let response = HTTPResponse(
             result: .success,
@@ -144,7 +141,6 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_method": "method",
                 "_host": "host",
                 "_path": "/path/12345",
-                "_path_template": "/path/<id>",
                 "_query": "query",
                 "_span_id": "span_id",
                 "_duration_ms": "135",
@@ -208,7 +204,6 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_method": "method",
                 "_host": "host",
                 "_path": "/path/12345",
-                "_path_template": "/path/<id>",
                 "_query": "query",
                 "_span_id": "span_id",
                 "_duration_ms": "456",
@@ -224,7 +219,6 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_request._host": "host",
                 "_request._method": "method",
                 "_request._path": "/path/12345",
-                "_request._path_template": "/path/<id>",
                 "_request._span_id": "span_id",
                 "_request.key": "value",
                 "_request._headers.request_header": "request_value",
@@ -254,7 +248,6 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_method": "method",
                 "_host": "host",
                 "_path": "/path/12345",
-                "_path_template": "/path/<id>",
                 "_query": "query",
                 "_span_id": "span_id",
                 "_status_code": "400",
@@ -271,7 +264,6 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_request._host": "host",
                 "_request._method": "method",
                 "_request._path": "/path/12345",
-                "_request._path_template": "/path/<id>",
                 "_request._span_id": "span_id",
                 "_request.key": "value",
                 "_request._headers.request_header": "request_value",
@@ -308,7 +300,6 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_method": "method",
                 "_host": "host",
                 "_path": "/path/12345",
-                "_path_template": "/path/<id>",
                 "_query": "query",
                 "_span_id": "span_id",
                 "_duration_ms": "135",
@@ -326,7 +317,6 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_request._host": "host",
                 "_request._method": "method",
                 "_request._path": "/path/12345",
-                "_request._path_template": "/path/<id>",
                 "_request._span_id": "span_id",
                 "_request.key": "value",
                 "_request._headers.request_header": "request_value",

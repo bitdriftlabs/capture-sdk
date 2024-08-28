@@ -263,9 +263,4 @@ internal object CaptureJniLibrary {
      * directly as it allows for centralized control over error flood controls.
      */
     external fun reportError(message: String, stackTraceProvider: StackTraceProvider)
-
-    /**
-     * Normalizes a URL path, replacing any high cardinality path substrings with "<id>".
-     */
-    external fun normalizeUrlPath(urlPath: String): String?
 }

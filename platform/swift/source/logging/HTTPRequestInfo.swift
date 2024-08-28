@@ -98,8 +98,7 @@ public struct HTTPRequestInfo {
 
         if let path = self.path {
             fields[HTTPFieldKey.path.rawValue] = path.value
-            fields[HTTPFieldKey.pathTemplate.rawValue] =
-                path.template ?? capture_normalize_url_path(path.value)
+            fields[HTTPFieldKey.pathTemplate.rawValue] = path.template
         }
 
         if let query = self.query {
