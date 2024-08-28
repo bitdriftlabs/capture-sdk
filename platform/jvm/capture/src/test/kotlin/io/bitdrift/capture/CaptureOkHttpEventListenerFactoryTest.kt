@@ -31,10 +31,6 @@ class CaptureOkHttpEventListenerFactoryTest {
     private val clock: IClock = mock()
     private val logger: ILogger = mock()
 
-    init {
-        CaptureJniLibrary.load()
-    }
-
     @Test
     fun testRequestAndResponseReuseCommonInfo() {
         // ARRANGE
