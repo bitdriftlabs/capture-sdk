@@ -151,7 +151,7 @@ void capture_write_app_update_log(
  * Writes an app launch TTI log.
  *
  * @param loggerId the ID of the logger to write to.
- * @param duration_ms the duration of time between a user's intent to launch it and the point in time 
+ * @param duration_ms the duration of time between a user's intent to launch an app and the point in time 
  *        when the app became interactive.
  */
 void capture_write_app_launch_tti_log(

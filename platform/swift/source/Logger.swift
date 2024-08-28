@@ -462,6 +462,10 @@ extension Logger: Logging {
             timeProvider: self.timeProvider
         )
     }
+
+    public func logAppLaunchTTI(duration: TimeInterval) {
+        self.underlyingLogger.logAppLaunchTTI(duration: duration)
+    }
 }
 
 // MARK: - Features

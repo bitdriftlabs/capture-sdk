@@ -9,6 +9,7 @@ pub mod error;
 pub mod metadata;
 
 use bd_client_common::error::handle_unexpected;
+use bd_logger::{log_level, AnnotatedLogField, LogField, LogFieldKind, LogType};
 use bd_runtime::runtime::Snapshot;
 use std::future::Future;
 use std::ops::Deref;
@@ -157,6 +158,27 @@ impl LoggerHolder {
     let holder = Box::from_raw(id as *mut Self);
     holder.shutdown(false);
     drop(holder);
+  }
+
+  /// Logs an out-of-the-box app launch TTI log event.
+  pub fn log_app_launch_tti(&self, duration: time::Duration) {
+    let fields = vec![AnnotatedLogField {
+      field: LogField {
+        key: "_duration_ms".into(),
+        value: (duration.as_seconds_f64() * 1_000f64).to_string().into(),
+      },
+      kind: LogFieldKind::Ootb,
+    }];
+
+    self.log(
+      log_level::INFO,
+      LogType::Lifecycle,
+      "AppLaunchTTI".into(),
+      fields,
+      vec![],
+      None,
+      false,
+    );
   }
 }
 

@@ -89,6 +89,13 @@ protocol CoreLogging: AnyObject {
         duration: TimeInterval
     )
 
+    /// Writes an app launch TTI log event. This event should be logged only once per Logger configuration.
+    /// Consecutive calls have no effect.
+    ///
+    /// - parameter duration: The time between a user's intent to launch the app and when the app becomes
+    ///                       interactive.
+    func logAppLaunchTTI(duration: TimeInterval)
+
     /// Stars new session using configured session strategy.
     func startNewSession()
 

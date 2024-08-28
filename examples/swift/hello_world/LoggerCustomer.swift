@@ -79,6 +79,8 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
     }
 
     override init() {
+        let start = Date()
+
         Logger
             .configure(
                 withAPIKey: kBitdriftAPIKey,
@@ -95,6 +97,8 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         super.init()
 
         MXMetricManager.shared.add(self)
+
+        Logger.logAppLaunchTTI(duration: Date().timeIntervalSince(start))
     }
 
     func startNewSession() {
