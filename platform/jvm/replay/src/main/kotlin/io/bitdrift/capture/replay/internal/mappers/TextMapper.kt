@@ -126,7 +126,7 @@ internal class TextMapper(
         return view.text.substring(lineStart, lineEnd)
     }
 
-    @SuppressLint("SwitchIntDef")
+    @SuppressLint("SwitchIntDef", "RtlHardcoded")
     private fun alignHorizontal(
         view: TextView,
         alignment: Int = view.textAlignment,

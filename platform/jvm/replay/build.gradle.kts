@@ -21,6 +21,8 @@ dependencies {
 }
 
 android {
+    namespace = "io.bitdrift.capture.replay"
+
     compileSdk = 34
 
     defaultConfig {
@@ -41,9 +43,10 @@ android {
     lint {
         quiet = false
         ignoreWarnings = false
+        warningsAsErrors = true
+        checkAllWarnings = true
         abortOnError = true
         checkDependencies = true
+        checkReleaseBuilds = true
     }
-
-    namespace = "io.bitdrift.capture.replay"
 }

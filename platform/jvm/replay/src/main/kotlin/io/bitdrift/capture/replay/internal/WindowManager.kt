@@ -19,6 +19,7 @@ internal class WindowManager(private val errorHandler: ErrorHandler) {
     private var tryWindowInspector = true
 
     private val global by lazy(LazyThreadSafetyMode.NONE) {
+        //noinspection PrivateApi
         Class.forName("android.view.WindowManagerGlobal")
     }
 

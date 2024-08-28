@@ -29,6 +29,16 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
+    lint {
+        quiet = false
+        ignoreWarnings = false
+        warningsAsErrors = true
+        checkAllWarnings = true
+        abortOnError = true
+        checkDependencies = true
+        checkReleaseBuilds = true
+    }
 }
 
 detekt {

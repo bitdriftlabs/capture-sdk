@@ -26,7 +26,6 @@ internal class ErrorHandler : ErrorHandler {
      * @param detail a string identifying the action that resulted in an error.
      * @param e the throwable associated with the error.
      */
-    @Suppress("TooGenericExceptionCaught")
     override fun handleError(detail: String, e: Throwable?) {
         try {
             // Delegate to the JNI function over using the error reporter directly. This is done so
