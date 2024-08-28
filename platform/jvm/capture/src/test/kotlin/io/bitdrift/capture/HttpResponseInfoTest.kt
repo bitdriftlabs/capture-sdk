@@ -19,7 +19,7 @@ import java.util.UUID
 class HttpResponseInfoTest {
 
     @Test
-    fun test_response_template_override() {
+    fun testHTTPResponseTemplateOverride() {
         val spanId = UUID.randomUUID()
         val requestInfo = HttpRequestInfo(
             host = "foo.com",
