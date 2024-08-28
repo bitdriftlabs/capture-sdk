@@ -41,6 +41,8 @@ protocol LoggerBridging {
         duration: TimeInterval
     )
 
+    func logAppLaunchTTI(duration: TimeInterval)
+
     func start()
 
     func startNewSession()

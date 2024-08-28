@@ -148,6 +148,18 @@ void capture_write_app_update_log(
 );
 
 /*
+ * Writes an app launch TTI log.
+ *
+ * @param loggerId the ID of the logger to write to.
+ * @param duration_ms the duration of time between a user's intent to launch it and the point in time 
+ *        when the app became interactive.
+ */
+void capture_write_app_launch_tti_log(
+    logger_id logger_id,
+    double duration_ms
+);
+
+/*
  * Starts new sessions using configured session strategy.
  *
  * @param logger_id the logger to use.

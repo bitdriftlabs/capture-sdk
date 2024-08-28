@@ -112,6 +112,8 @@ public protocol Logging {
     func startSpan(
         name: String, level: LogLevel, file: String?, line: Int?, function: String?, fields: Fields?
     ) -> Span
+
+    func logAppLaunchTTI(duration: TimeInterval)
 }
 
 extension Logging {
