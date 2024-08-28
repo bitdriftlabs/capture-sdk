@@ -442,6 +442,10 @@ extension Logger: Logging {
         self.deviceCodeController.createTemporaryDeviceCode(deviceID: self.deviceID, completion: completion)
     }
 
+    public func logAppLaunchTTI(duration: TimeInterval) {
+        self.underlyingLogger.logAppLaunchTTI(duration: duration)
+    }
+
     public func startSpan(
         name: String,
         level: LogLevel,
@@ -461,10 +465,6 @@ extension Logger: Logging {
             fields: fields,
             timeProvider: self.timeProvider
         )
-    }
-
-    public func logAppLaunchTTI(duration: TimeInterval) {
-        self.underlyingLogger.logAppLaunchTTI(duration: duration)
     }
 }
 

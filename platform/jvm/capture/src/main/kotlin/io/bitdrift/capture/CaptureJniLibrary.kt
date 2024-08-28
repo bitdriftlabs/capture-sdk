@@ -230,6 +230,18 @@ internal object CaptureJniLibrary {
     )
 
     /**
+     * Writes an app launch TTI log.
+     *
+     * @param loggerId the ID of the logger to write to.
+     * @param durationS the time between a user's intent to launch the app and when the app becomes
+     *                  interactive.
+     */
+    external fun writeAppLaunchTTILog(
+        loggerId: Long,
+        durationS: Double,
+    )
+
+    /**
      * Flushes logger's state to disk.
      *
      * @param blocking Whether the method should return only after the flushing completes.

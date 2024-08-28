@@ -11,6 +11,7 @@ pub mod metadata;
 use bd_client_common::error::handle_unexpected;
 use bd_logger::{log_level, AnnotatedLogField, LogField, LogFieldKind, LogType};
 use bd_runtime::runtime::Snapshot;
+use parking_lot::Once;
 use std::future::Future;
 use std::ops::Deref;
 use std::pin::Pin;
@@ -93,6 +94,7 @@ pub struct LoggerHolder {
   logger: bd_logger::Logger,
   handle: bd_logger::LoggerHandle,
   future: parking_lot::Mutex<Option<LoggerFuture>>,
+  app_launch_tti_log: Once,
 }
 
 impl Deref for LoggerHolder {
@@ -110,6 +112,7 @@ impl LoggerHolder {
       logger,
       handle,
       future: parking_lot::Mutex::new(Some(future)),
+      app_launch_tti_log: Once::new(),
     }
   }
 
@@ -162,23 +165,25 @@ impl LoggerHolder {
 
   /// Logs an out-of-the-box app launch TTI log event.
   pub fn log_app_launch_tti(&self, duration: time::Duration) {
-    let fields = vec![AnnotatedLogField {
-      field: LogField {
-        key: "_duration_ms".into(),
-        value: (duration.as_seconds_f64() * 1_000f64).to_string().into(),
-      },
-      kind: LogFieldKind::Ootb,
-    }];
-
-    self.log(
-      log_level::INFO,
-      LogType::Lifecycle,
-      "AppLaunchTTI".into(),
-      fields,
-      vec![],
-      None,
-      false,
-    );
+    self.app_launch_tti_log.call_once(|| {
+      let fields = vec![AnnotatedLogField {
+        field: LogField {
+          key: "_duration_ms".into(),
+          value: (duration.as_seconds_f64() * 1_000f64).to_string().into(),
+        },
+        kind: LogFieldKind::Ootb,
+      }];
+  
+      self.log(
+        log_level::INFO,
+        LogType::Lifecycle,
+        "AppLaunchTTI".into(),
+        fields,
+        vec![],
+        None,
+        false,
+      );
+    })
   }
 }
 

@@ -17,8 +17,8 @@ struct ContentView: View {
     @State private var selectedLogLevel = LoggerCustomer.LogLevel.info
 
     init(navigationController: UINavigationController?) {
-        self.navigationController = navigationController
         self.loggerCustomer = LoggerCustomer()
+        self.navigationController = navigationController
         self.currentSessionID = self.loggerCustomer.sessionID ?? "No Session ID"
     }
 
@@ -103,6 +103,7 @@ struct ContentView: View {
             }
         }
         .padding(5)
+        .onAppear { self.loggerCustomer.logAppLaunchTTI() }
     }
 }
 

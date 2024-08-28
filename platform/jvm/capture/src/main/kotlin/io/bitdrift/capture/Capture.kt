@@ -20,6 +20,7 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.time.Duration
 
 /**
  * Top level namespace Capture SDK.
@@ -276,6 +277,19 @@ object Capture {
         @JvmOverloads
         fun log(level: LogLevel, fields: Map<String, String>? = null, throwable: Throwable? = null, message: () -> String) {
             logger()?.log(level = level, fields = fields, throwable = throwable, message = message)
+        }
+
+        /**
+         * Writes an app launch TTI log event. This event should be logged only once per Logger configuration.
+         * Consecutive calls have no effect.
+         *
+         * @param duration The time between a user's intent to launch the app and when the app becomes
+         *                 interactive.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun logAppLaunchTTI(duration: Duration) {
+            logger()?.logAppLaunchTTI(duration)
         }
 
         /**
