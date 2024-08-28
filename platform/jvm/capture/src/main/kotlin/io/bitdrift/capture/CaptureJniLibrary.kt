@@ -230,7 +230,8 @@ internal object CaptureJniLibrary {
     )
 
     /**
-     * Writes an app launch TTI log.
+     * Writes an app launch TTI log. The method should be called only once per logger Id. Consecutive calls
+     * have no effect.
      *
      * @param loggerId the ID of the logger to write to.
      * @param durationS the time between a user's intent to launch the app and when the app becomes

@@ -163,7 +163,8 @@ impl LoggerHolder {
     drop(holder);
   }
 
-  /// Logs an out-of-the-box app launch TTI log event.
+  /// Logs an out-of-the-box app launch TTI log event. The method should be called only once.
+  /// Consecutive calls have not effect.
   pub fn log_app_launch_tti(&self, duration: time::Duration) {
     self.app_launch_tti_log.call_once(|| {
       let fields = vec![AnnotatedLogField {
@@ -173,7 +174,7 @@ impl LoggerHolder {
         },
         kind: LogFieldKind::Ootb,
       }];
-  
+
       self.log(
         log_level::INFO,
         LogType::Lifecycle,
