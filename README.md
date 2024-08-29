@@ -12,9 +12,6 @@ Install required dependencies using following commands:
 
 ```bash
 brew install protobuf flatbuffers llvm
-
-brew tap mdogan/zulu
-brew install --cask zulu-jdk8 zulu-jdk11
 ```
 
 Make sure that `llvm-objcopy` is in your `PATH`.
