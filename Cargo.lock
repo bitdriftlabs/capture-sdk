@@ -1879,6 +1879,7 @@ dependencies = [
  "bd-logger",
  "bd-runtime",
  "bd-session",
+ "log",
  "parking_lot",
  "pretty_assertions",
  "regex",

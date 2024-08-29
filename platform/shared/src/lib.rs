@@ -167,10 +167,19 @@ impl LoggerHolder {
   /// Consecutive calls have not effect.
   pub fn log_app_launch_tti(&self, duration: time::Duration) {
     self.app_launch_tti_log.call_once(|| {
+      let duration_ms = duration.as_seconds_f64() * 1_000f64;
+      if duration_ms < 0.0 {
+        log::warn!(
+          "dropping app launch TTI log: reported TTI is negative: {}",
+          duration_ms
+        );
+        return;
+      }
+
       let fields = vec![AnnotatedLogField {
         field: LogField {
           key: "_duration_ms".into(),
-          value: (duration.as_seconds_f64() * 1_000f64).to_string().into(),
+          value: duration_ms.to_string().into(),
         },
         kind: LogFieldKind::Ootb,
       }];

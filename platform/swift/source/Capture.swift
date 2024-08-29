@@ -268,8 +268,8 @@ extension Logger {
     ///
     /// - parameter duration: The time between a user's intent to launch the app and when the app becomes
     ///                       interactive.
-    public static func logAppLaunchTTI(duration: TimeInterval) {
-        Self.getShared()?.logAppLaunchTTI(duration: duration)
+    public static func logAppLaunchTTI(_ duration: TimeInterval) {
+        Self.getShared()?.logAppLaunchTTI(duration)
     }
 
     // MARK: - Network Activity Logging

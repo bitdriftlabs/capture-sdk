@@ -102,7 +102,7 @@ public protocol Logging {
     ///
     /// - parameter duration: The time between a user's intent to launch the app and when the app becomes
     ///                       interactive.
-    func logAppLaunchTTI(duration: TimeInterval)
+    func logAppLaunchTTI(_ duration: TimeInterval)
 
     // MARK: - Spans
 
