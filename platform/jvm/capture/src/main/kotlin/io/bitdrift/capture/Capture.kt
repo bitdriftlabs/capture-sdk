@@ -287,7 +287,6 @@ object Capture {
          *                 interactive.
          */
         @JvmStatic
-        @JvmOverloads
         fun logAppLaunchTTI(duration: Duration) {
             logger()?.logAppLaunchTTI(duration)
         }
