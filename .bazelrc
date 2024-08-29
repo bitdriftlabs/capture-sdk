@@ -1,4 +1,5 @@
 common --experimental_allow_tags_propagation
+common --java_runtime_version=remotejdk_11
 
 mobile-install --config=android
 
