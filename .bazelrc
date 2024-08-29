@@ -1,5 +1,4 @@
 common --experimental_allow_tags_propagation
-common --java_runtime_version=remotejdk_11
 
 mobile-install --config=android
 
@@ -53,7 +52,7 @@ build:compdb --config=noclippy
 
 build:noclippy --output_groups=-clippy_checks
 
-test --test_env=RUST_BACKTRACE=full
+test --test_env=RUST_BACKTRACE=full --java_runtime_version=remotejdk_11
 
 # Shared configuration for all CI tasks.
 build:ci --config=clippy
