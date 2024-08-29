@@ -124,6 +124,8 @@ extension MockCoreLogging: CoreLogging {
         self.logAppUpdateExpectation?.fulfill()
     }
 
+    func logAppLaunchTTI(duration _: TimeInterval) {}
+
     func addField(withKey _: String, value _: String) {}
 
     func removeField(withKey _: String) {}
