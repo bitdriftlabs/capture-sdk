@@ -184,7 +184,7 @@ impl LoggerHolder {
         None,
         false,
       );
-    })
+    });
   }
 }
 
