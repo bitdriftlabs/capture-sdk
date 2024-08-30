@@ -28,69 +28,40 @@ brew install protobuf flatbuffers llvm
 
 Make sure that `llvm-objcopy` is in your `PATH`.
 
-#### Xcode
-
-Xcode 15.4 is used to compile Capture SDK on macOS. Download it from https://developer.apple.com/download/.
-
-*If you install Xcode directly from the App store you will likely not get
-the specific version above. Either install it manually or override the
-version in your .bazelrc like this:*
-
-```
-build --xcode_version=15.2
-```
-
-Bazel can also get confused about the status of Xcode installation so if you run into issues with stale version confusion do:
-
-```
-./bazelw clean --expunge
-./bazelw shutdown
-```
-
-If you are using a different version of Xcode/simulator you may also need to adjust the following settings in .bazelrc to match your environment:
-
-```
-build --ios_simulator_device="iPhone 15"
-build --ios_simulator_version=17.5
-```
-
 ## Development
 
 The Capture SDK is built using [bazel](https://github.com/bazelbuild/bazel). The `./bazelw` ensures that the correct bazel version is used and the
 correct Android dependencies are installed.
+
+### Capture SDK Example Apps
+
+The easiest way to test the library is by running the example apps on each platform (iOS / Android).
+
+See [examples/README.md](/examples/README.md) for more details on how to setup your environment.
+
+#### iOS
+
+To run the iOS example app:
+
+```bash
+./bazelw run --ios_multi_cpus=x86_64 :ios_app
+```
+
+For more details on how to setup and run the example app using Xcode refer to [examples/README.md](/examples/README.md).
+
+#### Android
+
+We have two example apps on Android, one built with bazel and one built wih gradle so both build frameworks can be tested.
+
+For more details on how to setup and run the example apps using Android Studio refer to [examples/README.md](/examples/README.md).
+
+### Tests
 
 To run all tests:
 
 ```bash
 ./bazelw test //... --build_tests_only
 ```
-
-### Debugging Capture SDK Hello World Apps
-
-#### iOS
-
-To run the iOS hello world app:
-
-```bash
-./bazelw run --ios_multi_cpus=x86_64 :ios_app
-```
-
-To create Xcode project iOS Capture SDK:
-
-```bash
-./bazelw run :xcodeproj
-xed . // opens generated project
-```
-
-#### Android
-
-To install the Android hello world app to an active arm64 emulator:
-
-```bash
-./bazelw mobile-install --fat_apk_cpu=arm64-v8a :android_app
-```
-
-See [examples/README.md](/examples/README.md) for more details for how to use IDE to develop locally on Android.
 
 ### Benchmarking
 
