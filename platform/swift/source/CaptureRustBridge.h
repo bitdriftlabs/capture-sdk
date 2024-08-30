@@ -137,14 +137,27 @@ bool capture_should_write_app_update_log(
  * @param app_version the version of the app.
  * @param build_number the app build number.
  * @param app_install_size_bytes the size of the app in bytes.
- * @param duration_ms the duration of time the preparation of the log took.
+ * @param duration_s the duration of time the preparation of the log took.
  */
 void capture_write_app_update_log(
     logger_id logger_id,
     NSString *app_version,
     NSString *build_number,
     uint64_t app_install_size_bytes,
-    double duration_ms
+    double duration_s
+);
+
+/*
+ * Writes an app launch TTI log. The method should be called only once per logger Id. Consecutive calls
+ * have no effect.
+ *
+ * @param loggerId the ID of the logger to write to.
+ * @param duration_s the duration of time between a user's intent to launch an app and the point in time 
+ *        when the app became interactive.
+ */
+void capture_write_app_launch_tti_log(
+    logger_id logger_id,
+    double duration_s
 );
 
 /*

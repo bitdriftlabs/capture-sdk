@@ -95,6 +95,17 @@ public protocol Logging {
     ///                         main queue.
     func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void)
 
+    // MARK: - Predefined logs
+
+    /// Writes an app launch TTI log event. This event should be logged only once per Logger configuration.
+    /// Consecutive calls have no effect.
+    ///
+    /// - parameter duration: The time between a user's intent to launch the app and when the app becomes
+    ///                       interactive. Calls with a negative duration are ignored.
+    func logAppLaunchTTI(_ duration: TimeInterval)
+
+    // MARK: - Spans
+
     /// Signals that an operation has started at this point in time. Each operation consists of start and
     /// end event logs. The start event is emitted immediately upon calling the `startSpan(...)` method,
     /// while the corresponding end event is emitted when the `end(...)` method is called on the `Span`

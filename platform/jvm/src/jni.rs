@@ -996,6 +996,25 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppUpdate
 }
 
 #[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppLaunchTTILog(
+  _env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  duration_s: f64,
+) {
+  bd_client_common::error::with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.log_app_launch_tti(Duration::seconds_f64(duration_s));
+
+      Ok(())
+    },
+    "jni write app launch TTI log",
+  );
+}
+
+
+#[no_mangle]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_flush(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,

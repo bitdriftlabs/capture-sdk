@@ -739,6 +739,17 @@ extern "C" fn capture_write_app_update_log(
 }
 
 #[no_mangle]
+extern "C" fn capture_write_app_launch_tti_log(logger_id: LoggerId<'_>, duration_s: f64) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      logger_id.log_app_launch_tti(Duration::seconds_f64(duration_s));
+      Ok(())
+    },
+    "swift write app launch TTI log",
+  );
+}
+
+#[no_mangle]
 extern "C" fn capture_start_new_session(logger_id: LoggerId<'_>) {
   logger_id.start_new_session();
 }

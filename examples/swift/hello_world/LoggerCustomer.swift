@@ -44,6 +44,8 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         var id: String { return self.rawValue }
     }
 
+    private var appStartTime: Date
+
     private let requestDefinitions = [
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
         RequestDefinition(method: "GET", url: URL(string: "https://httpbin.org/get")!),
@@ -79,6 +81,8 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
     }
 
     override init() {
+        self.appStartTime = Date()
+
         Logger
             .configure(
                 withAPIKey: kBitdriftAPIKey,
@@ -159,6 +163,10 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         case .trace:
             Logger.logTrace("Sending log with level [Trace]", fields: fields)
         }
+    }
+
+    func logAppLaunchTTI() {
+        Logger.logAppLaunchTTI(Date().timeIntervalSince(self.appStartTime))
     }
 }
 

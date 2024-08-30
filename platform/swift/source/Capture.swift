@@ -261,6 +261,17 @@ extension Logger {
         )
     }
 
+    // MARK: - Predefined Logs
+
+    /// Writes an app launch TTI log event. This event should be logged only once per Logger configuration.
+    /// Consecutive calls have no effect.
+    ///
+    /// - parameter duration: The time between a user's intent to launch the app and when the app becomes
+    ///                       interactive. Calls with a negative duration are ignored.
+    public static func logAppLaunchTTI(_ duration: TimeInterval) {
+        Self.getShared()?.logAppLaunchTTI(duration)
+    }
+
     // MARK: - Network Activity Logging
 
     /// Logs information about a network request.

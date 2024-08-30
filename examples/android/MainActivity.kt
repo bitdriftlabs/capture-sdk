@@ -48,6 +48,9 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
 import kotlin.system.exitProcess
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 class MainActivity : ComponentActivity() {
 
@@ -121,6 +124,8 @@ class MainActivity : ComponentActivity() {
 
         Logger.addField("field_container_field_key", "field_container_field_value")
         Logger.logInfo(mapOf("key" to "value")) { "MainActivity onCreate called" }
+
+        Logger.logAppLaunchTTI(1.toDuration(DurationUnit.SECONDS))
     }
 
     private fun createComposeUI() {

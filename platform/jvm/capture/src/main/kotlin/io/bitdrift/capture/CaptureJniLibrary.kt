@@ -219,13 +219,26 @@ internal object CaptureJniLibrary {
      * @param appVersion
      * @param appVersionCode
      * @param appInstallSizeBytes the size of the app installation. Expressed in bytes.
-     * @param durationS the duration of time the preparation of the log took.
+     * @param durationS the duration of time the preparation of the log took. Expressed in seconds.
      */
     external fun writeAppUpdateLog(
         loggerId: Long,
         appVersion: String,
         appVersionCode: Long,
         appInstallSizeBytes: Long,
+        durationS: Double,
+    )
+
+    /**
+     * Writes an app launch TTI log. The method should be called only once per logger Id. Consecutive calls
+     * have no effect.
+     *
+     * @param loggerId the ID of the logger to write to.
+     * @param durationS the time between a user's intent to launch the app and when the app becomes
+     *                  interactive. Expressed in seconds. Calls with a negative duration are ignored.
+     */
+    external fun writeAppLaunchTTILog(
+        loggerId: Long,
         durationS: Double,
     )
 

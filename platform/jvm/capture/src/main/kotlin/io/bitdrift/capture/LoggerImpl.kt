@@ -284,6 +284,10 @@ internal class LoggerImpl(
         )
     }
 
+    override fun logAppLaunchTTI(duration: Duration) {
+        CaptureJniLibrary.writeAppLaunchTTILog(this.loggerId, duration.toDouble(DurationUnit.SECONDS))
+    }
+
     override fun startSpan(name: String, level: LogLevel, fields: Map<String, String>?): Span {
         return Span(this, name, level, fields)
     }

@@ -94,6 +94,8 @@ extension MockLoggerBridging: LoggerBridging {
         self.logAppUpdateExpectation?.fulfill()
     }
 
+    func logAppLaunchTTI(_: TimeInterval) {}
+
     func addField(withKey _: String, value _: String) {}
 
     func removeField(withKey _: String) {}

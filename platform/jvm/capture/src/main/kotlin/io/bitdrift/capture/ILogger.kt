@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
+import kotlin.time.Duration
 
 /**
  * A Capture SDK logger interface.
@@ -72,6 +73,7 @@ interface ILogger {
 
     /**
      * Logs a message at a specified level.
+     *
      * @param level the severity of the log.
      * @param fields and optional collection of key-value pairs to be added to the log line.
      * @param throwable an optional throwable to include in the log line.
@@ -83,6 +85,15 @@ interface ILogger {
         throwable: Throwable? = null,
         message: () -> String,
     )
+
+    /**
+     * Writes an app launch TTI log event. This event should be logged only once per Logger configuration.
+     * Consecutive calls have no effect.
+     *
+     * @param duration The time between a user's intent to launch the app and when the app becomes
+     *                 interactive. Calls with a negative duration are ignored.
+     */
+    fun logAppLaunchTTI(duration: Duration)
 
     /**
      * Signals that an operation has started at this point in time. Each operation consists of start
@@ -100,12 +111,14 @@ interface ILogger {
 
     /**
      * Records information about an HTTP network request
+     *
      * @param httpRequestInfo information used to enrich the log line
      */
     fun log(httpRequestInfo: HttpRequestInfo)
 
     /**
      * Records information about an HTTP network response
+     *
      * @param httpResponseInfo information used to enrich the log line
      */
     fun log(httpResponseInfo: HttpResponseInfo)
