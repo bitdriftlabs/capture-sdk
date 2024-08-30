@@ -9,6 +9,7 @@ use assert_matches::assert_matches;
 use bd_key_value::Storage;
 use bd_logger::{log_level, LogMessage, LogType};
 use bd_proto::flatbuffers::buffer_log::bitdrift_public::fbs::logging::v_1::Log;
+use bd_proto::protos::client::api::configuration_update::StateOfTheWorld;
 use bd_proto::protos::config::v1::config::buffer_config::Type;
 use bd_proto::protos::config::v1::config::BufferConfigList;
 use bd_runtime::runtime::FeatureFlag;
@@ -298,20 +299,21 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
 
     let extra_large_buffer_uploading_everything = configuration_update(
       "version",
-      Some(BufferConfigList {
-        buffer_config: vec![BufferConfigBuilder {
-          name: "big buffer",
-          buffer_type: Type::CONTINUOUS,
-          filter: make_buffer_matcher_matching_everything().into(),
-          non_volatile_size: 10_100_000,
-          volatile_size: 10_000_000,
-        }
-        .build()],
+      StateOfTheWorld {
+        buffer_config_list: Some(BufferConfigList {
+          buffer_config: vec![BufferConfigBuilder {
+            name: "big buffer",
+            buffer_type: Type::CONTINUOUS,
+            filter: make_buffer_matcher_matching_everything().into(),
+            non_volatile_size: 10_100_000,
+            volatile_size: 10_000_000,
+          }
+          .build()],
+          ..Default::default()
+        })
+        .into(),
         ..Default::default()
-      }),
-      None,
-      None,
-      None,
+      },
     );
 
     h.blocking_stream_action(
