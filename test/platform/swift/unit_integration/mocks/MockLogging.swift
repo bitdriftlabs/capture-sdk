@@ -109,7 +109,7 @@ extension MockLogging: Logging {
         self.onLog(log)
     }
 
-    func logAppLaunchTTI(duration _: TimeInterval) {}
+    func logAppLaunchTTI(_ duration: TimeInterval) {}
 
     func addField(withKey _: String, value _: FieldValue) {}
 
