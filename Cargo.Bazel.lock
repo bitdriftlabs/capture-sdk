@@ -1,5 +1,5 @@
 {
-  "checksum": "1c0b0ba664ad4b267d43db44407b2f5a8066bbe33d272fbb409fa397d1ee03d8",
+  "checksum": "2593290c0a2b86dae2b0a2622e5d06ee4ce660618e1c93511ec7c306f6429466",
   "crates": {
     "addr2line 0.22.0": {
       "name": "addr2line",
@@ -11204,6 +11204,10 @@
             {
               "id": "bd-session 1.0.0",
               "target": "bd_session"
+            },
+            {
+              "id": "log 0.4.22",
+              "target": "log"
             },
             {
               "id": "parking_lot 0.12.3",

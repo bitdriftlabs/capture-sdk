@@ -219,7 +219,7 @@ internal object CaptureJniLibrary {
      * @param appVersion
      * @param appVersionCode
      * @param appInstallSizeBytes the size of the app installation. Expressed in bytes.
-     * @param durationS the duration of time the preparation of the log took.
+     * @param durationS the duration of time the preparation of the log took. Expressed in seconds.
      */
     external fun writeAppUpdateLog(
         loggerId: Long,
@@ -235,7 +235,7 @@ internal object CaptureJniLibrary {
      *
      * @param loggerId the ID of the logger to write to.
      * @param durationS the time between a user's intent to launch the app and when the app becomes
-     *                  interactive.
+     *                  interactive. Expressed in seconds.
      */
     external fun writeAppLaunchTTILog(
         loggerId: Long,

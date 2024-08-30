@@ -91,7 +91,7 @@ interface ILogger {
      * Consecutive calls have no effect.
      *
      * @param duration The time between a user's intent to launch the app and when the app becomes
-     *                 interactive.
+     *                 interactive. Calls with a negative duration are ignored.
      */
     fun logAppLaunchTTI(duration: Duration)
 

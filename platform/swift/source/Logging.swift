@@ -101,7 +101,7 @@ public protocol Logging {
     /// Consecutive calls have no effect.
     ///
     /// - parameter duration: The time between a user's intent to launch the app and when the app becomes
-    ///                       interactive.
+    ///                       interactive. Calls with a negative duration are ignored.
     func logAppLaunchTTI(_ duration: TimeInterval)
 
     // MARK: - Spans
