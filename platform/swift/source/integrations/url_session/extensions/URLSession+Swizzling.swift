@@ -32,6 +32,29 @@ extension URLSession {
         // `cap_make(configuration:delegate:delegateQueue)` was used to replace the implementation of
         // `URLSession.init(configuration:delegate:delegateQueue)` so the call below calls the original
         // initializer.
+
+        if delegate != nil {
+            // Proxying delegates of some 3rd party frameworks leads to crashes. Disable proxying for
+            // problematic classes
+            // https://github.com/google/gtm-session-fetcher/issues/190#issuecomment-604205556.
+            let disabledDelegateClassNames = [
+                "GMPx_GTMSessionFetcherService", // GooglePlaces
+                "GTMSessionFetcherService", // GTMSessionFetcher
+            ]
+
+            let shouldDisableProxying = disabledDelegateClassNames
+                .compactMap { NSClassFromString($0) }
+                .contains { delegate?.isKind(of: $0) == true }
+
+            if shouldDisableProxying {
+                return Self.cap_makeSession(
+                    configuration: configuration,
+                    delegate: delegate,
+                    delegateQueue: delegateQueue
+                )
+            }
+        }
+
         let newDelegate: URLSessionDelegate?
         if delegate?.isKind(of: ProxyURLSessionDelegate.self) == true {
             newDelegate = delegate
