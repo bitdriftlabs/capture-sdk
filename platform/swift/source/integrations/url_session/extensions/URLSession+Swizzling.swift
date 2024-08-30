@@ -35,8 +35,10 @@ extension URLSession {
 
         if delegate != nil {
             // Proxying delegates of some 3rd party frameworks leads to crashes. Disable proxying for
-            // problematic classes
-            // https://github.com/google/gtm-session-fetcher/issues/190#issuecomment-604205556.
+            // problematic classes.
+            // Refer to the following GitHub comments for more details:
+            //  * https://github.com/google/gtm-session-fetcher/issues/190#issuecomment-604205556
+            //  * https://github.com/google/gtm-session-fetcher/issues/190#issuecomment-604757154
             let disabledDelegateClassNames = [
                 "GMPx_GTMSessionFetcherService", // GooglePlaces
                 "GTMSessionFetcherService", // GTMSessionFetcher
