@@ -8,7 +8,19 @@ See [here](https://docs.bitdrift.io/product/overview) for more information.
 
 ### Dependencies
 
-Install required dependencies using following commands:
+#### Rust
+
+Install it locally using [their installation script](https://www.rust-lang.org/tools/install)
+
+`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
+make sure to add it to your path, e.g.
+
+`echo 'export PATH="~/.cargo/bin:$PATH"' >> ~/.zshrc`
+
+#### Other
+
+Install other required dependencies using following commands:
 
 ```bash
 brew install protobuf flatbuffers llvm
