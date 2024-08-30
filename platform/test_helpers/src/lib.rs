@@ -310,9 +310,10 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
           }
           .build()],
           ..Default::default()
-        }).into(),
+        })
+        .into(),
         ..Default::default()
-      }
+      },
     );
 
     h.blocking_stream_action(
