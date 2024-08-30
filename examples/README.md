@@ -49,6 +49,8 @@ To run the iOS example app:
 
 ## Android
 
+Local dev setup has only been tested on MacOS running ARM-compatible models.
+
 ### 1. Set up JDK
 
 Azul provides JDK releases that are ARM compatible (do not require Rosetta).
@@ -64,9 +66,9 @@ To install without Homebrew you can follow these instructions: [https://docs.azu
 
 ### 2. Import demo app project into Android Studio
 
-- Install [Android Studio](https://developer.android.com/studio/archive/). The latest verified-to-work version is Android Studio Jellyfish | 2023.3.1 Patch 1. When asked to choose between default or custom installation selecting standard works fine.
+- Install [Android Studio](https://developer.android.com/studio/archive/). The latest verified-to-work version is **Android Studio Jellyfish | 2023.3.1 Patch 1**. When asked to choose between default or custom installation selecting standard works fine.
 
-#### Opening Loop SDK project in Android Studio with Gradle
+#### Gradle: Opening Capture SDK project in Android Studio
 
 Setup the environment, open Android Studio.
 
@@ -80,10 +82,6 @@ Setup the environment, open Android Studio.
 
         ![](../docs/images/android_local_gradle_ndk.png)
 
-    - If you get an error `Caused by: com.android.build.gradle.internal.crash.ExternalApiUsageException: org.gradle.api.UnknownTaskException: Task with name 'lintDebug' not found in project ':gradle-test-app'.`, this can be temporarily fixed by commenting out the `lint` task in the `/gradle-test-app/build.gradle.kts` file.
-
-        ![](../docs/images/android_local_gradle_temp_fix.png)
-
 2. Run/debug the test app either on an emulated or physical device
 
     - If you receive a `cargo` error due to missing architectures, run:
@@ -93,7 +91,7 @@ Setup the environment, open Android Studio.
             rustup target add x86_64-linux-android
         ```
 
-#### Opening Loop SDK project in Android Studio with Bazel
+#### Bazel: Opening Capture SDK project in Android Studio
 
 - Install [bazel plugin](https://plugins.jetbrains.com/plugin/9185-bazel-for-android-studio)
 
@@ -111,13 +109,13 @@ Set up the environment, open Android Studio.
 
 ![](../docs/images/android_local_dev_copy_external.png)
 
-4. You will see a screen similar to the one below, hit Finish:
+4. You will see a screen similar to the one below, hit Finish and the project should auto-sync:
 
 ![](../docs/images/android_local_dev_finish.png)
 
-5. Sync the project.
+5. Run the project.
 
-![](../docs/images/android_local_dev_sync.png)
+![](../docs/images/android_local_dev_run.png)
 
 #### Run tests
 To run only the JVM tests from command line with bazel use:
