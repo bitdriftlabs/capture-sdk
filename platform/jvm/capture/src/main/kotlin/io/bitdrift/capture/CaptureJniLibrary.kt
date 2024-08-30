@@ -235,7 +235,7 @@ internal object CaptureJniLibrary {
      *
      * @param loggerId the ID of the logger to write to.
      * @param durationS the time between a user's intent to launch the app and when the app becomes
-     *                  interactive. Expressed in seconds.
+     *                  interactive. Expressed in seconds. Calls with a negative duration are ignored.
      */
     external fun writeAppLaunchTTILog(
         loggerId: Long,

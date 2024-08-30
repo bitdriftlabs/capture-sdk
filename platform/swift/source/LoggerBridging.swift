@@ -41,7 +41,7 @@ protocol LoggerBridging {
         duration: TimeInterval
     )
 
-    func logAppLaunchTTI(duration: TimeInterval)
+    func logAppLaunchTTI(_ duration: TimeInterval)
 
     func start()
 

@@ -127,7 +127,7 @@ final class LoggerBridge: LoggerBridging {
         capture_write_app_update_log(self.loggerID, appVersion, buildNumber, appSizeBytes, duration)
     }
 
-    func logAppLaunchTTI(duration: TimeInterval) {
+    func logAppLaunchTTI(_ duration: TimeInterval) {
         capture_write_app_launch_tti_log(self.loggerID, duration)
     }
 

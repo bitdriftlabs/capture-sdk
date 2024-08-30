@@ -120,8 +120,8 @@ extension CoreLogger: CoreLogging {
         )
     }
 
-    func logAppLaunchTTI(duration: TimeInterval) {
-        self.underlyingLogger.logAppLaunchTTI(duration: duration)
+    func logAppLaunchTTI(_ duration: TimeInterval) {
+        self.underlyingLogger.logAppLaunchTTI(duration)
     }
 
     func startNewSession() {

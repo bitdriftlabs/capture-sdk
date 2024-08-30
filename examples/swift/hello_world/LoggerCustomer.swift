@@ -166,7 +166,7 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
     }
 
     func logAppLaunchTTI() {
-        Logger.logAppLaunchTTI(duration: Date().timeIntervalSince(self.appStartTime))
+        Logger.logAppLaunchTTI(Date().timeIntervalSince(self.appStartTime))
     }
 }
 
