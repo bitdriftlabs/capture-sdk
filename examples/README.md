@@ -1,17 +1,55 @@
 # Local Dev Setup
 
+## Pre-requisites
+
+See the [dependencies section of our main README](/README.md#dependencies) for instructions on installing the pre-requisites.
+
 ## iOS
 
-### Running example apps on a device
+#### Xcode
 
-1. Go to https://developer.apple.com/account and log in using your Bitdrift Apple ID.
-1. Use Apple developer portal to add your device (using your device's UUID) to the list of known devices.
-1. Go To Xcode > Settings > Accounts.
-1. Make sure that you are logged in using your Bitdrift Apple ID.
-1. Select "Contrast Labs Inc" team and click "Download Manual Profiles".
-1. Use Xcode to build & run your application on your device.
+Xcode 15.4 is used to compile Capture SDK on macOS. Download it from https://developer.apple.com/download/.
+
+*If you install Xcode directly from the App store you will likely not get
+the specific version above. Either install it manually or override the
+version in your .bazelrc like this:*
+
+```
+build --xcode_version=15.4
+```
+
+Bazel can also get confused about the status of Xcode installation so if you run into issues with stale version confusion do:
+
+```
+./bazelw clean --expunge
+./bazelw shutdown
+```
+
+If you are using a different version of Xcode/simulator you may also need to adjust the following settings in .bazelrc to match your environment:
+
+```
+build --ios_simulator_device="iPhone 15"
+build --ios_simulator_version=17.5
+```
+
+### Running example app
+
+To create Xcode project iOS Capture SDK:
+
+```bash
+./bazelw run :xcodeproj
+xed . // opens generated project
+```
+
+To run the iOS example app:
+
+```bash
+./bazelw run --ios_multi_cpus=x86_64 :ios_app
+```
 
 ## Android
+
+Local dev setup has only been tested on MacOS running ARM-compatible models.
 
 ### 1. Set up JDK
 
@@ -26,21 +64,11 @@ brew install --cask zulu-jdk8 zulu-jdk11 zulu-jdk-17
 
 To install without Homebrew you can follow these instructions: [https://docs.azul.com/core/zulu-openjdk/install/macos](https://docs.azul.com/core/zulu-openjdk/install/macos)
 
-### 2. Install Rust
+### 2. Import demo app project into Android Studio
 
-Install it locally using [their installation script](https://www.rust-lang.org/tools/install)
+- Install [Android Studio](https://developer.android.com/studio/archive/). The latest verified-to-work version is **Android Studio Jellyfish | 2023.3.1 Patch 1**. When asked to choose between default or custom installation selecting standard works fine.
 
-`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-
-make sure to add it to your path, e.g.
-
-`echo 'export PATH="~/.cargo/bin:$PATH"' >> ~/.zshrc`
-
-### 3. Import demo app project into Android Studio
-
-- Install [Android Studio](https://developer.android.com/studio/archive/). The latest verified-to-work version is Android Studio Jellyfish | 2023.3.1 Patch 1. When asked to choose between default or custom installation selecting standard works fine.
-
-#### Opening Loop SDK project in Android Studio with Gradle
+#### Gradle: Opening Capture SDK project in Android Studio
 
 Setup the environment, open Android Studio.
 
@@ -54,10 +82,6 @@ Setup the environment, open Android Studio.
 
         ![](../docs/images/android_local_gradle_ndk.png)
 
-    - If you get an error `Caused by: com.android.build.gradle.internal.crash.ExternalApiUsageException: org.gradle.api.UnknownTaskException: Task with name 'lintDebug' not found in project ':gradle-test-app'.`, this can be temporarily fixed by commenting out the `lint` task in the `/gradle-test-app/build.gradle.kts` file.
-
-        ![](../docs/images/android_local_gradle_temp_fix.png)
-
 2. Run/debug the test app either on an emulated or physical device
 
     - If you receive a `cargo` error due to missing architectures, run:
@@ -67,7 +91,7 @@ Setup the environment, open Android Studio.
             rustup target add x86_64-linux-android
         ```
 
-#### Opening Loop SDK project in Android Studio with Bazel
+#### Bazel: Opening Capture SDK project in Android Studio
 
 - Install [bazel plugin](https://plugins.jetbrains.com/plugin/9185-bazel-for-android-studio)
 
@@ -85,13 +109,13 @@ Set up the environment, open Android Studio.
 
 ![](../docs/images/android_local_dev_copy_external.png)
 
-4. You will see a screen similar to the one below, hit Finish:
+4. You will see a screen similar to the one below, hit Finish and the project should auto-sync:
 
 ![](../docs/images/android_local_dev_finish.png)
 
-5. Sync the project.
+5. Run the project.
 
-![](../docs/images/android_local_dev_sync.png)
+![](../docs/images/android_local_dev_run.png)
 
 #### Run tests
 To run only the JVM tests from command line with bazel use:
