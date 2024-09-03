@@ -16,8 +16,13 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.timber.CaptureTree
+import papa.PapaEvent
+import papa.PapaEventListener
+import papa.PapaEventLogger
 import timber.log.Timber
 import kotlin.random.Random
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 /**
  * A Java app entry point that initializes the Bitdrift Logger.
@@ -31,6 +36,7 @@ class GradleTestApp : Application() {
         Timber.i("Hello World!")
         initLogging()
         trackAppLifecycle()
+        trackPapaEvents()
     }
 
     private fun initLogging() {
@@ -74,5 +80,21 @@ class GradleTestApp : Application() {
             override fun onActivityDestroyed(activity: Activity) {
             }
         })
+    }
+
+    private fun trackPapaEvents() {
+        if (BuildConfig.DEBUG) {
+            PapaEventListener.install(PapaEventLogger())
+        }
+        PapaEventListener.install { event ->
+            when (event) {
+                is PapaEvent.AppLaunch -> {
+                    Capture.Logger.logAppLaunchTTI(event.startUptimeMillis.toDuration(DurationUnit.MILLISECONDS))
+                }
+                else -> {
+                    // no-op
+                }
+            }
+        }
     }
 }

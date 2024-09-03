@@ -18,6 +18,7 @@ dependencies {
     implementation("com.apollographql.apollo3:apollo-runtime:3.8.3")
     implementation("com.jakewharton.timber:timber:5.0.1")
     implementation("com.google.android.material:material:1.8.0")
+    implementation("com.squareup.papa:papa:0.22")
     implementation(libs.androidx.material3.android)
 
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.4.0")
