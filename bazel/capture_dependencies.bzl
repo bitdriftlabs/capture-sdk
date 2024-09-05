@@ -18,7 +18,7 @@ def jvm_dependencies():
             "org.mockito:mockito-inline:4.11.0",
             "com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0",
             "androidx.test:core:1.6.0",
-            "org.robolectric:robolectric:4.11",
+            "org.robolectric:robolectric:4.13",
             "org.assertj:assertj-core:3.22.0",
             "com.squareup.okhttp3:mockwebserver:{}".format(okhttp_version),
             "junit:junit:4.13.2",

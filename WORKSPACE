@@ -275,9 +275,9 @@ http_archive(
 
 http_archive(
     name = "robolectric",
-    sha256 = "ba1269064f5509531b024cdea70349e97756f0f639e53b7cbb0938127218d6f8",
-    strip_prefix = "robolectric-bazel-4.11",
-    urls = ["https://github.com/robolectric/robolectric-bazel/archive/4.11.tar.gz"],
+    sha256 = "a270fd6fd83f9f024623e787696e6b73c44664b7c95f3d937ed35bf0a94a67ae",
+    strip_prefix = "robolectric-bazel-4.13",
+    urls = ["https://github.com/robolectric/robolectric-bazel/releases/download/4.13/robolectric-bazel-4.13.tar.gz"],
 )
 
 load("@robolectric//bazel:robolectric.bzl", "robolectric_repositories")
