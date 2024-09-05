@@ -57,7 +57,6 @@ struct HTTPStatus {
 
 private extension Int {
     var isSuccess: Bool {
-        return (200..<300).contains(self)
-            || self == 304 // "Not Modified" status code
+        return (200..<400).contains(self)
     }
 }

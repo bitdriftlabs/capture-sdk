@@ -223,8 +223,7 @@ internal class CaptureOkHttpEventListener internal constructor(
 
         // Do not use OkHttp's `isSuccess` logic for determining whether a given response is
         // successful or not to keep iOS and Android implementation in sync.
-        val isSuccess = (statusCode in 200..<300) ||
-            statusCode == 304 // "Not Modified" status code
+        val isSuccess = (statusCode in 200..<400)
 
         // Capture response URL attributes in case there was a redirect and attributes such as host,
         // path, and query have different values for the original request and the response.
@@ -238,7 +237,7 @@ internal class CaptureOkHttpEventListener internal constructor(
             } else {
                 HttpResponse.HttpResult.FAILURE
             },
-            statusCode = response.code,
+            statusCode = statusCode,
             headers = response.headers.toMap(),
         )
 
