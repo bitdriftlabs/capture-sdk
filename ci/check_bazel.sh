@@ -3,8 +3,8 @@
 set -euo pipefail
 
 # Compares $GITHUB_HEAD_REF and $GITHUB_BASE_REF (PR branch + target branch, usually main) to 
-# determine which Bazel targets have changed. This is done by analysizing the cache keys and 
-# should be authoritive assuming the builds are hermietic.
+# determine which Bazel targets have changed. This is done by analyzing the cache keys and
+# should be authoritative assuming the builds are hermetic.
 #
 # Usage ./ci/check_bazel.sh <list of targets to check for in the changeset>
 
@@ -12,9 +12,13 @@ set -euo pipefail
 workspace_path=$(pwd)
 # Path to your Bazel executable
 bazel_path=$(pwd)/bazelw
+# Find the remote associated with the base branch (GITHUB_BASE_REF)
+remote_name=$(git remote -v | grep fetch | awk '{print $1}' | head -n 1)
+# Fetch the base branch if not present
+git fetch "$remote_name" "$GITHUB_BASE_REF"
 # Starting Revision SHA. We use the merge-base to better handle the case where HEAD is not ahead of main.
-base_sha=$(git rev-parse "origin/$GITHUB_BASE_REF")
-previous_revision=$(git merge-base "$base_sha" "origin/$GITHUB_HEAD_REF")
+base_sha=$(git rev-parse "$remote_name/$GITHUB_BASE_REF")
+previous_revision=$(git merge-base "$base_sha" "$remote_name/$GITHUB_HEAD_REF")
 # Final Revision SHA
 final_revision=$GITHUB_HEAD_REF
 
