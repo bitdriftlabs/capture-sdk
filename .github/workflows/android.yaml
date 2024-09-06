@@ -25,7 +25,6 @@ jobs:
         id: check_changes
         run: |
           ./ci/check_bazel.sh //examples/android:android_app || ./ci/files_changed.sh .github/workflows/android.yaml || ./ci/files_changed.sh "^platform/jvm/gradle-test-app/.*\.(gradle|kts|kt|xml)$" && ./ci/run_tests.sh
-          true
   build_apk:
     runs-on: ubuntu-latest
     if: needs.pre_check.outputs.should_run == 'true'
@@ -178,7 +177,7 @@ jobs:
   # job completing, we are able to gate it on all the previous jobs without explicitly enumerating them.
   verify_android:
     runs-on: ubuntu-latest
-    needs: ["build_apk", "verify_android_hello_world_per_version", "gradle_tests"]
+    needs: ["pre_check", "build_apk", "verify_android_hello_world_per_version", "gradle_tests"]
     if: always()
     steps:
     # Checkout repo to Github Actions runner
@@ -187,4 +186,4 @@ jobs:
       with:
         fetch-depth: 1
     - name: check result
-      run: ./ci/check_result.sh ${{ needs.build_apk.result }} && ./ci/check_result.sh ${{ needs.verify_android_hello_world_per_version.result }} && ./ci/check_result.sh ${{ needs.gradle_tests.result }}
+      run: ./ci/check_result.sh ${{ needs.pre_check.result }} && ./ci/check_result.sh ${{ needs.build_apk.result }} && ./ci/check_result.sh ${{ needs.verify_android_hello_world_per_version.result }} && ./ci/check_result.sh ${{ needs.gradle_tests.result }}
