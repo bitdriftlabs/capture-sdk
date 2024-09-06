@@ -23,14 +23,16 @@ remote_name=$(git remote -v | grep fetch | awk '{print $1}' | head -n 1)
 # Fetch the base branch if not present
 echo "DEBUG: Fetching base branch: $remote_name/$GITHUB_BASE_REF"
 git fetch "$remote_name" "$GITHUB_BASE_REF"
+# Fetch the head branch (the PR branch) explicitly
+echo "DEBUG: Fetching head branch: $remote_name/$GITHUB_HEAD_REF"
+git fetch "$remote_name" "$GITHUB_HEAD_REF"
 # Starting Revision SHA. We use the merge-base to better handle the case where HEAD is not ahead of main.
 base_sha=$(git rev-parse "$remote_name/$GITHUB_BASE_REF")
+echo "DEBUG: base_sha: $base_sha"
 previous_revision=$(git merge-base "$base_sha" "$remote_name/$GITHUB_HEAD_REF")
+echo "DEBUG: previous_revision: $previous_revision"
 # Final Revision SHA
 final_revision=$GITHUB_HEAD_REF
-
-echo "DEBUG: base_sha: $base_sha"
-echo "DEBUG: previous_revision: $previous_revision"
 echo "DEBUG: final_revision: $final_revision"
 
 starting_hashes_json="/tmp/starting_hashes.json"
