@@ -2,21 +2,30 @@
 
 set -euo pipefail
 
-# Compares $GITHUB_HEAD_REF and $GITHUB_BASE_REF (PR branch + target branch, usually main) to 
-# determine which Bazel targets have changed. This is done by analysizing the cache keys and 
-# should be authoritive assuming the builds are hermietic.
+# Compares the head ref and $GITHUB_BASE_REF (PR branch + target branch, usually main) to
+# determine which Bazel targets have changed. This is done by analyzing the cache keys and
+# should be authoritative assuming the builds are hermetic.
 #
 # Usage ./ci/check_bazel.sh <list of targets to check for in the changeset>
+
+# Trap to handle unexpected errors and log them
+trap 'echo "An unexpected error occurred during Bazel check."; echo "check_result=1" >> "$GITHUB_OUTPUT"; exit 1' ERR
+
+# Ensure we fetch the base branch (main) to make it available
+git fetch origin "$GITHUB_BASE_REF":"$GITHUB_BASE_REF"
+
+# Get the latest commit SHA for the base branch (target branch of the PR)
+base_sha=$(git rev-parse "$GITHUB_BASE_REF")
+# Get the latest commit SHA for the PR branch (the head ref in the forked repository)
+final_revision=$GITHUB_SHA
+
+# Use git merge-base to find the common ancestor of the two commits
+previous_revision=$(git merge-base "$base_sha" "$final_revision")
 
 # Path to your Bazel WORKSPACE directory
 workspace_path=$(pwd)
 # Path to your Bazel executable
 bazel_path=$(pwd)/bazelw
-# Starting Revision SHA. We use the merge-base to better handle the case where HEAD is not ahead of main.
-base_sha=$(git rev-parse "origin/$GITHUB_BASE_REF")
-previous_revision=$(git merge-base "$base_sha" "origin/$GITHUB_HEAD_REF")
-# Final Revision SHA
-final_revision=$GITHUB_HEAD_REF
 
 starting_hashes_json="/tmp/starting_hashes.json"
 final_hashes_json="/tmp/final_hashes.json"
@@ -53,14 +62,22 @@ pattern_impacted() {
   grep -q "$1" /tmp/impacted_targets.txt
 }
 
+changes_detected=false
+
 for pattern in "$@"
 do
   if pattern_impacted "$pattern"; then
     echo "$pattern changed!"
-    exit 0
+    changes_detected=true
+    break
   fi
 done
 
-# No relevant changes detected via Bazel.
-echo "Nothing changed"
-exit 1
+# Exit code based on whether changes were detected
+if [ "$changes_detected" = true ]; then
+  echo "check_result=0" >> "$GITHUB_OUTPUT"
+  exit 0  # Changes found
+else
+  echo "No changes detected."
+  echo "check_result=2" >> "$GITHUB_OUTPUT"
+fi
