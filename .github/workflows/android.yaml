@@ -37,7 +37,7 @@ jobs:
         continue-on-error: true
 
       - name: Determine if tests should run
-        id: check_changes
+        id: check_changes_separate
         run: |
           if [[ "${{ steps.bazel_check.outcome }}" == "success" ]]; then
             echo "Bazel check passed!"
