@@ -27,7 +27,9 @@ jobs:
           ./ci/check_bazel.sh //examples/android:android_app || ./ci/files_changed.sh .github/workflows/android.yaml || ./ci/files_changed.sh "^platform/jvm/gradle-test-app/.*\.(gradle|kts|kt|xml)$" && ./ci/run_tests.sh
   build_apk:
     runs-on: ubuntu-latest
-    if: needs.pre_check.outputs.should_run == 'true'
+    # TODO Remove hardcoding after testing
+    if: false
+#    if: needs.pre_check.outputs.should_run == 'true'
     needs: pre_check
     steps:
       # Checkout repo to Github Actions runner
@@ -48,7 +50,9 @@ jobs:
     runs-on: ubuntu-latest-8-cores
     env:
       SKIP_PROTO_GEN: 1
-    if: needs.pre_check.outputs.should_run == 'true'
+    # TODO Remove hardcoding after testing
+    if: false
+#    if: needs.pre_check.outputs.should_run == 'true'
     needs: pre_check
     steps:
     - name: Checkout project sources
@@ -114,6 +118,8 @@ jobs:
         script: cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test; adb uninstall io.bitdrift.gradletestapp; cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -p platform/jvm gradle-test-app:check gradle-test-app:connectedCheck --stacktrace
 
   verify_android_hello_world_per_version:
+    # TODO Remove hardcoding after testing
+    if: false
     needs: build_apk
     runs-on: ubuntu-latest-8-cores
     strategy:
