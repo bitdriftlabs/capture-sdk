@@ -21,10 +21,49 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check for Bazel build file changes
+        id: bazel_check
+        run: ./ci/check_bazel.sh //examples/android:android_app
+        continue-on-error: true
+
+      - name: Check for workflow file changes
+        id: workflow_check
+        run: ./ci/files_changed.sh .github/workflows/android.yaml
+        continue-on-error: true
+
+      - name: Check for relevant Gradle changes
+        id: gradle_check
+        run: ./ci/files_changed.sh "^platform/jvm/gradle-test-app/.*\.(gradle|kts|kt|xml)$"
+        continue-on-error: true
+
+      - name: Determine if tests should run
+        id: check_changes
+        run: |
+          if [[ "${{ steps.bazel_check.outcome }}" == "success" ]]; then
+            echo "Bazel check passed!"
+          else
+            echo "Bazel check failed!"
+          fi
+
+          if [[ "${{ steps.workflow_check.outcome }}" == "success" ]]; then
+            echo "Workflow check passed!"
+          else
+            echo "Workflow check failed!"
+          fi
+
+          if [[ "${{ steps.gradle_check.outcome }}" == "success" ]]; then
+            echo "Gradle check passed!"
+          else
+            echo "Gradle check failed!"
+          fi
+        shell: bash
+
       - name: check for relevant changes
         id: check_changes
         run: |
-          ./ci/check_bazel.sh //examples/android:android_app || ./ci/files_changed.sh .github/workflows/android.yaml || ./ci/files_changed.sh "^platform/jvm/gradle-test-app/.*\.(gradle|kts|kt|xml)$" && ./ci/run_tests.sh
+          ./ci/run_tests.sh
+
+
   build_apk:
     runs-on: ubuntu-latest
     # TODO Remove hardcoding after testing
