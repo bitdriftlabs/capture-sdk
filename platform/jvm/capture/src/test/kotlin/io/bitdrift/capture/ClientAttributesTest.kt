@@ -169,6 +169,7 @@ class ClientAttributesTest {
         doReturn(state).`when`(mockedLifecycle).currentState
         val mockedLifecycleOwner = mock(LifecycleOwner::class.java)
         doReturn(mockedLifecycle).`when`(mockedLifecycleOwner).lifecycle
+
         return mockedLifecycleOwner
     }
 
@@ -176,12 +177,14 @@ class ClientAttributesTest {
         val mockedPackageManager = obtainMockedPackageManager(context)
         val mockedPackageInfo: PackageInfo = mock(PackageInfo::class.java)
         doReturn(mockedPackageInfo).`when`(mockedPackageManager).getPackageInfo(anyString(), eq(0))
+
         return mockedPackageInfo
     }
 
     private fun obtainMockedPackageManager(context: Context): PackageManager {
         val mockedPackageManager: PackageManager = mock(PackageManager::class.java)
         doReturn(mockedPackageManager).`when`(context).packageManager
+        
         return mockedPackageManager
     }
 }
