@@ -7,7 +7,8 @@
 
 package io.bitdrift.capture
 
-import io.bitdrift.capture.providers.SystemDateProvider
+import androidx.test.core.app.ApplicationProvider
+import io.bitdrift.capture.attributes.DeviceAttributes
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,14 +16,20 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [23])
-class ProvidersTest {
+@Config(sdk = [21])
+class DeviceAttributesTest {
 
     @Test
-    fun system_date_provider() {
-        // Just exercise the codepath to make sure we're not using invalid APIs for version 23
-        val date = SystemDateProvider().invoke()
+    fun model() {
+        val deviceAttributes = DeviceAttributes(ApplicationProvider.getApplicationContext()).invoke()
 
-        assertThat(date).isNotNull
+        assertThat(deviceAttributes).containsEntry("model", "robolectric")
+    }
+
+    @Test
+    fun locale() {
+        val deviceAttributes = DeviceAttributes(ApplicationProvider.getApplicationContext()).invoke()
+
+        assertThat(deviceAttributes).containsEntry("_locale", "en_US")
     }
 }
