@@ -41,7 +41,7 @@ extension URLSession {
             //  * https://github.com/google/gtm-session-fetcher/issues/190#issuecomment-604757154
             let disabledDelegateClassNames = [
                 "GMPx_GTMSessionFetcherSessionDelegateDispatcher", // GooglePlaces SDK
-                "GTMSessionFetcherSessionDelegateDispatcher",      // GTMSessionFetcher SDK
+                "GTMSessionFetcherSessionDelegateDispatcher",      // GoogleMaps/GTMSessionFetcher SDK
             ]
 
             let shouldDisableProxying = disabledDelegateClassNames
