@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-# Compares the head ref and $GITHUB_REF_NAME (PR branch + target branch, usually main) to
+# Compares the head ref and $GITHUB_BASE_REF (PR branch + target branch, usually main) to
 # determine which Bazel targets have changed. This is done by analyzing the cache keys and
 # should be authoritative assuming the builds are hermetic.
 #
@@ -11,13 +11,15 @@ set -euo pipefail
 # Trap to handle unexpected errors and log them
 trap 'echo "An unexpected error occurred during Bazel check."; echo "check_result=1" >> "$GITHUB_OUTPUT"; exit 1' ERR
 
-# Ensure we fetch the base branch (main) to make it available
-git fetch origin "$GITHUB_REF_NAME":"$GITHUB_REF_NAME"
+# Check if GITHUB_BASE_REF is set (i.e., you're in a pull request)
+if [ -n "$GITHUB_BASE_REF" ]; then
+  git fetch origin "$GITHUB_BASE_REF":"$GITHUB_BASE_REF"
+  base_sha=$(git rev-parse "$GITHUB_BASE_REF")
+else
+  echo "Not in a pull request, skipping base ref fetch."
+  base_sha=$(git rev-parse HEAD)
+fi
 
-echo "GITHUB_REF_NAME = $GITHUB_REF_NAME"
-
-# Get the latest commit SHA for the base branch (target branch of the PR)
-base_sha=$(git rev-parse "$GITHUB_REF_NAME")
 # Get the latest commit SHA for the PR branch (the head ref in the forked repository)
 final_revision=$GITHUB_SHA
 
