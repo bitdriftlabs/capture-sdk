@@ -9,12 +9,6 @@ command(
 )
 
 command(
-    name = "lint-swiftlint",
-    arguments = ["--strict"],
-    command = ":swiftlint_script",
-)
-
-command(
     name = "lint-swiftformat",
     arguments = ["--lint"],
     command = ":swiftformat_script",
@@ -24,15 +18,6 @@ command(
     name = "fix-docstrings",
     arguments = ["format"],
     command = ":drstring_script",
-)
-
-command(
-    name = "fix-swiftlint",
-    arguments = [
-        "--fix",
-        "--format",
-    ],
-    command = ":swiftlint_script",
 )
 
 command(
@@ -52,12 +37,6 @@ sh_binary(
 )
 
 sh_binary(
-    name = "swiftlint_script",
-    srcs = ["swiftlint.sh"],
-    data = ["@SwiftLint//:swiftlint"],
-)
-
-sh_binary(
     name = "swiftformat_script",
     srcs = ["swiftformat.sh"],
     data = [
@@ -73,7 +52,6 @@ multirun(
     commands = [
         "lint-docstrings",
         "lint-swiftformat",
-        "lint-swiftlint",
     ],
 )
 
@@ -81,8 +59,6 @@ multirun(
     name = "fix",
     commands = [
         "fix-docstrings",
-        "fix-swiftlint",
         "fix-swiftformat",
-        "lint-swiftlint",
     ],
 )

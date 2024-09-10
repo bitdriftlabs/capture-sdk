@@ -6,7 +6,6 @@ http_archive(
     url = "https://github.com/bazelbuild/apple_support/releases/download/1.17.0/apple_support.1.17.0.tar.gz",
 )
 
-
 load(
     "@build_bazel_apple_support//lib:repositories.bzl",
     "apple_support_dependencies",

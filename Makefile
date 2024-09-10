@@ -14,10 +14,6 @@ rustfmt:
 buildifier:
 	buildifier -warnings all -lint=fix -r .
 
-.PHONY: lint-swift
-lint-swift:
-	./bazelw run tools/lint:lint
-
 .PHONY: lint-yaml
 lint-yaml:
 	taplo lint
@@ -31,7 +27,7 @@ fix-swift:
 # tools/lint:fix doesn't warn about all docstring violations.
 # For this reason format doc strings first (by running tools/lint:fix) and validate whether
 # any doc string violations are left next (by running tools/lint:lint-docstrings).
-	./bazelw run tools/lint:fix && ./bazelw run tools/lint:lint-docstrings
+	swiftlint --quiet --fix --format && ./bazelw run tools/lint:lint-docstrings
 
 .PHONY: format
 format: ktlint rustfmt buildifier fix-swift lint-yaml
