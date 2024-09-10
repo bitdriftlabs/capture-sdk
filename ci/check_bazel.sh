@@ -17,7 +17,7 @@ if [ -n "$GITHUB_BASE_REF" ]; then
   base_sha=$(git rev-parse "$GITHUB_BASE_REF")
 else
   echo "Not in a pull request, skipping base ref fetch."
-  base_sha=$(git rev-parse HEAD)
+  base_sha=$(git rev-parse HEAD~1)
 fi
 
 # Get the latest commit SHA for the PR branch (the head ref in the forked repository)

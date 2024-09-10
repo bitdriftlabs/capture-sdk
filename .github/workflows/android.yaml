@@ -21,6 +21,7 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Check for Bazel build file changes
       - name: Check for Bazel build file changes
         id: bazel_check
         run: ./ci/check_bazel.sh //examples/android:android_app

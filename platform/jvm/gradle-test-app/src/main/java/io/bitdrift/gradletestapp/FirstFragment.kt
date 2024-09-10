@@ -193,12 +193,12 @@ class FirstFragment : Fragment() {
         val url = HttpUrl.Builder().scheme("https").host(requestDef.host).addPathSegments(requestDef.path)
         requestDef.query.forEach { (key, value) -> url.addQueryParameter(key, value) }
 
-        val req = Request.Builder()
+        val request = Request.Builder()
             .url(url.build())
             .method(requestDef.method, if (requestDef.method == "POST") "requestBody".toRequestBody() else null)
             .build()
 
-        val call = okHttpClient.newCall(req)
+        val call = okHttpClient.newCall(request)
 
         call.enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
