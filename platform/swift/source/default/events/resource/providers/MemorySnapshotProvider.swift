@@ -54,7 +54,7 @@ extension MemorySnapshotProvider: ResourceSnapshotProvider {
         self.sequenceNumber += 1
         return MemorySnapshot(
             appTotalMemoryLimitKB:
-            appTotalMemoryUsedKB + self.remainingAvailableMemoryKBForApp(taskInfo: taskInfo),
+                appTotalMemoryUsedKB + self.remainingAvailableMemoryKBForApp(taskInfo: taskInfo),
             appTotalMemoryUsedKB: appTotalMemoryUsedKB,
             deviceTotalMemoryKB: self.deviceTotalMemoryKB,
             relativeTimestamp: nil,

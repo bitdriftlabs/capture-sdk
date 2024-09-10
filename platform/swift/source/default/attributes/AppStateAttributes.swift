@@ -27,7 +27,7 @@ final class AppStateAttributes {
 
         self.underlyingIsForeground = Atomic(state != .background)
 
-        let appForegrounded = { [weak self] (_: Notification) -> Void in
+        let appForegrounded = { [weak self] (_: Notification) in
             self?.underlyingIsForeground.update { $0 = true }
         }
 

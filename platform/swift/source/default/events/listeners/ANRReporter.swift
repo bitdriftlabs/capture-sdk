@@ -60,7 +60,7 @@ final class ANRReporter {
 
         // Wait for the main run loop processing to complete.
         guard self.mainRunLoopProcessingFinished
-            .wait(timeout: self.mainRunLoopEventProcessingDeadline) == .timedOut else
+                .wait(timeout: self.mainRunLoopEventProcessingDeadline) == .timedOut else
         {
             // Main run loop processing completed within the time threshold that constitutes an ANR.
             return

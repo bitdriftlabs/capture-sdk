@@ -147,9 +147,9 @@ public struct HTTPResponseInfo {
         // `HTTPRequestInfo` and `HTTPResponseInfo`.
         Dictionary(
             uniqueKeysWithValues:
-            self.requestInfo.toFields().map { key, value in
-                ("_request.\(key)", value)
-            }
+                self.requestInfo.toFields().map { key, value in
+                    ("_request.\(key)", value)
+                }
                 + self.requestInfo.toMatchingFields().map { key, value in
                     ("_request.\(key)", value)
                 }

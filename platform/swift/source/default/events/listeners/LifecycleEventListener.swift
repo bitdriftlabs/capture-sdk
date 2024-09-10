@@ -203,14 +203,14 @@ extension LifecycleEventListener: EventListener {
                 return NotificationCenter
                     .default
                     .bitdrift_addObserver(forName: notification)
-                    { [weak self] in self?.didReceiveNotification($0) }
+                        { [weak self] in self?.didReceiveNotification($0) }
             }
 
             newTokens.append(
                 NotificationCenter
                     .default
                     .bitdrift_addObserver(forName: UIApplication.willTerminateNotification)
-                    { [weak self] _ in self?.didReceiveWillTerminateNotification() }
+                        { [weak self] _ in self?.didReceiveWillTerminateNotification() }
             )
 
             tokens = newTokens

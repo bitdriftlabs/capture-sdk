@@ -29,9 +29,9 @@ enum Debugger {
     /// - returns: `true` if a debugger is attached, `false` otherwise.
     static func isAttached() -> Bool {
         #if DEBUG
-            return self.mockedIsAttached ?? self.isTraced()
+        return self.mockedIsAttached ?? self.isTraced()
         #else
-            return false
+        return false
         #endif
     }
 

@@ -43,7 +43,7 @@ final class ResourceUtilizationTargetTests: XCTestCase {
         XCTAssertEqual(.completed, XCTWaiter().wait(for: [firstLogExpectation], timeout: 0.5))
         XCTAssertEqual(1, self.logger.resourceUtilizationLogs.count)
         XCTAssertNotNil(self.logger.resourceUtilizationLogs[0]
-            .fields[DiskUsageSnapshot.FieldKey.documentsDirectory.rawValue])
+                            .fields[DiskUsageSnapshot.FieldKey.documentsDirectory.rawValue])
 
         let secondLogExpectation = self.expectation(description: "resource utilization log is not emitted")
         self.logger.logResourceUtilizationExpectation = secondLogExpectation
@@ -54,7 +54,7 @@ final class ResourceUtilizationTargetTests: XCTestCase {
         XCTAssertEqual(.completed, XCTWaiter().wait(for: [secondLogExpectation], timeout: 0.5))
         XCTAssertEqual(2, self.logger.resourceUtilizationLogs.count)
         XCTAssertNil(self.logger.resourceUtilizationLogs[1]
-            .fields[DiskUsageSnapshot.FieldKey.documentsDirectory.rawValue])
+                        .fields[DiskUsageSnapshot.FieldKey.documentsDirectory.rawValue])
 
         // Advance by more than 24 hours
         self.timeProvider.advanceBy(timeInterval: 25 * 60 * 60)
@@ -69,6 +69,6 @@ final class ResourceUtilizationTargetTests: XCTestCase {
         XCTAssertEqual(.completed, XCTWaiter().wait(for: [thirdLogExpectation], timeout: 0.5))
         XCTAssertEqual(3, self.logger.resourceUtilizationLogs.count)
         XCTAssertNotNil(self.logger.resourceUtilizationLogs[2]
-            .fields[DiskUsageSnapshot.FieldKey.documentsDirectory.rawValue])
+                            .fields[DiskUsageSnapshot.FieldKey.documentsDirectory.rawValue])
     }
 }
