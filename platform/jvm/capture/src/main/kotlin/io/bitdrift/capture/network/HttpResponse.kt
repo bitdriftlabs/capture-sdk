@@ -30,8 +30,17 @@ data class HttpResponse @JvmOverloads constructor(
      * Represents the result of an http request operation
      */
     enum class HttpResult {
+        /**
+         * Represents a successful http request operation
+         */
         SUCCESS,
+        /**
+         * Represents a failed http request operation
+         */
         FAILURE,
+        /**
+         * Represents an interrupted or incomplete http request operation
+         */
         CANCELED,
     }
 }
