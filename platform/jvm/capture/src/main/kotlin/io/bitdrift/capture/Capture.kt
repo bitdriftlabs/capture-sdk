@@ -320,9 +320,9 @@ object Capture {
                 val result = block()
                 span?.end(SpanResult.SUCCESS)
                 return result
-            } catch (e: Throwable) {
+            } catch (exception: Throwable) {
                 span?.end(SpanResult.FAILURE)
-                throw e
+                throw exception
             }
         }
 
