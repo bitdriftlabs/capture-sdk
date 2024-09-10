@@ -18,34 +18,42 @@ enum class LogType(val value: Int) {
      * Represents a normal log type, from consumer apps code.
      */
     NORMAL(0),
+
     /**
      * Represents a replay log type, from session replay.
      */
     REPLAY(1),
+
     /**
      * Represents a lifecycle log type, from automatic instrumentation.
      */
     LIFECYCLE(2),
+
     /**
      * Represents a resource log type, from automatic instrumentation.
      */
     RESOURCE(3),
+
     /**
      * Represents an internal SDK log type, from the SDK itself.
      */
     INTERNALSDK(4),
+
     /**
      * Represents a view lifecycle log type, from automatic instrumentation.
      */
     VIEW(5),
+
     /**
      * Represents a device log type, from automatic instrumentation.
      */
     DEVICE(6),
+
     /**
      * Represents a UX interaction log type, from automatic instrumentation.
      */
     UX(7),
+
     /**
      * Represents a span log type, from automatic instrumentation.
      */

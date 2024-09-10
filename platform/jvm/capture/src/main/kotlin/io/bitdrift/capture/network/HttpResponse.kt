@@ -34,10 +34,12 @@ data class HttpResponse @JvmOverloads constructor(
          * Represents a successful http request operation
          */
         SUCCESS,
+
         /**
          * Represents a failed http request operation
          */
         FAILURE,
+        
         /**
          * Represents an interrupted or incomplete http request operation
          */

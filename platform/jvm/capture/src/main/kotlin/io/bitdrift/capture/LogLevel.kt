@@ -19,18 +19,22 @@ enum class LogLevel(val value: Int) {
      * Represents an error log level, which is the most severe log level.
      */
     ERROR(4),
+
     /**
      * Represents a warning log level, which is less severe than error.
      */
     WARNING(3),
+
     /**
      * Represents an info log level, which is less verbose than debug.
      */
     INFO(2),
+
     /**
      * Represents a debug log level, which is more verbose than info.
      */
     DEBUG(1),
+
     /**
      * Represents a trace log level, which is the most verbose log level.
      */
