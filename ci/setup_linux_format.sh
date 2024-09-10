@@ -2,6 +2,8 @@
 
 set -euxo pipefail
 
+readonly repo_root="$(pwd)"
+
 # buildifier is used for format .bzl / BUILD / WORKSPACE files.
 mkdir -p bin/
 curl -LSs https://github.com/bazelbuild/buildtools/releases/download/6.0.1/buildifier-linux-amd64 --output bin/buildifier
@@ -14,10 +16,14 @@ curl -OL "https://download.swift.org/swift-5.7.3-release/ubuntu2204/swift-5.7.3-
 tar xf "$swift_archive_name.tar.gz"
 
 # swiftlint provides static linting of Swif code.
-curl -OL https://github.com/realm/SwiftLint/releases/download/0.57.0/swiftlint_linux.zip --output bin/swiftlint
-unzip bin/swiftlint/swiftlint_linux.zip
-mv bin/swiftlint/swiftlint ./swiftlint
-chmod +x ./swiftlint
+pushd "$(mktemp -d)"
+
+curl -OL https://github.com/realm/SwiftLint/releases/download/0.57.0/swiftlint_linux.zip
+unzip swiftlint_linux.zip
+mv swiftlint "$repo_root/swiftlint"
+chmod +x "$repo_root/swiftlint"
+
+popd
 
 curl -OL "https://github.com/tamasfe/taplo/releases/download/0.8.1/taplo-linux-x86_64.gz"
 gzip -d "taplo-linux-x86_64.gz"
