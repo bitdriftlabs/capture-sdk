@@ -2,8 +2,8 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive", "http_jar")
 
 http_archive(
     name = "build_bazel_apple_support",
-    sha256 = "cf4d63f39c7ba9059f70e995bf5fe1019267d3f77379c2028561a5d7645ef67c",
-    url = "https://github.com/bazelbuild/apple_support/releases/download/1.11.1/apple_support.1.11.1.tar.gz",
+    sha256 = "02f7456e589471dcfc73f1b9ca7f2c2ea5ca4aea999674abea9aebe818700b6e",
+    url = "https://github.com/bazelbuild/apple_support/releases/download/1.17.0/apple_support.1.17.0.tar.gz",
 )
 
 load(
@@ -15,8 +15,8 @@ apple_support_dependencies()
 
 http_archive(
     name = "build_bazel_rules_apple",
-    sha256 = "20da675977cb8249919df14d0ce6165d7b00325fb067f0b06696b893b90a55e8",
-    url = "https://github.com/bazelbuild/rules_apple/releases/download/3.0.0/rules_apple.3.0.0.tar.gz",
+    sha256 = "62847b3f444ce514ae386704a119ad7b29fa6dfb65a38bff4ae239f2389a0429",
+    url = "https://github.com/bazelbuild/rules_apple/releases/download/3.8.0/rules_apple.3.8.0.tar.gz",
 )
 
 http_archive(
@@ -29,8 +29,8 @@ http_archive(
 
 http_archive(
     name = "build_bazel_rules_swift",
-    sha256 = "28a66ff5d97500f0304f4e8945d936fe0584e0d5b7a6f83258298007a93190ba",
-    url = "https://github.com/bazelbuild/rules_swift/releases/download/1.13.0/rules_swift.1.13.0.tar.gz",
+    sha256 = "9919ed1d8dae509645bfd380537ae6501528d8de971caebed6d5185b9970dc4d",
+    url = "https://github.com/bazelbuild/rules_swift/releases/download/2.1.1/rules_swift.2.1.1.tar.gz",
 )
 
 load(
@@ -47,11 +47,11 @@ load(
 
 swift_rules_extra_dependencies()
 
-RULES_RUST_VERSION = "0.49.1"
+RULES_RUST_VERSION = "0.49.3"
 
 http_archive(
     name = "rules_rust",
-    sha256 = "bcf710126f6974dc2db56d9ec5ec4c7c6c4e2c53b0728b44c35b770a48024bc9",
+    integrity = "sha256-3QBrdyIdWeTRQSB8DnrfEbH7YNFEC4/KA7+SVheTKmA=",
     urls = ["https://github.com/bazelbuild/rules_rust/releases/download/%s/rules_rust-v%s.tar.gz" % (RULES_RUST_VERSION, RULES_RUST_VERSION)],
 )
 

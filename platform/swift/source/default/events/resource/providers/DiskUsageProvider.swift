@@ -35,9 +35,9 @@ extension DiskUsageProvider: ResourceSnapshotProvider {
 
         let has24HoursPassed =
             self.storageProvider
-                .get(.lastAppDiskUsageEventEmissionTime)
-                .flatMap { self.timeProvider.now().timeIntervalSince($0) > kDay }
-                ?? true
+            .get(.lastAppDiskUsageEventEmissionTime)
+            .flatMap { self.timeProvider.now().timeIntervalSince($0) > kDay }
+            ?? true
 
         guard has24HoursPassed else {
             return nil

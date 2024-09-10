@@ -666,7 +666,7 @@ final class URLSessionIntegrationTests: XCTestCase {
     }
 
     private func makeTaskWithCompletionClosureTestCases()
-        -> [(URLSession) throws -> URLSessionTaskTestCaseInput]
+    -> [(URLSession) throws -> URLSessionTaskTestCaseInput]
     {
         return [
             self.makeURLDataTaskTestCase(session:),
@@ -708,7 +708,7 @@ final class URLSessionIntegrationTests: XCTestCase {
     }
 
     private func makeURLRequestDataUploadTaskTestCase(session: URLSession) throws
-        -> URLSessionTaskTestCaseInput
+    -> URLSessionTaskTestCaseInput
     {
         let taskCompletionExpectation = self.expectation(description: "urlRequest data upload task completed")
         let task = session.uploadTask(with: self.makeURLRequest(), from: Data()) { _, _, _ in
@@ -719,7 +719,7 @@ final class URLSessionIntegrationTests: XCTestCase {
     }
 
     private func makeURLRequestFileUploadTaskTestCase(session: URLSession) throws
-        -> URLSessionTaskTestCaseInput
+    -> URLSessionTaskTestCaseInput
     {
         let url = try self.makeTempFileURL(name: "test_file")
 
