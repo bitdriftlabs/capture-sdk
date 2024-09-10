@@ -13,7 +13,9 @@ import android.os.PowerManager
 import androidx.annotation.RequiresApi
 
 internal class PowerMonitor(context: Context) {
-    val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+    // Customers have reported encountering certain devices (particularly the Caterpillar S48C phone)
+    // where this returns null on Android 8.1.0. Even though it should always be available on API level >= 21.
+    val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
 
     @RequiresApi(Build.VERSION_CODES.Q)
     private val thermalStatusMap = hashMapOf(
@@ -32,6 +34,6 @@ internal class PowerMonitor(context: Context) {
     }
 
     fun isPowerSaveModeEnabledAttribute(): Pair<String, String> {
-        return Pair("_low_power_enabled", if (powerManager.isPowerSaveMode) "1" else "0")
+        return Pair("_low_power_enabled", if (powerManager?.isPowerSaveMode == true) "1" else "0")
     }
 }
