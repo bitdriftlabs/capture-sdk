@@ -13,6 +13,8 @@ import android.os.PowerManager
 import androidx.annotation.RequiresApi
 
 internal class PowerMonitor(context: Context) {
+    // Customers have reported encountering certain devices (particularly the Caterpillar S48C phone)
+    // where this returns null on Android 8.1.0. Even though it should always be available on API level >= 21.
     val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
 
     @RequiresApi(Build.VERSION_CODES.Q)
