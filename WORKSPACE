@@ -129,8 +129,8 @@ rust_repository_set(
 
 http_archive(
     name = "rules_xcodeproj",
-    sha256 = "ccc719851a9942c53b9359984106e9fa5c5c97d9621b346243b638b18ec097f9",
-    url = "https://github.com/MobileNativeFoundation/rules_xcodeproj/releases/download/1.16.0/release.tar.gz",
+    integrity = "sha256-b+AKGo9kJFkcN52bTraVuIu6hKlTEe/Y+LAHkhXs29o=",
+    url = "https://github.com/MobileNativeFoundation/rules_xcodeproj/releases/download/2.7.0/release.tar.gz",
 )
 
 load(
