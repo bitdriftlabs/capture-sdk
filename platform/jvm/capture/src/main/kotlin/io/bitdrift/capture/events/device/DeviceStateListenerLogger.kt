@@ -66,7 +66,7 @@ internal class DeviceStateListenerLogger(
         context.registerComponentCallbacks(this)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            powerMonitor.powerManager.addThermalStatusListener(executor, thermalCallback)
+            powerMonitor.powerManager?.addThermalStatusListener(executor, thermalCallback)
         }
     }
 
@@ -75,7 +75,7 @@ internal class DeviceStateListenerLogger(
         context.unregisterComponentCallbacks(this)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            powerMonitor.powerManager.removeThermalStatusListener(thermalCallback)
+            powerMonitor.powerManager?.removeThermalStatusListener(thermalCallback)
         }
     }
 

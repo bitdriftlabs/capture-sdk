@@ -13,7 +13,7 @@ import android.os.PowerManager
 import androidx.annotation.RequiresApi
 
 internal class PowerMonitor(context: Context) {
-    val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+    val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
 
     @RequiresApi(Build.VERSION_CODES.Q)
     private val thermalStatusMap = hashMapOf(
@@ -32,6 +32,6 @@ internal class PowerMonitor(context: Context) {
     }
 
     fun isPowerSaveModeEnabledAttribute(): Pair<String, String> {
-        return Pair("_low_power_enabled", if (powerManager.isPowerSaveMode) "1" else "0")
+        return Pair("_low_power_enabled", if (powerManager?.isPowerSaveMode == true) "1" else "0")
     }
 }
