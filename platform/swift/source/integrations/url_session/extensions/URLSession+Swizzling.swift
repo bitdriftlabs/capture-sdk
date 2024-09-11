@@ -33,7 +33,7 @@ extension URLSession {
         // `URLSession.init(configuration:delegate:delegateQueue)` so the call below calls the original
         // initializer.
 
-        if delegate != nil {
+        if let delegate {
             // Proxying delegates of some 3rd party frameworks leads to crashes. Disable proxying for
             // problematic classes.
             // Refer to the following GitHub comments for more details:
@@ -41,12 +41,13 @@ extension URLSession {
             //  * https://github.com/google/gtm-session-fetcher/issues/190#issuecomment-604757154
             let disabledDelegateClassNames = [
                 "GMPx_GTMSessionFetcherSessionDelegateDispatcher", // GooglePlaces SDK
-                "GTMSessionFetcherSessionDelegateDispatcher", // GoogleMaps/GTMSessionFetcher SDK
+                "GMSx_GTMSessionFetcherSessionDelegateDispatcher", // GoogleMaps SDK
+                "GTMSessionFetcherSessionDelegateDispatcher", // GTMSessionFetcher SDK
             ]
 
             let shouldDisableProxying = disabledDelegateClassNames
                 .compactMap { NSClassFromString($0) }
-                .contains { delegate?.isKind(of: $0) == true }
+                .contains { delegate.isKind(of: $0) == true }
 
             if shouldDisableProxying {
                 return Self.cap_makeSession(
