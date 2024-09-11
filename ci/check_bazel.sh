@@ -2,9 +2,6 @@
 
 set -euo pipefail
 
-echo "check_result=0" >> "$GITHUB_OUTPUT"
-exit 0  # Changes found
-
 # Compares the head ref and $GITHUB_BASE_REF (PR branch + target branch, usually main) to
 # determine which Bazel targets have changed. This is done by analyzing the cache keys and
 # should be authoritative assuming the builds are hermetic.
