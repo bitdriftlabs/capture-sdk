@@ -47,7 +47,7 @@ extension URLSession {
 
             let shouldDisableProxying = disabledDelegateClassNames
                 .compactMap { NSClassFromString($0) }
-                .contains { delegate.isKind(of: $0) == true }
+                .contains { delegate.isKind(of: $0) }
 
             if shouldDisableProxying {
                 return Self.cap_makeSession(
