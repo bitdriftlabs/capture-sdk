@@ -85,7 +85,7 @@ jobs:
           path: ./bazel-bin/examples/android/android_app.apk
   gradle_tests:
     # Requires a "larger runner", for nested virtualization support
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest
     env:
       SKIP_PROTO_GEN: 1
     if: needs.pre_check.outputs.should_run == 'true'
