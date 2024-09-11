@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   format_check:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       # --- Build the project for release
 
