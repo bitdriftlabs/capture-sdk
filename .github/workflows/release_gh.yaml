@@ -90,7 +90,7 @@ jobs:
     # Running on ubuntu-latest builds againt a glibc that is more modern than what
     # instant-android uses in CI, causing a load error. Use 20.04 to link against a compatible
     # glibc.
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: ["verify-version"]
     steps:
       - uses: actions/checkout@v4
