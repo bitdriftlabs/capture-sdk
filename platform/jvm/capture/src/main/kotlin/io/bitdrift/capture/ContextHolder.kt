@@ -25,6 +25,9 @@ class ContextHolder : Initializer<ContextHolder> {
         return emptyList()
     }
 
+    /**
+     * A way to access the Context and Initializer status for the Bitdrift SDK.
+     */
     companion object {
         @SuppressLint("StaticFieldLeak")
         @Volatile
