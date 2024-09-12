@@ -78,30 +78,30 @@ rust_register_toolchains(
     # can't include a compromised tool.
     #
     # tl;dr; run e.g. $ ./tools/rust_std_checksum.sh 1.80.0
-    sha256s = {
-        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios-sim.tar.gz": "a4bdf0c2ecd0d899629db9ae0e940863da4047f379bec4a969df3f33dce911db",
-        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios.tar.gz": "09bd46b2b9297b61dd172da42c9455aaa1c85676715f6b8473b55612c1de10ed",
-        "rust-std-" + RUST_VERSION + "-x86_64-apple-ios.tar.gz": "989852a7e82e2a3ad01473a9157ad92f8ff2ebce5300ecb4a716b5987be1bf6b",
-        "rust-std-" + RUST_VERSION + "-aarch64-linux-android.tar.gz": "e8bc1c411e60cd8b290afe8bcc903e18ab904efe9782e491ce781f38a19647f0",
-        "rust-std-" + RUST_VERSION + "-armv7-linux-androideabi.tar.gz": "84c15635750c1228366189aab6f95d26dcaed6069cac3c1fb3dad2f985952d8a",
-        "rust-std-" + RUST_VERSION + "-i686-linux-android.tar.gz": "d205cddae43645e259eb4a1dbbbf6757b08e7408f48d339b5737d7773d749e0e",
-        "rustc-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "9c3d36b8860011bddec580b12e4b6937aa0657b393e7aeb20f1dc90e743ffa7e",
-        "cargo-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "bca2ed0f3b5dec19bd53b0a7d999eb1b495cd5ace69aafa088b44d83f44e3a8d",
-        "llvm-tools-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "7b39fb1d477271d1232e704ef47ea5ec7d323c0cbe358c9a3986bdf6ce27ca55",
-        "rust-std-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "44809c3b92c7500c64517151f1e3389b32913a35414553395104bc4a0ee35f69",
-        "clippy-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "8666f5241c437f7074488c67819d80af8514ac280cc22973c1b15de3086d8dcc",
-        "rustfmt-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "e17c1adda089e922376b2cf0ad3844c132cc1fb2225e1e59fe60af164974883a",
-    },
-    urls = [
-        # NOTE: `urls` are technically mirrors so we want to make sure we always try our own first then the official ones.
-        # We'll ensure that the ones we want to serve always come from us by the previous sha256s dictionary. Please ensure
-        # that the extensions on both of these are the same.
-        "https://github.com/bitdriftlabs/rust-std-mobile/releases/download/" + RUST_VERSION + "/{}.tar.gz",
+    # sha256s = {
+    #     "rust-std-" + RUST_VERSION + "-aarch64-apple-ios-sim.tar.gz": "a4bdf0c2ecd0d899629db9ae0e940863da4047f379bec4a969df3f33dce911db",
+    #     "rust-std-" + RUST_VERSION + "-aarch64-apple-ios.tar.gz": "09bd46b2b9297b61dd172da42c9455aaa1c85676715f6b8473b55612c1de10ed",
+    #     "rust-std-" + RUST_VERSION + "-x86_64-apple-ios.tar.gz": "989852a7e82e2a3ad01473a9157ad92f8ff2ebce5300ecb4a716b5987be1bf6b",
+    #     "rust-std-" + RUST_VERSION + "-aarch64-linux-android.tar.gz": "e8bc1c411e60cd8b290afe8bcc903e18ab904efe9782e491ce781f38a19647f0",
+    #     "rust-std-" + RUST_VERSION + "-armv7-linux-androideabi.tar.gz": "84c15635750c1228366189aab6f95d26dcaed6069cac3c1fb3dad2f985952d8a",
+    #     "rust-std-" + RUST_VERSION + "-i686-linux-android.tar.gz": "d205cddae43645e259eb4a1dbbbf6757b08e7408f48d339b5737d7773d749e0e",
+    #     "rustc-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "9c3d36b8860011bddec580b12e4b6937aa0657b393e7aeb20f1dc90e743ffa7e",
+    #     "cargo-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "bca2ed0f3b5dec19bd53b0a7d999eb1b495cd5ace69aafa088b44d83f44e3a8d",
+    #     "llvm-tools-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "7b39fb1d477271d1232e704ef47ea5ec7d323c0cbe358c9a3986bdf6ce27ca55",
+    #     "rust-std-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "44809c3b92c7500c64517151f1e3389b32913a35414553395104bc4a0ee35f69",
+    #     "clippy-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "8666f5241c437f7074488c67819d80af8514ac280cc22973c1b15de3086d8dcc",
+    #     "rustfmt-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "e17c1adda089e922376b2cf0ad3844c132cc1fb2225e1e59fe60af164974883a",
+    # },
+    # urls = [
+    #     # NOTE: `urls` are technically mirrors so we want to make sure we always try our own first then the official ones.
+    #     # We'll ensure that the ones we want to serve always come from us by the previous sha256s dictionary. Please ensure
+    #     # that the extensions on both of these are the same.
+    #     "https://github.com/bitdriftlabs/rust-std-mobile/releases/download/" + RUST_VERSION + "/{}.tar.gz",
 
-        # We need this because we only serve std for mobile archs but rustc, clippy, cargo, llvm-tools and even std for
-        # apple-darwin/linux are served from the official mirror.
-        "https://static.rust-lang.org/dist/{}.tar.gz",
-    ],
+    #     # We need this because we only serve std for mobile archs but rustc, clippy, cargo, llvm-tools and even std for
+    #     # apple-darwin/linux are served from the official mirror.
+    #     "https://static.rust-lang.org/dist/{}.tar.gz",
+    # ],
     versions = [
         RUST_VERSION,
     ],
