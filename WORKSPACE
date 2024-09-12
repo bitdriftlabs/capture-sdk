@@ -47,11 +47,11 @@ load(
 
 swift_rules_extra_dependencies()
 
-RULES_RUST_VERSION = "0.49.3"
+RULES_RUST_VERSION = "0.50.1"
 
 http_archive(
     name = "rules_rust",
-    integrity = "sha256-3QBrdyIdWeTRQSB8DnrfEbH7YNFEC4/KA7+SVheTKmA=",
+    integrity = "sha256-MZscNcESBO9WsdlKVJ9rnTUygTt3jwLXCe9oyDcDbPE=",
     urls = ["https://github.com/bazelbuild/rules_rust/releases/download/%s/rules_rust-v%s.tar.gz" % (RULES_RUST_VERSION, RULES_RUST_VERSION)],
 )
 
