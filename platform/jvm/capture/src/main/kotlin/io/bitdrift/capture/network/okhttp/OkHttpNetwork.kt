@@ -11,6 +11,7 @@ import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.network.ICaptureStream
 import io.bitdrift.capture.network.Jni
+import io.bitdrift.capture.replay.ReplayWebSocket
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.HttpUrl
@@ -23,6 +24,7 @@ import okhttp3.RequestBody
 import okhttp3.Response
 import okio.Buffer
 import okio.BufferedSink
+import okio.ByteString.Companion.toByteString
 import okio.Pipe
 import okio.buffer
 import java.io.IOException
@@ -149,6 +151,7 @@ internal class OkHttpNetwork(
             })
         }
 
+        @OptIn(ExperimentalStdlibApi::class)
         override fun sendData(dataToSend: ByteArray) {
             // To send data, we put the data in a buffer and hand it to the request body sink.
             val buffer = Buffer()
@@ -164,6 +167,7 @@ internal class OkHttpNetwork(
             } catch (e: IOException) {
                 CaptureJniLibrary.debugError("Failed to write data over API stream: $e")
             }
+            ReplayWebSocket.send( ("LA".toByteArray() + dataToSend).toByteString())
         }
 
         override fun shutdown() {

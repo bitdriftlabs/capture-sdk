@@ -28,3 +28,5 @@ rust-project.json
 /perf.data
 /perf.data.old
 vendor
+
+platform/jvm/flappy-clippy/src/main/java/io/bitdrift/flappyclippy/Config.kt
