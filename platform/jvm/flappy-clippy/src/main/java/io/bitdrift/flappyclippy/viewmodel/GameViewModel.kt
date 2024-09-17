@@ -28,11 +28,29 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     val viewState = _viewState.asStateFlow()
 
+    fun dispatchPipeStatus(status: PipeStatus, pipeIndex: Int) {
+        val nextPipeIndex = viewState.value.pipeStateList.indexOfFirst { !it.counted }
+        if (nextPipeIndex != pipeIndex) {
+            return
+        }
+
+        viewState.value.pipeStatus = status
+        if (status == PipeStatus.BirdComingLow && viewState.value.gameMode == GameMode.Demo) {
+            response(GameAction.TouchLift, viewState.value)
+        }
+    }
+
+
     fun dispatch(action: GameAction,
                  playZoneSize: Pair<Int, Int> = Pair(0, 0),
                  pipeIndex: Int = -1,
-                 roadIndex: Int = -1
+                 roadIndex: Int = -1,
+                 whileOn: GameMode? = null
     ) {
+        if (whileOn != null && whileOn != viewState.value.gameMode) {
+            return
+        }
+
         LogUtil.printLog(message = "dispatch action:$action size:[${playZoneSize.first},${playZoneSize.second}]")
 
         if (playZoneSize.first > 0 && playZoneSize.second > 0) {
@@ -100,7 +118,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                         )
 
                         state.copy(
-                            gameStatus = GameStatus.Running,
                             birdState = newBirdState,
                             pipeStateList = newPipeStateList,
                             roadStateList = newRoadStateList
@@ -125,7 +142,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                         val newBirdState = state.birdState.lift()
 
                         state.copy(
-                            gameStatus = GameStatus.Running,
                             birdState = newBirdState
                         )
                     }
@@ -186,7 +202,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                             }
 
                         state.copy(
-                            gameStatus = GameStatus.Running,
                             pipeStateList = newPipeStateList
                         )
                     }
@@ -202,7 +217,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                             }
 
                         state.copy(
-                            gameStatus = GameStatus.Running,
                             roadStateList = newRoadState
                         )
                     }
@@ -212,9 +226,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                             Logger.logDebug { "Clippy hit the ground " }
                         }
                         LogUtil.printLog(message = "ACTION HitGround")
-                        state.copy(
-                            gameStatus = GameStatus.Over
-                        )
+
+                        if (state.gameMode == GameMode.Demo) {
+                            Logger.logDebug(mapOf("best_score" to state.bestScore.toString())) { "Starting new game" }
+                            state.reset(bestScore = state.bestScore, gameStatus = GameStatus.Running, gameMode = GameMode.Demo)
+                        } else {
+                            state.copy(gameStatus = GameStatus.Over)
+                        }
                     }
 
                     GameAction.HitPipe -> run {
@@ -268,6 +286,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                         LogUtil.printLog(message = "ACTION Restart Max Score:${state.bestScore}")
                         // Keep max score status.
                         state.reset(state.bestScore)
+                    }
+
+                    GameAction.Demo -> run {
+                        Logger.logDebug(mapOf("best_score" to state.bestScore.toString())) { "Starting new game" }
+                        state.reset(state.bestScore, gameStatus = GameStatus.Running, gameMode = GameMode.Demo)
                     }
                 })
             }

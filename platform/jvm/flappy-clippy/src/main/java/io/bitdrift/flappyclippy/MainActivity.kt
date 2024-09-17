@@ -28,6 +28,7 @@ import io.bitdrift.capture.replay.ReplayPreviewClient
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
+import io.bitdrift.flappyclippy.model.GameMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -100,13 +101,13 @@ class MainActivity : ComponentActivity() {
                     }
 
                     Flappy(Clickable(
-
                         onStart = {
                             gameViewModel.dispatch(GameAction.Start)
                         },
 
                         onTap = {
-                            gameViewModel.dispatch(GameAction.TouchLift)
+                            gameViewModel.dispatch(GameAction.TouchLift, whileOn = GameMode.Normal)
+                            gameViewModel.dispatch(GameAction.Restart, whileOn = GameMode.Demo)
                         },
 
                         onRestart = {
@@ -115,6 +116,10 @@ class MainActivity : ComponentActivity() {
 
                         onExit = {
                             finish()
+                        },
+
+                        onDemo = {
+                            gameViewModel.dispatch(GameAction.Demo)
                         }
                     ))
                 }

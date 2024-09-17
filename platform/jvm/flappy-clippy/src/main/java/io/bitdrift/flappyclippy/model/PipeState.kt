@@ -71,6 +71,8 @@ val PreviewPipeState = PipeState(
 
 enum class PipeStatus {
     BirdComing,
+    BirdComingHigh,
+    BirdComingLow,
     BirdHit,
     BirdCrossing,
     BirdCrossed

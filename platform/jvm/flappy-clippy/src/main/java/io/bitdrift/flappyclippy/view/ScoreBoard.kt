@@ -17,24 +17,7 @@ import androidx.compose.ui.unit.sp
 import io.bitdrift.flappyclippy.util.LogUtil
 import io.bitdrift.flappyclippy.R
 import io.bitdrift.flappyclippy.util.ScoreFontFamily
-import io.bitdrift.flappyclippy.model.GameStatus
-import io.bitdrift.flappyclippy.model.ViewState
 import io.bitdrift.flappyclippy.ui.theme.GroundDividerPurple
-
-@Composable
-fun ScoreBoard(
-    modifier: Modifier = Modifier,
-    state: ViewState = ViewState(),
-    clickable: Clickable = Clickable()
-) {
-    LogUtil.printLog(message = "StatusBoard() score:${state.score} max:${state.bestScore}")
-
-    when (state.gameStatus) {
-        GameStatus.Running -> RealTimeBoard(modifier, state.score)
-        GameStatus.Over -> GameOverBoard(modifier, state.score, state.bestScore, clickable)
-        else -> {}
-    }
-}
 
 @Composable
 fun RealTimeBoard(modifier: Modifier, score: Int = 13) {
@@ -142,9 +125,8 @@ fun GameOverButton(modifier: Modifier, clickable: Clickable = Clickable()) {
             .wrapContentHeight()
         )
 
-        // Exit button
         Image(
-            painter = painterResource(id = R.drawable.exit_button),
+            painter = painterResource(id = R.drawable.demo_button),
             contentScale = ContentScale.Fit,
             contentDescription = "Exit Button",
             modifier = Modifier
@@ -153,8 +135,8 @@ fun GameOverButton(modifier: Modifier, clickable: Clickable = Clickable()) {
                 // .scale(2f)
                 .align(CenterVertically)
                 .clickable(true) {
-                    LogUtil.printLog(message = "Exit tapped")
-                    clickable.onExit()
+                    LogUtil.printLog(message = "Demo tapped")
+                    clickable.onDemo()
                 }
         )
     }

@@ -35,7 +35,7 @@ var BirdSizeWidth = BirdSizeHeight * 1.1f
 // Need consider bird's height when calculating hit ground or not.
 val BirdHitGroundThreshold = BirdSizeHeight / 2
 
-var BirdFallVelocity = 8.dp
-var BirdQuickFallVelocity = BirdFallVelocity * 4
+val BirdFallVelocity = 8.dp
+val BirdQuickFallVelocity = BirdFallVelocity * 4
 
 val BirdLiftVelocity = BirdFallVelocity * 8

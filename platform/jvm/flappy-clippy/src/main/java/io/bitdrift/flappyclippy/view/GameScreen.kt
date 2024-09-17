@@ -1,7 +1,6 @@
 package io.bitdrift.flappyclippy.view
 
 import android.view.MotionEvent
-import android.view.MotionEvent.ACTION_DOWN
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -13,9 +12,8 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import io.bitdrift.capture.Capture
-import io.bitdrift.flappyclippy.*
 import io.bitdrift.flappyclippy.model.*
 import io.bitdrift.flappyclippy.ui.theme.ForegroundEarthYellow
 import io.bitdrift.flappyclippy.util.LogUtil
@@ -41,10 +39,10 @@ fun GameScreen(
                     // Send lift action to let bird up.
                     // Todo only work when running status.
                     when (it.action) {
-                        ACTION_DOWN -> {
+                        MotionEvent.ACTION_DOWN -> {
                             LogUtil.printLog(message = "GameScreen ACTION_DOWN status:${viewState.gameStatus}")
                             if (viewState.gameStatus == GameStatus.Waiting) clickable.onStart()
-                            else if (viewState.gameStatus == GameStatus.Running) clickable.onTap()
+                            else if (viewState.isRunning) clickable.onTap()
                             else return@pointerInteropFilter false
                         }
 
@@ -100,13 +98,6 @@ fun GameScreen(
                 pipeIndex = 1
             )
 
-            // Put real time or over score board
-            ScoreBoard(
-                modifier = Modifier.fillMaxSize(),
-                state = viewState,
-                clickable = clickable
-            )
-
             val playZoneWidthInDP = with(LocalDensity.current) {
                 viewState.playZoneSize.first.toDp()
             }
@@ -123,7 +114,7 @@ fun GameScreen(
 
             // Check hit first or second pipe.
             // And send hit pipe action if bird hit any pipe.
-            if (viewState.gameStatus == GameStatus.Running) {
+            if (viewState.isRunning) {
                 viewState.pipeStateList.forEachIndexed { pipeIndex, pipeState ->
                     CheckPipeStatus(
                         viewState.birdState.birdHeight,
@@ -131,6 +122,7 @@ fun GameScreen(
                         playZoneWidthInDP,
                         playZoneHeightInDP
                     ).also {
+                        viewModel.dispatchPipeStatus(it, pipeIndex)
                         when (it) {
                             PipeStatus.BirdHit -> {
                                 LogUtil.printLog(message = "Send hit pipe action")
@@ -149,11 +141,19 @@ fun GameScreen(
                 }
             }
 
+            if (viewState.gameStatus == GameStatus.Running) {
+                RealTimeBoard(Modifier.fillMaxSize(), viewState.score)
+            }
+
             // Put bird
             Bird(
                 modifier = Modifier.fillMaxSize(),
                 state = viewState
             )
+
+            if (viewState.gameStatus == GameStatus.Over) {
+                GameOverBoard(Modifier.fillMaxSize(), viewState.score, viewState.bestScore, clickable)
+            }
         }
 
         Box(modifier = Modifier
@@ -172,24 +172,37 @@ fun GameScreen(
 @Composable
 fun CheckPipeStatus(birdHeightOffset: Dp, pipeState: PipeState, zoneWidth: Dp, zoneHeight: Dp): PipeStatus {
     LogUtil.printLog(message = "CheckPipeStatus()")
-
-    if (pipeState.offset - PipeCoverWidth > - zoneWidth / 2 + BirdSizeWidth / 2) {
-        LogUtil.printLog(message = "Bird is coming")
+    if (zoneHeight == 0.dp || pipeState.counted) {
         return PipeStatus.BirdComing
-    } else if (pipeState.offset - PipeCoverWidth < - zoneWidth / 2 - BirdSizeWidth / 2) {
+    }
+
+    val birdTop = (zoneHeight - BirdSizeHeight) / 2 + birdHeightOffset
+    val birdBottom = (zoneHeight + BirdSizeHeight) / 2 + birdHeightOffset
+    val birdCrossedEnd = pipeState.offset - PipeCoverWidth < - zoneWidth / 2 - BirdSizeWidth / 2
+    val birdCrossedStart = pipeState.offset - PipeCoverWidth < - zoneWidth / 2 + BirdSizeWidth / 2
+    if (birdCrossedEnd) {
         LogUtil.printLog(message = "Bird crossed successfully")
         return PipeStatus.BirdCrossed
-    } else {
-        val birdTop = (zoneHeight - BirdSizeHeight) / 2 + birdHeightOffset
-        val birdBottom = (zoneHeight + BirdSizeHeight) / 2 + birdHeightOffset
-
+    } else if (birdCrossedStart) {
         if (birdTop < pipeState.upHeight || birdBottom > zoneHeight - pipeState.downHeight) {
             LogUtil.printLog(message = "Bird hit unluckily")
             return PipeStatus.BirdHit
         }
 
         LogUtil.printLog(message = "Bird still crossing, good luck.")
+        if (birdBottom + BirdFallVelocity > zoneHeight - pipeState.downHeight) {
+            return PipeStatus.BirdComingLow
+        }
         return PipeStatus.BirdCrossing
+    } else {
+        LogUtil.printLog(message = "Bird is coming")
+        if (birdBottom + BirdFallVelocity > zoneHeight - pipeState.downHeight) {
+            return PipeStatus.BirdComingLow
+        } else if (birdTop < pipeState.upHeight) {
+            return PipeStatus.BirdComingHigh
+        } else {
+            return PipeStatus.BirdComing
+        }
     }
  }
 
@@ -227,5 +240,6 @@ data class Clickable(
     val onStart: () -> Unit = {},
     val onTap: () -> Unit = {},
     val onRestart: () -> Unit = {},
-    val onExit: () -> Unit = {}
+    val onExit: () -> Unit = {},
+    val onDemo: () -> Unit = {},
 )
