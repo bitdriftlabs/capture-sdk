@@ -1,6 +1,0 @@
-package io.bitdrift.flappyclippy
-
-object Config {
-    const val API_KEY = "<API KEY GOES HERE>"
-    const val API_URL = "api.bitdrift.io"
-}

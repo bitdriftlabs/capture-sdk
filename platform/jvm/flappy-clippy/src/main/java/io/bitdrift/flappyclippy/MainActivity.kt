@@ -40,8 +40,9 @@ import java.util.Date
 import java.util.Locale
 import kotlin.concurrent.timer
 
-private const val bitdriftAPIKey = Config.API_KEY
-private val BITDRIFT_STAGING_URL = HttpUrl.Builder().scheme("https").host(Config.API_URL).build()
+private const val bitdriftAPIKey = ""
+private const val chromebookIP = "10.0.2.2"
+private val BITDRIFT_STAGING_URL = HttpUrl.Builder().scheme("https").host(chromebookIP).port(4444).build()
 
 class MainActivity : ComponentActivity() {
     private val viewModel: GameViewModel by viewModels()
@@ -65,7 +66,7 @@ class MainActivity : ComponentActivity() {
                     return true
                 }
             }
-        ), this.applicationContext)
+        ), host = chromebookIP, context = this.applicationContext)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

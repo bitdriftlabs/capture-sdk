@@ -41,7 +41,7 @@ android {
 
     defaultConfig {
         applicationId = "io.bitdrift.flappyclippy"
-        minSdk = 21
+        minSdk = 24
         targetSdk = 34
         versionCode = 66
         versionName = "1.0"

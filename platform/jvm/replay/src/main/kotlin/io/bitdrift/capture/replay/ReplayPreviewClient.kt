@@ -8,8 +8,6 @@
 package io.bitdrift.capture.replay
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import android.util.Base64
 import android.util.Log
 import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
@@ -25,64 +23,6 @@ import okio.ByteString.Companion.toByteString
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-
-object ReplayWebSocket {
-    private val client: OkHttpClient = OkHttpClient.Builder()
-        .readTimeout(0, TimeUnit.MILLISECONDS)
-        .build()
-
-    private var instance: WebSocket? = null
-
-    fun reconnect() {
-        val request = instance?.request() ?: return;
-
-        instance?.close(1001, "ReplayWebSocket closing and re-creating socket")
-        instance = client.newWebSocket(
-            request,
-            WebSocketLogger
-        )
-    }
-
-    fun connect(request: Request) {
-        instance?.close(1001, "ReplayWebSocket closing and re-creating socket")
-        instance = client.newWebSocket(
-            request,
-            WebSocketLogger,
-        )
-        Log.d("ReplayWebSocket", "New Web Socket created")
-    }
-
-    fun send(bytes: ByteString) {
-        instance?.send(bytes)
-    }
-
-    private object WebSocketLogger : WebSocketListener() {
-        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-            Log.d("ReplayWebSocket", "onClosed($webSocket, $code, $reason)")
-        }
-
-        override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-            Log.d("ReplayWebSocket", "onClosing($webSocket, $code, $reason)")
-        }
-
-        override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-            Log.d("ReplayWebSocket", "onFailure($webSocket, $t, $response)")
-            Handler(Looper.getMainLooper()).postDelayed({ reconnect() }, 1000);
-        }
-
-        override fun onMessage(webSocket: WebSocket, text: String) {
-            Log.d("ReplayWebSocket", "onMessage($webSocket, $text)")
-        }
-
-        override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-            Log.d("ReplayWebSocket", "onMessage($webSocket, $bytes)")
-        }
-
-        override fun onOpen(webSocket: WebSocket, response: Response) {
-            Log.d("ReplayWebSocket", "onOpen($webSocket, $response)")
-        }
-    }
-}
 
 /**
  * Allows to capture the screen and send the binary data over a persistent websocket connection
@@ -102,12 +42,17 @@ class ReplayPreviewClient(
 
     private val replayCapture: ReplayCapture = ReplayCapture(this)
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
+    private val client: OkHttpClient
     private val request: Request
+    private var webSocket: WebSocket? = null
     private var lastEncodedScreen: ByteArray? = null
 
     init {
         // Calling this is necessary to capture the display size
         replayModule.create(context)
+        client = OkHttpClient.Builder()
+            .readTimeout(0, TimeUnit.MILLISECONDS)
+            .build()
         request = Request.Builder()
             .url("$protocol://$host:$port")
             .build()
@@ -117,7 +62,12 @@ class ReplayPreviewClient(
      * Creates a socket and establishes a connection. Terminates any previous connection
      */
     fun connect() {
-        ReplayWebSocket.connect(request)
+        webSocket?.close(1001, "ReplayPreviewClient closing and re-creating socket")
+        webSocket = client.newWebSocket(
+            request,
+            WebSocketLogger,
+        )
+        Log.d("ReplayPreviewClient", "New Web Socket created")
     }
 
     /**
@@ -141,7 +91,7 @@ class ReplayPreviewClient(
 
     override fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture, metrics: EncodedScreenMetrics) {
         lastEncodedScreen = encodedScreen
-        ReplayWebSocket.send(("SR".toByteArray() + encodedScreen).toByteString(0, encodedScreen.size + 2))
+        webSocket?.send(encodedScreen.toByteString(0, encodedScreen.size))
         // forward the callback to the module's logger
         replayModule.replayLogger.onScreenCaptured(encodedScreen, screen, metrics)
     }
@@ -156,5 +106,31 @@ class ReplayPreviewClient(
 
     override fun logErrorInternal(message: String, e: Throwable?, fields: Map<String, String>?) {
         replayModule.replayLogger.logErrorInternal(message, e, fields)
+    }
+
+    private object WebSocketLogger : WebSocketListener() {
+        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+            Log.d("ReplayPreviewClient", "onClosed($webSocket, $code, $reason)")
+        }
+
+        override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+            Log.d("ReplayPreviewClient", "onClosing($webSocket, $code, $reason)")
+        }
+
+        override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+            Log.d("ReplayPreviewClient", "onFailure($webSocket, $t, $response)")
+        }
+
+        override fun onMessage(webSocket: WebSocket, text: String) {
+            Log.d("ReplayPreviewClient", "onMessage($webSocket, $text)")
+        }
+
+        override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
+            Log.d("ReplayPreviewClient", "onMessage($webSocket, $bytes)")
+        }
+
+        override fun onOpen(webSocket: WebSocket, response: Response) {
+            Log.d("ReplayPreviewClient", "onOpen($webSocket, $response)")
+        }
     }
 }

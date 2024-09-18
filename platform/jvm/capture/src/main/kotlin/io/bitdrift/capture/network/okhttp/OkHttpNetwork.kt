@@ -11,7 +11,6 @@ import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.network.ICaptureStream
 import io.bitdrift.capture.network.Jni
-import io.bitdrift.capture.replay.ReplayWebSocket
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.HttpUrl
@@ -24,14 +23,39 @@ import okhttp3.RequestBody
 import okhttp3.Response
 import okio.Buffer
 import okio.BufferedSink
-import okio.ByteString.Companion.toByteString
 import okio.Pipe
 import okio.buffer
 import java.io.IOException
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
+import javax.net.ssl.HostnameVerifier
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
+
+/**
+ * This extension bypasses all invalid certificates. Useful for local servers
+ */
+fun OkHttpClient.Builder.ignoreAllSSLErrors(): OkHttpClient.Builder {
+    val naiveTrustManager = object : X509TrustManager {
+        override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+        override fun checkClientTrusted(certs: Array<X509Certificate>, authType: String) = Unit
+        override fun checkServerTrusted(certs: Array<X509Certificate>, authType: String) = Unit
+    }
+
+    val insecureSocketFactory = SSLContext.getInstance("TLSv1.2").apply {
+        val trustAllCerts = arrayOf<TrustManager>(naiveTrustManager)
+        init(null, trustAllCerts, SecureRandom())
+    }.socketFactory
+
+    sslSocketFactory(insecureSocketFactory, naiveTrustManager)
+    hostnameVerifier(HostnameVerifier { _, _ -> true })
+    return this
+}
 
 // 1024 * 1024 bytes / 1 MiB for the buffer size. This matches the Wire gRPC default:
 // https://github.com/square/wire/blob/972df6b3f1e308e38cbfbd6ee0b8d2377aedabdc/wire-library/wire-grpc-client/src/jvmMain/kotlin/com/squareup/wire/internal/grpc.kt#L69
@@ -80,6 +104,7 @@ internal class OkHttpNetwork(
                 listOf(Protocol.H2_PRIOR_KNOWLEDGE)
             },
         )
+        .ignoreAllSSLErrors()
         .writeTimeout(timeoutSeconds, TimeUnit.SECONDS)
         .readTimeout(timeoutSeconds, TimeUnit.SECONDS)
         .retryOnConnectionFailure(false) // Retrying messes up the write pipe state management, so disable.
@@ -151,7 +176,6 @@ internal class OkHttpNetwork(
             })
         }
 
-        @OptIn(ExperimentalStdlibApi::class)
         override fun sendData(dataToSend: ByteArray) {
             // To send data, we put the data in a buffer and hand it to the request body sink.
             val buffer = Buffer()
@@ -167,7 +191,6 @@ internal class OkHttpNetwork(
             } catch (e: IOException) {
                 CaptureJniLibrary.debugError("Failed to write data over API stream: $e")
             }
-            ReplayWebSocket.send( ("LA".toByteArray() + dataToSend).toByteString())
         }
 
         override fun shutdown() {
