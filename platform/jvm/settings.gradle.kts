@@ -7,7 +7,7 @@ include(":common")
 include(":replay")
 
 include(":gradle-test-app")
-include(":flappy-clippy")
+include(":flappy-chippy")
 
 include(":microbenchmark")
 
