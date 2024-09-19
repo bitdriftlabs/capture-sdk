@@ -8,8 +8,12 @@
 package io.bitdrift.capture.replay
 
 import android.content.Context
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Base64
 import android.util.Log
+import androidx.annotation.RequiresApi
 import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import io.bitdrift.capture.replay.internal.ReplayCapture
@@ -20,6 +24,7 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
 import okio.ByteString.Companion.toByteString
+import java.time.Duration
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -32,6 +37,7 @@ import java.util.concurrent.TimeUnit
  * @param host The host to connect to (default is Android's emulator loopback IP: 10.0.2.2)
  * @param port The port to connect to (default is 3001)
  */
+@RequiresApi(Build.VERSION_CODES.O)
 class ReplayPreviewClient(
     private val replayModule: ReplayModule,
     context: Context,
@@ -51,6 +57,7 @@ class ReplayPreviewClient(
         // Calling this is necessary to capture the display size
         replayModule.create(context)
         client = OkHttpClient.Builder()
+            .connectTimeout(Duration.ofSeconds(2))
             .readTimeout(0, TimeUnit.MILLISECONDS)
             .build()
         request = Request.Builder()
@@ -65,7 +72,34 @@ class ReplayPreviewClient(
         webSocket?.close(1001, "ReplayPreviewClient closing and re-creating socket")
         webSocket = client.newWebSocket(
             request,
-            WebSocketLogger,
+            object : WebSocketListener() {
+                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                    Log.d("ReplayPreviewClient", "onClosed($webSocket, $code, $reason)")
+                }
+
+                override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                    Log.d("ReplayPreviewClient", "onClosing($webSocket, $code, $reason)")
+                }
+
+                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        this@ReplayPreviewClient.connect()
+                    }, 1000)
+                    Log.d("ReplayPreviewClient", "onFailure($webSocket, $t, $response)")
+                }
+
+                override fun onMessage(webSocket: WebSocket, text: String) {
+                    Log.d("ReplayPreviewClient", "onMessage($webSocket, $text)")
+                }
+
+                override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
+                    Log.d("ReplayPreviewClient", "onMessage($webSocket, $bytes)")
+                }
+
+                override fun onOpen(webSocket: WebSocket, response: Response) {
+                    Log.d("ReplayPreviewClient", "onOpen($webSocket, $response)")
+                }
+            },
         )
         Log.d("ReplayPreviewClient", "New Web Socket created")
     }
@@ -106,31 +140,5 @@ class ReplayPreviewClient(
 
     override fun logErrorInternal(message: String, e: Throwable?, fields: Map<String, String>?) {
         replayModule.replayLogger.logErrorInternal(message, e, fields)
-    }
-
-    private object WebSocketLogger : WebSocketListener() {
-        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-            Log.d("ReplayPreviewClient", "onClosed($webSocket, $code, $reason)")
-        }
-
-        override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-            Log.d("ReplayPreviewClient", "onClosing($webSocket, $code, $reason)")
-        }
-
-        override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-            Log.d("ReplayPreviewClient", "onFailure($webSocket, $t, $response)")
-        }
-
-        override fun onMessage(webSocket: WebSocket, text: String) {
-            Log.d("ReplayPreviewClient", "onMessage($webSocket, $text)")
-        }
-
-        override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-            Log.d("ReplayPreviewClient", "onMessage($webSocket, $bytes)")
-        }
-
-        override fun onOpen(webSocket: WebSocket, response: Response) {
-            Log.d("ReplayPreviewClient", "onOpen($webSocket, $response)")
-        }
     }
 }
