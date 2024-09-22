@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.network.okhttp
 
+import android.annotation.SuppressLint
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.network.ICaptureStream
@@ -41,7 +42,8 @@ import javax.net.ssl.X509TrustManager
  * This extension bypasses all invalid certificates. Useful for local servers
  */
 fun OkHttpClient.Builder.ignoreAllSSLErrors(): OkHttpClient.Builder {
-    val naiveTrustManager = object : X509TrustManager {
+    val naiveTrustManager = @SuppressLint("CustomX509TrustManager")
+    object : X509TrustManager {
         override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
         override fun checkClientTrusted(certs: Array<X509Certificate>, authType: String) = Unit
         override fun checkServerTrusted(certs: Array<X509Certificate>, authType: String) = Unit

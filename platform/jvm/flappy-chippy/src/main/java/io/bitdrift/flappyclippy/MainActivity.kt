@@ -41,7 +41,7 @@ import java.util.Locale
 import kotlin.concurrent.timer
 
 private const val bitdriftAPIKey = ""
-private const val chromebookIP = "10.0.2.2"
+private const val chromebookIP = "192.168.0.100"
 private val BITDRIFT_STAGING_URL = HttpUrl.Builder().scheme("https").host(chromebookIP).port(4444).build()
 
 class MainActivity : ComponentActivity() {
