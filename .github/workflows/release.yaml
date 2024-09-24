@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'The new version to release, ex: 0.12.0'
+        description: 'The new version to release, ex: 0.12.0. This must match the value in platform/shared/.sdk_version'
         required: true
         type: string
       sha:
