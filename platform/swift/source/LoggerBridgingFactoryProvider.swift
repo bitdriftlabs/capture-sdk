@@ -34,5 +34,5 @@ protocol LoggerBridgingFactoryProvider {
         releaseVersion: String,
         network: Network?,
         errorReporting: RemoteErrorReporting
-    ) -> LoggerBridging
+    ) -> LoggerBridging?
 }

@@ -68,17 +68,19 @@ open class BaseNetworkingTestCase: XCTestCase {
 
         self.network = network
 
-        let loggerBridge = LoggerBridge(
-            apiKey: "test!",
-            bufferDirectoryPath: sdkDirectory.path,
-            sessionStrategy: .fixed(),
-            metadataProvider: MockMetadataProvider(),
-            resourceUtilizationTarget: MockResourceUtilizationTarget(),
-            eventsListenerTarget: MockEventsListenerTarget(),
-            appID: "io.bitdrift.capture.test",
-            releaseVersion: "",
-            network: network,
-            errorReporting: MockRemoteErrorReporter()
+        let loggerBridge = try XCTUnwrap(
+            LoggerBridge(
+                apiKey: "test!",
+                bufferDirectoryPath: sdkDirectory.path,
+                sessionStrategy: .fixed(),
+                metadataProvider: MockMetadataProvider(),
+                resourceUtilizationTarget: MockResourceUtilizationTarget(),
+                eventsListenerTarget: MockEventsListenerTarget(),
+                appID: "io.bitdrift.capture.test",
+                releaseVersion: "",
+                network: network,
+                errorReporting: MockRemoteErrorReporter()
+            )
         )
 
         loggerBridge.start()

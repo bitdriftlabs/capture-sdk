@@ -30,7 +30,7 @@ class CaptureTest {
     // This Test needs to run first since the following tests need to initialize
     // the ContextHolder before they can run.
     @Test
-    fun a_configure_skips_logger_creation_when_context_not_initialized() {
+    fun aConfigureSkipsLoggerCreationWhenContextNotInitialized() {
         assertThat(Capture.logger()).isNull()
 
         Logger.configure(
@@ -45,7 +45,7 @@ class CaptureTest {
     // Accessing fields prior to the configuration of the logger may lead to crash since it can
     // potentially call into a native method that's used to sanitize passed url path.
     @Test
-    fun b_does_not_access_fields_if_logger_not_configured() {
+    fun bDoesNotAccessFieldsIfLoggerNotConfigured() {
         assertThat(Capture.logger()).isNull()
 
         val requestInfo = HttpRequestInfo("GET", path = HttpUrlPath("/foo/12345"))
@@ -65,7 +65,7 @@ class CaptureTest {
     }
 
     @Test
-    fun c_idempotent_configure() {
+    fun cIdempotentConfigure() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
 

@@ -25,7 +25,7 @@ interface StackTraceProvider {
 }
 
 @Suppress("UndocumentedPublicClass")
-internal object CaptureJniLibrary {
+internal object CaptureJniLibrary : IBridge {
 
     /**
      * Loads the shared library. This is safe to call multiple times.
@@ -49,7 +49,7 @@ internal object CaptureJniLibrary {
      * @param preferences the preferences storage to use for persistent storage of simple settings and configuration.
      * @param errorReporter the error reporter to use for reporting error to bitdrift services.
      */
-    external fun createLogger(
+    external override fun createLogger(
         sdkDirectory: String,
         apiKey: String,
         sessionStrategy: SessionStrategyConfiguration,

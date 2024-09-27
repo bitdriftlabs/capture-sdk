@@ -36,6 +36,7 @@ import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
+import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.network.okhttp.OkHttpNetwork
 import io.bitdrift.capture.providers.DateProvider
@@ -44,6 +45,7 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
 import io.bitdrift.capture.providers.toFields
 import okhttp3.HttpUrl
 import java.io.File
@@ -56,6 +58,22 @@ import kotlin.time.measureTime
 typealias LoggerId = Long
 internal typealias InternalFieldsList = List<Field>
 internal typealias InternalFieldsMap = Map<String, FieldValue>
+
+internal interface IBridge {
+    fun createLogger(
+        sdkDirectory: String,
+        apiKey: String,
+        sessionStrategy: SessionStrategyConfiguration,
+        metadataProvider: IMetadataProvider,
+        resourceUtilizationTarget: IResourceUtilizationTarget,
+        eventsListenerTarget: IEventsListenerTarget,
+        applicationId: String,
+        applicationVersion: String,
+        network: ICaptureNetwork,
+        preferences: IPreferences,
+        errorReporter: IErrorReporter,
+    ): Long
+}
 
 internal class LoggerImpl(
     apiKey: String,
@@ -76,6 +94,7 @@ internal class LoggerImpl(
     private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey),
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
+    private val bridge: IBridge = CaptureJniLibrary,
 ) : ILogger {
 
     private val metadataProvider: MetadataProvider
@@ -144,7 +163,7 @@ internal class LoggerImpl(
                 processingQueue,
             )
 
-            this.loggerId = CaptureJniLibrary.createLogger(
+            val loggerId = bridge.createLogger(
                 sdkDirectory,
                 apiKey,
                 sessionStrategy.createSessionStrategyConfiguration { appExitSaveCurrentSessionId(it) },
@@ -163,6 +182,10 @@ internal class LoggerImpl(
                 preferences,
                 localErrorReporter,
             )
+
+            check(loggerId != -1L) { "initialization of the rust logger failed" }
+
+            this.loggerId = loggerId
 
             runtime = JniRuntime(this.loggerId)
             diskUsageMonitor.runtime = runtime
