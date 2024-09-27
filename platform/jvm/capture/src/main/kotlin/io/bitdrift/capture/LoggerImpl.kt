@@ -59,22 +59,6 @@ typealias LoggerId = Long
 internal typealias InternalFieldsList = List<Field>
 internal typealias InternalFieldsMap = Map<String, FieldValue>
 
-internal interface IBridge {
-    fun createLogger(
-        sdkDirectory: String,
-        apiKey: String,
-        sessionStrategy: SessionStrategyConfiguration,
-        metadataProvider: IMetadataProvider,
-        resourceUtilizationTarget: IResourceUtilizationTarget,
-        eventsListenerTarget: IEventsListenerTarget,
-        applicationId: String,
-        applicationVersion: String,
-        network: ICaptureNetwork,
-        preferences: IPreferences,
-        errorReporter: IErrorReporter,
-    ): Long
-}
-
 internal class LoggerImpl(
     apiKey: String,
     apiUrl: HttpUrl,
