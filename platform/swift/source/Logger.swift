@@ -159,7 +159,7 @@ public final class Logger {
         )
         self.eventsListenerTarget = EventsListenerTarget()
 
-        let logger = loggerBridgingFactoryProvider.makeLogger(
+        guard let logger = loggerBridgingFactoryProvider.makeLogger(
             apiKey: apiKey,
             bufferDirectoryPath: directoryURL?.path,
             sessionStrategy: sessionStrategy,
@@ -176,9 +176,7 @@ public final class Logger {
             releaseVersion: clientAttributes.appVersion,
             network: network,
             errorReporting: self.remoteErrorReporter
-        )
-
-        guard let logger else {
+        ) else {
             return nil
         }
 
