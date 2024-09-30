@@ -9,5 +9,5 @@ rm -rf /usr/share/dotnet
 rm -rf /opt/ghc...
 
 # Disable swap to make it possible to clean up swap strorage.
-swapoff -a
+sudo swapoff -a
 rm -f /mnt/swapfile
