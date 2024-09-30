@@ -7,4 +7,3 @@ set -euxo pipefail
 rm -rf "$AGENT_TOOLSDIRECTORY"
 rm -rf /usr/share/dotnet
 rm -rf /opt/ghc...
-rm -f /mnt/swapfile
