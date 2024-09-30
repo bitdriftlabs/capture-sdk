@@ -36,7 +36,6 @@ import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
-import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.network.okhttp.OkHttpNetwork
 import io.bitdrift.capture.providers.DateProvider
@@ -45,7 +44,6 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
 import io.bitdrift.capture.providers.toFields
 import okhttp3.HttpUrl
 import java.io.File
