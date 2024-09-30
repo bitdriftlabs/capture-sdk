@@ -93,6 +93,8 @@ jobs:
     steps:
     - name: Checkout project sources
       uses: actions/checkout@v4
+    - name: Clean up space # Refer to https://github.com/ReactiveCircus/android-emulator-runner/issues/377#issuecomment-2296679727 for more details.
+      run: ./ci/free_disk_space.sh
 
     # See https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/
     - name: Enable KVM group perms
@@ -116,8 +118,6 @@ jobs:
           ~/.android/avd/*
           ~/.android/adb*
         key: ${{ runner.os }}-avd-api-21-2
-    - name: Clean up space # Refer to https://github.com/ReactiveCircus/android-emulator-runner/issues/377#issuecomment-2296679727 for more details.
-      run: ./ci/free_disk_space.sh
     - name: Create AVD and generate snapshot for caching
       if: steps.avd-cache.outputs.cache-hit != 'true'
       timeout-minutes: 30
@@ -167,6 +167,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Clean up space # Refer to https://github.com/ReactiveCircus/android-emulator-runner/issues/377#issuecomment-2296679727 for more details.
+        run: ./ci/free_disk_space.sh
 
       # See https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/
       - name: Enable KVM group perms
@@ -186,8 +188,6 @@ jobs:
             ~/.android/avd/*
             ~/.android/adb*
           key: ${{ runner.os }}-avd-api${{ matrix.api-level }}-1
-      - name: Clean up space # Refer to https://github.com/ReactiveCircus/android-emulator-runner/issues/377#issuecomment-2296679727 for more details.
-        run: ./ci/free_disk_space.sh
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
         timeout-minutes: 30
