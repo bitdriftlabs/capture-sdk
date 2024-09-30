@@ -7,3 +7,7 @@ set -euxo pipefail
 rm -rf "$AGENT_TOOLSDIRECTORY"
 rm -rf /usr/share/dotnet
 rm -rf /opt/ghc...
+
+# Disable swap to make it possible to clean up swap strorage.
+swapoff -a
+rm -f /mnt/swapfile
