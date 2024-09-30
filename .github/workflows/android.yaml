@@ -138,6 +138,8 @@ jobs:
     - name: Check Licenses for modules
       working-directory: ./platform/jvm
       run: ./gradlew replay:checkLicense common:checkLicense # capture:checkLicense doesn't work at the moment
+    - name: Clean up space # Refer to https://github.com/ReactiveCircus/android-emulator-runner/issues/377#issuecomment-2296679727 for more details.
+      run: ./ci/free_disk_space.sh
     - name: Instrumentation Tests
       uses: reactivecircus/android-emulator-runner@f0d1ed2dcad93c7479e8b2f2226c83af54494915 # pin@v2.32
       with:
@@ -198,6 +200,8 @@ jobs:
           profile: Nexus 6
           emulator-options: -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: echo "Generated AVD snapshot for caching."
+      - name: Clean up space # Refer to https://github.com/ReactiveCircus/android-emulator-runner/issues/377#issuecomment-2296679727 for more details.
+        run: ./ci/free_disk_space.sh
       - name: run tests
         uses: reactivecircus/android-emulator-runner@v2
         timeout-minutes: 15
