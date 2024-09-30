@@ -10,4 +10,4 @@ rm -rf /opt/ghc...
 
 # Disable swap to make it possible to clean up swap strorage.
 sudo swapoff -a
-rm -f /mnt/swapfile
+sudo rm -f /mnt/swapfile
