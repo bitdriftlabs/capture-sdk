@@ -146,7 +146,7 @@ jobs:
         disk-size: 8192M
         profile: Nexus 6
         disable-animations: true
-        emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
         script: cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test; adb uninstall io.bitdrift.gradletestapp; cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -p platform/jvm gradle-test-app:check gradle-test-app:connectedCheck --stacktrace
 
   verify_android_hello_world_per_version:
