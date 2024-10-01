@@ -93,8 +93,6 @@ jobs:
     steps:
     - name: Checkout project sources
       uses: actions/checkout@v4
-    - name: Clean up space # Refer to https://github.com/ReactiveCircus/android-emulator-runner/issues/377#issuecomment-2296679727 for more details.
-      run: ./ci/free_disk_space.sh
 
     # See https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/
     - name: Enable KVM group perms
@@ -123,7 +121,7 @@ jobs:
       timeout-minutes: 30
       uses: reactivecircus/android-emulator-runner@f0d1ed2dcad93c7479e8b2f2226c83af54494915 # pin@v2.32
       with:
-        channel: beta
+        channel: stable
         force-avd-creation: false
         api-level: 21
         target: default
@@ -147,9 +145,9 @@ jobs:
         force-avd-creation: false
         api-level: 21
         target: default
-        ram-size: 3072M
+        ram-size: 2048M
         arch: x86_64
-        disk-size: 6144
+        disk-size: 4096M
         profile: Nexus 6
         disable-animations: true
         emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
@@ -167,8 +165,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Clean up space # Refer to https://github.com/ReactiveCircus/android-emulator-runner/issues/377#issuecomment-2296679727 for more details.
-        run: ./ci/free_disk_space.sh
 
       # See https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/
       - name: Enable KVM group perms
@@ -193,7 +189,7 @@ jobs:
         timeout-minutes: 30
         uses: reactivecircus/android-emulator-runner@d94c3fbe4fe6a29e4a5ba47c12fb47677c73656b # pin@v2
         with:
-          channel: beta
+          channel: stable
           api-level: ${{ matrix.api-level }}
           target: google_apis
           ram-size: 2048M
@@ -207,7 +203,7 @@ jobs:
         timeout-minutes: 15
         with:
           force-avd-creation: false
-          channel: beta
+          channel: stable
           api-level: ${{ matrix.api-level }}
           target: google_apis
           ram-size: 2048M
