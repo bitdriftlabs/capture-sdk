@@ -12,8 +12,13 @@ import Foundation
 // swiftlint:disable file_length
 public final class Logger {
     enum State {
+        // The logger has not yet been configured.
         case notConfigured
+        // The logger has been successfully configured and is ready for use.
+        // Subsequent attempts to configure the logger will be ignored.
         case configured(LoggerIntegrator)
+        // The configuration was attempted but failed.
+        // Subsequent attempts to configure the logger will be ignored.
         case configurationFailure
     }
 

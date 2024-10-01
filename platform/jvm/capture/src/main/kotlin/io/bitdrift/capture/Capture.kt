@@ -23,9 +23,24 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
 
 internal sealed class LoggerState {
+    /**
+     * The logger has not yet been configured.
+     */
     data object NotConfigured : LoggerState()
+
+    /**
+     * The logger has been successfully configured and is ready for use. Subsequent attempts to configure the logger will be ignored.
+     */
     class Configured(val logger: LoggerImpl) : LoggerState()
+
+    /**
+     * The configuration has started but is not yet complete. Subsequent attempts to configure the logger will be ignored.
+     */
     data object ConfigurationStarted : LoggerState()
+
+    /**
+     * The configuration was attempted but failed. Subsequent attempts to configure the logger will be ignored.
+     */
     data object ConfigurationFailure : LoggerState()
 }
 
