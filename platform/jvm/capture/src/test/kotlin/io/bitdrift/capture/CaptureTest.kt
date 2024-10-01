@@ -15,7 +15,6 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.providers.session.SessionStrategy
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.Before
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
