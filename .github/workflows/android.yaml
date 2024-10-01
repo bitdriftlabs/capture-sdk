@@ -194,7 +194,7 @@ jobs:
           target: google_apis
           ram-size: 2048M
           arch: x86_64
-          disk-size: 8192M
+          disk-size: 6144M
           profile: Nexus 6
           emulator-options: -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: echo "Generated AVD snapshot for caching."
