@@ -147,9 +147,9 @@ jobs:
         force-avd-creation: false
         api-level: 21
         target: default
-        ram-size: 2048M
+        ram-size: 3072M
         arch: x86_64
-        disk-size: 4096M
+        disk-size: 6144
         profile: Nexus 6
         disable-animations: true
         emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
