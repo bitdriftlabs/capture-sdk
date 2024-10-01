@@ -162,7 +162,7 @@ object Capture {
                         )
                         default.set(LoggerState.Configured(logger))
                     } catch (e: Throwable) {
-                        Log.w("capture", "Capture initialization failed")
+                        Log.w("capture", "Capture initialization failed", e)
                         default.set(LoggerState.ConfigurationFailure)
                     }
                 } else -> {
