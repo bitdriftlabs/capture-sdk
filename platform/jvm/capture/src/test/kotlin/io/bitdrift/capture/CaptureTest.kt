@@ -27,12 +27,6 @@ import org.robolectric.annotation.Config
 @Config(sdk = [21])
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class CaptureTest {
-
-    @Before
-    fun setUp() {
-        Capture.Logger.resetShared()
-    }
-
     // This Test needs to run first since the following tests need to initialize
     // the ContextHolder before they can run.
     @Test

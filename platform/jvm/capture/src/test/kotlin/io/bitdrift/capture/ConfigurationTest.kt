@@ -15,6 +15,7 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.providers.session.SessionStrategy
 import org.assertj.core.api.Assertions
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -98,5 +99,10 @@ class ConfigurationTest {
             anyOrNull(),
             anyOrNull(),
         )
+    }
+
+    @After
+    fun tearDown() {
+        Capture.Logger.resetShared()
     }
 }
