@@ -42,7 +42,7 @@ dependencies {
 
 android {
     namespace = "io.bitdrift.gradletestapp"
-    compileSdk = 34
+    compileSdk = 35
 
     buildFeatures {
         compose = true
@@ -57,7 +57,7 @@ android {
     defaultConfig {
         applicationId = "io.bitdrift.gradletestapp"
         minSdk = 21
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 66
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
