@@ -25,6 +25,7 @@ import kotlin.time.Duration
 internal sealed class LoggerState {
     data object NotConfigured : LoggerState()
     class Configured(val logger: LoggerImpl) : LoggerState()
+    data object ConfigurationStarted : LoggerState()
     data object ConfigurationFailure : LoggerState()
 }
 
@@ -43,6 +44,7 @@ object Capture {
         return when (val state = default.get()) {
             is LoggerState.NotConfigured -> null
             is LoggerState.Configured -> state.logger
+            is LoggerState.ConfigurationStarted -> null
             is LoggerState.ConfigurationFailure -> null
         }
     }
@@ -130,8 +132,9 @@ object Capture {
                 return
             }
 
-            default.getAndUpdate {
-                if (it is LoggerState.NotConfigured) {
+            // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
+            when (default.getAndSet(LoggerState.ConfigurationStarted)) {
+                is LoggerState.NotConfigured -> {
                     try {
                         val logger = LoggerImpl(
                             apiKey = apiKey,
@@ -142,14 +145,13 @@ object Capture {
                             sessionStrategy = sessionStrategy,
                             bridge = bridge,
                         )
-                        LoggerState.Configured(logger)
+                        default.set(LoggerState.Configured(logger))
                     } catch (e: Throwable) {
                         Log.w("capture", "Capture initialization failed")
-                        LoggerState.ConfigurationFailure
+                        default.set(LoggerState.ConfigurationFailure)
                     }
-                } else {
+                } else -> {
                     Log.w("capture", "Attempted to initialize Capture more than once")
-                    it
                 }
             }
         }
