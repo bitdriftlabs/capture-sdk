@@ -66,7 +66,7 @@ jobs:
         run: ./ci/run_tests.sh
 
   build_apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: needs.pre_check.outputs.should_run == 'true'
     needs: pre_check
     steps:
