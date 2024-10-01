@@ -123,7 +123,7 @@ jobs:
         target: default
         ram-size: 2048M
         arch: x86_64
-        disk-size: 4096M
+        disk-size: 8192M
         profile: Nexus 6
         disable-animations: true
         emulator-options: -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
@@ -143,7 +143,7 @@ jobs:
         target: default
         ram-size: 2048M
         arch: x86_64
-        disk-size: 4096M
+        disk-size: 8192M
         profile: Nexus 6
         disable-animations: true
         emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
@@ -190,7 +190,7 @@ jobs:
           target: google_apis
           ram-size: 2048M
           arch: x86_64
-          disk-size: 4096M
+          disk-size: 8192M
           profile: Nexus 6
           emulator-options: -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: echo "Generated AVD snapshot for caching."
@@ -204,7 +204,7 @@ jobs:
           target: google_apis
           ram-size: 2048M
           arch: x86_64
-          disk-size: 4096M
+          disk-size: 8192M
           profile: Nexus 6
           emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: ./ci/verify_android.sh
