@@ -22,11 +22,33 @@ import okhttp3.HttpUrl
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
 
+internal sealed class LoggerState {
+    /**
+     * The logger has not yet been configured.
+     */
+    data object NotConfigured : LoggerState()
+
+    /**
+     * The logger has been successfully configured and is ready for use. Subsequent attempts to configure the logger will be ignored.
+     */
+    class Configured(val logger: LoggerImpl) : LoggerState()
+
+    /**
+     * The configuration has started but is not yet complete. Subsequent attempts to configure the logger will be ignored.
+     */
+    data object ConfigurationStarted : LoggerState()
+
+    /**
+     * The configuration was attempted but failed. Subsequent attempts to configure the logger will be ignored.
+     */
+    data object ConfigurationFailure : LoggerState()
+}
+
 /**
  * Top level namespace Capture SDK.
  */
 object Capture {
-    private val default: AtomicReference<LoggerImpl?> = AtomicReference(null)
+    private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotConfigured)
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been configured.
@@ -34,7 +56,12 @@ object Capture {
      * @return ILogger a logger handle
      */
     fun logger(): ILogger? {
-        return default.get()
+        return when (val state = default.get()) {
+            is LoggerState.NotConfigured -> null
+            is LoggerState.Configured -> state.logger
+            is LoggerState.ConfigurationStarted -> null
+            is LoggerState.ConfigurationFailure -> null
+        }
     }
 
     /**
@@ -83,6 +110,29 @@ object Capture {
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
         ) {
+            configure(
+                apiKey,
+                sessionStrategy,
+                configuration,
+                fieldProviders,
+                dateProvider,
+                apiUrl,
+                CaptureJniLibrary,
+            )
+        }
+
+        @Synchronized
+        @JvmStatic
+        @JvmOverloads
+        internal fun configure(
+            apiKey: String,
+            sessionStrategy: SessionStrategy,
+            configuration: Configuration = Configuration(),
+            fieldProviders: List<FieldProvider> = listOf(),
+            dateProvider: DateProvider? = null,
+            apiUrl: HttpUrl = defaultCaptureApiUrl,
+            bridge: IBridge,
+        ) {
             // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
             // while subsequent logger access relies on volatile reads.
 
@@ -96,22 +146,26 @@ object Capture {
                 return
             }
 
-            // If the logger has already been configured, do nothing.
-            if (default.get() != null) {
+            // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
+            if (default.compareAndSet(LoggerState.NotConfigured, LoggerState.ConfigurationStarted)) {
+                try {
+                    val logger = LoggerImpl(
+                        apiKey = apiKey,
+                        apiUrl = apiUrl,
+                        fieldProviders = fieldProviders,
+                        dateProvider = dateProvider ?: SystemDateProvider(),
+                        configuration = configuration,
+                        sessionStrategy = sessionStrategy,
+                        bridge = bridge,
+                    )
+                    default.set(LoggerState.Configured(logger))
+                } catch (e: Throwable) {
+                    Log.w("capture", "Capture initialization failed", e)
+                    default.set(LoggerState.ConfigurationFailure)
+                }
+            } else {
                 Log.w("capture", "Attempted to initialize Capture more than once")
-                return
             }
-
-            val logger = LoggerImpl(
-                apiKey = apiKey,
-                apiUrl = apiUrl,
-                fieldProviders = fieldProviders,
-                dateProvider = dateProvider ?: SystemDateProvider(),
-                configuration = configuration,
-                sessionStrategy = sessionStrategy,
-            )
-
-            default.set(logger)
         }
 
         /**
@@ -333,7 +387,7 @@ object Capture {
          */
         @JvmStatic
         fun log(httpRequestInfo: HttpRequestInfo) {
-            default.get()?.log(httpRequestInfo)
+            logger()?.log(httpRequestInfo)
         }
 
         /**
@@ -344,7 +398,14 @@ object Capture {
          */
         @JvmStatic
         fun log(httpResponseInfo: HttpResponseInfo) {
-            default.get()?.log(httpResponseInfo)
+            logger()?.log(httpResponseInfo)
+        }
+
+        /**
+         * Used for testing purposes.
+         */
+        internal fun resetShared() {
+            default.set(LoggerState.NotConfigured)
         }
     }
 }

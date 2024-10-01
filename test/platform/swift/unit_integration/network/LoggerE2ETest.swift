@@ -64,26 +64,28 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         self.storage = MockStorageProvider()
 
         let apiURL = self.setUpTestServer()
-        let logger = Logger(
-            withAPIKey: "test!",
-            bufferDirectory: self.setUpSDKDirectory(),
-            apiURL: apiURL,
-            remoteErrorReporter: MockRemoteErrorReporter(),
-            configuration: configuration,
-            sessionStrategy: SessionStrategy.fixed(sessionIDGenerator: { "mock-group-id" }),
-            dateProvider: MockDateProvider(),
-            fieldProviders: [
-                MockFieldProvider(
-                    getFieldsClosure: {
-                        [
-                            "field_provider": "mock_field_provider",
-                            "failing_to_convert_and_should_be_skipped_field": MockEncodable(),
-                        ]
-                    }
-                ),
-            ],
-            storageProvider: self.storage,
-            timeProvider: SystemTimeProvider()
+        let logger = try XCTUnwrap(
+            Logger(
+                withAPIKey: "test!",
+                bufferDirectory: self.setUpSDKDirectory(),
+                apiURL: apiURL,
+                remoteErrorReporter: MockRemoteErrorReporter(),
+                configuration: configuration,
+                sessionStrategy: SessionStrategy.fixed(sessionIDGenerator: { "mock-group-id" }),
+                dateProvider: MockDateProvider(),
+                fieldProviders: [
+                    MockFieldProvider(
+                        getFieldsClosure: {
+                            [
+                                "field_provider": "mock_field_provider",
+                                "failing_to_convert_and_should_be_skipped_field": MockEncodable(),
+                            ]
+                        }
+                    ),
+                ],
+                storageProvider: self.storage,
+                timeProvider: SystemTimeProvider()
+            )
         )
 
         self.logger = logger

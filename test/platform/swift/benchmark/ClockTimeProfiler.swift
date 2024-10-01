@@ -10,6 +10,7 @@ import Benchmark
 import CapturePassable
 import CaptureTestBridge
 import Foundation
+import XCTest
 
 // swiftlint:disable:next force_unwrapping
 private let kAPIURL = URL(string: "https://api-tests.bitdrift.io")!
@@ -276,7 +277,7 @@ private let kPostConfigLogBenchmark = BenchmarkSuite(name: "Logging - Post-Confi
 private extension Logger {
     static func make(directoryURL: URL? = nil) throws -> Logger {
         let directoryURLFallback = try makeTmpDirectory()
-        return Logger(
+        return try XCTUnwrap(Logger(
             withAPIKey: "foo",
             bufferDirectory: directoryURL ?? directoryURLFallback,
             apiURL: kAPIURL,
@@ -288,6 +289,7 @@ private extension Logger {
             enableNetwork: false,
             storageProvider: Storage.shared,
             timeProvider: SystemTimeProvider()
+        )
         )
     }
 }

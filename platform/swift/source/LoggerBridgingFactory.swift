@@ -19,7 +19,7 @@ final class LoggerBridgingFactory: LoggerBridgingFactoryProvider {
         releaseVersion: String,
         network: Network?,
         errorReporting: RemoteErrorReporting
-    ) -> LoggerBridging {
+    ) -> LoggerBridging? {
         return LoggerBridge(
             apiKey: apiKey,
             bufferDirectoryPath: bufferDirectoryPath,

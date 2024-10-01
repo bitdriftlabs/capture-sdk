@@ -76,6 +76,7 @@ internal class LoggerImpl(
     private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey),
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
+    private val bridge: IBridge = CaptureJniLibrary,
 ) : ILogger {
 
     private val metadataProvider: MetadataProvider
@@ -144,7 +145,7 @@ internal class LoggerImpl(
                 processingQueue,
             )
 
-            this.loggerId = CaptureJniLibrary.createLogger(
+            val loggerId = bridge.createLogger(
                 sdkDirectory,
                 apiKey,
                 sessionStrategy.createSessionStrategyConfiguration { appExitSaveCurrentSessionId(it) },
@@ -163,6 +164,10 @@ internal class LoggerImpl(
                 preferences,
                 localErrorReporter,
             )
+
+            check(loggerId != -1L) { "initialization of the rust logger failed" }
+
+            this.loggerId = loggerId
 
             runtime = JniRuntime(this.loggerId)
             diskUsageMonitor.runtime = runtime

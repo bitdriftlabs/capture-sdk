@@ -90,7 +90,7 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
                 configuration: .init(),
                 fieldProviders: [CustomFieldProvider()],
                 apiURL: kBitdriftURL
-            )
+            )?
             .enableIntegrations([.urlSession()], disableSwizzling: true)
 
         Logger.addField(withKey: "field_container_field_key", value: "field_container_value")

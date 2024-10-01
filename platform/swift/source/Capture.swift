@@ -19,8 +19,9 @@ extension Logger {
 
     // MARK: - General
 
-    /// An instance of an underlying logger, if the Capture SDK has been configured. Returns `nil` only if
-    /// `configure(...)` method has not been called.
+    /// An instance of the underlying logger, if the Capture SDK is configured. Returns `nil` if the
+    /// `configure(...)` method has not been called or if Logger configuration failed due to an internal
+    /// error.
     public static var shared: Logging? {
         self.getShared(assert: false)
     }
@@ -40,8 +41,7 @@ extension Logger {
     ///                              instructed otherwise during discussions with bitdrift. Defaults to
     ///                              bitdrift's hosted Compose API base URL.
     ///
-    /// - returns: A logger integrator that can be used to enable various SDK integration and get access
-    ///            to non-optional `Logging` instance.
+    /// - returns: A logger integrator that can be used to enable various SDK integration.
     @discardableResult
     public static func configure(
         withAPIKey apiKey: String,
@@ -51,7 +51,29 @@ extension Logger {
         dateProvider: DateProvider? = nil,
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
         apiURL: URL = URL(string: "https://api.bitdrift.io")!
-    ) -> LoggerIntegrator
+    ) -> LoggerIntegrator?
+    {
+        return self.configure(
+            withAPIKey: apiKey,
+            sessionStrategy: sessionStrategy,
+            configuration: configuration,
+            fieldProviders: fieldProviders,
+            dateProvider: dateProvider,
+            apiURL: apiURL,
+            loggerBridgingFactoryProvider: LoggerBridgingFactory()
+        )
+    }
+
+    @discardableResult
+    static func configure(
+        withAPIKey apiKey: String,
+        sessionStrategy: SessionStrategy,
+        configuration: Configuration,
+        fieldProviders: [FieldProvider],
+        dateProvider: DateProvider?,
+        apiURL: URL,
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider
+    ) -> LoggerIntegrator?
     {
         return self.createOnce {
             return Logger(
@@ -60,7 +82,8 @@ extension Logger {
                 configuration: configuration,
                 sessionStrategy: sessionStrategy,
                 dateProvider: dateProvider,
-                fieldProviders: fieldProviders
+                fieldProviders: fieldProviders,
+                loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
             )
         }
     }

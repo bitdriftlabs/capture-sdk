@@ -19,15 +19,17 @@ final class LoggerSharedTests: XCTestCase {
         Logger.resetShared()
     }
 
-    func testIntegrationsAreEnabledOnlyOnce() {
+    func testIntegrationsAreEnabledOnlyOnce() throws {
         var integrationStartsCount = 0
         let integration = Integration { _, _ in
             integrationStartsCount += 1
         }
 
-        let integrator = Logger.configure(
-            withAPIKey: "foo",
-            sessionStrategy: .fixed()
+        let integrator = try XCTUnwrap(
+            Logger.configure(
+                withAPIKey: "foo",
+                sessionStrategy: .fixed()
+            )
         )
 
         integrator.enableIntegrations([integration])

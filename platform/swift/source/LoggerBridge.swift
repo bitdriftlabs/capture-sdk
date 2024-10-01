@@ -16,7 +16,7 @@ final class LoggerBridge: LoggerBridging {
     let loggerID: LoggerID
     private var blockingShutdown = false
 
-    init(
+    init?(
         apiKey: String,
         bufferDirectoryPath: String?,
         sessionStrategy: SessionStrategy,
@@ -28,7 +28,7 @@ final class LoggerBridge: LoggerBridging {
         network: Network?,
         errorReporting: RemoteErrorReporting
     ) {
-        self.loggerID = capture_create_logger(
+        let loggerID = capture_create_logger(
             bufferDirectoryPath,
             apiKey,
             sessionStrategy.makeSessionStrategyProvider(),
@@ -40,6 +40,12 @@ final class LoggerBridge: LoggerBridging {
             network,
             errorReporting
         )
+
+        if loggerID == -1 {
+            return nil
+        }
+
+        self.loggerID = loggerID
     }
 
     deinit {
@@ -61,7 +67,7 @@ final class LoggerBridge: LoggerBridging {
         releaseVersion: String,
         network: Network?,
         errorReporting: RemoteErrorReporting
-    ) -> LoggerBridging {
+    ) -> LoggerBridging? {
         return LoggerBridge(
             apiKey: apiKey,
             bufferDirectoryPath: bufferDirectoryPath,

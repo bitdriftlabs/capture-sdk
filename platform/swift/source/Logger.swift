@@ -11,6 +11,17 @@ import Foundation
 
 // swiftlint:disable file_length
 public final class Logger {
+    enum State {
+        // The logger has not yet been configured.
+        case notConfigured
+        // The logger has been successfully configured and is ready for use.
+        // Subsequent attempts to configure the logger will be ignored.
+        case configured(LoggerIntegrator)
+        // The configuration was attempted but failed.
+        // Subsequent attempts to configure the logger will be ignored.
+        case configurationFailure
+    }
+
     private let underlyingLogger: CoreLogging
     private let timeProvider: TimeProvider
 
@@ -24,7 +35,7 @@ public final class Logger {
 
     private let sessionURLBase: URL
 
-    private static let syncedShared = Atomic<LoggerIntegrator?>(nil)
+    private static let syncedShared = Atomic<State>(.notConfigured)
 
     private let network: URLSessionNetworkClient?
     // Used for benchmarking purposes.
@@ -46,7 +57,7 @@ public final class Logger {
     ///                                            attributes to attach to emitted logs.
     /// - parameter loggerBridgingFactoryProvider: A class to use for Rust bridging. Used for testing
     ///                                            purposes.
-    convenience init(
+    convenience init?(
         withAPIKey apiKey: String,
         apiURL: URL,
         configuration: Configuration,
@@ -94,7 +105,7 @@ public final class Logger {
     /// - parameter timeProvider:                  The time source to use by the logger.
     /// - parameter loggerBridgingFactoryProvider: A class to use for Rust bridging. Used for testing
     ///                                            purposes.
-    init(
+    init?(
         withAPIKey apiKey: String,
         bufferDirectory: URL?,
         apiURL: URL,
@@ -111,10 +122,6 @@ public final class Logger {
     {
         self.timeProvider = timeProvider
         let start = timeProvider.uptime()
-        defer {
-            let duration = timeProvider.timeIntervalSince(start)
-            self.underlyingLogger.logSDKConfigured(fields: [:], duration: duration)
-        }
 
         // Order of providers matters in here, the latter in the list the higher their priority in
         // case of key conflicts.
@@ -157,26 +164,33 @@ public final class Logger {
         )
         self.eventsListenerTarget = EventsListenerTarget()
 
-        self.underlyingLogger = CoreLogger(
-            logger: loggerBridgingFactoryProvider.makeLogger(
-                apiKey: apiKey,
-                bufferDirectoryPath: directoryURL?.path,
-                sessionStrategy: sessionStrategy,
-                metadataProvider: metadataProvider,
-                // TODO(Augustyniak): Pass `resourceUtilizationTarget` and `eventsListenerTarget` as part of
-                // the `self.underlyingLogger.start()` method call instead.
-                // Pass the event listener target here and finish setting up
-                // before the logger is actually started.
-                resourceUtilizationTarget: self.resourceUtilizationTarget,
-                // Pass the event listener target here and finish setting up
-                // before the logger is actually started.
-                eventsListenerTarget: self.eventsListenerTarget,
-                appID: clientAttributes.appID,
-                releaseVersion: clientAttributes.appVersion,
-                network: network,
-                errorReporting: self.remoteErrorReporter
-            )
-        )
+        guard let logger = loggerBridgingFactoryProvider.makeLogger(
+            apiKey: apiKey,
+            bufferDirectoryPath: directoryURL?.path,
+            sessionStrategy: sessionStrategy,
+            metadataProvider: metadataProvider,
+            // TODO(Augustyniak): Pass `resourceUtilizationTarget` and `eventsListenerTarget` as part of
+            // the `self.underlyingLogger.start()` method call instead.
+            // Pass the event listener target here and finish setting up
+            // before the logger is actually started.
+            resourceUtilizationTarget: self.resourceUtilizationTarget,
+            // Pass the event listener target here and finish setting up
+            // before the logger is actually started.
+            eventsListenerTarget: self.eventsListenerTarget,
+            appID: clientAttributes.appID,
+            releaseVersion: clientAttributes.appVersion,
+            network: network,
+            errorReporting: self.remoteErrorReporter
+        ) else {
+            return nil
+        }
+
+        self.underlyingLogger = CoreLogger(logger: logger)
+
+        defer {
+            let duration = timeProvider.timeIntervalSince(start)
+            self.underlyingLogger.logSDKConfigured(fields: [:], duration: duration)
+        }
 
         self.eventsListenerTarget.setUp(
             logger: self.underlyingLogger,
@@ -247,19 +261,25 @@ public final class Logger {
 
     // MARK: - Static
 
-    static func createOnce(_ createLogger: () -> Logger) -> LoggerIntegrator {
-        let logger = self.syncedShared.update { logger in
-            guard logger == nil else {
+    static func createOnce(_ createLogger: () -> Logger?) -> LoggerIntegrator? {
+        let state = self.syncedShared.update { state in
+            guard case .notConfigured = state else {
                 return
             }
 
-            logger = LoggerIntegrator(logger: createLogger())
+            if let createdLogger = createLogger() {
+                state = .configured(LoggerIntegrator(logger: createdLogger))
+            } else {
+                state = .configurationFailure
+            }
         }
 
-        // Safety:
-        // The logger instance is guaranteed to be created after the first call to createOnce method.
-        // swiftlint:disable force_unwrapping
-        return logger!
+        return switch state {
+        case .configured(let logger):
+            logger
+        case .notConfigured, .configurationFailure:
+            nil
+        }
     }
 
     /// Retrieves a shared instance of logger if one has been configured.
@@ -268,7 +288,8 @@ public final class Logger {
     ///
     /// - returns: The shared instance of logger.
     static func getShared(assert: Bool = true) -> Logging? {
-        guard let integrator = Self.syncedShared.load() else {
+        return switch Self.syncedShared.load() {
+        case .notConfigured: {
             if assert {
                 assertionFailure(
                     """
@@ -279,16 +300,25 @@ public final class Logger {
             }
 
             return nil
+        }()
+        case .configured(let integrator):
+            integrator.logger
+        case .configurationFailure:
+            nil
         }
-
-        return integrator.logger
     }
 
     /// Internal for testing purposes only.
     ///
     /// - parameter logger: The logger to use.
     static func resetShared(logger: Logging? = nil) {
-        Self.syncedShared.update { $0 = logger.flatMap(LoggerIntegrator.init(logger:)) }
+        Self.syncedShared.update { state in
+            if let logger {
+                state = .configured(LoggerIntegrator(logger: logger))
+            } else {
+                state = .notConfigured
+            }
+        }
     }
 
     // Returns the location to use for storing files related to the Capture SDK, including the disk persisted

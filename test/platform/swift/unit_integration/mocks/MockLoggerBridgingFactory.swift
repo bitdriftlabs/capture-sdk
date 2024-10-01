@@ -10,9 +10,10 @@ import CaptureLoggerBridge
 import Foundation
 
 final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
-    private let logger: LoggerBridging
+    private let logger: LoggerBridging?
+    private(set) var makeLoggerCallsCount = 0
 
-    init(logger: LoggerBridging) {
+    init(logger: LoggerBridging?) {
         self.logger = logger
     }
 
@@ -27,7 +28,8 @@ final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
         releaseVersion _: String,
         network _: Network?,
         errorReporting _: RemoteErrorReporting
-    ) -> LoggerBridging {
+    ) -> LoggerBridging? {
+        self.makeLoggerCallsCount += 1
         return self.logger
     }
 }
