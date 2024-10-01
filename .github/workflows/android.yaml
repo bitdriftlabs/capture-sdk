@@ -66,7 +66,7 @@ jobs:
         run: ./ci/run_tests.sh
 
   build_apk:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     if: needs.pre_check.outputs.should_run == 'true'
     needs: pre_check
     steps:
@@ -84,8 +84,10 @@ jobs:
           name: android_app.apk
           path: ./bazel-bin/examples/android/android_app.apk
   gradle_tests:
-    # Requires a "larger runner", for nested virtualization support
-    runs-on: ubuntu-latest-8-cores
+    # Note: The emulator used in this CI job is effectively not accelerated, as doing so would require using 
+    # "ubuntu-latest-8-cores" GitHub runners.
+    # Refer to https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/ for more details.
+    runs-on: ubuntu-latest
     env:
       SKIP_PROTO_GEN: 1
     if: needs.pre_check.outputs.should_run == 'true'
@@ -94,19 +96,13 @@ jobs:
     - name: Checkout project sources
       uses: actions/checkout@v4
 
-    # See https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/
-    - name: Enable KVM group perms
-      run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-    - name: set up JDK 17
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         distribution: 'zulu'
         java-version: '17'
         cache: gradle
-    - name: Setup Rust ARM target
+    - name: Set up Rust ARM target
       run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
     - name: AVD cache
       uses: actions/cache@v4
