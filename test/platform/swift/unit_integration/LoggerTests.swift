@@ -11,8 +11,8 @@ import Foundation
 import XCTest
 
 final class LoggerTests: XCTestCase {
-    func testPropertiesReturnsCorrectValues() {
-        let logger = Logger.testLogger(
+    func testPropertiesReturnsCorrectValues() throws {
+        let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
             bufferDirectory: Logger.tempBufferDirectory(),
             configuration: .init(sessionReplayConfiguration: nil)
@@ -23,8 +23,8 @@ final class LoggerTests: XCTestCase {
     }
 
     // Basic test to ensure we can create a logger and call log.
-    func testLogger() {
-        let logger = Logger.testLogger(
+    func testLogger() throws {
+        let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
             bufferDirectory: Logger.tempBufferDirectory(),
             configuration: .init(sessionReplayConfiguration: nil)
@@ -37,7 +37,7 @@ final class LoggerTests: XCTestCase {
 
     // Verifies that we don't end up recursing forever (resulting in a stack overflow) when a provider ends
     // up calling back into the logger.
-    func testPreventsLoggingReEntryFromWithinRegisteredProviders() {
+    func testPreventsLoggingReEntryFromWithinRegisteredProviders() throws {
         var logger: Logger?
 
         let expectation = self.expectation(description: "'SDKConfigured' log is emitted")
@@ -49,7 +49,7 @@ final class LoggerTests: XCTestCase {
             return [:]
         }
 
-        logger = Logger.testLogger(
+        logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
             bufferDirectory: Logger.tempBufferDirectory(),
             fieldProviders: [fieldProvider],
@@ -59,7 +59,7 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 1))
     }
 
-    func testRunsProvidersOffCallerThread() {
+    func testRunsProvidersOffCallerThread() throws {
         let dateProvider = MockDateProvider()
 
         // Verify that test is executed on the main queue.
@@ -93,7 +93,7 @@ final class LoggerTests: XCTestCase {
             return Date()
         }
 
-        let logger = Logger.testLogger(
+        let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
             bufferDirectory: Logger.tempBufferDirectory(),
             sessionStrategy: SessionStrategy.fixed(),
@@ -112,7 +112,7 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(.completed, XCTWaiter().wait(for: expectations, timeout: 1))
     }
 
-    func testFailingEncodableField() {
+    func testFailingEncodableField() throws {
         struct FailingEncodable: Encodable {
             struct Error: Swift.Error {}
 
@@ -123,7 +123,7 @@ final class LoggerTests: XCTestCase {
 
         let bridge = MockLoggerBridging()
 
-        let logger = Logger.testLogger(
+        let logger = try Logger.testLogger(
             bufferDirectory: Logger.tempBufferDirectory(),
             configuration: .init(),
             loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
@@ -144,7 +144,7 @@ final class LoggerTests: XCTestCase {
 
         let bridge = MockLoggerBridging()
 
-        let logger = Logger.testLogger(
+        let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
             bufferDirectory: Logger.tempBufferDirectory(),
             configuration: .init(sessionReplayConfiguration: .init(captureIntervalSeconds: 5)),
@@ -192,7 +192,7 @@ final class LoggerTests: XCTestCase {
 
         let bridge = MockLoggerBridging()
 
-        let logger = Logger.testLogger(
+        let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
             bufferDirectory: Logger.tempBufferDirectory(),
             configuration: .init(sessionReplayConfiguration: .init(captureIntervalSeconds: 5)),
@@ -242,7 +242,7 @@ final class LoggerTests: XCTestCase {
 
         let bridge = MockLoggerBridging()
 
-        let logger = Logger.testLogger(
+        let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
             bufferDirectory: Logger.tempBufferDirectory(),
             configuration: .init(sessionReplayConfiguration: .init(captureIntervalSeconds: 5)),

@@ -7,6 +7,7 @@
 
 @testable import Capture
 import Foundation
+import XCTest
 
 extension Logger {
     static func testLogger(
@@ -17,20 +18,22 @@ extension Logger {
         fieldProviders: [FieldProvider] = [],
         configuration: Configuration,
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
-    ) -> Logger
+    ) throws -> Logger
     {
-        return Logger(
-            withAPIKey: apiKey,
-            bufferDirectory: bufferDirectory,
-            apiURL: URL(staticString: "https://api-tests.bitdrift.io"),
-            remoteErrorReporter: nil,
-            configuration: configuration,
-            sessionStrategy: sessionStrategy,
-            dateProvider: dateProvider,
-            fieldProviders: fieldProviders,
-            storageProvider: MockStorageProvider(),
-            timeProvider: SystemTimeProvider(),
-            loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
+        return try XCTUnwrap(
+            Logger(
+                withAPIKey: apiKey,
+                bufferDirectory: bufferDirectory,
+                apiURL: URL(staticString: "https://api-tests.bitdrift.io"),
+                remoteErrorReporter: nil,
+                configuration: configuration,
+                sessionStrategy: sessionStrategy,
+                dateProvider: dateProvider,
+                fieldProviders: fieldProviders,
+                storageProvider: MockStorageProvider(),
+                timeProvider: SystemTimeProvider(),
+                loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
+            )
         )
     }
 

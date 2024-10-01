@@ -42,4 +42,34 @@ final class ConfigurationTests: XCTestCase {
 
         XCTAssertNotNil(Logger.getShared())
     }
+
+    func testConfigurationFailure() {
+        let factory = MockLoggerBridgingFactory(logger: nil)
+
+        Logger.configure(
+            withAPIKey: "test",
+            sessionStrategy: .fixed(),
+            configuration: .init(),
+            fieldProviders: [],
+            dateProvider: nil,
+            apiURL: URL(staticString: "https://api.bitdrift.io"),
+            loggerBridgingFactoryProvider: factory
+        )
+
+        XCTAssertEqual(1, factory.makeLoggerCallsCount)
+        XCTAssertNil(Logger.shared)
+
+        Logger.configure(
+            withAPIKey: "test",
+            sessionStrategy: .fixed(),
+            configuration: .init(),
+            fieldProviders: [],
+            dateProvider: nil,
+            apiURL: URL(staticString: "https://api.bitdrift.io"),
+            loggerBridgingFactoryProvider: factory
+        )
+
+        XCTAssertEqual(1, factory.makeLoggerCallsCount)
+        XCTAssertNil(Logger.shared)
+    }
 }

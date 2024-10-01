@@ -15,10 +15,10 @@ final class SessionStrategyTests: XCTestCase {
         Storage.shared.clear()
     }
 
-    func testFixedSessionStrategy() {
+    func testFixedSessionStrategy() throws {
         var generatedSessionIDs = [String]()
 
-        let logger = Logger.testLogger(
+        let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
             bufferDirectory: Logger.tempBufferDirectory(),
             sessionStrategy: SessionStrategy.fixed {
@@ -40,11 +40,11 @@ final class SessionStrategyTests: XCTestCase {
         XCTAssertEqual(logger.sessionID, generatedSessionIDs[1])
     }
 
-    func testActivityBasedSessionStrategy() {
+    func testActivityBasedSessionStrategy() throws {
         let expectation = self.expectation(description: "onSessionIDChange called")
         var observedSessionID: String?
 
-        let logger = Logger.testLogger(
+        let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
             bufferDirectory: Logger.tempBufferDirectory(),
             sessionStrategy: SessionStrategy.activityBased { sessionID in
