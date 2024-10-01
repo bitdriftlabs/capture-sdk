@@ -147,26 +147,24 @@ object Capture {
             }
 
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
-            when (default.getAndSet(LoggerState.ConfigurationStarted)) {
-                is LoggerState.NotConfigured -> {
-                    try {
-                        val logger = LoggerImpl(
-                            apiKey = apiKey,
-                            apiUrl = apiUrl,
-                            fieldProviders = fieldProviders,
-                            dateProvider = dateProvider ?: SystemDateProvider(),
-                            configuration = configuration,
-                            sessionStrategy = sessionStrategy,
-                            bridge = bridge,
-                        )
-                        default.set(LoggerState.Configured(logger))
-                    } catch (e: Throwable) {
-                        Log.w("capture", "Capture initialization failed", e)
-                        default.set(LoggerState.ConfigurationFailure)
-                    }
-                } else -> {
-                    Log.w("capture", "Attempted to initialize Capture more than once")
+            if (default.compareAndSet(LoggerState.NotConfigured, LoggerState.ConfigurationStarted)) {
+                try {
+                    val logger = LoggerImpl(
+                        apiKey = apiKey,
+                        apiUrl = apiUrl,
+                        fieldProviders = fieldProviders,
+                        dateProvider = dateProvider ?: SystemDateProvider(),
+                        configuration = configuration,
+                        sessionStrategy = sessionStrategy,
+                        bridge = bridge,
+                    )
+                    default.set(LoggerState.Configured(logger))
+                } catch (e: Throwable) {
+                    Log.w("capture", "Capture initialization failed", e)
+                    default.set(LoggerState.ConfigurationFailure)
                 }
+            } else {
+                Log.w("capture", "Attempted to initialize Capture more than once")
             }
         }
 
