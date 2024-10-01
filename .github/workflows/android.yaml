@@ -143,7 +143,7 @@ jobs:
     - name: Instrumentation Tests
       uses: reactivecircus/android-emulator-runner@f0d1ed2dcad93c7479e8b2f2226c83af54494915 # pin@v2.32
       with:
-        channel: release
+        channel: stable
         force-avd-creation: false
         api-level: 21
         target: default
