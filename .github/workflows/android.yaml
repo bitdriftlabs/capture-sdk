@@ -87,7 +87,7 @@ jobs:
     # Note: The emulator used in this CI job is effectively not accelerated, as doing so would require using 
     # "ubuntu-latest-8-cores" GitHub runners.
     # Refer to https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/ for more details.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     env:
       SKIP_PROTO_GEN: 1
     if: needs.pre_check.outputs.should_run == 'true'
