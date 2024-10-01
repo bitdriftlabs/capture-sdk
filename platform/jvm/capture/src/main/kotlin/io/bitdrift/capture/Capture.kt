@@ -403,5 +403,11 @@ object Capture {
         fun log(httpResponseInfo: HttpResponseInfo) {
             logger()?.log(httpResponseInfo)
         }
+        /**
+         * Used for testing purposes.
+         */
+        internal fun resetShared() {
+            default.set(LoggerState.NotConfigured)
+        }
     }
 }
