@@ -124,7 +124,6 @@ object Capture {
         @Synchronized
         @JvmStatic
         @JvmOverloads
-        @Suppress("SwallowedException")
         internal fun configure(
             apiKey: String,
             sessionStrategy: SessionStrategy,
