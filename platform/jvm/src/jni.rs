@@ -929,7 +929,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSDKStartL
         .collect();
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.log_sdk_configured(fields, Duration::seconds_f64(duration_s));
+      logger.log_sdk_start(fields, Duration::seconds_f64(duration_s));
 
       Ok(())
     },
