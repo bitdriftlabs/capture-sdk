@@ -202,12 +202,14 @@ class FirstFragment : Fragment() {
 
         call.enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
-                val s = response.body!!.string()
-                Timber.v("Http request completed with status code=${response.code}")
+                val body = response.use {
+                    it.body!!.string()
+                }
+                Timber.v("Http request completed with status code=${response.code} and body=$body")
             }
 
             override fun onFailure(call: Call, e: IOException) {
-                Timber.v("Http request failed with exception=${e.javaClass::class.simpleName}")
+                Timber.v("Http request failed with exception=$e")
             }
         })
     }
