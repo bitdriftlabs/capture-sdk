@@ -684,7 +684,7 @@ extern "C" fn capture_write_sdk_start_log(
         })
         .collect();
 
-      logger_id.log_sdk_configured(fields, time::Duration::seconds_f64(duration_s));
+      logger_id.log_sdk_start(fields, time::Duration::seconds_f64(duration_s));
       Ok(())
     },
     "swift write sdk started log",
