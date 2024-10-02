@@ -56,7 +56,7 @@ final class URLSessionIntegrationTests: XCTestCase {
         self.logger = MockLogging()
         Logger.resetShared(logger: self.logger)
         Logger
-            .configure(withAPIKey: "123", sessionStrategy: .fixed())?
+            .start(withAPIKey: "123", sessionStrategy: .fixed())?
             .enableIntegrations([
                 .urlSession(),
             ])

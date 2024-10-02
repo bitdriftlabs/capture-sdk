@@ -32,7 +32,7 @@ class CaptureTest {
     fun aConfigureSkipsLoggerCreationWhenContextNotInitialized() {
         assertThat(Capture.logger()).isNull()
 
-        Logger.configure(
+        Logger.start(
             apiKey = "test1",
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,
@@ -70,7 +70,7 @@ class CaptureTest {
 
         assertThat(Capture.logger()).isNull()
 
-        Logger.configure(
+        Logger.start(
             apiKey = "test1",
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,
@@ -80,7 +80,7 @@ class CaptureTest {
         assertThat(logger).isNotNull()
         assertThat(Logger.deviceId).isNotNull()
 
-        Logger.configure(
+        Logger.start(
             apiKey = "test2",
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,

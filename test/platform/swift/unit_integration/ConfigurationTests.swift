@@ -24,7 +24,7 @@ final class ConfigurationTests: XCTestCase {
     }
 
     func testConfigurationSimple() throws {
-        Logger.configure(
+        Logger.start(
             withAPIKey: "api_key",
             sessionStrategy: .fixed(),
             configuration: .init(sessionReplayConfiguration: nil)
@@ -34,7 +34,7 @@ final class ConfigurationTests: XCTestCase {
     }
 
     func testConfigurationDefault() throws {
-        Logger.configure(
+        Logger.start(
             withAPIKey: "api_key",
             sessionStrategy: .fixed(),
             configuration: .init()
@@ -46,7 +46,7 @@ final class ConfigurationTests: XCTestCase {
     func testConfigurationFailure() {
         let factory = MockLoggerBridgingFactory(logger: nil)
 
-        Logger.configure(
+        Logger.start(
             withAPIKey: "test",
             sessionStrategy: .fixed(),
             configuration: .init(),
@@ -59,7 +59,7 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertEqual(1, factory.makeLoggerCallsCount)
         XCTAssertNil(Logger.shared)
 
-        Logger.configure(
+        Logger.start(
             withAPIKey: "test",
             sessionStrategy: .fixed(),
             configuration: .init(),

@@ -669,7 +669,7 @@ extern "C" fn capture_write_resource_utilization_log(
 }
 
 #[no_mangle]
-extern "C" fn capture_write_sdk_configured_log(
+extern "C" fn capture_write_sdk_start_log(
   logger_id: LoggerId<'_>,
   fields: *const Object,
   duration_s: f64,
@@ -687,7 +687,7 @@ extern "C" fn capture_write_sdk_configured_log(
       logger_id.log_sdk_configured(fields, time::Duration::seconds_f64(duration_s));
       Ok(())
     },
-    "swift write sdk configured log",
+    "swift write sdk started log",
   );
 }
 

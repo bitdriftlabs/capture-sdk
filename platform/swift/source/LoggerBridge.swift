@@ -113,8 +113,8 @@ final class LoggerBridge: LoggerBridging {
         capture_write_resource_utilization_log(self.loggerID, fields, duration)
     }
 
-    func logSDKConfigured(fields: [CapturePassable.Field], duration: TimeInterval) {
-        capture_write_sdk_configured_log(self.loggerID, fields, duration)
+    func logSDKStart(fields: [CapturePassable.Field], duration: TimeInterval) {
+        capture_write_sdk_start_log(self.loggerID, fields, duration)
     }
 
     func shouldLogAppUpdate(

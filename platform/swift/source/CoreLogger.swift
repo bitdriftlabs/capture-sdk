@@ -94,8 +94,8 @@ extension CoreLogger: CoreLogging {
         )
     }
 
-    func logSDKConfigured(fields: Fields, duration: TimeInterval) {
-        self.underlyingLogger.logSDKConfigured(
+    func logSDKStart(fields: Fields, duration: TimeInterval) {
+        self.underlyingLogger.logSDKStart(
             fields: self.convertFields(fields: fields),
             duration: duration
         )
