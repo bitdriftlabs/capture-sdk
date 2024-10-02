@@ -15,20 +15,20 @@ public typealias Fields = [String: FieldValue]
 public typealias FieldValue = Encodable & Sendable
 
 extension Logger {
-    struct SDKNotConfiguredError: Swift.Error {}
+    struct SDKNotStartedfError: Swift.Error {}
 
     // MARK: - General
 
-    /// An instance of the underlying logger, if the Capture SDK is configured. Returns `nil` if the
-    /// `configure(...)` method has not been called or if Logger configuration failed due to an internal
+    /// An instance of the underlying logger, if the Capture SDK is started. Returns `nil` if the
+    /// `start(...)` method has not been called or if starting the logger process failed due to an internal
     /// error.
     public static var shared: Logging? {
         self.getShared(assert: false)
     }
 
-    /// Configures Capture with the given API key, providers, and configuration.
-    /// This call is required at least once before invoking any log functions.
-    /// Subsequent calls to this function do nothing.
+    /// Initializes the Capture SDK with the specified API key, providers, and configuration.
+    /// Calling other SDK methods has no effect unless the logger has been initialized.
+    /// Subsequent calls to this function will have no effect.
     ///
     /// - parameter apiKey:          The API key provided by bitdrift.
     /// - parameter sessionStrategy: A session strategy for the management of session ID.
@@ -43,7 +43,7 @@ extension Logger {
     ///
     /// - returns: A logger integrator that can be used to enable various SDK integration.
     @discardableResult
-    public static func configure(
+    public static func start(
         withAPIKey apiKey: String,
         sessionStrategy: SessionStrategy,
         configuration: Configuration = .init(),
@@ -53,7 +53,7 @@ extension Logger {
         apiURL: URL = URL(string: "https://api.bitdrift.io")!
     ) -> LoggerIntegrator?
     {
-        return self.configure(
+        return self.start(
             withAPIKey: apiKey,
             sessionStrategy: sessionStrategy,
             configuration: configuration,
@@ -65,7 +65,7 @@ extension Logger {
     }
 
     @discardableResult
-    static func configure(
+    static func start(
         withAPIKey apiKey: String,
         sessionStrategy: SessionStrategy,
         configuration: Configuration,
@@ -88,18 +88,18 @@ extension Logger {
         }
     }
 
-    /// Retrieves the session ID. It is nil before the Capture SDK is configured.
+    /// Retrieves the session ID. It is nil before the Capture SDK is started.
     public static var sessionID: String? {
         return Self.getShared()?.sessionID
     }
 
-    /// Retrieves the session URL. It is `nil` before the Capture SDK is configured.
+    /// Retrieves the session URL. It is `nil` before the Capture SDK is started.
     public static var sessionURL: String? {
         return Self.getShared()?.sessionURL
     }
 
     /// Initializes a new session within the currently configured logger.
-    /// If no logger is configured, this operation has no effect.
+    /// The logger must be started before this operation for it to take effect.
     public static func startNewSession() {
         Self.getShared()?.startNewSession()
     }
@@ -108,7 +108,7 @@ extension Logger {
     /// is not reinstalled.
     ///
     /// The value of this property is different for apps from the same vendor running on
-    /// the same device. It is equal to `nil` prior to the configuration of bitdrift Capture SDK.
+    /// the same device. It is equal to `nil` prior to the start of bitdrift Capture SDK.
     public static var deviceID: String? {
         return Self.getShared(assert: false)?.deviceID
     }
@@ -286,7 +286,7 @@ extension Logger {
 
     // MARK: - Predefined Logs
 
-    /// Writes an app launch TTI log event. This event should be logged only once per Logger configuration.
+    /// Writes an app launch TTI log event. This event should be logged only once per Logger start.
     /// Consecutive calls have no effect.
     ///
     /// - parameter duration: The time between a user's intent to launch the app and when the app becomes
@@ -342,7 +342,7 @@ extension Logger {
     /// - parameter fields:   The extra fields to send as part of start and end logs for the operation.
     ///
     /// - returns: A span that can be used to signal the end of the operation if the Capture SDK has been
-    ///            configured. Returns `nil` only if the `configure(...)` method has not been called.
+    ///            started. Returns `nil` if the `start(...)` method has not been called.
     public static func startSpan(
         name: String,
         level: LogLevel,
@@ -394,7 +394,7 @@ extension Logger {
             }
         } else {
             DispatchQueue.main.async {
-                completion(.failure(SDKNotConfiguredError()))
+                completion(.failure(SDKNotStartedfError()))
             }
         }
     }

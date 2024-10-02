@@ -84,7 +84,7 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         self.appStartTime = Date()
 
         Logger
-            .configure(
+            .start(
                 withAPIKey: kBitdriftAPIKey,
                 sessionStrategy: .fixed(),
                 configuration: .init(),

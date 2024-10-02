@@ -31,7 +31,7 @@ class HelloWorldApp : Application() {
 
         val userID = UUID.randomUUID().toString();
 
-        Logger.configure(
+        Logger.start(
             apiKey = bitdriftAPIKey,
             apiUrl = BITDRIFT_URL,
             sessionStrategy = SessionStrategy.Fixed { UUID.randomUUID().toString() },

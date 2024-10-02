@@ -16,23 +16,23 @@ public final class LoggerObjc: NSObject {
         fatalError("init() is not available. Use static methods instead.")
     }
 
-    /// Configures Capture with provided API key and session strategy. This call is required with at
-    /// least the API key prior to calling the log functions. Subsequent calls to this function will no-op.
+    /// Initializes the Capture SDK with the specified API key and session strategy.
+    /// Calling other SDK methods has no effect unless the logger has been initialized.
+    /// Subsequent calls to this function will have no effect.
     ///
     /// - parameter apiKey:          The API key provided by bitdrift.
-    /// - parameter sessionStrategy: A session strategy for the management of session ID.
-    /// - parameter apiURL:          The base URL of Capture API. Depend on its default value unless
-    ///                              specifically
-    ///                              instructed otherwise during discussions with bitdrift. Defaults to
-    ///                              bitdrift's hosted Compose API base URL.
+    /// - parameter sessionStrategy: A session strategy for the management of session IDs.
+    /// - parameter apiURL:          The base URL of the Capture API. Rely on its default value unless
+    ///                              specifically instructed otherwise during discussions with Bitdrift.
+    ///                              Defaults to Bitdrift's hosted Compose API base URL.
     @objc
-    public static func configure(
+    public static func start(
         withAPIKey apiKey: String,
         sessionStrategy: SessionStrategyObjc,
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
         apiURL: URL = URL(string: "https://api.bitdrift.io")!
     ) {
-        Capture.Logger.configure(
+        Capture.Logger.start(
             withAPIKey: apiKey,
             sessionStrategy: sessionStrategy.underlyingSessionStrategy,
             apiURL: apiURL
