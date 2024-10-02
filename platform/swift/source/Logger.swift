@@ -189,7 +189,7 @@ public final class Logger {
 
         defer {
             let duration = timeProvider.timeIntervalSince(start)
-            self.underlyingLogger.logSDKStarted(fields: [:], duration: duration)
+            self.underlyingLogger.logSDKStart(fields: [:], duration: duration)
         }
 
         self.eventsListenerTarget.setUp(

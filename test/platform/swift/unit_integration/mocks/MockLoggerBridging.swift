@@ -79,7 +79,7 @@ extension MockLoggerBridging: LoggerBridging {
 
     func logResourceUtilization(fields _: [Field], duration _: TimeInterval) {}
 
-    func logSDKStarted(fields _: [Field], duration _: TimeInterval) {}
+    func logSDKStart(fields _: [Field], duration _: TimeInterval) {}
 
     func shouldLogAppUpdate(appVersion _: String, buildNumber _: String) -> Bool {
         self.shouldLogAppUpdateEvent

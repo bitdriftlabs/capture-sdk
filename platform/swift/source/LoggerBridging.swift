@@ -27,7 +27,7 @@ protocol LoggerBridging {
 
     func logResourceUtilization(fields: InternalFields, duration: TimeInterval)
 
-    func logSDKStarted(fields: [CapturePassable.Field], duration: TimeInterval)
+    func logSDKStart(fields: [CapturePassable.Field], duration: TimeInterval)
 
     func shouldLogAppUpdate(
         appVersion: String,

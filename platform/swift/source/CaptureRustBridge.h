@@ -111,7 +111,7 @@ void capture_write_resource_utilization_log(
  * @param fields the fields to include with the log.
  * @param duration_s the duration of time the SDK configuration took.
  */
-void capture_write_sdk_started_log(
+void capture_write_sdk_start_log(
     logger_id logger_id,
     const NSArray<const Field *> *fields,
     double duration_s

@@ -193,7 +193,7 @@ internal object CaptureJniLibrary : IBridge {
      * @param fields the fields to include with the log.
      * @param durationMs the duration of time the SDK configuration took.
      */
-    external fun writeSDKStartedLog(
+    external fun writeSDKStartLog(
         loggerId: Long,
         fields: Map<String, FieldValue>,
         duration: Double,
