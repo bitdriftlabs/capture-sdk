@@ -29,14 +29,14 @@ internal sealed class LoggerState {
     data object NotStarted : LoggerState()
 
     /**
-     * The logger has been successfully started and is ready for use. Subsequent attempts to start the logger will be ignored.
-     */
-    class Started(val logger: LoggerImpl) : LoggerState()
-
-    /**
      * The logger is in the process of being started. Subsequent attempts to start the logger will be ignored.
      */
     data object Starting : LoggerState()
+
+    /**
+     * The logger has been successfully started and is ready for use. Subsequent attempts to start the logger will be ignored.
+     */
+    class Started(val logger: LoggerImpl) : LoggerState()
 
     /**
      * An attempt to start the logger was made but failed. Subsequent attempts to start the logger will be ignored.
@@ -58,8 +58,8 @@ object Capture {
     fun logger(): ILogger? {
         return when (val state = default.get()) {
             is LoggerState.NotStarted -> null
-            is LoggerState.Started -> state.logger
             is LoggerState.Starting -> null
+            is LoggerState.Started -> state.logger
             is LoggerState.StartFailure -> null
         }
     }
