@@ -187,13 +187,13 @@ internal object CaptureJniLibrary : IBridge {
     )
 
     /**
-     * Writes an SDK configured log.
+     * Writes an SDK started log.
      *
      * @param loggerId the ID of the logger to write to.
      * @param fields the fields to include with the log.
      * @param durationMs the duration of time the SDK configuration took.
      */
-    external fun writeSDKConfiguredLog(
+    external fun writeSDKStartedLog(
         loggerId: Long,
         fields: Map<String, FieldValue>,
         duration: Double,

@@ -108,7 +108,7 @@ extension MockCoreLogging: CoreLogging {
         self.logResourceUtilizationExpectation?.fulfill()
     }
 
-    func logSDKConfigured(fields _: Fields, duration _: TimeInterval) {}
+    func logSDKStarted(fields _: Fields, duration _: TimeInterval) {}
 
     func shouldLogAppUpdate(appVersion _: String, buildNumber _: String) -> Bool {
         return self.shouldLogAppUpdateEvent

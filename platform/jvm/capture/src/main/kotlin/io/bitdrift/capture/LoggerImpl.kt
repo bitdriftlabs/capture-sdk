@@ -239,7 +239,7 @@ internal class LoggerImpl(
             this.replayScreenLogger?.start()
         }
 
-        CaptureJniLibrary.writeSDKConfiguredLog(
+        CaptureJniLibrary.writeSDKStartedLog(
             this.loggerId,
             mapOf(),
             duration.toDouble(DurationUnit.SECONDS),

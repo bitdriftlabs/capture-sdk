@@ -63,7 +63,7 @@ protocol CoreLogging: AnyObject {
     ///
     /// - parameter fields:   The extra fields to include with the log.
     /// - parameter duration: The duration of time the SDK configuration took.
-    func logSDKConfigured(fields: Fields, duration: TimeInterval)
+    func logSDKStarted(fields: Fields, duration: TimeInterval)
 
     /// Checks whether the app update log should be emitted.
     ///

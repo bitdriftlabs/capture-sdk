@@ -911,7 +911,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeResourceU
 }
 
 #[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSDKConfiguredLog(
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSDKStartedLog(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
