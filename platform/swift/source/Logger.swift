@@ -12,14 +12,14 @@ import Foundation
 // swiftlint:disable file_length
 public final class Logger {
     enum State {
-        // The logger has not yet been configured.
-        case notConfigured
-        // The logger has been successfully configured and is ready for use.
-        // Subsequent attempts to configure the logger will be ignored.
-        case configured(LoggerIntegrator)
-        // The configuration was attempted but failed.
-        // Subsequent attempts to configure the logger will be ignored.
-        case configurationFailure
+        // The logger has not yet been started.
+        case notStarted
+        // The logger has been successfully started and is ready for use.
+        // Subsequent attempts to start the logger will be ignored.
+        case started(LoggerIntegrator)
+        // An attempt to start the logger was made but failed.
+        // Subsequent attempts to start the logger will be ignored.
+        case startFailure
     }
 
     private let underlyingLogger: CoreLogging
@@ -35,7 +35,7 @@ public final class Logger {
 
     private let sessionURLBase: URL
 
-    private static let syncedShared = Atomic<State>(.notConfigured)
+    private static let syncedShared = Atomic<State>(.notStarted)
 
     private let network: URLSessionNetworkClient?
     // Used for benchmarking purposes.
@@ -189,7 +189,7 @@ public final class Logger {
 
         defer {
             let duration = timeProvider.timeIntervalSince(start)
-            self.underlyingLogger.logSDKConfigured(fields: [:], duration: duration)
+            self.underlyingLogger.logSDKStart(fields: [:], duration: duration)
         }
 
         self.eventsListenerTarget.setUp(
@@ -222,6 +222,8 @@ public final class Logger {
         self.deviceCodeController = DeviceCodeController(client: client)
     }
 
+    // swiftlint:enable function_body_length
+
     /// Enables blocking shutdown operation. In practice, it makes the receiver's deinit wait for the complete
     /// shutdown of the underlying logger.
     ///
@@ -229,8 +231,6 @@ public final class Logger {
     func enableBlockingShutdown() {
         self.underlyingLogger.enableBlockingShutdown()
     }
-
-    // swiftlint:enable function_body_length
 
     deinit {
         self.stop()
@@ -263,47 +263,47 @@ public final class Logger {
 
     static func createOnce(_ createLogger: () -> Logger?) -> LoggerIntegrator? {
         let state = self.syncedShared.update { state in
-            guard case .notConfigured = state else {
+            guard case .notStarted = state else {
                 return
             }
 
             if let createdLogger = createLogger() {
-                state = .configured(LoggerIntegrator(logger: createdLogger))
+                state = .started(LoggerIntegrator(logger: createdLogger))
             } else {
-                state = .configurationFailure
+                state = .startFailure
             }
         }
 
         return switch state {
-        case .configured(let logger):
+        case .started(let logger):
             logger
-        case .notConfigured, .configurationFailure:
+        case .notStarted, .startFailure:
             nil
         }
     }
 
-    /// Retrieves a shared instance of logger if one has been configured.
+    /// Retrieves a shared instance of logger if one has been started.
     ///
-    /// - parameter assert: Whether the method should assert if shared logger has not been configured.
+    /// - parameter assert: Whether the method should assert if shared logger has not been started.
     ///
     /// - returns: The shared instance of logger.
     static func getShared(assert: Bool = true) -> Logging? {
         return switch Self.syncedShared.load() {
-        case .notConfigured: {
+        case .notStarted: {
             if assert {
                 assertionFailure(
                     """
                     Default logger is not set up! Did you attempt to log with the default logger without \
-                    calling `configure(withAPIKey:)` first?
+                    calling `start(withAPIKey:)` first?
                     """
                 )
             }
 
             return nil
         }()
-        case .configured(let integrator):
+        case .started(let integrator):
             integrator.logger
-        case .configurationFailure:
+        case .startFailure:
             nil
         }
     }
@@ -314,9 +314,9 @@ public final class Logger {
     static func resetShared(logger: Logging? = nil) {
         Self.syncedShared.update { state in
             if let logger {
-                state = .configured(LoggerIntegrator(logger: logger))
+                state = .started(LoggerIntegrator(logger: logger))
             } else {
-                state = .notConfigured
+                state = .notStarted
             }
         }
     }

@@ -239,7 +239,7 @@ internal class LoggerImpl(
             this.replayScreenLogger?.start()
         }
 
-        CaptureJniLibrary.writeSDKConfiguredLog(
+        CaptureJniLibrary.writeSDKStartLog(
             this.loggerId,
             mapOf(),
             duration.toDouble(DurationUnit.SECONDS),
@@ -274,7 +274,7 @@ internal class LoggerImpl(
              *  `SharedPreferences`.
              */
             deviceCodeService.createTemporaryDeviceCode(deviceId, completion)
-        } ?: completion(Err(SdkNotConfiguredError))
+        } ?: completion(Err(SdkNotStartedError))
     }
 
     private fun appExitSaveCurrentSessionId(sessionId: String? = null) {

@@ -45,6 +45,6 @@ sealed class ApiError(override val message: String) : Error(message) {
 }
 
 /**
- * Represents a failed operation due to the SDK not being configured.
+ * Represents a failed operation due to the SDK not being started
  */
-data object SdkNotConfiguredError : Error("SDK not configured")
+data object SdkNotStartedError : Error("SDK not started")

@@ -105,13 +105,13 @@ void capture_write_resource_utilization_log(
 );
 
 /*
- * Writes an SDK configured log.
+ * Writes an SDK started log.
  *
  * @param logger_id the ID of the logger to write to.
  * @param fields the fields to include with the log.
  * @param duration_s the duration of time the SDK configuration took.
  */
-void capture_write_sdk_configured_log(
+void capture_write_sdk_start_log(
     logger_id logger_id,
     const NSArray<const Field *> *fields,
     double duration_s
@@ -153,7 +153,7 @@ void capture_write_app_update_log(
  *
  * @param loggerId the ID of the logger to write to.
  * @param duration_s the duration of time between a user's intent to launch an app and the point in time 
- *        when the app became interactive.
+ *        when the app became interactive. Calls with a negative duration are ignored.
  */
 void capture_write_app_launch_tti_log(
     logger_id logger_id,

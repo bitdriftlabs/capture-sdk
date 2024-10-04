@@ -49,7 +49,7 @@ class ConfigurationTest {
         // We start without configured logger.
         Assertions.assertThat(Capture.logger()).isNull()
 
-        Capture.Logger.configure(
+        Capture.Logger.start(
             apiKey = "test1",
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,
@@ -76,7 +76,7 @@ class ConfigurationTest {
 
         // We perform another attempt to configure the logger to verify that
         // consecutive configure calls are no-ops.
-        Capture.Logger.configure(
+        Capture.Logger.start(
             apiKey = "test1",
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,

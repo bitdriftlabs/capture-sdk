@@ -26,7 +26,7 @@ final class LoggerSharedTests: XCTestCase {
         }
 
         let integrator = try XCTUnwrap(
-            Logger.configure(
+            Logger.start(
                 withAPIKey: "foo",
                 sessionStrategy: .fixed()
             )

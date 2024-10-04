@@ -24,43 +24,43 @@ import kotlin.time.Duration
 
 internal sealed class LoggerState {
     /**
-     * The logger has not yet been configured.
+     * The logger has not yet been started.
      */
-    data object NotConfigured : LoggerState()
+    data object NotStarted : LoggerState()
 
     /**
-     * The logger has been successfully configured and is ready for use. Subsequent attempts to configure the logger will be ignored.
+     * The logger is in the process of being started. Subsequent attempts to start the logger will be ignored.
      */
-    class Configured(val logger: LoggerImpl) : LoggerState()
+    data object Starting : LoggerState()
 
     /**
-     * The configuration has started but is not yet complete. Subsequent attempts to configure the logger will be ignored.
+     * The logger has been successfully started and is ready for use. Subsequent attempts to start the logger will be ignored.
      */
-    data object ConfigurationStarted : LoggerState()
+    class Started(val logger: LoggerImpl) : LoggerState()
 
     /**
-     * The configuration was attempted but failed. Subsequent attempts to configure the logger will be ignored.
+     * An attempt to start the logger was made but failed. Subsequent attempts to start the logger will be ignored.
      */
-    data object ConfigurationFailure : LoggerState()
+    data object StartFailure : LoggerState()
 }
 
 /**
  * Top level namespace Capture SDK.
  */
 object Capture {
-    private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotConfigured)
+    private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
 
     /**
-     * Returns a handle to the underlying logger instance, if Capture has been configured.
+     * Returns a handle to the underlying logger instance, if Capture has been started.
      *
      * @return ILogger a logger handle
      */
     fun logger(): ILogger? {
         return when (val state = default.get()) {
-            is LoggerState.NotConfigured -> null
-            is LoggerState.Configured -> state.logger
-            is LoggerState.ConfigurationStarted -> null
-            is LoggerState.ConfigurationFailure -> null
+            is LoggerState.NotStarted -> null
+            is LoggerState.Starting -> null
+            is LoggerState.Started -> state.logger
+            is LoggerState.StartFailure -> null
         }
     }
 
@@ -69,7 +69,7 @@ object Capture {
      *
      *  ## Logger Initialization
      *
-     * To initialize the logger, first call Logger.configure() with the desired configuration. Once this
+     * To initialize the logger, first call Logger.start() with the desired configuration. Once this
      * call completes, logging can be done either via the top level logging functions or via a logger
      * handle acquired via Capture.logger().
      *
@@ -88,7 +88,9 @@ object Capture {
         private val mainThreadHandler by lazy { MainThreadHandler() }
 
         /**
-         * Configures the static logger.
+         * Initializes the Capture SDK with the specified API key, providers, and configuration.
+         * Calling other SDK methods has no effect unless the logger has been initialized.
+         * Subsequent calls to this function will have no effect.
          *
          * @param apiKey The API key provided by bitdrift. This is required.
          * @param sessionStrategy session strategy for the management of session id.
@@ -102,7 +104,7 @@ object Capture {
         @Synchronized
         @JvmStatic
         @JvmOverloads
-        fun configure(
+        fun start(
             apiKey: String,
             sessionStrategy: SessionStrategy,
             configuration: Configuration = Configuration(),
@@ -110,7 +112,7 @@ object Capture {
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
         ) {
-            configure(
+            start(
                 apiKey,
                 sessionStrategy,
                 configuration,
@@ -124,7 +126,7 @@ object Capture {
         @Synchronized
         @JvmStatic
         @JvmOverloads
-        internal fun configure(
+        internal fun start(
             apiKey: String,
             sessionStrategy: SessionStrategy,
             configuration: Configuration = Configuration(),
@@ -147,7 +149,7 @@ object Capture {
             }
 
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
-            if (default.compareAndSet(LoggerState.NotConfigured, LoggerState.ConfigurationStarted)) {
+            if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
                 try {
                     val logger = LoggerImpl(
                         apiKey = apiKey,
@@ -158,19 +160,19 @@ object Capture {
                         sessionStrategy = sessionStrategy,
                         bridge = bridge,
                     )
-                    default.set(LoggerState.Configured(logger))
+                    default.set(LoggerState.Started(logger))
                 } catch (e: Throwable) {
-                    Log.w("capture", "Capture initialization failed", e)
-                    default.set(LoggerState.ConfigurationFailure)
+                    Log.w("capture", "Failed to start Capture", e)
+                    default.set(LoggerState.StartFailure)
                 }
             } else {
-                Log.w("capture", "Attempted to initialize Capture more than once")
+                Log.w("capture", "Multiple attempts to start Capture")
             }
         }
 
         /**
          * The Id for the current ongoing session.
-         * It's equal to `null` prior to the configuration of Capture SDK.
+         * It's equal to `null` prior to the start of Capture SDK.
          */
         @JvmStatic
         val sessionId: String?
@@ -178,7 +180,7 @@ object Capture {
 
         /**
          * The URL for the current ongoing session.
-         * It's equal to `null` prior to the configuration of Capture SDK.
+         * It's equal to `null` prior to the start of Capture SDK.
          */
         @JvmStatic
         val sessionUrl: String?
@@ -189,15 +191,15 @@ object Capture {
          * is not reinstalled.
          *
          * The value of this property is different for apps from the same vendor running on
-         * the same device. It is equal to null prior to the configuration of bitdrift Capture SDK.
+         * the same device. It is equal to null prior to the start of bitdrift Capture SDK.
          */
         @JvmStatic
         val deviceId: String?
             get() = logger()?.deviceId
 
         /**
-         * Defines the initialization of a new session within the current configured logger
-         * If no logger is configured, this is a no-op.
+         * Defines the initialization of a new session within the currently running logger
+         * If no logger is started, this is a no-op.
          */
         @JvmStatic
         fun startNewSession() {
@@ -219,7 +221,7 @@ object Capture {
                     mainThreadHandler.run { completion(it) }
                 }
             } ?: run {
-                mainThreadHandler.run { completion(Err(SdkNotConfiguredError)) }
+                mainThreadHandler.run { completion(Err(SdkNotStartedError)) }
             }
         }
 
@@ -334,7 +336,7 @@ object Capture {
         }
 
         /**
-         * Writes an app launch TTI log event. This event should be logged only once per Logger configuration.
+         * Writes an app launch TTI log event. This event should be logged only once per Logger start.
          * Consecutive calls have no effect.
          *
          * @param duration The time between a user's intent to launch the app and when the app becomes
@@ -351,7 +353,7 @@ object Capture {
          * @param name the name of the operation.
          * @param level the severity of the log.
          * @fields additional fields to include in the log.
-         * @return a [Span] object that can be used to signal the end of the operation if Capture has been configured.
+         * @return a [Span] object that can be used to signal the end of the operation if Capture has been started.
          */
         @JvmStatic
         fun startSpan(name: String, level: LogLevel, fields: Map<String, String>? = null): Span? {
@@ -405,7 +407,7 @@ object Capture {
          * Used for testing purposes.
          */
         internal fun resetShared() {
-            default.set(LoggerState.NotConfigured)
+            default.set(LoggerState.NotStarted)
         }
     }
 }

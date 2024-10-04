@@ -29,13 +29,13 @@ public class BitdriftInit {
             return fields;
         });
 
-        Capture.Logger.configure(
-                "<YOUR API KEY GOES HERE>",
-                new SessionStrategy.Fixed(),
-                new Configuration(),
-                fieldProviders,
-                null,
-                HttpUrl.get("https://api.bitdrift.io")
+        Capture.Logger.start(
+            "<YOUR API KEY GOES HERE>",
+            new SessionStrategy.Fixed(),
+            new Configuration(),
+            fieldProviders,
+            null,
+            HttpUrl.get("https://api.bitdrift.io")
         );
     }
 }

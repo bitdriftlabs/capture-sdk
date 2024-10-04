@@ -16,7 +16,7 @@ final class SessionURLTests: XCTestCase {
     }
 
     func testDefaultSessionUrl() throws {
-        Logger.configure(
+        Logger.start(
             withAPIKey: "api_key",
             sessionStrategy: .fixed(),
             configuration: .init()
@@ -77,7 +77,7 @@ final class SessionURLTests: XCTestCase {
     }
 
     private func configureLogger(apiURL: String) throws {
-        Logger.configure(
+        Logger.start(
             withAPIKey: "api_key",
             sessionStrategy: .fixed(),
             configuration: .init(),

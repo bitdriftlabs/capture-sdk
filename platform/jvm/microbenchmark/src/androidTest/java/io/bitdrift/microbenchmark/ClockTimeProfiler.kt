@@ -34,7 +34,7 @@ class ClockTimeProfiler {
 
     @Before
     fun setUp() {
-        Capture.Logger.configure(
+        Capture.Logger.start(
             apiKey = "android-benchmark-test",
             apiUrl = "https://api-tests.bitdrift.io".toHttpUrl(),
             sessionStrategy = SessionStrategy.Fixed(),
