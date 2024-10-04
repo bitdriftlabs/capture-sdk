@@ -7,14 +7,14 @@
 
 import Capture
 
-final class MockFieldProvider: FieldProvider {
-    let getFieldsClosure: () -> Fields
+public final class MockFieldProvider: FieldProvider {
+    public let getFieldsClosure: () -> Fields
 
-    init(getFieldsClosure: @escaping () -> Fields = { [:] }) {
+    public init(getFieldsClosure: @escaping () -> Fields = { [:] }) {
         self.getFieldsClosure = getFieldsClosure
     }
 
-    func getFields() -> Fields {
+    public func getFields() -> Fields {
         return self.getFieldsClosure()
     }
 }

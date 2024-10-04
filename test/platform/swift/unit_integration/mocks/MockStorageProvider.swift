@@ -8,14 +8,16 @@
 @testable import Capture
 import Foundation
 
-final class MockStorageProvider: StorageProvider {
+public final class MockStorageProvider: StorageProvider {
     private var storage = [String: Any]()
 
-    func get<T>(_ key: StorageKey<T>) -> T? {
+    public init() {}
+
+    public func get<T>(_ key: StorageKey<T>) -> T? {
         return self.storage[key.key] as? T
     }
 
-    func set<T>(_ value: T?, forKey key: StorageKey<T>) {
+    public func set<T>(_ value: T?, forKey key: StorageKey<T>) {
         self.storage[key.key] = value
     }
 }

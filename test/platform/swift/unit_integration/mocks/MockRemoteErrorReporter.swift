@@ -11,7 +11,7 @@ import Foundation
 import XCTest
 
 public final class MockRemoteErrorReporter: NSObject {
-    var onReportError: ((String) -> Void)?
+    public var onReportError: ((String) -> Void)?
 }
 
 extension MockRemoteErrorReporter: RemoteErrorReporting {

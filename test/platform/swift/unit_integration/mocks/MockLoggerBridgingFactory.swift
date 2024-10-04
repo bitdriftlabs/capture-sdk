@@ -9,15 +9,15 @@
 import CaptureLoggerBridge
 import Foundation
 
-final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
+public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
     private let logger: LoggerBridging?
-    private(set) var makeLoggerCallsCount = 0
+    public private(set) var makeLoggerCallsCount = 0
 
-    init(logger: LoggerBridging?) {
+    public init(logger: LoggerBridging?) {
         self.logger = logger
     }
 
-    func makeLogger(
+    public func makeLogger(
         apiKey _: String,
         bufferDirectoryPath _: String?,
         sessionStrategy _: SessionStrategy,
