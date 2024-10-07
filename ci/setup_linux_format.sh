@@ -2,7 +2,8 @@
 
 set -euxo pipefail
 
-readonly repo_root="$(pwd)"
+repo_root="$(pwd)"
+readonly repo_root
 
 # buildifier is used for format .bzl / BUILD / WORKSPACE files.
 mkdir -p bin/
@@ -29,6 +30,11 @@ curl -OL "https://github.com/tamasfe/taplo/releases/download/0.8.1/taplo-linux-x
 gzip -d "taplo-linux-x86_64.gz"
 mv "taplo-linux-x86_64" taplo
 chmod +x ./taplo
+
+scversion="stable"
+wget -qO- "https://github.com/koalaman/shellcheck/releases/download/${scversion?}/shellcheck-${scversion?}.linux.x86_64.tar.xz" | tar -xJv
+cp "shellcheck-${scversion}/shellcheck" /usr/bin/
+shellcheck --version
 
 echo "PATH=$(pwd):$(pwd)/$swift_archive_name/usr/bin:$PATH" >> "$GITHUB_ENV"
 echo "LD_LIBRARY_PATH=$(pwd)/$swift_archive_name/usr/lib" >> "@GITHUB_ENV"
