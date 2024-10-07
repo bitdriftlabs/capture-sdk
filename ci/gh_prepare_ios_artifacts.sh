@@ -13,7 +13,7 @@ function prepare_library_artifacts() {
   echo "+++ Preparing $library.ios.zip"
 
   pushd "$(mktemp -d)"
-    unzip -o "$sdk_repo"/$library.ios.zip -d tmp
+    unzip -o "$sdk_repo/$library.ios.zip" -d tmp
     unzip -o "tmp/$library.xcframework.zip" -d tmp
     rm -rf "tmp/$library.xcframework.zip"
 

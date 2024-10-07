@@ -5,7 +5,8 @@ set -euo pipefail
 if [ $# -eq 0 ]
   then
     # Use commit SHA as version if version argument was not passed.
-    readonly version="$(git rev-parse --short HEAD)"
+    version="$(git rev-parse --short HEAD)"
+    readonly version
   else
     readonly version="$1"
 fi
