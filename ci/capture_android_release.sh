@@ -64,7 +64,7 @@ function release_capture_sdk() {
       "$sdk_repo/ci/NOTICE.txt" \
       "$name.pom" \
       "$name-javadoc.jar" \
-      "$name-sources.jar" \      
+      "$name-sources.jar" \
       "$name-symbols.tar" \
       "$name-dylib.tar" \
       "$name.aar" \
@@ -96,7 +96,7 @@ function release_capture_timber() {
       "$sdk_repo/ci/NOTICE.txt" \
       "$name.pom" \
       "$name-javadoc.jar" \
-      "$name-sources.jar" \      
+      "$name-sources.jar" \
       "$name.module" \
       "$name.aar" \
     )

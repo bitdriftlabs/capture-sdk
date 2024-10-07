@@ -19,4 +19,4 @@ rm -f /usr/local/bin/python3-config
 rm -f /usr/local/bin/python3.11-config
 
 HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1 brew install llvm
-echo "/opt/homebrew/opt/llvm/bin" >> $GITHUB_PATH
+echo "/opt/homebrew/opt/llvm/bin" >> "$GITHUB_PATH"

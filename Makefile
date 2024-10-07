@@ -18,6 +18,10 @@ buildifier:
 lint-yaml:
 	taplo lint
 
+.PHONY: lint-shell
+lint-shell:
+	find ./tools -type f \( -name '*.sh' \) | xargs shellcheck -x && find ./ci -type f \( -name '*.sh' \) | xargs shellcheck -x
+
 .PHONY: fix-yaml
 fix-yaml:
 	taplo fmt
@@ -30,7 +34,7 @@ fix-swift:
 	swiftlint --quiet --fix --format && ./bazelw run tools/lint:lint-docstrings
 
 .PHONY: format
-format: ktlint rustfmt buildifier fix-swift lint-yaml
+format: lint-shell ktlint rustfmt buildifier fix-swift lint-yaml
 
 .PHONY: repin
 repin:
