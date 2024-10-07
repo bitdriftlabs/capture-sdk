@@ -18,6 +18,10 @@ buildifier:
 lint-yaml:
 	taplo lint
 
+.PHONY: lint-shell
+lint-shell:
+	find ./tools -type f \( -name '*.sh' \) | xargs shellcheck -x && find ./ci -type f \( -name '*.sh' \) | xargs shellcheck -x
+
 .PHONY: fix-yaml
 fix-yaml:
 	taplo fmt
