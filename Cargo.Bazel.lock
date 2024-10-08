@@ -1,14 +1,14 @@
 {
-  "checksum": "6c3100de56ce11098db893b8967c468c7be679ed035615b26854b992f9445ee5",
+  "checksum": "f38e48d1df7ebdd4a338eec44f2d42d41d80ab97d521655f91fb452130f2f1ea",
   "crates": {
-    "addr2line 0.24.1": {
+    "addr2line 0.24.2": {
       "name": "addr2line",
-      "version": "0.24.1",
+      "version": "0.24.2",
       "package_url": "https://github.com/gimli-rs/addr2line",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/addr2line/0.24.1/download",
-          "sha256": "f5fb1d8e4442bd405fdfd1dacb42792696b0cf9cb15882e5d097b742a676d375"
+          "url": "https://static.crates.io/crates/addr2line/0.24.2/download",
+          "sha256": "dfbe277e56a376000877090da837660b4427aad530e3028d44e0bffe4f89a1c1"
         }
       },
       "targets": [
@@ -33,14 +33,14 @@
         "deps": {
           "common": [
             {
-              "id": "gimli 0.31.0",
+              "id": "gimli 0.31.1",
               "target": "gimli"
             }
           ],
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.24.1"
+        "version": "0.24.2"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
@@ -602,7 +602,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.87",
               "target": "proc_macro2"
             },
             {
@@ -760,7 +760,7 @@
               "target": "bytes"
             },
             {
-              "id": "futures-util 0.3.30",
+              "id": "futures-util 0.3.31",
               "target": "futures_util"
             },
             {
@@ -914,7 +914,7 @@
               "target": "bytes"
             },
             {
-              "id": "futures-util 0.3.30",
+              "id": "futures-util 0.3.31",
               "target": "futures_util"
             },
             {
@@ -1030,7 +1030,7 @@
               "target": "bytes"
             },
             {
-              "id": "futures-util 0.3.30",
+              "id": "futures-util 0.3.31",
               "target": "futures_util"
             },
             {
@@ -1058,11 +1058,11 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "rustls 0.23.13",
+              "id": "rustls 0.23.14",
               "target": "rustls"
             },
             {
-              "id": "rustls-pemfile 2.1.3",
+              "id": "rustls-pemfile 2.2.0",
               "target": "rustls_pemfile"
             },
             {
@@ -1202,7 +1202,7 @@
           "selects": {
             "cfg(not(all(windows, target_env = \"msvc\", not(target_vendor = \"uwp\"))))": [
               {
-                "id": "addr2line 0.24.1",
+                "id": "addr2line 0.24.2",
                 "target": "addr2line"
               },
               {
@@ -1214,7 +1214,7 @@
                 "target": "miniz_oxide"
               },
               {
-                "id": "object 0.36.4",
+                "id": "object 0.36.5",
                 "target": "object"
               }
             ],
@@ -1337,7 +1337,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-api"
         }
@@ -1466,7 +1466,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-buffer"
         }
@@ -1529,7 +1529,7 @@
               "target": "fs2"
             },
             {
-              "id": "futures 0.3.30",
+              "id": "futures 0.3.31",
               "target": "futures"
             },
             {
@@ -1595,7 +1595,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-client-common"
         }
@@ -1699,7 +1699,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-client-stats"
         }
@@ -1816,7 +1816,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-client-stats-store"
         }
@@ -1888,7 +1888,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-completion"
         }
@@ -1944,7 +1944,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-device"
         }
@@ -2028,7 +2028,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-events"
         }
@@ -2097,7 +2097,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-grpc"
         }
@@ -2184,7 +2184,7 @@
               "target": "bytes"
             },
             {
-              "id": "futures 0.3.30",
+              "id": "futures 0.3.31",
               "target": "futures"
             },
             {
@@ -2301,7 +2301,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-grpc-codec"
         }
@@ -2384,7 +2384,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-hyper-network"
         }
@@ -2500,7 +2500,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-internal-logging"
         }
@@ -2564,7 +2564,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-key-value"
         }
@@ -2640,7 +2640,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-log"
         }
@@ -2724,7 +2724,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-log-filter"
         }
@@ -2804,7 +2804,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-log-matcher"
         }
@@ -2876,7 +2876,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-log-metadata"
         }
@@ -2932,7 +2932,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-log-primitives"
         }
@@ -2988,7 +2988,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-logger"
         }
@@ -3123,7 +3123,7 @@
               "target": "flatbuffers"
             },
             {
-              "id": "futures-util 0.3.30",
+              "id": "futures-util 0.3.31",
               "target": "futures_util"
             },
             {
@@ -3197,7 +3197,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-matcher"
         }
@@ -3265,7 +3265,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-metadata"
         }
@@ -3341,7 +3341,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-noop-network"
         }
@@ -3406,7 +3406,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-pgv"
         }
@@ -3501,7 +3501,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-proto"
         }
@@ -3604,7 +3604,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-resource-utilization"
         }
@@ -3685,7 +3685,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-runtime"
         }
@@ -3757,7 +3757,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-server-stats"
         }
@@ -3849,7 +3849,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-session"
         }
@@ -3945,7 +3945,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-shutdown"
         }
@@ -3997,7 +3997,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-stats-common"
         }
@@ -4036,7 +4036,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-test-helpers"
         }
@@ -4127,7 +4127,7 @@
               "target": "bd_time"
             },
             {
-              "id": "futures-core 0.3.30",
+              "id": "futures-core 0.3.31",
               "target": "futures_core"
             },
             {
@@ -4197,7 +4197,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-time"
         }
@@ -4270,7 +4270,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "8d00c4373548eb9fb0a6c816ca6874725e14cf97"
+            "Rev": "4dcc2c4f666288af29815f7aa4960ec7d44a2b76"
           },
           "strip_prefix": "bd-workflows"
         }
@@ -4859,14 +4859,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "cc 1.1.22": {
+    "cc 1.1.28": {
       "name": "cc",
-      "version": "1.1.22",
+      "version": "1.1.28",
       "package_url": "https://github.com/rust-lang/cc-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/cc/1.1.22/download",
-          "sha256": "9540e661f81799159abee814118cc139a2004b3a3aa3ea37724a1b66530b90e0"
+          "url": "https://static.crates.io/crates/cc/1.1.28/download",
+          "sha256": "2e80e3b6a3ab07840e1cae9b0666a63970dc28e8ed5ffbcdacbfc760c281bfc1"
         }
       },
       "targets": [
@@ -4898,7 +4898,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "1.1.22"
+        "version": "1.1.28"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -5398,14 +5398,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "clap 4.5.18": {
+    "clap 4.5.19": {
       "name": "clap",
-      "version": "4.5.18",
+      "version": "4.5.19",
       "package_url": "https://github.com/clap-rs/clap",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/clap/4.5.18/download",
-          "sha256": "b0956a43b323ac1afaffc053ed5c4b7c1f1800bacd1683c353aabbb752515dd3"
+          "url": "https://static.crates.io/crates/clap/4.5.19/download",
+          "sha256": "7be5744db7978a28d9df86a214130d106a89ce49644cbc4e3f0c22c3fba30615"
         }
       },
       "targets": [
@@ -5436,14 +5436,14 @@
         "deps": {
           "common": [
             {
-              "id": "clap_builder 4.5.18",
+              "id": "clap_builder 4.5.19",
               "target": "clap_builder"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "4.5.18"
+        "version": "4.5.19"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -5452,14 +5452,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "clap_builder 4.5.18": {
+    "clap_builder 4.5.19": {
       "name": "clap_builder",
-      "version": "4.5.18",
+      "version": "4.5.19",
       "package_url": "https://github.com/clap-rs/clap",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/clap_builder/4.5.18/download",
-          "sha256": "4d72166dd41634086d5803a47eb71ae740e61d84709c36f3c34110173db3961b"
+          "url": "https://static.crates.io/crates/clap_builder/4.5.19/download",
+          "sha256": "a5fbc17d3ef8278f55b282b2a2e75ae6f6c7d4bb70ed3d0382375104bfafdb4b"
         }
       },
       "targets": [
@@ -5501,7 +5501,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "4.5.18"
+        "version": "4.5.19"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -5802,7 +5802,7 @@
               "target": "ciborium"
             },
             {
-              "id": "clap 4.5.18",
+              "id": "clap 4.5.19",
               "target": "clap"
             },
             {
@@ -5822,7 +5822,7 @@
               "target": "num_traits"
             },
             {
-              "id": "once_cell 1.19.0",
+              "id": "once_cell 1.20.2",
               "target": "once_cell"
             },
             {
@@ -6287,7 +6287,7 @@
               "target": "lock_api"
             },
             {
-              "id": "once_cell 1.19.0",
+              "id": "once_cell 1.20.2",
               "target": "once_cell"
             },
             {
@@ -7057,14 +7057,14 @@
       "license_ids": [],
       "license_file": "LICENSE"
     },
-    "futures 0.3.30": {
+    "futures 0.3.31": {
       "name": "futures",
-      "version": "0.3.30",
+      "version": "0.3.31",
       "package_url": "https://github.com/rust-lang/futures-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/futures/0.3.30/download",
-          "sha256": "645c6916888f6cb6350d2550b80fb63e734897a8498abe35cfb732b6487804b0"
+          "url": "https://static.crates.io/crates/futures/0.3.31/download",
+          "sha256": "65bc07b1a8bc7c85c5f2e110c476c7389b4554ba72af57d8445ea63a576b0876"
         }
       },
       "targets": [
@@ -7100,38 +7100,38 @@
         "deps": {
           "common": [
             {
-              "id": "futures-channel 0.3.30",
+              "id": "futures-channel 0.3.31",
               "target": "futures_channel"
             },
             {
-              "id": "futures-core 0.3.30",
+              "id": "futures-core 0.3.31",
               "target": "futures_core"
             },
             {
-              "id": "futures-executor 0.3.30",
+              "id": "futures-executor 0.3.31",
               "target": "futures_executor"
             },
             {
-              "id": "futures-io 0.3.30",
+              "id": "futures-io 0.3.31",
               "target": "futures_io"
             },
             {
-              "id": "futures-sink 0.3.30",
+              "id": "futures-sink 0.3.31",
               "target": "futures_sink"
             },
             {
-              "id": "futures-task 0.3.30",
+              "id": "futures-task 0.3.31",
               "target": "futures_task"
             },
             {
-              "id": "futures-util 0.3.30",
+              "id": "futures-util 0.3.31",
               "target": "futures_util"
             }
           ],
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.3.30"
+        "version": "0.3.31"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -7140,14 +7140,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "futures-channel 0.3.30": {
+    "futures-channel 0.3.31": {
       "name": "futures-channel",
-      "version": "0.3.30",
+      "version": "0.3.31",
       "package_url": "https://github.com/rust-lang/futures-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/futures-channel/0.3.30/download",
-          "sha256": "eac8f7d7865dcb88bd4373ab671c8cf4508703796caa2b1985a9ca867b3fcb78"
+          "url": "https://static.crates.io/crates/futures-channel/0.3.31/download",
+          "sha256": "2dff15bf788c671c1934e366d07e30c1814a8ef514e1af724a602e8a2fbe1b10"
         }
       },
       "targets": [
@@ -7182,18 +7182,18 @@
         "deps": {
           "common": [
             {
-              "id": "futures-core 0.3.30",
+              "id": "futures-core 0.3.31",
               "target": "futures_core"
             },
             {
-              "id": "futures-sink 0.3.30",
+              "id": "futures-sink 0.3.31",
               "target": "futures_sink"
             }
           ],
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.3.30"
+        "version": "0.3.31"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -7202,14 +7202,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "futures-core 0.3.30": {
+    "futures-core 0.3.31": {
       "name": "futures-core",
-      "version": "0.3.30",
+      "version": "0.3.31",
       "package_url": "https://github.com/rust-lang/futures-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/futures-core/0.3.30/download",
-          "sha256": "dfc6580bb841c5a68e9ef15c77ccc837b40a7504914d52e47b8b0e9bbda25a1d"
+          "url": "https://static.crates.io/crates/futures-core/0.3.31/download",
+          "sha256": "05f29059c0c2090612e8d742178b0580d2dc940c837851ad723096f87af6663e"
         }
       },
       "targets": [
@@ -7240,7 +7240,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.3.30"
+        "version": "0.3.31"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -7249,14 +7249,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "futures-executor 0.3.30": {
+    "futures-executor 0.3.31": {
       "name": "futures-executor",
-      "version": "0.3.30",
+      "version": "0.3.31",
       "package_url": "https://github.com/rust-lang/futures-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/futures-executor/0.3.30/download",
-          "sha256": "a576fc72ae164fca6b9db127eaa9a9dda0d61316034f33a0a0d4eda41f02b01d"
+          "url": "https://static.crates.io/crates/futures-executor/0.3.31/download",
+          "sha256": "1e28d1d997f585e54aebc3f97d39e72338912123a67330d723fdbb564d646c9f"
         }
       },
       "targets": [
@@ -7287,22 +7287,22 @@
         "deps": {
           "common": [
             {
-              "id": "futures-core 0.3.30",
+              "id": "futures-core 0.3.31",
               "target": "futures_core"
             },
             {
-              "id": "futures-task 0.3.30",
+              "id": "futures-task 0.3.31",
               "target": "futures_task"
             },
             {
-              "id": "futures-util 0.3.30",
+              "id": "futures-util 0.3.31",
               "target": "futures_util"
             }
           ],
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.3.30"
+        "version": "0.3.31"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -7311,14 +7311,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "futures-io 0.3.30": {
+    "futures-io 0.3.31": {
       "name": "futures-io",
-      "version": "0.3.30",
+      "version": "0.3.31",
       "package_url": "https://github.com/rust-lang/futures-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/futures-io/0.3.30/download",
-          "sha256": "a44623e20b9681a318efdd71c299b6b222ed6f231972bfe2f224ebad6311f0c1"
+          "url": "https://static.crates.io/crates/futures-io/0.3.31/download",
+          "sha256": "9e5c1b78ca4aae1ac06c48a526a655760685149f0d465d21f37abfe57ce075c6"
         }
       },
       "targets": [
@@ -7347,7 +7347,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.3.30"
+        "version": "0.3.31"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -7356,14 +7356,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "futures-macro 0.3.30": {
+    "futures-macro 0.3.31": {
       "name": "futures-macro",
-      "version": "0.3.30",
+      "version": "0.3.31",
       "package_url": "https://github.com/rust-lang/futures-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/futures-macro/0.3.30/download",
-          "sha256": "87750cf4b7a4c0625b1529e4c543c2182106e4dedc60a2a6455e00d212c489ac"
+          "url": "https://static.crates.io/crates/futures-macro/0.3.31/download",
+          "sha256": "162ee34ebcb7c64a8abebc059ce0fee27c2262618d7b60ed8faf72fef13c3650"
         }
       },
       "targets": [
@@ -7388,7 +7388,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.87",
               "target": "proc_macro2"
             },
             {
@@ -7403,7 +7403,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.3.30"
+        "version": "0.3.31"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -7412,14 +7412,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "futures-sink 0.3.30": {
+    "futures-sink 0.3.31": {
       "name": "futures-sink",
-      "version": "0.3.30",
+      "version": "0.3.31",
       "package_url": "https://github.com/rust-lang/futures-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/futures-sink/0.3.30/download",
-          "sha256": "9fb8e00e87438d937621c1c6269e53f536c14d3fbd6a042bb24879e57d474fb5"
+          "url": "https://static.crates.io/crates/futures-sink/0.3.31/download",
+          "sha256": "e575fab7d1e0dcb8d0c7bcf9a63ee213816ab51902e6d244a95819acacf1d4f7"
         }
       },
       "targets": [
@@ -7450,7 +7450,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.3.30"
+        "version": "0.3.31"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -7459,14 +7459,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "futures-task 0.3.30": {
+    "futures-task 0.3.31": {
       "name": "futures-task",
-      "version": "0.3.30",
+      "version": "0.3.31",
       "package_url": "https://github.com/rust-lang/futures-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/futures-task/0.3.30/download",
-          "sha256": "38d84fa142264698cdce1a9f9172cf383a0c82de1bddcf3092901442c4097004"
+          "url": "https://static.crates.io/crates/futures-task/0.3.31/download",
+          "sha256": "f90f7dce0722e95104fcb095585910c0977252f286e354b5e3bd38902cd99988"
         }
       },
       "targets": [
@@ -7496,7 +7496,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.3.30"
+        "version": "0.3.31"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -7505,14 +7505,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "futures-util 0.3.30": {
+    "futures-util 0.3.31": {
       "name": "futures-util",
-      "version": "0.3.30",
+      "version": "0.3.31",
       "package_url": "https://github.com/rust-lang/futures-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/futures-util/0.3.30/download",
-          "sha256": "3d6401deb83407ab3da39eba7e33987a73c3df0c82b4bb5813ee871c19c41d48"
+          "url": "https://static.crates.io/crates/futures-util/0.3.31/download",
+          "sha256": "9fa08315bb612088cc391249efdc3bc77536f16c91f6cf495e6fbe85b20a4a81"
         }
       },
       "targets": [
@@ -7556,23 +7556,23 @@
         "deps": {
           "common": [
             {
-              "id": "futures-channel 0.3.30",
+              "id": "futures-channel 0.3.31",
               "target": "futures_channel"
             },
             {
-              "id": "futures-core 0.3.30",
+              "id": "futures-core 0.3.31",
               "target": "futures_core"
             },
             {
-              "id": "futures-io 0.3.30",
+              "id": "futures-io 0.3.31",
               "target": "futures_io"
             },
             {
-              "id": "futures-sink 0.3.30",
+              "id": "futures-sink 0.3.31",
               "target": "futures_sink"
             },
             {
-              "id": "futures-task 0.3.30",
+              "id": "futures-task 0.3.31",
               "target": "futures_task"
             },
             {
@@ -7598,13 +7598,13 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "futures-macro 0.3.30",
+              "id": "futures-macro 0.3.31",
               "target": "futures_macro"
             }
           ],
           "selects": {}
         },
-        "version": "0.3.30"
+        "version": "0.3.31"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -7680,14 +7680,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "gimli 0.31.0": {
+    "gimli 0.31.1": {
       "name": "gimli",
-      "version": "0.31.0",
+      "version": "0.31.1",
       "package_url": "https://github.com/gimli-rs/gimli",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/gimli/0.31.0/download",
-          "sha256": "32085ea23f3234fc7846555e85283ba4de91e21016dc0455a16286d87a292d64"
+          "url": "https://static.crates.io/crates/gimli/0.31.1/download",
+          "sha256": "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
         }
       },
       "targets": [
@@ -7710,7 +7710,7 @@
           "**"
         ],
         "edition": "2018",
-        "version": "0.31.0"
+        "version": "0.31.1"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -7763,11 +7763,11 @@
               "target": "fnv"
             },
             {
-              "id": "futures-core 0.3.30",
+              "id": "futures-core 0.3.31",
               "target": "futures_core"
             },
             {
-              "id": "futures-sink 0.3.30",
+              "id": "futures-sink 0.3.31",
               "target": "futures_sink"
             },
             {
@@ -7775,7 +7775,7 @@
               "target": "http"
             },
             {
-              "id": "indexmap 2.5.0",
+              "id": "indexmap 2.6.0",
               "target": "indexmap"
             },
             {
@@ -7898,6 +7898,45 @@
         },
         "edition": "2021",
         "version": "0.14.5"
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
+    "hashbrown 0.15.0": {
+      "name": "hashbrown",
+      "version": "0.15.0",
+      "package_url": "https://github.com/rust-lang/hashbrown",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/hashbrown/0.15.0/download",
+          "sha256": "1e087f84d4f86bf4b218b927129862374b72199ae7d8657835f1e89000eea4fb"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "hashbrown",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "hashbrown",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2021",
+        "version": "0.15.0"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -8184,7 +8223,7 @@
               "target": "bytes"
             },
             {
-              "id": "futures-util 0.3.30",
+              "id": "futures-util 0.3.31",
               "target": "futures_util"
             },
             {
@@ -8211,14 +8250,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "httparse 1.9.4": {
+    "httparse 1.9.5": {
       "name": "httparse",
-      "version": "1.9.4",
+      "version": "1.9.5",
       "package_url": "https://github.com/seanmonstar/httparse",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/httparse/1.9.4/download",
-          "sha256": "0fcc0b4a115bf80b728eb8ea024ad5bd707b615bfed49e0665b6e0f86fd082d9"
+          "url": "https://static.crates.io/crates/httparse/1.9.5/download",
+          "sha256": "7d71d3574edd2771538b901e6549113b4006ece66150fb69c0fb6d9a2adae946"
         }
       },
       "targets": [
@@ -8262,14 +8301,14 @@
         "deps": {
           "common": [
             {
-              "id": "httparse 1.9.4",
+              "id": "httparse 1.9.5",
               "target": "build_script_build"
             }
           ],
           "selects": {}
         },
         "edition": "2018",
-        "version": "1.9.4"
+        "version": "1.9.5"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -8371,11 +8410,11 @@
               "target": "bytes"
             },
             {
-              "id": "futures-channel 0.3.30",
+              "id": "futures-channel 0.3.31",
               "target": "futures_channel"
             },
             {
-              "id": "futures-util 0.3.30",
+              "id": "futures-util 0.3.31",
               "target": "futures_util"
             },
             {
@@ -8391,7 +8430,7 @@
               "target": "http_body"
             },
             {
-              "id": "httparse 1.9.4",
+              "id": "httparse 1.9.5",
               "target": "httparse"
             },
             {
@@ -8472,7 +8511,7 @@
         "deps": {
           "common": [
             {
-              "id": "futures-util 0.3.30",
+              "id": "futures-util 0.3.31",
               "target": "futures_util"
             },
             {
@@ -8488,7 +8527,7 @@
               "target": "hyper_util"
             },
             {
-              "id": "rustls 0.23.13",
+              "id": "rustls 0.23.14",
               "target": "rustls"
             },
             {
@@ -8576,11 +8615,11 @@
               "target": "bytes"
             },
             {
-              "id": "futures-channel 0.3.30",
+              "id": "futures-channel 0.3.31",
               "target": "futures_channel"
             },
             {
-              "id": "futures-util 0.3.30",
+              "id": "futures-util 0.3.31",
               "target": "futures_util"
             },
             {
@@ -8774,7 +8813,7 @@
         "deps": {
           "common": [
             {
-              "id": "cc 1.1.22",
+              "id": "cc 1.1.28",
               "target": "cc"
             }
           ],
@@ -8788,14 +8827,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "indexmap 2.5.0": {
+    "indexmap 2.6.0": {
       "name": "indexmap",
-      "version": "2.5.0",
+      "version": "2.6.0",
       "package_url": "https://github.com/indexmap-rs/indexmap",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/indexmap/2.5.0/download",
-          "sha256": "68b900aa2f7301e21c36462b170ee99994de34dff39a4a6a528e80e7376d07e5"
+          "url": "https://static.crates.io/crates/indexmap/2.6.0/download",
+          "sha256": "707907fe3c25f5424cce2cb7e1cbcafee6bdbe735ca90ef77c29e84591e5b9da"
         }
       },
       "targets": [
@@ -8831,14 +8870,14 @@
               "target": "equivalent"
             },
             {
-              "id": "hashbrown 0.14.5",
+              "id": "hashbrown 0.15.0",
               "target": "hashbrown"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "2.5.0"
+        "version": "2.6.0"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
@@ -9507,7 +9546,7 @@
         "deps": {
           "common": [
             {
-              "id": "cc 1.1.22",
+              "id": "cc 1.1.28",
               "target": "cc"
             },
             {
@@ -10610,14 +10649,14 @@
       ],
       "license_file": null
     },
-    "object 0.36.4": {
+    "object 0.36.5": {
       "name": "object",
-      "version": "0.36.4",
+      "version": "0.36.5",
       "package_url": "https://github.com/gimli-rs/object",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/object/0.36.4/download",
-          "sha256": "084f1a5821ac4c651660a94a7153d27ac9d8a53736203f58b31945ded098070a"
+          "url": "https://static.crates.io/crates/object/0.36.5/download",
+          "sha256": "aedf0a2d09c573ed1d8d85b30c119153926a2b36dce0ab28322c09a117a4683e"
         }
       },
       "targets": [
@@ -10649,7 +10688,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.36.4"
+        "version": "0.36.5"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
@@ -10658,14 +10697,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "once_cell 1.19.0": {
+    "once_cell 1.20.2": {
       "name": "once_cell",
-      "version": "1.19.0",
+      "version": "1.20.2",
       "package_url": "https://github.com/matklad/once_cell",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/once_cell/1.19.0/download",
-          "sha256": "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
+          "url": "https://static.crates.io/crates/once_cell/1.20.2/download",
+          "sha256": "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
         }
       },
       "targets": [
@@ -10697,7 +10736,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "1.19.0"
+        "version": "1.20.2"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -10899,7 +10938,7 @@
           "selects": {
             "cfg(target_os = \"redox\")": [
               {
-                "id": "redox_syscall 0.5.6",
+                "id": "redox_syscall 0.5.7",
                 "target": "syscall"
               }
             ],
@@ -10982,14 +11021,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "pin-project 1.1.5": {
+    "pin-project 1.1.6": {
       "name": "pin-project",
-      "version": "1.1.5",
+      "version": "1.1.6",
       "package_url": "https://github.com/taiki-e/pin-project",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/pin-project/1.1.5/download",
-          "sha256": "b6bf43b791c5b9e34c3d182969b4abb522f9343702850a2e57f460d00d09b4b3"
+          "url": "https://static.crates.io/crates/pin-project/1.1.6/download",
+          "sha256": "baf123a161dde1e524adf36f90bc5d8d3462824a9c43553ad07a8183161189ec"
         }
       },
       "targets": [
@@ -11015,13 +11054,13 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "pin-project-internal 1.1.5",
+              "id": "pin-project-internal 1.1.6",
               "target": "pin_project_internal"
             }
           ],
           "selects": {}
         },
-        "version": "1.1.5"
+        "version": "1.1.6"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
@@ -11030,14 +11069,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "pin-project-internal 1.1.5": {
+    "pin-project-internal 1.1.6": {
       "name": "pin-project-internal",
-      "version": "1.1.5",
+      "version": "1.1.6",
       "package_url": "https://github.com/taiki-e/pin-project",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/pin-project-internal/1.1.5/download",
-          "sha256": "2f38a4412a78282e09a2cf38d195ea5420d15ba0602cb375210efbc877243965"
+          "url": "https://static.crates.io/crates/pin-project-internal/1.1.6/download",
+          "sha256": "a4502d8515ca9f32f1fb543d987f63d95a14934883db45bdb48060b6b69257f8"
         }
       },
       "targets": [
@@ -11062,7 +11101,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.87",
               "target": "proc_macro2"
             },
             {
@@ -11077,7 +11116,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "1.1.5"
+        "version": "1.1.6"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
@@ -11753,14 +11792,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "proc-macro2 1.0.86": {
+    "proc-macro2 1.0.87": {
       "name": "proc-macro2",
-      "version": "1.0.86",
+      "version": "1.0.87",
       "package_url": "https://github.com/dtolnay/proc-macro2",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/proc-macro2/1.0.86/download",
-          "sha256": "5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77"
+          "url": "https://static.crates.io/crates/proc-macro2/1.0.87/download",
+          "sha256": "b3e4daa0dcf6feba26f985457cdf104d4b4256fc5a09547140f3631bb076b19a"
         }
       },
       "targets": [
@@ -11804,7 +11843,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.87",
               "target": "build_script_build"
             },
             {
@@ -11815,7 +11854,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "1.0.86"
+        "version": "1.0.87"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -12013,7 +12052,7 @@
               "target": "bytes"
             },
             {
-              "id": "once_cell 1.19.0",
+              "id": "once_cell 1.20.2",
               "target": "once_cell"
             },
             {
@@ -12087,7 +12126,7 @@
               "target": "anyhow"
             },
             {
-              "id": "once_cell 1.19.0",
+              "id": "once_cell 1.20.2",
               "target": "once_cell"
             },
             {
@@ -12161,7 +12200,7 @@
               "target": "anyhow"
             },
             {
-              "id": "indexmap 2.5.0",
+              "id": "indexmap 2.6.0",
               "target": "indexmap"
             },
             {
@@ -12289,7 +12328,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.87",
               "target": "proc_macro2"
             }
           ],
@@ -13109,14 +13148,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "redox_syscall 0.5.6": {
+    "redox_syscall 0.5.7": {
       "name": "redox_syscall",
-      "version": "0.5.6",
+      "version": "0.5.7",
       "package_url": "https://gitlab.redox-os.org/redox-os/syscall",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/redox_syscall/0.5.6/download",
-          "sha256": "355ae415ccd3a04315d3f8246e86d67689ea74d88d915576e1589a351062a13b"
+          "url": "https://static.crates.io/crates/redox_syscall/0.5.7/download",
+          "sha256": "9b6dfecf2c74bce2466cabf93f6664d6998a69eb21e39f4207930065b27b771f"
         }
       },
       "targets": [
@@ -13148,7 +13187,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.5.6"
+        "version": "0.5.7"
       },
       "license": "MIT",
       "license_ids": [
@@ -13636,7 +13675,7 @@
         "deps": {
           "common": [
             {
-              "id": "cc 1.1.22",
+              "id": "cc 1.1.28",
               "target": "cc"
             }
           ],
@@ -13846,14 +13885,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "rustls 0.23.13": {
+    "rustls 0.23.14": {
       "name": "rustls",
-      "version": "0.23.13",
+      "version": "0.23.14",
       "package_url": "https://github.com/rustls/rustls",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/rustls/0.23.13/download",
-          "sha256": "f2dabaac7466917e566adb06783a81ca48944c6898a1b08b9374106dd671f4c8"
+          "url": "https://static.crates.io/crates/rustls/0.23.14/download",
+          "sha256": "415d9944693cb90382053259f89fbb077ea730ad7273047ec63b19bc9b160ba8"
         }
       },
       "targets": [
@@ -13897,7 +13936,7 @@
         "deps": {
           "common": [
             {
-              "id": "once_cell 1.19.0",
+              "id": "once_cell 1.20.2",
               "target": "once_cell"
             },
             {
@@ -13905,7 +13944,7 @@
               "target": "ring"
             },
             {
-              "id": "rustls 0.23.13",
+              "id": "rustls 0.23.14",
               "target": "build_script_build"
             },
             {
@@ -13929,7 +13968,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.23.13"
+        "version": "0.23.14"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -13956,14 +13995,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "rustls-pemfile 2.1.3": {
+    "rustls-pemfile 2.2.0": {
       "name": "rustls-pemfile",
-      "version": "2.1.3",
+      "version": "2.2.0",
       "package_url": "https://github.com/rustls/pemfile",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/rustls-pemfile/2.1.3/download",
-          "sha256": "196fe16b00e106300d3e45ecfcb764fa292a535d7326a29a5875c579c7417425"
+          "url": "https://static.crates.io/crates/rustls-pemfile/2.2.0/download",
+          "sha256": "dce314e5fee3f39953d46bb63bb8a46d40c2f8fb7cc5a3b6cab2bde9721d6e50"
         }
       },
       "targets": [
@@ -13995,10 +14034,6 @@
         "deps": {
           "common": [
             {
-              "id": "base64 0.22.1",
-              "target": "base64"
-            },
-            {
               "id": "rustls-pki-types 1.9.0",
               "target": "rustls_pki_types",
               "alias": "pki_types"
@@ -14007,7 +14042,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "2.1.3"
+        "version": "2.2.0"
       },
       "license": "Apache-2.0 OR ISC OR MIT",
       "license_ids": [
@@ -14524,7 +14559,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.87",
               "target": "proc_macro2"
             },
             {
@@ -14784,7 +14819,7 @@
         "deps": {
           "common": [
             {
-              "id": "indexmap 2.5.0",
+              "id": "indexmap 2.6.0",
               "target": "indexmap"
             },
             {
@@ -15598,7 +15633,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.87",
               "target": "proc_macro2"
             },
             {
@@ -15790,7 +15825,7 @@
               "target": "fastrand"
             },
             {
-              "id": "once_cell 1.19.0",
+              "id": "once_cell 1.20.2",
               "target": "once_cell"
             }
           ],
@@ -16094,7 +16129,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.87",
               "target": "proc_macro2"
             },
             {
@@ -16154,7 +16189,7 @@
               "target": "cfg_if"
             },
             {
-              "id": "once_cell 1.19.0",
+              "id": "once_cell 1.20.2",
               "target": "once_cell"
             }
           ],
@@ -16950,7 +16985,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.87",
               "target": "proc_macro2"
             },
             {
@@ -17005,7 +17040,7 @@
         "deps": {
           "common": [
             {
-              "id": "rustls 0.23.13",
+              "id": "rustls 0.23.14",
               "target": "rustls"
             },
             {
@@ -17069,7 +17104,7 @@
         "deps": {
           "common": [
             {
-              "id": "futures-core 0.3.30",
+              "id": "futures-core 0.3.31",
               "target": "futures_core"
             },
             {
@@ -17136,11 +17171,11 @@
               "target": "bytes"
             },
             {
-              "id": "futures-core 0.3.30",
+              "id": "futures-core 0.3.31",
               "target": "futures_core"
             },
             {
-              "id": "futures-sink 0.3.30",
+              "id": "futures-sink 0.3.31",
               "target": "futures_sink"
             },
             {
@@ -17209,15 +17244,15 @@
         "deps": {
           "common": [
             {
-              "id": "futures-core 0.3.30",
+              "id": "futures-core 0.3.31",
               "target": "futures_core"
             },
             {
-              "id": "futures-util 0.3.30",
+              "id": "futures-util 0.3.31",
               "target": "futures_util"
             },
             {
-              "id": "pin-project 1.1.5",
+              "id": "pin-project 1.1.6",
               "target": "pin_project"
             },
             {
@@ -17296,11 +17331,11 @@
         "deps": {
           "common": [
             {
-              "id": "futures-core 0.3.30",
+              "id": "futures-core 0.3.31",
               "target": "futures_core"
             },
             {
-              "id": "futures-util 0.3.30",
+              "id": "futures-util 0.3.31",
               "target": "futures_util"
             },
             {
@@ -17521,7 +17556,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.87",
               "target": "proc_macro2"
             },
             {
@@ -17584,7 +17619,7 @@
         "deps": {
           "common": [
             {
-              "id": "once_cell 1.19.0",
+              "id": "once_cell 1.20.2",
               "target": "once_cell"
             }
           ],
@@ -17701,7 +17736,7 @@
               "target": "log"
             },
             {
-              "id": "once_cell 1.19.0",
+              "id": "once_cell 1.20.2",
               "target": "once_cell"
             },
             {
@@ -17781,7 +17816,7 @@
               "target": "nu_ansi_term"
             },
             {
-              "id": "once_cell 1.19.0",
+              "id": "once_cell 1.20.2",
               "target": "once_cell"
             },
             {
@@ -18428,7 +18463,7 @@
               "target": "cfg_if"
             },
             {
-              "id": "once_cell 1.19.0",
+              "id": "once_cell 1.20.2",
               "target": "once_cell"
             },
             {
@@ -18513,11 +18548,11 @@
               "target": "log"
             },
             {
-              "id": "once_cell 1.19.0",
+              "id": "once_cell 1.20.2",
               "target": "once_cell"
             },
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.87",
               "target": "proc_macro2"
             },
             {
@@ -18645,7 +18680,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.87",
               "target": "proc_macro2"
             },
             {
@@ -18910,7 +18945,7 @@
             ],
             "cfg(windows)": [
               {
-                "id": "once_cell 1.19.0",
+                "id": "once_cell 1.20.2",
                 "target": "once_cell"
               }
             ]
@@ -20826,7 +20861,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.87",
               "target": "proc_macro2"
             },
             {
