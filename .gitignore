@@ -5,6 +5,7 @@
 
 # Bazel
 /bazel-*
+**/Bazel Generated/
 
 compile_commands.json
 .DS_Store

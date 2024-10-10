@@ -7,6 +7,7 @@
 
 @testable import Capture
 @testable import CaptureLoggerBridge
+import CaptureMocks
 import Foundation
 import XCTest
 

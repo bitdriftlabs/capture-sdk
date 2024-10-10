@@ -192,7 +192,8 @@ xcodeproj(
             ],
         ),
         # Tests
-        "//test/platform/swift/unit_integration:test",
+        "//test/platform/swift/unit_integration/core:test",
+        "//test/platform/swift/unit_integration/integrations:test",
     ],
     xcode_configurations = {
         "Debug": {
@@ -233,7 +234,15 @@ xcodeproj(
             name = "iOS Capture Unit Integration Tests",
             test = xcschemes.test(
                 test_targets = [
-                    "//test/platform/swift/unit_integration:test",
+                    "//test/platform/swift/unit_integration/core:test",
+                ],
+            ),
+        ),
+        xcschemes.scheme(
+            name = "iOS Capture URLSession Integration Tests",
+            test = xcschemes.test(
+                test_targets = [
+                    "//test/platform/swift/unit_integration/integrations:test",
                 ],
             ),
         ),

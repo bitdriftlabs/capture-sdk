@@ -10,46 +10,48 @@ import CaptureLoggerBridge
 import Foundation
 import XCTest
 
-final class MockCoreLogging {
-    struct Log {
-        let level: LogLevel
-        let message: String
-        let file: String?
-        let line: Int?
-        let function: String?
-        let fields: Fields?
-        let matchingFields: Fields?
-        let error: Error?
-        let type: Logger.LogType
-        let blocking: Bool
+public final class MockCoreLogging {
+    public struct Log {
+        public let level: LogLevel
+        public let message: String
+        public let file: String?
+        public let line: Int?
+        public let function: String?
+        public let fields: Fields?
+        public let matchingFields: Fields?
+        public let error: Error?
+        public let type: Logger.LogType
+        public let blocking: Bool
     }
 
-    struct ResourceUtilizationLog {
-        let fields: Fields
-        let duration: TimeInterval
+    public struct ResourceUtilizationLog {
+        public let fields: Fields
+        public let duration: TimeInterval
     }
 
-    private(set) var logs = [Log]()
-    var logExpectation: XCTestExpectation?
+    public private(set) var logs = [Log]()
+    public var logExpectation: XCTestExpectation?
 
-    private(set) var logAppUpdateCount = 0
-    var logAppUpdateExpectation: XCTestExpectation?
+    public private(set) var logAppUpdateCount = 0
+    public var logAppUpdateExpectation: XCTestExpectation?
 
-    private(set) var resourceUtilizationLogs = [ResourceUtilizationLog]()
-    var logResourceUtilizationExpectation: XCTestExpectation?
+    public private(set) var resourceUtilizationLogs = [ResourceUtilizationLog]()
+    public var logResourceUtilizationExpectation: XCTestExpectation?
 
-    var shouldLogAppUpdateEvent = false
+    public var shouldLogAppUpdateEvent = false
 
-    private(set) var mockedRuntimeVariables = [String: Any]()
+    public private(set) var mockedRuntimeVariables = [String: Any]()
 
-    func mockRuntimeVariable<T: RuntimeValue>(_ variable: RuntimeVariable<T>, with value: T) {
+    public init() {}
+
+    public func mockRuntimeVariable<T: RuntimeValue>(_ variable: RuntimeVariable<T>, with value: T) {
         let values = [variable.name: value]
         self.mockedRuntimeVariables.mergeOverwritingConflictingKeys(values)
     }
 }
 
 extension MockCoreLogging: CoreLogging {
-    static func makeLogger(
+    public static func makeLogger(
         apiKey _: String,
         bufferDirectory _: URL?,
         sessionStrategy _: SessionStrategy,
@@ -64,15 +66,15 @@ extension MockCoreLogging: CoreLogging {
         return MockCoreLogging()
     }
 
-    func start() {}
+    public func start() {}
 
-    func startNewSession() {}
+    public func startNewSession() {}
 
-    func getSessionID() -> String { "foo" }
+    public func getSessionID() -> String { "foo" }
 
-    func getDeviceID() -> String { "deviceID" }
+    public func getDeviceID() -> String { "deviceID" }
 
-    func log(
+    public func log(
         level: LogLevel,
         message: @autoclosure () -> String,
         file: String?,
@@ -101,20 +103,20 @@ extension MockCoreLogging: CoreLogging {
         self.logExpectation?.fulfill()
     }
 
-    func logSessionReplay(screen _: SessionReplayScreenCapture, duration _: TimeInterval) {}
+    public func logSessionReplay(screen _: SessionReplayScreenCapture, duration _: TimeInterval) {}
 
-    func logResourceUtilization(fields: Fields, duration: TimeInterval) {
+    public func logResourceUtilization(fields: Fields, duration: TimeInterval) {
         self.resourceUtilizationLogs.append(ResourceUtilizationLog(fields: fields, duration: duration))
         self.logResourceUtilizationExpectation?.fulfill()
     }
 
-    func logSDKStart(fields _: Fields, duration _: TimeInterval) {}
+    public func logSDKStart(fields _: Fields, duration _: TimeInterval) {}
 
-    func shouldLogAppUpdate(appVersion _: String, buildNumber _: String) -> Bool {
+    public func shouldLogAppUpdate(appVersion _: String, buildNumber _: String) -> Bool {
         return self.shouldLogAppUpdateEvent
     }
 
-    func logAppUpdate(
+    public func logAppUpdate(
         appVersion _: String,
         buildNumber _: String,
         appSizeBytes _: UInt64,
@@ -124,15 +126,15 @@ extension MockCoreLogging: CoreLogging {
         self.logAppUpdateExpectation?.fulfill()
     }
 
-    func logAppLaunchTTI(_: TimeInterval) {}
+    public func logAppLaunchTTI(_: TimeInterval) {}
 
-    func addField(withKey _: String, value _: String) {}
+    public func addField(withKey _: String, value _: String) {}
 
-    func removeField(withKey _: String) {}
+    public func removeField(withKey _: String) {}
 
-    func flush(blocking _: Bool) {}
+    public func flush(blocking _: Bool) {}
 
-    func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
+    public func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
         if let value = self.mockedRuntimeVariables[variable.name] {
             // swiftlint:disable:next force_cast
             value as! T
@@ -141,7 +143,7 @@ extension MockCoreLogging: CoreLogging {
         }
     }
 
-    func handleError(context _: String, error _: Error) {}
+    public func handleError(context _: String, error _: Error) {}
 
-    func enableBlockingShutdown() {}
+    public func enableBlockingShutdown() {}
 }

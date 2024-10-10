@@ -8,13 +8,13 @@
 @testable import Capture
 import Foundation
 
-final class MockNetworkClient: NetworkClient {
-    func createConnection(to _: URL,
-                          handler _: ConnectionDataHandler,
-                          headers _: [String: String]) -> NetworkStreamConnection
+public final class MockNetworkClient: NetworkClient {
+    public func createConnection(to _: URL,
+                                 handler _: ConnectionDataHandler,
+                                 headers _: [String: String]) -> NetworkStreamConnection
     {
         return MockConnection()
     }
 
-    func tearDown() {}
+    public func tearDown() {}
 }

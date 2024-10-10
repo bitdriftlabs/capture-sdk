@@ -8,20 +8,20 @@
 @testable import Capture
 import Foundation
 
-final class MockTimeProvider {
+public final class MockTimeProvider {
     var timeIntervalSince1970: TimeInterval
 
-    init(timeIntervalSince1970: TimeInterval = Date().timeIntervalSince1970) {
+    public init(timeIntervalSince1970: TimeInterval = Date().timeIntervalSince1970) {
         self.timeIntervalSince1970 = timeIntervalSince1970
     }
 
-    func advanceBy(timeInterval: TimeInterval) {
+    public func advanceBy(timeInterval: TimeInterval) {
         self.timeIntervalSince1970 += timeInterval
     }
 }
 
 extension MockTimeProvider: TimeProvider {
-    func uptime() -> Uptime { Uptime(uptime: self.timeIntervalSince1970) }
+    public func uptime() -> Uptime { Uptime(uptime: self.timeIntervalSince1970) }
 
-    func now() -> Date { Date(timeIntervalSince1970: self.timeIntervalSince1970) }
+    public func now() -> Date { Date(timeIntervalSince1970: self.timeIntervalSince1970) }
 }
