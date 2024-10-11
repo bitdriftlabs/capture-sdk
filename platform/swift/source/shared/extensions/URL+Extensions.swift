@@ -23,7 +23,8 @@ extension URL {
     ///
     /// - returns: The path component of the URL.
     func normalizedPath() -> String? {
-        return if #available(iOS 16.0, *) {
+        return if #available(iOS 17.0, *) {
+            // The method was introduced in iOS 16.0, but we observed it crashing on iOS 16 (up to 16.7.x).
             self.path(percentEncoded: false)
         } else {
             self.relativePath
