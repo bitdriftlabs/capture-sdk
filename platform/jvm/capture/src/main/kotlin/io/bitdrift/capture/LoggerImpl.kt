@@ -65,7 +65,9 @@ internal class LoggerImpl(
     fieldProviders: List<FieldProvider>,
     dateProvider: DateProvider,
     private val errorHandler: ErrorHandler = ErrorHandler(),
-    processingQueue: ExecutorService = Executors.newSingleThreadExecutor(),
+    processingQueue: ExecutorService = Executors.newSingleThreadExecutor{
+        Thread(it, "io.bitdrift.capture.event-listener")
+    },
     sessionStrategy: SessionStrategy,
     context: Context = ContextHolder.APP_CONTEXT,
     clientAttributes: ClientAttributes = ClientAttributes(

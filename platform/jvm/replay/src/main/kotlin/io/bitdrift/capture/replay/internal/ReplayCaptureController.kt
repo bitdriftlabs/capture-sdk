@@ -20,7 +20,9 @@ import java.util.concurrent.TimeUnit
 // Controls the triggering of screen captures at regular time interval
 internal class ReplayCaptureController(
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
-    private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor(),
+    private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor {
+        Thread(it, "io.bitdrift.capture.session-replay")
+    },
     private val sessionReplayConfiguration: SessionReplayConfiguration = ReplayModule.replayDependencies.sessionReplayConfiguration,
     private val replayCapture: ReplayCapture = ReplayModule.replayDependencies.replayCapture,
     private val runtime: Runtime,
