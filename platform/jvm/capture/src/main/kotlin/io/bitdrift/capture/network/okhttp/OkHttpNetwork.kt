@@ -52,8 +52,17 @@ internal class PipeDuplexRequestBody(
 
     override fun contentType() = contentType
 
+    @Suppress("SwallowedException", "EmptyCatchBlock")
     override fun writeTo(sink: BufferedSink) {
-        pipe.fold(sink)
+        // If this gets called more than once (e.g. due to an automatically injected
+        // interceptor), we want to ignore the second call. This is because the pipe
+        // is a one-shot object, and we don't want to try to write to it again.
+        //
+        // From the perspective of the caller this will look like the request was empty.
+        try {
+            pipe.fold(sink)
+        } catch (e: Throwable) {
+        }
     }
 
     override fun isDuplex() = true
