@@ -92,7 +92,9 @@ internal class OkHttpNetwork(
         .retryOnConnectionFailure(false) // Retrying messes up the write pipe state management, so disable.
         .build()
 
-    private val executor: ExecutorService = Executors.newSingleThreadExecutor()
+    private val executor: ExecutorService = Executors.newSingleThreadExecutor {
+        Thread(it, "io.bitdrift.capture.network.okhttp")
+    }
     private val url: HttpUrl =
         apiBaseUrl.newBuilder().addPathSegments("bitdrift_public.protobuf.client.v1.ApiService/Mux")
             .build()

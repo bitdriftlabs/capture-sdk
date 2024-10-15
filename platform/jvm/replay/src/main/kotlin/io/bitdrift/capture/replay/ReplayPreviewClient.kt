@@ -41,7 +41,9 @@ class ReplayPreviewClient(
 ) : ReplayLogger {
 
     private val replayCapture: ReplayCapture = ReplayCapture(this)
-    private val executor: ExecutorService = Executors.newSingleThreadExecutor()
+    private val executor: ExecutorService = Executors.newSingleThreadExecutor {
+        Thread(it, "io.bitdrift.capture.session-replay-client")
+    }
     private val client: OkHttpClient
     private val request: Request
     private var webSocket: WebSocket? = null
