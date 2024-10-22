@@ -5,15 +5,19 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+
 package io.bitdrift.microbenchmark
 
 import androidx.benchmark.junit4.BenchmarkRule
 import androidx.benchmark.junit4.measureRepeated
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.bitdrift.capture.Capture
+import io.bitdrift.capture.Configuration
+import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,8 +36,7 @@ class ClockTimeProfiler {
     @get:Rule
     val benchmarkRule = BenchmarkRule()
 
-    @Before
-    fun setUp() {
+    private fun startLogger() {
         Capture.Logger.start(
             apiKey = "android-benchmark-test",
             apiUrl = "https://api-tests.bitdrift.io".toHttpUrl(),
@@ -42,7 +45,22 @@ class ClockTimeProfiler {
     }
 
     @Test
+    fun loggerStart() {
+        benchmarkRule.measureRepeated {
+            LoggerImpl(
+                apiKey = "android-benchmark-test",
+                apiUrl = "https://api-tests.bitdrift.io".toHttpUrl(),
+                fieldProviders = listOf(),
+                dateProvider = SystemDateProvider(),
+                configuration = Configuration(),
+                sessionStrategy = SessionStrategy.Fixed(),
+            )
+        }
+    }
+
+    @Test
     fun logNotMatchedNoFields() {
+        startLogger()
         benchmarkRule.measureRepeated {
             Capture.Logger.logInfo { LOG_MESSAGE }
         }
@@ -50,6 +68,7 @@ class ClockTimeProfiler {
 
     @Test
     fun logNotMatched5Fields() {
+        startLogger()
         benchmarkRule.measureRepeated {
             Capture.Logger.logInfo(
                 mapOf(
@@ -65,6 +84,7 @@ class ClockTimeProfiler {
 
     @Test
     fun logNotMatched10Fields() {
+        startLogger()
         benchmarkRule.measureRepeated {
             Capture.Logger.logInfo(
                 mapOf(
