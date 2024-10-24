@@ -48,12 +48,14 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.preference.PreferenceManager
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.timber.CaptureTree
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import papa.AppLaunchType
 import papa.PapaEvent
 import papa.PapaEventListener
@@ -81,7 +83,14 @@ class GradleTestApp : Application() {
     }
 
     private fun initLogging() {
-        BitdriftInit.initBitdriftCaptureInJava()
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        val stringApiUrl = prefs.getString("apiUrl", null)
+        val apiUrl = stringApiUrl?.toHttpUrlOrNull()
+        if (apiUrl == null) {
+            Log.e("GradleTestApp", "Failed to initialize bitdrift logger due to invalid API URL: $stringApiUrl")
+            return
+        }
+        BitdriftInit.initBitdriftCaptureInJava(apiUrl, prefs.getString("apiKey", ""))
         // Timber
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
