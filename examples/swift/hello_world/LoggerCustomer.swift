@@ -9,9 +9,6 @@ import Capture
 import Foundation
 import MetricKit
 
-private let kBitdriftAPIKey = "<YOUR API KEY GOES HERE>"
-// swiftlint:disable:next force_unwrapping use_static_string_url_init
-private let kBitdriftURL = URL(string: "https://api.bitdrift.io")!
 private let kDeviceId = "ios-helloworld"
 
 private struct EncodableExampleStruct: Encodable {
@@ -83,20 +80,25 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
     override init() {
         self.appStartTime = Date()
 
+        super.init()
+
+        guard let apiURL = URL(string: Configuration.storedAPIURL) else {
+            print("failed to initialize logger due to invalid API URL: \(Configuration.storedAPIURL)")
+            return
+        }
+
         Logger
             .start(
-                withAPIKey: kBitdriftAPIKey,
+                withAPIKey: Configuration.storedAPIKey ?? "",
                 sessionStrategy: .fixed(),
                 configuration: .init(),
                 fieldProviders: [CustomFieldProvider()],
-                apiURL: kBitdriftURL
+                apiURL: apiURL
             )?
             .enableIntegrations([.urlSession()], disableSwizzling: true)
 
         Logger.addField(withKey: "field_container_field_key", value: "field_container_value")
         Logger.logInfo("App launched. Logger configured.")
-
-        super.init()
 
         MXMetricManager.shared.add(self)
     }

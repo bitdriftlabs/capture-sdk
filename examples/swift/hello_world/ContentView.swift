@@ -24,6 +24,7 @@ struct ContentView: View {
 
     var body: some View {
         VStack {
+            NavigationLink("Configuration") { ConfigurationView() }
             Spacer()
             VStack {
                 Text("ACTIONS")
