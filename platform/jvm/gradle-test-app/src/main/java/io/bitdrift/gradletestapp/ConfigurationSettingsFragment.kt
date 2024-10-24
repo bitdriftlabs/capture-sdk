@@ -14,22 +14,24 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         val context = preferenceManager.context
         val screen = preferenceManager.createPreferenceScreen(context)
 
+        val backendCategory = PreferenceCategory(context)
+        backendCategory.key = "control_plane_category"
+        backendCategory.title = "Control Plane Configuration"
+
+        screen.addPreference(backendCategory)
+
         val apiUrlPref = EditTextPreference(context)
         apiUrlPref.key = "apiUrl"
         apiUrlPref.title = "API URL"
         apiUrlPref.summary = "App needs to be restarted for changes to take effect"
+
+        backendCategory.addPreference(apiUrlPref)
 
         val apiKeyPref = EditTextPreference(context)
         apiKeyPref.key = "apiKey"
         apiKeyPref.title = "API Key"
         apiKeyPref.summary = "App needs to be restarted for changes to take effect"
 
-        val backendCategory = PreferenceCategory(context)
-        backendCategory.key = "control_plane_category"
-        backendCategory.title = "Control Plane Configuration"
-
-        screen.addPreference(backendCategory)
-        backendCategory.addPreference(apiUrlPref)
         backendCategory.addPreference(apiKeyPref)
 
         val restartPreference = Preference(context)
