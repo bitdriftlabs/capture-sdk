@@ -4,6 +4,8 @@
     <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">First Fragment</string>
     <string name="second_fragment_label">Second Fragment</string>
+    <string name="config_fragment_label">Configuration Settings Fragment</string>
+    <string name="navigate_config">Navigate to Configuration</string>
     <string name="okhttp">Perform OkHttp Request</string>
     <string name="graphql">Perform Apollo GraphQL Request</string>
     <string name="compat_multiline_txt">Text Label on AppCompatTextView\nSecond Line on same Text Label</string>
