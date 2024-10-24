@@ -11,6 +11,14 @@
     tools:context=".FirstFragment"
     >
 
+    <Button
+        android:id="@+id/btnNavigateConfiguration"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/navigate_config"
+        />
+
     <androidx.compose.ui.platform.ComposeView
         android:id="@+id/compose_view"
         android:layout_width="wrap_content"

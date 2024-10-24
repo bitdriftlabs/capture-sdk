@@ -15,6 +15,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
+    implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("com.apollographql.apollo3:apollo-runtime:3.8.3")
     implementation("com.apollographql.apollo3:apollo-runtime:3.8.3")
     implementation("com.jakewharton.timber:timber:5.0.1")

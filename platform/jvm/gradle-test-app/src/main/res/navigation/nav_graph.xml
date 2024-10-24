@@ -14,6 +14,9 @@
         <action
             android:id="@+id/action_FirstFragment_to_SecondFragment"
             app:destination="@id/SecondFragment" />
+        <action
+            android:id="@+id/action_FirstFragment_to_ConfigFragment"
+            app:destination="@id/ConfigurationSettingsFragment" />
     </fragment>
     <fragment
         android:id="@+id/SecondFragment"
@@ -24,5 +27,10 @@
         <action
             android:id="@+id/action_SecondFragment_to_FirstFragment"
             app:destination="@id/FirstFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/ConfigurationSettingsFragment"
+        android:name="io.bitdrift.gradletestapp.ConfigurationSettingsFragment"
+        android:label="@string/config_fragment_label">
     </fragment>
 </navigation>

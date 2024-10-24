@@ -100,7 +100,11 @@ class FirstFragment : Fragment() {
             setContent {
                 // In Compose world
                 MaterialTheme {
-                    Text("Hello from Compose!")
+                    Text(
+                        text = "Text in Compose",
+                        style = MaterialTheme.typography.h6,
+                        color = MaterialTheme.colors.secondary,
+                    )
                 }
             }
         }
@@ -110,6 +114,9 @@ class FirstFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        binding.btnNavigateConfiguration.setOnClickListener {
+            findNavController().navigate(R.id.action_FirstFragment_to_ConfigFragment)
+        }
         binding.btnCopySessionUrl.setOnClickListener(this::copySessionUrl)
         binding.btnStartNewSession.setOnClickListener(this::startNewSession)
         binding.btnTempDeviceCode.setOnClickListener(this::getTempDeviceCode)

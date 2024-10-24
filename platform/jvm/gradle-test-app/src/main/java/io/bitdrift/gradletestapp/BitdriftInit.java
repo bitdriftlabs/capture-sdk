@@ -20,7 +20,7 @@ import java.util.UUID;
 import okhttp3.HttpUrl;
 
 public class BitdriftInit {
-    public static void initBitdriftCaptureInJava() {
+    public static void initBitdriftCaptureInJava(HttpUrl apiUrl, String apiKey) {
         String userID = UUID.randomUUID().toString();
         List<FieldProvider> fieldProviders = new ArrayList<>();
         fieldProviders.add(() -> {
@@ -30,12 +30,12 @@ public class BitdriftInit {
         });
 
         Capture.Logger.start(
-            "<YOUR API KEY GOES HERE>",
+            apiKey,
             new SessionStrategy.Fixed(),
             new Configuration(),
             fieldProviders,
             null,
-            HttpUrl.get("https://api.bitdrift.io")
+            apiUrl
         );
     }
 }
