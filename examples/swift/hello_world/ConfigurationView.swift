@@ -16,7 +16,7 @@ struct ConfigurationView: View {
             .autocapitalization(.none)
 
         Text("API Key").frame(maxWidth: .infinity)
-        TextField(text: $configuration.apiKey, axis: .vertical) { Text("Enter API Key") }
+        TextEditor(text: $configuration.apiKey)
             .autocapitalization(.none)
 
         Spacer()
