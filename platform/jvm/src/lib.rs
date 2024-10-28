@@ -12,3 +12,4 @@ pub mod jni;
 pub mod key_value_storage;
 pub mod resource_utilization;
 mod session;
+pub mod session_replay;

@@ -22,7 +22,7 @@ import UIKit
 ///   func identify(frame: inout CGRect) -> (type: ViewType, recurse: Bool)? { return (.label, false) }
 /// }
 /// ```
-public protocol ReplayIdentifiable where Self: UIView {
+protocol ReplayIdentifiable where Self: UIView {
     /// A function that returns the desired type for the receiver. This method can optionally re-defined
     /// the final frame. This is useful when the visual content does not match the receiver frame.
     /// For example, an ImageView with an image that is centered can set the frame for the image itself

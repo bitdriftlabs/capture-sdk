@@ -29,6 +29,7 @@ protocol LoggerBridgingFactoryProvider {
         sessionStrategy: SessionStrategy,
         metadataProvider: CaptureLoggerBridge.MetadataProvider,
         resourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget,
+        sessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget,
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
         appID: String,
         releaseVersion: String,

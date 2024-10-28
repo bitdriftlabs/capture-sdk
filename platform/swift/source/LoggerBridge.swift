@@ -22,6 +22,7 @@ final class LoggerBridge: LoggerBridging {
         sessionStrategy: SessionStrategy,
         metadataProvider: CaptureLoggerBridge.MetadataProvider,
         resourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget,
+        sessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget,
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
         appID: String,
         releaseVersion: String,
@@ -34,6 +35,7 @@ final class LoggerBridge: LoggerBridging {
             sessionStrategy.makeSessionStrategyProvider(),
             metadataProvider,
             resourceUtilizationTarget,
+            sessionReplayTarget,
             eventsListenerTarget,
             appID,
             releaseVersion,
@@ -62,6 +64,7 @@ final class LoggerBridge: LoggerBridging {
         sessionStrategy: SessionStrategy,
         metadataProvider: CaptureLoggerBridge.MetadataProvider,
         resourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget,
+        sessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget,
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
         appID: String,
         releaseVersion: String,
@@ -74,6 +77,7 @@ final class LoggerBridge: LoggerBridging {
             sessionStrategy: sessionStrategy,
             metadataProvider: metadataProvider,
             resourceUtilizationTarget: resourceUtilizationTarget,
+            sessionReplayTarget: sessionReplayTarget,
             eventsListenerTarget: eventsListenerTarget,
             appID: appID,
             releaseVersion: releaseVersion,
@@ -105,8 +109,12 @@ final class LoggerBridge: LoggerBridging {
         )
     }
 
-    func logSessionReplay(fields: [CapturePassable.Field], duration: TimeInterval) {
-        capture_write_session_replay_log(self.loggerID, fields, duration)
+    func logSessionReplayScreen(fields: [CapturePassable.Field], duration: TimeInterval) {
+        capture_write_session_replay_screen_log(self.loggerID, fields, duration)
+    }
+
+    func logSessionReplayScreenshot(fields: [CapturePassable.Field], duration: TimeInterval) {
+        capture_write_session_replay_screenshot_log(self.loggerID, fields, duration)
     }
 
     func logResourceUtilization(fields: [CapturePassable.Field], duration: TimeInterval) {
