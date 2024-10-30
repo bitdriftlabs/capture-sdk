@@ -104,7 +104,7 @@ android_debug_info(
 genrule(
     name = "capture_symbols",
     srcs = [
-        ":capture_aar_objdump_collector",
+        ":capture_aar_symbols_collector",
     ],
     outs = ["symbols.tar"],
     cmd = """

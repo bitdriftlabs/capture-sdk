@@ -63,9 +63,9 @@ def android_artifacts(name, android_library, manifest, archive_name, native_deps
     aar_output = _create_aar(name, classes_jar, jni_archive, proguard_rules, manifest, visibility)
 
     native.filegroup(
-        name = name + "_objdump_collector",
+        name = name + "_symbols_collector",
         srcs = native_deps,
-        output_group = "objdump",
+        output_group = "objcopy",
         visibility = ["//visibility:public"],
     )
 
