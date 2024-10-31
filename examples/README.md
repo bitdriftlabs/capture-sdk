@@ -72,6 +72,10 @@ To install without Homebrew you can follow these instructions: [https://docs.azu
 
 Setup the environment, open Android Studio.
 
+Pre-requisite (Optional)
+- In order for the linker to work macOS Sequoia and above, gradle cargo build has been pinned to `python@3.12` so you need to have it installed: 
+`brew install python@3.12`
+
 1. Select `Open...` and select folder `/capture-sdk/platform/jvm`. This should automatically kick off the Gradle sync process.
 
     - If you get an `NDK not installed` error:

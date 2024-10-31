@@ -6,6 +6,7 @@ plugins {
     // Publish
     alias(libs.plugins.dokka) // Must be applied here for publish plugin.
     alias(libs.plugins.maven.publish)
+    signing
 
     id("dependency-license-config")
 }
@@ -102,6 +103,11 @@ mavenPublishing {
                 url.set("https://github.com/murki")
                 email.set("miguel@bitdrift.io")
             }
+            scm {
+                connection.set("scm:git:git://github.com/bitdriftlabs/capture-sdk.git")
+                developerConnection.set("scm:git:ssh://git@github.com:bitdriftlabs/capture-sdk.git")
+                url.set("https://github.com/bitdriftlabs/capture-sdk")
+            }
         }
     }
 }
@@ -112,4 +118,8 @@ publishing {
             url = uri(layout.buildDirectory.dir("repos/releases"))
         }
     }
+}
+
+signing {
+    sign(publishing.publications)
 }
