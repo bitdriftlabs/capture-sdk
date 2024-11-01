@@ -19,15 +19,15 @@ internal typealias L = ReplayModuleInternalLogs
 internal object ReplayModuleInternalLogs {
 
     fun v(message: String) {
-        ReplayModule.replayDependencies.replayLogger.logVerboseInternal(message)
+        ReplayModule.replayDependencies.logger.logVerboseInternal(message)
     }
 
     fun d(message: String) {
-        ReplayModule.replayDependencies.replayLogger.logDebugInternal(message)
+        ReplayModule.replayDependencies.logger.logDebugInternal(message)
     }
 
     fun e(e: Throwable?, message: String) {
-        ReplayModule.replayDependencies.replayLogger.logErrorInternal(message, e)
+        ReplayModule.replayDependencies.logger.logErrorInternal(message, e)
     }
 }
 
@@ -55,7 +55,7 @@ class ReplayModule(
         )
         replayDependencies.displayManager.init(context)
         replayCaptureController = ReplayCaptureController(
-            replayLogger = logger,
+            logger = logger,
             mainThreadHandler = mainThreadHandler,
         )
     }
