@@ -15,8 +15,8 @@ final class LowPowerStateProvider {
         // Accessing `ProcessInfo.processInfo.isLowPowerModeEnabled` frequently causes occasional crashes
         // on iOS 15 (up to at least version 15.2). To reduce these calls, subscribe to
         // `NSProcessInfoPowerStateDidChange` notifications and track the state of `isLowPowerModeEnabled` 
-        // locally. This minimizes the need to call `ProcessInfo.processInfo.isLowPowerModeEnabled` here
-        // more than once.
+        // locally. This minimizes the number of `ProcessInfo.processInfo.isLowPowerModeEnabled` calls here
+        // to one.
         NotificationCenter
             .default
             .addObserver(
