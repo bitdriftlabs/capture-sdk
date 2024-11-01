@@ -33,7 +33,7 @@ enum ViewType: UInt8 {
 }
 
 /// A view type annotated with some behavioral settings to define how view traversal is performed.
-struct AnnotatedView {
+public struct AnnotatedView {
     /// The type of the view (eg. view, label, etc)
     let type: ViewType
 

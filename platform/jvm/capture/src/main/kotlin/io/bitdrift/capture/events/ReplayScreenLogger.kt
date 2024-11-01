@@ -8,15 +8,13 @@
 package io.bitdrift.capture.events
 
 import android.content.Context
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
+import io.bitdrift.capture.ISessionReplayTarget
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
+import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
@@ -29,36 +27,19 @@ import io.bitdrift.capture.replay.internal.FilteredCapture
 // Controls the replay feature
 internal class ReplayScreenLogger(
     errorHandler: ErrorHandler,
-    private val context: Context,
+    context: Context,
     private val logger: LoggerImpl,
-    private val processLifecycleOwner: LifecycleOwner,
-    private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
-    runtime: Runtime,
     configuration: SessionReplayConfiguration,
-) : LifecycleEventObserver, ReplayLogger {
+) : ISessionReplayTarget, ReplayLogger {
+    internal var runtime: Runtime? = null
+    private val replayModule: ReplayModule = ReplayModule(errorHandler, this, configuration, context)
 
-    private val replayModule: ReplayModule = ReplayModule(errorHandler, this, configuration, runtime)
-
-    fun start() {
-        mainThreadHandler.run {
-            processLifecycleOwner.lifecycle.addObserver(this)
-        }
+    override fun captureScreen() {
+        val skipReplayComposeViews = runtime?.isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE) ?: RuntimeFeature.SESSION_REPLAY_COMPOSE.defaultValue
+        replayModule.captureScreen(skipReplayComposeViews)
     }
 
-    fun stop() {
-        mainThreadHandler.run {
-            processLifecycleOwner.lifecycle.removeObserver(this)
-        }
-    }
-
-    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-        when (event) {
-            Lifecycle.Event.ON_CREATE -> replayModule.create(context)
-            Lifecycle.Event.ON_START -> replayModule.start()
-            Lifecycle.Event.ON_STOP -> replayModule.stop()
-            else -> {}
-        }
-    }
+    override fun captureScreenshot() {}
 
     override fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture, metrics: EncodedScreenMetrics) {
         val fields = buildMap<String, FieldValue> {

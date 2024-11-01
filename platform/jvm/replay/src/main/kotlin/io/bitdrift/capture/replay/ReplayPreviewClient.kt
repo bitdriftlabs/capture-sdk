@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.replay
 
-import android.content.Context
 import android.util.Base64
 import android.util.Log
 import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
@@ -34,13 +33,12 @@ import java.util.concurrent.TimeUnit
  */
 class ReplayPreviewClient(
     private val replayModule: ReplayModule,
-    context: Context,
     protocol: String = "ws",
     host: String = "10.0.2.2",
     port: Int = 3001,
 ) : ReplayLogger {
 
-    private val replayCapture: ReplayCapture = ReplayCapture(this)
+    private val replayCapture: ReplayCapture = ReplayCapture()
     private val executor: ExecutorService = Executors.newSingleThreadExecutor {
         Thread(it, "io.bitdrift.capture.session-replay-client")
     }
@@ -51,7 +49,6 @@ class ReplayPreviewClient(
 
     init {
         // Calling this is necessary to capture the display size
-        replayModule.create(context)
         client = OkHttpClient.Builder()
             .readTimeout(0, TimeUnit.MILLISECONDS)
             .build()
@@ -76,7 +73,8 @@ class ReplayPreviewClient(
      * Capture the screen and send it over the websocket connection after processing
      */
     fun captureScreen() {
-        replayCapture.captureScreen(executor, skipReplayComposeViews = false)
+//        replayCapture.captureScreen(executor, skipReplayComposeViews = false) { a, b, c ->
+//        }
     }
 
     /**

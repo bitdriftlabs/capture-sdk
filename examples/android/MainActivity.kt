@@ -31,8 +31,6 @@ import com.github.michaelbull.result.onSuccess
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.common.Runtime
-import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.capture.replay.ReplayLogger
 import io.bitdrift.capture.replay.ReplayModule
@@ -48,7 +46,6 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
 import kotlin.system.exitProcess
-import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -85,11 +82,7 @@ class MainActivity : ComponentActivity() {
                 }
             },
             SessionReplayConfiguration(),
-            object: Runtime {
-                override fun isEnabled(feature: RuntimeFeature): Boolean {
-                    return true
-                }
-            }
+            this.applicationContext
         ), this.applicationContext)
     }
     private lateinit var clipboardManager: ClipboardManager

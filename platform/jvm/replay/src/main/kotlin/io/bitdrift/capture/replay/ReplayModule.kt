@@ -9,7 +9,6 @@ package io.bitdrift.capture.replay
 
 import android.content.Context
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.replay.internal.ReplayCaptureController
 import io.bitdrift.capture.replay.internal.ReplayDependencies
 
@@ -42,9 +41,9 @@ class ReplayModule(
     errorHandler: ErrorHandler,
     internal val replayLogger: ReplayLogger,
     sessionReplayConfiguration: SessionReplayConfiguration,
-    val runtime: Runtime,
+    context: Context,
 ) {
-    private lateinit var replayCaptureController: ReplayCaptureController
+    private var replayCaptureController: ReplayCaptureController
 
     init {
         replayDependencies = ReplayDependencies(
@@ -52,31 +51,14 @@ class ReplayModule(
             replayLogger = replayLogger,
             sessionReplayConfiguration = sessionReplayConfiguration,
         )
-    }
-
-    /**
-     * Creates the replay feature
-     */
-    fun create(context: Context) {
-        replayCaptureController = ReplayCaptureController(
-            sessionReplayConfiguration = replayDependencies.sessionReplayConfiguration,
-            runtime = runtime,
-        )
         replayDependencies.displayManager.init(context)
+        replayCaptureController = ReplayCaptureController(
+            replayLogger = replayLogger,
+        )
     }
 
-    /**
-     * Starts capturing screens periodically using the given configuration
-     */
-    fun start() {
-        replayCaptureController.start()
-    }
-
-    /**
-     * Stops capturing screens
-     */
-    fun stop() {
-        replayCaptureController.stop()
+    fun captureScreen(skipReplayComposeViews: Boolean) {
+        replayCaptureController.captureScreen(skipReplayComposeViews)
     }
 
     companion object {

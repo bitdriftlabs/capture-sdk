@@ -28,7 +28,7 @@ public final class Logger {
     private let remoteErrorReporter: RemoteErrorReporting
     private let deviceCodeController: DeviceCodeController
 
-    private(set) var sessionReplayController: SessionReplayController?
+    private(set) var sessionReplayTarget: SessionReplayTarget
     private(set) var dispatchSourceMemoryMonitor: DispatchSourceMemoryMonitor?
     private(set) var resourceUtilizationTarget: ResourceUtilizationTarget
     private(set) var eventsListenerTarget: EventsListenerTarget
@@ -49,6 +49,7 @@ public final class Logger {
     /// - parameter apiKey:                        The application key associated with your development
     ///                                            account. Provided by bitdrift.
     /// - parameter apiURL:                        The base URL of Capture API.
+    /// - parameter configuration:                 A configuration that specifies Capture features to enable.
     /// - parameter sessionStrategy:               The session strategy to use.
     /// - parameter dateProvider:                  The date provider to use, if any. The logger defaults to
     ///                                            system date provider if none is provided.
@@ -59,6 +60,7 @@ public final class Logger {
     convenience init?(
         withAPIKey apiKey: String,
         apiURL: URL,
+        configuration: Configuration,
         sessionStrategy: SessionStrategy,
         dateProvider: DateProvider?,
         fieldProviders: [FieldProvider],
@@ -70,6 +72,7 @@ public final class Logger {
             bufferDirectory: nil,
             apiURL: apiURL,
             remoteErrorReporter: nil,
+            configuration: configuration,
             sessionStrategy: sessionStrategy,
             dateProvider: dateProvider,
             fieldProviders: fieldProviders,
@@ -90,6 +93,7 @@ public final class Logger {
     /// - parameter apiURL:                        The base URL of Capture API.
     /// - parameter remoteErrorReporter:           The error reporter to use, if any. Otherwise the logger
     ///                                            creates its own error reporter.
+    /// - parameter configuration:                 A configuration that specifies Capture features to enable.
     /// - parameter sessionStrategy:               The session strategy to use.
     /// - parameter dateProvider:                  The date provider to use, if any. The logger defaults to
     ///                                            system date provider if none is provided.
@@ -106,6 +110,7 @@ public final class Logger {
         bufferDirectory: URL?,
         apiURL: URL,
         remoteErrorReporter: RemoteErrorReporting?,
+        configuration: Configuration,
         sessionStrategy: SessionStrategy,
         dateProvider: DateProvider?,
         fieldProviders: [FieldProvider],
@@ -159,8 +164,8 @@ public final class Logger {
         )
         self.eventsListenerTarget = EventsListenerTarget()
 
-        let sessionReplayController = SessionReplayController()
-        self.sessionReplayController = sessionReplayController
+        let sessionReplayTarget = SessionReplayTarget(configuration: configuration.sessionReplayConfiguration)
+        self.sessionReplayTarget = sessionReplayTarget
 
         guard let logger = loggerBridgingFactoryProvider.makeLogger(
             apiKey: apiKey,
@@ -172,7 +177,7 @@ public final class Logger {
             // Pass the event listener target here and finish setting up
             // before the logger is actually started.
             resourceUtilizationTarget: self.resourceUtilizationTarget,
-            sessionReplayTarget: sessionReplayController,
+            sessionReplayTarget: self.sessionReplayTarget,
             // Pass the event listener target here and finish setting up
             // before the logger is actually started.
             eventsListenerTarget: self.eventsListenerTarget,
@@ -203,7 +208,7 @@ public final class Logger {
         metadataProvider.errorHandler = { [weak underlyingLogger] context, error in
             underlyingLogger?.handleError(context: context, error: error)
         }
-        sessionReplayController.logger = self.underlyingLogger
+        self.sessionReplayTarget.logger = self.underlyingLogger
 
         // Start attributes before the underlying logger is running to increase the chances
         // of out-of-the-box attributes being ready by the time logs emitted as a result of the logger start
@@ -356,7 +361,6 @@ public final class Logger {
     private func stop() {
         self.dispatchSourceMemoryMonitor?.stop()
 
-        self.sessionReplayController = nil
         self.dispatchSourceMemoryMonitor = nil
     }
 }

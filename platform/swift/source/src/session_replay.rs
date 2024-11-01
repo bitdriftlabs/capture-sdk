@@ -1,7 +1,7 @@
 use objc::rc::autoreleasepool;
 use objc::runtime::Object;
 
-pub(crate) struct Target {
+pub struct Target {
   swift_object: objc::rc::StrongPtr,
 }
 

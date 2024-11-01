@@ -19,6 +19,6 @@ internal class ReplayDependencies(
     val displayManager: DisplayManagers = DisplayManagers()
 
     val replayCapture: ReplayCapture by lazy {
-        ReplayCapture(replayLogger)
+        ReplayCapture()
     }
 }

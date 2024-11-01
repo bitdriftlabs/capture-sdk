@@ -147,6 +147,15 @@ internal class LoggerImpl(
                 processingQueue,
             )
 
+            val sessionReplayTarget = ReplayScreenLogger(
+                errorHandler,
+                context,
+                logger = this,
+                configuration = configuration.sessionReplayConfiguration,
+            )
+
+            this.replayScreenLogger = sessionReplayTarget
+
             val loggerId = bridge.createLogger(
                 sdkDirectory,
                 apiKey,
@@ -157,6 +166,7 @@ internal class LoggerImpl(
                 // Pass the event listener target here and finish setting up
                 // before the logger is actually started.
                 resourceUtilizationTarget,
+                sessionReplayTarget,
                 // Pass the event listener target here and finish setting up
                 // before the logger is actually started.
                 eventsListenerTarget,
@@ -172,6 +182,7 @@ internal class LoggerImpl(
             this.loggerId = loggerId
 
             runtime = JniRuntime(this.loggerId)
+            sessionReplayTarget.runtime = runtime
             diskUsageMonitor.runtime = runtime
 
             eventsListenerTarget.add(
@@ -227,18 +238,6 @@ internal class LoggerImpl(
             appExitLogger.installAppExitLogger()
 
             CaptureJniLibrary.startLogger(this.loggerId)
-
-            this.replayScreenLogger = configuration.sessionReplayConfiguration?.let {
-                ReplayScreenLogger(
-                    errorHandler,
-                    context,
-                    logger = this,
-                    processLifecycleOwner = ProcessLifecycleOwner.get(),
-                    configuration = it,
-                    runtime = runtime,
-                )
-            }
-            this.replayScreenLogger?.start()
         }
 
         CaptureJniLibrary.writeSDKStartLog(
@@ -422,7 +421,6 @@ internal class LoggerImpl(
     @Suppress("UnusedPrivateMember")
     private fun stopLoggingDefaultEvents() {
         appExitLogger.uninstallAppExitLogger()
-        replayScreenLogger?.stop()
     }
 
     /**

@@ -17,7 +17,7 @@ extension Logger {
         sessionStrategy: SessionStrategy = .fixed(),
         dateProvider: DateProvider? = nil,
         fieldProviders: [FieldProvider] = [],
-        configuration: Configuration,
+        configuration: Configuration = .init(),
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
     ) throws -> Logger
     {

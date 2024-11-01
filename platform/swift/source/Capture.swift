@@ -32,6 +32,7 @@ extension Logger {
     ///
     /// - parameter apiKey:          The API key provided by bitdrift.
     /// - parameter sessionStrategy: A session strategy for the management of session ID.
+    /// - parameter configuration:   A configuration that used to set up Capture features.
     /// - parameter fieldProviders:  An optional array of additional FieldProviders to include on the default
     ///                              Logger.
     /// - parameter dateProvider:    An optional date provider to set on the default logger.
@@ -45,6 +46,7 @@ extension Logger {
     public static func start(
         withAPIKey apiKey: String,
         sessionStrategy: SessionStrategy,
+        configuration: Configuration = .init(),
         fieldProviders: [FieldProvider] = [],
         dateProvider: DateProvider? = nil,
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
@@ -54,6 +56,7 @@ extension Logger {
         return self.start(
             withAPIKey: apiKey,
             sessionStrategy: sessionStrategy,
+            configuration: configuration,
             fieldProviders: fieldProviders,
             dateProvider: dateProvider,
             apiURL: apiURL,
@@ -65,6 +68,7 @@ extension Logger {
     static func start(
         withAPIKey apiKey: String,
         sessionStrategy: SessionStrategy,
+        configuration: Configuration,
         fieldProviders: [FieldProvider],
         dateProvider: DateProvider?,
         apiURL: URL,
@@ -75,6 +79,7 @@ extension Logger {
             return Logger(
                 withAPIKey: apiKey,
                 apiURL: apiURL,
+                configuration: configuration,
                 sessionStrategy: sessionStrategy,
                 dateProvider: dateProvider,
                 fieldProviders: fieldProviders,

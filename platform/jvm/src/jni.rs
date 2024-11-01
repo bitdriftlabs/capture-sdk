@@ -10,7 +10,7 @@ use crate::executor::{self};
 use crate::key_value_storage::PreferencesHandle;
 use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
 use crate::session::SessionStrategyConfigurationHandle;
-use crate::session_replay::TargetHandler as SessionReplayTargetHandler;
+use crate::session_replay::{self, TargetHandler as SessionReplayTargetHandler};
 use crate::{
   define_object_wrapper,
   events,
@@ -325,6 +325,7 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _: *mut c_void) -> jint {
   ffi::initialize(&mut env);
   session::initialize(&mut env);
   resource_utilization::initialize(&mut env);
+  session_replay::initialize(&mut env);
 
   env.get_version().unwrap().into()
 }
