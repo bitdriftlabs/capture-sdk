@@ -148,10 +148,10 @@ internal class LoggerImpl(
             )
 
             val sessionReplayTarget = SessionReplayTarget(
+                configuration = configuration.sessionReplayConfiguration,
                 errorHandler,
                 context,
                 logger = this,
-                configuration = configuration.sessionReplayConfiguration,
             )
 
             this.sessionReplayTarget = sessionReplayTarget

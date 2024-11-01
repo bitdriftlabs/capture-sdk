@@ -93,19 +93,19 @@ class ReplayPreviewClient(
         lastEncodedScreen = encodedScreen
         webSocket?.send(encodedScreen.toByteString(0, encodedScreen.size))
         // forward the callback to the module's logger
-        replayModule.replayLogger.onScreenCaptured(encodedScreen, screen, metrics)
+        replayModule.logger.onScreenCaptured(encodedScreen, screen, metrics)
     }
 
     override fun logVerboseInternal(message: String, fields: Map<String, String>?) {
-        replayModule.replayLogger.logVerboseInternal(message, fields)
+        replayModule.logger.logVerboseInternal(message, fields)
     }
 
     override fun logDebugInternal(message: String, fields: Map<String, String>?) {
-        replayModule.replayLogger.logDebugInternal(message, fields)
+        replayModule.logger.logDebugInternal(message, fields)
     }
 
     override fun logErrorInternal(message: String, e: Throwable?, fields: Map<String, String>?) {
-        replayModule.replayLogger.logErrorInternal(message, e, fields)
+        replayModule.logger.logErrorInternal(message, e, fields)
     }
 
     private object WebSocketLogger : WebSocketListener() {

@@ -13,6 +13,7 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.providers.FieldValue
@@ -26,13 +27,20 @@ import io.bitdrift.capture.replay.internal.FilteredCapture
 
 // Controls the replay feature
 internal class SessionReplayTarget(
+    configuration: SessionReplayConfiguration,
     errorHandler: ErrorHandler,
     context: Context,
     private val logger: LoggerImpl,
-    configuration: SessionReplayConfiguration,
+    mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) : ISessionReplayTarget, ReplayLogger {
     internal var runtime: Runtime? = null
-    private val replayModule: ReplayModule = ReplayModule(errorHandler, this, configuration, context)
+    private val replayModule: ReplayModule = ReplayModule(
+        errorHandler,
+        this,
+        configuration,
+        mainThreadHandler,
+        context,
+    )
 
     override fun captureScreen() {
         val skipReplayComposeViews = runtime?.isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)

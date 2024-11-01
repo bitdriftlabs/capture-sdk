@@ -13,7 +13,7 @@ import io.bitdrift.capture.replay.SessionReplayConfiguration
 
 internal class ReplayDependencies(
     val errorHandler: ErrorHandler,
-    val replayLogger: ReplayLogger,
+    val logger: ReplayLogger,
     val sessionReplayConfiguration: SessionReplayConfiguration,
 ) {
     val displayManager: DisplayManagers = DisplayManagers()

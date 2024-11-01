@@ -15,17 +15,17 @@ import java.util.concurrent.ScheduledExecutorService
 
 // Captures wireframe and pixel perfect representations of app's screen.
 internal class ReplayCaptureController(
-    private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
+    private val mainThreadHandler: MainThreadHandler,
     private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor {
         Thread(it, "io.bitdrift.capture.session-replay")
     },
     private val replayCapture: ReplayCapture = ReplayModule.replayDependencies.replayCapture,
-    private val replayLogger: ReplayLogger,
+    private val logger: ReplayLogger,
 ) {
     fun captureScreen(skipReplayComposeViews: Boolean) {
         mainThreadHandler.run {
             replayCapture.captureScreen(executor, skipReplayComposeViews) { byteArray, screen, metrics ->
-                replayLogger.onScreenCaptured(byteArray, screen, metrics)
+                logger.onScreenCaptured(byteArray, screen, metrics)
             }
         }
     }
