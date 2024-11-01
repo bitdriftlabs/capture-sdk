@@ -73,8 +73,8 @@ object TestUtils {
                     }
                 },
                 SessionReplayConfiguration(),
-                MainThreadHandler(),
                 context,
+                MainThreadHandler(),
             ),
         )
     }
