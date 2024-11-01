@@ -169,7 +169,7 @@ internal object CaptureJniLibrary : IBridge {
      * @param fields the fields to include with the log.
      * @param durationMs the duration of time the preparation of the session replay log took.
      */
-    external fun writeSessionReplayLog(
+    external fun writeSessionReplayScreenLog(
         loggerId: Long,
         fields: Map<String, FieldValue>,
         duration: Double,

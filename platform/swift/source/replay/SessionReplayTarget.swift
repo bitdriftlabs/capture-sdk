@@ -33,5 +33,15 @@ extension SessionReplayTarget: CapturePassable.SessionReplayTarget {
         }
     }
 
-    func captureScreenshot() {}
+    func captureScreenshot() {
+        // TODO: Implement
+        //        DispatchQueue.main.async { [weak self] in
+        //            self?.queue.async {
+        //                self?.logger?.logSessionReplayScreenshot(
+        //                    screen: SessionReplayCapture(data: Data()),
+        //                    duration: 0
+        //                )
+        //            }
+        //        }
+    }
 }

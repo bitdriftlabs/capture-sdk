@@ -17,6 +17,13 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) {
     "()V",
     &TARGET_CAPTURE_SCREEN,
   );
+  initialize_method_handle(
+    env,
+    &session_replay_target.class,
+    "captureScreenshot",
+    "()V",
+    &TARGET_CAPTURE_SCREENSHOT,
+  );
 }
 
 //

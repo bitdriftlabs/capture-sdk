@@ -25,7 +25,7 @@ import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
 
 // Controls the replay feature
-internal class ReplayScreenLogger(
+internal class SessionReplayTarget(
     errorHandler: ErrorHandler,
     context: Context,
     private val logger: LoggerImpl,
@@ -52,7 +52,7 @@ internal class ReplayScreenLogger(
             putAll(metrics.toMap().toFields())
         }
 
-        logger.logSessionReplay(fields, metrics.parseDuration)
+        logger.logSessionReplayScreen(fields, metrics.parseDuration)
     }
 
     override fun logVerboseInternal(message: String, fields: Map<String, String>?) {

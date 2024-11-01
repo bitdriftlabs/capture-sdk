@@ -22,7 +22,7 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.error.ErrorReporterService
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.events.AppUpdateListenerLogger
-import io.bitdrift.capture.events.ReplayScreenLogger
+import io.bitdrift.capture.events.SessionReplayTarget
 import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.events.device.DeviceStateListenerLogger
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
@@ -96,7 +96,7 @@ internal class LoggerImpl(
     private val resourceUtilizationTarget: ResourceUtilizationTarget
     private val eventsListenerTarget = EventsListenerTarget()
 
-    private val replayScreenLogger: ReplayScreenLogger?
+    private val sessionReplayTarget: SessionReplayTarget?
 
     @VisibleForTesting
     internal val loggerId: LoggerId
@@ -147,14 +147,14 @@ internal class LoggerImpl(
                 processingQueue,
             )
 
-            val sessionReplayTarget = ReplayScreenLogger(
+            val sessionReplayTarget = SessionReplayTarget(
                 errorHandler,
                 context,
                 logger = this,
                 configuration = configuration.sessionReplayConfiguration,
             )
 
-            this.replayScreenLogger = sessionReplayTarget
+            this.sessionReplayTarget = sessionReplayTarget
 
             val loggerId = bridge.createLogger(
                 sdkDirectory,
@@ -372,8 +372,8 @@ internal class LoggerImpl(
         }
     }
 
-    internal fun logSessionReplay(fields: Map<String, FieldValue>, duration: Duration) {
-        CaptureJniLibrary.writeSessionReplayLog(
+    internal fun logSessionReplayScreen(fields: Map<String, FieldValue>, duration: Duration) {
+        CaptureJniLibrary.writeSessionReplayScreenLog(
             this.loggerId,
             fields,
             duration.toDouble(DurationUnit.SECONDS),
