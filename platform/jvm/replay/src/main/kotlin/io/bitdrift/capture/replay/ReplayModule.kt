@@ -42,8 +42,8 @@ class ReplayModule(
     errorHandler: ErrorHandler,
     internal val logger: ReplayLogger,
     sessionReplayConfiguration: SessionReplayConfiguration,
-    mainThreadHandler: MainThreadHandler = MainThreadHandler(),
     context: Context,
+    mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) {
     private var replayCaptureController: ReplayCaptureController
 
