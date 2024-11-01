@@ -74,7 +74,7 @@ class CaptureLoggerTest {
             fieldProviders = listOf(),
             dateProvider = systemDateProvider,
             sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-            configuration = Configuration(sessionReplayConfiguration = null),
+            configuration = Configuration(),
             preferences = MockPreferences(),
         )
     }
@@ -344,7 +344,7 @@ class CaptureLoggerTest {
                 fieldProviders = listOf(fieldProvider),
                 sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
                 dateProvider = dateProvider,
-                configuration = Configuration(null),
+                configuration = Configuration(),
             ),
         )
 

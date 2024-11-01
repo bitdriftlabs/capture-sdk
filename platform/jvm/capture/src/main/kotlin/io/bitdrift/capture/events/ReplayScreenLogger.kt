@@ -35,11 +35,16 @@ internal class ReplayScreenLogger(
     private val replayModule: ReplayModule = ReplayModule(errorHandler, this, configuration, context)
 
     override fun captureScreen() {
-        val skipReplayComposeViews = runtime?.isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE) ?: RuntimeFeature.SESSION_REPLAY_COMPOSE.defaultValue
+        val skipReplayComposeViews = runtime?.isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)
+            ?: RuntimeFeature.SESSION_REPLAY_COMPOSE.defaultValue
         replayModule.captureScreen(skipReplayComposeViews)
     }
 
-    override fun captureScreenshot() {}
+    override fun captureScreenshot() {
+        // This implementation is required for the SDK to support screenshot capture on Android.
+        // As currently implemented, the function must emit a session replay screenshot log.
+        // Without this emission, the SDK is blocked from requesting additional screenshots.
+    }
 
     override fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture, metrics: EncodedScreenMetrics) {
         val fields = buildMap<String, FieldValue> {
