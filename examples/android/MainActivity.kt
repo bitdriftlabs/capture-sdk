@@ -81,7 +81,7 @@ class MainActivity : ComponentActivity() {
                     Log.e("HelloWorldApp", message, e)
                 }
             },
-            SessionReplayConfiguration(),,
+            SessionReplayConfiguration(),
             this.applicationContext
         ))
     }
