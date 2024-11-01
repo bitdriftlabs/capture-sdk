@@ -11,6 +11,7 @@ import android.content.Context
 import android.util.Base64
 import android.util.Log
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.replay.ReplayLogger
@@ -71,14 +72,10 @@ object TestUtils {
                         Log.e("Replay Tests", message, e)
                     }
                 },
-                // The capture frequency is ignored when using ReplayPreviewClient
-                SessionReplayConfiguration(captureIntervalMs = 10000),
-                object : Runtime {
-                    override fun isEnabled(feature: RuntimeFeature): Boolean {
-                        return true
-                    }
-                }),
-            context
+                SessionReplayConfiguration(),
+                MainThreadHandler(),
+                context,
+            ),
         )
     }
 }
