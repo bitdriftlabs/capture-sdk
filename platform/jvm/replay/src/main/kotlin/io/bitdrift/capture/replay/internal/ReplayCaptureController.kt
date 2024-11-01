@@ -24,8 +24,8 @@ internal class ReplayCaptureController(
 ) {
     fun captureScreen(skipReplayComposeViews: Boolean) {
         mainThreadHandler.run {
-            replayCapture.captureScreen(executor, skipReplayComposeViews) { byteArray, b, c ->
-                replayLogger.onScreenCaptured(byteArray, b, c)
+            replayCapture.captureScreen(executor, skipReplayComposeViews) { byteArray, screen, metrics ->
+                replayLogger.onScreenCaptured(byteArray, screen, metrics)
             }
         }
     }
