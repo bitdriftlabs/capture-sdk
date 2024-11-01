@@ -38,8 +38,8 @@ internal class SessionReplayTarget(
         errorHandler,
         this,
         configuration,
-        mainThreadHandler,
         context,
+        mainThreadHandler,
     )
 
     override fun captureScreen() {
