@@ -452,7 +452,7 @@ class CaptureLoggerTest {
 
     @Test
     fun jni_runtime() {
-        assertThat(JniRuntime(logger.loggerId).isEnabled(RuntimeFeature.SESSION_REPLAY)).isTrue
+        assertThat(JniRuntime(logger.loggerId).isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)).isTrue
 
         val streamId = CaptureTestJniLibrary.awaitNextApiStream()
         assertThat(streamId).isNotEqualTo(-1)
@@ -461,10 +461,10 @@ class CaptureLoggerTest {
 
         CaptureTestJniLibrary.disableRuntimeFeature(
             streamId,
-            RuntimeFeature.SESSION_REPLAY.featureName,
+            RuntimeFeature.SESSION_REPLAY_COMPOSE.featureName,
         )
 
-        assertThat(JniRuntime(logger.loggerId).isEnabled(RuntimeFeature.SESSION_REPLAY)).isFalse
+        assertThat(JniRuntime(logger.loggerId).isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)).isFalse
     }
 
     private fun testServerUrl(): HttpUrl {
