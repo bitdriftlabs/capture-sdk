@@ -60,6 +60,10 @@ class ReplayModule(
         )
     }
 
+    /**
+     * Prepares and emits a session replay screen log using a logger instance passed
+     * at initialiation time.
+     */
     fun captureScreen(skipReplayComposeViews: Boolean) {
         replayCaptureController.captureScreen(skipReplayComposeViews)
     }
