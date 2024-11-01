@@ -73,8 +73,9 @@ class ReplayPreviewClient(
      * Capture the screen and send it over the websocket connection after processing
      */
     fun captureScreen() {
-//        replayCapture.captureScreen(executor, skipReplayComposeViews = false) { a, b, c ->
-//        }
+        replayCapture.captureScreen(executor, skipReplayComposeViews = false) { encodedScreen, screen, metrics ->
+            replayModule.logger.onScreenCaptured(encodedScreen, screen, metrics)
+        }
     }
 
     /**
