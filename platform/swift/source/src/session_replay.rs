@@ -8,6 +8,7 @@
 use objc::rc::autoreleasepool;
 use objc::runtime::Object;
 
+#[allow(clippy::non_send_fields_in_send_ty)]
 pub struct Target {
   swift_object: objc::rc::StrongPtr,
 }
