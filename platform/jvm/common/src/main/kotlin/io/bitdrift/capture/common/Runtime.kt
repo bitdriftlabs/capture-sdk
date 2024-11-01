@@ -16,11 +16,6 @@ package io.bitdrift.capture.common
  */
 sealed class RuntimeFeature(val featureName: String, val defaultValue: Boolean = true) {
     /**
-     * Whether the session replay feature is enabled.
-     */
-    data object SESSION_REPLAY : RuntimeFeature("client_feature.android.session_replay")
-
-    /**
      * Whether the session replay feature is enabled for Compose views.
      */
     data object SESSION_REPLAY_COMPOSE : RuntimeFeature("client_feature.android.session_replay_compose")
