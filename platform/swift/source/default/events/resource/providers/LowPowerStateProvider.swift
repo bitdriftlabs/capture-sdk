@@ -9,11 +9,31 @@ import Foundation
 import UIKit
 
 final class LowPowerStateProvider {
-    private let processInfo = ProcessInfo.processInfo
+    private let isLowerPowerModeEnabled = Atomic(ProcessInfo.processInfo.isLowPowerModeEnabled)
+
+    init() {
+        NotificationCenter
+            .default
+            .addObserver(
+                self,
+                selector: #selector(powerStateDidChange(_:)),
+                name: Notification.Name.NSProcessInfoPowerStateDidChange,
+                object: nil
+            )
+    }
+
+    @objc
+    private func powerStateDidChange(_ userInfo: Any) {
+        self.isLowerPowerModeEnabled.update { $0 = ProcessInfo.processInfo.isLowPowerModeEnabled }
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
 }
 
 extension LowPowerStateProvider: ResourceSnapshotProvider {
     func makeSnapshot() -> ResourceSnapshot? {
-        return LowPowerStateSnapshot(lowPowerModeEnabled: self.processInfo.isLowPowerModeEnabled)
+        return LowPowerStateSnapshot(lowPowerModeEnabled: self.isLowerPowerModeEnabled.load())
     }
 }
