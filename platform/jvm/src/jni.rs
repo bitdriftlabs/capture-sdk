@@ -867,7 +867,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionReplayLog(
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionReplayScreenLog(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
