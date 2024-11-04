@@ -161,8 +161,8 @@ internal class LoggerImpl(
                 apiKey,
                 sessionStrategy.createSessionStrategyConfiguration { appExitSaveCurrentSessionId(it) },
                 metadataProvider,
-                // TODO(Augustyniak): Pass `resourceUtilizationTarget` and `eventsListenerTarget`
-                // as part of `startLogger` method call instead.
+                // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
+                //  and `eventsListenerTarget` as part of `startLogger` method call instead.
                 // Pass the event listener target here and finish setting up
                 // before the logger is actually started.
                 resourceUtilizationTarget,

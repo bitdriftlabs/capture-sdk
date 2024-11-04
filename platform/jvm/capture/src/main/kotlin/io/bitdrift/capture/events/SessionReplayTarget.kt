@@ -33,6 +33,9 @@ internal class SessionReplayTarget(
     private val logger: LoggerImpl,
     mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) : ISessionReplayTarget, ReplayLogger {
+    // TODO(Augustyniak): Make non nullable and pass at initialization time after
+    // `sessionReplayTarget` argument is moved from logger creation time to logger start time.
+    // Refer to TODO in `LoggerImpl` for more details.
     internal var runtime: Runtime? = null
     private val replayModule: ReplayModule = ReplayModule(
         errorHandler,
@@ -49,7 +52,7 @@ internal class SessionReplayTarget(
     }
 
     override fun captureScreenshot() {
-        // This implementation is required for the SDK to support screenshot capture on Android.
+        // TODO(Augustyniak): Implement this method to add support for screenshot capture on Android.
         // As currently implemented, the function must emit a session replay screenshot log.
         // Without this emission, the SDK is blocked from requesting additional screenshots.
     }
