@@ -10,13 +10,12 @@ import Foundation
 /// A configuration representing the feature set enabled for Capture.
 public struct Configuration {
     /// The session replay configuration.
-    public var sessionReplayConfiguration: SessionReplayConfiguration?
+    public var sessionReplayConfiguration: SessionReplayConfiguration
 
     /// Initializes a new instance of the Capture configuration.
     ///
-    /// - parameter sessionReplayConfiguration: The session replay configuration to use. Passing `nil`
-    ///                                         disables the feature.
-    public init(sessionReplayConfiguration: SessionReplayConfiguration? = .init()) {
+    /// - parameter sessionReplayConfiguration: The session replay configuration to use.
+    public init(sessionReplayConfiguration: SessionReplayConfiguration = .init()) {
         self.sessionReplayConfiguration = sessionReplayConfiguration
     }
 }

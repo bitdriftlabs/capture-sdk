@@ -39,11 +39,6 @@ extension RuntimeVariable {
 
 /// A feature that can be tracked via the runtime configuration system.
 extension RuntimeVariable<Bool> {
-    static let sessionReplay = RuntimeVariable(
-        name: "client_features.ios.session_replay",
-        defaultValue: true
-    )
-
     static let periodicLowPowerModeReporting = RuntimeVariable(
         name: "client_features.ios.resource_reporting.low_power",
         defaultValue: true

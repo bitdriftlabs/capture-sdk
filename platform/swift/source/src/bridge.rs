@@ -12,7 +12,7 @@ mod bridge_tests;
 use crate::bridge::ffi::make_nsstring;
 use crate::ffi::{convert_fields, nsstring_into_string};
 use crate::key_value_storage::UserDefaultsStorage;
-use crate::{events, ffi, resource_utilization};
+use crate::{events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
 use bd_api::{Platform, PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
 use bd_client_common::error::{
@@ -436,6 +436,7 @@ extern "C" fn capture_create_logger(
   session_strategy: *mut Object,
   provider: *mut Object,
   resource_utilization_target: *mut Object,
+  session_replay_target: *mut Object,
   events_listener_target: *mut Object,
   app_id: *const c_char,
   app_version: *const c_char,
@@ -499,6 +500,7 @@ extern "C" fn capture_create_logger(
         resource_utilization_target: Box::new(resource_utilization::Target::new(
           resource_utilization_target,
         )),
+        session_replay_target: Box::new(session_replay::Target::new(session_replay_target)),
         events_listener_target: Box::new(events::Target::new(events_listener_target)),
         network: network_manager,
         platform: Platform::Ios,
@@ -623,7 +625,7 @@ extern "C" fn capture_write_log(
 }
 
 #[no_mangle]
-extern "C" fn capture_write_session_replay_log(
+extern "C" fn capture_write_session_replay_screen_log(
   logger_id: LoggerId<'_>,
   fields: *const Object,
   duration_s: f64,
@@ -638,10 +640,33 @@ extern "C" fn capture_write_session_replay_log(
         })
         .collect();
 
-      logger_id.log_session_replay(fields, time::Duration::seconds_f64(duration_s));
+      logger_id.log_session_replay_screen(fields, time::Duration::seconds_f64(duration_s));
       Ok(())
     },
-    "swift write session replay log",
+    "swift write session replay screen log",
+  );
+}
+
+#[no_mangle]
+extern "C" fn capture_write_session_replay_screenshot_log(
+  logger_id: LoggerId<'_>,
+  fields: *const Object,
+  duration_s: f64,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let fields = unsafe { convert_fields(fields) }?
+        .into_iter()
+        .map(|field| AnnotatedLogField {
+          field,
+          kind: LogFieldKind::Ootb,
+        })
+        .collect();
+
+      logger_id.log_session_replay_screenshot(fields, time::Duration::seconds_f64(duration_s));
+      Ok(())
+    },
+    "swift write session replay screenshot log",
   );
 }
 

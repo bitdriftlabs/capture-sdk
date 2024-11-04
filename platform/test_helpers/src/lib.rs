@@ -242,6 +242,11 @@ pub extern "C" fn configure_aggressive_continuous_uploads(stream_id: i32) {
             bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
             ValueKind::Bool(true),
           ),
+          // Enable session replay periodic screen collection.
+          (
+            bd_runtime::runtime::session_replay::PeriodicScreensEnabledFlag::path(),
+            ValueKind::Bool(true),
+          ),
         ],
         "base".to_string(),
       )),
@@ -455,6 +460,11 @@ pub fn run_key_value_storage_tests(storage: &dyn Storage) {
 
 pub fn run_resource_utilization_target_tests(target: &dyn bd_logger::ResourceUtilizationTarget) {
   target.tick();
+}
+
+pub fn run_session_replay_target_tests(target: &dyn bd_logger::SessionReplayTarget) {
+  target.capture_screen();
+  target.capture_screenshot();
 }
 
 pub fn run_events_listener_target_tests(target: &dyn bd_logger::EventsListenerTarget) {

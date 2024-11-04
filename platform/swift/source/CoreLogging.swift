@@ -47,11 +47,17 @@ protocol CoreLogging: AnyObject {
         blocking: Bool
     )
 
-    /// Writes a session replay log.
+    /// Writes a session replay screen log.
     ///
-    /// - parameter screen:   The capture screen.
+    /// - parameter screen:   The captured screen.
     /// - parameter duration: The duration of time the preparation of the log took.
-    func logSessionReplay(screen: SessionReplayScreenCapture, duration: TimeInterval)
+    func logSessionReplayScreen(screen: SessionReplayCapture, duration: TimeInterval)
+
+    /// Writes a session replay screen log.
+    ///
+    /// - parameter screen:   The captured screenshot.
+    /// - parameter duration: The duration of time the preparation of the log took.
+    func logSessionReplayScreenshot(screen: SessionReplayCapture, duration: TimeInterval)
 
     /// Writes a resource utilization log.
     ///

@@ -29,6 +29,7 @@ internal class ReplayFilter {
         }
 
         // This capture is identical to the previous one, or is empty, filter it out
+        // One interesting case when capture is empty is when the application is backgrounded.
         return if (filteredCapture == previousCapture || filteredCapture.isEmpty()) {
             null
         } else {

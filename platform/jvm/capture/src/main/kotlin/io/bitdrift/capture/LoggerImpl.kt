@@ -22,7 +22,7 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.error.ErrorReporterService
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.events.AppUpdateListenerLogger
-import io.bitdrift.capture.events.ReplayScreenLogger
+import io.bitdrift.capture.events.SessionReplayTarget
 import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.events.device.DeviceStateListenerLogger
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
@@ -96,7 +96,7 @@ internal class LoggerImpl(
     private val resourceUtilizationTarget: ResourceUtilizationTarget
     private val eventsListenerTarget = EventsListenerTarget()
 
-    private val replayScreenLogger: ReplayScreenLogger?
+    private val sessionReplayTarget: SessionReplayTarget?
 
     @VisibleForTesting
     internal val loggerId: LoggerId
@@ -147,16 +147,26 @@ internal class LoggerImpl(
                 processingQueue,
             )
 
+            val sessionReplayTarget = SessionReplayTarget(
+                configuration = configuration.sessionReplayConfiguration,
+                errorHandler,
+                context,
+                logger = this,
+            )
+
+            this.sessionReplayTarget = sessionReplayTarget
+
             val loggerId = bridge.createLogger(
                 sdkDirectory,
                 apiKey,
                 sessionStrategy.createSessionStrategyConfiguration { appExitSaveCurrentSessionId(it) },
                 metadataProvider,
-                // TODO(Augustyniak): Pass `resourceUtilizationTarget` and `eventsListenerTarget`
-                // as part of `startLogger` method call instead.
+                // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
+                //  and `eventsListenerTarget` as part of `startLogger` method call instead.
                 // Pass the event listener target here and finish setting up
                 // before the logger is actually started.
                 resourceUtilizationTarget,
+                sessionReplayTarget,
                 // Pass the event listener target here and finish setting up
                 // before the logger is actually started.
                 eventsListenerTarget,
@@ -172,6 +182,7 @@ internal class LoggerImpl(
             this.loggerId = loggerId
 
             runtime = JniRuntime(this.loggerId)
+            sessionReplayTarget.runtime = runtime
             diskUsageMonitor.runtime = runtime
 
             eventsListenerTarget.add(
@@ -227,18 +238,6 @@ internal class LoggerImpl(
             appExitLogger.installAppExitLogger()
 
             CaptureJniLibrary.startLogger(this.loggerId)
-
-            this.replayScreenLogger = configuration.sessionReplayConfiguration?.let {
-                ReplayScreenLogger(
-                    errorHandler,
-                    context,
-                    logger = this,
-                    processLifecycleOwner = ProcessLifecycleOwner.get(),
-                    configuration = it,
-                    runtime = runtime,
-                )
-            }
-            this.replayScreenLogger?.start()
         }
 
         CaptureJniLibrary.writeSDKStartLog(
@@ -373,8 +372,8 @@ internal class LoggerImpl(
         }
     }
 
-    internal fun logSessionReplay(fields: Map<String, FieldValue>, duration: Duration) {
-        CaptureJniLibrary.writeSessionReplayLog(
+    internal fun logSessionReplayScreen(fields: Map<String, FieldValue>, duration: Duration) {
+        CaptureJniLibrary.writeSessionReplayScreenLog(
             this.loggerId,
             fields,
             duration.toDouble(DurationUnit.SECONDS),
@@ -422,7 +421,6 @@ internal class LoggerImpl(
     @Suppress("UnusedPrivateMember")
     private fun stopLoggingDefaultEvents() {
         appExitLogger.uninstallAppExitLogger()
-        replayScreenLogger?.stop()
     }
 
     /**

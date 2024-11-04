@@ -9,7 +9,7 @@ package io.bitdrift.capture.replay
 
 import android.content.Context
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.common.Runtime
+import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.internal.ReplayCaptureController
 import io.bitdrift.capture.replay.internal.ReplayDependencies
 
@@ -19,15 +19,15 @@ internal typealias L = ReplayModuleInternalLogs
 internal object ReplayModuleInternalLogs {
 
     fun v(message: String) {
-        ReplayModule.replayDependencies.replayLogger.logVerboseInternal(message)
+        ReplayModule.replayDependencies.logger.logVerboseInternal(message)
     }
 
     fun d(message: String) {
-        ReplayModule.replayDependencies.replayLogger.logDebugInternal(message)
+        ReplayModule.replayDependencies.logger.logDebugInternal(message)
     }
 
     fun e(e: Throwable?, message: String) {
-        ReplayModule.replayDependencies.replayLogger.logErrorInternal(message, e)
+        ReplayModule.replayDependencies.logger.logErrorInternal(message, e)
     }
 }
 
@@ -40,43 +40,32 @@ internal object ReplayModuleInternalLogs {
  */
 class ReplayModule(
     errorHandler: ErrorHandler,
-    internal val replayLogger: ReplayLogger,
+    internal val logger: ReplayLogger,
     sessionReplayConfiguration: SessionReplayConfiguration,
-    val runtime: Runtime,
+    context: Context,
+    mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) {
-    private lateinit var replayCaptureController: ReplayCaptureController
+    private var replayCaptureController: ReplayCaptureController
 
     init {
         replayDependencies = ReplayDependencies(
             errorHandler = errorHandler,
-            replayLogger = replayLogger,
+            logger = logger,
             sessionReplayConfiguration = sessionReplayConfiguration,
         )
-    }
-
-    /**
-     * Creates the replay feature
-     */
-    fun create(context: Context) {
-        replayCaptureController = ReplayCaptureController(
-            sessionReplayConfiguration = replayDependencies.sessionReplayConfiguration,
-            runtime = runtime,
-        )
         replayDependencies.displayManager.init(context)
+        replayCaptureController = ReplayCaptureController(
+            logger = logger,
+            mainThreadHandler = mainThreadHandler,
+        )
     }
 
     /**
-     * Starts capturing screens periodically using the given configuration
+     * Prepares and emits a session replay screen log using a logger instance passed
+     * at initialiation time.
      */
-    fun start() {
-        replayCaptureController.start()
-    }
-
-    /**
-     * Stops capturing screens
-     */
-    fun stop() {
-        replayCaptureController.stop()
+    fun captureScreen(skipReplayComposeViews: Boolean) {
+        replayCaptureController.captureScreen(skipReplayComposeViews)
     }
 
     companion object {

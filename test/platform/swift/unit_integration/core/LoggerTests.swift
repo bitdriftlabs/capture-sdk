@@ -15,8 +15,7 @@ final class LoggerTests: XCTestCase {
     func testPropertiesReturnsCorrectValues() throws {
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
-            bufferDirectory: Logger.tempBufferDirectory(),
-            configuration: .init(sessionReplayConfiguration: nil)
+            bufferDirectory: Logger.tempBufferDirectory()
         )
 
         XCTAssertEqual(36, logger.sessionID.count)
@@ -27,8 +26,7 @@ final class LoggerTests: XCTestCase {
     func testLogger() throws {
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
-            bufferDirectory: Logger.tempBufferDirectory(),
-            configuration: .init(sessionReplayConfiguration: nil)
+            bufferDirectory: Logger.tempBufferDirectory()
         )
 
         logger.log(level: .debug, message: "test with fields", fields: ["hello": "world"], type: .normal)
@@ -53,8 +51,7 @@ final class LoggerTests: XCTestCase {
         logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
             bufferDirectory: Logger.tempBufferDirectory(),
-            fieldProviders: [fieldProvider],
-            configuration: .init(sessionReplayConfiguration: nil)
+            fieldProviders: [fieldProvider]
         )
 
         XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 1))
@@ -99,8 +96,7 @@ final class LoggerTests: XCTestCase {
             bufferDirectory: Logger.tempBufferDirectory(),
             sessionStrategy: SessionStrategy.fixed(),
             dateProvider: dateProvider,
-            fieldProviders: [fieldProvider],
-            configuration: .init(sessionReplayConfiguration: nil)
+            fieldProviders: [fieldProvider]
         )
 
         let expectations = [
@@ -148,7 +144,6 @@ final class LoggerTests: XCTestCase {
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
             bufferDirectory: Logger.tempBufferDirectory(),
-            configuration: .init(sessionReplayConfiguration: .init(captureIntervalSeconds: 5)),
             loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
         )
 
@@ -196,7 +191,6 @@ final class LoggerTests: XCTestCase {
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
             bufferDirectory: Logger.tempBufferDirectory(),
-            configuration: .init(sessionReplayConfiguration: .init(captureIntervalSeconds: 5)),
             loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
         )
         logger.log(requestInfo)
@@ -246,7 +240,6 @@ final class LoggerTests: XCTestCase {
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
             bufferDirectory: Logger.tempBufferDirectory(),
-            configuration: .init(sessionReplayConfiguration: .init(captureIntervalSeconds: 5)),
             loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
         )
         logger.log(responseInfo)

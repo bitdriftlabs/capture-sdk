@@ -23,7 +23,9 @@ protocol LoggerBridging {
         blocking: Bool
     )
 
-    func logSessionReplay(fields: InternalFields, duration: TimeInterval)
+    func logSessionReplayScreen(fields: InternalFields, duration: TimeInterval)
+
+    func logSessionReplayScreenshot(fields: InternalFields, duration: TimeInterval)
 
     func logResourceUtilization(fields: InternalFields, duration: TimeInterval)
 

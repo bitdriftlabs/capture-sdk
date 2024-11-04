@@ -13,7 +13,7 @@ private let kIgnoredWindows = Set(["UIRemoteKeyboardWindow"])
 
 /// Main replay logic. This class can traverse UIWindow(s) as well as serialize view informations into a
 /// byte array.
-public final class Replay {
+final class Replay {
     /// The last known rendering time, expressed in seconds.
     private(set) var renderTime: CFAbsoluteTime = 0
 
@@ -32,7 +32,7 @@ public final class Replay {
     ///
     /// - parameter type:       The annotated view which defines the position and traverse behavior,
     ///                         see `AnnotatedViewType` for more information.
-    public func add(knownClass: String, type: AnnotatedView) {
+    func add(knownClass: String, type: AnnotatedView) {
         ReplayCommonCategorizer.knownTypes[knownClass] = type
     }
 

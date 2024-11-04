@@ -23,6 +23,7 @@ public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
         sessionStrategy _: SessionStrategy,
         metadataProvider _: CaptureLoggerBridge.MetadataProvider,
         resourceUtilizationTarget _: CaptureLoggerBridge.ResourceUtilizationTarget,
+        sessionReplayTarget _: CaptureLoggerBridge.SessionReplayTarget,
         eventsListenerTarget _: CaptureLoggerBridge.EventsListenerTarget,
         appID _: String,
         releaseVersion _: String,

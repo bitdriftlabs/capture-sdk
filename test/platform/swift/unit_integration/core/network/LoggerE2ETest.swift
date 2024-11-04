@@ -61,7 +61,7 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
     var logger: Logger!
     var storage: StorageProvider!
 
-    private func setUpLogger(configuration: Configuration) throws -> Logger {
+    private func setUpLogger() throws -> Logger {
         self.storage = MockStorageProvider()
 
         let apiURL = self.setUpTestServer()
@@ -71,7 +71,7 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
                 bufferDirectory: self.setUpSDKDirectory(),
                 apiURL: apiURL,
                 remoteErrorReporter: MockRemoteErrorReporter(),
-                configuration: configuration,
+                configuration: .init(),
                 sessionStrategy: SessionStrategy.fixed(sessionIDGenerator: { "mock-group-id" }),
                 dateProvider: MockDateProvider(),
                 fieldProviders: [
@@ -95,12 +95,7 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
     }
 
     func testSessionReplay() async throws {
-        _ = try self.setUpLogger(
-            configuration: .init(
-                // Configure session replay to fire quickly.
-                sessionReplayConfiguration: .init(captureIntervalSeconds: 1)
-            )
-        )
+        _ = try self.setUpLogger()
 
         let streamID = try await nextApiStream()
         configure_aggressive_continuous_uploads(streamID)
@@ -139,9 +134,7 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         deviceAttributes.start()
         networkAttributes.start(with: MockCoreLogging())
 
-        let logger = try self.setUpLogger(
-            configuration: .init(sessionReplayConfiguration: .init(captureIntervalSeconds: 10))
-        )
+        let logger = try self.setUpLogger()
 
         // Add a valid field, it should be present.
         logger.addField(withKey: "foo", value: "value_foo")
@@ -213,7 +206,7 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         let fields: [String: Encodable] = [
             "field": "passed_in",
             "screen_replay": try XCTUnwrap(
-                SessionReplayScreenCapture(data: try XCTUnwrap(
+                SessionReplayCapture(data: try XCTUnwrap(
                     "hello".data(using: .utf8)
                 ))
             ),

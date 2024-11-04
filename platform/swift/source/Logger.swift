@@ -28,7 +28,7 @@ public final class Logger {
     private let remoteErrorReporter: RemoteErrorReporting
     private let deviceCodeController: DeviceCodeController
 
-    private(set) var replayController: ReplayController?
+    private(set) var sessionReplayTarget: SessionReplayTarget
     private(set) var dispatchSourceMemoryMonitor: DispatchSourceMemoryMonitor?
     private(set) var resourceUtilizationTarget: ResourceUtilizationTarget
     private(set) var eventsListenerTarget: EventsListenerTarget
@@ -164,16 +164,20 @@ public final class Logger {
         )
         self.eventsListenerTarget = EventsListenerTarget()
 
+        let sessionReplayTarget = SessionReplayTarget(configuration: configuration.sessionReplayConfiguration)
+        self.sessionReplayTarget = sessionReplayTarget
+
         guard let logger = loggerBridgingFactoryProvider.makeLogger(
             apiKey: apiKey,
             bufferDirectoryPath: directoryURL?.path,
             sessionStrategy: sessionStrategy,
             metadataProvider: metadataProvider,
-            // TODO(Augustyniak): Pass `resourceUtilizationTarget` and `eventsListenerTarget` as part of
-            // the `self.underlyingLogger.start()` method call instead.
+            // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
+            // and `eventsListenerTarget` as part of the `self.underlyingLogger.start()` method call instead.
             // Pass the event listener target here and finish setting up
             // before the logger is actually started.
             resourceUtilizationTarget: self.resourceUtilizationTarget,
+            sessionReplayTarget: self.sessionReplayTarget,
             // Pass the event listener target here and finish setting up
             // before the logger is actually started.
             eventsListenerTarget: self.eventsListenerTarget,
@@ -204,6 +208,7 @@ public final class Logger {
         metadataProvider.errorHandler = { [weak underlyingLogger] context, error in
             underlyingLogger?.handleError(context: context, error: error)
         }
+        self.sessionReplayTarget.logger = self.underlyingLogger
 
         // Start attributes before the underlying logger is running to increase the chances
         // of out-of-the-box attributes being ready by the time logs emitted as a result of the logger start
@@ -213,10 +218,6 @@ public final class Logger {
 
         self.underlyingLogger.start()
 
-        self.replayController = Self.setUpSessionReplay(
-            with: configuration.sessionReplayConfiguration,
-            logger: self.underlyingLogger
-        )
         self.dispatchSourceMemoryMonitor = Self.setUpMemoryStateMonitoring(logger: self.underlyingLogger)
 
         self.deviceCodeController = DeviceCodeController(client: client)
@@ -358,10 +359,8 @@ public final class Logger {
     }
 
     private func stop() {
-        self.replayController?.stop()
         self.dispatchSourceMemoryMonitor?.stop()
 
-        self.replayController = nil
         self.dispatchSourceMemoryMonitor = nil
     }
 }
@@ -501,20 +500,6 @@ extension Logger: Logging {
 // MARK: - Features
 
 extension Logger {
-    private static func setUpSessionReplay(
-        with configuration: SessionReplayConfiguration?,
-        logger: CoreLogging
-    ) -> ReplayController?
-    {
-        guard let configuration else {
-            return nil
-        }
-
-        let controller = ReplayController(logger: logger)
-        controller.start(with: configuration)
-        return controller
-    }
-
     static func setUpMemoryStateMonitoring(
         logger: CoreLogging
     ) -> DispatchSourceMemoryMonitor

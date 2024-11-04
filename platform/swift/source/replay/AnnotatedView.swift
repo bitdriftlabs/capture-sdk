@@ -14,7 +14,7 @@ import UIKit
 /// 15 types.
 ///
 /// Types left: 3
-public enum ViewType: UInt8 {
+enum ViewType: UInt8 {
     case label = 0
     case button = 1
     case textInput = 2
@@ -53,9 +53,9 @@ public struct AnnotatedView {
     /// UITextField can add a fragment to represent the entered text.
     let fragments: [(frame: CGRect, type: ViewType)]
 
-    public init(_ type: ViewType, recurse: Bool = true, frame: CGRect = .zero,
-                fragments: [(CGRect, ViewType)] = [], ignoreWhenEmpty: Bool? = nil,
-                ignoreChildrenViews: Bool? = nil)
+    init(_ type: ViewType, recurse: Bool = true, frame: CGRect = .zero,
+         fragments: [(CGRect, ViewType)] = [], ignoreWhenEmpty: Bool? = nil,
+         ignoreChildrenViews: Bool? = nil)
     {
         self.ignoreWhenEmpty = ignoreWhenEmpty ?? (recurse || type == .ignore)
         self.ignoreChildrenViews = ignoreChildrenViews ??
