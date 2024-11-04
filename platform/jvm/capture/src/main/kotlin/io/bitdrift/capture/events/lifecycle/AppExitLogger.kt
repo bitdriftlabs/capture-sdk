@@ -25,6 +25,7 @@ import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
+import java.util.Base64
 
 internal class AppExitLogger(
     private val logger: LoggerImpl,
@@ -140,18 +141,41 @@ internal class AppExitLogger(
 
     @TargetApi(Build.VERSION_CODES.R)
     private fun ApplicationExitInfo.toFields(): InternalFieldsMap {
-        // https://developer.android.com/reference/kotlin/android/app/ApplicationExitInfo
-        return mapOf(
-            "_app_exit_source" to "ApplicationExitInfo",
-            "_app_exit_process_name" to this.processName,
-            "_app_exit_reason" to this.reason.toReasonText(),
-            "_app_exit_importance" to this.importance.toImportanceText(),
-            "_app_exit_status" to this.status.toString(),
-            "_app_exit_pss" to this.pss.toString(),
-            "_app_exit_rss" to this.rss.toString(),
-            "_app_exit_description" to this.description.orEmpty(),
-            // TODO(murki): Extract getTraceInputStream() for REASON_ANR or REASON_CRASH_NATIVE
-        ).toFields()
+        // Initialize the fields map with basic application exit information
+        return buildMap {
+            put("_app_exit_source", "ApplicationExitInfo")
+            put("_app_exit_process_name", processName)
+            put("_app_exit_reason", reason.toReasonText())
+            put("_app_exit_importance", importance.toImportanceText())
+            put("_app_exit_status", status.toString())
+            put("_app_exit_pss", pss.toString())
+            put("_app_exit_rss", rss.toString())
+            put("_app_exit_description", description.orEmpty())
+
+            // Add trace data as binary if available for REASON_ANR or REASON_CRASH_NATIVE
+            if (reason == ApplicationExitInfo.REASON_ANR || reason == ApplicationExitInfo.REASON_CRASH_NATIVE) {
+                runCatching {
+                    getTraceInputStream()?.takeIf { it.available() > 0 }?.use { traceStream ->
+                        traceStream.readBytes().takeIf { it.isNotEmpty() }
+                    }
+                }.onSuccess { traceData ->
+                    // TODO(jaredsburrows): Add a way to decode this on the backend
+                    // See https://developer.android.com/ndk/guides/debug#tombstone-traces
+                    traceData?.let { put("_app_exit_trace", Base64.getEncoder().encodeToString(it)) }
+                }.onFailure { e ->
+                    // Log or handle the exception as needed
+                    logger.log(
+                        LogType.LIFECYCLE,
+                        LogLevel.ERROR,
+                        mapOf(
+                            "_app_exit_source" to "ApplicationExitInfo",
+                            "_app_exit_reason" to "TraceReadFailure",
+                            "_app_exit_details" to e.message.orEmpty(),
+                        ).toFields(),
+                    ) { APP_EXIT_EVENT_NAME }
+                }
+            }
+        }.toFields()
     }
 
     private fun Int.toReasonText(): String {
