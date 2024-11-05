@@ -44,14 +44,10 @@ extension SessionReplayTarget: CapturePassable.SessionReplayTarget {
     func captureScreenshot() {
         DispatchQueue.main.async {
             guard let window = UIApplication.shared.sessionReplayWindows().first else {
-                // According to the documentation for
-                // `CapturePassable.SessionReplayTarget.captureScreenshot()`, this method must emit
-                // a screenshot log. Without this, the Rust logger will ignore any further screenshot
-                // capture actions.
-                // To handle cases where no window is available, an assertion is included here.
-                // TODO: Add a log to inform the Rust layer if the screenshot log emission fails, allowing it
-                // to proceed to the next screenshot (if any).
-                assertionFailure("no window to take screenshot of")
+                self.logger?.logSessionReplayScreenshot(
+                    screen: nil,
+                    duration: 0
+                )
                 return
             }
 
