@@ -44,6 +44,7 @@ extension SessionReplayTarget: CapturePassable.SessionReplayTarget {
     func captureScreenshot() {
         DispatchQueue.main.async {
             guard let window = UIApplication.shared.sessionReplayWindows().first else {
+                assertionFailure("no window to take screenshot of")
                 return
             }
 
