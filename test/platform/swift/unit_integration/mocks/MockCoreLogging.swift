@@ -44,7 +44,7 @@ public final class MockCoreLogging {
     public var logResourceUtilizationExpectation: XCTestExpectation?
 
     public private(set) var sessionReplayScreenLogs = [SessionReplayScreenLog]()
-    public var logSessionReplayScreen: XCTestExpectation?
+    public var logSessionReplayScreenExpectation: XCTestExpectation?
 
     public var shouldLogAppUpdateEvent = false
 
@@ -115,7 +115,7 @@ extension MockCoreLogging: CoreLogging {
         self.sessionReplayScreenLogs.append(SessionReplayScreenLog(
                                                 screen: screen, duration: duration)
         )
-        self.logSessionReplayScreen?.fulfill()
+        self.logSessionReplayScreenExpectation?.fulfill()
     }
 
     public func logSessionReplayScreenshot(screen _: SessionReplayCapture?, duration _: TimeInterval) {
