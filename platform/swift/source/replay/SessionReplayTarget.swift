@@ -7,6 +7,7 @@
 
 @_implementationOnly import CapturePassable
 import Foundation
+import UIKit
 
 final class SessionReplayTarget {
     private let queue = DispatchQueue.serial(withLabelSuffix: "ReplayController", target: .default)
@@ -41,14 +42,28 @@ extension SessionReplayTarget: CapturePassable.SessionReplayTarget {
     }
 
     func captureScreenshot() {
-        // TODO: Implement
-        //        DispatchQueue.main.async { [weak self] in
-        //            self?.queue.async {
-        //                self?.logger?.logSessionReplayScreenshot(
-        //                    screen: SessionReplayCapture(data: Data()),
-        //                    duration: 0
-        //                )
-        //            }
-        //        }
+        DispatchQueue.main.async {
+            guard let window = UIApplication.shared.sessionReplayWindows().first else {
+                return
+            }
+
+            let layer = window.layer
+            let bounds = UIScreen.main.bounds.size
+
+            self.queue.async { [weak self] in
+                let start = Uptime()
+                let format = UIGraphicsImageRendererFormat()
+                format.scale = 1.0
+
+                let renderer = UIGraphicsImageRenderer(size: bounds, format: format)
+                let jpeg = renderer.jpegData(withCompressionQuality: 0.1) { context in
+                    layer.render(in: context.cgContext)
+                }
+                self?.logger?.logSessionReplayScreenshot(
+                    screen: SessionReplayCapture(data: jpeg),
+                    duration: Uptime().timeIntervalSince(start)
+                )
+            }
+        }
     }
 }
