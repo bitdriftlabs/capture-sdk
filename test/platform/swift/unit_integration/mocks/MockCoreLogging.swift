@@ -118,9 +118,7 @@ extension MockCoreLogging: CoreLogging {
         self.logSessionReplayScreenExpectation?.fulfill()
     }
 
-    public func logSessionReplayScreenshot(screen _: SessionReplayCapture?, duration _: TimeInterval) {
-        self.logSessionReplayScreenshotExpectation?.fulfill()
-    }
+    public func logSessionReplayScreenshot(screen _: SessionReplayCapture?, duration _: TimeInterval) {}
 
     public func logResourceUtilization(fields: Fields, duration: TimeInterval) {
         self.resourceUtilizationLogs.append(ResourceUtilizationLog(fields: fields, duration: duration))
