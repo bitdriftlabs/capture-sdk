@@ -59,7 +59,7 @@ load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_regi
 
 rules_rust_dependencies()
 
-RUST_VERSION = "1.81.0"
+RUST_VERSION = "1.82.0"
 
 rust_register_toolchains(
     extra_target_triples = [
@@ -77,20 +77,20 @@ rust_register_toolchains(
     # For security reasons, we include all shas here to make sure that a malicious actor with access to rust-std-mobile
     # can't include a compromised tool.
     #
-    # tl;dr; run e.g. $ ./tools/rust_std_checksum.sh 1.80.0
+    # tl;dr; run e.g. $ ./tools/rust_std_checksum.sh 1.82.0
     sha256s = {
-        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios-sim.tar.gz": "a4bdf0c2ecd0d899629db9ae0e940863da4047f379bec4a969df3f33dce911db",
-        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios.tar.gz": "09bd46b2b9297b61dd172da42c9455aaa1c85676715f6b8473b55612c1de10ed",
-        "rust-std-" + RUST_VERSION + "-x86_64-apple-ios.tar.gz": "989852a7e82e2a3ad01473a9157ad92f8ff2ebce5300ecb4a716b5987be1bf6b",
-        "rust-std-" + RUST_VERSION + "-aarch64-linux-android.tar.gz": "e8bc1c411e60cd8b290afe8bcc903e18ab904efe9782e491ce781f38a19647f0",
-        "rust-std-" + RUST_VERSION + "-armv7-linux-androideabi.tar.gz": "84c15635750c1228366189aab6f95d26dcaed6069cac3c1fb3dad2f985952d8a",
-        "rust-std-" + RUST_VERSION + "-i686-linux-android.tar.gz": "d205cddae43645e259eb4a1dbbbf6757b08e7408f48d339b5737d7773d749e0e",
-        "rustc-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "9c3d36b8860011bddec580b12e4b6937aa0657b393e7aeb20f1dc90e743ffa7e",
-        "cargo-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "bca2ed0f3b5dec19bd53b0a7d999eb1b495cd5ace69aafa088b44d83f44e3a8d",
-        "llvm-tools-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "7b39fb1d477271d1232e704ef47ea5ec7d323c0cbe358c9a3986bdf6ce27ca55",
-        "rust-std-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "44809c3b92c7500c64517151f1e3389b32913a35414553395104bc4a0ee35f69",
-        "clippy-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "8666f5241c437f7074488c67819d80af8514ac280cc22973c1b15de3086d8dcc",
-        "rustfmt-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "e17c1adda089e922376b2cf0ad3844c132cc1fb2225e1e59fe60af164974883a",
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios-sim.tar.gz": "d86a841b0e91f7d793e7f69efe4fac57e1c52aa710c0e7162c861a0442946183",
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios.tar.gz": "2532708ba81949db8a2e4574c8ee0fff07243f04ce87671b874746e7f4f84059",
+        "rust-std-" + RUST_VERSION + "-x86_64-apple-ios.tar.gz": "048b215d8130a33252806ebf6312cc1f2c8ecb63aaf60ca5ec26f339ffc105ab",
+        "rust-std-" + RUST_VERSION + "-aarch64-linux-android.tar.gz": "11f03f2f8986512c48a7101ef6c09f9062aeb4baf5b34a843a328b698ec7934b",
+        "rust-std-" + RUST_VERSION + "-armv7-linux-androideabi.tar.gz": "42e608feea4678b9aee45d728d72718838381f4a00c6e87f9dd6cd7d69f61e25",
+        "rust-std-" + RUST_VERSION + "-i686-linux-android.tar.gz": "f4dcb5d12acaa38f8715a91a16d6ba39d687164cb2ebeb9ee040fae044c067c8",
+        "rustc-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "1328567478da2dbf9e05303efddfbff6623d38227fa80e4d77252418cbfb493b",
+        "cargo-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "9cbe6badf70899297fb605cf361c1c07ea17cba58ddccb86c0967b1733e4b8f7",
+        "llvm-tools-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "4499edde61b9dc241da9a065e545160f66b3800aadbb328f2240e9d8017f3047",
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "5ec28e75ed8715efaa2490d76ae026a34b13df6899d98b14d0a6995556f4e6b4",
+        "clippy-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "0508639c3b7d9c07739b809f83196cca27ec5f02edaa97137e4d9ec0d1d6533f",
+        "rustfmt-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "c73f4c4ea423ceaf2d5e3685d770b93f7683855bebffca5542912385774180e4",
     },
     urls = [
         # NOTE: `urls` are technically mirrors so we want to make sure we always try our own first then the official ones.
