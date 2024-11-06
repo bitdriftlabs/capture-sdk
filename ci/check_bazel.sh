@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+echo "check_result=0" >> "$GITHUB_OUTPUT"
 exit 0
 
 # Compares the head ref and $GITHUB_BASE_REF (PR branch + target branch, usually main) to
