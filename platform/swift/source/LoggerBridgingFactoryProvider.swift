@@ -16,6 +16,7 @@ protocol LoggerBridgingFactoryProvider {
     /// - parameter sessionStrategy:           The session strategy to use.
     /// - parameter metadataProvider:          The metadata provider to use.
     /// - parameter resourceUtilizationTarget: The resource utilization target to use.
+    /// - parameter sessionReplayTarget:       The session replay target to use.
     /// - parameter eventsListenerTarget:      The events listener target to use.
     /// - parameter appID:                     The host application application identifier.
     /// - parameter releaseVersion:            The host application release version.
@@ -29,6 +30,7 @@ protocol LoggerBridgingFactoryProvider {
         sessionStrategy: SessionStrategy,
         metadataProvider: CaptureLoggerBridge.MetadataProvider,
         resourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget,
+        sessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget,
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
         appID: String,
         releaseVersion: String,

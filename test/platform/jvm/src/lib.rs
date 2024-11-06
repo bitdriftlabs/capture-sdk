@@ -17,6 +17,7 @@ use capture::jni::{ErrorReporterHandle, JValueWrapper};
 use capture::key_value_storage::PreferencesHandle;
 use capture::new_global;
 use capture::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
+use capture::session_replay::TargetHandler as SessionReplayTargetHandler;
 use jni::objects::{JClass, JMap, JObject, JString};
 use jni::sys::{jint, jlong};
 use jni::JNIEnv;
@@ -342,6 +343,16 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runResourceUtil
 ) {
   let target = new_global!(ResourceUtilizationTargetHandler, &mut env, target).unwrap();
   platform_test_helpers::run_resource_utilization_target_tests(&target);
+}
+
+#[no_mangle]
+pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runSessionReplayTargetTest(
+  mut env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  target: JObject<'_>,
+) {
+  let target = new_global!(SessionReplayTargetHandler, &mut env, target).unwrap();
+  platform_test_helpers::run_session_replay_target_tests(&target);
 }
 
 #[no_mangle]

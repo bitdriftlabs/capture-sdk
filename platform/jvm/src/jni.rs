@@ -10,6 +10,7 @@ use crate::executor::{self};
 use crate::key_value_storage::PreferencesHandle;
 use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
 use crate::session::SessionStrategyConfigurationHandle;
+use crate::session_replay::{self, TargetHandler as SessionReplayTargetHandler};
 use crate::{
   define_object_wrapper,
   events,
@@ -324,6 +325,7 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _: *mut c_void) -> jint {
   ffi::initialize(&mut env);
   session::initialize(&mut env);
   resource_utilization::initialize(&mut env);
+  session_replay::initialize(&mut env);
 
   env.get_version().unwrap().into()
 }
@@ -593,6 +595,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   session_strategy: JObject<'_>,
   metadata_provider: JObject<'_>,
   resource_utilization_target: JObject<'_>,
+  session_replay_target: JObject<'_>,
   events_listener_target: JObject<'_>,
   application_id: JString<'_>,
   application_version: JString<'_>,
@@ -647,6 +650,12 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         resource_utilization_target
       )?);
 
+      let session_replay_target = Box::new(new_global!(
+        SessionReplayTargetHandler,
+        &mut env,
+        session_replay_target
+      )?);
+
       let events_listener_target = Box::new(new_global!(
         EventsListenerTargetHandler,
         &mut env,
@@ -664,6 +673,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         session_strategy,
         metadata_provider: Arc::new(new_global!(MetadataProvider, &mut env, metadata_provider)?),
         resource_utilization_target,
+        session_replay_target,
         events_listener_target,
         device,
         store,
@@ -857,7 +867,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionReplayLog(
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionReplayScreenLog(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
@@ -875,7 +885,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
         .collect();
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.log_session_replay(fields, Duration::seconds_f64(duration_s));
+      logger.log_session_replay_screen(fields, Duration::seconds_f64(duration_s));
 
       Ok(())
     },

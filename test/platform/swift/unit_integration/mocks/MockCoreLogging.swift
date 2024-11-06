@@ -29,6 +29,11 @@ public final class MockCoreLogging {
         public let duration: TimeInterval
     }
 
+    public struct SessionReplayScreenLog {
+        public let screen: SessionReplayCapture
+        public let duration: TimeInterval
+    }
+
     public private(set) var logs = [Log]()
     public var logExpectation: XCTestExpectation?
 
@@ -37,6 +42,9 @@ public final class MockCoreLogging {
 
     public private(set) var resourceUtilizationLogs = [ResourceUtilizationLog]()
     public var logResourceUtilizationExpectation: XCTestExpectation?
+
+    public private(set) var sessionReplayScreenLogs = [SessionReplayScreenLog]()
+    public var logSessionReplayScreenExpectation: XCTestExpectation?
 
     public var shouldLogAppUpdateEvent = false
 
@@ -103,7 +111,14 @@ extension MockCoreLogging: CoreLogging {
         self.logExpectation?.fulfill()
     }
 
-    public func logSessionReplay(screen _: SessionReplayScreenCapture, duration _: TimeInterval) {}
+    public func logSessionReplayScreen(screen: SessionReplayCapture, duration: TimeInterval) {
+        self.sessionReplayScreenLogs.append(SessionReplayScreenLog(
+                                                screen: screen, duration: duration)
+        )
+        self.logSessionReplayScreenExpectation?.fulfill()
+    }
+
+    public func logSessionReplayScreenshot(screen _: SessionReplayCapture?, duration _: TimeInterval) {}
 
     public func logResourceUtilization(fields: Fields, duration: TimeInterval) {
         self.resourceUtilizationLogs.append(ResourceUtilizationLog(fields: fields, duration: duration))

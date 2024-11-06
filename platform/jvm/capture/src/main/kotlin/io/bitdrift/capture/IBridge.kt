@@ -18,6 +18,7 @@ internal interface IBridge {
         sessionStrategy: SessionStrategyConfiguration,
         metadataProvider: IMetadataProvider,
         resourceUtilizationTarget: IResourceUtilizationTarget,
+        sessionReplayTarget: ISessionReplayTarget,
         eventsListenerTarget: IEventsListenerTarget,
         applicationId: String,
         applicationVersion: String,

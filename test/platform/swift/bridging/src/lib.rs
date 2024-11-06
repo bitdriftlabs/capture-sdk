@@ -226,6 +226,12 @@ unsafe extern "C" fn run_resource_utilization_target_test(target: *mut Object) {
 }
 
 #[no_mangle]
+unsafe extern "C" fn run_session_replay_target_test(target: *mut Object) {
+  let target = swift_bridge::session_replay::Target::new(target);
+  platform_test_helpers::run_session_replay_target_tests(&target);
+}
+
+#[no_mangle]
 unsafe extern "C" fn run_events_listener_target_test(target: *mut Object) {
   let target = swift_bridge::events::Target::new(target);
   platform_test_helpers::run_events_listener_target_tests(&target);

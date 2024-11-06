@@ -26,6 +26,7 @@ void capture_report_error(const char *message);
  * @param session_strategy_provider the session strategy provider.
  * @param metadata_provider used to provide the internal logger with logging metadata.
  * @param resource_utilization_target responsible for emitting resource utilization logs in response to provided ticks.
+ * @param session_replay_target responsible for emitting session replay logs in response to callbacks.
  * @param events_listener_target responsible for listening to platform events and emitting logs in response to them.
  * @param app_id the app id to identify the client as a null terminated C string.
  * @param app_version the app version to identify the client as a null terminated C string.
@@ -38,6 +39,7 @@ logger_id capture_create_logger(
     id<SessionStrategyProvider> session_strategy_provider,
     id<MetadataProvider> metadata_provider,
     id<ResourceUtilizationTarget> resource_utilization_target,
+    id<SessionReplayTarget> session_replay_target,
     id<EventsListenerTarget> events_listener_target,
     const char *app_id,
     const char *app_version, 
@@ -79,13 +81,26 @@ void capture_write_log(
 );
 
 /*
- * Writes a session replay log.
+ * Writes a session replay screen log.
  *
  * @param logger_id the ID of the logger to write to.
  * @param fields the fields to include with the log.
  * @param duration_s the duration of time the preparation of the session replay log took.
  */
-void capture_write_session_replay_log(
+void capture_write_session_replay_screen_log(
+    logger_id logger_id,
+    const NSArray<const Field *> *fields,
+    double duration_s
+);
+
+/*
+ * Writes a session replay screenshot log.
+ *
+ * @param logger_id the ID of the logger to write to.
+ * @param fields the fields to include with the log.
+ * @param duration_s the duration of time the preparation of the session replay log took.
+ */
+void capture_write_session_replay_screenshot_log(
     logger_id logger_id,
     const NSArray<const Field *> *fields,
     double duration_s

@@ -44,9 +44,7 @@ class SessionStrategyTest {
                 generatedSessionIds.add(sessionId)
                 sessionId
             },
-            configuration = Configuration(
-                sessionReplayConfiguration = null,
-            ),
+            configuration = Configuration(),
         )
 
         val sessionId = logger.sessionId
@@ -76,9 +74,7 @@ class SessionStrategyTest {
                 observedSessionId = it
                 strategyLatch.countDown()
             },
-            configuration = Configuration(
-                sessionReplayConfiguration = null,
-            ),
+            configuration = Configuration(),
             preferences = mock(),
         )
 

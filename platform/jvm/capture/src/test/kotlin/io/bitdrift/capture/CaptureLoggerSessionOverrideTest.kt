@@ -77,9 +77,7 @@ class CaptureLoggerSessionOverrideTest {
             fieldProviders = listOf(),
             dateProvider = systemDateProvider,
             sessionStrategy = SessionStrategy.Fixed { "foo" },
-            configuration = Configuration(
-                sessionReplayConfiguration = null,
-            ),
+            configuration = Configuration(),
             preferences = preferences,
         )
 
@@ -109,9 +107,7 @@ class CaptureLoggerSessionOverrideTest {
             fieldProviders = listOf(),
             dateProvider = systemDateProvider,
             sessionStrategy = SessionStrategy.Fixed { "bar" },
-            configuration = Configuration(
-                sessionReplayConfiguration = null,
-            ),
+            configuration = Configuration(),
             preferences = preferences,
             activityManager = activityManager,
         )

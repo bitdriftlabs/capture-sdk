@@ -80,9 +80,17 @@ extension CoreLogger: CoreLogging {
         )
     }
 
-    func logSessionReplay(screen: SessionReplayScreenCapture, duration: TimeInterval) {
-        self.underlyingLogger.logSessionReplay(
+    func logSessionReplayScreen(screen: SessionReplayCapture, duration: TimeInterval) {
+        self.underlyingLogger.logSessionReplayScreen(
             fields: self.convertFields(fields: ["screen": screen]),
+            duration: duration
+        )
+    }
+
+    func logSessionReplayScreenshot(screen: SessionReplayCapture?, duration: TimeInterval) {
+        let fields = screen.flatMap { screen in self.convertFields(fields: ["screen_px": screen]) } ?? []
+        self.underlyingLogger.logSessionReplayScreenshot(
+            fields: fields,
             duration: duration
         )
     }

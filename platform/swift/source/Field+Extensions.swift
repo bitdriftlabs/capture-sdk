@@ -32,7 +32,7 @@ extension Field {
     ///
     /// - returns: The created `Field` instance .
     static func make(key: String, value: FieldValue) throws -> Field {
-        if let value = value as? SessionReplayScreenCapture {
+        if let value = value as? SessionReplayCapture {
             return Field(key: key, data: value.data as NSData, type: .data)
         } else {
             let stringValue = try value.encodeToString()

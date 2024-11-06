@@ -73,10 +73,13 @@ object CaptureTestJniLibrary {
     // Runs key value storage tests.
     external fun runKeyValueStorageTest(preferences: Any)
 
-    // Runs resource utilization target tests.
+    // Runs resource utilization target test.
     external fun runResourceUtilizationTargetTest(target: Any)
 
-    // Runs events listener target tests.
+    // Runs session replay target test.
+    external fun runSessionReplayTargetTest(target: Any)
+
+    // Runs events listener target test.
     external fun runEventsListenerTargetTest(target: Any)
 
     // Issues a runtime update causing the specified feature to be marked as disabled.

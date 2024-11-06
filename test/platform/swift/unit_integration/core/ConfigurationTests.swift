@@ -27,8 +27,7 @@ final class ConfigurationTests: XCTestCase {
     func testConfigurationSimple() throws {
         Logger.start(
             withAPIKey: "api_key",
-            sessionStrategy: .fixed(),
-            configuration: .init(sessionReplayConfiguration: nil)
+            sessionStrategy: .fixed()
         )
 
         XCTAssertNotNil(Logger.getShared())
@@ -37,8 +36,7 @@ final class ConfigurationTests: XCTestCase {
     func testConfigurationDefault() throws {
         Logger.start(
             withAPIKey: "api_key",
-            sessionStrategy: .fixed(),
-            configuration: .init()
+            sessionStrategy: .fixed()
         )
 
         XCTAssertNotNil(Logger.getShared())

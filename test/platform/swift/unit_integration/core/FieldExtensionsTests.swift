@@ -14,7 +14,7 @@ final class FieldExtensionTests: XCTestCase {
     func testSessionReplayCaptureIsEncodedAsData() throws {
         let field = try Field.make(
             key: "foo",
-            value: SessionReplayScreenCapture(data: try XCTUnwrap("test".data(using: .utf8)))
+            value: SessionReplayCapture(data: try XCTUnwrap("test".data(using: .utf8)))
         )
 
         XCTAssert(field.data is Data)

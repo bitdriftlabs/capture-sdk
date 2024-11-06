@@ -20,7 +20,7 @@ open class BaseNetworkingTestCase: XCTestCase {
     private(set) var sdkDirectory: URL?
     private(set) var testServerStarted = false
 
-    private class MockMetadataProvider: CaptureLoggerBridge.MetadataProvider {
+    private final class MockMetadataProvider: CaptureLoggerBridge.MetadataProvider {
         func timestamp() -> TimeInterval {
             // Matches "2022-10-26T17:56:41.520058155Z" when formatted.
             return Date(timeIntervalSince1970: 1_666_807_001.52005815).timeIntervalSince1970
@@ -35,8 +35,13 @@ open class BaseNetworkingTestCase: XCTestCase {
         }
     }
 
-    private class MockResourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget {
+    private final class MockResourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget {
         func tick() {}
+    }
+
+    private final class MockSessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget {
+        func captureScreen() {}
+        func captureScreenshot() {}
     }
 
     // swiftlint:disable:next test_case_accessibility
@@ -76,6 +81,7 @@ open class BaseNetworkingTestCase: XCTestCase {
                 sessionStrategy: .fixed(),
                 metadataProvider: MockMetadataProvider(),
                 resourceUtilizationTarget: MockResourceUtilizationTarget(),
+                sessionReplayTarget: MockSessionReplayTarget(),
                 eventsListenerTarget: MockEventsListenerTarget(),
                 appID: "io.bitdrift.capture.test",
                 releaseVersion: "",

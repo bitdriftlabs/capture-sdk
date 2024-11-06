@@ -60,6 +60,10 @@
    public <methods>;
 }
 
+-keep, includedescriptorclasses class io.bitdrift.capture.ISessionReplayTarget {
+   public <methods>;
+}
+
 -keepclasseswithmembernames,includedescriptorclasses class * {
     native <methods>;
 }

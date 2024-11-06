@@ -12,5 +12,5 @@ package io.bitdrift.capture.replay
  * @param customMapper list of known types
  */
 class ReplayMapperConfiguration(
-    val customMapper: Map<ReplayType, List<String>>? = null,
+    val customMapper: Map<ReplayType, List<String>>,
 )

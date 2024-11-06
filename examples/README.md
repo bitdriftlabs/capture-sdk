@@ -78,7 +78,7 @@ Setup the environment, open Android Studio.
 
         ![](../docs/images/android_local_gradle_error.png)
 
-    - Go to Tools > SDK Manager > Android SDK > SDK Tools. Make sure that "Show Package Details" is checked and install the NDK version that is required by the project (currently `27.1.12297006`).
+    - Go to Tools > SDK Manager > Android SDK > SDK Tools. Make sure that "Show Package Details" is checked and install the NDK version that is required by the project (currently `27.2.12479018`).
 
         ![](../docs/images/android_local_gradle_ndk.png)
 
