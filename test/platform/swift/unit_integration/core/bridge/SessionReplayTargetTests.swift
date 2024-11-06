@@ -30,7 +30,7 @@ final class SessionReplayTargetTests: XCTestCase {
     func testEmitsSessionReplayScreenLog() {
         let expectation = self.expectation(description: "screen log is emitted")
 
-        self.logger.logSessionReplayScreen = expectation
+        self.logger.logSessionReplayScreenExpectation = expectation
         self.target.captureScreen()
 
         XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 0.5))
