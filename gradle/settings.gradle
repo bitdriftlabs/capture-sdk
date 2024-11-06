@@ -14,9 +14,12 @@ dependencyResolutionManagement {
 
         mavenLocal()
 
-        maven {
-            url "https://dl.bitdrift.io/sdk/android-maven"
-        }
+maven {
+    url 'https://dl.bitdrift.io/sdk/android-maven'
+    content {
+        includeGroup 'io.bitdrift'
+    }
+}
     }
 }
 rootProject.name = "My Application"

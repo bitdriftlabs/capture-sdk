@@ -96,7 +96,7 @@ class GradleTestApp : Application() {
             Timber.plant(Timber.DebugTree())
         }
         Timber.plant(CaptureTree())
-        Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
+        Timber.i("Bitdrift Logger was initialized with session_url=$sessionUrl")
     }
 
     private fun trackAppLaunch() {
