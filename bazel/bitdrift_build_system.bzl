@@ -132,6 +132,7 @@ def _rustc_flags():
         "-Aclippy::missing-errors-doc",
         "-Aclippy::missing-panics-doc",
         "-Aclippy::similar-names",
+        "-Aclippy::too-long-first-doc-paragraph",
         "-Aclippy::too-many-arguments",
         "-Aclippy::too-many-lines",
         "-Aclippy::unused-async",
