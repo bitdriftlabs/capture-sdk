@@ -10,26 +10,29 @@ package io.bitdrift.capture.replay
 import android.content.Context
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.MainThreadHandler
+import io.bitdrift.capture.replay.internal.DisplayManagers
+import io.bitdrift.capture.replay.internal.ReplayCapture
 import io.bitdrift.capture.replay.internal.ReplayCaptureController
-import io.bitdrift.capture.replay.internal.ReplayDependencies
+//import io.bitdrift.capture.replay.internal.ReplayDependencies
 
+// TODO(murki): [Replay] Re-enable internal diagnostic logging
 // This is the logger called from the replay module source code.
-internal typealias L = ReplayModuleInternalLogs
+//internal typealias L = ReplayModuleInternalLogs
 
-internal object ReplayModuleInternalLogs {
-
-    fun v(message: String) {
-        ReplayModule.replayDependencies.logger.logVerboseInternal(message)
-    }
-
-    fun d(message: String) {
-        ReplayModule.replayDependencies.logger.logDebugInternal(message)
-    }
-
-    fun e(e: Throwable?, message: String) {
-        ReplayModule.replayDependencies.logger.logErrorInternal(message, e)
-    }
-}
+//internal object ReplayModuleInternalLogs {
+//
+//    fun v(message: String) {
+//        ReplayModule.replayDependencies.logger.logVerboseInternal(message)
+//    }
+//
+//    fun d(message: String) {
+//        ReplayModule.replayDependencies.logger.logDebugInternal(message)
+//    }
+//
+//    fun e(e: Throwable?, message: String) {
+//        ReplayModule.replayDependencies.logger.logErrorInternal(message, e)
+//    }
+//}
 
 /**
  * Sets up and controls the replay feature
@@ -39,25 +42,28 @@ internal object ReplayModuleInternalLogs {
  * @param runtime allows for the feature to be remotely disabled
  */
 class ReplayModule(
-    errorHandler: ErrorHandler,
+    internal val errorHandler: ErrorHandler,
     internal val logger: ReplayLogger,
-    sessionReplayConfiguration: SessionReplayConfiguration,
+    internal val sessionReplayConfiguration: SessionReplayConfiguration,
     context: Context,
     mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) {
     private var replayCaptureController: ReplayCaptureController
 
+    internal val displayManager: DisplayManagers = DisplayManagers()
+
+    private val replayCapture: ReplayCapture by lazy {
+        ReplayCapture(sessionReplayConfiguration, errorHandler, displayManager)
+    }
+
     init {
-        replayDependencies = ReplayDependencies(
-            errorHandler = errorHandler,
-            logger = logger,
-            sessionReplayConfiguration = sessionReplayConfiguration,
-        )
-        replayDependencies.displayManager.init(context)
-        replayCaptureController = ReplayCaptureController(
-            logger = logger,
-            mainThreadHandler = mainThreadHandler,
-        )
+//        replayDependencies = ReplayDependencies(
+//            errorHandler = errorHandler,
+//            logger = logger,
+//            sessionReplayConfiguration = sessionReplayConfiguration,
+//        )
+        displayManager.init(context)
+        replayCaptureController = ReplayCaptureController(replayCapture, logger, mainThreadHandler)
     }
 
     /**
@@ -68,8 +74,8 @@ class ReplayModule(
         replayCaptureController.captureScreen(skipReplayComposeViews)
     }
 
-    companion object {
-        // TODO(murki): Refactor dependencies to not rely on singleton god state
-        internal lateinit var replayDependencies: ReplayDependencies
-    }
+//    companion object {
+//        // TODO(murki): Refactor dependencies to not rely on singleton god state
+//        internal lateinit var replayDependencies: ReplayDependencies
+//    }
 }

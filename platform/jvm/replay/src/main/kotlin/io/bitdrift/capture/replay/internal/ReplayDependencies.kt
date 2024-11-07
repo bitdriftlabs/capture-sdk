@@ -11,14 +11,14 @@ import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.replay.ReplayLogger
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 
-internal class ReplayDependencies(
-    val errorHandler: ErrorHandler,
-    val logger: ReplayLogger,
-    val sessionReplayConfiguration: SessionReplayConfiguration,
-) {
-    val displayManager: DisplayManagers = DisplayManagers()
-
-    val replayCapture: ReplayCapture by lazy {
-        ReplayCapture()
-    }
-}
+//internal class ReplayDependencies(
+//    val errorHandler: ErrorHandler,
+//    val logger: ReplayLogger,
+//    val sessionReplayConfiguration: SessionReplayConfiguration,
+//) {
+//    val displayManager: DisplayManagers = DisplayManagers()
+//
+//    val replayCapture: ReplayCapture by lazy {
+//        ReplayCapture()
+//    }
+//}

@@ -32,30 +32,25 @@ import java.util.concurrent.TimeUnit
  * @param port The port to connect to (default is 3001)
  */
 class ReplayPreviewClient(
-    private val replayModule: ReplayModule,
+    private val replayModule: ReplayModule, // TODO(murki): [Replay] Refactor to not expose this
     protocol: String = "ws",
     host: String = "10.0.2.2",
     port: Int = 3001,
 ) : ReplayLogger {
 
-    private val replayCapture: ReplayCapture = ReplayCapture()
+    private val replayCapture: ReplayCapture = ReplayCapture(replayModule.sessionReplayConfiguration, replayModule.errorHandler, replayModule.displayManager)
     private val executor: ExecutorService = Executors.newSingleThreadExecutor {
         Thread(it, "io.bitdrift.capture.session-replay-client")
     }
-    private val client: OkHttpClient
-    private val request: Request
+    // Calling this is necessary to capture the display size
+    private val client: OkHttpClient = OkHttpClient.Builder()
+        .readTimeout(0, TimeUnit.MILLISECONDS)
+        .build()
+    private val request: Request = Request.Builder()
+        .url("$protocol://$host:$port")
+        .build()
     private var webSocket: WebSocket? = null
     private var lastEncodedScreen: ByteArray? = null
-
-    init {
-        // Calling this is necessary to capture the display size
-        client = OkHttpClient.Builder()
-            .readTimeout(0, TimeUnit.MILLISECONDS)
-            .build()
-        request = Request.Builder()
-            .url("$protocol://$host:$port")
-            .build()
-    }
 
     /**
      * Creates a socket and establishes a connection. Terminates any previous connection

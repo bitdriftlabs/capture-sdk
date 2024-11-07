@@ -60,7 +60,7 @@ internal class SessionReplayTarget(
     }
 
     override fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture, metrics: EncodedScreenMetrics) {
-        val fields = buildMap<String, FieldValue> {
+        val fields = buildMap {
             put("screen", encodedScreen.toFieldValue())
             putAll(metrics.toMap().toFields())
         }

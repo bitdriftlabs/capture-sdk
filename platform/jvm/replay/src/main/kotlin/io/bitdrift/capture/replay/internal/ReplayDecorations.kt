@@ -10,21 +10,20 @@ package io.bitdrift.capture.replay.internal
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.replay.L
-import io.bitdrift.capture.replay.ReplayModule
+//import io.bitdrift.capture.replay.L
 import io.bitdrift.capture.replay.ReplayType
 
 // Add the screen and keyboard layouts to the replay capture
 internal class ReplayDecorations(
-    errorHandler: ErrorHandler = ReplayModule.replayDependencies.errorHandler,
-    private val displayManager: DisplayManagers = ReplayModule.replayDependencies.displayManager,
+    errorHandler: ErrorHandler,
+    private val displayManager: DisplayManagers,
 ) {
     private val windowManager = WindowManager(errorHandler)
 
     fun addDecorations(filteredCapture: FilteredCapture): FilteredCapture {
         // Add screen size as the first element
         val bounds = displayManager.refreshDisplay()
-        L.d("Display Screen size $bounds")
+//        L.d("Display Screen size $bounds")
         val screen: MutableList<ReplayRect> = mutableListOf(bounds)
         screen.addAll(filteredCapture)
 
@@ -43,7 +42,7 @@ internal class ReplayDecorations(
                         width = rootView.width,
                         height = insets.bottom,
                     )
-                    L.d("Keyboard IME size $imeBounds")
+//                    L.d("Keyboard IME size $imeBounds")
                     screen.add(imeBounds)
                 }
             }
