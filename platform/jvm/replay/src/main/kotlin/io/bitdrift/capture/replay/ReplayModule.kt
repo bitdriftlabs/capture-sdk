@@ -48,21 +48,15 @@ class ReplayModule(
     context: Context,
     mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) {
-    private var replayCaptureController: ReplayCaptureController
 
-    internal val displayManager: DisplayManagers = DisplayManagers()
-
-    private val replayCapture: ReplayCapture by lazy {
-        ReplayCapture(sessionReplayConfiguration, errorHandler, displayManager)
-    }
+    internal val displayManager: DisplayManagers
+    private val replayCapture: ReplayCapture
+    private val replayCaptureController: ReplayCaptureController
 
     init {
-//        replayDependencies = ReplayDependencies(
-//            errorHandler = errorHandler,
-//            logger = logger,
-//            sessionReplayConfiguration = sessionReplayConfiguration,
-//        )
+        displayManager = DisplayManagers()
         displayManager.init(context)
+        replayCapture = ReplayCapture(sessionReplayConfiguration, errorHandler, displayManager)
         replayCaptureController = ReplayCaptureController(replayCapture, logger, mainThreadHandler)
     }
 
@@ -73,9 +67,4 @@ class ReplayModule(
     fun captureScreen(skipReplayComposeViews: Boolean) {
         replayCaptureController.captureScreen(skipReplayComposeViews)
     }
-
-//    companion object {
-//        // TODO(murki): Refactor dependencies to not rely on singleton god state
-//        internal lateinit var replayDependencies: ReplayDependencies
-//    }
 }
