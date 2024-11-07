@@ -9,8 +9,6 @@ package io.bitdrift.capture.replay.internal
 
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.ReplayLogger
-import io.bitdrift.capture.replay.ReplayModule
-import io.bitdrift.capture.replay.SessionReplayConfiguration
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 

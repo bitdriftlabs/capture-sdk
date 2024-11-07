@@ -13,26 +13,6 @@ import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.internal.DisplayManagers
 import io.bitdrift.capture.replay.internal.ReplayCapture
 import io.bitdrift.capture.replay.internal.ReplayCaptureController
-//import io.bitdrift.capture.replay.internal.ReplayDependencies
-
-// TODO(murki): [Replay] Re-enable internal diagnostic logging
-// This is the logger called from the replay module source code.
-//internal typealias L = ReplayModuleInternalLogs
-
-//internal object ReplayModuleInternalLogs {
-//
-//    fun v(message: String) {
-//        ReplayModule.replayDependencies.logger.logVerboseInternal(message)
-//    }
-//
-//    fun d(message: String) {
-//        ReplayModule.replayDependencies.logger.logDebugInternal(message)
-//    }
-//
-//    fun e(e: Throwable?, message: String) {
-//        ReplayModule.replayDependencies.logger.logErrorInternal(message, e)
-//    }
-//}
 
 /**
  * Sets up and controls the replay feature
@@ -48,12 +28,12 @@ class ReplayModule(
     context: Context,
     mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) {
-
     internal val displayManager: DisplayManagers
     private val replayCapture: ReplayCapture
     private val replayCaptureController: ReplayCaptureController
 
     init {
+        L.logger = logger
         displayManager = DisplayManagers()
         displayManager.init(context)
         replayCapture = ReplayCapture(sessionReplayConfiguration, errorHandler, displayManager)
@@ -62,9 +42,25 @@ class ReplayModule(
 
     /**
      * Prepares and emits a session replay screen log using a logger instance passed
-     * at initialiation time.
+     * at initialization time.
      */
     fun captureScreen(skipReplayComposeViews: Boolean) {
         replayCaptureController.captureScreen(skipReplayComposeViews)
+    }
+
+    internal object L {
+        internal var logger: ReplayLogger? = null
+
+        fun v(message: String) {
+            logger?.logVerboseInternal(message)
+        }
+
+        fun d(message: String) {
+            logger?.logDebugInternal(message)
+        }
+
+        fun e(e: Throwable?, message: String) {
+            logger?.logErrorInternal(message, e)
+        }
     }
 }

@@ -9,8 +9,8 @@ package io.bitdrift.capture.replay.internal.mappers
 
 import android.content.res.Resources
 import android.view.View
+import io.bitdrift.capture.replay.ReplayModule
 import io.bitdrift.capture.replay.SessionReplayConfiguration
-//import io.bitdrift.capture.replay.L
 import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
@@ -64,18 +64,17 @@ internal class ViewMapper(
 
     private fun View.viewToReplayRect(): List<ReplayRect> {
         val list = mutableListOf<ReplayRect>()
-//        val resourceName = if (id != -1) {
-        try {
-            resources.getResourceEntryName(this.id)
-        } catch (ignore: Resources.NotFoundException) {
+        val resourceName = if (id != -1) {
+            try {
+                resources.getResourceEntryName(this.id)
+            } catch (ignore: Resources.NotFoundException) {
                 // Do nothing.
-//                L.e(ignore, "Ignoring view due to:${ignore.message} for ${this.id}")
+                ReplayModule.L.e(ignore, "Ignoring view due to:${ignore.message} for ${this.id}")
+                "Failed to retrieve ID"
+            }
+        } else {
+            "no_resource_id"
         }
-//                "Failed to retrieve ID"
-//            }
-//        } else {
-//            "no_resource_id"
-//        }
 
         val type = viewMapperConfiguration.mapper[this.javaClass.simpleName]
         if (type == null) {
@@ -83,21 +82,21 @@ internal class ViewMapper(
             list.addAll(buttonMapper.map(this))
             list.addAll(textMapper.map(this))
             list.addAll(backgroundMapper.map(this))
-//            if (list.isEmpty()) {
-////                L.v(
-////                    "Ignoring Unknown view: $resourceName ${this.javaClass.simpleName}:" +
-////                        " w=${this.width}, h=${this.height}",
-////                )
-//            } else {
-////                L.v("Matched ${list.size} views with ButtonMapper and TextMapper and BackgroundMapper")
-//            }
+            if (list.isEmpty()) {
+                ReplayModule.L.v(
+                    "Ignoring Unknown view: $resourceName ${this.javaClass.simpleName}:" +
+                        " w=${this.width}, h=${this.height}",
+                )
+            } else {
+                ReplayModule.L.v("Matched ${list.size} views with ButtonMapper and TextMapper and BackgroundMapper")
+            }
         } else {
             val out = IntArray(2)
             this.getLocationOnScreen(out)
-//            L.v(
-//                "Successfully mapped Android view=${this.javaClass.simpleName} to=$type:" +
-//                    " ${out[0]}, ${out[1]}, ${this.width}, ${this.height}",
-//            )
+            ReplayModule.L.v(
+                "Successfully mapped Android view=${this.javaClass.simpleName} to=$type:" +
+                    " ${out[0]}, ${out[1]}, ${this.width}, ${this.height}",
+            )
             list.add(ReplayRect(type, out[0], out[1], this.width, this.height))
         }
         return list

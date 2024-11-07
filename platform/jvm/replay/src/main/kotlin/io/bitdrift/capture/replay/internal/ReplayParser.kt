@@ -8,8 +8,8 @@
 package io.bitdrift.capture.replay.internal
 
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.replay.ReplayModule
 import io.bitdrift.capture.replay.SessionReplayConfiguration
-//import io.bitdrift.capture.replay.L
 import io.bitdrift.capture.replay.internal.mappers.ViewMapper
 
 internal typealias Capture = List<List<ReplayRect>>
@@ -31,7 +31,7 @@ internal class ReplayParser(
         // Use a stack to perform a DFS traversal of the tree and avoid recursion
         val stack: ArrayDeque<ScannableView> = ArrayDeque(
             windowManager.findRootViews().map {
-//                L.v("Root view found and added to list: ${it.javaClass.simpleName}")
+                ReplayModule.L.v("Root view found and added to list: ${it.javaClass.simpleName}")
                 ScannableView.AndroidView(it, skipReplayComposeViews)
             },
         )
@@ -40,13 +40,13 @@ internal class ReplayParser(
             try {
                 viewMapper.updateMetrics(currentNode, encodedScreenMetrics)
                 if (!viewMapper.viewIsVisible(currentNode)) {
-//                    L.v("Ignoring not visible view: ${currentNode.displayName}")
+                    ReplayModule.L.v("Ignoring not visible view: ${currentNode.displayName}")
                     continue
                 }
                 result.add(viewMapper.mapView(currentNode))
             } catch (e: Throwable) {
                 val errorMsg = "Error parsing view, Skipping $currentNode and children"
-//                L.e(e, errorMsg)
+                ReplayModule.L.e(e, errorMsg)
                 encodedScreenMetrics.exceptionCausingViewCount += 1
                 errorHandler.handleError(errorMsg, e)
             }
