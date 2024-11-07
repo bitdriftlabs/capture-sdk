@@ -44,10 +44,5 @@
         <email>miguel@bitdrift.io</email>
         <url>https://github.com/murki</url>
         </developer>
-    </developers>
-    <scm>
-        <connection>scm:git:git://github.com/bitdriftlabs/capture-sdk.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com:bitdriftlabs/capture-sdk.git</developerConnection>
-        <url>https://github.com/bitdriftlabs/capture-sdk</url>
-    </scm>
+    </developers>    
 </project>
