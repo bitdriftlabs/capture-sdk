@@ -46,8 +46,10 @@ internal class SessionReplayTarget(
     )
 
     override fun captureScreen() {
-        val skipReplayComposeViews = runtime?.isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)
-            ?: RuntimeFeature.SESSION_REPLAY_COMPOSE.defaultValue
+        val skipReplayComposeViews = !(
+            runtime?.isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)
+                ?: RuntimeFeature.SESSION_REPLAY_COMPOSE.defaultValue
+            )
         replayModule.captureScreen(skipReplayComposeViews)
     }
 
