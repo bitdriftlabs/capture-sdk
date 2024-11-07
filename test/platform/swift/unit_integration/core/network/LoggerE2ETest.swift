@@ -33,7 +33,8 @@ extension UploadedLog {
             $0.key < $1.key
         })
 
-        let sortedSelf = self.fields.sorted(by: { $0.key < $1.key })
+        var sortedSelf = self.fields.sorted(by: { $0.key < $1.key })
+        sortedSelf.removeAll { ["_file", "_line", "_function"].contains($0.key) }
 
         XCTAssertEqual(fields, sortedSelf)
     }

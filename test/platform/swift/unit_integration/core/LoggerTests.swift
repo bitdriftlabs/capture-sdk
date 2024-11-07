@@ -162,6 +162,11 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(bridge.logs.count, 1)
         let log = bridge.logs[0]
 
+        var logFields = try XCTUnwrap(log.fields?.toDictionary())
+        XCTAssertNotNil(logFields.removeValue(forKey: "_file"))
+        XCTAssertNotNil(logFields.removeValue(forKey: "_line"))
+        XCTAssertNotNil(logFields.removeValue(forKey: "_function"))
+
         XCTAssertEqual(log.level, .debug)
         XCTAssertEqual(log.message, "test")
         self.assertEqual(
@@ -170,7 +175,7 @@ final class LoggerTests: XCTestCase {
                 "_error_details": String(describing: error),
                 "foo": "bar",
             ],
-            try XCTUnwrap(log.fields)
+            logFields
         )
     }
 
@@ -198,6 +203,11 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(bridge.logs.count, 1)
         let log = bridge.logs[0]
 
+        var logFields = try log.fields?.toDictionary()
+        XCTAssertNotNil(logFields?.removeValue(forKey: "_file"))
+        XCTAssertNotNil(logFields?.removeValue(forKey: "_line"))
+        XCTAssertNotNil(logFields?.removeValue(forKey: "_function"))
+
         XCTAssertEqual(log.message, "HTTPRequest")
         XCTAssertEqual(log.level, .debug)
         XCTAssertEqual(log.type, .span)
@@ -208,7 +218,7 @@ final class LoggerTests: XCTestCase {
             "_span_id": requestInfo.spanID,
             "_query": "bar",
             "foo": "bar",
-        ], try XCTUnwrap(log.fields?.toDictionary()))
+        ], logFields)
         XCTAssertTrue(try XCTUnwrap(log.matchingFields?.toDictionary()).isEmpty)
     }
 
@@ -247,6 +257,11 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(bridge.logs.count, 1)
         let log = bridge.logs[0]
 
+        var logFields = try log.fields?.toDictionary()
+        XCTAssertNotNil(logFields?.removeValue(forKey: "_file"))
+        XCTAssertNotNil(logFields?.removeValue(forKey: "_line"))
+        XCTAssertNotNil(logFields?.removeValue(forKey: "_function"))
+
         XCTAssertEqual(log.message, "HTTPResponse")
         XCTAssertEqual(log.level, .debug)
         XCTAssertEqual(log.type, .span)
@@ -260,7 +275,7 @@ final class LoggerTests: XCTestCase {
             "_status_code": "200",
             "_query": "bar",
             "foo": "bar",
-        ], try log.fields?.toDictionary())
+        ], logFields)
         XCTAssertEqual([
             "_request.foo": "bar",
             "_request._host": "api.bitdrift.io",
