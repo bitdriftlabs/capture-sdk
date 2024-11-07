@@ -23,7 +23,7 @@ extension Logger {
     /// `start(...)` method has not been called or if starting the logger process failed due to an internal
     /// error.
     public static var shared: Logging? {
-        self.getShared(assert: false)
+        self.getShared()
     }
 
     /// Initializes the Capture SDK with the specified API key, providers, and configuration.
@@ -110,7 +110,7 @@ extension Logger {
     /// The value of this property is different for apps from the same vendor running on
     /// the same device. It is equal to `nil` prior to the start of bitdrift Capture SDK.
     public static var deviceID: String? {
-        return Self.getShared(assert: false)?.deviceID
+        return Self.getShared()?.deviceID
     }
 
     // MARK: - Logging
@@ -351,7 +351,7 @@ extension Logger {
         function: String? = #function,
         fields: Fields? = nil
     ) -> Span? {
-        Self.getShared(assert: false)?.startSpan(
+        Self.getShared()?.startSpan(
             name: name, level: level, file: file, line: line, function: function, fields: fields
         )
     }
