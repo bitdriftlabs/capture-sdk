@@ -121,6 +121,6 @@ publishing {
 }
 
 // TODO(murki): Using this requires further setup in CI and local (e.g. signing entries in the local gradle.properties file)
-signing {
-    sign(publishing.publications)
-}
+// signing {
+//     sign(publishing.publications)
+// }
