@@ -11,13 +11,16 @@ struct ConfigurationView: View {
     @StateObject var configuration = Configuration()
 
     var body: some View {
-        Text("API URL").frame(maxWidth: .infinity)
-        TextField(text: $configuration.apiURL) { Text("Enter API URL") }
-            .autocapitalization(.none)
-
-        Text("API Key").frame(maxWidth: .infinity)
-        TextField(text: $configuration.apiKey, axis: .vertical) { Text("Enter API Key") }
-            .autocapitalization(.none)
+        Form {
+            Section(header: Text("API URL")) {
+                TextField("Enter API URL", text: $configuration.apiURL)
+                    .autocapitalization(.none)
+            }
+            Section(header: Text("API Key")) {
+                TextField("Enter API Key", text: $configuration.apiKey)
+                    .autocapitalization(.none)
+            }
+        }
 
         Spacer()
 

@@ -285,23 +285,11 @@ public final class Logger {
 
     /// Retrieves a shared instance of logger if one has been started.
     ///
-    /// - parameter assert: Whether the method should assert if shared logger has not been started.
-    ///
     /// - returns: The shared instance of logger.
-    static func getShared(assert: Bool = true) -> Logging? {
+    static func getShared() -> Logging? {
         return switch Self.syncedShared.load() {
-        case .notStarted: {
-            if assert {
-                assertionFailure(
-                    """
-                    Default logger is not set up! Did you attempt to log with the default logger without \
-                    calling `start(withAPIKey:)` first?
-                    """
-                )
-            }
-
-            return nil
-        }()
+        case .notStarted:
+            nil
         case .started(let integrator):
             integrator.logger
         case .startFailure:
