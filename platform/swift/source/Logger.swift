@@ -240,9 +240,9 @@ public final class Logger {
     func log(
         level: LogLevel,
         message: @autoclosure () -> String,
-        file _: String? = #file,
-        line _: Int? = #line,
-        function _: String? = #function,
+        file: String? = #file,
+        line: Int? = #line,
+        function: String? = #function,
         fields: Fields? = nil,
         matchingFields: Fields? = nil,
         error: Error? = nil,
@@ -252,6 +252,9 @@ public final class Logger {
         self.underlyingLogger.log(
             level: level,
             message: message(),
+            file: file,
+            line: line,
+            function: function,
             fields: fields,
             matchingFields: matchingFields,
             error: error,
