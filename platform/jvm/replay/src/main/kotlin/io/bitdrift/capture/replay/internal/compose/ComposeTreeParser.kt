@@ -21,7 +21,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.toSize
-import io.bitdrift.capture.replay.ReplayManager
+import io.bitdrift.capture.replay.ReplayCaptureController
 import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
@@ -34,11 +34,11 @@ internal object ComposeTreeParser {
         val semanticsOwner = if (androidComposeView is AndroidComposeView) {
             androidComposeView.semanticsOwner
         } else {
-            ReplayManager.L.e(null, "View passed to ComposeTreeParser.parse() is not an AndroidComposeView. view=${androidComposeView.javaClass.name}")
+            ReplayCaptureController.L.e(null, "View passed to ComposeTreeParser.parse() is not an AndroidComposeView. view=${androidComposeView.javaClass.name}")
             return ScannableView.IgnoredComposeView
         }
         val rootNode = semanticsOwner.unmergedRootSemanticsNode
-        ReplayManager.L.d("Found Compose SemanticsNode root. Parsing Compose tree.")
+        ReplayCaptureController.L.d("Found Compose SemanticsNode root. Parsing Compose tree.")
         return rootNode.toScannableView()
     }
 

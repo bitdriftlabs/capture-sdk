@@ -19,7 +19,7 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.replay.ReplayLogger
-import io.bitdrift.capture.replay.ReplayManager
+import io.bitdrift.capture.replay.ReplayCaptureController
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
@@ -36,7 +36,7 @@ internal class SessionReplayTarget(
     //  `sessionReplayTarget` argument is moved from logger creation time to logger start time.
     //  Refer to TODO in `LoggerImpl` for more details.
     internal var runtime: Runtime? = null
-    private val replayManager: ReplayManager = ReplayManager(
+    private val replayCaptureController: ReplayCaptureController = ReplayCaptureController(
         errorHandler,
         this,
         configuration,
@@ -49,7 +49,7 @@ internal class SessionReplayTarget(
             runtime?.isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)
                 ?: RuntimeFeature.SESSION_REPLAY_COMPOSE.defaultValue
             )
-        replayManager.captureScreen(skipReplayComposeViews)
+        replayCaptureController.captureScreen(skipReplayComposeViews)
     }
 
     override fun captureScreenshot() {

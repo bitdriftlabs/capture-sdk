@@ -14,7 +14,7 @@ import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.replay.internal.DisplayManagers
 import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
-import io.bitdrift.capture.replay.internal.ReplayCapture
+import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -44,12 +44,12 @@ class ReplayPreviewClient(
     port: Int = 3001,
 ) : ReplayLogger {
 
-    private val replayCapture: ReplayCapture
+    private val replayCaptureEngine: ReplayCaptureEngine
 
     init {
         val displayManager = DisplayManagers()
         displayManager.init(context)
-        replayCapture = ReplayCapture(sessionReplayConfiguration, errorHandler, displayManager)
+        replayCaptureEngine = ReplayCaptureEngine(sessionReplayConfiguration, errorHandler, displayManager)
     }
 
     private val executor: ExecutorService = Executors.newSingleThreadExecutor {
@@ -81,7 +81,7 @@ class ReplayPreviewClient(
      * Capture the screen and send it over the websocket connection after processing
      */
     fun captureScreen() {
-        replayCapture.captureScreen(executor, skipReplayComposeViews = false) { encodedScreen, screen, metrics ->
+        replayCaptureEngine.captureScreen(executor, skipReplayComposeViews = false) { encodedScreen, screen, metrics ->
             logger.onScreenCaptured(encodedScreen, screen, metrics)
         }
     }

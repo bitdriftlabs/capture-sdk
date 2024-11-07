@@ -11,8 +11,9 @@ import android.content.Context
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.internal.DisplayManagers
-import io.bitdrift.capture.replay.internal.ReplayCapture
-import io.bitdrift.capture.replay.internal.ReplayCaptureController
+import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
 
 /**
  * Sets up and controls the replay feature
@@ -21,21 +22,23 @@ import io.bitdrift.capture.replay.internal.ReplayCaptureController
  * @param sessionReplayConfiguration the configuration to use
  * @param runtime allows for the feature to be remotely disabled
  */
-class ReplayManager(
+class ReplayCaptureController(
     private val errorHandler: ErrorHandler,
-    logger: ReplayLogger,
+    private val logger: ReplayLogger,
     private val sessionReplayConfiguration: SessionReplayConfiguration,
     context: Context,
-    mainThreadHandler: MainThreadHandler = MainThreadHandler(),
+    private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
+    private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor {
+        Thread(it, "io.bitdrift.capture.session-replay")
+    },
 ) {
-    private val replayCaptureController: ReplayCaptureController
+    private val replayCaptureEngine: ReplayCaptureEngine
 
     init {
         L.logger = logger
         val displayManager = DisplayManagers()
         displayManager.init(context)
-        val replayCapture = ReplayCapture(sessionReplayConfiguration, errorHandler, displayManager)
-        replayCaptureController = ReplayCaptureController(replayCapture, logger, mainThreadHandler)
+        replayCaptureEngine = ReplayCaptureEngine(sessionReplayConfiguration, errorHandler, displayManager)
     }
 
     /**
@@ -43,7 +46,11 @@ class ReplayManager(
      * at initialization time.
      */
     fun captureScreen(skipReplayComposeViews: Boolean) {
-        replayCaptureController.captureScreen(skipReplayComposeViews)
+        mainThreadHandler.run {
+            replayCaptureEngine.captureScreen(executor, skipReplayComposeViews) { byteArray, screen, metrics ->
+                logger.onScreenCaptured(byteArray, screen, metrics)
+            }
+        }
     }
 
     internal object L {
