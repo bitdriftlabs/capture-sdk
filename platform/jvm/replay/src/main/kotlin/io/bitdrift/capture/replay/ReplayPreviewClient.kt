@@ -44,13 +44,7 @@ class ReplayPreviewClient(
     port: Int = 3001,
 ) : ReplayLogger {
 
-    private val replayCaptureEngine: ReplayCaptureEngine
-
-    init {
-        val displayManager = DisplayManagers()
-        displayManager.init(context)
-        replayCaptureEngine = ReplayCaptureEngine(sessionReplayConfiguration, errorHandler, displayManager)
-    }
+    private val replayCaptureEngine: ReplayCaptureEngine = ReplayCaptureEngine(sessionReplayConfiguration, errorHandler, context)
 
     private val executor: ExecutorService = Executors.newSingleThreadExecutor {
         Thread(it, "io.bitdrift.capture.session-replay-client")

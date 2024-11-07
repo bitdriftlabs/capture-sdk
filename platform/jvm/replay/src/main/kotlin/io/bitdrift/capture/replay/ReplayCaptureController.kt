@@ -36,9 +36,7 @@ class ReplayCaptureController(
 
     init {
         L.logger = logger
-        val displayManager = DisplayManagers()
-        displayManager.init(context)
-        replayCaptureEngine = ReplayCaptureEngine(sessionReplayConfiguration, errorHandler, displayManager)
+        replayCaptureEngine = ReplayCaptureEngine(sessionReplayConfiguration, errorHandler, context)
     }
 
     /**

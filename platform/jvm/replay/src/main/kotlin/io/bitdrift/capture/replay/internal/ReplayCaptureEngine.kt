@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.replay.internal
 
+import android.content.Context
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IClock
@@ -19,7 +20,8 @@ import kotlin.time.measureTimedValue
 internal class ReplayCaptureEngine(
     sessionReplayConfiguration: SessionReplayConfiguration,
     errorHandler: ErrorHandler,
-    displayManager: DisplayManagers,
+    context: Context,
+    displayManager: DisplayManagers = DisplayManagers(context),
     private val captureParser: ReplayParser = ReplayParser(sessionReplayConfiguration, errorHandler),
     private val captureFilter: ReplayFilter = ReplayFilter(),
     private val captureDecorations: ReplayDecorations = ReplayDecorations(errorHandler, displayManager),
