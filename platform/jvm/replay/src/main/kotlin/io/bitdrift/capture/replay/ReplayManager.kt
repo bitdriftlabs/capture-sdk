@@ -21,22 +21,20 @@ import io.bitdrift.capture.replay.internal.ReplayCaptureController
  * @param sessionReplayConfiguration the configuration to use
  * @param runtime allows for the feature to be remotely disabled
  */
-class ReplayModule(
-    internal val errorHandler: ErrorHandler,
-    internal val logger: ReplayLogger,
-    internal val sessionReplayConfiguration: SessionReplayConfiguration,
+class ReplayManager(
+    private val errorHandler: ErrorHandler,
+    logger: ReplayLogger,
+    private val sessionReplayConfiguration: SessionReplayConfiguration,
     context: Context,
     mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) {
-    internal val displayManager: DisplayManagers
-    private val replayCapture: ReplayCapture
     private val replayCaptureController: ReplayCaptureController
 
     init {
         L.logger = logger
-        displayManager = DisplayManagers()
+        val displayManager = DisplayManagers()
         displayManager.init(context)
-        replayCapture = ReplayCapture(sessionReplayConfiguration, errorHandler, displayManager)
+        val replayCapture = ReplayCapture(sessionReplayConfiguration, errorHandler, displayManager)
         replayCaptureController = ReplayCaptureController(replayCapture, logger, mainThreadHandler)
     }
 

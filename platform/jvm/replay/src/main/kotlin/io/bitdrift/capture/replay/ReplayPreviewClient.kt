@@ -7,8 +7,11 @@
 
 package io.bitdrift.capture.replay
 
+import android.content.Context
 import android.util.Base64
 import android.util.Log
+import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.replay.internal.DisplayManagers
 import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import io.bitdrift.capture.replay.internal.ReplayCapture
@@ -25,20 +28,30 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Allows to capture the screen and send the binary data over a persistent websocket connection
- * @param replayModule The replay module to use for screen capture
+ * @param replayManager The replay module to use for screen capture
  * @param context The context of the app to capture
  * @param protocol The protocol to use for the websocket connection (default is ws)
  * @param host The host to connect to (default is Android's emulator loopback IP: 10.0.2.2)
  * @param port The port to connect to (default is 3001)
  */
 class ReplayPreviewClient(
-    private val replayModule: ReplayModule, // TODO(murki): [Replay] Refactor to not expose this
+    errorHandler: ErrorHandler,
+    private val logger: ReplayLogger,
+    sessionReplayConfiguration: SessionReplayConfiguration,
+    context: Context,
     protocol: String = "ws",
     host: String = "10.0.2.2",
     port: Int = 3001,
 ) : ReplayLogger {
 
-    private val replayCapture: ReplayCapture = ReplayCapture(replayModule.sessionReplayConfiguration, replayModule.errorHandler, replayModule.displayManager)
+    private val replayCapture: ReplayCapture
+
+    init {
+        val displayManager = DisplayManagers()
+        displayManager.init(context)
+        replayCapture = ReplayCapture(sessionReplayConfiguration, errorHandler, displayManager)
+    }
+
     private val executor: ExecutorService = Executors.newSingleThreadExecutor {
         Thread(it, "io.bitdrift.capture.session-replay-client")
     }
@@ -69,7 +82,7 @@ class ReplayPreviewClient(
      */
     fun captureScreen() {
         replayCapture.captureScreen(executor, skipReplayComposeViews = false) { encodedScreen, screen, metrics ->
-            replayModule.logger.onScreenCaptured(encodedScreen, screen, metrics)
+            logger.onScreenCaptured(encodedScreen, screen, metrics)
         }
     }
 
@@ -89,19 +102,19 @@ class ReplayPreviewClient(
         lastEncodedScreen = encodedScreen
         webSocket?.send(encodedScreen.toByteString(0, encodedScreen.size))
         // forward the callback to the module's logger
-        replayModule.logger.onScreenCaptured(encodedScreen, screen, metrics)
+        logger.onScreenCaptured(encodedScreen, screen, metrics)
     }
 
     override fun logVerboseInternal(message: String, fields: Map<String, String>?) {
-        replayModule.logger.logVerboseInternal(message, fields)
+        logger.logVerboseInternal(message, fields)
     }
 
     override fun logDebugInternal(message: String, fields: Map<String, String>?) {
-        replayModule.logger.logDebugInternal(message, fields)
+        logger.logDebugInternal(message, fields)
     }
 
     override fun logErrorInternal(message: String, e: Throwable?, fields: Map<String, String>?) {
-        replayModule.logger.logErrorInternal(message, e, fields)
+        logger.logErrorInternal(message, e, fields)
     }
 
     private object WebSocketLogger : WebSocketListener() {

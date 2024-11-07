@@ -52,7 +52,7 @@ import kotlin.time.toDuration
 class MainActivity : ComponentActivity() {
 
     private val replayPreviewClient: ReplayPreviewClient by lazy {
-        ReplayPreviewClient(ReplayModule(
+        ReplayPreviewClient(
             object: ErrorHandler {
                 override fun handleError(detail: String, e: Throwable?) {
                     Log.e("HelloWorldApp", "Replay handleError: $detail $e")
@@ -83,7 +83,7 @@ class MainActivity : ComponentActivity() {
             },
             SessionReplayConfiguration(),
             this.applicationContext
-        ))
+        )
     }
     private lateinit var clipboardManager: ClipboardManager
     private lateinit var client: OkHttpClient

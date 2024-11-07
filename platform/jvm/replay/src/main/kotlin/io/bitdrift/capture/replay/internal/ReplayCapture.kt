@@ -10,7 +10,7 @@ package io.bitdrift.capture.replay.internal
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IClock
-import io.bitdrift.capture.replay.ReplayModule
+import io.bitdrift.capture.replay.ReplayManager
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import java.util.concurrent.ExecutorService
 import kotlin.time.measureTimedValue
@@ -46,7 +46,7 @@ internal class ReplayCapture(
                 val screen = captureDecorations.addDecorations(filteredCapture)
                 val encodedScreen = replayEncoder.encode(screen)
                 encodedScreenMetrics.captureTimeMs = clock.elapsedRealtime() - startTime
-                ReplayModule.L.d("Screen Captured: $encodedScreenMetrics")
+                ReplayManager.L.d("Screen Captured: $encodedScreenMetrics")
                 completion(encodedScreen, screen, encodedScreenMetrics)
             }
         }
