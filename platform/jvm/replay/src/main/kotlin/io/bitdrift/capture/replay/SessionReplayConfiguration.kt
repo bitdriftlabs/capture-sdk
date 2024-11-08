@@ -8,9 +8,10 @@
 package io.bitdrift.capture.replay
 
 /**
- * A configuration used to configure Bitdrift session replay feature.
- * @param replayMapperConfiguration Map used to matching third party Android views to Bitdrift view types.
+ * A configuration used to configure bitdrift session replay feature.
+ *
+ * @param categorizers Map used to matching third party Android views to bitdrift view types.
  */
 data class SessionReplayConfiguration @JvmOverloads constructor(
-    val replayMapperConfiguration: ReplayMapperConfiguration? = null,
+    val categorizers: Map<ReplayType, List<String>>? = null,
 )
