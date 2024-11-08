@@ -12,7 +12,7 @@ import io.bitdrift.capture.replay.ReplayType
 
 internal class ViewMapperConfiguration(
     private val externalMapper: Map<ReplayType, List<String>>? =
-        ReplayModule.replayDependencies.sessionReplayConfiguration.replayMapperConfiguration?.customMapper,
+        ReplayModule.replayDependencies.sessionReplayConfiguration.categorizers,
 ) {
 
     /**
