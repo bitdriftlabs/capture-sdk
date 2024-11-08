@@ -37,18 +37,15 @@ import java.util.concurrent.TimeUnit
 class ReplayPreviewClient(
     errorHandler: ErrorHandler,
     private val logger: ReplayLogger,
-    sessionReplayConfiguration: SessionReplayConfiguration,
     context: Context,
+    sessionReplayConfiguration: SessionReplayConfiguration = SessionReplayConfiguration(),
     protocol: String = "ws",
     host: String = "10.0.2.2",
     port: Int = 3001,
 ) : ReplayLogger {
 
-    private val replayCaptureEngine: ReplayCaptureEngine = ReplayCaptureEngine(sessionReplayConfiguration, errorHandler, context)
+    private val replayCaptureEngine: ReplayCaptureEngine = ReplayCaptureEngine(sessionReplayConfiguration, errorHandler, context, logger = logger)
 
-    private val executor: ExecutorService = Executors.newSingleThreadExecutor {
-        Thread(it, "io.bitdrift.capture.session-replay-client")
-    }
     // Calling this is necessary to capture the display size
     private val client: OkHttpClient = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS)
@@ -75,9 +72,7 @@ class ReplayPreviewClient(
      * Capture the screen and send it over the websocket connection after processing
      */
     fun captureScreen() {
-        replayCaptureEngine.captureScreen(executor, skipReplayComposeViews = false) { encodedScreen, screen, metrics ->
-            logger.onScreenCaptured(encodedScreen, screen, metrics)
-        }
+        replayCaptureEngine.captureScreen(skipReplayComposeViews = false)
     }
 
     /**

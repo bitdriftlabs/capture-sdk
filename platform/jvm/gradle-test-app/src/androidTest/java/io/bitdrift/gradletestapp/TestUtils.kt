@@ -67,7 +67,6 @@ object TestUtils {
                     Log.e("Replay Tests", message, e)
                 }
             },
-            SessionReplayConfiguration(),
             context,
         )
     }

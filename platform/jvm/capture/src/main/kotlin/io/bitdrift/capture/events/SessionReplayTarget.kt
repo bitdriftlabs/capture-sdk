@@ -13,13 +13,12 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.replay.ReplayLogger
 import io.bitdrift.capture.replay.ReplayCaptureController
+import io.bitdrift.capture.replay.ReplayLogger
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
@@ -30,7 +29,6 @@ internal class SessionReplayTarget(
     errorHandler: ErrorHandler,
     context: Context,
     private val logger: LoggerImpl,
-    mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) : ISessionReplayTarget, ReplayLogger {
     // TODO(Augustyniak): Make non nullable and pass at initialization time after
     //  `sessionReplayTarget` argument is moved from logger creation time to logger start time.
@@ -41,7 +39,6 @@ internal class SessionReplayTarget(
         this,
         configuration,
         context,
-        mainThreadHandler,
     )
 
     override fun captureScreen() {

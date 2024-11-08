@@ -11,9 +11,13 @@ import android.content.Context
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IClock
+import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.ReplayCaptureController
+import io.bitdrift.capture.replay.ReplayLogger
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
 import kotlin.time.measureTimedValue
 
 // This is the main logic for capturing a screen
@@ -27,10 +31,22 @@ internal class ReplayCaptureEngine(
     private val captureDecorations: ReplayDecorations = ReplayDecorations(errorHandler, displayManager),
     private val replayEncoder: ReplayEncoder = ReplayEncoder(),
     private val clock: IClock = DefaultClock.getInstance(),
+    private val logger: ReplayLogger,
+    private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
+    private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor {
+        Thread(it, "io.bitdrift.capture.session-replay")
+    },
 ) {
 
+    fun captureScreen(skipReplayComposeViews: Boolean) {
+        mainThreadHandler.run {
+            captureScreen(skipReplayComposeViews) { byteArray, screen, metrics ->
+                logger.onScreenCaptured(byteArray, screen, metrics)
+            }
+        }
+    }
+
     fun captureScreen(
-        executor: ExecutorService,
         skipReplayComposeViews: Boolean,
         completion: (encodedScreen: ByteArray, screen: FilteredCapture, metrics: EncodedScreenMetrics) -> Unit,
     ) {

@@ -23,20 +23,16 @@ import java.util.concurrent.ScheduledExecutorService
  * @param runtime allows for the feature to be remotely disabled
  */
 class ReplayCaptureController(
-    private val errorHandler: ErrorHandler,
-    private val logger: ReplayLogger,
-    private val sessionReplayConfiguration: SessionReplayConfiguration,
-    context: Context,
-    private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
-    private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor {
-        Thread(it, "io.bitdrift.capture.session-replay")
-    },
+    errorHandler: ErrorHandler,
+    logger: ReplayLogger,
+    sessionReplayConfiguration: SessionReplayConfiguration,
+    context: Context
 ) {
     private val replayCaptureEngine: ReplayCaptureEngine
 
     init {
         L.logger = logger
-        replayCaptureEngine = ReplayCaptureEngine(sessionReplayConfiguration, errorHandler, context)
+        replayCaptureEngine = ReplayCaptureEngine(sessionReplayConfiguration, errorHandler, context, logger = logger)
     }
 
     /**
@@ -44,11 +40,7 @@ class ReplayCaptureController(
      * at initialization time.
      */
     fun captureScreen(skipReplayComposeViews: Boolean) {
-        mainThreadHandler.run {
-            replayCaptureEngine.captureScreen(executor, skipReplayComposeViews) { byteArray, screen, metrics ->
-                logger.onScreenCaptured(byteArray, screen, metrics)
-            }
-        }
+        replayCaptureEngine.captureScreen(skipReplayComposeViews)
     }
 
     internal object L {
