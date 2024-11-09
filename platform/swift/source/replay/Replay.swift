@@ -13,7 +13,7 @@ private let kIgnoredWindows = Set(["UIRemoteKeyboardWindow"])
 
 /// Main replay logic. This class can traverse UIWindow(s) as well as serialize view informations into a
 /// byte array.
-final class Replay {
+package final class Replay {
     /// The last known rendering time, expressed in seconds.
     private(set) var renderTime: CFAbsoluteTime = 0
 

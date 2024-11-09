@@ -1,5 +1,5 @@
 {
-  "checksum": "8e12f14f3055dd3d3e4331da75a9e55205aa5aa667a2895d65dfcbaad5dee4d5",
+  "checksum": "41d9fc098a3ae0a57e4991372f0c5bea2b2f25ddb44a0ad13a704504cbc4fb1b",
   "crates": {
     "addr2line 0.24.2": {
       "name": "addr2line",
@@ -417,14 +417,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "anyhow 1.0.90": {
+    "anyhow 1.0.93": {
       "name": "anyhow",
-      "version": "1.0.90",
+      "version": "1.0.93",
       "package_url": "https://github.com/dtolnay/anyhow",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/anyhow/1.0.90/download",
-          "sha256": "37bf3594c4c988a53154954629820791dde498571819ae4ca50ca811e060cc95"
+          "url": "https://static.crates.io/crates/anyhow/1.0.93/download",
+          "sha256": "4c95c10ba0b00a02636238b814946408b1322d5ac4760326e6fb8ec956d85775"
         }
       },
       "targets": [
@@ -468,14 +468,14 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "build_script_build"
             }
           ],
           "selects": {}
         },
         "edition": "2018",
-        "version": "1.0.90"
+        "version": "1.0.93"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -610,7 +610,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.82",
+              "id": "syn 2.0.87",
               "target": "syn"
             }
           ],
@@ -780,7 +780,7 @@
               "target": "hyper"
             },
             {
-              "id": "hyper-util 0.1.9",
+              "id": "hyper-util 0.1.10",
               "target": "hyper_util"
             },
             {
@@ -1050,7 +1050,7 @@
               "target": "hyper"
             },
             {
-              "id": "hyper-util 0.1.9",
+              "id": "hyper-util 0.1.10",
               "target": "hyper_util"
             },
             {
@@ -1337,7 +1337,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-api"
         }
@@ -1364,7 +1364,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -1474,7 +1474,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-buffer"
         }
@@ -1501,7 +1501,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -1561,7 +1561,7 @@
               "target": "static_assertions"
             },
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             },
             {
@@ -1603,7 +1603,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-client-common"
         }
@@ -1630,7 +1630,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -1674,7 +1674,7 @@
               "target": "protobuf"
             },
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             },
             {
@@ -1707,7 +1707,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-client-stats"
         }
@@ -1734,7 +1734,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -1824,7 +1824,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-client-stats-store"
         }
@@ -1871,7 +1871,7 @@
               "target": "sketches_rust"
             },
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             },
             {
@@ -1896,7 +1896,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-completion"
         }
@@ -1923,7 +1923,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -1952,7 +1952,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-device"
         }
@@ -1979,7 +1979,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -2036,7 +2036,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-events"
         }
@@ -2105,7 +2105,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-grpc"
         }
@@ -2144,8 +2144,12 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
+            },
+            {
+              "id": "assert_matches 1.5.0",
+              "target": "assert_matches"
             },
             {
               "id": "axum 0.7.7",
@@ -2212,7 +2216,7 @@
               "target": "hyper"
             },
             {
-              "id": "hyper-util 0.1.9",
+              "id": "hyper-util 0.1.10",
               "target": "hyper_util"
             },
             {
@@ -2232,7 +2236,7 @@
               "target": "snap"
             },
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             },
             {
@@ -2309,7 +2313,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-grpc-codec"
         }
@@ -2343,7 +2347,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -2371,7 +2375,7 @@
               "target": "protobuf"
             },
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             }
           ],
@@ -2392,7 +2396,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-hyper-network"
         }
@@ -2426,7 +2430,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -2466,7 +2470,7 @@
               "target": "hyper_rustls"
             },
             {
-              "id": "hyper-util 0.1.9",
+              "id": "hyper-util 0.1.10",
               "target": "hyper_util"
             },
             {
@@ -2508,7 +2512,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-internal-logging"
         }
@@ -2535,7 +2539,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -2572,7 +2576,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-key-value"
         }
@@ -2599,7 +2603,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -2648,7 +2652,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-log"
         }
@@ -2675,7 +2679,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -2732,7 +2736,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-log-filter"
         }
@@ -2759,7 +2763,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -2787,7 +2791,7 @@
               "target": "log"
             },
             {
-              "id": "regex 1.11.0",
+              "id": "regex 1.11.1",
               "target": "regex"
             },
             {
@@ -2812,7 +2816,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-log-matcher"
         }
@@ -2839,7 +2843,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -2863,7 +2867,7 @@
               "target": "protobuf"
             },
             {
-              "id": "regex 1.11.0",
+              "id": "regex 1.11.1",
               "target": "regex"
             }
           ],
@@ -2884,7 +2888,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-log-metadata"
         }
@@ -2911,7 +2915,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -2940,7 +2944,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-log-primitives"
         }
@@ -2967,7 +2971,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -2996,7 +3000,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-logger"
         }
@@ -3023,7 +3027,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -3163,7 +3167,7 @@
               "target": "serde"
             },
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             },
             {
@@ -3213,7 +3217,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-matcher"
         }
@@ -3240,7 +3244,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -3256,11 +3260,11 @@
               "target": "protobuf"
             },
             {
-              "id": "regex 1.11.0",
+              "id": "regex 1.11.1",
               "target": "regex"
             },
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             }
           ],
@@ -3281,7 +3285,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-metadata"
         }
@@ -3308,7 +3312,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -3357,7 +3361,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-network-quality"
         }
@@ -3396,7 +3400,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-noop-network"
         }
@@ -3423,7 +3427,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -3461,7 +3465,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-pgv"
         }
@@ -3512,7 +3516,7 @@
               "target": "protobuf"
             },
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             }
           ],
@@ -3556,7 +3560,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-proto"
         }
@@ -3659,7 +3663,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-resource-utilization"
         }
@@ -3686,7 +3690,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -3740,7 +3744,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-runtime"
         }
@@ -3767,7 +3771,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -3812,7 +3816,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-server-stats"
         }
@@ -3871,11 +3875,11 @@
               "target": "prometheus"
             },
             {
-              "id": "regex 1.11.0",
+              "id": "regex 1.11.1",
               "target": "regex"
             },
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             },
             {
@@ -3904,7 +3908,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-session"
         }
@@ -3931,7 +3935,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -4000,7 +4004,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-session-replay"
         }
@@ -4027,7 +4031,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -4105,7 +4109,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-shutdown"
         }
@@ -4157,7 +4161,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-stats-common"
         }
@@ -4196,7 +4200,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-test-helpers"
         }
@@ -4223,7 +4227,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -4361,7 +4365,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-time"
         }
@@ -4434,7 +4438,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "1db88011bfc5c1f7c1888b6a95db8c3d82bc9013"
+            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
           },
           "strip_prefix": "bd-workflows"
         }
@@ -4461,7 +4465,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -4533,7 +4537,7 @@
               "target": "protobuf"
             },
             {
-              "id": "regex 1.11.0",
+              "id": "regex 1.11.1",
               "target": "regex"
             },
             {
@@ -4545,7 +4549,7 @@
               "target": "sha2"
             },
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             },
             {
@@ -4958,7 +4962,7 @@
               "target": "android_logger"
             },
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -6122,7 +6126,7 @@
               "target": "rayon"
             },
             {
-              "id": "regex 1.11.0",
+              "id": "regex 1.11.1",
               "target": "regex"
             },
             {
@@ -6565,7 +6569,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.82",
+              "id": "syn 2.0.87",
               "target": "syn"
             }
           ],
@@ -7800,7 +7804,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.82",
+              "id": "syn 2.0.87",
               "target": "syn"
             }
           ],
@@ -9013,7 +9017,7 @@
               "target": "hyper"
             },
             {
-              "id": "hyper-util 0.1.9",
+              "id": "hyper-util 0.1.10",
               "target": "hyper_util"
             },
             {
@@ -9055,14 +9059,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "hyper-util 0.1.9": {
+    "hyper-util 0.1.10": {
       "name": "hyper-util",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "package_url": "https://github.com/hyperium/hyper-util",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/hyper-util/0.1.9/download",
-          "sha256": "41296eb09f183ac68eec06e03cdbea2e759633d4067b2f6552fc2e009bcad08b"
+          "url": "https://static.crates.io/crates/hyper-util/0.1.10/download",
+          "sha256": "df2dcfbe0677734ab2f3ffa7fa7bfd4706bfdc1ef393f2ee30184aed67e631b4"
         }
       },
       "targets": [
@@ -9148,7 +9152,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.1.9"
+        "version": "0.1.10"
       },
       "license": "MIT",
       "license_ids": [
@@ -9748,7 +9752,7 @@
               "target": "log"
             },
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             }
           ],
@@ -11599,7 +11603,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.82",
+              "id": "syn 2.0.87",
               "target": "syn"
             }
           ],
@@ -11771,7 +11775,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -11815,7 +11819,7 @@
               "target": "build_script_build"
             },
             {
-              "id": "regex 1.11.0",
+              "id": "regex 1.11.1",
               "target": "regex"
             },
             {
@@ -11880,7 +11884,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -12429,7 +12433,7 @@
               "target": "build_script_build"
             },
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             }
           ],
@@ -12554,7 +12558,7 @@
               "target": "protobuf_support"
             },
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             }
           ],
@@ -12612,7 +12616,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -12628,7 +12632,7 @@
               "target": "protobuf_parse"
             },
             {
-              "id": "regex 1.11.0",
+              "id": "regex 1.11.1",
               "target": "regex"
             },
             {
@@ -12636,7 +12640,7 @@
               "target": "tempfile"
             },
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             }
           ],
@@ -12686,7 +12690,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -12710,7 +12714,7 @@
               "target": "tempfile"
             },
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             },
             {
@@ -12764,7 +12768,7 @@
         "deps": {
           "common": [
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             }
           ],
@@ -13685,14 +13689,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "regex 1.11.0": {
+    "regex 1.11.1": {
       "name": "regex",
-      "version": "1.11.0",
+      "version": "1.11.1",
       "package_url": "https://github.com/rust-lang/regex",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/regex/1.11.0/download",
-          "sha256": "38200e5ee88914975b69f657f0801b6f6dccafd44fd9326302a4aaeecfacb1d8"
+          "url": "https://static.crates.io/crates/regex/1.11.1/download",
+          "sha256": "b544ef1b4eac5dc2db33ea63606ae9ffcfac26c1416a2806ae0bf5f56b201191"
         }
       },
       "targets": [
@@ -13758,7 +13762,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "1.11.0"
+        "version": "1.11.1"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -15057,7 +15061,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.82",
+              "id": "syn 2.0.87",
               "target": "syn"
             }
           ],
@@ -15618,7 +15622,7 @@
         "deps": {
           "common": [
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "thiserror"
             }
           ],
@@ -16039,7 +16043,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -16142,14 +16146,14 @@
       "license_ids": [],
       "license_file": "LICENSE"
     },
-    "syn 2.0.82": {
+    "syn 2.0.87": {
       "name": "syn",
-      "version": "2.0.82",
+      "version": "2.0.87",
       "package_url": "https://github.com/dtolnay/syn",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/syn/2.0.82/download",
-          "sha256": "83540f837a8afc019423a8edb95b52a8effe46957ee402287f4292fae35be021"
+          "url": "https://static.crates.io/crates/syn/2.0.87/download",
+          "sha256": "25aa4ce346d03a6dcd68dd8b4010bcb74e54e62c90c573f394c46eae99aba32d"
         }
       },
       "targets": [
@@ -16204,7 +16208,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "2.0.82"
+        "version": "2.0.87"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -16437,7 +16441,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.90",
+              "id": "anyhow 1.0.93",
               "target": "anyhow"
             },
             {
@@ -16576,14 +16580,14 @@
       "license_ids": [],
       "license_file": "LICENSE"
     },
-    "thiserror 1.0.64": {
+    "thiserror 1.0.68": {
       "name": "thiserror",
-      "version": "1.0.64",
+      "version": "1.0.68",
       "package_url": "https://github.com/dtolnay/thiserror",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/thiserror/1.0.64/download",
-          "sha256": "d50af8abc119fb8bb6dbabcfa89656f46f84aa0ac7688088608076ad2b459a84"
+          "url": "https://static.crates.io/crates/thiserror/1.0.68/download",
+          "sha256": "02dd99dc800bbb97186339685293e1cc5d9df1f8fae2d0aecd9ff1c77efea892"
         }
       },
       "targets": [
@@ -16620,7 +16624,7 @@
         "deps": {
           "common": [
             {
-              "id": "thiserror 1.0.64",
+              "id": "thiserror 1.0.68",
               "target": "build_script_build"
             }
           ],
@@ -16630,13 +16634,13 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "thiserror-impl 1.0.64",
+              "id": "thiserror-impl 1.0.68",
               "target": "thiserror_impl"
             }
           ],
           "selects": {}
         },
-        "version": "1.0.64"
+        "version": "1.0.68"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -16653,14 +16657,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "thiserror-impl 1.0.64": {
+    "thiserror-impl 1.0.68": {
       "name": "thiserror-impl",
-      "version": "1.0.64",
+      "version": "1.0.68",
       "package_url": "https://github.com/dtolnay/thiserror",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/thiserror-impl/1.0.64/download",
-          "sha256": "08904e7672f5eb876eaaf87e0ce17857500934f4981c4a0ab2b4aa98baac7fc3"
+          "url": "https://static.crates.io/crates/thiserror-impl/1.0.68/download",
+          "sha256": "a7c61ec9a6f64d2793d8a45faba21efbe3ced62a886d44c36a009b2b519b4c7e"
         }
       },
       "targets": [
@@ -16693,14 +16697,14 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.82",
+              "id": "syn 2.0.87",
               "target": "syn"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "1.0.64"
+        "version": "1.0.68"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -17549,7 +17553,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.82",
+              "id": "syn 2.0.87",
               "target": "syn"
             }
           ],
@@ -18120,7 +18124,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.82",
+              "id": "syn 2.0.87",
               "target": "syn"
             }
           ],
@@ -18376,7 +18380,7 @@
               "target": "once_cell"
             },
             {
-              "id": "regex 1.11.0",
+              "id": "regex 1.11.1",
               "target": "regex"
             },
             {
@@ -19223,7 +19227,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.82",
+              "id": "syn 2.0.87",
               "target": "syn"
             },
             {
@@ -19351,7 +19355,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.82",
+              "id": "syn 2.0.87",
               "target": "syn"
             },
             {
@@ -21532,7 +21536,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.82",
+              "id": "syn 2.0.87",
               "target": "syn"
             }
           ],
@@ -22033,7 +22037,7 @@
   },
   "direct_deps": [
     "android_logger 0.14.1",
-    "anyhow 1.0.90",
+    "anyhow 1.0.93",
     "assert_matches 1.5.0",
     "async-trait 0.1.83",
     "bd-api 1.0.0",
@@ -22062,7 +22066,7 @@
     "objc-foundation 0.1.1",
     "parking_lot 0.12.3",
     "protobuf 4.0.0-alpha.0",
-    "regex 1.11.0",
+    "regex 1.11.1",
     "serde 1.0.211",
     "serde_json 1.0.132",
     "simple-xml 0.1.10",

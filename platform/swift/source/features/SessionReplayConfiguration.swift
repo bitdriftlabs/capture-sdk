@@ -13,9 +13,7 @@ public struct SessionReplayConfiguration {
 
     /// Initializes a new session replay configuration.
     ///
-    /// - parameter categorizers: A mapping that provides additional instructions on how views implemented
-    ///                           with specific class names should be represented in session replay
-    ///                           capture visualizations.
+    /// - parameter categorizers: Map used to match third-party views to bitdrift session replay view types.
     public init(categorizers: [String: AnnotatedView] = [:]) {
         self.categorizers = categorizers
     }
