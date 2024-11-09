@@ -24,13 +24,13 @@ internal class ReplayCaptureEngine(
     sessionReplayConfiguration: SessionReplayConfiguration,
     errorHandler: ErrorHandler,
     context: Context,
+    private val logger: ReplayLogger,
     displayManager: DisplayManagers = DisplayManagers(context),
     private val captureParser: ReplayParser = ReplayParser(sessionReplayConfiguration, errorHandler),
     private val captureFilter: ReplayFilter = ReplayFilter(),
     private val captureDecorations: ReplayDecorations = ReplayDecorations(errorHandler, displayManager),
     private val replayEncoder: ReplayEncoder = ReplayEncoder(),
     private val clock: IClock = DefaultClock.getInstance(),
-    private val logger: ReplayLogger,
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
     private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor {
         Thread(it, "io.bitdrift.capture.session-replay")

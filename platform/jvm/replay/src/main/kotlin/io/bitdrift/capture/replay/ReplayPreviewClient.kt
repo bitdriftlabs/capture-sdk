@@ -41,7 +41,12 @@ class ReplayPreviewClient(
     port: Int = 3001,
 ) : ReplayLogger {
 
-    private val replayCaptureEngine: ReplayCaptureEngine = ReplayCaptureEngine(sessionReplayConfiguration, errorHandler, context, logger = logger)
+    private val replayCaptureEngine: ReplayCaptureEngine = ReplayCaptureEngine(
+        sessionReplayConfiguration,
+        errorHandler,
+        context,
+        logger,
+    )
 
     // Calling this is necessary to capture the display size
     private val client: OkHttpClient = OkHttpClient.Builder()

@@ -34,7 +34,10 @@ internal object ComposeTreeParser {
         val semanticsOwner = if (androidComposeView is AndroidComposeView) {
             androidComposeView.semanticsOwner
         } else {
-            ReplayCaptureController.L.e(null, "View passed to ComposeTreeParser.parse() is not an AndroidComposeView. view=${androidComposeView.javaClass.name}")
+            ReplayCaptureController.L.e(
+                null,
+                "View passed to ComposeTreeParser.parse() is not an AndroidComposeView. view=${androidComposeView.javaClass.name}",
+            )
             return ScannableView.IgnoredComposeView
         }
         val rootNode = semanticsOwner.unmergedRootSemanticsNode

@@ -28,7 +28,12 @@ class ReplayCaptureController(
 
     init {
         L.logger = logger
-        replayCaptureEngine = ReplayCaptureEngine(sessionReplayConfiguration, errorHandler, context, logger = logger)
+        replayCaptureEngine = ReplayCaptureEngine(
+            sessionReplayConfiguration,
+            errorHandler,
+            context,
+            logger,
+        )
     }
 
     /**
