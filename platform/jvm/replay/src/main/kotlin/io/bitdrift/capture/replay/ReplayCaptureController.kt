@@ -9,6 +9,7 @@ package io.bitdrift.capture.replay
 
 import android.content.Context
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
 
 /**
@@ -23,6 +24,7 @@ class ReplayCaptureController(
     logger: ReplayLogger,
     sessionReplayConfiguration: SessionReplayConfiguration,
     context: Context,
+    mainThreadHandler: MainThreadHandler,
 ) {
     private val replayCaptureEngine: ReplayCaptureEngine
 
@@ -33,6 +35,7 @@ class ReplayCaptureController(
             errorHandler,
             context,
             logger,
+            mainThreadHandler,
         )
     }
 

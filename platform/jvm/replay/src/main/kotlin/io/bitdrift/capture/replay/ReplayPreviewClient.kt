@@ -11,6 +11,7 @@ import android.content.Context
 import android.util.Base64
 import android.util.Log
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
@@ -46,6 +47,7 @@ class ReplayPreviewClient(
         errorHandler,
         context,
         logger,
+        MainThreadHandler(),
     )
 
     // Calling this is necessary to capture the display size
