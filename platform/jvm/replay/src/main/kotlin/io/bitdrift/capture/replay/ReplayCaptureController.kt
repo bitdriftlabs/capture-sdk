@@ -9,11 +9,7 @@ package io.bitdrift.capture.replay
 
 import android.content.Context
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.common.MainThreadHandler
-import io.bitdrift.capture.replay.internal.DisplayManagers
 import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
 
 /**
  * Sets up and controls the replay feature
@@ -26,7 +22,7 @@ class ReplayCaptureController(
     errorHandler: ErrorHandler,
     logger: ReplayLogger,
     sessionReplayConfiguration: SessionReplayConfiguration,
-    context: Context
+    context: Context,
 ) {
     private val replayCaptureEngine: ReplayCaptureEngine
 

@@ -15,7 +15,6 @@ import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.ReplayCaptureController
 import io.bitdrift.capture.replay.ReplayLogger
 import io.bitdrift.capture.replay.SessionReplayConfiguration
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import kotlin.time.measureTimedValue

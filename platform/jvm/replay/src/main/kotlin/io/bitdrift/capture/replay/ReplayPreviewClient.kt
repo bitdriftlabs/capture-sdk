@@ -11,7 +11,6 @@ import android.content.Context
 import android.util.Base64
 import android.util.Log
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.replay.internal.DisplayManagers
 import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
@@ -22,8 +21,6 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
 import okio.ByteString.Companion.toByteString
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
