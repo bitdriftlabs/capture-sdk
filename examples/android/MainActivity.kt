@@ -33,7 +33,6 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.capture.replay.ReplayLogger
-import io.bitdrift.capture.replay.ReplayModule
 import io.bitdrift.capture.replay.ReplayPreviewClient
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
@@ -81,8 +80,8 @@ class MainActivity : ComponentActivity() {
                     Log.e("HelloWorldApp", message, e)
                 }
             },
+            this.applicationContext,
             SessionReplayConfiguration(),
-            this.applicationContext
         )
     }
     private lateinit var clipboardManager: ClipboardManager
