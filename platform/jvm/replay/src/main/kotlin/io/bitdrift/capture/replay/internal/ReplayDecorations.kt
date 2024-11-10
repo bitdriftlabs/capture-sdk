@@ -15,10 +15,9 @@ import io.bitdrift.capture.replay.ReplayType
 
 // Add the screen and keyboard layouts to the replay capture
 internal class ReplayDecorations(
-    errorHandler: ErrorHandler,
     private val displayManager: DisplayManagers,
+    private val windowManager: WindowManager,
 ) {
-    private val windowManager = WindowManager(errorHandler)
 
     fun addDecorations(filteredCapture: FilteredCapture): FilteredCapture {
         // Add screen size as the first element

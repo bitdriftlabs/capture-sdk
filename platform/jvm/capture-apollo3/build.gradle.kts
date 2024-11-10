@@ -57,7 +57,7 @@ dependencies {
     implementation(project(":capture"))
     implementation("com.apollographql.apollo3:apollo-runtime:3.8.3")
 
-    testImplementation("com.google.truth:truth:1.1.4")
+    testImplementation("com.google.truth:truth:1.4.4")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito.kotlin:mockito-kotlin:4.1.0") // last version with Java 8 support
 }

@@ -17,10 +17,9 @@ internal typealias Capture = List<List<ReplayRect>>
 internal class ReplayParser(
     sessionReplayConfiguration: SessionReplayConfiguration,
     private val errorHandler: ErrorHandler,
+    private val windowManager: WindowManager,
     private val viewMapper: ViewMapper = ViewMapper(sessionReplayConfiguration),
 ) {
-
-    private val windowManager = WindowManager(errorHandler)
 
     /**
      * Parses a ScannableView tree hierarchy into a list of ReplayRect

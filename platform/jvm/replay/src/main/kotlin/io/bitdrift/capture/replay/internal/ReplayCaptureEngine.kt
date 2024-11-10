@@ -7,13 +7,12 @@
 
 package io.bitdrift.capture.replay.internal
 
-import android.content.Context
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.ReplayCaptureController
-import io.bitdrift.capture.replay.ReplayLogger
+import io.bitdrift.capture.replay.IReplayLogger
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -23,13 +22,13 @@ import kotlin.time.measureTimedValue
 internal class ReplayCaptureEngine(
     sessionReplayConfiguration: SessionReplayConfiguration,
     errorHandler: ErrorHandler,
-    context: Context,
-    private val logger: ReplayLogger,
+    private val logger: IReplayLogger,
     private val mainThreadHandler: MainThreadHandler,
-    displayManager: DisplayManagers = DisplayManagers(context),
-    private val captureParser: ReplayParser = ReplayParser(sessionReplayConfiguration, errorHandler),
+    windowManager: WindowManager,
+    displayManager: DisplayManagers,
+    private val captureParser: ReplayParser = ReplayParser(sessionReplayConfiguration, errorHandler, windowManager),
     private val captureFilter: ReplayFilter = ReplayFilter(),
-    private val captureDecorations: ReplayDecorations = ReplayDecorations(errorHandler, displayManager),
+    private val captureDecorations: ReplayDecorations = ReplayDecorations(displayManager, windowManager),
     private val replayEncoder: ReplayEncoder = ReplayEncoder(),
     private val clock: IClock = DefaultClock.getInstance(),
     private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor {
@@ -45,7 +44,7 @@ internal class ReplayCaptureEngine(
         }
     }
 
-    fun captureScreen(
+    private fun captureScreen(
         skipReplayComposeViews: Boolean,
         completion: (encodedScreen: ByteArray, screen: FilteredCapture, metrics: EncodedScreenMetrics) -> Unit,
     ) {

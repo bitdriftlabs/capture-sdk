@@ -13,7 +13,7 @@ import io.bitdrift.capture.replay.internal.FilteredCapture
 /**
  * Screen captures will be received through this interface
  */
-interface ReplayLogger {
+interface IReplayLogger {
     /**
      * Called when a screen capture is received
      * @param encodedScreen The encoded screen capture in binary format

@@ -10,7 +10,9 @@ package io.bitdrift.capture.replay
 import android.content.Context
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.MainThreadHandler
+import io.bitdrift.capture.replay.internal.DisplayManagers
 import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
+import io.bitdrift.capture.replay.internal.WindowManager
 
 /**
  * Sets up and controls the replay feature
@@ -21,21 +23,36 @@ import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
  */
 class ReplayCaptureController(
     errorHandler: ErrorHandler,
-    logger: ReplayLogger,
+    logger: IReplayLogger,
     sessionReplayConfiguration: SessionReplayConfiguration,
     context: Context,
     mainThreadHandler: MainThreadHandler,
 ) {
+
     private val replayCaptureEngine: ReplayCaptureEngine
+    private val screenshotCaptureEngine: ScreenshotCaptureEngine
 
     init {
         L.logger = logger
+
+        val windowManager = WindowManager(errorHandler)
+        val displayManager = DisplayManagers(context)
+
         replayCaptureEngine = ReplayCaptureEngine(
             sessionReplayConfiguration,
             errorHandler,
-            context,
             logger,
             mainThreadHandler,
+            windowManager,
+            displayManager,
+        )
+        screenshotCaptureEngine = ScreenshotCaptureEngine(
+            errorHandler,
+            logger,
+            context,
+            mainThreadHandler,
+            windowManager,
+            displayManager
         )
     }
 
@@ -47,8 +64,12 @@ class ReplayCaptureController(
         replayCaptureEngine.captureScreen(skipReplayComposeViews)
     }
 
+    fun captureScreenshot() {
+        screenshotCaptureEngine.captureScreenshot()
+    }
+
     internal object L {
-        internal var logger: ReplayLogger? = null
+        internal var logger: IReplayLogger? = null
 
         fun v(message: String) {
             logger?.logVerboseInternal(message)
