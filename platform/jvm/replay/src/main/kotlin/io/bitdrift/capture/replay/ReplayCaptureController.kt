@@ -23,7 +23,8 @@ import io.bitdrift.capture.replay.internal.WindowManager
  */
 class ReplayCaptureController(
     errorHandler: ErrorHandler,
-    logger: IReplayLogger,
+    replayLogger: IReplayLogger,
+    screenshotLogger: IScreenshotLogger,
     sessionReplayConfiguration: SessionReplayConfiguration,
     context: Context,
     mainThreadHandler: MainThreadHandler,
@@ -33,7 +34,7 @@ class ReplayCaptureController(
     private val screenshotCaptureEngine: ScreenshotCaptureEngine
 
     init {
-        L.logger = logger
+        L.logger = replayLogger
 
         val windowManager = WindowManager(errorHandler)
         val displayManager = DisplayManagers(context)
@@ -41,14 +42,14 @@ class ReplayCaptureController(
         replayCaptureEngine = ReplayCaptureEngine(
             sessionReplayConfiguration,
             errorHandler,
-            logger,
+            replayLogger,
             mainThreadHandler,
             windowManager,
             displayManager,
         )
         screenshotCaptureEngine = ScreenshotCaptureEngine(
             errorHandler,
-            logger,
+            screenshotLogger,
             context,
             mainThreadHandler,
             windowManager,

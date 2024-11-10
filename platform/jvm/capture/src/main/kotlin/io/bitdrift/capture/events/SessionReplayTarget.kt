@@ -17,6 +17,7 @@ import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.replay.ReplayCaptureController
@@ -41,6 +42,7 @@ internal class SessionReplayTarget(
     internal var runtime: Runtime? = null
     private val replayCaptureController: ReplayCaptureController = ReplayCaptureController(
         errorHandler,
+        this,
         this,
         configuration,
         context,
@@ -70,10 +72,10 @@ internal class SessionReplayTarget(
         replayCaptureController.captureScreenshot()
     }
 
-    override fun onScreenshotCaptured(compressedScreen: ByteArray, duration: Duration) {
+    override fun onScreenshotCaptured(compressedScreen: ByteArray, durationMs: Long) {
         val allFields = buildMap {
             put("screen_px", compressedScreen.toFieldValue())
-            put("_duration_ms", duration.inWholeMilliseconds.toString().toFieldValue())
+            put("_duration_ms", durationMs.toString().toFieldValue())
         }
         // TODO(murki): Migrate to call rust logger.log_session_replay_screenshot()
         logger.log(LogType.REPLAY, LogLevel.INFO, allFields) { "Screenshot captured" }
