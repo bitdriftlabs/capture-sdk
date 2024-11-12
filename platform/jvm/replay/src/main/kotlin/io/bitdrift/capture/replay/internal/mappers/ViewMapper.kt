@@ -9,9 +9,9 @@ package io.bitdrift.capture.replay.internal.mappers
 
 import android.content.res.Resources
 import android.view.View
-import io.bitdrift.capture.replay.SessionReplayController
+import io.bitdrift.capture.replay.ReplayCaptureController
 import io.bitdrift.capture.replay.SessionReplayConfiguration
-import io.bitdrift.capture.replay.ReplayCaptureMetrics
+import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
 import io.bitdrift.capture.replay.internal.ViewMapperConfiguration
@@ -24,13 +24,13 @@ internal class ViewMapper(
     private val backgroundMapper: BackgroundMapper = BackgroundMapper(),
 ) {
 
-    fun updateMetrics(node: ScannableView, replayCaptureMetrics: ReplayCaptureMetrics) {
+    fun updateMetrics(node: ScannableView, encodedScreenMetrics: EncodedScreenMetrics) {
         return when (node) {
             is ScannableView.AndroidView -> {
-                replayCaptureMetrics.viewCount += 1
+                encodedScreenMetrics.viewCount += 1
             }
             is ScannableView.ComposeView -> {
-                replayCaptureMetrics.composeViewCount += 1
+                encodedScreenMetrics.composeViewCount += 1
             }
         }
     }
@@ -69,7 +69,7 @@ internal class ViewMapper(
                 resources.getResourceEntryName(this.id)
             } catch (ignore: Resources.NotFoundException) {
                 // Do nothing.
-                SessionReplayController.L.e(ignore, "Ignoring view due to:${ignore.message} for ${this.id}")
+                ReplayCaptureController.L.e(ignore, "Ignoring view due to:${ignore.message} for ${this.id}")
                 "Failed to retrieve ID"
             }
         } else {
@@ -83,17 +83,17 @@ internal class ViewMapper(
             list.addAll(textMapper.map(this))
             list.addAll(backgroundMapper.map(this))
             if (list.isEmpty()) {
-                SessionReplayController.L.v(
+                ReplayCaptureController.L.v(
                     "Ignoring Unknown view: $resourceName ${this.javaClass.simpleName}:" +
                         " w=${this.width}, h=${this.height}",
                 )
             } else {
-                SessionReplayController.L.v("Matched ${list.size} views with ButtonMapper and TextMapper and BackgroundMapper")
+                ReplayCaptureController.L.v("Matched ${list.size} views with ButtonMapper and TextMapper and BackgroundMapper")
             }
         } else {
             val out = IntArray(2)
             this.getLocationOnScreen(out)
-            SessionReplayController.L.v(
+            ReplayCaptureController.L.v(
                 "Successfully mapped Android view=${this.javaClass.simpleName} to=$type:" +
                     " ${out[0]}, ${out[1]}, ${this.width}, ${this.height}",
             )

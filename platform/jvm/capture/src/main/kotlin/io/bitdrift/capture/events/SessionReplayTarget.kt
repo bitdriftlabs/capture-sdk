@@ -17,15 +17,16 @@ import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.replay.SessionReplayController
+import io.bitdrift.capture.replay.ReplayCaptureController
 import io.bitdrift.capture.replay.IReplayLogger
 import io.bitdrift.capture.replay.IScreenshotLogger
 import io.bitdrift.capture.replay.SessionReplayConfiguration
-import io.bitdrift.capture.replay.ReplayCaptureMetrics
-import io.bitdrift.capture.replay.ScreenshotCaptureMetrics
+import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
+import kotlin.time.Duration
 
 // Controls the replay feature
 internal class SessionReplayTarget(
@@ -39,7 +40,7 @@ internal class SessionReplayTarget(
     //  `sessionReplayTarget` argument is moved from logger creation time to logger start time.
     //  Refer to TODO in `LoggerImpl` for more details.
     internal var runtime: Runtime? = null
-    private val sessionReplayController: SessionReplayController = SessionReplayController(
+    private val replayCaptureController: ReplayCaptureController = ReplayCaptureController(
         errorHandler,
         this,
         this,
@@ -53,10 +54,10 @@ internal class SessionReplayTarget(
             runtime?.isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)
                 ?: RuntimeFeature.SESSION_REPLAY_COMPOSE.defaultValue
             )
-        sessionReplayController.captureScreen(skipReplayComposeViews)
+        replayCaptureController.captureScreen(skipReplayComposeViews)
     }
 
-    override fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture, metrics: ReplayCaptureMetrics) {
+    override fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture, metrics: EncodedScreenMetrics) {
         val fields = buildMap {
             put("screen", encodedScreen.toFieldValue())
             putAll(metrics.toMap().toFields())
@@ -68,14 +69,13 @@ internal class SessionReplayTarget(
     override fun captureScreenshot() {
         // TODO(murki): Gate behind Runtime flag
         Log.i("miguel-Screenshot", "captureScreenshot is being implemented on Android")
-        sessionReplayController.captureScreenshot()
+        replayCaptureController.captureScreenshot()
     }
 
-    override fun onScreenshotCaptured(compressedScreen: ByteArray, metrics: ScreenshotCaptureMetrics) {
+    override fun onScreenshotCaptured(compressedScreen: ByteArray, durationMs: Long) {
         val allFields = buildMap {
             put("screen_px", compressedScreen.toFieldValue())
-            putAll(metrics.toMap().toFields())
-            put("_duration_ms", metrics.screenshotTimeMs.toString().toFieldValue())
+            put("_duration_ms", durationMs.toString().toFieldValue())
         }
         // TODO(murki): Migrate to call rust logger.log_session_replay_screenshot()
         logger.log(LogType.REPLAY, LogLevel.INFO, allFields) { "Screenshot captured" }

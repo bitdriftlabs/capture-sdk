@@ -13,6 +13,7 @@ import android.util.Log
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.internal.DisplayManagers
+import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
 import io.bitdrift.capture.replay.internal.WindowManager
@@ -24,6 +25,7 @@ import okhttp3.WebSocketListener
 import okio.ByteString
 import okio.ByteString.Companion.toByteString
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration
 
 /**
  * Allows to capture the screen and send the binary data over a persistent websocket connection
@@ -93,7 +95,7 @@ class ReplayPreviewClient(
         }
     }
 
-    override fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture, metrics: ReplayCaptureMetrics) {
+    override fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture, metrics: EncodedScreenMetrics) {
         lastEncodedScreen = encodedScreen
         webSocket?.send(encodedScreen.toByteString(0, encodedScreen.size))
         // forward the callback to the module's logger

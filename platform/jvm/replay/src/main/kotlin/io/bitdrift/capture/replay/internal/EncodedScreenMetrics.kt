@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.replay
+package io.bitdrift.capture.replay.internal
 
 import kotlin.time.Duration
 
@@ -17,34 +17,32 @@ import kotlin.time.Duration
  * @param exceptionCausingViewCount The number of views that caused an exception during capture
  * @param viewCountAfterFilter The number of views after filtering
  * @param parseDuration The time it took to parse the view tree
- * @param encodingTimeMs The time it took to encode all replay elements
+ * @param captureTimeMs The total time it took to capture the screen (parse + encoding)
  */
-data class ReplayCaptureMetrics(
+data class EncodedScreenMetrics(
     var viewCount: Int = 0,
     var composeViewCount: Int = 0,
     var errorViewCount: Int = 0,
     var exceptionCausingViewCount: Int = 0,
     var viewCountAfterFilter: Int = 0,
     var parseDuration: Duration = Duration.ZERO,
-    var encodingTimeMs: Long = 0L,
+    var captureTimeMs: Long = 0L,
 ) {
-
-    private val totalDurationMs: Long
-        get() = parseDuration.inWholeMilliseconds + encodingTimeMs
 
     /**
      * Convert the metrics to a map
      */
     fun toMap(): Map<String, String> {
+        /**
+         * 'parseTime' is not included in the output map as it's passed to the Rust layer separately.
+         */
         return mapOf(
-            "view_count" to viewCount.toString(),
-            "compose_view_count" to composeViewCount.toString(),
-            "view_count_after_filter" to viewCountAfterFilter.toString(),
-            "error_view_count" to errorViewCount.toString(),
-            "exception_causing_view_count" to exceptionCausingViewCount.toString(),
-            "parse_duration_ms" to parseDuration.inWholeMilliseconds.toString(),
-            "encoding_time_ms" to encodingTimeMs.toString(),
-            "total_duration_ms" to totalDurationMs.toString(),
+            "viewCount" to viewCount.toString(),
+            "composeViewCount" to composeViewCount.toString(),
+            "viewCountAfterFilter" to viewCountAfterFilter.toString(),
+            "errorViewCount" to errorViewCount.toString(),
+            "exceptionCausingViewCount" to exceptionCausingViewCount.toString(),
+            "captureTimeMs" to captureTimeMs.toString(),
         )
     }
 }
