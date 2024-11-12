@@ -1,5 +1,5 @@
 {
-  "checksum": "41d9fc098a3ae0a57e4991372f0c5bea2b2f25ddb44a0ad13a704504cbc4fb1b",
+  "checksum": "4d921bed6110c107a15e199184216ef63a180613b35bb6855f70c21d40c61b6e",
   "crates": {
     "addr2line 0.24.2": {
       "name": "addr2line",
@@ -828,7 +828,7 @@
               "target": "sync_wrapper"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -1070,7 +1070,7 @@
               "target": "rustls_pki_types"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -1337,7 +1337,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-api"
         }
@@ -1436,7 +1436,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -1474,7 +1474,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-buffer"
         }
@@ -1561,7 +1561,7 @@
               "target": "static_assertions"
             },
             {
-              "id": "thiserror 1.0.68",
+              "id": "thiserror 2.0.3",
               "target": "thiserror"
             },
             {
@@ -1569,7 +1569,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -1603,7 +1603,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-client-common"
         }
@@ -1674,7 +1674,7 @@
               "target": "protobuf"
             },
             {
-              "id": "thiserror 1.0.68",
+              "id": "thiserror 2.0.3",
               "target": "thiserror"
             },
             {
@@ -1682,7 +1682,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -1707,7 +1707,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-client-stats"
         }
@@ -1794,7 +1794,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -1824,7 +1824,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-client-stats-store"
         }
@@ -1871,11 +1871,11 @@
               "target": "sketches_rust"
             },
             {
-              "id": "thiserror 1.0.68",
+              "id": "thiserror 2.0.3",
               "target": "thiserror"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -1896,7 +1896,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-completion"
         }
@@ -1931,7 +1931,7 @@
               "target": "log"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -1952,7 +1952,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-device"
         }
@@ -2036,7 +2036,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-events"
         }
@@ -2075,7 +2075,7 @@
               "target": "log"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -2105,7 +2105,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-grpc"
         }
@@ -2236,7 +2236,7 @@
               "target": "snap"
             },
             {
-              "id": "thiserror 1.0.68",
+              "id": "thiserror 2.0.3",
               "target": "thiserror"
             },
             {
@@ -2244,7 +2244,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -2313,7 +2313,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-grpc-codec"
         }
@@ -2375,7 +2375,7 @@
               "target": "protobuf"
             },
             {
-              "id": "thiserror 1.0.68",
+              "id": "thiserror 2.0.3",
               "target": "thiserror"
             }
           ],
@@ -2396,7 +2396,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-hyper-network"
         }
@@ -2478,7 +2478,7 @@
               "target": "log"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -2512,7 +2512,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-internal-logging"
         }
@@ -2555,7 +2555,7 @@
               "target": "bd_runtime"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -2576,7 +2576,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-key-value"
         }
@@ -2631,7 +2631,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -2652,7 +2652,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-log"
         }
@@ -2699,7 +2699,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -2736,7 +2736,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-log-filter"
         }
@@ -2816,7 +2816,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-log-matcher"
         }
@@ -2888,7 +2888,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-log-metadata"
         }
@@ -2944,7 +2944,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-log-primitives"
         }
@@ -3000,7 +3000,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-logger"
         }
@@ -3167,7 +3167,7 @@
               "target": "serde"
             },
             {
-              "id": "thiserror 1.0.68",
+              "id": "thiserror 2.0.3",
               "target": "thiserror"
             },
             {
@@ -3175,7 +3175,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -3217,7 +3217,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-matcher"
         }
@@ -3264,7 +3264,7 @@
               "target": "regex"
             },
             {
-              "id": "thiserror 1.0.68",
+              "id": "thiserror 2.0.3",
               "target": "thiserror"
             }
           ],
@@ -3285,7 +3285,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-metadata"
         }
@@ -3340,7 +3340,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -3361,7 +3361,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-network-quality"
         }
@@ -3400,7 +3400,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-noop-network"
         }
@@ -3465,7 +3465,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-pgv"
         }
@@ -3516,7 +3516,7 @@
               "target": "protobuf"
             },
             {
-              "id": "thiserror 1.0.68",
+              "id": "thiserror 2.0.3",
               "target": "thiserror"
             }
           ],
@@ -3560,7 +3560,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-proto"
         }
@@ -3663,7 +3663,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-resource-utilization"
         }
@@ -3714,7 +3714,7 @@
               "target": "log"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -3744,7 +3744,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-runtime"
         }
@@ -3795,7 +3795,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -3816,7 +3816,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-server-stats"
         }
@@ -3879,7 +3879,7 @@
               "target": "regex"
             },
             {
-              "id": "thiserror 1.0.68",
+              "id": "thiserror 2.0.3",
               "target": "thiserror"
             },
             {
@@ -3887,7 +3887,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -3908,7 +3908,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-session"
         }
@@ -3979,7 +3979,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -4004,7 +4004,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-session-replay"
         }
@@ -4079,7 +4079,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -4109,7 +4109,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-shutdown"
         }
@@ -4140,7 +4140,7 @@
               "target": "log"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -4161,7 +4161,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-stats-common"
         }
@@ -4200,7 +4200,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-test-helpers"
         }
@@ -4327,7 +4327,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -4365,7 +4365,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-time"
         }
@@ -4408,7 +4408,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -4438,7 +4438,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "0bfb8adbb91261713a0be2b84f8bb32cee34da40"
+            "Rev": "6c66f075b5a4eb1434b00fa849361bd6cd3be51b"
           },
           "strip_prefix": "bd-workflows"
         }
@@ -4549,7 +4549,7 @@
               "target": "sha2"
             },
             {
-              "id": "thiserror 1.0.68",
+              "id": "thiserror 2.0.3",
               "target": "thiserror"
             },
             {
@@ -4557,7 +4557,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -8277,7 +8277,7 @@
               "target": "slab"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -8944,7 +8944,7 @@
               "target": "smallvec"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -9030,7 +9030,7 @@
               "alias": "pki_types"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -9137,7 +9137,7 @@
               "target": "socket2"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -11827,7 +11827,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -16103,7 +16103,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -16657,6 +16657,90 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
+    "thiserror 2.0.3": {
+      "name": "thiserror",
+      "version": "2.0.3",
+      "package_url": "https://github.com/dtolnay/thiserror",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/thiserror/2.0.3/download",
+          "sha256": "c006c85c7651b3cf2ada4584faa36773bd07bac24acfb39f3c431b36d7e667aa"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "thiserror",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "thiserror",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "default",
+            "std"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "thiserror 2.0.3",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "proc_macro_deps": {
+          "common": [
+            {
+              "id": "thiserror-impl 2.0.3",
+              "target": "thiserror_impl"
+            }
+          ],
+          "selects": {}
+        },
+        "version": "2.0.3"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
     "thiserror-impl 1.0.68": {
       "name": "thiserror-impl",
       "version": "1.0.68",
@@ -16705,6 +16789,62 @@
         },
         "edition": "2021",
         "version": "1.0.68"
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
+    "thiserror-impl 2.0.3": {
+      "name": "thiserror-impl",
+      "version": "2.0.3",
+      "package_url": "https://github.com/dtolnay/thiserror",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/thiserror-impl/2.0.3/download",
+          "sha256": "f077553d607adc1caf65430528a576c757a71ed73944b66ebb58ef2bbd243568"
+        }
+      },
+      "targets": [
+        {
+          "ProcMacro": {
+            "crate_name": "thiserror_impl",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "thiserror_impl",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "proc-macro2 1.0.88",
+              "target": "proc_macro2"
+            },
+            {
+              "id": "quote 1.0.37",
+              "target": "quote"
+            },
+            {
+              "id": "syn 2.0.87",
+              "target": "syn"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "2.0.3"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -17006,14 +17146,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "tokio 1.41.0": {
+    "tokio 1.41.1": {
       "name": "tokio",
-      "version": "1.41.0",
+      "version": "1.41.1",
       "package_url": "https://github.com/tokio-rs/tokio",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/tokio/1.41.0/download",
-          "sha256": "145f3413504347a2be84393cc8a7d2fb4d863b375909ea59f2158261aa258bbb"
+          "url": "https://static.crates.io/crates/tokio/1.41.1/download",
+          "sha256": "22cfb5bee7a6a52939ca9224d6ac897bb669134078daa8735560897f69de4d33"
         }
       },
       "targets": [
@@ -17505,7 +17645,7 @@
           ],
           "selects": {}
         },
-        "version": "1.41.0"
+        "version": "1.41.1"
       },
       "license": "MIT",
       "license_ids": [
@@ -17609,7 +17749,7 @@
               "alias": "pki_types"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -17672,7 +17812,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -17743,7 +17883,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             }
           ],
@@ -17907,7 +18047,7 @@
               "target": "sync_wrapper"
             },
             {
-              "id": "tokio 1.41.0",
+              "id": "tokio 1.41.1",
               "target": "tokio"
             },
             {
@@ -22072,7 +22212,7 @@
     "simple-xml 0.1.10",
     "tempdir 0.3.7",
     "time 0.3.36",
-    "tokio 1.41.0",
+    "tokio 1.41.1",
     "tracing-subscriber 0.3.18",
     "uuid 1.11.0"
   ],
