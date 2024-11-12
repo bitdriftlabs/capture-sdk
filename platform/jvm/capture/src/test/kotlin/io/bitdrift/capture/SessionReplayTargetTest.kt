@@ -26,11 +26,11 @@ class SessionReplayTargetTest {
     private val handler: MainThreadHandler = Mocks.sameThreadHandler
 
     private val target = SessionReplayTarget(
-        errorHandler = errorHandler,
-        context = ApplicationProvider.getApplicationContext(),
-        logger = logger,
-        configuration = SessionReplayConfiguration(),
-        mainThreadHandler = handler,
+        SessionReplayConfiguration(),
+        errorHandler,
+        ApplicationProvider.getApplicationContext(),
+        logger,
+        handler,
     )
 
     init {
@@ -46,7 +46,7 @@ class SessionReplayTargetTest {
     fun sessionReplayTargetEmitsScreenLog() {
         target.captureScreen()
         // TODO: Make this test work, the issue is that in test environment session replay
-        // sees 0 views and as a result it doesn't emit a session replay screen log.
+        //  sees 0 views and as a result it doesn't emit a session replay screen log.
 //        verify(logger, timeout(1000).times(1)).logSessionReplayScreen(any(), any())
     }
 }

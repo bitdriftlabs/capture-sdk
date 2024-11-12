@@ -13,13 +13,9 @@ import android.util.DisplayMetrics
 import android.view.WindowManager
 import io.bitdrift.capture.replay.ReplayType
 
-internal class DisplayManagers {
+internal class DisplayManagers(context: Context) {
 
-    private lateinit var windowManager: WindowManager
-
-    fun init(context: Context) {
-        windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-    }
+    private var windowManager: WindowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
     @Suppress("DEPRECATION")
     fun refreshDisplay(): ReplayRect {

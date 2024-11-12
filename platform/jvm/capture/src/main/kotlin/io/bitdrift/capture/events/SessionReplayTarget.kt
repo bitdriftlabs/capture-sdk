@@ -16,11 +16,10 @@ import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.replay.ReplayCaptureController
 import io.bitdrift.capture.replay.ReplayLogger
-import io.bitdrift.capture.replay.ReplayModule
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
@@ -34,10 +33,10 @@ internal class SessionReplayTarget(
     mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) : ISessionReplayTarget, ReplayLogger {
     // TODO(Augustyniak): Make non nullable and pass at initialization time after
-    // `sessionReplayTarget` argument is moved from logger creation time to logger start time.
-    // Refer to TODO in `LoggerImpl` for more details.
+    //  `sessionReplayTarget` argument is moved from logger creation time to logger start time.
+    //  Refer to TODO in `LoggerImpl` for more details.
     internal var runtime: Runtime? = null
-    private val replayModule: ReplayModule = ReplayModule(
+    private val replayCaptureController: ReplayCaptureController = ReplayCaptureController(
         errorHandler,
         this,
         configuration,
@@ -50,17 +49,17 @@ internal class SessionReplayTarget(
             runtime?.isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)
                 ?: RuntimeFeature.SESSION_REPLAY_COMPOSE.defaultValue
             )
-        replayModule.captureScreen(skipReplayComposeViews)
+        replayCaptureController.captureScreen(skipReplayComposeViews)
     }
 
     override fun captureScreenshot() {
         // TODO(Augustyniak): Implement this method to add support for screenshot capture on Android.
-        // As currently implemented, the function must emit a session replay screenshot log.
-        // Without this emission, the SDK is blocked from requesting additional screenshots.
+        //  As currently implemented, the function must emit a session replay screenshot log.
+        //  Without this emission, the SDK is blocked from requesting additional screenshots.
     }
 
     override fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture, metrics: EncodedScreenMetrics) {
-        val fields = buildMap<String, FieldValue> {
+        val fields = buildMap {
             put("screen", encodedScreen.toFieldValue())
             putAll(metrics.toMap().toFields())
         }
