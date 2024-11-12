@@ -8,7 +8,6 @@
 package io.bitdrift.capture.events
 
 import android.content.Context
-import android.util.Log
 import io.bitdrift.capture.ISessionReplayTarget
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
@@ -19,13 +18,15 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.IReplayLogger
 import io.bitdrift.capture.replay.IScreenshotLogger
-import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.ScreenshotCaptureMetrics
+import io.bitdrift.capture.replay.SessionReplayConfiguration
+import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.internal.FilteredCapture
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 // Controls the replay feature
 internal class SessionReplayTarget(
@@ -66,19 +67,15 @@ internal class SessionReplayTarget(
     }
 
     override fun captureScreenshot() {
-        // TODO(murki): Gate behind Runtime flag
-        Log.i("miguel-Screenshot", "captureScreenshot is being implemented on Android")
         sessionReplayController.captureScreenshot()
     }
 
     override fun onScreenshotCaptured(compressedScreen: ByteArray, metrics: ScreenshotCaptureMetrics) {
-        val allFields = buildMap {
+        val fields = buildMap {
             put("screen_px", compressedScreen.toFieldValue())
             putAll(metrics.toMap().toFields())
-            put("_duration_ms", metrics.screenshotTimeMs.toString().toFieldValue())
         }
-        // TODO(murki): Migrate to call rust logger.log_session_replay_screenshot()
-        logger.log(LogType.REPLAY, LogLevel.INFO, allFields) { "Screenshot captured" }
+        logger.logSessionReplayScreen(fields, metrics.screenshotTimeMs.toDuration(DurationUnit.MILLISECONDS))
     }
 
     override fun logVerboseInternal(message: String, fields: Map<String, String>?) {

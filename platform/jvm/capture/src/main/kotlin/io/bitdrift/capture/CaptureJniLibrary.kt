@@ -167,9 +167,22 @@ internal object CaptureJniLibrary : IBridge {
      *
      * @param loggerId the ID of the logger to write to.
      * @param fields the fields to include with the log.
-     * @param durationMs the duration of time the preparation of the session replay log took.
+     * @param duration the duration of time the preparation of the session replay log took, in seconds.
      */
     external fun writeSessionReplayScreenLog(
+        loggerId: Long,
+        fields: Map<String, FieldValue>,
+        duration: Double,
+    )
+
+    /**
+     * Writes a session replay screenshot log.
+     *
+     * @param loggerId the ID of the logger to write to.
+     * @param fields the fields to include with the log.
+     * @param duration the duration of time the preparation of the session replay log took, in seconds.
+     */
+    external fun writeSessionReplayScreenshotLog(
         loggerId: Long,
         fields: Map<String, FieldValue>,
         duration: Double,
@@ -180,7 +193,7 @@ internal object CaptureJniLibrary : IBridge {
      *
      * @param loggerId the ID of the logger to write to.
      * @param fields the fields to include with the log.
-     * @param durationMs the duration of time the preparation of the resource log took.
+     * @param duration the duration of time the preparation of the resource log took, in seconds.
      */
     external fun writeResourceUtilizationLog(
         loggerId: Long,
