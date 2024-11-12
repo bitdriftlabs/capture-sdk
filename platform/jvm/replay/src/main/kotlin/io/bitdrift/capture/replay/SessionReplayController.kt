@@ -12,6 +12,7 @@ import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.internal.DisplayManagers
 import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
+import io.bitdrift.capture.replay.internal.ScreenshotCaptureEngine
 import io.bitdrift.capture.replay.internal.WindowManager
 
 /**
@@ -21,7 +22,7 @@ import io.bitdrift.capture.replay.internal.WindowManager
  * @param sessionReplayConfiguration the configuration to use
  * @param runtime allows for the feature to be remotely disabled
  */
-class ReplayCaptureController(
+class SessionReplayController(
     errorHandler: ErrorHandler,
     replayLogger: IReplayLogger,
     screenshotLogger: IScreenshotLogger,

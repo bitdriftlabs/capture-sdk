@@ -11,7 +11,7 @@ import android.os.Build
 import android.view.View
 import android.view.inspector.WindowInspector
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.replay.ReplayCaptureController
+import io.bitdrift.capture.replay.SessionReplayController
 
 // Used for retrieving the view hierarchies
 internal class WindowManager(private val errorHandler: ErrorHandler) {
@@ -49,7 +49,7 @@ internal class WindowManager(private val errorHandler: ErrorHandler) {
             @Suppress("UNCHECKED_CAST")
             return getWindowViews.get(windowManagerGlobal) as List<View>
         } catch (e: Throwable) {
-            ReplayCaptureController.L.e(e, "Failed to retrieve windows")
+            SessionReplayController.L.e(e, "Failed to retrieve windows")
             errorHandler.handleError("Failed to retrieve windows", e)
             return emptyList()
         }
