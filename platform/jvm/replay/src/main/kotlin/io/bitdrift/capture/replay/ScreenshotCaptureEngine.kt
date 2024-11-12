@@ -58,8 +58,8 @@ internal class ScreenshotCaptureEngine(
                     "duration=$screenshotTimeMs")
             val stream = ByteArrayOutputStream()
             // TODO(murki): Confirm the exact compression method used on iOS
-            // Encode bitmap to bytearray while compressing it using JPEG=60 quality
-            resultBitmap.compress(Bitmap.CompressFormat.JPEG, 60, stream)
+            // Encode bitmap to bytearray while compressing it using JPEG=10 quality
+            resultBitmap.compress(Bitmap.CompressFormat.JPEG, 10, stream)
             resultBitmap.recycle()
             // TODO (murki): Figure out if there's a more memory efficient way to do this
             //  see https://stackoverflow.com/questions/4989182/converting-java-bitmap-to-byte-array#comment36547795_4989543 and
