@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.replay
 
-import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
 
 /**
@@ -20,7 +19,7 @@ interface IReplayLogger {
      * @param screen The list of captured elements after filtering
      * @param metrics Metrics about the screen capture
      */
-    fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture, metrics: EncodedScreenMetrics)
+    fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture, metrics: ReplayCaptureMetrics)
 
     /**
      * Forwards a verbose message internally to the SDK

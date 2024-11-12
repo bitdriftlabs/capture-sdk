@@ -11,8 +11,9 @@ import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.common.MainThreadHandler
-import io.bitdrift.capture.replay.ReplayCaptureController
+import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.IReplayLogger
+import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -46,24 +47,25 @@ internal class ReplayCaptureEngine(
 
     private fun captureScreen(
         skipReplayComposeViews: Boolean,
-        completion: (encodedScreen: ByteArray, screen: FilteredCapture, metrics: EncodedScreenMetrics) -> Unit,
+        completion: (encodedScreen: ByteArray, screen: FilteredCapture, metrics: ReplayCaptureMetrics) -> Unit,
     ) {
         val startTime = clock.elapsedRealtime()
 
-        val encodedScreenMetrics = EncodedScreenMetrics()
+        val replayCaptureMetrics = ReplayCaptureMetrics()
         val timedValue = measureTimedValue {
-            captureParser.parse(encodedScreenMetrics, skipReplayComposeViews)
+            captureParser.parse(replayCaptureMetrics, skipReplayComposeViews)
         }
 
         executor.execute {
             captureFilter.filter(timedValue.value)?.let { filteredCapture ->
-                encodedScreenMetrics.parseDuration = timedValue.duration
-                encodedScreenMetrics.viewCountAfterFilter = filteredCapture.size
+                replayCaptureMetrics.parseDuration = timedValue.duration
+                replayCaptureMetrics.viewCountAfterFilter = filteredCapture.size
                 val screen = captureDecorations.addDecorations(filteredCapture)
                 val encodedScreen = replayEncoder.encode(screen)
-                encodedScreenMetrics.captureTimeMs = clock.elapsedRealtime() - startTime
-                ReplayCaptureController.L.d("Screen Captured: $encodedScreenMetrics")
-                completion(encodedScreen, screen, encodedScreenMetrics)
+                replayCaptureMetrics.encodingTimeMs =
+                    clock.elapsedRealtime() - startTime - replayCaptureMetrics.parseDuration.inWholeMilliseconds
+                SessionReplayController.L.d("Screen Captured: $replayCaptureMetrics")
+                completion(encodedScreen, screen, replayCaptureMetrics)
             }
         }
     }
