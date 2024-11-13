@@ -75,7 +75,7 @@ internal class SessionReplayTarget(
             put("screen_px", compressedScreen.toFieldValue())
             putAll(metrics.toMap().toFields())
         }
-        logger.logSessionReplayScreen(fields, metrics.screenshotTimeMs.toDuration(DurationUnit.MILLISECONDS))
+        logger.logSessionReplayScreenshot(fields, metrics.screenshotTimeMs.toDuration(DurationUnit.MILLISECONDS))
     }
 
     override fun logVerboseInternal(message: String, fields: Map<String, String>?) {
