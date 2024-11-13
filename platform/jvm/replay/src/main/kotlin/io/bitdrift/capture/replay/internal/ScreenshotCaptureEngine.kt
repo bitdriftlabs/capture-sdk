@@ -15,7 +15,7 @@ import java.io.ByteArrayOutputStream
 import java.util.concurrent.ExecutorService
 
 internal class ScreenshotCaptureEngine(
-    errorHandler: ErrorHandler,
+    private val errorHandler: ErrorHandler,
     private val logger: IScreenshotLogger,
     context: Context,
     mainThreadHandler: MainThreadHandler,
@@ -36,15 +36,21 @@ internal class ScreenshotCaptureEngine(
             return
         }
         val startTimeMs = clock.elapsedRealtime()
-        // TODO(murki): Log empty screenshot on unblock the caller if there are no root views
-        val topView = windowManager.findRootViews().lastOrNull() ?: return
+        val topView = windowManager.findRootViews().firstOrNull()
+        if (topView == null) {
+            // Log empty screenshot on unblock the rust engine caller
+            logger.onScreenshotCaptured(ByteArray(0), ScreenshotCaptureMetrics(0, 0, 0))
+            return
+        }
         // TODO(murki): Reduce memory footprint by calling setDestinationBitmap() with a Bitmap.Config.RGB_565 instead
         //  of the default of Bitmap.Config.ARGB_8888
         val screenshotRequest = PixelCopy.Request.Builder.ofWindow(topView).build()
         PixelCopy.request(screenshotRequest, executor) { screenshotResult ->
             if (screenshotResult.status != PixelCopy.SUCCESS) {
-                // TODO(murki) Handle error
-                Log.w("miguel-Screenshot", "PixelCopy operation failed. Result.status=${screenshotResult.status}")
+                errorHandler.handleError("PixelCopy operation failed. Result.status=${screenshotResult.status.toStatusText()}", null)
+                Log.w("miguel-Screenshot", "PixelCopy operation failed. Result.status=${screenshotResult.status.toStatusText()}")
+                // Log empty screenshot on unblock the rust engine caller
+                logger.onScreenshotCaptured(ByteArray(0), ScreenshotCaptureMetrics(0, 0, 0))
                 return@request
             }
 
@@ -69,6 +75,17 @@ internal class ScreenshotCaptureEngine(
             )
             logger.onScreenshotCaptured(screenshotBytes, metrics)
         }
+    }
 
+    private fun Int.toStatusText(): String {
+        return when (this) {
+            PixelCopy.SUCCESS -> "SUCCESS"
+            PixelCopy.ERROR_UNKNOWN -> "ERROR_UNKNOWN"
+            PixelCopy.ERROR_TIMEOUT -> "ERROR_TIMEOUT"
+            PixelCopy.ERROR_SOURCE_NO_DATA -> "ERROR_SOURCE_NO_DATA"
+            PixelCopy.ERROR_SOURCE_INVALID -> "ERROR_SOURCE_INVALID"
+            PixelCopy.ERROR_DESTINATION_INVALID -> "ERROR_DESTINATION_INVALID"
+            else -> "Unknown error: $this"
+        }
     }
 }

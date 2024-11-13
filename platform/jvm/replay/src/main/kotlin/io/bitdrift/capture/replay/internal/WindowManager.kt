@@ -36,12 +36,14 @@ internal class WindowManager(private val errorHandler: ErrorHandler) {
     /**
      * Find all DecorViews from [android.view.WindowManagerGlobal]
      */
-    @Suppress("KDocUnresolvedReference", "SwallowedException")
+    @Suppress("KDocUnresolvedReference")
     fun findRootViews(): List<View> {
+        // TODO(murki): Consider using the Curtains library for this
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && tryWindowInspector) {
             try {
                 return WindowInspector.getGlobalWindowViews()
             } catch (e: Throwable) {
+                errorHandler.handleError("Warning: Failed to retrieve windows using WindowInspector", e)
                 tryWindowInspector = false
             }
         }

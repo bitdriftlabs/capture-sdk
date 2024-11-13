@@ -72,8 +72,7 @@ sealed class FieldValue {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
             other as BinaryField
-            if (!byteArrayValue.contentEquals(other.byteArrayValue)) return false
-            return true
+            return byteArrayValue.contentEquals(other.byteArrayValue)
         }
 
         override fun hashCode(): Int {
