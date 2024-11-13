@@ -32,7 +32,7 @@ class ResourceUtilizationTargetTest {
     private val diskUsageMonitor: DiskUsageMonitor = mock()
     private val errorHandler: ErrorHandler = mock()
     private val logger: LoggerImpl = mock()
-    private val executor: ExecutorService = Executors.newSingleThreadScheduledExecutor()
+    private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private val clock: IClock = mock()
 
     private val reporter = ResourceUtilizationTarget(

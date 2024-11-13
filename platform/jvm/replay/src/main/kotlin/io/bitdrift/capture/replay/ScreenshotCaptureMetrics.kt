@@ -7,7 +7,7 @@ data class ScreenshotCaptureMetrics(
     var compressionTimeMs: Long = 0,
     var compressionByteCount: Int = 0,
 ) {
-    val totalDurationMs: Long
+    private val totalDurationMs: Long
         get() = screenshotTimeMs + compressionTimeMs
 
     fun toMap(): Map<String, String> {

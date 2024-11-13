@@ -23,6 +23,7 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
 import okio.ByteString.Companion.toByteString
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
@@ -50,6 +51,7 @@ class ReplayPreviewClient(
         MainThreadHandler(),
         WindowManager(errorHandler),
         DisplayManagers(context),
+        Executors.newSingleThreadExecutor(),
     )
 
     // Calling this is necessary to capture the display size

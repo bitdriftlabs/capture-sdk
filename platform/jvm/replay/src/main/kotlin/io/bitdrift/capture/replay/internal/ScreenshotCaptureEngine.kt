@@ -12,8 +12,7 @@ import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.IScreenshotLogger
 import io.bitdrift.capture.replay.ScreenshotCaptureMetrics
 import java.io.ByteArrayOutputStream
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ExecutorService
 
 internal class ScreenshotCaptureEngine(
     errorHandler: ErrorHandler,
@@ -22,10 +21,8 @@ internal class ScreenshotCaptureEngine(
     mainThreadHandler: MainThreadHandler,
     private val windowManager: WindowManager,
     displayManager: DisplayManagers,
+    private val executor: ExecutorService,
     private val clock: IClock = DefaultClock.getInstance(),
-    private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor {
-        Thread(it, "io.bitdrift.capture.session-replay-screenshot")
-    },
 ) {
 
     init {
