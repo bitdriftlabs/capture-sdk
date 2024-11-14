@@ -34,18 +34,28 @@ internal class ScreenshotCaptureEngine(
     }
 
     fun captureScreenshot() {
-        val startTimeMs = clock.elapsedRealtime()
-        val rootView = windowManager.findRootViews().firstOrNull()
-        if (rootView == null || rootView.width <= 0 || rootView.height <= 0 || !rootView.isShown) {
-            logger.logErrorInternal("Screenshot triggered: Root view is invalid, skipping capture")
-            logEmpty()
-            return
-        }
-        // TODO(murki): Use BuildVersionChecker after moving it to common module
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            modernPixelCopySnapshot(rootView, startTimeMs)
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            pixelCopySnapshot(rootView, startTimeMs)
+        try {
+            val startTimeMs = clock.elapsedRealtime()
+            val rootView = windowManager.findRootViews().firstOrNull()
+            if (rootView == null || rootView.width <= 0 || rootView.height <= 0 || !rootView.isShown) {
+                finishOnError(expected = true, "Screenshot triggered: Root view is invalid, skipping capture")
+                return
+            }
+            // TODO(murki): Use BuildVersionChecker after moving it to common module
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                modernPixelCopySnapshot(rootView, startTimeMs)
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                pixelCopySnapshot(rootView, startTimeMs)
+            } else {
+                logger.logErrorInternal("Screenshot triggered: Unsupported Android version=${Build.VERSION.SDK_INT}, skipping capture")
+                // We purposefully do not log an empty screenshot here to avoid spamming requests if we're never gonna be able to handle them
+            }
+        } catch (e: Exception) {
+            finishOnError(
+                expected = false,
+                "Screenshot triggered: skipping capture. Exception=${e.message}",
+                e
+            )
         }
     }
 
@@ -54,20 +64,35 @@ internal class ScreenshotCaptureEngine(
         // TODO(murki): Reduce memory footprint by calling setDestinationBitmap() with a Bitmap.Config.RGB_565 instead
         //  of the default of Bitmap.Config.ARGB_8888
         val screenshotRequest = PixelCopy.Request.Builder.ofWindow(topView).build()
-        // TODO(murki): Handle errors
         PixelCopy.request(screenshotRequest, executor) { screenshotResult ->
             val resultBitmap = screenshotResult.bitmap
-            if (handleErrorResult(screenshotResult.status, resultBitmap)) return@request
+            try {
+                if (screenshotResult.status != PixelCopy.SUCCESS) {
+                    finishOnError(
+                        expected = false,
+                        "Screenshot triggered: PixelCopy operation failed. Result.status=${screenshotResult.status}",
+                    )
+                    return@request
+                }
 
-            val metrics = ScreenshotCaptureMetrics(
-                screenshotTimeMs = clock.elapsedRealtime() - startTimeMs,
-                screenshotAllocationByteCount = resultBitmap.allocationByteCount,
-                screenshotByteCount = resultBitmap.byteCount
-            )
-            val screenshotBytes = compressScreenshot(resultBitmap)
-            metrics.compressionTimeMs = clock.elapsedRealtime() - startTimeMs - metrics.screenshotTimeMs
-            metrics.compressionByteCount = screenshotBytes.size
-            logger.onScreenshotCaptured(screenshotBytes, metrics)
+                val metrics = ScreenshotCaptureMetrics(
+                    screenshotTimeMs = clock.elapsedRealtime() - startTimeMs,
+                    screenshotAllocationByteCount = resultBitmap.allocationByteCount,
+                    screenshotByteCount = resultBitmap.byteCount
+                )
+                val screenshotBytes = compressScreenshot(resultBitmap)
+                metrics.compressionTimeMs = clock.elapsedRealtime() - startTimeMs - metrics.screenshotTimeMs
+                metrics.compressionByteCount = screenshotBytes.size
+                logger.onScreenshotCaptured(screenshotBytes, metrics)
+            } catch (e: Exception) {
+                finishOnError(
+                    expected = false,
+                    "Screenshot triggered: PixelCopy operation failed. Exception=${e.message}",
+                    e
+                )
+            } finally {
+                resultBitmap.recycle()
+            }
         }
     }
 
@@ -75,8 +100,7 @@ internal class ScreenshotCaptureEngine(
     private fun pixelCopySnapshot(root: View, startTimeMs: Long) {
         val window = root.phoneWindow
         if (window == null) {
-            logger.logErrorInternal("Screenshot triggered: Phone window invalid, skipping capture")
-            logEmpty()
+            finishOnError(expected = true, "Screenshot triggered: Phone window invalid, skipping capture")
             return
         }
 
@@ -90,59 +114,58 @@ internal class ScreenshotCaptureEngine(
             window,
             resultBitmap,
             { screenshotResultStatus: Int ->
-                if (handleErrorResult(screenshotResultStatus, resultBitmap)) return@request
+                if (screenshotResultStatus != PixelCopy.SUCCESS) {
+                    finishOnError(
+                        expected = false,
+                        "Screenshot triggered: PixelCopy operation failed. Result.status=${screenshotResultStatus.toStatusText()}",
+                    )
+                    return@request
+                }
 
-                val metrics = ScreenshotCaptureMetrics(
-                    screenshotTimeMs = clock.elapsedRealtime() - startTimeMs,
-                    screenshotAllocationByteCount = resultBitmap.allocationByteCount,
-                    screenshotByteCount = resultBitmap.byteCount
-                )
-                val screenshotBytes = compressScreenshot(resultBitmap)
-                metrics.compressionTimeMs = clock.elapsedRealtime() - startTimeMs - metrics.screenshotTimeMs
-                metrics.compressionByteCount = screenshotBytes.size
-                logger.onScreenshotCaptured(screenshotBytes, metrics)
+                try {
+                    val metrics = ScreenshotCaptureMetrics(
+                        screenshotTimeMs = clock.elapsedRealtime() - startTimeMs,
+                        screenshotAllocationByteCount = resultBitmap.allocationByteCount,
+                        screenshotByteCount = resultBitmap.byteCount
+                    )
+                    val screenshotBytes = compressScreenshot(resultBitmap)
+                    metrics.compressionTimeMs = clock.elapsedRealtime() - startTimeMs - metrics.screenshotTimeMs
+                    metrics.compressionByteCount = screenshotBytes.size
+                    logger.onScreenshotCaptured(screenshotBytes, metrics)
+                } catch (e: Exception) {
+                    finishOnError(
+                        expected = false,
+                        "Screenshot triggered: PixelCopy operation failed. Exception=${e.message}",
+                        e
+                    )
+                } finally {
+                    resultBitmap.recycle()
+                }
             },
             mainThreadHandler.mainHandler,
         )
     }
 
-    private fun handleErrorResult(screenshotResultStatus: Int, resultBitmap: Bitmap): Boolean {
-        if (screenshotResultStatus != PixelCopy.SUCCESS) {
-            Log.e("miguel-Screenshot", "PixelCopy operation failed. Result.status=${screenshotResultStatus.toStatusText()}")
-            resultBitmap.recycle()
-            errorHandler.handleError("Screenshot triggered: PixelCopy operation failed. Result.status=${screenshotResultStatus.toStatusText()}", null)
-            logger.logErrorInternal("Screenshot triggered: PixelCopy operation failed. Result.status=${screenshotResultStatus.toStatusText()}")
-            logEmpty()
-            return true
+    private fun finishOnError(expected: Boolean, message: String, e: Throwable? = null) {
+        if (!expected) {
+            errorHandler.handleError(message, e)
         }
-        return false
+        logger.logErrorInternal(message, e)
+        Log.e("miguel-Screenshot", message)
+        // Log empty screenshot on unblock the rust engine caller
+        logger.onScreenshotCaptured(ByteArray(0), ScreenshotCaptureMetrics(0, 0, 0))
     }
 
     private fun compressScreenshot(resultBitmap: Bitmap): ByteArray {
-        val result = try {
-            ByteArrayOutputStream().use { outStream ->
-                resultBitmap.compress(Bitmap.CompressFormat.JPEG, 10, outStream)
-                resultBitmap.recycle()
-                // TODO(murki): Figure out if there's a more memory efficient way to do this
-                //  see https://stackoverflow.com/questions/4989182/converting-java-bitmap-to-byte-array#comment36547795_4989543 and
-                //  and https://gaumala.com/posts/2020-01-27-working-with-streams-kotlin.html
-                //  and https://code.luasoftware.com/tutorials/android/android-convert-outputstream-to-inputstream
-                outStream.toByteArray()
-            }
-        } catch (e: Exception) {
-            Log.e("miguel-Screenshot", "Failed to compress screenshot", e)
+        return ByteArrayOutputStream().use { outStream ->
+            resultBitmap.compress(Bitmap.CompressFormat.JPEG, 10, outStream)
             resultBitmap.recycle()
-            errorHandler.handleError("Screenshot triggered: Failed to compress screenshot", e)
-            logger.logErrorInternal("Screenshot triggered: Failed to compress screenshot", e)
-            ByteArray(0)
+            // TODO(murki): Figure out if there's a more memory efficient way to do this
+            //  see https://stackoverflow.com/questions/4989182/converting-java-bitmap-to-byte-array#comment36547795_4989543 and
+            //  and https://gaumala.com/posts/2020-01-27-working-with-streams-kotlin.html
+            //  and https://code.luasoftware.com/tutorials/android/android-convert-outputstream-to-inputstream
+            outStream.toByteArray() // toByteArray will trigger copy, thus double memory usage
         }
-
-        return result
-    }
-
-    private fun logEmpty() {
-        // Log empty screenshot on unblock the rust engine caller
-        logger.onScreenshotCaptured(ByteArray(0), ScreenshotCaptureMetrics(0, 0, 0))
     }
 
     private fun Int.toStatusText(): String {
