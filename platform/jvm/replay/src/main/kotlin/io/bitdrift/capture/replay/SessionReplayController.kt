@@ -61,7 +61,6 @@ class SessionReplayController(
             context,
             mainThreadHandler,
             windowManager,
-            displayManager,
             executor,
         )
     }

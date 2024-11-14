@@ -20,7 +20,7 @@ internal class ReplayDecorations(
 
     fun addDecorations(filteredCapture: FilteredCapture): FilteredCapture {
         // Add screen size as the first element
-        val bounds = displayManager.refreshDisplay()
+        val bounds = displayManager.computeDisplayRect()
         SessionReplayController.L.d("Display Screen size $bounds")
         val screen: MutableList<ReplayRect> = mutableListOf(bounds)
         screen.addAll(filteredCapture)
