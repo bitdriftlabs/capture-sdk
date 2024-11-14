@@ -12,7 +12,7 @@ import io.bitdrift.capture.replay.internal.FilteredCapture
 /**
  * Screen captures will be received through this interface
  */
-interface IReplayLogger {
+interface IReplayLogger : IInternalLogger {
     /**
      * Called when a screen capture is received
      * @param encodedScreen The encoded screen capture in binary format
@@ -20,19 +20,4 @@ interface IReplayLogger {
      * @param metrics Metrics about the screen capture
      */
     fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture, metrics: ReplayCaptureMetrics)
-
-    /**
-     * Forwards a verbose message internally to the SDK
-     */
-    fun logVerboseInternal(message: String, fields: Map<String, String>? = null)
-
-    /**
-     * Forwards a debug message internally to the SDK
-     */
-    fun logDebugInternal(message: String, fields: Map<String, String>? = null)
-
-    /**
-     * Forwards an error message internally to the SDK
-     */
-    fun logErrorInternal(message: String, e: Throwable? = null, fields: Map<String, String>? = null)
 }
