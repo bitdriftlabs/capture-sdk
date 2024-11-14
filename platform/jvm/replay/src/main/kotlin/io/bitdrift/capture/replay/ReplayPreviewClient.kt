@@ -79,7 +79,7 @@ class ReplayPreviewClient(
     /**
      * Capture the screen and send it over the websocket connection after processing
      */
-    private fun captureScreen() {
+    fun captureScreen() {
         replayCaptureEngine.captureScreen(skipReplayComposeViews = false)
     }
 

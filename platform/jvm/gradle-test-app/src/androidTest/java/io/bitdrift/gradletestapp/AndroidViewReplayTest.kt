@@ -13,9 +13,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.internal.runner.junit4.statement.UiThreadStatement
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.ReplayPreviewClient
 import io.bitdrift.capture.replay.ReplayType
-import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import io.bitdrift.capture.replay.internal.ReplayRect
 import org.junit.Before
@@ -32,7 +32,7 @@ class AndroidViewReplayTest {
     private lateinit var scenario: FragmentScenario<FirstFragment>
 
     private lateinit var replayClient: ReplayPreviewClient
-    private val replay: AtomicReference<Pair<FilteredCapture, EncodedScreenMetrics>?> = AtomicReference(null)
+    private val replay: AtomicReference<Pair<FilteredCapture, ReplayCaptureMetrics>?> = AtomicReference(null)
     private lateinit var latch: CountDownLatch
 
     @Before
