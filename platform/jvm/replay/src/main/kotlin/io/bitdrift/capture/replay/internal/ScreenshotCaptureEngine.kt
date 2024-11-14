@@ -4,7 +4,6 @@ package io.bitdrift.capture.replay.internal
 
 import android.graphics.Bitmap
 import android.os.Build
-import android.util.Log
 import android.view.PixelCopy
 import android.view.View
 import androidx.annotation.RequiresApi
@@ -32,15 +31,13 @@ internal class ScreenshotCaptureEngine(
                 return
             }
             // TODO(murki): Use BuildVersionChecker after moving it to common module
-            Log.i("miguel-Screenshot", "About to call PixelCopy.request() on thread=${Thread.currentThread().name}")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 modernPixelCopySnapshot(rootView)
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 pixelCopySnapshot(rootView)
             } else {
                 // TODO(murki): Implement on old API levels using Canvas(bitmap) approach
-                logger.logErrorInternal("Screenshot triggered: Unsupported Android version=${Build.VERSION.SDK_INT}, skipping capture")
-                // We purposefully do not log an empty screenshot here to avoid spamming requests if we're never gonna be able to handle them
+                finishOnError(expected = true, "Screenshot triggered: Unsupported Android version=${Build.VERSION.SDK_INT}, skipping capture")
             }
         } catch (e: Exception) {
             finishOnError(
@@ -57,7 +54,6 @@ internal class ScreenshotCaptureEngine(
         //  of the default of Bitmap.Config.ARGB_8888
         val screenshotRequest = PixelCopy.Request.Builder.ofWindow(topView).build()
         PixelCopy.request(screenshotRequest, executor) { screenshotResult ->
-            Log.i("miguel-Screenshot", "modernPixelCopySnapshot result received on thread=${Thread.currentThread().name}")
             val resultBitmap = screenshotResult.bitmap
             try {
                 if (screenshotResult.status != PixelCopy.SUCCESS) {
@@ -92,7 +88,6 @@ internal class ScreenshotCaptureEngine(
             return
         }
 
-        //TODO(murki): Fix threading
         val resultBitmap = Bitmap.createBitmap(
             root.width,
             root.height,
@@ -103,7 +98,6 @@ internal class ScreenshotCaptureEngine(
             window,
             resultBitmap,
             { screenshotResultStatus: Int ->
-                Log.i("miguel-Screenshot", "pixelCopySnapshot result received on thread=${Thread.currentThread().name}")
                 if (screenshotResultStatus != PixelCopy.SUCCESS) {
                     resultBitmap.recycle()
                     finishOnError(
@@ -141,14 +135,12 @@ internal class ScreenshotCaptureEngine(
             errorHandler.handleError(message, e)
         }
         logger.logErrorInternal(message, e)
-        Log.e("miguel-Screenshot", message)
         // Log empty screenshot on unblock the rust engine caller
         logger.onScreenshotCaptured(ByteArray(0), metrics.data())
     }
 
     private fun compressScreenshot(resultBitmap: Bitmap): ByteArray {
         return ByteArrayOutputStream().use { outStream ->
-            Log.i("miguel-Screenshot", "Compressing on thread=${Thread.currentThread().name}")
             resultBitmap.compress(Bitmap.CompressFormat.JPEG, 10, outStream)
             resultBitmap.recycle()
             // TODO(murki): Figure out if there's a more memory efficient way to do this
