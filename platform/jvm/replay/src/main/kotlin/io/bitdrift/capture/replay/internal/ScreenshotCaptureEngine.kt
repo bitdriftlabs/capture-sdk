@@ -32,18 +32,20 @@ internal class ScreenshotCaptureEngine(
                 return
             }
             // TODO(murki): Use BuildVersionChecker after moving it to common module
+            Log.i("miguel-Screenshot", "About to call PixelCopy.request() on thread=${Thread.currentThread().name}")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 modernPixelCopySnapshot(rootView)
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 pixelCopySnapshot(rootView)
             } else {
+                // TODO(murki): Implement on old API levels using Canvas(bitmap) approach
                 logger.logErrorInternal("Screenshot triggered: Unsupported Android version=${Build.VERSION.SDK_INT}, skipping capture")
                 // We purposefully do not log an empty screenshot here to avoid spamming requests if we're never gonna be able to handle them
             }
         } catch (e: Exception) {
             finishOnError(
                 expected = false,
-                "Screenshot triggered: skipping capture. Exception=${e.message}",
+                "Screenshot triggered: PixelCopy request failed. Exception=${e.message}",
                 e
             )
         }
@@ -55,9 +57,11 @@ internal class ScreenshotCaptureEngine(
         //  of the default of Bitmap.Config.ARGB_8888
         val screenshotRequest = PixelCopy.Request.Builder.ofWindow(topView).build()
         PixelCopy.request(screenshotRequest, executor) { screenshotResult ->
+            Log.i("miguel-Screenshot", "modernPixelCopySnapshot result received on thread=${Thread.currentThread().name}")
             val resultBitmap = screenshotResult.bitmap
             try {
                 if (screenshotResult.status != PixelCopy.SUCCESS) {
+                    resultBitmap.recycle()
                     finishOnError(
                         expected = false,
                         "Screenshot triggered: PixelCopy operation failed. Result.status=${screenshotResult.status}",
@@ -71,7 +75,7 @@ internal class ScreenshotCaptureEngine(
             } catch (e: Exception) {
                 finishOnError(
                     expected = false,
-                    "Screenshot triggered: PixelCopy operation failed. Exception=${e.message}",
+                    "Screenshot triggered: PixelCopy compression failed. Exception=${e.message}",
                     e
                 )
             } finally {
@@ -94,11 +98,14 @@ internal class ScreenshotCaptureEngine(
             root.height,
             Bitmap.Config.RGB_565
         )
+        // TODO(murki): Figure out if there's any benefit from calling this using mainThreadHandler.mainHandler.post{ }
         PixelCopy.request(
             window,
             resultBitmap,
             { screenshotResultStatus: Int ->
+                Log.i("miguel-Screenshot", "pixelCopySnapshot result received on thread=${Thread.currentThread().name}")
                 if (screenshotResultStatus != PixelCopy.SUCCESS) {
+                    resultBitmap.recycle()
                     finishOnError(
                         expected = false,
                         "Screenshot triggered: PixelCopy operation failed. Result.status=${screenshotResultStatus.toStatusText()}",
@@ -106,20 +113,24 @@ internal class ScreenshotCaptureEngine(
                     return@request
                 }
 
-                try {
-                    metrics.screenshot(resultBitmap.allocationByteCount, resultBitmap.byteCount)
-                    val screenshotBytes = compressScreenshot(resultBitmap)
-                    metrics.compression(screenshotBytes.size)
-                    logger.onScreenshotCaptured(screenshotBytes, metrics.data())
-                } catch (e: Exception) {
-                    finishOnError(
-                        expected = false,
-                        "Screenshot triggered: PixelCopy operation failed. Exception=${e.message}",
-                        e
-                    )
-                } finally {
-                    resultBitmap.recycle()
+                // TODO(murki): Try to avoid so much context switching between main and background threads
+                executor.execute {
+                    try {
+                        metrics.screenshot(resultBitmap.allocationByteCount, resultBitmap.byteCount)
+                        val screenshotBytes = compressScreenshot(resultBitmap)
+                        metrics.compression(screenshotBytes.size)
+                        logger.onScreenshotCaptured(screenshotBytes, metrics.data())
+                    } catch (e: Exception) {
+                        finishOnError(
+                            expected = false,
+                            "Screenshot triggered: Compression operation failed. Exception=${e.message}",
+                            e
+                        )
+                    } finally {
+                        resultBitmap.recycle()
+                    }
                 }
+
             },
             mainThreadHandler.mainHandler,
         )
@@ -137,6 +148,7 @@ internal class ScreenshotCaptureEngine(
 
     private fun compressScreenshot(resultBitmap: Bitmap): ByteArray {
         return ByteArrayOutputStream().use { outStream ->
+            Log.i("miguel-Screenshot", "Compressing on thread=${Thread.currentThread().name}")
             resultBitmap.compress(Bitmap.CompressFormat.JPEG, 10, outStream)
             resultBitmap.recycle()
             // TODO(murki): Figure out if there's a more memory efficient way to do this
