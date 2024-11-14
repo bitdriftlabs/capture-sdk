@@ -2,40 +2,30 @@
 
 package io.bitdrift.capture.replay.internal
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.os.Build
 import android.util.Log
 import android.view.PixelCopy
 import android.view.View
 import androidx.annotation.RequiresApi
-import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.IScreenshotLogger
-import io.bitdrift.capture.replay.ScreenshotCaptureMetrics
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.ExecutorService
 
 internal class ScreenshotCaptureEngine(
     private val errorHandler: ErrorHandler,
     private val logger: IScreenshotLogger,
-    context: Context,
     private val mainThreadHandler: MainThreadHandler,
     private val windowManager: WindowManager,
     private val executor: ExecutorService,
-    private val clock: IClock = DefaultClock.getInstance(),
+    private val metrics: ScreenshotMetricsStopwatch = ScreenshotMetricsStopwatch(),
 ) {
-
-    init {
-        // Log to console all dependency addresses
-        Log.d("miguel-Screenshot", "$errorHandler, $logger, $context, $mainThreadHandler, $windowManager, $clock, $executor")
-    }
 
     fun captureScreenshot() {
         try {
-            val startTimeMs = clock.elapsedRealtime()
+            metrics.start()
             val rootView = windowManager.findRootViews().firstOrNull()
             if (rootView == null || rootView.width <= 0 || rootView.height <= 0 || !rootView.isShown) {
                 finishOnError(expected = true, "Screenshot triggered: Root view is invalid, skipping capture")
@@ -43,9 +33,9 @@ internal class ScreenshotCaptureEngine(
             }
             // TODO(murki): Use BuildVersionChecker after moving it to common module
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                modernPixelCopySnapshot(rootView, startTimeMs)
+                modernPixelCopySnapshot(rootView)
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                pixelCopySnapshot(rootView, startTimeMs)
+                pixelCopySnapshot(rootView)
             } else {
                 logger.logErrorInternal("Screenshot triggered: Unsupported Android version=${Build.VERSION.SDK_INT}, skipping capture")
                 // We purposefully do not log an empty screenshot here to avoid spamming requests if we're never gonna be able to handle them
@@ -60,7 +50,7 @@ internal class ScreenshotCaptureEngine(
     }
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private fun modernPixelCopySnapshot(topView: View, startTimeMs: Long) {
+    private fun modernPixelCopySnapshot(topView: View) {
         // TODO(murki): Reduce memory footprint by calling setDestinationBitmap() with a Bitmap.Config.RGB_565 instead
         //  of the default of Bitmap.Config.ARGB_8888
         val screenshotRequest = PixelCopy.Request.Builder.ofWindow(topView).build()
@@ -74,16 +64,10 @@ internal class ScreenshotCaptureEngine(
                     )
                     return@request
                 }
-
-                val metrics = ScreenshotCaptureMetrics(
-                    screenshotTimeMs = clock.elapsedRealtime() - startTimeMs,
-                    screenshotAllocationByteCount = resultBitmap.allocationByteCount,
-                    screenshotByteCount = resultBitmap.byteCount
-                )
+                metrics.screenshot(resultBitmap.allocationByteCount, resultBitmap.byteCount)
                 val screenshotBytes = compressScreenshot(resultBitmap)
-                metrics.compressionTimeMs = clock.elapsedRealtime() - startTimeMs - metrics.screenshotTimeMs
-                metrics.compressionByteCount = screenshotBytes.size
-                logger.onScreenshotCaptured(screenshotBytes, metrics)
+                metrics.compression(screenshotBytes.size)
+                logger.onScreenshotCaptured(screenshotBytes, metrics.data())
             } catch (e: Exception) {
                 finishOnError(
                     expected = false,
@@ -97,7 +81,7 @@ internal class ScreenshotCaptureEngine(
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun pixelCopySnapshot(root: View, startTimeMs: Long) {
+    private fun pixelCopySnapshot(root: View) {
         val window = root.phoneWindow
         if (window == null) {
             finishOnError(expected = true, "Screenshot triggered: Phone window invalid, skipping capture")
@@ -123,15 +107,10 @@ internal class ScreenshotCaptureEngine(
                 }
 
                 try {
-                    val metrics = ScreenshotCaptureMetrics(
-                        screenshotTimeMs = clock.elapsedRealtime() - startTimeMs,
-                        screenshotAllocationByteCount = resultBitmap.allocationByteCount,
-                        screenshotByteCount = resultBitmap.byteCount
-                    )
+                    metrics.screenshot(resultBitmap.allocationByteCount, resultBitmap.byteCount)
                     val screenshotBytes = compressScreenshot(resultBitmap)
-                    metrics.compressionTimeMs = clock.elapsedRealtime() - startTimeMs - metrics.screenshotTimeMs
-                    metrics.compressionByteCount = screenshotBytes.size
-                    logger.onScreenshotCaptured(screenshotBytes, metrics)
+                    metrics.compression(screenshotBytes.size)
+                    logger.onScreenshotCaptured(screenshotBytes, metrics.data())
                 } catch (e: Exception) {
                     finishOnError(
                         expected = false,
@@ -153,7 +132,7 @@ internal class ScreenshotCaptureEngine(
         logger.logErrorInternal(message, e)
         Log.e("miguel-Screenshot", message)
         // Log empty screenshot on unblock the rust engine caller
-        logger.onScreenshotCaptured(ByteArray(0), ScreenshotCaptureMetrics(0, 0, 0))
+        logger.onScreenshotCaptured(ByteArray(0), metrics.data())
     }
 
     private fun compressScreenshot(resultBitmap: Bitmap): ByteArray {

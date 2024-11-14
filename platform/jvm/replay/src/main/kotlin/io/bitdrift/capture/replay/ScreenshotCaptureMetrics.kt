@@ -4,8 +4,8 @@ data class ScreenshotCaptureMetrics(
     val screenshotTimeMs: Long,
     val screenshotAllocationByteCount: Int,
     val screenshotByteCount: Int,
-    var compressionTimeMs: Long = 0,
-    var compressionByteCount: Int = 0,
+    var compressionTimeMs: Long,
+    var compressionByteCount: Int,
 ) {
     private val totalDurationMs: Long
         get() = screenshotTimeMs + compressionTimeMs

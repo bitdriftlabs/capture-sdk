@@ -54,11 +54,9 @@ class SessionReplayController(
             displayManager,
             executor,
         )
-        // TODO(murki): Gate init behind Runtime flag
         screenshotCaptureEngine = ScreenshotCaptureEngine(
             errorHandler,
             screenshotLogger,
-            context,
             mainThreadHandler,
             windowManager,
             executor,
