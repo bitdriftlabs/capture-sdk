@@ -7,6 +7,9 @@
 
 package io.bitdrift.capture.replay
 
+/**
+ * Forwards messages as type Internal to the bitdrift Logger
+ */
 interface IInternalLogger {
     /**
      * Forwards a verbose message internally to the SDK

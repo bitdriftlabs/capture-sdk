@@ -7,12 +7,18 @@
 
 package io.bitdrift.capture.replay
 
+/**
+ * Metrics about the screenshot and compression process
+ */
 data class ScreenshotCaptureMetrics(
+    /**
+     * The time it took to take the screenshot in milliseconds
+     */
     val screenshotTimeMs: Long,
-    val screenshotAllocationByteCount: Int,
-    val screenshotByteCount: Int,
-    var compressionTimeMs: Long,
-    var compressionByteCount: Int,
+    private val screenshotAllocationByteCount: Int,
+    private val screenshotByteCount: Int,
+    private var compressionTimeMs: Long,
+    private var compressionByteCount: Int,
 ) {
     private val totalDurationMs: Long
         get() = screenshotTimeMs + compressionTimeMs

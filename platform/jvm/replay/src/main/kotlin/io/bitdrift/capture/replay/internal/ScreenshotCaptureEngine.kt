@@ -47,7 +47,10 @@ internal class ScreenshotCaptureEngine(
                 pixelCopySnapshot(rootView)
             } else {
                 // TODO(murki): Implement on old API levels using Canvas(bitmap) approach
-                finishOnError(expected = true, "Screenshot triggered: Unsupported Android version=${Build.VERSION.SDK_INT}, skipping capture")
+                finishOnError(
+                    expected = true,
+                    "Screenshot triggered: Unsupported Android version=${Build.VERSION.SDK_INT}, skipping capture",
+                )
             }
         } catch (e: Exception) {
             finishOnError(
