@@ -8,9 +8,9 @@
 package io.bitdrift.capture.replay.internal
 
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
+import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.internal.mappers.ViewMapper
 
 internal typealias Capture = List<List<ReplayRect>>

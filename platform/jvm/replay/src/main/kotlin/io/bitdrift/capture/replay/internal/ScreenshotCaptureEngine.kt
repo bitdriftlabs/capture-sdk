@@ -46,7 +46,7 @@ internal class ScreenshotCaptureEngine(
             finishOnError(
                 expected = false,
                 "Screenshot triggered: PixelCopy request failed. Exception=${e.message}",
-                e
+                e,
             )
         }
     }
@@ -75,7 +75,7 @@ internal class ScreenshotCaptureEngine(
                 finishOnError(
                     expected = false,
                     "Screenshot triggered: PixelCopy compression failed. Exception=${e.message}",
-                    e
+                    e,
                 )
             } finally {
                 resultBitmap.recycle()
@@ -94,7 +94,7 @@ internal class ScreenshotCaptureEngine(
         val resultBitmap = Bitmap.createBitmap(
             root.width,
             root.height,
-            Bitmap.Config.RGB_565
+            Bitmap.Config.RGB_565,
         )
         // TODO(murki): Figure out if there's any benefit from calling this using mainThreadHandler.mainHandler.post{ }
         PixelCopy.request(
@@ -121,13 +121,12 @@ internal class ScreenshotCaptureEngine(
                         finishOnError(
                             expected = false,
                             "Screenshot triggered: Compression operation failed. Exception=${e.message}",
-                            e
+                            e,
                         )
                     } finally {
                         resultBitmap.recycle()
                     }
                 }
-
             },
             mainThreadHandler.mainHandler,
         )

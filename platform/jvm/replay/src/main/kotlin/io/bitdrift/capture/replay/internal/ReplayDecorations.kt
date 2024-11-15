@@ -9,8 +9,8 @@ package io.bitdrift.capture.replay.internal
 
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.ReplayType
+import io.bitdrift.capture.replay.SessionReplayController
 
 // Add the screen and keyboard layouts to the replay capture
 internal class ReplayDecorations(

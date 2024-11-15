@@ -9,9 +9,9 @@ package io.bitdrift.capture.replay.internal.mappers
 
 import android.content.res.Resources
 import android.view.View
-import io.bitdrift.capture.replay.SessionReplayController
-import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
+import io.bitdrift.capture.replay.SessionReplayConfiguration
+import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
 import io.bitdrift.capture.replay.internal.ViewMapperConfiguration

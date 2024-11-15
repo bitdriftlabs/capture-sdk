@@ -66,7 +66,7 @@ internal object WindowSpy {
             Log.d(
                 "WindowSpy",
                 "Unexpected exception loading $decorViewClassName on API $sdkInt",
-                ignored
+                ignored,
             )
             null
         }
@@ -91,7 +91,7 @@ internal object WindowSpy {
                 Log.d(
                     "WindowSpy",
                     "Unexpected exception retrieving $decorViewClass#$fieldName on API $sdkInt",
-                    ignored
+                    ignored,
                 )
                 null
             }

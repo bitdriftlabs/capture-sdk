@@ -5,7 +5,7 @@ import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.replay.ScreenshotCaptureMetrics
 
 internal class ScreenshotMetricsStopwatch(
-    private val clock: IClock = DefaultClock.getInstance()
+    private val clock: IClock = DefaultClock.getInstance(),
 ) {
     private var startMs: Long = 0
     private var screenshotTimeMs: Long = 0
