@@ -23,6 +23,9 @@ data class ScreenshotCaptureMetrics(
     private val totalDurationMs: Long
         get() = screenshotTimeMs + compressionTimeMs
 
+    /**
+     * Convert the metrics to a map
+     */
     fun toMap(): Map<String, String> {
         return mapOf(
             "screenshot_time_ms" to screenshotTimeMs.toString(),
