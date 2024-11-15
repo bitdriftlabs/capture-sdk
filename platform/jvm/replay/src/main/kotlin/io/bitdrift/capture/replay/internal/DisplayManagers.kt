@@ -15,10 +15,10 @@ import io.bitdrift.capture.replay.ReplayType
 
 internal class DisplayManagers(context: Context) {
 
-    private var windowManager: WindowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+    private val windowManager: WindowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
     @Suppress("DEPRECATION")
-    fun refreshDisplay(): ReplayRect {
+    fun computeDisplayRect(): ReplayRect {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val bounds = windowManager.currentWindowMetrics.bounds
             ReplayRect(ReplayType.View, bounds.left, bounds.top, bounds.width(), bounds.height())

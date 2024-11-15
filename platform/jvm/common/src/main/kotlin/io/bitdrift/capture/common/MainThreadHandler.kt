@@ -14,7 +14,10 @@ import android.os.Looper
  * Helper class to run code on the main thread
  */
 class MainThreadHandler {
-    private val mainHandler = Handler(Looper.getMainLooper())
+    /**
+     * Handler for the main thread
+     */
+    val mainHandler = Handler(Looper.getMainLooper())
 
     /**
      * Schedule the given code to run on the main thread

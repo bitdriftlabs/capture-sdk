@@ -33,7 +33,7 @@ class AppUpdateListenerLoggerTest {
     private val logger: LoggerImpl = mock()
     private val clientAttributes: ClientAttributes = mock()
     private val runtime: Runtime = mock()
-    private val executor: ExecutorService = Executors.newSingleThreadScheduledExecutor()
+    private val executor: ExecutorService = Executors.newSingleThreadExecutor()
 
     private lateinit var appUpdateLogger: AppUpdateListenerLogger
 

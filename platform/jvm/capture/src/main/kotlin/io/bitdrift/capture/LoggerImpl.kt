@@ -380,6 +380,14 @@ internal class LoggerImpl(
         )
     }
 
+    internal fun logSessionReplayScreenshot(fields: Map<String, FieldValue>, duration: Duration) {
+        CaptureJniLibrary.writeSessionReplayScreenshotLog(
+            this.loggerId,
+            fields,
+            duration.toDouble(DurationUnit.SECONDS),
+        )
+    }
+
     internal fun logResourceUtilization(fields: Map<String, String>, duration: Duration) {
         CaptureJniLibrary.writeResourceUtilizationLog(
             this.loggerId,

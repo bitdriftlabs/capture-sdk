@@ -10,7 +10,12 @@ package io.bitdrift.capture.replay
 import android.content.Context
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.MainThreadHandler
+import io.bitdrift.capture.replay.internal.DisplayManagers
 import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
+import io.bitdrift.capture.replay.internal.ScreenshotCaptureEngine
+import io.bitdrift.capture.replay.internal.WindowManager
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /**
  * Sets up and controls the replay feature
@@ -19,23 +24,42 @@ import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
  * @param sessionReplayConfiguration the configuration to use
  * @param runtime allows for the feature to be remotely disabled
  */
-class ReplayCaptureController(
+class SessionReplayController(
     errorHandler: ErrorHandler,
-    logger: ReplayLogger,
+    replayLogger: IReplayLogger,
+    screenshotLogger: IScreenshotLogger,
     sessionReplayConfiguration: SessionReplayConfiguration,
     context: Context,
     mainThreadHandler: MainThreadHandler,
+    executor: ExecutorService = Executors.newSingleThreadExecutor {
+        Thread(it, "io.bitdrift.capture.session-replay")
+    },
 ) {
+
     private val replayCaptureEngine: ReplayCaptureEngine
+    private val screenshotCaptureEngine: ScreenshotCaptureEngine
 
     init {
-        L.logger = logger
+        L.logger = replayLogger
+
+        val windowManager = WindowManager(errorHandler)
+        val displayManager = DisplayManagers(context)
+
         replayCaptureEngine = ReplayCaptureEngine(
             sessionReplayConfiguration,
             errorHandler,
-            context,
-            logger,
+            replayLogger,
             mainThreadHandler,
+            windowManager,
+            displayManager,
+            executor,
+        )
+        screenshotCaptureEngine = ScreenshotCaptureEngine(
+            errorHandler,
+            screenshotLogger,
+            mainThreadHandler,
+            windowManager,
+            executor,
         )
     }
 
@@ -47,8 +71,16 @@ class ReplayCaptureController(
         replayCaptureEngine.captureScreen(skipReplayComposeViews)
     }
 
+    /**
+     * Captures a screenshot of the current screen and emits a screenshot log using a logger instance passed
+     * at initialization time.
+     */
+    fun captureScreenshot() {
+        screenshotCaptureEngine.captureScreenshot()
+    }
+
     internal object L {
-        internal var logger: ReplayLogger? = null
+        internal var logger: IReplayLogger? = null
 
         fun v(message: String) {
             logger?.logVerboseInternal(message)

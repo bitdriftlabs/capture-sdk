@@ -7,34 +7,31 @@
 
 package io.bitdrift.capture.replay.internal
 
-import android.content.Context
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.common.MainThreadHandler
-import io.bitdrift.capture.replay.ReplayCaptureController
-import io.bitdrift.capture.replay.ReplayLogger
+import io.bitdrift.capture.replay.IReplayLogger
+import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
+import io.bitdrift.capture.replay.SessionReplayController
+import java.util.concurrent.ExecutorService
 import kotlin.time.measureTimedValue
 
 // This is the main logic for capturing a screen
 internal class ReplayCaptureEngine(
     sessionReplayConfiguration: SessionReplayConfiguration,
     errorHandler: ErrorHandler,
-    context: Context,
-    private val logger: ReplayLogger,
+    private val logger: IReplayLogger,
     private val mainThreadHandler: MainThreadHandler,
-    displayManager: DisplayManagers = DisplayManagers(context),
-    private val captureParser: ReplayParser = ReplayParser(sessionReplayConfiguration, errorHandler),
+    windowManager: WindowManager,
+    displayManager: DisplayManagers,
+    private val executor: ExecutorService,
+    private val captureParser: ReplayParser = ReplayParser(sessionReplayConfiguration, errorHandler, windowManager),
     private val captureFilter: ReplayFilter = ReplayFilter(),
-    private val captureDecorations: ReplayDecorations = ReplayDecorations(errorHandler, displayManager),
+    private val captureDecorations: ReplayDecorations = ReplayDecorations(displayManager, windowManager),
     private val replayEncoder: ReplayEncoder = ReplayEncoder(),
     private val clock: IClock = DefaultClock.getInstance(),
-    private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor {
-        Thread(it, "io.bitdrift.capture.session-replay")
-    },
 ) {
 
     fun captureScreen(skipReplayComposeViews: Boolean) {
@@ -45,26 +42,27 @@ internal class ReplayCaptureEngine(
         }
     }
 
-    fun captureScreen(
+    private fun captureScreen(
         skipReplayComposeViews: Boolean,
-        completion: (encodedScreen: ByteArray, screen: FilteredCapture, metrics: EncodedScreenMetrics) -> Unit,
+        completion: (encodedScreen: ByteArray, screen: FilteredCapture, metrics: ReplayCaptureMetrics) -> Unit,
     ) {
         val startTime = clock.elapsedRealtime()
 
-        val encodedScreenMetrics = EncodedScreenMetrics()
+        val replayCaptureMetrics = ReplayCaptureMetrics()
         val timedValue = measureTimedValue {
-            captureParser.parse(encodedScreenMetrics, skipReplayComposeViews)
+            captureParser.parse(replayCaptureMetrics, skipReplayComposeViews)
         }
 
         executor.execute {
             captureFilter.filter(timedValue.value)?.let { filteredCapture ->
-                encodedScreenMetrics.parseDuration = timedValue.duration
-                encodedScreenMetrics.viewCountAfterFilter = filteredCapture.size
+                replayCaptureMetrics.parseDuration = timedValue.duration
+                replayCaptureMetrics.viewCountAfterFilter = filteredCapture.size
                 val screen = captureDecorations.addDecorations(filteredCapture)
                 val encodedScreen = replayEncoder.encode(screen)
-                encodedScreenMetrics.captureTimeMs = clock.elapsedRealtime() - startTime
-                ReplayCaptureController.L.d("Screen Captured: $encodedScreenMetrics")
-                completion(encodedScreen, screen, encodedScreenMetrics)
+                replayCaptureMetrics.encodingTimeMs =
+                    clock.elapsedRealtime() - startTime - replayCaptureMetrics.parseDuration.inWholeMilliseconds
+                SessionReplayController.L.d("Screen Captured: $replayCaptureMetrics")
+                completion(encodedScreen, screen, replayCaptureMetrics)
             }
         }
     }

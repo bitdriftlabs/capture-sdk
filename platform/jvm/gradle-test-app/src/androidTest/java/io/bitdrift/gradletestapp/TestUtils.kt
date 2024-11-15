@@ -11,10 +11,9 @@ import android.content.Context
 import android.util.Base64
 import android.util.Log
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.replay.ReplayLogger
+import io.bitdrift.capture.replay.IReplayLogger
+import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.ReplayPreviewClient
-import io.bitdrift.capture.replay.SessionReplayConfiguration
-import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicReference
@@ -22,7 +21,7 @@ import java.util.concurrent.atomic.AtomicReference
 object TestUtils {
 
     fun createReplayPreviewClient(
-        replay: AtomicReference<Pair<FilteredCapture, EncodedScreenMetrics>?>,
+        replay: AtomicReference<Pair<FilteredCapture, ReplayCaptureMetrics>?>,
         latch: CountDownLatch,
         context: Context
     ): ReplayPreviewClient {
@@ -32,13 +31,13 @@ object TestUtils {
                     Log.e("Replay Tests", "error: $detail $e")
                 }
             },
-            object : ReplayLogger {
+            object : IReplayLogger {
                 override fun onScreenCaptured(
                     encodedScreen: ByteArray,
                     screen: FilteredCapture,
-                    metrics: EncodedScreenMetrics
+                    metrics: ReplayCaptureMetrics
                 ) {
-                    Log.d("Replay Tests", "took ${metrics.captureTimeMs}ms")
+                    Log.d("Replay Tests", "took ${metrics.parseDuration.inWholeMilliseconds}ms")
                     Log.d("Replay Tests", "Captured a total of ${screen.size} ReplayRect views.")
                     Log.d("Replay Tests", screen.toString())
                     Log.d(

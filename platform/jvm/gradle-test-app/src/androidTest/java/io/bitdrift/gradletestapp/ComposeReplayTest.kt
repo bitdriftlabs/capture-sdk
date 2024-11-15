@@ -41,9 +41,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.ReplayPreviewClient
 import io.bitdrift.capture.replay.ReplayType
-import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import io.bitdrift.capture.replay.internal.ReplayRect
 import org.junit.Before
@@ -68,7 +68,7 @@ class ComposeReplayTest {
     @get:Rule
     val composeRule = createComposeRule()
     private lateinit var replayClient: ReplayPreviewClient
-    private val replay: AtomicReference<Pair<FilteredCapture, EncodedScreenMetrics>?> = AtomicReference(null)
+    private val replay: AtomicReference<Pair<FilteredCapture, ReplayCaptureMetrics>?> = AtomicReference(null)
     private lateinit var latch: CountDownLatch
 
     @Before

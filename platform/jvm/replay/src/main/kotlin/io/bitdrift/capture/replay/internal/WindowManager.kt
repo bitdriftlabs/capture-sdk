@@ -11,7 +11,7 @@ import android.os.Build
 import android.view.View
 import android.view.inspector.WindowInspector
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.replay.ReplayCaptureController
+import io.bitdrift.capture.replay.SessionReplayController
 
 // Used for retrieving the view hierarchies
 internal class WindowManager(private val errorHandler: ErrorHandler) {
@@ -36,12 +36,14 @@ internal class WindowManager(private val errorHandler: ErrorHandler) {
     /**
      * Find all DecorViews from [android.view.WindowManagerGlobal]
      */
-    @Suppress("KDocUnresolvedReference", "SwallowedException")
+    @Suppress("KDocUnresolvedReference")
     fun findRootViews(): List<View> {
+        // TODO(murki): Consider using the Curtains library for this
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && tryWindowInspector) {
             try {
                 return WindowInspector.getGlobalWindowViews()
             } catch (e: Throwable) {
+                errorHandler.handleError("Warning: Failed to retrieve windows using WindowInspector", e)
                 tryWindowInspector = false
             }
         }
@@ -49,7 +51,7 @@ internal class WindowManager(private val errorHandler: ErrorHandler) {
             @Suppress("UNCHECKED_CAST")
             return getWindowViews.get(windowManagerGlobal) as List<View>
         } catch (e: Throwable) {
-            ReplayCaptureController.L.e(e, "Failed to retrieve windows")
+            SessionReplayController.L.e(e, "Failed to retrieve windows")
             errorHandler.handleError("Failed to retrieve windows", e)
             return emptyList()
         }

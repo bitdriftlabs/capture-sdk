@@ -889,7 +889,34 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
 
       Ok(())
     },
-    "jni write resource utilization log",
+    "jni write replay screen log",
+  );
+}
+
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionReplayScreenshotLog(
+  mut env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  fields: JObject<'_>,
+  duration_s: jdouble,
+) {
+  bd_client_common::error::with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let fields = ffi::jobject_map_to_vec(&mut env, &fields)?
+        .into_iter()
+        .map(|field| AnnotatedLogField {
+          field,
+          kind: LogFieldKind::Ootb,
+        })
+        .collect();
+
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.log_session_replay_screenshot(fields, Duration::seconds_f64(duration_s));
+
+      Ok(())
+    },
+    "jni write replay screenshot log",
   );
 }
 
