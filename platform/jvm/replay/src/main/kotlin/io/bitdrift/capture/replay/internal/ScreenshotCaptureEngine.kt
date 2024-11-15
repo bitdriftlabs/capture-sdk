@@ -30,6 +30,9 @@ internal class ScreenshotCaptureEngine(
                 finishOnError(expected = true, "Screenshot triggered: Root view is invalid, skipping capture")
                 return
             }
+
+            // TODO(murki): Figure out if we can scale down the bitmap surface area to reduce memory usage
+            //  see: https://developer.android.com/topic/performance/graphics/load-bitmap#load-bitmap
             // TODO(murki): Use BuildVersionChecker after moving it to common module
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 modernPixelCopySnapshot(rootView)
@@ -140,6 +143,7 @@ internal class ScreenshotCaptureEngine(
     }
 
     private fun compressScreenshot(resultBitmap: Bitmap): ByteArray {
+        // TODO(murki): Consider also resizing the bitmap screenshot to a smaller size
         return ByteArrayOutputStream().use { outStream ->
             resultBitmap.compress(Bitmap.CompressFormat.JPEG, 10, outStream)
             resultBitmap.recycle()

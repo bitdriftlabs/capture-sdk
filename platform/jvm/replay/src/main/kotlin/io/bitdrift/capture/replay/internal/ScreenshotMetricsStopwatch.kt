@@ -14,7 +14,7 @@ internal class ScreenshotMetricsStopwatch(
     private var compressionTimeMs: Long = 0
     private var compressionByteCount: Int = 0
 
-    fun start(){
+    fun start() {
         startMs = clock.elapsedRealtime()
         screenshotTimeMs = 0
         screenshotAllocationByteCount = 0
