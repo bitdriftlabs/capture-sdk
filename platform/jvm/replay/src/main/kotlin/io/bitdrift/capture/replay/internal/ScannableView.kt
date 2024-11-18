@@ -29,7 +29,7 @@ internal sealed class ScannableView {
     /** The children of this view. */
     abstract val children: Sequence<ScannableView>
 
-    class AndroidView(val view: View, private val skipReplayComposeViews: Boolean) : ScannableView() {
+    class AndroidView(val view: View, skipReplayComposeViews: Boolean) : ScannableView() {
         override val displayName: String get() = view::class.java.simpleName
         override val children: Sequence<ScannableView> =
             view.scannableChildren(skipReplayComposeViews)

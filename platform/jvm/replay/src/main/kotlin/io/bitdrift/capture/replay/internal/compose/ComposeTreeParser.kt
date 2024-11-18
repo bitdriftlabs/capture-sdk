@@ -11,6 +11,7 @@ package io.bitdrift.capture.replay.internal.compose
 
 import android.view.View
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.AndroidComposeView
 import androidx.compose.ui.semantics.Role
@@ -25,6 +26,7 @@ import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
+import io.bitdrift.capture.replay.internal.compose.ComposeTreeParser.unclippedGlobalBounds
 
 internal object ComposeTreeParser {
     internal val View.mightBeComposeView: Boolean
@@ -45,8 +47,8 @@ internal object ComposeTreeParser {
         return rootNode.toScannableView()
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
-    private fun SemanticsNode.toScannableView(): ScannableView.ComposeView {
+    @OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
+    private fun SemanticsNode.toScannableView(): ScannableView {
         val notAttachedOrPlaced = !this.layoutNode.isPlaced || !this.layoutNode.isAttached
         val isVisible = !this.isTransparent && !unmergedConfig.contains(SemanticsProperties.InvisibleToUser)
         val type = if (notAttachedOrPlaced) {
@@ -56,6 +58,16 @@ internal object ComposeTreeParser {
         } else {
             this.unmergedConfig.toReplayType()
         }
+
+        // Handle hybrid interop AndroidViews inside Compose elements
+        val interopAndroidView = this.layoutNode.getInteropView()
+        if (type == ReplayType.View && interopAndroidView != null) {
+            return ScannableView.AndroidView(
+                view = interopAndroidView,
+                skipReplayComposeViews = false,
+            )
+        }
+
         return ScannableView.ComposeView(
             replayRect = ReplayRect(
                 type = type,
