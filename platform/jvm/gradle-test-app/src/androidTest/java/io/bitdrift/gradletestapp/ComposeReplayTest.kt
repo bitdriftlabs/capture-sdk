@@ -8,6 +8,7 @@
 package io.bitdrift.gradletestapp
 
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.TextView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -324,9 +325,9 @@ class ComposeReplayTest {
                 Column {
                     AndroidView(::TextView) {
                         it.layoutParams = ViewGroup.LayoutParams(200, 80)
-                        it.text = "Baguette Avec Fromage"
+                        it.text = "hi"
                     }
-                    AndroidView(::TextView) {
+                    AndroidView(::Button) {
                         it.layoutParams = ViewGroup.LayoutParams(200, 80)
                         it.text = "short"
                     }
@@ -337,12 +338,10 @@ class ComposeReplayTest {
         val capture = verifyReplayScreen(viewCount = 10)
         // Column
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 160))
-        // AndroidView Top
-        // TODO(murki): The ReplayRect should be a Label
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 80))
-        // AndroidView Bottom
-        // TODO(murki): The ReplayRect should be a Label
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 168, 200, 80))
+        // AndroidView w/TextView Top (width reflects the text length
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 3, 88, 33, 37))
+        // AndroidView w/Button Bottom
+        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 168, 200, 80))
     }
 
     @Test
