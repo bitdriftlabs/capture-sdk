@@ -66,7 +66,7 @@ internal class LoggerImpl(
     fieldProviders: List<FieldProvider>,
     dateProvider: DateProvider,
     private val errorHandler: ErrorHandler = ErrorHandler(),
-    processingQueue: ExecutorService = Executors.newSingleThreadExecutor {
+    private val processingQueue: ExecutorService = Executors.newSingleThreadExecutor {
         Thread(it, "io.bitdrift.capture.event-listener")
     },
     sessionStrategy: SessionStrategy,
@@ -270,6 +270,8 @@ internal class LoggerImpl(
         runCatching {
             appExitLogger.uninstallAppExitLogger()
             eventsListenerTarget.stop()
+            // TODO(murki): stop the rest of the threads (replay, resource utilization, etc.)
+            processingQueue.shutdown()
             // TODO(murki): Should we run this? in a bg thread?
             CaptureJniLibrary.flush(this.loggerId, true)
             CaptureJniLibrary.destroyLogger(this.loggerId)
