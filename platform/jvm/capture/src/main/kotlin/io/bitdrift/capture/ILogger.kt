@@ -40,6 +40,8 @@ interface ILogger {
      */
     fun startNewSession()
 
+    fun shutdown()
+
     /**
      * Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a
      * given device in real-time fashion. The creation of the device code requires communication with

@@ -42,6 +42,8 @@ internal sealed class LoggerState {
      * An attempt to start the logger was made but failed. Subsequent attempts to start the logger will be ignored.
      */
     data object StartFailure : LoggerState()
+
+    data object Shutdown : LoggerState()
 }
 
 /**
@@ -61,6 +63,7 @@ object Capture {
             is LoggerState.Starting -> null
             is LoggerState.Started -> state.logger
             is LoggerState.StartFailure -> null
+            is LoggerState.Shutdown -> null
         }
     }
 
@@ -166,7 +169,7 @@ object Capture {
                     default.set(LoggerState.StartFailure)
                 }
             } else {
-                Log.w("capture", "Multiple attempts to start Capture")
+                Log.w("capture", "Capture Logger can't be initialized more than once.")
             }
         }
 
@@ -204,6 +207,12 @@ object Capture {
         @JvmStatic
         fun startNewSession() {
             logger()?.startNewSession()
+        }
+
+        @JvmStatic
+        fun shutdown() {
+            logger()?.shutdown()
+            default.set(LoggerState.Shutdown)
         }
 
         /**

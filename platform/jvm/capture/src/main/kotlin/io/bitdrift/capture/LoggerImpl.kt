@@ -15,6 +15,7 @@ import android.system.Os
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.github.michaelbull.result.Err
+import com.github.michaelbull.result.runCatching
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
@@ -265,6 +266,16 @@ internal class LoggerImpl(
         appExitSaveCurrentSessionId()
     }
 
+    override fun shutdown() {
+        runCatching {
+            appExitLogger.uninstallAppExitLogger()
+            eventsListenerTarget.stop()
+            // TODO(murki): Should we run this? in a bg thread?
+            CaptureJniLibrary.flush(this.loggerId, true)
+            CaptureJniLibrary.destroyLogger(this.loggerId)
+        }
+    }
+
     override fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {
         CaptureJniLibrary.getDeviceId(this.loggerId)?.let { deviceId ->
             /**
@@ -424,11 +435,6 @@ internal class LoggerImpl(
         val directory = context.applicationContext.filesDir
         val sdkDirectory = File(directory.absolutePath, "bitdrift_capture")
         return sdkDirectory.absolutePath
-    }
-
-    @Suppress("UnusedPrivateMember")
-    private fun stopLoggingDefaultEvents() {
-        appExitLogger.uninstallAppExitLogger()
     }
 
     /**
