@@ -40,6 +40,9 @@ interface ILogger {
      */
     fun startNewSession()
 
+    /**
+     * Shuts down the logger and releases any resources it holds. After the logger has been shutdown is no longer usable
+     */
     fun shutdown()
 
     /**

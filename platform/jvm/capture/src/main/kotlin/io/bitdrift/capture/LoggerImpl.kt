@@ -15,7 +15,6 @@ import android.system.Os
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.github.michaelbull.result.Err
-import com.github.michaelbull.result.runCatching
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
@@ -267,10 +266,8 @@ internal class LoggerImpl(
             appExitLogger.uninstallAppExitLogger()
             eventsListenerTarget.stop()
             captureExecutors.shutdown()
-            captureNetwork.shutdown()
             apiClient.shutdown()
-            // TODO(murki): Should we run this? in a bg thread?
-            CaptureJniLibrary.flush(this.loggerId, true)
+            captureNetwork.shutdown()
             CaptureJniLibrary.destroyLogger(this.loggerId)
         }
     }

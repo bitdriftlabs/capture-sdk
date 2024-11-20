@@ -3,7 +3,7 @@ package io.bitdrift.capture.utils
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class CaptureExecutors {
+internal class CaptureExecutors {
     private val executors: List<ExecutorService>
 
     val eventListener: ExecutorService = Executors.newSingleThreadExecutor {

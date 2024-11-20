@@ -43,6 +43,9 @@ interface ICaptureNetwork {
      */
     fun startStream(streamId: Long, headers: Map<String, String>): ICaptureStream
 
+    /**
+     * Called to tear down the underlying networking client.
+      */
     fun shutdown()
 }
 

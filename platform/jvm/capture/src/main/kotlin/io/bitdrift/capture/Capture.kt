@@ -209,6 +209,10 @@ object Capture {
             logger()?.startNewSession()
         }
 
+        /**
+         * Shuts down the logger and releases any resources it holds.
+         * After the logger has been shutdown all further interactions will be no-ops.
+         */
         @JvmStatic
         fun shutdown() {
             default.set(LoggerState.Shutdown)
