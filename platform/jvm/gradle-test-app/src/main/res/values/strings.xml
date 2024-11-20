@@ -14,6 +14,7 @@
     <string name="navigate_second">Navigate to Compose Screen</string>
     <string name="previous">Navigate Back</string>
     <string name="log_level_label">Log Level</string>
+    <string name="shutdown">Shutdown Logger</string>
 
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
 </resources>

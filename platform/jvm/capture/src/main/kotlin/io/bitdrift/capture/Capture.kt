@@ -215,8 +215,9 @@ object Capture {
          */
         @JvmStatic
         fun shutdown() {
+            val loggerHandle = logger()
             default.set(LoggerState.Shutdown)
-            logger()?.shutdown()
+            loggerHandle?.shutdown()
         }
 
         /**

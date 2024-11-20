@@ -12,6 +12,7 @@ import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.system.Os
+import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.github.michaelbull.result.Err
@@ -263,12 +264,31 @@ internal class LoggerImpl(
 
     override fun shutdown() {
         runCatching {
-            appExitLogger.uninstallAppExitLogger()
-            eventsListenerTarget.stop()
-            captureExecutors.shutdown()
-            apiClient.shutdown()
-            captureNetwork.shutdown()
-            CaptureJniLibrary.destroyLogger(this.loggerId)
+            Thread {
+                val shutdownOperations = listOf(
+                    { appExitSaveCurrentSessionId(this.sessionId) },
+                    { eventsListenerTarget.stop() },
+                    { captureExecutors.shutdown() },
+                    { apiClient.shutdown() },
+                    { captureNetwork.shutdown() },
+                    { CaptureJniLibrary.destroyLogger(this.loggerId) },
+                )
+                runCatching(shutdownOperations)
+            }.start()
+        }.onFailure {
+            Log.w("capture", "Error while gracefully shutting down Capture Logger", it)
+        }.onSuccess {
+            Log.d("capture", "Capture Logger has been shut down successfully")
+        }
+    }
+
+    private fun runCatching(blocks: List<() -> Unit>) {
+        blocks.forEach { block ->
+            block.runCatching {
+                block.invoke()
+            }.onFailure {
+                Log.w("capture", "Error while gracefully shutting down Capture Logger", it)
+            }
         }
     }
 
