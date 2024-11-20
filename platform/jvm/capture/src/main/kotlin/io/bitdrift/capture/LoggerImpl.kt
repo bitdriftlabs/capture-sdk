@@ -37,6 +37,7 @@ import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
+import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.network.okhttp.OkHttpNetwork
 import io.bitdrift.capture.providers.DateProvider
@@ -46,10 +47,9 @@ import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.utils.CaptureExecutors
 import okhttp3.HttpUrl
 import java.io.File
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
@@ -66,9 +66,7 @@ internal class LoggerImpl(
     fieldProviders: List<FieldProvider>,
     dateProvider: DateProvider,
     private val errorHandler: ErrorHandler = ErrorHandler(),
-    private val processingQueue: ExecutorService = Executors.newSingleThreadExecutor {
-        Thread(it, "io.bitdrift.capture.event-listener")
-    },
+    private val captureExecutors: CaptureExecutors = CaptureExecutors(),
     sessionStrategy: SessionStrategy,
     context: Context = ContextHolder.APP_CONTEXT,
     clientAttributes: ClientAttributes = ClientAttributes(
@@ -80,6 +78,7 @@ internal class LoggerImpl(
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     private val bridge: IBridge = CaptureJniLibrary,
+    private val captureNetwork: ICaptureNetwork = OkHttpNetwork(captureExecutors.captureNetwork, apiUrl),
 ) : ILogger {
 
     private val metadataProvider: MetadataProvider
@@ -122,10 +121,6 @@ internal class LoggerImpl(
                 customFieldProviders = fieldProviders,
             )
 
-            val network = OkHttpNetwork(
-                apiBaseUrl = apiUrl,
-            )
-
             val sdkDirectory = getSdkDirectoryPath(context)
 
             val localErrorReporter = errorReporter ?: ErrorReporterService(
@@ -145,7 +140,7 @@ internal class LoggerImpl(
                 diskUsageMonitor,
                 errorHandler,
                 this,
-                processingQueue,
+                captureExecutors.eventListener,
             )
 
             val sessionReplayTarget = SessionReplayTarget(
@@ -153,6 +148,7 @@ internal class LoggerImpl(
                 errorHandler,
                 context,
                 logger = this,
+                captureExecutors.sessionReplay
             )
 
             this.sessionReplayTarget = sessionReplayTarget
@@ -173,7 +169,7 @@ internal class LoggerImpl(
                 eventsListenerTarget,
                 clientAttributes.appId,
                 clientAttributes.appVersion,
-                network,
+                captureNetwork,
                 preferences,
                 localErrorReporter,
             )
@@ -191,7 +187,7 @@ internal class LoggerImpl(
                     this,
                     ProcessLifecycleOwner.get(),
                     runtime,
-                    processingQueue,
+                    captureExecutors.eventListener,
                 ),
             )
 
@@ -202,7 +198,7 @@ internal class LoggerImpl(
                     batteryMonitor,
                     powerMonitor,
                     runtime,
-                    processingQueue,
+                    captureExecutors.eventListener,
                 ),
             )
 
@@ -212,7 +208,7 @@ internal class LoggerImpl(
                     context,
                     memoryMonitor,
                     runtime,
-                    processingQueue,
+                    captureExecutors.eventListener,
                 ),
             )
 
@@ -222,7 +218,7 @@ internal class LoggerImpl(
                     clientAttributes,
                     context,
                     runtime,
-                    processingQueue,
+                    captureExecutors.eventListener,
                 ),
             )
 
@@ -270,8 +266,9 @@ internal class LoggerImpl(
         runCatching {
             appExitLogger.uninstallAppExitLogger()
             eventsListenerTarget.stop()
-            // TODO(murki): stop the rest of the threads (replay, resource utilization, etc.)
-            processingQueue.shutdown()
+            captureExecutors.shutdown()
+            captureNetwork.shutdown()
+            apiClient.shutdown()
             // TODO(murki): Should we run this? in a bg thread?
             CaptureJniLibrary.flush(this.loggerId, true)
             CaptureJniLibrary.destroyLogger(this.loggerId)

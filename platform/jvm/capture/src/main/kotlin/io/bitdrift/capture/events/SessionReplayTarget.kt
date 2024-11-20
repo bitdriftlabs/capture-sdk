@@ -25,6 +25,7 @@ import io.bitdrift.capture.replay.ScreenshotCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.internal.FilteredCapture
+import java.util.concurrent.ExecutorService
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -34,6 +35,7 @@ internal class SessionReplayTarget(
     errorHandler: ErrorHandler,
     context: Context,
     private val logger: LoggerImpl,
+    executor: ExecutorService,
     mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) : ISessionReplayTarget, IReplayLogger, IScreenshotLogger {
     // TODO(Augustyniak): Make non nullable and pass at initialization time after
@@ -47,6 +49,7 @@ internal class SessionReplayTarget(
         configuration,
         context,
         mainThreadHandler,
+        executor
     )
 
     override fun captureScreen() {

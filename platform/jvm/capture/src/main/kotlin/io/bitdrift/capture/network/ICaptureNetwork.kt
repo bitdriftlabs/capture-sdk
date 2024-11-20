@@ -42,6 +42,8 @@ interface ICaptureNetwork {
      * @return a new stream handle
      */
     fun startStream(streamId: Long, headers: Map<String, String>): ICaptureStream
+
+    fun shutdown()
 }
 
 internal object Jni {

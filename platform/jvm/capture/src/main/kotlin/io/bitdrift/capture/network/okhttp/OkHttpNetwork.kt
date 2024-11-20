@@ -27,7 +27,6 @@ import okio.Pipe
 import okio.buffer
 import java.io.IOException
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
@@ -76,6 +75,7 @@ internal fun newDuplexRequestBody(contentType: MediaType): PipeDuplexRequestBody
 }
 
 internal class OkHttpNetwork(
+    private val executor: ExecutorService,
     apiBaseUrl: HttpUrl,
     timeoutSeconds: Long = 2L * 60,
 ) : ICaptureNetwork {
@@ -92,9 +92,6 @@ internal class OkHttpNetwork(
         .retryOnConnectionFailure(false) // Retrying messes up the write pipe state management, so disable.
         .build()
 
-    private val executor: ExecutorService = Executors.newSingleThreadExecutor {
-        Thread(it, "io.bitdrift.capture.network.okhttp")
-    }
     private val url: HttpUrl =
         apiBaseUrl.newBuilder().addPathSegments("bitdrift_public.protobuf.client.v1.ApiService/Mux")
             .build()
@@ -105,6 +102,13 @@ internal class OkHttpNetwork(
         val streamState = StreamState(streamId, headers)
         activeStream.getAndSet(streamState)?.streamId?.deallocate()
         return streamState
+    }
+
+    override fun shutdown() {
+        kotlin.runCatching {
+            client.dispatcher.executorService.shutdown()
+            client.connectionPool.evictAll()
+        }
     }
 
     private val activeStream: AtomicReference<StreamState?> = AtomicReference(null)
