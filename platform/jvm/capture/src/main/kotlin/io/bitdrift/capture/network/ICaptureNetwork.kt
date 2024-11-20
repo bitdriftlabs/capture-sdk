@@ -45,7 +45,7 @@ interface ICaptureNetwork {
 
     /**
      * Called to tear down the underlying networking client.
-      */
+     */
     fun shutdown()
 }
 

@@ -49,7 +49,7 @@ internal class SessionReplayTarget(
         configuration,
         context,
         mainThreadHandler,
-        executor
+        executor,
     )
 
     override fun captureScreen() {

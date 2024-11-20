@@ -147,7 +147,7 @@ internal class LoggerImpl(
                 errorHandler,
                 context,
                 logger = this,
-                captureExecutors.sessionReplay
+                captureExecutors.sessionReplay,
             )
 
             this.sessionReplayTarget = sessionReplayTarget
