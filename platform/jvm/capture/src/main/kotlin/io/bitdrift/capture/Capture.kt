@@ -211,8 +211,8 @@ object Capture {
 
         @JvmStatic
         fun shutdown() {
-            logger()?.shutdown()
             default.set(LoggerState.Shutdown)
+            logger()?.shutdown()
         }
 
         /**
