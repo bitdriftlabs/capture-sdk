@@ -26,7 +26,6 @@ import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
-import io.bitdrift.capture.replay.internal.compose.ComposeTreeParser.unclippedGlobalBounds
 
 internal object ComposeTreeParser {
     internal val View.mightBeComposeView: Boolean
@@ -50,9 +49,18 @@ internal object ComposeTreeParser {
     @OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
     private fun SemanticsNode.toScannableView(): ScannableView {
         val notAttachedOrPlaced = !this.layoutNode.isPlaced || !this.layoutNode.isAttached
-        val isVisible = !this.isTransparent && !unmergedConfig.contains(SemanticsProperties.InvisibleToUser)
+        val captureIgnoreSubTree = this.unmergedConfig.getOrNull(CaptureModifier.CaptureIgnore)
+        val isVisible = !this.isTransparent && !this.unmergedConfig.contains(SemanticsProperties.InvisibleToUser)
         val type = if (notAttachedOrPlaced) {
             return ScannableView.IgnoredComposeView
+        } else if (captureIgnoreSubTree != null) {
+            if (captureIgnoreSubTree) {
+                // short-circuit the entire sub-tree
+                return ScannableView.IgnoredComposeView
+            } else {
+                // just ignore this one element
+                ReplayType.Ignore
+            }
         } else if (!isVisible) {
             ReplayType.TransparentView
         } else {
