@@ -11,15 +11,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.semantics
 
+/**
+ * Compose Modifiers exposed by the Capture SDK.
+ */
 object CaptureModifier {
 
-    val CaptureIgnore = SemanticsPropertyKey<Boolean>(
+    internal val CaptureIgnore = SemanticsPropertyKey<Boolean>(
         name = "CaptureIgnoreModifier",
         mergePolicy = { parentValue, _ ->
             parentValue
         },
     )
 
+    /**
+     * Semantic Modifier that can be used to ignore elements of the Compose tree from being captured by Session Replay.
+     */
     @JvmStatic
     fun Modifier.captureIgnore(ignoreSubTree: Boolean = false): Modifier {
         return semantics(

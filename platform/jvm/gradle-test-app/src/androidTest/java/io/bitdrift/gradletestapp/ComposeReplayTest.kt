@@ -45,6 +45,7 @@ import com.google.common.truth.Truth.assertThat
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.ReplayPreviewClient
 import io.bitdrift.capture.replay.ReplayType
+import io.bitdrift.capture.replay.compose.CaptureModifier.captureIgnore
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import io.bitdrift.capture.replay.internal.ReplayRect
 import org.junit.Before
@@ -315,7 +316,49 @@ class ComposeReplayTest {
 
         val capture = verifyReplayScreen(viewCount = 13)
         assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 109, 351, 126))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 28, 144, 295, 57))
         assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 277, 224, 126))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 45, 312, 135, 57))
+    }
+
+    @Test
+    fun textButtonIgnoreOneButtonOnly() {
+        composeRule.setContentWithExplicitRoot {
+            Column(Modifier.wrapContentWidth()) {
+                TextButton(onClick = {}) {
+                    Text("Button Text")
+                }
+                TextButton(onClick = {}, modifier = Modifier.captureIgnore(ignoreSubTree = false)) {
+                    Text("short")
+                }
+            }
+        }
+
+        val capture = verifyReplayScreen(viewCount = 13)
+        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 109, 351, 126))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 28, 144, 295, 57))
+        assertThat(capture).doesNotContain(ReplayRect(ReplayType.Button, 0, 277, 224, 126))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 45, 312, 135, 57))
+    }
+
+    @Test
+    fun textButtonIgnoreOneFullTextButton() {
+        composeRule.setContentWithExplicitRoot {
+            Column(Modifier.wrapContentWidth()) {
+                TextButton(onClick = {}) {
+                    Text("Button Text")
+                }
+                TextButton(onClick = {}, modifier = Modifier.captureIgnore(ignoreSubTree = true)) {
+                    Text("short")
+                }
+            }
+        }
+
+        val capture = verifyReplayScreen(viewCount = 13)
+        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 109, 351, 126))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 28, 144, 295, 57))
+        assertThat(capture).doesNotContain(ReplayRect(ReplayType.Button, 0, 277, 224, 126))
+        assertThat(capture).doesNotContain(ReplayRect(ReplayType.Label, 45, 312, 135, 57))
     }
 
     @Test
