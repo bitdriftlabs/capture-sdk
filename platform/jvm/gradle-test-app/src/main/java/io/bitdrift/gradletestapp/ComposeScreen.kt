@@ -25,7 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.HtmlCompat
-import io.bitdrift.capture.replay.internal.compose.CaptureModifier.captureIgnore
+import io.bitdrift.capture.replay.compose.CaptureModifier.captureIgnore
 import timber.log.Timber
 
 @Composable
