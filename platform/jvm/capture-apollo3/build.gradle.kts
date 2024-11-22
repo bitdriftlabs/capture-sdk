@@ -55,6 +55,7 @@ tasks.preBuild {
 
 dependencies {
     implementation(project(":capture"))
+    implementation(project(":common"))
     implementation("com.apollographql.apollo3:apollo-runtime:3.8.3")
 
     testImplementation("com.google.truth:truth:1.4.4")

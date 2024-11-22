@@ -7,6 +7,8 @@
 
 package io.bitdrift.capture.apollo3
 
+import android.util.Base64
+import android.util.Log
 import com.apollographql.apollo3.api.ApolloRequest
 import com.apollographql.apollo3.api.ApolloResponse
 import com.apollographql.apollo3.api.CustomScalarAdapters
@@ -23,36 +25,34 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.SpanResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.onEach
+import okhttp3.Headers.Companion.toHeaders
+import okhttp3.HttpUrl
+
+internal const val HEADER_GQL_OPERATION_NAME = "x-capture-gql-operation-name"
+internal const val HEADER_GQL_OPERATION_ID = "x-capture-gql-operation-id"
+internal const val HEADER_GQL_OPERATION_TYPE = "x-capture-gql-operation-type"
+internal const val HEADER_GQL_OPERATION_VARIABLES = "x-capture-gql-operation-variables"
 
 /**
  * An [ApolloInterceptor] that logs request and response events to the [Capture.Logger].
  */
-class CaptureApollo3Interceptor internal constructor(private val internalLogger: ILogger?) : ApolloInterceptor {
-
-    constructor() : this(Capture.logger())
-
-    // attempts to get the latest logger if one wasn't found at construction time
-    private val logger: ILogger?
-        get() = internalLogger ?: Capture.logger()
+class CaptureApollo3Interceptor: ApolloInterceptor {
 
     override fun <D : Operation.Data> intercept(request: ApolloRequest<D>, chain: ApolloInterceptorChain): Flow<ApolloResponse<D>> {
-        val requestFields = buildMap {
-            put("_operation_type", request.operation.type())
-            put("_operation_name", request.operation.name())
-            request.scalarAdapters?.let {
-                put("_operation_variables", request.operation.variables(it).valueMap.toString())
-            }
+        val requestBuilder = request.newBuilder()
+            .addHttpHeader(HEADER_GQL_OPERATION_NAME, request.operation.name().encodeBase64())
+            .addHttpHeader(HEADER_GQL_OPERATION_ID, request.operation.id().encodeBase64())
+            .addHttpHeader(HEADER_GQL_OPERATION_TYPE, request.operation.type().encodeBase64())
+        request.scalarAdapters?.let {
+            requestBuilder.addHttpHeader(HEADER_GQL_OPERATION_VARIABLES, request.operation.variables(it).valueMap.toString().encodeBase64())
         }
-        val graphqlSpan = logger?.startSpan("_graphql", LogLevel.DEBUG, requestFields) // use "reserved" magic string
 
-        return chain.proceed(request).onEach { response ->
+        return chain.proceed(requestBuilder.build()).onEach { response ->
             if (!response.hasErrors()) {
-                graphqlSpan?.end(SpanResult.SUCCESS)
+                Log.i("miguel-apollo3", "Graphql operation ${request.operation.name()} Succeeded.")
             } else {
-                graphqlSpan?.end(
-                    SpanResult.FAILURE,
-                    mapOf("_graphql_errors" to (response.errors?.joinToString("|") ?: "none"))
-                )
+                // TODO(murki): Put errors in headers and pass along
+                Log.i("miguel-apollo3", "Graphql operation ${request.operation.name()} failed. Errors=${response.errors?.joinToString("|") ?: "none"}")
             }
         }
     }
@@ -68,4 +68,8 @@ class CaptureApollo3Interceptor internal constructor(private val internalLogger:
 
     private val <D : Operation.Data> ApolloRequest<D>.scalarAdapters
         get() = executionContext[CustomScalarAdapters]
+
+    private fun String.encodeBase64(): String {
+        return Base64.encodeToString(this.toByteArray(), Base64.NO_WRAP)
+    }
 }

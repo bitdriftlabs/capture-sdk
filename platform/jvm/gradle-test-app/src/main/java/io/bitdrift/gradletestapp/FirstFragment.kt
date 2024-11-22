@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.apollographql.apollo3.ApolloClient
+import com.apollographql.apollo3.network.okHttpClient
 import com.example.rocketreserver.LaunchListQuery
 import com.github.michaelbull.result.onFailure
 import com.github.michaelbull.result.onSuccess
@@ -37,6 +38,7 @@ import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.apollo3.CaptureApollo3Interceptor
+import io.bitdrift.capture.apollo3.CaptureGraphQLEventListenerFactory
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.gradletestapp.databinding.FragmentFirstBinding
 import kotlinx.coroutines.MainScope
@@ -141,20 +143,16 @@ class FirstFragment : Fragment() {
             AppExitReason.entries
         )
 
-        okHttpClient = provideOkHttpClient()
-        apolloClient = provideApolloClient()
-    }
-
-    private fun provideOkHttpClient(): OkHttpClient {
-        return OkHttpClient.Builder()
+        okHttpClient = OkHttpClient.Builder()
             .eventListenerFactory(CaptureOkHttpEventListenerFactory())
             .build()
-    }
 
-    private fun provideApolloClient(): ApolloClient {
-        return ApolloClient.Builder()
-            .serverUrl("https://apollo-fullstack-tutorial.herokuapp.com/graphql")
+        apolloClient = ApolloClient.Builder()
+            .okHttpClient(OkHttpClient.Builder()
+                .eventListenerFactory(CaptureGraphQLEventListenerFactory())
+                .build())
             .addInterceptor(CaptureApollo3Interceptor())
+            .serverUrl("https://apollo-fullstack-tutorial.herokuapp.com/graphql")
             .build()
     }
 
