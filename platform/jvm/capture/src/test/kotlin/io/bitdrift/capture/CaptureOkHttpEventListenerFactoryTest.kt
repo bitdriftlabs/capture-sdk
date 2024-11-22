@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.common.IClock
@@ -335,5 +336,29 @@ class CaptureOkHttpEventListenerFactoryTest {
         assertThat(httpResponseInfo.fields["_result"].toString()).isEqualTo("canceled")
         assertThat(httpResponseInfo.fields["_error_type"].toString()).isEqualTo(err::javaClass.get().simpleName)
         assertThat(httpResponseInfo.fields["_error_message"].toString()).isEqualTo(errorMessage)
+    }
+
+    @Test
+    fun testIgnoreGraphQLRequests() {
+        // ARRANGE
+        val request = Request.Builder()
+            .url(endpoint)
+            .post("test".toRequestBody())
+            .header("x-capture-gql-operation-name", "myOperationName")
+            .build()
+        val call: Call = mock()
+        whenever(call.request()).thenReturn(request)
+
+        // ACT
+        val factory = CaptureOkHttpEventListenerFactory(null, logger, clock)
+        val listener = factory.create(call)
+
+        listener.callStart(call)
+        listener.callEnd(call)
+        listener.callFailed(call, InterruptedIOException("test error"))
+
+        // ASSERT
+        verify(logger, times(0)).log(any<HttpRequestInfo>())
+        verify(logger, times(0)).log(any<HttpResponseInfo>())
     }
 }

@@ -20,6 +20,11 @@ internal class CaptureOkHttpEventListener internal constructor(
 ) : CaptureOkHttpEventListenerBase(clock, targetEventListener) {
 
     override fun callStart(call: Call) {
+        // we bail if we detect this is a graphql operation to not double count it
+        if (call.request().header("x-capture-gql-operation-name") != null) {
+            return
+        }
+
         super.callStart(call)
         requestInfo?.let {
             logger?.log(it)

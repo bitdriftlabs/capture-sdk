@@ -38,6 +38,7 @@ internal class CaptureGraphQLEventListener internal constructor(
                 put("_operation_variables", it)
             }
         }
+        // TODO(murki): Remove headers from request
         // TODO(murki): Extend with this.requestInfo metrics
         graphqlSpan = logger?.startSpan("_graphql", LogLevel.DEBUG, requestFields) // use "reserved" magic string
     }
