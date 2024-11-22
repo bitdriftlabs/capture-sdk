@@ -22,6 +22,7 @@ internal class CaptureGraphQLEventListener internal constructor(
     private var graphqlSpan: Span? = null
 
     override fun callStart(call: Call) {
+        super.callStart(call)
         val request = call.request()
         // bail if not a gql operation
         val gqlOperationName = request.decodeHeader(HEADER_GQL_OPERATION_NAME) ?: return
@@ -42,6 +43,7 @@ internal class CaptureGraphQLEventListener internal constructor(
     }
 
     override fun callEnd(call: Call) {
+        super.callEnd(call)
         // TODO(murki): Figure out how to log graphql-errors failures
         // TODO(murki): Extend with this.responseInfo metrics
         graphqlSpan?.end(SpanResult.SUCCESS)
@@ -49,6 +51,7 @@ internal class CaptureGraphQLEventListener internal constructor(
     }
 
     override fun callFailed(call: Call, ioe: IOException) {
+        super.callFailed(call, ioe)
         // TODO(murki): Handle graphql-errors failure
         // TODO(murki): Extend with this.responseInfo metrics
         graphqlSpan?.end(SpanResult.FAILURE)

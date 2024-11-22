@@ -20,18 +20,21 @@ internal class CaptureOkHttpEventListener internal constructor(
 ) : CaptureOkHttpEventListenerBase(clock, targetEventListener) {
 
     override fun callStart(call: Call) {
+        super.callStart(call)
         requestInfo?.let {
             logger?.log(it)
         }
     }
 
     override fun callEnd(call: Call) {
+        super.callEnd(call)
         responseInfo?.let {
             logger?.log(it)
         }
     }
 
     override fun callFailed(call: Call, ioe: IOException) {
+        super.callFailed(call, ioe)
         responseInfo?.let {
             logger?.log(it)
         }
