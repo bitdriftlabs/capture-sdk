@@ -11,7 +11,7 @@ import okhttp3.EventListener
  * Emits Capture logs for Apollo GraphQL OkHttp network traffic.
  *
  * Usage - set instance of [CaptureGraphQLEventListenerFactory] on [okhttp3.OkHttpClient.Builder.eventListener]
- * using [okhttp3.OkHttpClient.Builder.eventListenerFactory] method in conjunction with [CaptureApollo3Interceptor] inside
+ * using [okhttp3.OkHttpClient.Builder.eventListenerFactory] method in conjunction with [CaptureGraphQLInterceptor] inside
  * the [com.apollographql.apollo3.ApolloClient.Builder].
  *
  * val apolloClient = ApolloClient.Builder()

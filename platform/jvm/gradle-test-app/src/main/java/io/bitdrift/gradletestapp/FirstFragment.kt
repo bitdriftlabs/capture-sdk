@@ -37,7 +37,7 @@ import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LoggerImpl
-import io.bitdrift.capture.apollo3.CaptureApollo3Interceptor
+import io.bitdrift.capture.apollo3.CaptureGraphQLInterceptor
 import io.bitdrift.capture.apollo3.CaptureGraphQLEventListenerFactory
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.gradletestapp.databinding.FragmentFirstBinding
@@ -151,7 +151,7 @@ class FirstFragment : Fragment() {
             .okHttpClient(OkHttpClient.Builder()
                 .eventListenerFactory(CaptureGraphQLEventListenerFactory())
                 .build())
-            .addInterceptor(CaptureApollo3Interceptor())
+            .addInterceptor(CaptureGraphQLInterceptor())
             .serverUrl("https://apollo-fullstack-tutorial.herokuapp.com/graphql")
             .build()
     }

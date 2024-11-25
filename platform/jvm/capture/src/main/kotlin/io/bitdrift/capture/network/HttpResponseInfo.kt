@@ -35,75 +35,82 @@ data class HttpResponseInfo @JvmOverloads constructor(
 ) {
     internal val name: String = "HTTPResponse"
 
-    internal val fields: InternalFieldsMap =
-        run {
-            // Collect out-of-the-box fields specific to HTTPResponse logs. The list consists of
-            // HTTP specific fields such as host, path, or query and HTTP request performance
-            // metrics such as DNS resolution time.
-            val fields = buildMap {
-                this.put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_END))
-                this.put(
-                    SpanField.Key.DURATION,
-                    FieldValue.StringField(durationMs.toString()),
-                )
-                this.put(
-                    SpanField.Key.RESULT,
-                    FieldValue.StringField(response.result.name.lowercase()),
-                )
-                putOptional("_status_code", response.statusCode)
-                putOptional(
-                    "_error_type",
-                    response.error,
-                ) { it::javaClass.get().simpleName }
-                putOptional(
-                    "_error_message",
-                    response.error,
-                ) { it.message.orEmpty() }
-                putOptional(HttpFieldKey.HOST, response.host)
-                putOptional(HttpFieldKey.PATH, response.path?.value)
-                putOptional(HttpFieldKey.QUERY, response.query)
-
-                response.path?.let {
-                    val requestPathTemplate =
-                        if (request.path?.value == it.value) {
-                            // If the path between request and response did not change and an explicit path
-                            // template was provided as part of a request use it as path template on a response.
-                            request.path.template
-                        } else {
-                            null
-                        }
-
-                    putOptional(
-                        HttpFieldKey.PATH_TEMPLATE,
-                        requestPathTemplate?.let { it } ?: it.template?.let { it },
-                    )
-                }
-
-                metrics?.let<HttpRequestMetrics, Unit> {
-                    this.put(
-                        "_request_body_bytes_sent_count",
-                        FieldValue.StringField(it.requestBodyBytesSentCount.toString()),
-                    )
-                    this.put(
-                        "_response_body_bytes_received_count",
-                        FieldValue.StringField(it.responseBodyBytesReceivedCount.toString()),
-                    )
-                    this.put(
-                        "_request_headers_bytes_count",
-                        FieldValue.StringField(it.requestHeadersBytesCount.toString()),
-                    )
-                    this.put(
-                        "_response_headers_bytes_count",
-                        FieldValue.StringField(it.responseHeadersBytesCount.toString()),
-                    )
-                    putOptional("_dns_resolution_duration_ms", it.dnsResolutionDurationMs)
-                }
-            }
-
+    internal val fields: InternalFieldsMap by lazy {
+        buildMap {
             // Combine fields in the increasing order of their priority as the latter fields
             // override the former ones in the case of field name conflicts.
-            extraFields.toFields() + request.commonFields + fields
+            putAll(extraFields.toFields())
+            putAll(request.fields)
+            putAll(coreFields.toFields())
+            put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_END))
+            put(
+                SpanField.Key.DURATION,
+                FieldValue.StringField(durationMs.toString())
+            )
+            put(
+                SpanField.Key.RESULT,
+                FieldValue.StringField(response.result.name.lowercase()),
+            )
         }
+    }
+
+    /**
+     * Fields that describe the network response result.
+     */
+    val coreFields: Map<String, String> by lazy {
+        // Collect out-of-the-box fields specific to HTTPResponse logs. The list consists of
+        // HTTP specific fields such as host, path, or query and HTTP request performance
+        // metrics such as DNS resolution time.
+        buildMap {
+            response.statusCode?.let { put("_status_code", it.toString()) }
+            response.error?.let {
+                put(
+                    "_error_type",
+                    it::javaClass.get().simpleName,
+                )
+                put(
+                    "_error_message",
+                    it.message.orEmpty(),
+                )
+            }
+            response.host?.let { put(HttpFieldKey.HOST, it) }
+            response.path?.value?.let { put(HttpFieldKey.PATH, it) }
+            response.query?.let { put(HttpFieldKey.QUERY, it) }
+
+            response.path?.let { it ->
+                val requestPathTemplate =
+                    if (request.path?.value == it.value) {
+                        // If the path between request and response did not change and an explicit path
+                        // template was provided as part of a request use it as path template on a response.
+                        request.path.template
+                    } else {
+                        null
+                    }
+
+                requestPathTemplate ?: it.template?.let { put(HttpFieldKey.PATH_TEMPLATE, it)}
+            }
+
+            metrics?.let<HttpRequestMetrics, Unit> { metrics ->
+                put(
+                    "_request_body_bytes_sent_count",
+                    metrics.requestBodyBytesSentCount.toString(),
+                )
+                put(
+                    "_response_body_bytes_received_count",
+                    metrics.responseBodyBytesReceivedCount.toString(),
+                )
+                put(
+                    "_request_headers_bytes_count",
+                    metrics.requestHeadersBytesCount.toString(),
+                )
+                put(
+                    "_response_headers_bytes_count",
+                    metrics.responseHeadersBytesCount.toString(),
+                )
+                metrics.dnsResolutionDurationMs?.let { put("_dns_resolution_duration_ms", it.toString()) }
+            }
+        }
+    }
 
     internal val matchingFields: InternalFieldsMap =
         request.fields.mapKeys { "_request.${it.key}" } +

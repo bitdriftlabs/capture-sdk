@@ -20,13 +20,8 @@ import com.apollographql.apollo3.api.variables
 import com.apollographql.apollo3.interceptor.ApolloInterceptor
 import com.apollographql.apollo3.interceptor.ApolloInterceptorChain
 import io.bitdrift.capture.Capture
-import io.bitdrift.capture.ILogger
-import io.bitdrift.capture.LogLevel
-import io.bitdrift.capture.events.span.SpanResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.onEach
-import okhttp3.Headers.Companion.toHeaders
-import okhttp3.HttpUrl
 
 internal const val HEADER_GQL_OPERATION_NAME = "x-capture-gql-operation-name"
 internal const val HEADER_GQL_OPERATION_ID = "x-capture-gql-operation-id"
@@ -36,7 +31,7 @@ internal const val HEADER_GQL_OPERATION_VARIABLES = "x-capture-gql-operation-var
 /**
  * An [ApolloInterceptor] that logs request and response events to the [Capture.Logger].
  */
-class CaptureApollo3Interceptor: ApolloInterceptor {
+class CaptureGraphQLInterceptor: ApolloInterceptor {
 
     override fun <D : Operation.Data> intercept(request: ApolloRequest<D>, chain: ApolloInterceptorChain): Flow<ApolloResponse<D>> {
         val requestBuilder = request.newBuilder()

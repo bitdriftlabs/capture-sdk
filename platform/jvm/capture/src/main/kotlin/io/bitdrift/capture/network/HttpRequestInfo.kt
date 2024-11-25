@@ -36,28 +36,26 @@ data class HttpRequestInfo @JvmOverloads constructor(
     internal val name: String = "HTTPRequest"
 
     internal val fields: InternalFieldsMap by lazy {
-        // Do not put body bytes count as a common field since response log has a more accurate
-        // measurement of request' body count anyway.
         buildMap {
-            putAll(commonFields)
-            putOptional("_request_body_bytes_expected_to_send_count", bytesExpectedToSendCount)
-        }
-    }
-
-    internal val commonFields: InternalFieldsMap by lazy {
-        extraFields.toFields() + buildMap {
+            putAll(extraFields.toFields())
+            putAll(coreFields.toFields())
             put(SpanField.Key.ID, FieldValue.StringField(spanId.toString()))
             put(SpanField.Key.NAME, FieldValue.StringField("_http"))
             put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_START))
-            put("_method", FieldValue.StringField(method))
-            putOptional(HttpFieldKey.HOST, host)
-            putOptional(HttpFieldKey.PATH, path?.value)
-            putOptional(HttpFieldKey.QUERY, query)
-            path?.let {
-                it.template?.let {
-                    put(HttpFieldKey.PATH_TEMPLATE, FieldValue.StringField(it))
-                }
-            }
+        }
+    }
+
+    /**
+     * Fields that describe the network request.
+     */
+    val coreFields: Map<String, String> by lazy {
+        buildMap {
+            put("_method", method)
+            host?.let { put("_host", it) }
+            path?.let { put("_path", it.value) }
+            query?.let { put("_query", it) }
+            path?.template?.let { put(HttpFieldKey.PATH_TEMPLATE, it) }
+            bytesExpectedToSendCount?.let { put("_request_body_bytes_expected_to_send_count", it.toString()) }
         }
     }
 

@@ -22,10 +22,12 @@ internal class CaptureGraphQLEventListener internal constructor(
     private var graphqlSpan: Span? = null
 
     override fun callStart(call: Call) {
+        // Call super to populate requestInfo
         super.callStart(call)
         val request = call.request()
         // bail if not a gql operation
         val gqlOperationName = request.decodeHeader(HEADER_GQL_OPERATION_NAME) ?: return
+        // TODO(murki): Consider removing headers from request
         val requestFields = buildMap {
             put("_operation_name", gqlOperationName)
             request.decodeHeader(HEADER_GQL_OPERATION_ID)?.let {
@@ -37,25 +39,23 @@ internal class CaptureGraphQLEventListener internal constructor(
             request.decodeHeader(HEADER_GQL_OPERATION_VARIABLES)?.let {
                 put("_operation_variables", it)
             }
+            requestInfo?.let { putAll(it.coreFields) }
         }
-        // TODO(murki): Remove headers from request
-        // TODO(murki): Extend with this.requestInfo metrics
-        graphqlSpan = logger?.startSpan("_graphql", LogLevel.DEBUG, requestFields) // use "reserved" magic string
+        graphqlSpan = logger?.startSpan("_graphql", LogLevel.DEBUG, requestFields)
     }
 
     override fun callEnd(call: Call) {
+        // Call super to populate responseInfo
         super.callEnd(call)
         // TODO(murki): Figure out how to log graphql-errors failures
-        // TODO(murki): Extend with this.responseInfo metrics
-        graphqlSpan?.end(SpanResult.SUCCESS)
+        graphqlSpan?.end(SpanResult.SUCCESS, responseInfo?.coreFields)
         Log.i("miguel-eventListener", "EventListener call operation succeeded.")
     }
 
     override fun callFailed(call: Call, ioe: IOException) {
+        // Call super to populate responseInfo
         super.callFailed(call, ioe)
-        // TODO(murki): Handle graphql-errors failure
-        // TODO(murki): Extend with this.responseInfo metrics
-        graphqlSpan?.end(SpanResult.FAILURE)
+        graphqlSpan?.end(SpanResult.FAILURE, responseInfo?.coreFields)
     }
 
     private fun Request.decodeHeader(headerName: String): String? {

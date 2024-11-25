@@ -12,7 +12,7 @@ import io.bitdrift.capture.providers.FieldValue
 internal fun <T> MutableMap<String, FieldValue>.putOptional(
     key: String,
     value: T?,
-    extractString: ((T) -> String) = { T -> T.toString() },
+    extractString: ((T) -> String) = { t -> t.toString() },
 ): MutableMap<String, FieldValue> {
     if (value != null) {
         this[key] = FieldValue.StringField(extractString(value))

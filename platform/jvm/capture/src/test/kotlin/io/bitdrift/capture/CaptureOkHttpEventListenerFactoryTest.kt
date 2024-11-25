@@ -105,7 +105,7 @@ class CaptureOkHttpEventListenerFactoryTest {
         // request matching fields
         assertThat(httpRequestInfo.matchingFields["_headers.foo"].toString()).isEqualTo("bar")
         // response-only fields
-        assertThat(httpResponseInfo.fields["_request_body_bytes_expected_to_send_count"]).isNull()
+        assertThat(httpResponseInfo.fields["_request_body_bytes_expected_to_send_count"].toString()).isEqualTo("4")
         assertThat(httpResponseInfo.fields["_result"].toString()).isEqualTo("success")
         assertThat(httpResponseInfo.fields["_status_code"].toString()).isEqualTo("200")
         assertThat(httpResponseInfo.fields["_duration_ms"].toString()).isEqualTo(callDurationMs.toString())
