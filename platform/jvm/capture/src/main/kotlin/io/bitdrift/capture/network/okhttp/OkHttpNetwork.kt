@@ -80,27 +80,27 @@ internal class OkHttpNetwork(
     timeoutSeconds: Long = 2L * 60,
 ) : ICaptureNetwork {
     private val client: OkHttpClient =
-            run {
-                val builder = OkHttpClient().newBuilder()
-                // Certain other libraries will manipulate the bytecode to have the OkHttpClientBuilder
-                // constructor automatically add interceptors which tend to not work well with our bespoke
-                // client implementation. Remove these extra interceptors here to ensure that we are using
-                // a standard client.
-                builder.interceptors().clear()
-                builder.networkInterceptors().clear()
-                builder
-                        .protocols(
-                                if (apiBaseUrl.scheme == "https") {
-                                    listOf(Protocol.HTTP_2, Protocol.HTTP_1_1)
-                                } else {
-                                    listOf(Protocol.H2_PRIOR_KNOWLEDGE)
-                                },
-                        )
-                        .writeTimeout(timeoutSeconds, TimeUnit.SECONDS)
-                        .readTimeout(timeoutSeconds, TimeUnit.SECONDS)
-                        .retryOnConnectionFailure(false) // Retrying messes up the write pipe state management, so disable.
-                        .build()
-            }
+        run {
+            val builder = OkHttpClient().newBuilder()
+            // Certain other libraries will manipulate the bytecode to have the OkHttpClientBuilder
+            // constructor automatically add interceptors which tend to not work well with our bespoke
+            // client implementation. Remove these extra interceptors here to ensure that we are using
+            // a standard client.
+            builder.interceptors().clear()
+            builder.networkInterceptors().clear()
+            builder
+                .protocols(
+                    if (apiBaseUrl.scheme == "https") {
+                        listOf(Protocol.HTTP_2, Protocol.HTTP_1_1)
+                    } else {
+                        listOf(Protocol.H2_PRIOR_KNOWLEDGE)
+                    },
+                )
+                .writeTimeout(timeoutSeconds, TimeUnit.SECONDS)
+                .readTimeout(timeoutSeconds, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(false) // Retrying messes up the write pipe state management, so disable.
+                .build()
+        }
 
     private val executor: ExecutorService = Executors.newSingleThreadExecutor {
         Thread(it, "io.bitdrift.capture.network.okhttp")
