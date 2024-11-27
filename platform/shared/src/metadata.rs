@@ -7,10 +7,7 @@
 
 use bd_api::Platform;
 use std::collections::HashMap;
-use std::sync::{Arc, LazyLock};
-
-static SDK_VERSION: LazyLock<String> =
-  LazyLock::new(|| include!(concat!(env!("OUT_DIR"), "/version.rs")).to_string());
+use std::sync::Arc;
 
 // A collection of typed metadata that is used to identify the client when communicating with
 // loop-api.
@@ -29,7 +26,7 @@ pub struct Mobile {
 
 impl bd_api::Metadata for Mobile {
   fn sdk_version(&self) -> &'static str {
-    &SDK_VERSION
+    &crate::SDK_VERSION
   }
 
   fn platform(&self) -> &bd_api::Platform {

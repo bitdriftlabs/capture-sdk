@@ -14,6 +14,10 @@ fn main() {
 
   let version = fs::read_to_string(Path::new(".sdk_version")).unwrap();
 
-  fs::write(&dest_path, format!("\"{version}\"")).unwrap();
+  fs::write(
+    &dest_path,
+    format!("pub static SDK_VERSION: &str = \"{version}\";"),
+  )
+  .unwrap();
   println!("cargo::rerun-if-changed=build.rs");
 }

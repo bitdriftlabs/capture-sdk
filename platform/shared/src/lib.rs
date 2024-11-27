@@ -8,6 +8,8 @@
 pub mod error;
 pub mod metadata;
 
+include!(concat!(env!("OUT_DIR"), "/version.rs"));
+
 use bd_client_common::error::handle_unexpected;
 use bd_logger::{log_level, AnnotatedLogField, LogField, LogFieldKind, LogType};
 use bd_runtime::runtime::Snapshot;
