@@ -586,13 +586,15 @@ impl bd_logger::MetadataProvider for MetadataProvider {
   }
 }
 #[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_sdkVersion(
-  env: JNIEnv<'_>,
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_sdkVersion<'a>(
+  env: JNIEnv<'a>,
   _class: JClass<'_>,
-) -> JString<'_> {
-  bd_client_common::error::with_handle_unexpected_or("", "jni sdk version", || {
-    Ok(env.new_string(SDK_VERSION)?)
-  })
+) -> JString<'a> {
+  bd_client_common::error::with_handle_unexpected_or(
+    || Ok(env.new_string(SDK_VERSION)?),
+    JObject::null().into(),
+    "jni sdk version",
+  )
 }
 
 #[no_mangle]

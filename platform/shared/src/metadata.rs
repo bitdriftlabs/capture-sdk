@@ -26,7 +26,7 @@ pub struct Mobile {
 
 impl bd_api::Metadata for Mobile {
   fn sdk_version(&self) -> &'static str {
-    &crate::SDK_VERSION
+    crate::SDK_VERSION
   }
 
   fn platform(&self) -> &bd_api::Platform {
