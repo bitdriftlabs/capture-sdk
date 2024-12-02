@@ -84,7 +84,7 @@ cargo {
     module = "../.."
     targetDirectory = "../../../target"
     targets = listOf("arm64", "x86_64")
-    pythonCommand = "python3.12"
+    pythonCommand = "python3"
 }
 
 // workaround bug in rust-android-gradle plugin that causes .so to not be available on app launch
