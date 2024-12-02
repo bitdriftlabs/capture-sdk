@@ -77,7 +77,7 @@ data class HttpResponseInfo @JvmOverloads constructor(
             response.path?.value?.let { put(HttpFieldKey.PATH, it) }
             response.query?.let { put(HttpFieldKey.QUERY, it) }
 
-            response.path?.let { it ->
+            response.path?.let {
                 val requestPathTemplate =
                     if (request.path?.value == it.value) {
                         // If the path between request and response did not change and an explicit path
