@@ -45,7 +45,7 @@ data class HttpResponseInfo @JvmOverloads constructor(
             put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_END))
             put(
                 SpanField.Key.DURATION,
-                FieldValue.StringField(durationMs.toString())
+                FieldValue.StringField(durationMs.toString()),
             )
             put(
                 SpanField.Key.RESULT,
@@ -87,7 +87,7 @@ data class HttpResponseInfo @JvmOverloads constructor(
                         null
                     }
 
-                requestPathTemplate ?: it.template?.let { put(HttpFieldKey.PATH_TEMPLATE, it)}
+                requestPathTemplate ?: it.template?.let { put(HttpFieldKey.PATH_TEMPLATE, it) }
             }
 
             metrics?.let<HttpRequestMetrics, Unit> { metrics ->

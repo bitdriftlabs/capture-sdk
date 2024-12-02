@@ -26,7 +26,7 @@ import java.net.Proxy
 open class CaptureOkHttpEventListenerBase(
     private val clock: IClock,
     private val targetEventListener: EventListener?,
-): EventListener() {
+) : EventListener() {
     private var requestBodyBytesSentCount: Long = 0
     private var responseBodyBytesReceivedCount: Long = 0
 
