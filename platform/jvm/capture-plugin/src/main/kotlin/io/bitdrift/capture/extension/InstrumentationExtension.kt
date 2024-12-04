@@ -5,23 +5,16 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture
+package io.bitdrift.capture.extension
 
 import javax.inject.Inject
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.SetProperty
-
-enum class InstrumentationFeature(val integrationName: String) {
-    OKHTTP("OkHttpInstrumentation")
-}
 
 open class InstrumentationExtension @Inject constructor(objects: ObjectFactory) {
 
     val enabled: Property<Boolean> = objects.property(Boolean::class.java)
             .convention(true)
-
-    val features: SetProperty<InstrumentationFeature> = objects.setProperty(InstrumentationFeature::class.java)
 
     val debug: Property<Boolean> = objects.property(Boolean::class.java).convention(
             false

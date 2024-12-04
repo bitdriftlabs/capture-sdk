@@ -5,6 +5,32 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+/**
+ * Adapted from https://github.com/getsentry/sentry-android-gradle-plugin/tree/4.14.1
+ *
+ * MIT License
+ *
+ * Copyright (c) 2020 Sentry
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package io.bitdrift.capture.instrumentation.okhttp.visitor
 
 import io.bitdrift.capture.instrumentation.MethodContext
@@ -42,9 +68,6 @@ class OkHttpEventListenerMethodVisitor(
         //  element without pushing anything back to the stack (<init> returns void).
         // Dup will give a reference to the CaptureOkHttpEventListenerFactory after the constructor call
         visitInsn(Opcodes.DUP)
-//
-//        // Puts parameter OkHttpClient.Builder on top of the stack.
-//        visitVarInsn(Opcodes.ALOAD, 1)
 
         // Call CaptureOkHttpEventListenerFactory constructor
         visitMethodInsn(

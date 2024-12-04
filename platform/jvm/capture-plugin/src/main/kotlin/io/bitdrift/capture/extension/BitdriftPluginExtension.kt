@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture
+package io.bitdrift.capture.extension
 
 import org.gradle.api.Project
 import javax.inject.Inject
@@ -13,8 +13,5 @@ import javax.inject.Inject
 abstract class BitdriftPluginExtension @Inject constructor(project: Project) {
     private val objects = project.objects
 
-    /**
-     * Configures the instrumentation feature.
-     */
     val instrumentation: InstrumentationExtension = objects.newInstance(InstrumentationExtension::class.java)
 }

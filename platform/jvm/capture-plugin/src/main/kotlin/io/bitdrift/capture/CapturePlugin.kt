@@ -8,6 +8,7 @@
 package io.bitdrift.capture
 
 import com.android.build.api.variant.AndroidComponentsExtension
+import io.bitdrift.capture.extension.BitdriftPluginExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.slf4j.LoggerFactory
@@ -26,8 +27,6 @@ abstract class CapturePlugin @Inject constructor() : Plugin<Project> {
                     target,
                     extension,
             )
-
-
         }
     }
 
