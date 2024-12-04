@@ -29,7 +29,7 @@ internal class ResourceUtilizationTarget(
 ) : IResourceUtilizationTarget {
 
     override fun tick() {
-        executor.run {
+        executor.execute {
             try {
                 val start = clock.elapsedRealtime()
 
