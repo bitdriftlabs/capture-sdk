@@ -7,7 +7,7 @@
 
 @file:Suppress("UnstableApiUsage")
 
-package io.sentry.android.gradle.instrumentation.fakes
+package io.bitdrift.capture.instrumentation.fakes
 
 import com.android.build.api.instrumentation.ClassContext
 import com.android.build.api.instrumentation.ClassData

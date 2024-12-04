@@ -35,8 +35,8 @@
 package io.bitdrift.capture.instrumentation
 
 import com.android.build.api.instrumentation.ClassContext
-import io.sentry.android.gradle.instrumentation.fakes.TestClassContext
-import io.sentry.android.gradle.instrumentation.fakes.TestClassData
+import io.bitdrift.capture.instrumentation.fakes.TestClassContext
+import io.bitdrift.capture.instrumentation.fakes.TestClassData
 import io.bitdrift.capture.instrumentation.fakes.TestSpanAddingParameters
 import java.io.File
 import kotlin.test.assertTrue

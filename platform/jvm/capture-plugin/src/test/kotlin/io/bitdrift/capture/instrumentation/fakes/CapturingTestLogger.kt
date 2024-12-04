@@ -33,8 +33,6 @@
 
 package io.bitdrift.capture.instrumentation.fakes
 
-import io.sentry.android.gradle.instrumentation.fakes.BaseTestLogger
-
 class CapturingTestLogger : BaseTestLogger() {
     override fun getName(): String = "SentryPluginTest"
 
