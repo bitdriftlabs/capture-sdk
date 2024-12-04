@@ -11,6 +11,14 @@ dependencies {
     compileOnly("com.android.tools.build:gradle:7.4.0")
     compileOnly("org.ow2.asm:asm-commons:9.4")
     compileOnly("org.ow2.asm:asm-util:9.4")
+
+    testImplementation(gradleTestKit())
+    testImplementation(kotlin("test"))
+    testImplementation("com.android.tools.build:gradle:7.4.0")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.ow2.asm:asm-commons:9.4")
+    testImplementation("org.ow2.asm:asm-util:9.4")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:4.1.0")
 }
 
 gradlePlugin {
