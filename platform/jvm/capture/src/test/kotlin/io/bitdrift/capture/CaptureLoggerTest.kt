@@ -314,9 +314,6 @@ class CaptureLoggerTest {
         val sdkConfigured = CaptureTestJniLibrary.nextUploadedLog()
         assertThat(sdkConfigured.message).isEqualTo("SDKConfigured")
 
-        val resourceLog = CaptureTestJniLibrary.nextUploadedLog()
-        assertThat(resourceLog.message).isEqualTo("")
-
         val log = CaptureTestJniLibrary.nextUploadedLog()
         assertThat(log.level).isEqualTo(LogLevel.DEBUG.value)
         assertThat(log.message).isEqualTo("test log")
