@@ -55,13 +55,14 @@ class OkHttpEventListenerMethodVisitor(
 
     override fun onMethodEnter() {
         super.onMethodEnter()
+
         // Add the following call at the beginning of the constructor with the Builder parameter:
-        // builder.eventListenerFactory(new CaptureOkHttpEventListenerFactory());
+        // builder.eventListener(new CaptureOkHttpEventListener(builder.eventListenerFactory));
 
         // OkHttpClient.Builder is the parameter, retrieved here
         visitVarInsn(Opcodes.ALOAD, 1)
 
-        // Let's declare the SentryOkHttpEventListener variable
+        // Let's declare the CaptureOkHttpEventListenerFactory variable
         visitTypeInsn(Opcodes.NEW, captureOkHttpEventListenerFactory)
 
         // The CaptureOkHttpEventListenerFactory constructor, which is called later, will consume the
@@ -69,22 +70,34 @@ class OkHttpEventListenerMethodVisitor(
         // Dup will give a reference to the CaptureOkHttpEventListenerFactory after the constructor call
         visitInsn(Opcodes.DUP)
 
-        // Call CaptureOkHttpEventListenerFactory constructor
+        // Puts parameter OkHttpClient.Builder on top of the stack.
+        visitVarInsn(Opcodes.ALOAD, 1)
+
+        // Read the "eventListenerFactory" field from OkHttpClient.Builder
         visitMethodInsn(
-                Opcodes.INVOKESPECIAL,
-                captureOkHttpEventListenerFactory,
-                "<init>",
-                "()V",
-                false
+            Opcodes.INVOKEVIRTUAL,
+            "okhttp3/OkHttpClient\$Builder",
+            "getEventListenerFactory\$okhttp",
+            "()Lokhttp3/EventListener\$Factory;",
+            false
         )
 
-        // Call "eventListenerFactory" function of OkHttpClient.Builder passing CaptureOkHttpEventListenerFactory
+        // Call CaptureOkHttpEventListenerFactory constructor passing "eventListenerFactory" as parameter
         visitMethodInsn(
-                Opcodes.INVOKEVIRTUAL,
-                "okhttp3/OkHttpClient\$Builder",
-                "eventListenerFactory",
-                "(Lokhttp3/EventListener\$Factory;)Lokhttp3/OkHttpClient\$Builder;",
-                false
+            Opcodes.INVOKESPECIAL,
+            captureOkHttpEventListenerFactory,
+            "<init>",
+            "(Lokhttp3/EventListener\$Factory;)V",
+            false
+        )
+
+        // Call "eventListener" function of OkHttpClient.Builder passing CaptureOkHttpEventListenerFactory
+        visitMethodInsn(
+            Opcodes.INVOKEVIRTUAL,
+            "okhttp3/OkHttpClient\$Builder",
+            "eventListenerFactory",
+            "(Lokhttp3/EventListener\$Factory;)Lokhttp3/OkHttpClient\$Builder;",
+            false
         )
     }
 }
