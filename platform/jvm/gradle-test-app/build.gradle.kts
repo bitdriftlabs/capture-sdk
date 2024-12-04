@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.apollo.graphql)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.capture)
 }
 
 dependencies {
@@ -39,6 +40,10 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.4.0")
+}
+
+bitdrift {
+    instrumentation.debug = true
 }
 
 android {
@@ -110,6 +115,7 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
 }
 
 // graphql

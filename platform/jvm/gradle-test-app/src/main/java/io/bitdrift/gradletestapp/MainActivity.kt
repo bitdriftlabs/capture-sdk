@@ -16,6 +16,7 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import io.bitdrift.gradletestapp.databinding.ActivityMainBinding
+import okhttp3.OkHttpClient
 
 class MainActivity : AppCompatActivity() {
 

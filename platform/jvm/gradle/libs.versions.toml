@@ -15,17 +15,19 @@ kotlinResultJvm = "1.1.18"
 lifecycleCommon = "2.6.1"
 mavenPublishPlugin = "0.28.0"
 kotlinAndroidPlugin = "1.9.24"
+kotlinPlugin = "1.9.24"
 mockitoCore = "4.9.0"
 mockitoKotlin = "2.2.0"
 mockitoKotlinVersion = "4.1.0"
 okhttp = "4.12.0"
 robolectric = "4.13"
-rustAndroidPlugin = "0.9.3"
+rustAndroidPlugin = "0.9.5"
 material3Android = "1.2.1"
 startupRuntime = "1.1.1"
 timber = "5.0.1"
 truth = "1.1.4"
 ui = "1.4.0"
+capturePlugin = "0.1.0"
 
 [libraries]
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
@@ -60,4 +62,6 @@ detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detektPlugin" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokkaPlugin" }
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublishPlugin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinAndroidPlugin" }
+kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlinPlugin" }
 rust-android = { id = "org.mozilla.rust-android-gradle.rust-android", version.ref = "rustAndroidPlugin" }
+capture = { id = "io.bitdrift.capture.capture-plugin", version.ref = "capturePlugin" }

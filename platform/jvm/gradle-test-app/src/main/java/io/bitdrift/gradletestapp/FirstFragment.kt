@@ -147,7 +147,6 @@ class FirstFragment : Fragment() {
 
     private fun provideOkHttpClient(): OkHttpClient {
         return OkHttpClient.Builder()
-            .eventListenerFactory(CaptureOkHttpEventListenerFactory())
             .build()
     }
 
