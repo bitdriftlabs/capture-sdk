@@ -41,9 +41,6 @@ class CaptureApolloInterceptor: ApolloInterceptor {
             .addHttpHeader(HEADER_GQL_OPERATION_NAME, request.operation.name().encodeBase64())
             .addHttpHeader(HEADER_GQL_OPERATION_ID, request.operation.id().encodeBase64())
             .addHttpHeader(HEADER_GQL_OPERATION_TYPE, request.operation.type().encodeBase64())
-        request.scalarAdapters?.let {
-            requestBuilder.addHttpHeader(HEADER_GQL_OPERATION_VARIABLES, request.operation.variables(it).valueMap.toString().encodeBase64())
-        }
 
         val modifiedRequest = requestBuilder.build()
 

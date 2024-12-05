@@ -151,13 +151,10 @@ class FirstFragment : Fragment() {
             .build()
 
         apolloClient = ApolloClient.Builder()
-            .okHttpClient(OkHttpClient.Builder()
-                .eventListenerFactory(CaptureApolloEventListenerFactory())
-                .build())
-            .captureAutoInstrument()
+            .okHttpClient(okHttpClient)
+            .addInterceptor(CaptureApolloInterceptor())
             .serverUrl("https://apollo-fullstack-tutorial.herokuapp.com/graphql")
             .build()
-
     }
 
     override fun onDestroyView() {
