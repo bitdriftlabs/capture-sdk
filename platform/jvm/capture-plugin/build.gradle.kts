@@ -1,10 +1,8 @@
  plugins {
-    alias(libs.plugins.kotlin)
-
-    id("dependency-license-config")
-    id("java-gradle-plugin")
-    id("maven-publish")
-    id("com.vanniktech.maven.publish") version "0.28.0" apply false
+     alias(libs.plugins.kotlin)
+     alias(libs.plugins.maven.publish)
+     id("dependency-license-config")
+     id("java-gradle-plugin")
 }
 
 dependencies {
@@ -30,10 +28,6 @@ gradlePlugin {
     }
 }
 
-apply {
-    plugin("com.vanniktech.maven.publish")
-}
-
 publishing {
     repositories {
       mavenLocal()
@@ -41,4 +35,4 @@ publishing {
 }
 
 group = "io.bitdrift.capture.capture-plugin"
-version = "0.1.0"
+version = "0.2.0"

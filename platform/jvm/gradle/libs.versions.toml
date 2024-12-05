@@ -27,7 +27,6 @@ startupRuntime = "1.1.1"
 timber = "5.0.1"
 truth = "1.1.4"
 ui = "1.4.0"
-capturePlugin = "0.1.0"
 
 [libraries]
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
@@ -64,4 +63,3 @@ maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPubli
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinAndroidPlugin" }
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlinPlugin" }
 rust-android = { id = "org.mozilla.rust-android-gradle.rust-android", version.ref = "rustAndroidPlugin" }
-capture = { id = "io.bitdrift.capture.capture-plugin", version.ref = "capturePlugin" }
