@@ -24,9 +24,9 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.util.UUID
 
-class CaptureGraphQLInterceptorTest {
+class CaptureApollo3InterceptorTest {
     private val logger: ILogger = mock()
-    private val captureInterceptor = CaptureGraphQLInterceptor(logger)
+    private val captureInterceptor = CaptureApollo3Interceptor(logger)
 
     @Test
     fun `interceptor logs`() {

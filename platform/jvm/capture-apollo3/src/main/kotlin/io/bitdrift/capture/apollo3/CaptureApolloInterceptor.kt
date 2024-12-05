@@ -9,6 +9,7 @@ package io.bitdrift.capture.apollo3
 
 import android.util.Base64
 import android.util.Log
+import com.apollographql.apollo3.annotations.ApolloExperimental
 import com.apollographql.apollo3.api.ApolloRequest
 import com.apollographql.apollo3.api.ApolloResponse
 import com.apollographql.apollo3.api.CustomScalarAdapters
@@ -16,6 +17,7 @@ import com.apollographql.apollo3.api.Mutation
 import com.apollographql.apollo3.api.Operation
 import com.apollographql.apollo3.api.Query
 import com.apollographql.apollo3.api.Subscription
+import com.apollographql.apollo3.api.http.get
 import com.apollographql.apollo3.api.variables
 import com.apollographql.apollo3.interceptor.ApolloInterceptor
 import com.apollographql.apollo3.interceptor.ApolloInterceptorChain
@@ -31,8 +33,9 @@ internal const val HEADER_GQL_OPERATION_VARIABLES = "x-capture-gql-operation-var
 /**
  * An [ApolloInterceptor] that logs request and response events to the [Capture.Logger].
  */
-class CaptureGraphQLInterceptor: ApolloInterceptor {
+class CaptureApolloInterceptor: ApolloInterceptor {
 
+    @OptIn(ApolloExperimental::class)
     override fun <D : Operation.Data> intercept(request: ApolloRequest<D>, chain: ApolloInterceptorChain): Flow<ApolloResponse<D>> {
         val requestBuilder = request.newBuilder()
             .addHttpHeader(HEADER_GQL_OPERATION_NAME, request.operation.name().encodeBase64())
@@ -42,12 +45,16 @@ class CaptureGraphQLInterceptor: ApolloInterceptor {
             requestBuilder.addHttpHeader(HEADER_GQL_OPERATION_VARIABLES, request.operation.variables(it).valueMap.toString().encodeBase64())
         }
 
-        return chain.proceed(requestBuilder.build()).onEach { response ->
+        val modifiedRequest = requestBuilder.build()
+
+        Log.d("miguel", "CaptureApolloInterceptor - intercept: Operation header=${modifiedRequest.httpHeaders?.get(HEADER_GQL_OPERATION_NAME)}")
+
+        return chain.proceed(modifiedRequest).onEach { response ->
             if (!response.hasErrors()) {
-                Log.i("miguel-apollo3", "Graphql operation ${request.operation.name()} Succeeded.")
+                Log.d("miguel", "CaptureApolloInterceptor - Graphql operation ${request.operation.name()} Succeeded.")
             } else {
                 // TODO(murki): Put errors in headers and pass along
-                Log.i("miguel-apollo3", "Graphql operation ${request.operation.name()} failed. Errors=${response.errors?.joinToString("|") ?: "none"}")
+                Log.d("miguel-apollo3", "Graphql operation ${request.operation.name()} failed. Errors=${response.errors?.joinToString("|") ?: "none"}")
             }
         }
     }

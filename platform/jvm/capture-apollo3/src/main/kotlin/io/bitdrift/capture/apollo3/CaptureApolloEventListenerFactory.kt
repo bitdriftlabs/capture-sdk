@@ -17,8 +17,8 @@ import okhttp3.EventListener
 /**
  * Emits Capture logs for Apollo GraphQL OkHttp network traffic.
  *
- * Usage - set instance of [CaptureGraphQLEventListenerFactory] on [okhttp3.OkHttpClient.Builder.eventListener]
- * using [okhttp3.OkHttpClient.Builder.eventListenerFactory] method in conjunction with [CaptureGraphQLInterceptor] inside
+ * Usage - set instance of [CaptureApolloEventListenerFactory] on [okhttp3.OkHttpClient.Builder.eventListener]
+ * using [okhttp3.OkHttpClient.Builder.eventListenerFactory] method in conjunction with [CaptureApolloInterceptor] inside
  * the [com.apollographql.apollo3.ApolloClient.Builder].
  *
  * val apolloClient = ApolloClient.Builder()
@@ -29,11 +29,11 @@ import okhttp3.EventListener
  *    .serverUrl("https://apollo-fullstack-tutorial.herokuapp.com/graphql")
  *    .build()
  *
- * [CaptureGraphQLEventListenerFactory] has multiple constructors that allow passing an instance of
+ * [CaptureApolloEventListenerFactory] has multiple constructors that allow passing an instance of
  * [okhttp3.EventListener] or [okhttp3.EventListener.Factory] if you already use
  * [okhttp3.OkHttpClient.Builder.eventListener].
  */
-class CaptureGraphQLEventListenerFactory internal constructor(
+class CaptureApolloEventListenerFactory internal constructor(
     private val targetEventListenerCreator: ((call: Call) -> EventListener)? = null,
     private val logger: ILogger? = Capture.logger(),
     private val clock: IClock = DefaultClock.getInstance(),
@@ -64,7 +64,7 @@ class CaptureGraphQLEventListenerFactory internal constructor(
     )
 
     override fun create(call: Call): EventListener {
-        return CaptureGraphQLEventListener(getLogger(), clock, targetEventListenerCreator?.invoke(call))
+        return CaptureApolloEventListener(getLogger(), clock, targetEventListenerCreator?.invoke(call))
     }
 
     // attempts to get the latest logger if one wasn't found at construction time

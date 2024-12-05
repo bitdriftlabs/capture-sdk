@@ -20,7 +20,7 @@ import okhttp3.EventListener
 import okhttp3.Request
 import java.io.IOException
 
-internal class CaptureGraphQLEventListener internal constructor(
+internal class CaptureApolloEventListener internal constructor(
     private val logger: ILogger?,
     clock: IClock,
     targetEventListener: EventListener?,
@@ -32,9 +32,9 @@ internal class CaptureGraphQLEventListener internal constructor(
         // Call super to populate requestInfo
         super.callStart(call)
         val request = call.request()
+        Log.d("miguel", "CaptureApolloEventListener - CallStart: Operation header=${request.header(HEADER_GQL_OPERATION_NAME)}")
         // bail if not a gql operation
         val gqlOperationName = request.decodeHeader(HEADER_GQL_OPERATION_NAME) ?: return
-        // TODO(murki): Consider removing headers from request
         val requestFields = buildMap {
             put("_operation_name", gqlOperationName)
             request.decodeHeader(HEADER_GQL_OPERATION_ID)?.let {
@@ -56,7 +56,7 @@ internal class CaptureGraphQLEventListener internal constructor(
         super.callEnd(call)
         // TODO(murki): Figure out how to log graphql-errors failures
         graphqlSpan?.end(SpanResult.SUCCESS, responseInfo?.coreFields)
-        Log.i("miguel-eventListener", "EventListener call operation succeeded.")
+        Log.d("miguel", "CaptureApolloEventListener - EventListener call operation succeeded.")
     }
 
     override fun callFailed(call: Call, ioe: IOException) {

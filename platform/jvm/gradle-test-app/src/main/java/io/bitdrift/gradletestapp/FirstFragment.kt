@@ -27,6 +27,8 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.apollographql.apollo3.ApolloClient
+import com.apollographql.apollo3.api.ExecutionContext
+import com.apollographql.apollo3.network.http.HttpInfo
 import com.apollographql.apollo3.network.okHttpClient
 import com.example.rocketreserver.LaunchListQuery
 import com.github.michaelbull.result.onFailure
@@ -37,8 +39,9 @@ import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LoggerImpl
-import io.bitdrift.capture.apollo3.CaptureGraphQLInterceptor
-import io.bitdrift.capture.apollo3.CaptureGraphQLEventListenerFactory
+import io.bitdrift.capture.apollo3.CaptureApolloInterceptor
+import io.bitdrift.capture.apollo3.CaptureApolloEventListenerFactory
+import io.bitdrift.capture.apollo3.captureAutoInstrument
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.gradletestapp.databinding.FragmentFirstBinding
 import kotlinx.coroutines.MainScope
@@ -149,11 +152,12 @@ class FirstFragment : Fragment() {
 
         apolloClient = ApolloClient.Builder()
             .okHttpClient(OkHttpClient.Builder()
-                .eventListenerFactory(CaptureGraphQLEventListenerFactory())
+                .eventListenerFactory(CaptureApolloEventListenerFactory())
                 .build())
-            .addInterceptor(CaptureGraphQLInterceptor())
+            .captureAutoInstrument()
             .serverUrl("https://apollo-fullstack-tutorial.herokuapp.com/graphql")
             .build()
+
     }
 
     override fun onDestroyView() {
@@ -223,6 +227,7 @@ class FirstFragment : Fragment() {
         MainScope().launch {
             try {
                 val response = apolloClient.query(LaunchListQuery()).execute()
+                Logger.logDebug(mapOf("response_headers" to response.executionContext[HttpInfo]?.headers.toString())) { "GraphQL response headers received" }
                 Logger.logDebug(mapOf("response_data" to response.data.toString())) { "GraphQL response data received" }
             } catch (e: Exception) {
                 Timber.e(e, "GraphQL request failed")
