@@ -9,7 +9,7 @@ This document explains the process of releasing new versions of Bitdrift SDK.
 3. Hit `Run Workflow` button on the right.
 4. Keep `main` branch selection, enter version that follows formatting rules from [Version Formatting](#version-formatting).
 5. The CI job should open a PR named 'Update SDK version to 0.12.1-rc.4' ([example](https://github.com/bitdriftlabs/capture-sdk/pull/1637)).
-6. Approve the PR, wait for the PR to be merged.
+6. Approve and merge the PR.
 7. Look for `Release on SDK version change / Check for version change (push)` CI job started for the merge commit ([example](https://github.com/bitdriftlabs/capture-sdk/actions/runs/10206791724/job/28240351848)). Click `Details` to see how it progresses and approve public releases as needed.
 8. When approving a release in capture-ios, watch for a PR being created in capture-ios with the new version number and approve it.
 9. Once the PR merges, follow the `Release` workflow and approve public releases as needed. Note that this step can take a long time to complete.
