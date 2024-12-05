@@ -7,8 +7,6 @@
 
 package io.bitdrift.capture.network.okhttp
 
-import android.util.Base64
-import android.util.Log
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.common.IClock
@@ -45,20 +43,6 @@ internal class CaptureOkHttpEventListener internal constructor(
         }
     }
 
-    private fun extraFields(request: Request): Map<String, String> {
-        return buildMap {
-            request.decodeHeader("x-capture-gql-operation-name")?.let {
-                put("_operation_name", it)
-            }
-            request.decodeHeader("x-capture-gql-operation-id")?.let {
-                put("_operation_id", it)
-            }
-            request.decodeHeader("x-capture-gql-operation-type")?.let {
-                put("_operation_type", it)
-            }
-        }
-    }
-
     override fun callEnd(call: Call) {
         // Call super to populate responseInfo
         super.callEnd(call)
@@ -83,13 +67,17 @@ internal class CaptureOkHttpEventListener internal constructor(
         }
     }
 
-    private fun Request.decodeHeader(headerName: String): String? {
-        return this.headers[headerName]?.let {
-            return try {
-                String(Base64.decode(it, Base64.NO_WRAP))
-            } catch (e: Throwable) {
-                Log.w("CaptureGraphQL", "Error decoding internal Capture GraphQL header=$headerName", e)
-                null
+    private fun extraFields(request: Request): Map<String, String> {
+        // TODO(murki): Refactor to be generic and graphql-agnostic
+        return buildMap {
+            request.header("x-capture-gql-operation-name")?.let {
+                put("_operation_name", it)
+            }
+            request.header("x-capture-gql-operation-id")?.let {
+                put("_operation_id", it)
+            }
+            request.header("x-capture-gql-operation-type")?.let {
+                put("_operation_type", it)
             }
         }
     }
