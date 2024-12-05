@@ -35,4 +35,4 @@ publishing {
 }
 
 group = "io.bitdrift.capture.capture-plugin"
-version = "0.2.0"
+version = "0.1.0"
