@@ -8,7 +8,9 @@
 package io.bitdrift.capture
 
 import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.argThat
 import com.nhaarman.mockitokotlin2.argumentCaptor
+import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
@@ -17,6 +19,7 @@ import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import okhttp3.Call
+import okhttp3.Headers.Companion.toHeaders
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -335,5 +338,59 @@ class CaptureOkHttpEventListenerFactoryTest {
         assertThat(httpResponseInfo.fields["_result"].toString()).isEqualTo("canceled")
         assertThat(httpResponseInfo.fields["_error_type"].toString()).isEqualTo(err::javaClass.get().simpleName)
         assertThat(httpResponseInfo.fields["_error_message"].toString()).isEqualTo(errorMessage)
+    }
+
+    @Test
+    fun testExtraHeadersSendCustomSpans() {
+        // ARRANGE
+        val headerFields = mapOf(
+            "x-capture-span-key" to "gql",
+            "x-capture-span-gql-name" to "mySpanName",
+            "x-capture-span-gql-field-operation-name" to "myOperationName",
+            "x-capture-span-gql-field-operation-id" to "myOperationId",
+            "x-capture-span-gql-field-operation-type" to "query",
+        )
+//        val expectedSpanName = "_mySpanName"
+//        val expectedFields = mapOf(
+//            "_operation_name" to "myOperationName",
+//            "_operation_id" to "myOperationId",
+//            "_operation_type" to "query",
+//        )
+
+        val request = Request.Builder()
+            .url(endpoint)
+            .post("test".toRequestBody())
+            .headers(headerFields.toHeaders())
+            .build()
+        val call: Call = mock()
+        whenever(call.request()).thenReturn(request)
+
+        // ACT
+        val factory = CaptureOkHttpEventListenerFactory(null, logger, clock)
+        val listener = factory.create(call)
+
+        listener.callStart(call)
+
+//        listener.requestHeadersEnd(call, request)
+//        listener.requestBodyEnd(call, 4)
+//
+//        listener.responseHeadersEnd(call, response)
+//        listener.responseBodyEnd(call, 234)
+//
+//        listener.callEnd(call)
+
+        // ASSERT
+//        verify(logger).startSpan(eq(expectedSpanName), eq(LogLevel.DEBUG), argThat { this.entries.containsAll(expectedFields.entries) })
+        val httpRequestInfoCapture = argumentCaptor<HttpRequestInfo>()
+        verify(logger).log(httpRequestInfoCapture.capture())
+//        val httpResponseInfoCapture = argumentCaptor<HttpResponseInfo>()
+//        verify(logger).log(httpResponseInfoCapture.capture())
+
+        val httpRequestInfo = httpRequestInfoCapture.firstValue
+//        val httpResponseInfo = httpResponseInfoCapture.firstValue
+
+        assertThat(httpRequestInfo.fields["_operation_name"].toString()).isEqualTo("myOperationName")
+//        assertThat(httpResponseInfo.fields["_path"].toString())
+//            .isEqualTo(httpRequestInfo.fields["_path"].toString())
     }
 }

@@ -36,7 +36,7 @@ import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LoggerImpl
-import io.bitdrift.capture.apollo3.CaptureApollo3Interceptor
+import io.bitdrift.capture.apollo3.CaptureApolloInterceptor
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.gradletestapp.databinding.FragmentFirstBinding
 import kotlinx.coroutines.MainScope
@@ -154,7 +154,7 @@ class FirstFragment : Fragment() {
     private fun provideApolloClient(): ApolloClient {
         return ApolloClient.Builder()
             .serverUrl("https://apollo-fullstack-tutorial.herokuapp.com/graphql")
-            .addInterceptor(CaptureApollo3Interceptor())
+            .addInterceptor(CaptureApolloInterceptor())
             .build()
     }
 
@@ -223,8 +223,13 @@ class FirstFragment : Fragment() {
 
     private fun performGraphQlRequest(view: View) {
         MainScope().launch {
-            val response = apolloClient.query(LaunchListQuery()).execute()
-            Logger.logDebug(mapOf("response_data" to response.data.toString())) { "GraphQL response data received" }
+            try {
+                val response = apolloClient.query(LaunchListQuery()).execute()
+//                Logger.logDebug(mapOf("response_headers" to response.executionContext[HttpInfo]?.headers.toString())) { "GraphQL response headers received" }
+                Logger.logDebug(mapOf("response_data" to response.data.toString())) { "GraphQL response data received" }
+            } catch (e: Exception) {
+                Timber.e(e, "GraphQL request failed")
+            }
         }
 
     }

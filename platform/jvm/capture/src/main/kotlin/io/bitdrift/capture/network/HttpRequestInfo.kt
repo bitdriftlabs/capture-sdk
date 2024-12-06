@@ -46,8 +46,8 @@ data class HttpRequestInfo @JvmOverloads constructor(
 
     internal val commonFields: InternalFieldsMap by lazy {
         extraFields.toFields() + buildMap {
+            putOptionalHeaderSpanFields(headers)
             put(SpanField.Key.ID, FieldValue.StringField(spanId.toString()))
-            put(SpanField.Key.NAME, FieldValue.StringField("_http"))
             put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_START))
             put("_method", FieldValue.StringField(method))
             putOptional(HttpFieldKey.HOST, host)
@@ -62,4 +62,31 @@ data class HttpRequestInfo @JvmOverloads constructor(
     }
 
     internal val matchingFields: InternalFieldsMap = headers?.let { HTTPHeaders.normalizeHeaders(it) }.toFields()
+
+    /**
+     * Adds optional fields to the mutable map based on the provided headers.
+     *
+     * This function checks for the presence of the "x-capture-span-key" header.
+     * If the header is present, it constructs a span name and additional fields from other headers
+     * and adds them to the map. If the header is not present, it adds a default span name.
+     *
+     * @param headers The map of headers from which fields are extracted.
+     */
+    private fun MutableMap<String, FieldValue>.putOptionalHeaderSpanFields(headers: Map<String, String>?) {
+        headers?.get("x-capture-span-key")?.let { spanKey ->
+            val prefix = "x-capture-span-$spanKey"
+            val spanName = headers["$prefix-name"] ?: ""
+            put(SpanField.Key.NAME, FieldValue.StringField(spanName))
+            val fieldPrefix = "$prefix-field"
+                headers.forEach { (key, value) ->
+                    if (key.startsWith(fieldPrefix)) {
+                        val fieldKey = key.removePrefix(fieldPrefix).replace('-', '_')
+                        put(fieldKey, FieldValue.StringField(value))
+                    }
+                }
+        } ?: run {
+            // Default span name is simply http
+            put(SpanField.Key.NAME, FieldValue.StringField("_http"))
+        }
+    }
 }
