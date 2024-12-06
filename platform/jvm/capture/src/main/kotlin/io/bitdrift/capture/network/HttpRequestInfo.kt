@@ -45,7 +45,8 @@ data class HttpRequestInfo @JvmOverloads constructor(
     }
 
     internal val commonFields: InternalFieldsMap by lazy {
-        extraFields.toFields() + buildMap {
+        buildMap {
+            putAll(extraFields.toFields())
             putOptionalHeaderSpanFields(headers)
             put(SpanField.Key.ID, FieldValue.StringField(spanId.toString()))
             put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_START))
@@ -75,7 +76,7 @@ data class HttpRequestInfo @JvmOverloads constructor(
     private fun MutableMap<String, FieldValue>.putOptionalHeaderSpanFields(headers: Map<String, String>?) {
         headers?.get("x-capture-span-key")?.let { spanKey ->
             val prefix = "x-capture-span-$spanKey"
-            val spanName = headers["$prefix-name"] ?: ""
+            val spanName = "_" + headers["$prefix-name"]
             put(SpanField.Key.NAME, FieldValue.StringField(spanName))
             val fieldPrefix = "$prefix-field"
             headers.forEach { (key, value) ->

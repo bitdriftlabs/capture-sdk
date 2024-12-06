@@ -31,7 +31,7 @@ class CaptureApolloInterceptor: ApolloInterceptor {
             .addHttpHeader("x-capture-span-gql-field-operation-name", request.operation.name())
             .addHttpHeader("x-capture-span-gql-field-operation-id", request.operation.id())
             .addHttpHeader("x-capture-span-gql-field-operation-type", request.operation.type())
-        // TODO(murki): Augment with
+        // TODO(murki): Augment request logs with
         //  request.executionContext[CustomScalarAdapters]?.let {
         //    addHttpHeader("x-capture-span-gql-field-operation-variables", request.operation.variables(it).valueMap.toString())
         //  }
