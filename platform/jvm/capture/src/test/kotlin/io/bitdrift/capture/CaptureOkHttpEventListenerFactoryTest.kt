@@ -8,7 +8,9 @@
 package io.bitdrift.capture
 
 import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.argThat
 import com.nhaarman.mockitokotlin2.argumentCaptor
+import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
@@ -18,6 +20,7 @@ import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import okhttp3.Call
+import okhttp3.Headers.Companion.toHeaders
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -339,12 +342,26 @@ class CaptureOkHttpEventListenerFactoryTest {
     }
 
     @Test
-    fun testIgnoreGraphQLRequests() {
+    fun testExtraHeadersSendCustomSpans() {
         // ARRANGE
+        val headerFields = mapOf(
+            "x-capture-span-key" to "gql",
+            "x-capture-span-gql-name" to "mySpanName",
+            "x-capture-span-gql-field-operation-name" to "myOperationName",
+            "x-capture-span-gql-field-operation-id" to "myOperationId",
+            "x-capture-span-gql-field-operation-type" to "query",
+        )
+        val expectedSpanName = "_mySpanName"
+        val expectedFields = mapOf(
+            "_operation_name" to "myOperationName",
+            "_operation_id" to "myOperationId",
+            "_operation_type" to "query",
+        )
+
         val request = Request.Builder()
             .url(endpoint)
             .post("test".toRequestBody())
-            .header("x-capture-gql-operation-name", "myOperationName")
+            .headers(headerFields.toHeaders())
             .build()
         val call: Call = mock()
         whenever(call.request()).thenReturn(request)
@@ -355,10 +372,8 @@ class CaptureOkHttpEventListenerFactoryTest {
 
         listener.callStart(call)
         listener.callEnd(call)
-        listener.callFailed(call, InterruptedIOException("test error"))
 
         // ASSERT
-        verify(logger, times(0)).log(any<HttpRequestInfo>())
-        verify(logger, times(0)).log(any<HttpResponseInfo>())
+        verify(logger).startSpan(eq(expectedSpanName), eq(LogLevel.DEBUG), argThat { this.entries.containsAll(expectedFields.entries) })
     }
 }

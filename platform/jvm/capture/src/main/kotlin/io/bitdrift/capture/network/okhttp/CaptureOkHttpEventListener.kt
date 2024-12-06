@@ -30,13 +30,7 @@ internal class CaptureOkHttpEventListener internal constructor(
         super.callStart(call)
         val request = call.request()
 
-        if (request.header("x-capture-gql-operation-name") != null) {
-            val requestFields = buildMap {
-                putAll(extraFields(request))
-                requestInfo?.let { putAll(it.coreFields) }
-            }
-            networkSpan = logger?.startSpan("_graphql", LogLevel.DEBUG, requestFields)
-        } else {
+        if (!maybeLogCustomSpan(request)) {
             requestInfo?.let {
                 logger?.log(it)
             }
@@ -67,17 +61,30 @@ internal class CaptureOkHttpEventListener internal constructor(
         }
     }
 
-    private fun extraFields(request: Request): Map<String, String> {
-        // TODO(murki): Refactor to be generic and graphql-agnostic
+    private fun maybeLogCustomSpan(request: Request): Boolean {
+        val spanPrefix = "x-capture-span"
+        if (request.header("$spanPrefix-key") != null) {
+            val prefix = "$spanPrefix-${request.header("x-capture-span-key")}"
+            val spanName = request.header("$prefix-name")
+            val requestFields = buildMap {
+                putAll(extraFields(request, prefix))
+                requestInfo?.let { putAll(it.coreFields) }
+            }
+            networkSpan = logger?.startSpan("_$spanName", LogLevel.DEBUG, requestFields)
+            return true
+        }
+        return false
+    }
+
+    private fun extraFields(request: Request, prefix: String): Map<String, String> {
+        val fieldPrefix = "$prefix-field"
         return buildMap {
-            request.header("x-capture-gql-operation-name")?.let {
-                put("_operation_name", it)
-            }
-            request.header("x-capture-gql-operation-id")?.let {
-                put("_operation_id", it)
-            }
-            request.header("x-capture-gql-operation-type")?.let {
-                put("_operation_type", it)
+            request.headers.toMultimap().forEach { (key, value) ->
+                if (key.startsWith(fieldPrefix)) {
+                    // x-capture-span-gql-field-operation-name to _operation_name
+                    val fieldKey = key.removePrefix(fieldPrefix).replace('-', '_')
+                    put(fieldKey, value.first())
+                }
             }
         }
     }

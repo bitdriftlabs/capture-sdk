@@ -18,20 +18,19 @@ import com.apollographql.apollo3.interceptor.ApolloInterceptorChain
 import io.bitdrift.capture.Capture
 import kotlinx.coroutines.flow.Flow
 
-internal const val HEADER_GQL_OPERATION_NAME = "x-capture-gql-operation-name"
-internal const val HEADER_GQL_OPERATION_ID = "x-capture-gql-operation-id"
-internal const val HEADER_GQL_OPERATION_TYPE = "x-capture-gql-operation-type"
-
 /**
  * An [ApolloInterceptor] that logs request and response events to the [Capture.Logger].
  */
 class CaptureApolloInterceptor: ApolloInterceptor {
 
     override fun <D : Operation.Data> intercept(request: ApolloRequest<D>, chain: ApolloInterceptorChain): Flow<ApolloResponse<D>> {
+        // Use special header format that is recognized by the CaptureOkHttpEventListener to be transformed into a span
         val requestBuilder = request.newBuilder()
-            .addHttpHeader(HEADER_GQL_OPERATION_NAME, request.operation.name())
-            .addHttpHeader(HEADER_GQL_OPERATION_ID, request.operation.id())
-            .addHttpHeader(HEADER_GQL_OPERATION_TYPE, request.operation.type())
+            .addHttpHeader("x-capture-span-key", "gql")
+            .addHttpHeader("x-capture-span-gql-name", "_graphql")
+            .addHttpHeader("x-capture-span-gql-field-operation-name", request.operation.name())
+            .addHttpHeader("x-capture-span-gql-field-operation-id", request.operation.id())
+            .addHttpHeader("x-capture-span-gql-field-operation-type", request.operation.type())
 
         val modifiedRequest = requestBuilder.build()
 
