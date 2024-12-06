@@ -61,31 +61,33 @@ internal class CaptureOkHttpEventListener internal constructor(
         }
     }
 
+    /**
+     * Attempts to log a custom span based on the request headers.
+     *
+     * This function checks for the presence of a specific header ("x-capture-span-key") in the request.
+     * If the header is present, it constructs a span name and additional fields from other headers
+     * and starts a new span using the logger.
+     *
+     * @param request The HTTP request from which headers are read.
+     * @return `true` if a custom span was logged, `false` otherwise.
+     */
     private fun maybeLogCustomSpan(request: Request): Boolean {
-        val spanPrefix = "x-capture-span"
-        if (request.header("$spanPrefix-key") != null) {
-            val prefix = "$spanPrefix-${request.header("x-capture-span-key")}"
+        request.header("x-capture-span-key")?.let { spanKey ->
+            val prefix = "x-capture-span-$spanKey"
             val spanName = request.header("$prefix-name")
+            val fieldPrefix = "$prefix-field"
             val requestFields = buildMap {
-                putAll(extraFields(request, prefix))
+                request.headers.toMultimap().forEach { (key, value) ->
+                    if (key.startsWith(fieldPrefix)) {
+                        val fieldKey = key.removePrefix(fieldPrefix).replace('-', '_')
+                        put(fieldKey, value.first())
+                    }
+                }
                 requestInfo?.let { putAll(it.coreFields) }
             }
             networkSpan = logger?.startSpan("_$spanName", LogLevel.DEBUG, requestFields)
             return true
         }
         return false
-    }
-
-    private fun extraFields(request: Request, prefix: String): Map<String, String> {
-        val fieldPrefix = "$prefix-field"
-        return buildMap {
-            request.headers.toMultimap().forEach { (key, value) ->
-                if (key.startsWith(fieldPrefix)) {
-                    // x-capture-span-gql-field-operation-name to _operation_name
-                    val fieldKey = key.removePrefix(fieldPrefix).replace('-', '_')
-                    put(fieldKey, value.first())
-                }
-            }
-        }
     }
 }
