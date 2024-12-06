@@ -26,15 +26,12 @@ def find_all_tags(sha: str) -> Generator[Tuple[str, str], None, None]:
                 if tag and tag.startswith('v')]
     for tag in versions:
         modules = parse_cargo_lock(tag)
-        seen = (None, None)
         for module, sha_at_version in modules.items():
             if check_ancestor(module, sha_at_version, sha):
-                seen = (module, tag)
+                yield (module, tag)
                 break
         else:
             return
-
-        yield seen
 
 
 def parse_cargo_lock(tag: str) -> Dict[str, str]:
