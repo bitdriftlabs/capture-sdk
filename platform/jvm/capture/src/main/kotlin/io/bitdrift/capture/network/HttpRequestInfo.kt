@@ -78,12 +78,12 @@ data class HttpRequestInfo @JvmOverloads constructor(
             val spanName = headers["$prefix-name"] ?: ""
             put(SpanField.Key.NAME, FieldValue.StringField(spanName))
             val fieldPrefix = "$prefix-field"
-                headers.forEach { (key, value) ->
-                    if (key.startsWith(fieldPrefix)) {
-                        val fieldKey = key.removePrefix(fieldPrefix).replace('-', '_')
-                        put(fieldKey, FieldValue.StringField(value))
-                    }
+            headers.forEach { (key, value) ->
+                if (key.startsWith(fieldPrefix)) {
+                    val fieldKey = key.removePrefix(fieldPrefix).replace('-', '_')
+                    put(fieldKey, FieldValue.StringField(value))
                 }
+            }
         } ?: run {
             // Default span name is simply http
             put(SpanField.Key.NAME, FieldValue.StringField("_http"))
