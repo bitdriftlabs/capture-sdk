@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+#
 # Check if a sha in a dependency is included in a release.
 # Releases are inferred from tags in the main repo and dependecies
 # are read from the Cargo.lock file.
