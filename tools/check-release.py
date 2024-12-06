@@ -9,7 +9,7 @@ import re
 import subprocess
 
 from pathlib import Path
-from typing import Dict, Optional, Generator, Tuple
+from typing import Dict, Generator, Tuple
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPOS_PATH = SCRIPT_DIR / Path("../..")
@@ -58,14 +58,6 @@ def check_ancestor(module: str, sha_at_version: str, sha_to_check: str) -> bool:
     code = subprocess.call(['git', '--git-dir', path,
                             'merge-base', '--is-ancestor', sha_to_check, sha_at_version], stderr=subprocess.DEVNULL)
     return code == 0
-
-
-def tag_for_version(version: str) -> Optional[str]:
-    # Normalizes the given version and returns the tag if it exists
-    tag = version if version.startswith('v') else f'v{version}'
-    code = subprocess.call(
-        ['git', 'rev-list', '-n', '1', tag], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-    return tag if code == 0 else None
 
 
 def main() -> None:
