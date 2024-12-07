@@ -34,7 +34,7 @@ use bd_noop_network::NoopNetwork;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use platform_shared::metadata::Mobile;
-use platform_shared::{LoggerHolder, LoggerId};
+use platform_shared::{LoggerHolder, LoggerId, SDK_VERSION};
 use std::borrow::{Borrow, Cow};
 use std::boxed::Box;
 use std::collections::HashMap;
@@ -834,6 +834,11 @@ extern "C" fn capture_flush(logger_id: LoggerId<'_>, blocking: bool) {
     },
     "swift flush state",
   );
+}
+
+#[no_mangle]
+extern "C" fn capture_sdk_version() -> *const Object {
+  make_nsstring(SDK_VERSION).autorelease()
 }
 
 mod flags {

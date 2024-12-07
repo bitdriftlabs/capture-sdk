@@ -291,4 +291,10 @@ internal object CaptureJniLibrary : IBridge {
      * directly as it allows for centralized control over error flood controls.
      */
     external fun reportError(message: String, stackTraceProvider: StackTraceProvider)
+
+    /**
+     * Returns the SDK version.
+     */
+    external fun sdkVersion(): String
 }
+
