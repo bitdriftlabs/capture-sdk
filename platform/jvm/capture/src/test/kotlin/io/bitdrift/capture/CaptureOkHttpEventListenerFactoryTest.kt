@@ -86,6 +86,7 @@ class CaptureOkHttpEventListenerFactoryTest {
         val httpRequestInfo = httpRequestInfoCapture.firstValue
         val httpResponseInfo = httpResponseInfoCapture.firstValue
         // common request fields
+        assertThat(httpRequestInfo.fields["_span_name"].toString()).isEqualTo("_http")
         assertThat(httpRequestInfo.fields["_host"].toString()).isEqualTo("api.bitdrift.io")
         assertThat(httpRequestInfo.fields["_host"].toString())
             .isEqualTo(httpResponseInfo.fields["_host"].toString())
