@@ -2,6 +2,7 @@
 androidBenchkmarkPlugin = "1.2.4"
 androidGradlePlugin = "8.2.2" # have to pin to this version due to 8.3.x breaking our lint https://issuetracker.google.com/issues/332755363
 apolloGraphqlPlugin = "3.8.3"
+androidToolsGradle = "7.4.2"
 appcompat = "1.5.1"
 assertjCore = "3.22.0"
 androidxCore = "1.9.0"
@@ -27,6 +28,7 @@ startupRuntime = "1.1.1"
 timber = "5.0.1"
 truth = "1.1.4"
 ui = "1.4.0"
+asm = "9.7"
 
 [libraries]
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
@@ -37,6 +39,7 @@ androidx-core = { group = "androidx.core", name = "core", version.ref = "android
 androidx-startup-runtime = { module = "androidx.startup:startup-runtime", version.ref = "startupRuntime" }
 androidx-test-core = { module = "androidx.test:core", version.ref = "androidxTestCore" }
 androidx-ui = { module = "androidx.compose.ui:ui", version.ref = "ui" }
+android-tools-gradle = { module = "com.android.tools.build:gradle", version.ref = "androidToolsGradle" }
 assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertjCore" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 jsr305 = { module = "com.google.code.findbugs:jsr305", version.ref = "jsr305" }
@@ -51,6 +54,8 @@ okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
+asm-commons = { module = "org.ow2.asm:asm-commons", version.ref = "asm" }
+asm-util = { module = "org.ow2.asm:asm-util", version.ref = "asm" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

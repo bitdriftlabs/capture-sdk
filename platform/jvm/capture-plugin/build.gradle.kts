@@ -1,5 +1,3 @@
-import com.vanniktech.maven.publish.GradlePlugin
-import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
@@ -12,17 +10,17 @@ plugins {
 }
 
 dependencies {
-    compileOnly("com.android.tools.build:gradle:7.4.0")
-    compileOnly("org.ow2.asm:asm-commons:9.4")
-    compileOnly("org.ow2.asm:asm-util:9.4")
+    compileOnly(libs.android.tools.gradle)
+    compileOnly(libs.asm.commons)
+    compileOnly(libs.asm.util)
 
     testImplementation(gradleTestKit())
     testImplementation(kotlin("test"))
-    testImplementation("com.android.tools.build:gradle:7.4.0")
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.ow2.asm:asm-commons:9.4")
-    testImplementation("org.ow2.asm:asm-util:9.4")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:4.1.0")
+    testImplementation(libs.android.tools.gradle)
+    testImplementation(libs.junit)
+    testImplementation(libs.asm.commons)
+    testImplementation(libs.asm.util)
+    testImplementation(libs.mockito.kotlin)
 }
 
 gradlePlugin {
