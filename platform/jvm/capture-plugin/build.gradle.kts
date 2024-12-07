@@ -1,8 +1,14 @@
- plugins {
-     alias(libs.plugins.kotlin)
-     alias(libs.plugins.maven.publish)
-     id("dependency-license-config")
-     id("java-gradle-plugin")
+import com.vanniktech.maven.publish.GradlePlugin
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.SonatypeHost
+
+plugins {
+    id("dependency-license-config")
+    id("java-gradle-plugin")
+
+    alias(libs.plugins.dokka) // Must be applied here for publish plugin.
+    alias(libs.plugins.maven.publish)
+    signing
 }
 
 dependencies {
@@ -28,11 +34,15 @@ gradlePlugin {
     }
 }
 
-publishing {
-    repositories {
-      mavenLocal()
-    }
+mavenPublishing {
+    configureBasedOnAppliedPlugins()
+
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
 }
 
-group = "io.bitdrift.capture.capture-plugin"
+signing {
+    sign(publishing.publications)
+}
+
+group = "io.bitdrift"
 version = "0.1.0"
