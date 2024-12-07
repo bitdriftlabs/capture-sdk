@@ -220,7 +220,6 @@ class FirstFragment : Fragment() {
         MainScope().launch {
             try {
                 val response = apolloClient.query(LaunchListQuery()).execute()
-//                Logger.logDebug(mapOf("response_headers" to response.executionContext[HttpInfo]?.headers.toString())) { "GraphQL response headers received" }
                 Logger.logDebug(mapOf("response_data" to response.data.toString())) { "GraphQL response data received" }
             } catch (e: Exception) {
                 Timber.e(e, "GraphQL request failed")
