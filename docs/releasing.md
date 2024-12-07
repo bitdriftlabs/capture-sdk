@@ -5,16 +5,23 @@ This document explains the process of releasing new versions of Bitdrift SDK.
 ## Release process
 
 1. Go to `Actions` tab in GitHub Interface.
-1. Select `Update SDK Version` action from the side menu on the left.
-1. Hit `Run Workflow` button on the right.
-1. Keep `main` branch selection, enter version that follows formatting rules from [Version Formatting](#version-formatting).
-1. The CI job should open a PR named 'Update SDK version to 0.12.1-rc.4' ([example](https://github.com/bitdriftlabs/capture-sdk/pull/1637)).
-1. Approve the PR, wait for the PR to be merged.
-1. Look for `Release on SDK version change / Check for version change (push)` CI job started for the merge commit ([example](https://github.com/bitdriftlabs/capture-sdk/actions/runs/10206791724/job/28240351848)). Click `Details` to see how it progresses and approve public releases as needed.
+2. Select `Update SDK Version` action from the side menu on the left.
+3. Hit `Run Workflow` button on the right.
+4. Keep `main` branch selection, enter version that follows formatting rules from [Version Formatting](#version-formatting).
+5. The CI job should open a PR named 'Update SDK version to 0.12.1-rc.4' ([example](https://github.com/bitdriftlabs/capture-sdk/pull/1637)).
+6. Approve and merge the PR.
+7. Look for `Release on SDK version change / Check for version change (push)` CI job started for the merge commit ([example](https://github.com/bitdriftlabs/capture-sdk/actions/runs/10206791724/job/28240351848)). Click `Details` to see how it progresses and approve public releases as needed.
+8. When approving a release in capture-ios, watch for a [PR being created in capture-ios](https://github.com/bitdriftlabs/capture-ios/pulls) with the new version number and approve it. In order for it to be merged you'll have to manually close it and re-open it.
+9. Once the PR merges, follow [the `Release` workflow](https://github.com/bitdriftlabs/capture-ios/actions/workflows/release.yaml) and approve public releases as needed. Note that this step can take a long time to complete.
 
 ![](images/releasing_bitdriftsdk_creating_release.png)
 
 An example release can be found [here](https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.12.1-rc.5).
+
+### Release process flow
+
+In both the capture-sdk and capture-ios repositories, the `Release` workflow triggers on a change in the version being merged to main. The above flow uses the `Update SDK Version` workflow to update the version in the `capture-sdk` repository. The `Release` workflow then triggers on the version change initiates the release pipeline,
+which includes a step which will trigger a version update in the capture-ios repository to trigger a similar release pipeline in the capture-ios repository.
 
 ## Version Formatting
 
