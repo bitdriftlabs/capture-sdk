@@ -61,7 +61,8 @@ fun AndroidComponentsExtension<*, *, *>.configure(
                     FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS,
             ) { params ->
                 params.tmpDir.set(tmpDir)
-                params.debug.set(false)
+                params.debug.set(extension.instrumentation.debug)
+                params.proxyOkHttpEventListener.set(extension.instrumentation.proxyOkHttpEventListener)
             }
         }
     }
