@@ -198,6 +198,9 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: capture-timber.zip
+      - uses: actions/download-artifact@v4
+        with:
+          name: capture-plugin.zip
       - name: Prepare Android artifacts
         run: ./ci/gh_prepare_android_artifacts.sh "$VERSION"
         env:
@@ -223,7 +226,8 @@ jobs:
             "Capture-$VERSION.android.zip" \
             "example-apps.ios.zip" \
             "example-apps.android.zip" \
-            "capture-timber-$VERSION.android.zip"
+            "capture-timber-$VERSION.android.zip" \
+            "capture-plugin-$VERSION.android.zip" \
         env:
           VERSION: ${{ inputs.version }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

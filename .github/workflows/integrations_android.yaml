@@ -42,7 +42,7 @@ jobs:
     - name: Compress Plugin artifacts
       run: |
         readonly dir=$(pwd)
-        (cd capture-timber/build/repos/releases/io/bitdrift/capture-plugin/${{ inputs.version }} && zip -r "$dir/capture-plugin.zip" ./*)
+        (cd capture-plugin/build/repos/releases/io/bitdrift/capture-plugin/${{ inputs.version }} && zip -r "$dir/capture-plugin.zip" ./*)
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
