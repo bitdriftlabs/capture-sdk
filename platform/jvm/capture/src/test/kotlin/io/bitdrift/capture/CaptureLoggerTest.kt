@@ -314,10 +314,16 @@ class CaptureLoggerTest {
         val sdkConfigured = CaptureTestJniLibrary.nextUploadedLog()
         assertThat(sdkConfigured.message).isEqualTo("SDKConfigured")
 
-        val log = CaptureTestJniLibrary.nextUploadedLog()
+        var log = CaptureTestJniLibrary.nextUploadedLog()
+
+        // Sometimes a resource log is sent before the actual log, so skip it to make the tests more
+        // stable.
+        if (log.fields.containsKey("_battery_val")) {
+            log = CaptureTestJniLibrary.nextUploadedLog()
+        }
         assertThat(log.level).isEqualTo(LogLevel.DEBUG.value)
-        assertThat(log.message).isEqualTo("test log")
         assertThat(log.fields).isEqualTo(expectedFields)
+        assertThat(log.message).isEqualTo("test log")
         assertThat(log.sessionId).isEqualTo("SESSION_ID")
         assertThat(log.rfc3339Timestamp).isEqualTo("2022-07-05T18:55:58.123Z")
     }
