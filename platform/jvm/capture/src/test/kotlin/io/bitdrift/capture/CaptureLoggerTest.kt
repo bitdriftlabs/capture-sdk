@@ -320,7 +320,7 @@ class CaptureLoggerTest {
         // stable.
         if (log.fields.containsKey("_battery_val")) {
             log = CaptureTestJniLibrary.nextUploadedLog()
-        } 
+        }
         assertThat(log.level).isEqualTo(LogLevel.DEBUG.value)
         assertThat(log.fields).isEqualTo(expectedFields)
         assertThat(log.message).isEqualTo("test log")
