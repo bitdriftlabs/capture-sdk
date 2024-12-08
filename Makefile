@@ -8,7 +8,7 @@ ktlint:
 
 .PHONY: rustfmt
 rustfmt:
-	RUSTFMT_CONFIG=$(pwd)/rustfmt.toml ./bazelw run @rules_rust//:rustfmt
+	RUSTFMT_CONFIG=$(pwd)/rustfmt.toml ./bazelw run @rules_rust//rust/settings:rustfmt
 
 .PHONY: buildifier
 buildifier:
