@@ -319,7 +319,7 @@ class CaptureLoggerTest {
         // Sometimes a resource log is sent before the actual log, so skip it to make the tests more
         // stable.
         if (log.fields.containsKey("_battery_val")) {
-          log = CaptureTestJniLibrary.nextUploadedLog()
+            log = CaptureTestJniLibrary.nextUploadedLog()
         } 
         assertThat(log.level).isEqualTo(LogLevel.DEBUG.value)
         assertThat(log.fields).isEqualTo(expectedFields)
