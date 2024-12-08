@@ -33,8 +33,8 @@ build:android --android_crosstool_top=@androidndk//:toolchain
 build:android --extra_toolchains=@androidndk//...
 build --platform_mappings=bazel/platform_mappings
 
-build --@rules_rust//:rustfmt.toml=//:rustfmt.toml
-build --@rules_rust//:clippy.toml=//:.clippy.toml
+build --@rules_rust//rust/settings:rustfmt.toml=//:rustfmt.toml
+build --@rules_rust//rust/settings:clippy.toml=//:.clippy.toml
 
 build --macos_minimum_os=12.5
 build --host_macos_minimum_os=12.5
@@ -82,9 +82,9 @@ build:release-common --config=abort-panic
 
 # Size optimizations, codegen-units=1 go along side LTO, which accounts for
 # about 10% reduction; -z has a non-zero smaller impact (a few pp).
-build:release-common --@rules_rust//:extra_rustc_flag='-Ccodegen-units=1'
-build:release-common --@rules_rust//:extra_rustc_flag='-Clto=fat'
-build:release-common --@rules_rust//:extra_rustc_flag='-Copt-level=s'
+build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Ccodegen-units=1'
+build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Clto=fat'
+build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Copt-level=s'
 
 build:release-android --define android_strip_symbols=true
 build:release-android --fat_apk_cpu=x86,x86_64,armeabi-v7a,arm64-v8a
@@ -113,24 +113,24 @@ build:nomacos --test_tag_filters=-macos_only --build_tag_filters=-macos_only
 # We run this with release-common to be as indicative of production as possible, and add in as much debug information we
 # can to allow using perf to generate flamegraphs.
 build:benchmark --config=release-common
-build:benchmark-profile --config=benchmark --@rules_rust//:extra_rustc_flag='-Cdebuginfo=2' --force_pic
+build:benchmark-profile --config=benchmark --@rules_rust//rust/settings:extra_rustc_flag='-Cdebuginfo=2' --force_pic
 
 # Specifies that panics should automatically be treated as a panic.
-build:abort-panic --@rules_rust//:extra_rustc_flag=-C
-build:abort-panic --@rules_rust//:extra_rustc_flag=panic=abort
+build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=-C
+build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=panic=abort
 
 # This attempts to match what cargo-fuzz does, but it's likely a moving target with many options.
 # Occasionally check back to see if anything has changed over there.
 # https://github.com/rust-fuzz/cargo-fuzz/blob/fa18f0d77aef036302d9f948e80aa12c6b95d57b/src/project.rs#L163
 build:fuzz --config=release-common
-build:fuzz --@rules_rust//:extra_rustc_flag=-Cpasses=sancov-module
-build:fuzz --@rules_rust//:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-level=4
-build:fuzz --@rules_rust//:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-inline-8bit-counters
-build:fuzz --@rules_rust//:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-pc-table
-build:fuzz --@rules_rust//:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-trace-compares
-build:fuzz --@rules_rust//:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-stack-depth
-build:fuzz --@rules_rust//:extra_rustc_flag=-Zsanitizer=address
-build:fuzz --@rules_rust//:extra_rustc_flag=--cfg=fuzzing
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Cpasses=sancov-module
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-level=4
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-inline-8bit-counters
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-pc-table
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-trace-compares
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-stack-depth
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=address
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=--cfg=fuzzing
 build:fuzz --@rules_rust//rust/toolchain/channel=nightly
 
 build:fake-nightly --action_env=RUSTC_BOOTSTRAP=1
@@ -138,13 +138,13 @@ build:fake-nightly --action_env=RUSTC_BOOTSTRAP=1
 # Enables TSAN for all targets. This does not currently work when targeting platforms where TSAN is not enabled in the Rust toolchain (e.g. ios-sim).
 build:tsan --config=fake-nightly
 build:tsan --features=tsan
-build:tsan --@rules_rust//:extra_rustc_flag=-Zsanitizer=thread
+build:tsan --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=thread
 
 # Enables using TSAN with iOS tests. This does not enable tsan in Rust and may therefore result in false positivies.
 build:ios-tsan --features=tsan
 
 build:asan --config=fake-nightly
 build:asan --features=address
-build:tsan --@rules_rust//:extra_rustc_flag=-Zsanitizer=address
+build:tsan --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=address
 
 try-import %workspace%/tmp/ci-bazelrc
