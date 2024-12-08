@@ -128,6 +128,9 @@ class FirstFragment : Fragment() {
             Timber.i("Navigating to Compose Fragment")
             findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
         }
+        binding.btnShutdownLogger.setOnClickListener {
+            Logger.shutdown()
+        }
 
         binding.textviewFirst.text = Logger.sessionId
 

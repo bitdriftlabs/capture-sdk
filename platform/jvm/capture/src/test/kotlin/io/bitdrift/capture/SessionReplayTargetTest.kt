@@ -17,12 +17,15 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class SessionReplayTargetTest {
     private val logger: LoggerImpl = mock()
     private val errorHandler: ErrorHandler = mock()
+    private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private val handler: MainThreadHandler = Mocks.sameThreadHandler
 
     private val target = SessionReplayTarget(
@@ -30,6 +33,7 @@ class SessionReplayTargetTest {
         errorHandler,
         ApplicationProvider.getApplicationContext(),
         logger,
+        executor,
         handler,
     )
 
