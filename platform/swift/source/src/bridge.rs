@@ -440,6 +440,7 @@ extern "C" fn capture_create_logger(
   events_listener_target: *mut Object,
   app_id: *const c_char,
   app_version: *const c_char,
+  model: *const c_char,
   bd_network_nsobject: *mut Object,
   error_reporter_ns_object: *mut Object,
 ) -> LoggerId<'static> {
@@ -466,6 +467,7 @@ extern "C" fn capture_create_logger(
         app_version: Some(unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string()),
         platform: Platform::Ios,
         device: device.clone(),
+        model: unsafe { CStr::from_ptr(model) }.to_str()?.to_string(),
       });
 
       let error_reporter = MetadataErrorReporter::new(

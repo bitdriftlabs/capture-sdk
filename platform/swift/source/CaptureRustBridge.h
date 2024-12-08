@@ -30,11 +30,12 @@ void capture_report_error(const char *message);
  * @param events_listener_target responsible for listening to platform events and emitting logs in response to them.
  * @param app_id the app id to identify the client as a null terminated C string.
  * @param app_version the app version to identify the client as a null terminated C string.
+ * @param model the model of the device to identify the client as a null terminated C string.
  * @param network the Capture Network protocol to use for performing network requests.
  * @param error_reporter the error reported protocol to use for reporting errors.
  */
 logger_id capture_create_logger(
-    const char *_Nullable path, 
+    const char *_Nullable path,
     const char *api_key,
     id<SessionStrategyProvider> session_strategy_provider,
     id<MetadataProvider> metadata_provider,
@@ -42,7 +43,8 @@ logger_id capture_create_logger(
     id<SessionReplayTarget> session_replay_target,
     id<EventsListenerTarget> events_listener_target,
     const char *app_id,
-    const char *app_version, 
+    const char *app_version,
+    const char *model,
     _Nullable id<Network> network,
     _Nullable id<RemoteErrorReporting> error_reporter
 );
@@ -68,7 +70,7 @@ void capture_start_logger(logger_id logger_id);
  *        remote services.
  * @param matching_fields The list of matching fields that can be read when processing a given log but are
  *        not a part of the log itself.
- * @Param blocking whether the method should return only after the log is processed. 
+ * @Param blocking whether the method should return only after the log is processed.
  */
 void capture_write_log(
     logger_id logger_id,
@@ -167,7 +169,7 @@ void capture_write_app_update_log(
  * have no effect.
  *
  * @param loggerId the ID of the logger to write to.
- * @param duration_s the duration of time between a user's intent to launch an app and the point in time 
+ * @param duration_s the duration of time between a user's intent to launch an app and the point in time
  *        when the app became interactive. Calls with a negative duration are ignored.
  */
 void capture_write_app_launch_tti_log(
@@ -230,7 +232,7 @@ void capture_flush(logger_id logger_id, bool blocking);
 
 /**
  * Signals the specified logger to shut down.
- * 
+ *
  * @param blocking whether the method should return only after shutdown is complete.
  */
 void capture_shutdown_logger(logger_id logger_id, bool blocking);
@@ -265,11 +267,11 @@ bool capture_runtime_bool_variable_value(logger_id logger_id, const char *variab
 
 /*
  * Returns the value of an integer runtime variable via client runtime configuration.
- * 
+ *
  * @param logger_id the logger to check the variable value for.
  * @param variable_name the name of the int variable to check.
  * @param default_value the default value to use when the relevant configuration entry is missing.
- * 
+ *
  * @returns the value of the uin32_t variable.
  */
 uint32_t capture_runtime_uint32_variable_value(logger_id logger_id, const char *variable_name, uint32_t default_value);

@@ -599,6 +599,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   events_listener_target: JObject<'_>,
   application_id: JString<'_>,
   application_version: JString<'_>,
+  model: JString<'_>,
   network: JObject<'_>,
   preferences: JObject<'_>,
   error_reporter: JObject<'_>,
@@ -633,6 +634,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         app_version: Some(unsafe { env.get_string_unchecked(&application_version) }?.into()),
         platform: Platform::Android,
         device: device.clone(),
+        model: unsafe { env.get_string_unchecked(&model) }?.into(),
       });
 
       let error_reporter = Arc::new(new_global!(ErrorReporterHandle, &mut env, error_reporter)?);

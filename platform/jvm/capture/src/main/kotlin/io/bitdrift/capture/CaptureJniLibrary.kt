@@ -46,6 +46,7 @@ internal object CaptureJniLibrary : IBridge {
      * @param eventsListenerTarget responsible for listening to platform events and emitting logs in response to them.
      * @param applicationId the application ID of the current app, used to identify with the backend
      * @param applicationVersion the version of the current app, used to identify with the backend
+     * @param model the host device model, used to identify with the backend
      * @param network the network implementation to use to communicate with the backend
      * @param preferences the preferences storage to use for persistent storage of simple settings and configuration.
      * @param errorReporter the error reporter to use for reporting error to bitdrift services.
@@ -60,6 +61,7 @@ internal object CaptureJniLibrary : IBridge {
         eventsListenerTarget: IEventsListenerTarget,
         applicationId: String,
         applicationVersion: String,
+        model: String,
         network: ICaptureNetwork,
         preferences: IPreferences,
         errorReporter: IErrorReporter,

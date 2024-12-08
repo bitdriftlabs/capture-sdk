@@ -22,6 +22,7 @@ internal interface IBridge {
         eventsListenerTarget: IEventsListenerTarget,
         applicationId: String,
         applicationVersion: String,
+        model: String,
         network: ICaptureNetwork,
         preferences: IPreferences,
         errorReporter: IErrorReporter,

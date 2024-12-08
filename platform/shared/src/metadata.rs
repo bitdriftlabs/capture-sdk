@@ -25,6 +25,8 @@ pub struct Mobile {
 
   /// Provides current device installation identifier.
   pub device: Arc<bd_logger::Device>,
+
+  pub model: String,
 }
 
 impl bd_api::Metadata for Mobile {
@@ -49,6 +51,7 @@ impl bd_api::Metadata for Mobile {
     }
 
     metadata_map.insert("device_id".to_string(), self.device.id());
+    metadata_map.insert("model".to_string(), self.model.clone());
 
     metadata_map
   }

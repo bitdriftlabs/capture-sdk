@@ -248,6 +248,7 @@ class CaptureLoggerTest {
                     "os" to "android",
                     "device_id" to deviceId,
                     "kind" to "mobile",
+                    "model" to "robolectric",
                 ),
                 listOf("sdk_version", "config_version"),
             ),
