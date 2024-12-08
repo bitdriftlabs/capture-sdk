@@ -54,6 +54,9 @@ abstract class SpanAddingClassVisitorFactory : AsmClassVisitorFactory<SpanAdding
         @get:Input
         val debug: Property<Boolean>
 
+        @get:Input
+        val proxyOkHttpEventListener: Property<Boolean>
+
         @get:Internal
         val tmpDir: Property<File>
 

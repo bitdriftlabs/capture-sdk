@@ -39,25 +39,68 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.commons.AdviceAdapter
 
 class OkHttpEventListenerMethodVisitor(
-        apiVersion: Int,
-        originalVisitor: MethodVisitor,
-        instrumentableContext: MethodContext,
+    apiVersion: Int,
+    originalVisitor: MethodVisitor,
+    instrumentableContext: MethodContext,
+    val proxyEventListener: Boolean
 ) : AdviceAdapter(
-        apiVersion,
-        originalVisitor,
-        instrumentableContext.access,
-        instrumentableContext.name,
-        instrumentableContext.descriptor
+    apiVersion,
+    originalVisitor,
+    instrumentableContext.access,
+    instrumentableContext.name,
+    instrumentableContext.descriptor
 ) {
 
     private val captureOkHttpEventListenerFactory =
-            "io/bitdrift/capture/network/okhttp/CaptureOkHttpEventListenerFactory"
+        "io/bitdrift/capture/network/okhttp/CaptureOkHttpEventListenerFactory"
 
     override fun onMethodEnter() {
         super.onMethodEnter()
 
+        if (proxyEventListener) {
+            addProxyingEventListener()
+        } else {
+            addOverwritingEventListener()
+        }
+    }
+
+    private fun addOverwritingEventListener() {
         // Add the following call at the beginning of the constructor with the Builder parameter:
-        // builder.eventListener(new CaptureOkHttpEventListener(builder.eventListenerFactory));
+        // builder.eventListenerFactory(new CaptureOkHttpEventListenerFactory());
+
+        // OkHttpClient.Builder is the parameter, retrieved here
+        visitVarInsn(Opcodes.ALOAD, 1)
+
+        // Let's declare the CaptureOkHttpEventListenerFactory variable
+        visitTypeInsn(Opcodes.NEW, captureOkHttpEventListenerFactory)
+
+        // The CaptureOkHttpEventListenerFactory constructor, which is called later, will consume the
+        //  element without pushing anything back to the stack (<init> returns void).
+        // Dup will give a reference to the CaptureOkHttpEventListenerFactory after the constructor call
+        visitInsn(Opcodes.DUP)
+
+        // Call CaptureOkHttpEventListenerFactory constructor passing "eventListenerFactory" as parameter
+        visitMethodInsn(
+            Opcodes.INVOKESPECIAL,
+            captureOkHttpEventListenerFactory,
+            "<init>",
+            "()V",
+            false
+        )
+
+        // Call "eventListener" function of OkHttpClient.Builder passing CaptureOkHttpEventListenerFactory
+        visitMethodInsn(
+            Opcodes.INVOKEVIRTUAL,
+            "okhttp3/OkHttpClient\$Builder",
+            "eventListenerFactory",
+            "(Lokhttp3/EventListener\$Factory;)Lokhttp3/OkHttpClient\$Builder;",
+            false
+        )
+    }
+
+    private fun addProxyingEventListener() {
+        // Add the following call at the beginning of the constructor with the Builder parameter:
+        // builder.eventListenerFactory(new CaptureOkHttpEventListenerFactory(builder.eventListenerFactory));
 
         // OkHttpClient.Builder is the parameter, retrieved here
         visitVarInsn(Opcodes.ALOAD, 1)
