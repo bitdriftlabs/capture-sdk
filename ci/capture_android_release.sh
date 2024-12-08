@@ -97,7 +97,7 @@ function release_gradle_library() {
     aws s3 cp "$sdk_repo/ci/LICENSE.txt" "$remote_location_prefix/$version/LICENSE.txt" --region us-east-1
     aws s3 cp "$sdk_repo/ci/NOTICE.txt" "$remote_location_prefix/$version/NOTICE.txt" --region us-east-1
 
-    aws s3 cp $version "$remote_location_prefix/$version/" --recursive --region us-east-1
+    aws s3 cp "$version" "$remote_location_prefix/$version/" --recursive --region us-east-1
   popd
 }
 
