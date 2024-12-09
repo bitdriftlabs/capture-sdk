@@ -46,8 +46,14 @@ function prepare_capture_timber() {
   cp "$sdk_repo/capture-timber.zip" "$sdk_repo/capture-timber-$version.android.zip"
 }
 
+function prepare_capture_apollo3() {
+  echo "+++ Preparing Android Capture Apollo3 library artifacts for '$version' version"
+
+  cp "$sdk_repo/capture-apollo3.zip" "$sdk_repo/capture-apollo4-$version.android.zip"
+}
+
 function prepare_capture_plugin() {
-  echo "+++ Preparing Android Capture Timber library artifacts for '$version' version"
+  echo "+++ Preparing Android Capture Android Plugin artifacts for '$version' version"
 
   cp "$sdk_repo/capture-plugin.zip" "$sdk_repo/capture-plugin-$version.android.zip"
 }

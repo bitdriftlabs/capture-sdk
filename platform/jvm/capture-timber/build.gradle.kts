@@ -64,7 +64,7 @@ dependencies {
 
     testImplementation(libs.truth)
     testImplementation(libs.junit)
-    testImplementation(libs.kotlin.mockito.kotlin) // last version with Java 8 support
+    testImplementation(libs.kotlin.mockito.kotlin)
 }
 
 mavenPublishing {

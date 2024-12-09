@@ -9,7 +9,8 @@ readonly remote_location_root_prefix="s3://bitdrift-public-dl/sdk/android-maven/
 readonly version="$1"
 readonly capture_archive="$2"
 readonly capture_timber_archive="$3"
-readonly capture_plugin_archive="$4"
+readonly capture_apollo3_archive="$4"
+readonly capture_plugin_archive="$5"
 
 function upload_file() {
   local -r location="$1"
@@ -101,6 +102,7 @@ function release_gradle_library() {
   popd
 }
 
+release_capture_sdk
 release_gradle_library "capture-timber" "$capture_timber_archive"
+release_gradle_library "capture-apollo3" "$capture_apollo3_archive"
 release_gradle_library "capture-plugin" "$capture_plugin_archive"
-release_capture_timber
