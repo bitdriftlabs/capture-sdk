@@ -50,7 +50,7 @@ use jni::signature::{Primitive, ReturnType};
 use jni::sys::{jboolean, jbyteArray, jdouble, jint, jlong, jobject, jvalue, JNI_TRUE};
 use jni::{JNIEnv, JavaVM};
 use platform_shared::metadata::Mobile;
-use platform_shared::{LoggerHolder, LoggerId};
+use platform_shared::{LoggerHolder, LoggerId, SDK_VERSION};
 use std::borrow::{Borrow, Cow};
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -584,6 +584,17 @@ impl bd_logger::MetadataProvider for MetadataProvider {
       Ok(ootb_fields.chain(custom_fields).collect())
     })
   }
+}
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_sdkVersion<'a>(
+  env: JNIEnv<'a>,
+  _class: JClass<'_>,
+) -> JString<'a> {
+  bd_client_common::error::with_handle_unexpected_or(
+    || Ok(env.new_string(SDK_VERSION)?),
+    JObject::null().into(),
+    "jni sdk version",
+  )
 }
 
 #[no_mangle]

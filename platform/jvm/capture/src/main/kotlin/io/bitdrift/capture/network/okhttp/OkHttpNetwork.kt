@@ -88,7 +88,18 @@ internal class OkHttpNetwork(
             // a standard client.
             builder.interceptors().clear()
             builder.networkInterceptors().clear()
+
             builder
+                    .addNetworkInterceptor { chain ->
+                        chain.proceed(
+                                chain.request().header("User-Agent")?.let {
+                                    chain.request()
+                                            .newBuilder()
+                                            .header("User-Agent", it + " bitdrift/Capture/android/" + CaptureJniLibrary.sdkVersion())
+                                            .build()
+                                } ?: chain.request()
+                        )
+                    }
                 .protocols(
                     if (apiBaseUrl.scheme == "https") {
                         listOf(Protocol.HTTP_2, Protocol.HTTP_1_1)
