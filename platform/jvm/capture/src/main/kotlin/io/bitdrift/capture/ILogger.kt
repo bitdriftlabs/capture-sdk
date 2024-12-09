@@ -41,6 +41,11 @@ interface ILogger {
     fun startNewSession()
 
     /**
+     * Shuts down the logger and releases any resources it holds. After the logger has been shutdown is no longer usable
+     */
+    fun shutdown()
+
+    /**
      * Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a
      * given device in real-time fashion. The creation of the device code requires communication with
      * the bitdrift remote service.

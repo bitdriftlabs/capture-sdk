@@ -16,6 +16,7 @@ import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.os.Build
 import android.os.PowerManager
+import android.util.Log
 import androidx.annotation.RequiresApi
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
@@ -51,6 +52,10 @@ internal class DeviceStateListenerLogger(
 
     // keep a snapshot of the current configuration in a new instance since Android updates the same reference
     private var prevConfig: AtomicReference<Configuration> = AtomicReference(Configuration(context.resources.configuration))
+
+    init {
+        Log.w("miguel-device", "init")
+    }
 
     override fun start() {
         if (!runtime.isEnabled(RuntimeFeature.DEVICE_STATE_EVENTS)) {

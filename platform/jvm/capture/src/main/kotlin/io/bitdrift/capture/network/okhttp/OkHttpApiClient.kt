@@ -26,8 +26,8 @@ import okhttp3.Response
 import java.io.IOException
 
 internal sealed class HttpApiEndpoint(val path: String) {
-    object GetTemporaryDeviceCode : HttpApiEndpoint("v1/device/code")
-    object ReportSdkError : HttpApiEndpoint("v1/sdk-errors")
+    data object GetTemporaryDeviceCode : HttpApiEndpoint("v1/device/code")
+    data object ReportSdkError : HttpApiEndpoint("v1/sdk-errors")
 }
 
 internal class OkHttpApiClient(
@@ -77,6 +77,11 @@ internal class OkHttpApiClient(
                 completion(Err(e.toNetworkError()))
             }
         })
+    }
+
+    fun shutdown() {
+        client.dispatcher.executorService.shutdown()
+        client.connectionPool.evictAll()
     }
 
     private inline fun <reified Rp> Gson.fromTypedJson(json: String) = fromJson<Rp>(json, object : TypeToken<Rp>() {}.type)

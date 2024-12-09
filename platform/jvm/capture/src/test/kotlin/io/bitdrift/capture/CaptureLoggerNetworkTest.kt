@@ -18,6 +18,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.util.Date
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class CaptureLoggerNetworkTest {
 
@@ -33,6 +35,7 @@ class CaptureLoggerNetworkTest {
     private var streamTimeoutSeconds: Long = 1
     private var logger: Long? = null
     private var testServerPort: Int? = null
+    private val executor: ExecutorService = Executors.newSingleThreadExecutor()
 
     class TestMetadataProvider : IMetadataProvider {
         override fun timestamp(): Long {
@@ -66,6 +69,7 @@ class CaptureLoggerNetworkTest {
         testServerPort = CaptureTestJniLibrary.startTestApiServer(pingIdleTimeout)
 
         val network = OkHttpNetwork(
+            executor,
             apiBaseUrl = testServerUrl(testServerPort!!),
             timeoutSeconds = streamTimeoutSeconds,
         )
@@ -143,6 +147,7 @@ class CaptureLoggerNetworkTest {
         // We start the logger without starting the test server, so any attempt at connecting
         // to it should immediately fail (connection refused).
         val network = OkHttpNetwork(
+            executor,
             apiBaseUrl = testServerUrl(50051),
             timeoutSeconds = 1,
         )
@@ -174,6 +179,7 @@ class CaptureLoggerNetworkTest {
     fun large_upload() {
         val port = CaptureTestJniLibrary.startTestApiServer(500)
         val network = OkHttpNetwork(
+            executor,
             apiBaseUrl = testServerUrl(port),
             timeoutSeconds = 1,
         )
