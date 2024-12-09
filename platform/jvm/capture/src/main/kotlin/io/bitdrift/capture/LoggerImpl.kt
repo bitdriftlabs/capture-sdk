@@ -113,11 +113,18 @@ internal class LoggerImpl(
                 .addQueryParameter("utm_source", "sdk")
                 .build()
 
+            val networkAttributes = NetworkAttributes(ContextHolder.APP_CONTEXT)
+            val deviceAttributes = DeviceAttributes(ContextHolder.APP_CONTEXT)
+
             metadataProvider = MetadataProvider(
                 dateProvider = dateProvider,
                 // order of providers matters in here, the earlier in the list the higher their priority in
                 // case of key conflicts.
-                ootbFieldProviders = defaultFieldProviders(),
+                ootbFieldProviders = listOf(
+                    clientAttributes,
+                    networkAttributes,
+                    deviceAttributes,
+                ),
                 customFieldProviders = fieldProviders,
             )
 
@@ -172,6 +179,7 @@ internal class LoggerImpl(
                 eventsListenerTarget,
                 clientAttributes.appId,
                 clientAttributes.appVersion,
+                deviceAttributes.model(),
                 network,
                 preferences,
                 localErrorReporter,
@@ -280,14 +288,6 @@ internal class LoggerImpl(
 
     private fun appExitSaveCurrentSessionId(sessionId: String? = null) {
         appExitLogger.saveCurrentSessionId(sessionId)
-    }
-
-    private fun defaultFieldProviders(): List<FieldProvider> {
-        return listOf(
-            ClientAttributes(ContextHolder.APP_CONTEXT, ProcessLifecycleOwner.get()),
-            NetworkAttributes(ContextHolder.APP_CONTEXT),
-            DeviceAttributes(ContextHolder.APP_CONTEXT),
-        )
     }
 
     override fun logAppLaunchTTI(duration: Duration) {

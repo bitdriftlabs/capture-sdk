@@ -27,6 +27,7 @@ public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
         eventsListenerTarget _: CaptureLoggerBridge.EventsListenerTarget,
         appID _: String,
         releaseVersion _: String,
+        model _: String,
         network _: Network?,
         errorReporting _: RemoteErrorReporting
     ) -> LoggerBridging? {

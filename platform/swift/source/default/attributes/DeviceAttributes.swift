@@ -11,7 +11,7 @@ import UIKit
 /// Attributes related to the device information including hardware model, locale, etc.
 final class DeviceAttributes {
     private let locale = Atomic<String>(Locale.current.identifier)
-    private let hardwareVersion: String = {
+    let hardwareVersion: String = {
         let size = UnsafeMutablePointer<Int>.allocate(capacity: 1)
         sysctlbyname("hw.machine", nil, size, nil, 0)
 

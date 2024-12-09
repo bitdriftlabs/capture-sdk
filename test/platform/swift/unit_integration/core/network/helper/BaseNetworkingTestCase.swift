@@ -85,6 +85,7 @@ open class BaseNetworkingTestCase: XCTestCase {
                 eventsListenerTarget: MockEventsListenerTarget(),
                 appID: "io.bitdrift.capture.test",
                 releaseVersion: "",
+                model: "",
                 network: network,
                 errorReporting: MockRemoteErrorReporter()
             )
