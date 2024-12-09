@@ -183,6 +183,7 @@ public final class Logger {
             eventsListenerTarget: self.eventsListenerTarget,
             appID: clientAttributes.appID,
             releaseVersion: clientAttributes.appVersion,
+            model: deviceAttributes.hardwareVersion,
             network: network,
             errorReporting: self.remoteErrorReporter
         ) else {

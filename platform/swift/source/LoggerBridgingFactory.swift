@@ -18,6 +18,7 @@ final class LoggerBridgingFactory: LoggerBridgingFactoryProvider {
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
         appID: String,
         releaseVersion: String,
+        model: String,
         network: Network?,
         errorReporting: RemoteErrorReporting
     ) -> LoggerBridging? {
@@ -31,6 +32,7 @@ final class LoggerBridgingFactory: LoggerBridgingFactoryProvider {
             eventsListenerTarget: eventsListenerTarget,
             appID: appID,
             releaseVersion: releaseVersion,
+            model: model,
             network: network,
             errorReporting: errorReporting
         )
