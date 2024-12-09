@@ -59,17 +59,17 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: capture-timber.zip
-        path: platform/jvm/capture-timber.zip
+        path: platform/jvm/capture-timber-${{ inputs.version }}.android.zip
         if-no-files-found: error
     - name: Upload Apollo artifacts
       uses: actions/upload-artifact@v4
       with:
         name: capture-apollo3.zip
-        path: platform/jvm/capture-apollo3.zip
+        path: platform/jvm/capture-apollo3-${{ inputs.version }}.android.zip
         if-no-files-found: error        
     - name: Upload Gradle Plugin artifacts
       uses: actions/upload-artifact@v4
       with:
         name: capture-plugin.zip
-        path: platform/jvm/capture-plugin.zip
+        path: platform/jvm/capture-plugin-${{ inputs.version }}.android.zip
         if-no-files-found: error
