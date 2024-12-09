@@ -128,7 +128,6 @@ public final class Logger {
         let appStateAttributes = AppStateAttributes()
         let clientAttributes = ClientAttributes()
         let deviceAttributes = DeviceAttributes()
-        let hardwareVersion = deviceAttributes.hardwareVersion
         let networkAttributes = NetworkAttributes()
         let ootbFieldProviders: [FieldProvider] = [
             appStateAttributes,
@@ -184,7 +183,7 @@ public final class Logger {
             eventsListenerTarget: self.eventsListenerTarget,
             appID: clientAttributes.appID,
             releaseVersion: clientAttributes.appVersion,
-            model: hardwareVersion,
+            model: deviceAttributes.hardwareVersion,
             network: network,
             errorReporting: self.remoteErrorReporter
         ) else {
