@@ -19,4 +19,6 @@ open class InstrumentationExtension @Inject constructor(objects: ObjectFactory) 
     val debug: Property<Boolean> = objects.property(Boolean::class.java).convention(
             false
     )
+
+    val proxyOkHttpEventListener: Property<Boolean> = objects.property(Boolean::class.java).convention(false)
 }

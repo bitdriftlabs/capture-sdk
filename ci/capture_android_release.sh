@@ -9,6 +9,8 @@ readonly remote_location_root_prefix="s3://bitdrift-public-dl/sdk/android-maven/
 readonly version="$1"
 readonly capture_archive="$2"
 readonly capture_timber_archive="$3"
+readonly capture_apollo3_archive="$4"
+readonly capture_plugin_archive="$5"
 
 function upload_file() {
   local -r location="$1"
@@ -78,36 +80,29 @@ function release_capture_sdk() {
   popd
 }
 
-function release_capture_timber() {
+function release_gradle_library() {
+  local -r library_name="$1"
+  local -r archive="$2"
+
   echo "+++ dl.bitdrift.io Android Capture Timber artifacts upload"
 
-  # We get a zip containing the artifacts named per Maven conventions.
+  local -r remote_location_prefix="$remote_location_root_prefix/$library_name"
 
   pushd "$(mktemp -d)"
-    unzip -o "$sdk_repo/$capture_timber_archive"
+    unzip -o "$archive"
+    
+    # Make sure we update the top-level maven-metadata.xml file with the new release version
+    aws s3 cp maven-metadata.xml* "$remote_location_prefix/" --region us-east-1
 
-    echo "+++ Uploading artifacts to s3 bucket"
+    # Update the per-version files
+    aws s3 cp "$sdk_repo/ci/LICENSE.txt" "$remote_location_prefix/$version/LICENSE.txt" --region us-east-1
+    aws s3 cp "$sdk_repo/ci/NOTICE.txt" "$remote_location_prefix/$version/NOTICE.txt" --region us-east-1
 
-    local -r remote_location_prefix="$remote_location_root_prefix/capture-timber"
-    local -r name="capture-timber-$version"
-
-    files=(\
-      "$sdk_repo/ci/LICENSE.txt" \
-      "$sdk_repo/ci/NOTICE.txt" \
-      "$name.pom" \
-      "$name-javadoc.jar" \
-      "$name-sources.jar" \
-      "$name.module" \
-      "$name.aar" \
-    )
-
-    for file in "${files[@]}"; do
-      upload_file "$remote_location_prefix/$version" "$file"
-    done
-
-    generate_maven_file "$remote_location_prefix"
+    aws s3 cp "$version" "$remote_location_prefix/$version/" --recursive --region us-east-1
   popd
 }
 
 release_capture_sdk
-release_capture_timber
+release_gradle_library "capture-timber" "$capture_timber_archive"
+release_gradle_library "capture-apollo3" "$capture_apollo3_archive"
+release_gradle_library "capture-plugin" "$capture_plugin_archive"

@@ -48,19 +48,19 @@ class OkHttpEventListener(
     override val fqName: String get() = "okhttp3.OkHttpClient"
 
     override fun getVisitor(
-            instrumentableContext: ClassContext,
-            apiVersion: Int,
-            originalVisitor: ClassVisitor,
-            parameters: SpanAddingClassVisitorFactory.SpanAddingParameters
+        instrumentableContext: ClassContext,
+        apiVersion: Int,
+        originalVisitor: ClassVisitor,
+        parameters: SpanAddingClassVisitorFactory.SpanAddingParameters
     ): ClassVisitor = CommonClassVisitor(
-            apiVersion = apiVersion,
-            classVisitor = originalVisitor,
-            className = fqName.substringAfterLast('.'),
-            methodInstrumentables = listOf(
-                    OkHttpEventListenerMethodInstrumentable(
-                    )
-            ),
-            parameters = parameters
+        apiVersion = apiVersion,
+        classVisitor = originalVisitor,
+        className = fqName.substringAfterLast('.'),
+        methodInstrumentables = listOf(
+            OkHttpEventListenerMethodInstrumentable(
+            )
+        ),
+        parameters = parameters
     )
 }
 
@@ -69,14 +69,15 @@ class OkHttpEventListenerMethodInstrumentable(
     override val fqName: String get() = "<init>"
 
     override fun getVisitor(
-            instrumentableContext: MethodContext,
-            apiVersion: Int,
-            originalVisitor: MethodVisitor,
-            parameters: SpanAddingClassVisitorFactory.SpanAddingParameters
+        instrumentableContext: MethodContext,
+        apiVersion: Int,
+        originalVisitor: MethodVisitor,
+        parameters: SpanAddingClassVisitorFactory.SpanAddingParameters
     ): MethodVisitor = OkHttpEventListenerMethodVisitor(
-            apiVersion = apiVersion,
-            originalVisitor = originalVisitor,
-            instrumentableContext = instrumentableContext,
+        apiVersion = apiVersion,
+        originalVisitor = originalVisitor,
+        instrumentableContext = instrumentableContext,
+        proxyEventListener = parameters.proxyOkHttpEventListener.get()
     )
 
     override fun isInstrumentable(data: MethodContext): Boolean {

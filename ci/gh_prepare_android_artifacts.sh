@@ -43,33 +43,21 @@ function prepare_capture_sdk() {
 function prepare_capture_timber() {
   echo "+++ Preparing Android Capture Timber library artifacts for '$version' version"
 
-  pushd "$(mktemp -d)"
-    local -r out_artifacts_dir="capture-timber-out"
+  cp "$sdk_repo/capture-timber.zip" "$sdk_repo/capture-timber-$version.android.zip"
+}
 
-    unzip "$sdk_repo/capture-timber.zip"
+function prepare_capture_apollo3() {
+  echo "+++ Preparing Android Capture Apollo3 library artifacts for '$version' version"
 
-    mkdir "$out_artifacts_dir"
+  cp "$sdk_repo/capture-apollo3.zip" "$sdk_repo/capture-apollo4-$version.android.zip"
+}
 
-    local -r name="capture-timber-$version"
+function prepare_capture_plugin() {
+  echo "+++ Preparing Android Capture Android Plugin artifacts for '$version' version"
 
-    files=(\
-      "$name.aar" \
-      "$name.module" \
-      "$name.pom" \
-      "$name-javadoc.jar" \
-      "$name-sources.jar" \
-      "$sdk_repo/ci/LICENSE.txt" \
-      "$sdk_repo/ci/NOTICE.txt" \
-    )
-
-    for file in "${files[@]}"; do
-      filename=$(basename "$file")
-      mv "$file" "$out_artifacts_dir/$filename"
-    done
-
-    (cd "$out_artifacts_dir" && zip -r "$sdk_repo/capture-timber-$version.android.zip" ./*)
-  popd
+  cp "$sdk_repo/capture-plugin.zip" "$sdk_repo/capture-plugin-$version.android.zip"
 }
 
 prepare_capture_sdk
 prepare_capture_timber
+prepare_capture_plugin

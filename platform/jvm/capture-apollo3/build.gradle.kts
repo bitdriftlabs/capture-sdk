@@ -3,6 +3,11 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.detekt)
 
+    // Publish
+    alias(libs.plugins.dokka) // Must be applied here for publish plugin.
+    alias(libs.plugins.maven.publish)
+    signing
+
     id("dependency-license-config")
 }
 
@@ -55,9 +60,50 @@ tasks.preBuild {
 
 dependencies {
     implementation(project(":capture"))
-    implementation("com.apollographql.apollo3:apollo-runtime:3.8.3")
+    implementation(libs.apollo.runtime)
 
-    testImplementation("com.google.truth:truth:1.4.4")
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:4.1.0") // last version with Java 8 support
+    testImplementation(libs.truth)
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlin.mockito.kotlin)
+}
+
+mavenPublishing {
+    pom {
+        name.set("CaptureApollo")
+        description.set("Official Capture integration for Apollo v3 (GraphQL).")
+        url.set("https://bitdrift.io")
+        licenses {
+            license {
+                name.set("BITDRIFT SOFTWARE DEVELOPMENT KIT LICENSE AGREEMENT")
+                url.set("https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture-timber/${findProperty("VERSION_NAME")}/LICENSE.txt")
+                distribution.set("repo")
+            }
+            license {
+                name.set("NOTICE")
+                url.set("https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture-timber/${findProperty("VERSION_NAME")}/NOTICE.txt")
+                distribution.set("repo")
+            }
+        }
+        developers {
+            developer {
+                id.set("bitdriftlabs")
+                name.set("Bitdrift, Inc.")
+                url.set("https://github.com/bitdriftlabs")
+                email.set("info@bitdrift.io")
+            }
+            scm {
+                connection.set("scm:git:git://github.com/bitdriftlabs/capture-sdk.git")
+                developerConnection.set("scm:git:ssh://git@github.com:bitdriftlabs/capture-sdk.git")
+                url.set("https://github.com/bitdriftlabs/capture-sdk")
+            }
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            url = uri(layout.buildDirectory.dir("repos/releases"))
+        }
+    }
 }
