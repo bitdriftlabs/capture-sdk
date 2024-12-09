@@ -61,3 +61,4 @@ function prepare_capture_plugin() {
 prepare_capture_sdk
 prepare_capture_timber
 prepare_capture_plugin
+prepare_capture_apollo3

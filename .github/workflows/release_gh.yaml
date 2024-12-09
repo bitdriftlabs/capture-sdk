@@ -150,7 +150,7 @@ jobs:
     with:
       sha: ${{ inputs.sha }}
     secrets: inherit
-  build-android-capture-timber:
+  build-android-integrations:
     name: Build Capture Timber
     needs: ["verify-version"]
     permissions:
@@ -172,7 +172,7 @@ jobs:
       "build-android-macos-x86_64",
       "build-android-macos-arm64",
       "build-android-example-apps",
-      "build-android-capture-timber",
+      "build-android-integrations",
     ]
     steps:
       - uses: actions/checkout@v4
