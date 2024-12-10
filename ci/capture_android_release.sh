@@ -84,12 +84,12 @@ function release_gradle_library() {
   local -r library_name="$1"
   local -r archive="$2"
 
-  echo "+++ dl.bitdrift.io Android Capture Timber artifacts upload"
+  echo "+++ dl.bitdrift.io Android Integration $library_name artifacts upload"
 
   local -r remote_location_prefix="$remote_location_root_prefix/$library_name"
 
   pushd "$(mktemp -d)"
-    unzip -o "$archive"
+    unzip -o "$sdk_repo/$archive"
     
     # Make sure we update the top-level maven-metadata.xml file with the new release version
     aws s3 cp maven-metadata.xml* "$remote_location_prefix/" --region us-east-1
