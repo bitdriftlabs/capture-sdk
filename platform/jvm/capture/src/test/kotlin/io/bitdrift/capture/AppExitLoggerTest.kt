@@ -24,6 +24,7 @@ import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
+import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
@@ -141,6 +142,7 @@ class AppExitLoggerTest {
         whenever(mockExitInfo.pss).thenReturn(1)
         whenever(mockExitInfo.rss).thenReturn(2)
         whenever(mockExitInfo.description).thenReturn("test-description")
+        whenever(mockExitInfo.traceInputStream).thenReturn(null)
         whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
 
         // ACT
@@ -208,5 +210,73 @@ class AppExitLoggerTest {
             argThat { i: () -> String -> i.invoke() == "AppExit" },
         )
         verify(logger).flush(true)
+    }
+
+    @Test
+    fun decomposeSysTraceToANRProperties() {
+        val sessionId = "test-session-id"
+        val timestamp = 123L
+        val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
+        val sysTraceStream = AppExitLogger::class.java.getResource("/applicationExitInfo/systrace")?.openStream()
+
+        whenever(mockExitInfo.processStateSummary).thenReturn(sessionId.toByteArray(StandardCharsets.UTF_8))
+        whenever(mockExitInfo.timestamp).thenReturn(timestamp)
+        whenever(mockExitInfo.processName).thenReturn("test-process-name")
+        whenever(mockExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_ANR)
+        whenever(mockExitInfo.importance).thenReturn(RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
+        whenever(mockExitInfo.status).thenReturn(0)
+        whenever(mockExitInfo.pss).thenReturn(1)
+        whenever(mockExitInfo.rss).thenReturn(2)
+        whenever(mockExitInfo.description).thenReturn("systrace-anr-description")
+        whenever(mockExitInfo.traceInputStream).thenReturn(sysTraceStream)
+        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
+
+        val fieldsMaps = appExitLogger.decomposeSystemTraceToFieldValues(mockExitInfo)
+        Assert.assertTrue(fieldsMaps.containsKey("_app_pid"))
+        Assert.assertTrue(fieldsMaps.containsKey("_app_timestamp"))
+        Assert.assertTrue(fieldsMaps.containsKey("_app_threads"))
+
+        val threads = fieldsMaps.get("_app_threads").toString().split("\n\n")
+        Assert.assertEquals(30, threads.size)
+    }
+
+    @Test
+    fun decomposeSysTraceToNativeCrashProperties() {
+        val sessionId = "test-session-id"
+        val timestamp = 123L
+        val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
+        val sysTraceStream = AppExitLogger::class.java.getResource("/applicationExitInfo/systrace")?.openStream()
+
+        whenever(mockExitInfo.processStateSummary).thenReturn(sessionId.toByteArray(StandardCharsets.UTF_8))
+        whenever(mockExitInfo.timestamp).thenReturn(timestamp)
+        whenever(mockExitInfo.processName).thenReturn("test-process-name")
+        whenever(mockExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_CRASH_NATIVE)
+        whenever(mockExitInfo.importance).thenReturn(RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
+        whenever(mockExitInfo.status).thenReturn(0)
+        whenever(mockExitInfo.pss).thenReturn(1)
+        whenever(mockExitInfo.rss).thenReturn(2)
+        whenever(mockExitInfo.description).thenReturn("systrace-native-crash-description")
+        whenever(mockExitInfo.traceInputStream).thenReturn(sysTraceStream)
+        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
+
+        val fieldsMaps = appExitLogger.decomposeSystemTraceToFieldValues(mockExitInfo)
+        Assert.assertTrue(fieldsMaps.containsKey("_app_pid"))
+        Assert.assertTrue(fieldsMaps.containsKey("_app_timestamp"))
+        Assert.assertTrue(fieldsMaps.containsKey("_app_threads"))
+
+        val threads = fieldsMaps.get("_app_threads").toString().split("\n\n")
+        Assert.assertEquals(30, threads.size)
+    }
+
+    @Test
+    fun decomposeSysTraceToThreadList() {
+        val sysTraceAsString = AppExitLogger::class.java.getResource("/applicationExitInfo/tracethreads")
+            ?.openStream()
+            ?.bufferedReader()
+            ?.readText().orEmpty()
+
+        // replace newlines with tabs to parse the entire trace as a tab delimited string
+        val threads = appExitLogger.parseThreadData(sysTraceAsString.trim().replace('\n', '\t'))
+        Assert.assertEquals("trace contains 27 threads", 27, threads.size)
     }
 }

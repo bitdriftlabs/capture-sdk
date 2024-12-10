@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.events.lifecycle
 
+import android.annotation.SuppressLint
 import android.annotation.TargetApi
 import android.app.ActivityManager
 import android.app.ActivityManager.RunningAppProcessInfo
@@ -21,10 +22,13 @@ import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 
 internal class AppExitLogger(
     private val logger: LoggerImpl,
@@ -37,6 +41,15 @@ internal class AppExitLogger(
 
     companion object {
         const val APP_EXIT_EVENT_NAME = "AppExit"
+
+        // TODO Refactor to trace parser class
+        val THREAD_HEADER_PATTERN =
+            Pattern.compile(".*----- pid (?<pid>.\\d+) at (?<timeCreated>\\d{4}-\\d{2}-\\d{2}[T ]{0,}[0-9:.-]+) -----(?<body>.*$)")
+        val TRACE_THREADS_PATTERN = Pattern.compile(
+            ".*DALVIK THREADS \\((?<threadCnt>\\d+)\\):\\s(.*)----- end (\\d+) -----",
+            Pattern.MULTILINE
+        )
+        val THREAD_ID_PATTERN = Pattern.compile("^\"(?<threadName>.*)\" (.*)prio=(\\d+).*$")
     }
 
     fun installAppExitLogger() {
@@ -98,6 +111,13 @@ internal class AppExitLogger(
             lastExitInfo.toFields(),
             attributesOverrides = LogAttributesOverrides(sessionId, timestampMs),
         ) { APP_EXIT_EVENT_NAME }
+
+        /** FIXME
+         * AEI records are maintained in a ring buffer that is updated when ART sees fit,
+         * So the _last_ AEI record for this PID may appear over several launches.
+         * To avoid over reporting of exit reasons, we need to maintain a history of
+         * AEI records visited
+         */
     }
 
     fun logCrash(thread: Thread, throwable: Throwable) {
@@ -141,7 +161,8 @@ internal class AppExitLogger(
     @TargetApi(Build.VERSION_CODES.R)
     private fun ApplicationExitInfo.toFields(): InternalFieldsMap {
         // https://developer.android.com/reference/kotlin/android/app/ApplicationExitInfo
-        return mapOf(
+
+        val appExitProps = mapOf(
             "_app_exit_source" to "ApplicationExitInfo",
             "_app_exit_process_name" to this.processName,
             "_app_exit_reason" to this.reason.toReasonText(),
@@ -150,8 +171,11 @@ internal class AppExitLogger(
             "_app_exit_pss" to this.pss.toString(),
             "_app_exit_rss" to this.rss.toString(),
             "_app_exit_description" to this.description.orEmpty(),
-            // TODO(murki): Extract getTraceInputStream() for REASON_ANR or REASON_CRASH_NATIVE
-        ).toFields()
+        )
+
+        appExitProps.plus(decomposeSystemTraceToFieldValues(this))
+
+        return appExitProps.toFields()
     }
 
     private fun Int.toReasonText(): String {
@@ -202,4 +226,67 @@ internal class AppExitLogger(
             else -> LogLevel.INFO
         }
     }
+
+    /**
+     * For AEI reason types that support it (ANR and NATIVE_CRASH), read the options trace file provided through
+     * the getTraceInputStream() method. Parse out the interesting bits from the sys trace
+     *
+     * @param appExitInfo ApplicationExitInfo record provided by ART
+     * @return InternalFieldsMap containing any harvested data
+     */
+    @SuppressLint("SwitchIntDef")
+    @TargetApi(Build.VERSION_CODES.R)
+    @VisibleForTesting
+    fun decomposeSystemTraceToFieldValues(appExitInfo: ApplicationExitInfo): InternalFieldsMap {
+        val traceFields = buildMap<String, FieldValue> { }.toMutableMap()
+
+        when (appExitInfo.reason) {
+            ApplicationExitInfo.REASON_CRASH_NATIVE,
+            ApplicationExitInfo.REASON_ANR -> {
+                var sysTrace =
+                    appExitInfo.traceInputStream?.bufferedReader().use { it?.readText() ?: "" }
+
+                if (sysTrace.isNotBlank()) {
+                    // replace newlines with tabs to parse the entire trace as a tab delimited string
+                    sysTrace = sysTrace.trim().replace('\n', '\t')
+
+                    // ----- pid 4473 at 2024-02-15 23:37:45.593138790-0800 -----
+                    val headerMatcher: Matcher =
+                        THREAD_HEADER_PATTERN.matcher(sysTrace)
+                    if (headerMatcher.matches()) {
+                        traceFields["_app_pid"] =
+                            FieldValue.StringField(headerMatcher.group(1)!!.trim())
+                        traceFields["_app_timestamp"] =
+                            FieldValue.StringField(headerMatcher.group(2)!!.trim())
+                    }
+
+                    // DALVIK THREADS (<nThreads>):\n<thread 0>\n<thread 1>...\n<thread n>\n----- end (<pid>) -----
+                    val threadsMatcher: Matcher = TRACE_THREADS_PATTERN.matcher(sysTrace)
+                    if (threadsMatcher.matches()) {
+                        val threadData = threadsMatcher.group(2)!!.trim()
+                        traceFields["_app_threads"] =
+                            FieldValue.StringField(parseThreadData(threadData).toString())
+                    }
+
+                    // TODO Look for additional context info: GC, JNI/JIT, ART internal metrics?
+                }
+            }
+        }
+
+        return traceFields
+    }
+
+    @VisibleForTesting
+    fun parseThreadData(threadData: String?): List<String> {
+        if (!threadData.isNullOrBlank()) {
+            val threads = threadData.split("\t\t")
+                .filter { THREAD_ID_PATTERN.matcher(it).matches() }
+                .map { it.replace("\t", "\n").plus("\n\n") }
+
+            return threads
+        }
+
+        return arrayListOf()
+    }
+
 }
