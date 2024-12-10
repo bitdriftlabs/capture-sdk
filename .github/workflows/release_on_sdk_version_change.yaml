@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'platform/shared/.sdk_version'
 jobs:
   version-change:
     name: Check for version change
