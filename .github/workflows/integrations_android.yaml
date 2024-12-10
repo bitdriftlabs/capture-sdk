@@ -46,30 +46,30 @@ jobs:
     - name: Compress Timber artifacts
       run: |
         readonly dir=$(pwd)
-        (cd capture-timber/build/repos/releases/io/bitdrift/capture-timber/${{ inputs.version }} && zip -r "$dir/capture-timber.zip" ./*)
+        (cd capture-timber/build/repos/releases/io/bitdrift/capture-timber/${{ inputs.version }} && zip -r "$dir/capture-timber-${{ inputs.version }}.android.zip" ./*)
     - name: Compress Apollo artifacts
       run: |
         readonly dir=$(pwd)
-        (cd capture-apollo3/build/repos/releases/io/bitdrift/capture-apollo3/${{ inputs.version }} && zip -r "$dir/capture-apollo3.zip" ./*)        
+        (cd capture-apollo3/build/repos/releases/io/bitdrift/capture-apollo3/${{ inputs.version }} && zip -r "$dir/capture-apollo3-${{ inputs.version }}.android.zip" ./*)        
     - name: Compress Android Plugin artifacts
       run: |
         readonly dir=$(pwd)
-        (cd capture-plugin/build/repos/releases/io/bitdrift/capture-plugin/${{ inputs.version }} && zip -r "$dir/capture-plugin.zip" ./*)        
+        (cd capture-plugin/build/repos/releases/io/bitdrift/capture-plugin/${{ inputs.version }} && zip -r "$dir/capture-plugin-${{ inputs.version }}.android.zip" ./*)        
     - name: Upload Timber artifacts
       uses: actions/upload-artifact@v4
       with:
         name: capture-timber-${{ inputs.version }}.android.zip
-        path: platform/jvm/capture-timber.zip
+        path: platform/jvm/capture-plugin-${{ inputs.version }}.android.zip
         if-no-files-found: error
     - name: Upload Apollo artifacts
       uses: actions/upload-artifact@v4
       with:
         name: capture-apollo3-${{ inputs.version }}.android.zip
-        path: platform/jvm/capture-apollo3.zip
+        path: platform/jvm/capture-apollo3-${{ inputs.version }}.android.zip
         if-no-files-found: error        
     - name: Upload Gradle Plugin artifacts
       uses: actions/upload-artifact@v4
       with:
         name: capture-plugin-${{ inputs.version }}.android.zip
-        path: platform/jvm/capture-plugin.zip
+        path: platform/jvm/capture-plugin-${{ inputs.version }}.android.zip
         if-no-files-found: error

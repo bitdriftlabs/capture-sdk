@@ -203,19 +203,16 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: capture-timber-${{ inputs.version }}.android.zip
-          path: capture-timber-${{ inputs.version }}.android.zip
       - name: Display structure of Timber downloaded files
         run: ls -R
       - name: Download Android Apollo3 Integration
         uses: actions/download-artifact@v4
         with:
           name: capture-apollo3-${{ inputs.version }}.android.zip
-          path: capture-apollo3-${{ inputs.version }}.android.zip
       - name: Download Android Plugin Integration
         uses: actions/download-artifact@v4
         with:
           name: capture-plugin-${{ inputs.version }}.android.zip
-          path: capture-plugin-${{ inputs.version }}.android.zip
       - name: Prepare Android artifacts
         run: ./ci/gh_prepare_android_artifacts.sh "$VERSION"
         env:
