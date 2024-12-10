@@ -42,22 +42,34 @@ jobs:
     - name: Build Gradle Plugin artifacts with Gradle
       run: ./gradlew :capture-plugin:publish -PVERSION_NAME="${{ inputs.version }}" --info
       env:
-        SKIP_PROTO_GEN: 1                
+        SKIP_PROTO_GEN: 1
+    - name: Compress Timber artifacts
+      run: |
+        readonly dir=$(pwd)
+        (cd capture-timber/build/repos/releases/io/bitdrift/capture-timber/${{ inputs.version }} && zip -r "$dir/capture-timber.zip" ./*)
+    - name: Compress Apollo artifacts
+      run: |
+        readonly dir=$(pwd)
+        (cd capture-apollo3/build/repos/releases/io/bitdrift/capture-apollo3/${{ inputs.version }} && zip -r "$dir/capture-apollo3.zip" ./*)        
+    - name: Compress Android Plugin artifacts
+      run: |
+        readonly dir=$(pwd)
+        (cd capture-plugin/build/repos/releases/io/bitdrift/capture-plugin/${{ inputs.version }} && zip -r "$dir/capture-plugin.zip" ./*)        
     - name: Upload Timber artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: capture-timber-${{ inputs.version }}.android
-        path: platform/jvm/capture-timber/build/repos/releases/io/bitdrift/capture-timber/${{ inputs.version }}
+        name: capture-timber-${{ inputs.version }}.android.zip
+        path: platform/jvm/capture-timber.zip
         if-no-files-found: error
     - name: Upload Apollo artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: capture-apollo3-${{ inputs.version }}.android
-        path: platform/jvm/capture-apollo3/build/repos/releases/io/bitdrift/capture-apollo3/${{ inputs.version }}
+        name: capture-apollo3-${{ inputs.version }}.android.zip
+        path: platform/jvm/capture-apollo3.zip
         if-no-files-found: error        
     - name: Upload Gradle Plugin artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: capture-plugin-${{ inputs.version }}.android
-        path: platform/jvm/capture-plugin/build/repos/releases/io/bitdrift/capture-plugin/${{ inputs.version }}
+        name: capture-plugin-${{ inputs.version }}.android.zip
+        path: platform/jvm/capture-plugin.zip
         if-no-files-found: error
