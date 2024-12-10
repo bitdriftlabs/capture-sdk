@@ -231,13 +231,14 @@ jobs:
         # Prefix release version with "v".
       - name: Create release
         run: |
+          ls -R
           gh release create "v$VERSION" \
             --target "$GITHUB_REF_NAME" \
             --generate-notes \
             "Capture-$VERSION.ios.zip" \
             "Capture-$VERSION.android.zip" \
             "example-apps.ios.zip" \
-            "example-apps.android.zip" \            
+            "example-apps.android.zip" \
             "capture-timber-$VERSION.android.zip" \
             "capture-apollo3-$VERSION.android.zip" \
             "capture-plugin-$VERSION.android.zip"
