@@ -46,18 +46,18 @@ jobs:
     - name: Upload Timber artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: capture-timber-${{ inputs.version }}.android.zip
+        name: capture-timber-${{ inputs.version }}.android
         path: platform/jvm/capture-timber/build/repos/releases/io/bitdrift/capture-timber/${{ inputs.version }}
         if-no-files-found: error
     - name: Upload Apollo artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: capture-apollo3-${{ inputs.version }}.android.zip
+        name: capture-apollo3-${{ inputs.version }}.android
         path: platform/jvm/capture-apollo3/build/repos/releases/io/bitdrift/capture-apollo3/${{ inputs.version }}
         if-no-files-found: error        
     - name: Upload Gradle Plugin artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: capture-plugin-${{ inputs.version }}.android.zip
+        name: capture-plugin-${{ inputs.version }}.android
         path: platform/jvm/capture-plugin/build/repos/releases/io/bitdrift/capture-plugin/${{ inputs.version }}
         if-no-files-found: error

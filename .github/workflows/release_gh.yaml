@@ -150,8 +150,8 @@ jobs:
     with:
       sha: ${{ inputs.sha }}
     secrets: inherit
-  build-android-capture-timber:
-    name: Build Capture Timber
+  build-android-integrations:
+    name: Build Android Integrations
     needs: ["verify-version"]
     permissions:
       contents: write
@@ -172,13 +172,12 @@ jobs:
       "build-android-macos-x86_64",
       "build-android-macos-arm64",
       "build-android-example-apps",
-      "build-android-capture-timber",
+      "build-android-integrations",
     ]
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.sha }}
-
       # Download all artifacts to current working directory
       - uses: actions/download-artifact@v4
         with:
@@ -197,13 +196,13 @@ jobs:
           name: Android Example Apps
       - uses: actions/download-artifact@v4
         with:
-          name: capture-timber-${{ inputs.version }}.android.zip
+          name: capture-timber-${{ inputs.version }}.android
       - uses: actions/download-artifact@v4
         with:
-          name: capture-apollo3-${{ inputs.version }}.android.zip
+          name: capture-apollo3-${{ inputs.version }}.android
       - uses: actions/download-artifact@v4
         with:
-          name: capture-plugin-${{ inputs.version }}.android.zip
+          name: capture-plugin-${{ inputs.version }}.android
       - name: Prepare Android artifacts
         run: ./ci/gh_prepare_android_artifacts.sh "$VERSION"
         env:
