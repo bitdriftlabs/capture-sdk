@@ -90,6 +90,7 @@ jobs:
       run: |
         gh release download "v$VERSION" -p 'Capture*.android.zip'
         gh release download "v$VERSION" -p 'capture-timber*.android.zip'
+        gh release download "v$VERSION" -p 'capture-apollo3*.android.zip'
         gh release download "v$VERSION" -p 'capture-plugin*.android.zip'
       env:
         VERSION: ${{ inputs.version }}
