@@ -208,25 +208,27 @@ internal class OkHttpNetwork(
         // a blocking read, and should naturally finish as the stream closes due to source.read
         // throwing an exception indicating the closure reason.
         private fun consumeResponse(response: Response) {
-            val source = response.body!!.source()
-            var exception: Exception? = null
-            @Suppress("TooGenericExceptionCaught")
-            try {
-                while (true) {
-                    val buffer = ByteArray(READ_BUFFER_SIZE)
-                    val bytes = source.read(buffer)
+            response.body?.use { body ->
+                val source = body.source()
+                var exception: Exception? = null
+                @Suppress("TooGenericExceptionCaught")
+                try {
+                    while (true) {
+                        val buffer = ByteArray(READ_BUFFER_SIZE)
+                        val bytes = source.read(buffer)
 
-                    // Read may return -1 if there is no more data to read. This can happen during shutdown.
-                    if (bytes != NO_DATA) {
-                        handleReceivedData(buffer, bytes)
-                    } else {
-                        break
+                        // Read may return -1 if there is no more data to read. This can happen during shutdown.
+                        if (bytes != NO_DATA) {
+                            handleReceivedData(buffer, bytes)
+                        } else {
+                            break
+                        }
                     }
+                } catch (e: Exception) {
+                    exception = e
+                } finally {
+                    closeStream(exception?.toString() ?: "closed")
                 }
-            } catch (e: Exception) {
-                exception = e
-            } finally {
-                closeStream(exception?.toString() ?: "closed")
             }
         }
     }
