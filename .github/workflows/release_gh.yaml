@@ -182,32 +182,40 @@ jobs:
         with:
           ref: ${{ inputs.sha }}
       # Download all artifacts to current working directory
-      - uses: actions/download-artifact@v4
-        with:
-          name: Capture.android.zip
-      - uses: actions/download-artifact@v4
-        with:
-          name: libcapture.so
-      - uses: actions/download-artifact@v4
-        with:
-          name: libcapture.dylib.arm64
-      - uses: actions/download-artifact@v4
-        with:
-          name: libcapture.dylib.x86_64
-      - uses: actions/download-artifact@v4
-        with:
-          name: Android Example Apps
-      - uses: actions/download-artifact@v4
+      # - name: Download Android Capture artifacts
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: Capture.android.zip
+      # - name: Download Android Capture .so
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: libcapture.so
+      # - name: Download Android Capture .dylib.arm64
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: libcapture.dylib.arm64
+      # - name: Download Android Capture .dylib.x86_64
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: libcapture.dylib.x86_64
+      # - name: Download Android Example Apps
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: Android Example Apps
+      - name: Download Android Timber Integration
+        uses: actions/download-artifact@v4
         with:
           name: capture-timber-${{ inputs.version }}.android.zip
           path: capture-timber-${{ inputs.version }}.android.zip
       - name: Display structure of Timber downloaded files
         run: ls -R
-      - uses: actions/download-artifact@v4
+      - name: Download Android Apollo3 Integration
+        uses: actions/download-artifact@v4
         with:
           name: capture-apollo3-${{ inputs.version }}.android.zip
           path: capture-apollo3-${{ inputs.version }}.android.zip
-      - uses: actions/download-artifact@v4
+      - name: Download Android Plugin Integration
+        uses: actions/download-artifact@v4
         with:
           name: capture-plugin-${{ inputs.version }}.android.zip
           path: capture-plugin-${{ inputs.version }}.android.zip
@@ -215,20 +223,22 @@ jobs:
         run: ./ci/gh_prepare_android_artifacts.sh "$VERSION"
         env:
           VERSION: ${{ inputs.version }}
-      - uses: actions/download-artifact@v4
-        with:
-          name: Capture.ios.zip
-      - uses: actions/download-artifact@v4
-        with:
-          name: iOS Example Apps
-      - name: Prepare iOS artifacts
-        run: ./ci/gh_prepare_ios_artifacts.sh "$VERSION"
-        env:
-          VERSION: ${{ inputs.version }}
+      # - name: Download iOS Capture artifacts
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: Capture.ios.zip
+      # - name: Download iOS Example Apps
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: iOS Example Apps
+      # - name: Prepare iOS artifacts
+      #   run: ./ci/gh_prepare_ios_artifacts.sh "$VERSION"
+      #   env:
+      #     VERSION: ${{ inputs.version }}
+      # - name: Display structure of downloaded files
+      #   run: ls -R        
         # Upload artifacts to the newly created release.
         # Prefix release version with "v".
-      - name: Display structure of downloaded files
-        run: ls -R        
       - name: Create release
         run: |
           pwd
@@ -236,10 +246,6 @@ jobs:
           gh release create "v$VERSION" \
             --target "$GITHUB_REF_NAME" \
             --generate-notes \
-            "Capture-$VERSION.ios.zip" \
-            "Capture-$VERSION.android.zip" \
-            "example-apps.ios.zip" \
-            "example-apps.android.zip" \
             "capture-timber-$VERSION.android.zip" \
             "capture-apollo3-$VERSION.android.zip" \
             "capture-plugin-$VERSION.android.zip"
