@@ -197,13 +197,13 @@ jobs:
           name: Android Example Apps
       - uses: actions/download-artifact@v4
         with:
-          name: capture-timber.zip
+          name: capture-timber-${{ inputs.version }}.android.zip
       - uses: actions/download-artifact@v4
         with:
-          name: capture-apollo3.zip          
+          name: capture-apollo3-${{ inputs.version }}.android.zip
       - uses: actions/download-artifact@v4
         with:
-          name: capture-plugin.zip
+          name: capture-plugin-${{ inputs.version }}.android.zip
       - name: Prepare Android artifacts
         run: ./ci/gh_prepare_android_artifacts.sh "$VERSION"
         env:
