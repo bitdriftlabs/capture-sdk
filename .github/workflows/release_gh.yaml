@@ -197,6 +197,8 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: capture-timber-${{ inputs.version }}.android
+      - name: Display structure of Timber downloaded files
+        run: ls -R
       - uses: actions/download-artifact@v4
         with:
           name: capture-apollo3-${{ inputs.version }}.android
@@ -219,8 +221,12 @@ jobs:
           VERSION: ${{ inputs.version }}
         # Upload artifacts to the newly created release.
         # Prefix release version with "v".
+      - name: Display structure of downloaded files
+        run: ls -R        
       - name: Create release
         run: |
+          pwd
+          ls -R 
           gh release create "v$VERSION" \
             --target "$GITHUB_REF_NAME" \
             --generate-notes \
