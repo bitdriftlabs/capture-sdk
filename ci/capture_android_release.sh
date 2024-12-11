@@ -29,6 +29,7 @@ function upload_file() {
 
 function generate_maven_file() {
   local -r location="$1"
+  local -r library_name="$2"
 
   echo "+++ Generating maven-metadata.xml for '$location'"
 
@@ -37,7 +38,7 @@ function generate_maven_file() {
     | awk '{print $2}' \
     | sed 's/^\///;s/\/$//')
 
-  python3 "$sdk_repo/ci/generate_maven_metadata.py" --releases "${releases//$'\n'/,}"
+  python3 "$sdk_repo/ci/generate_maven_metadata.py" --releases "${releases//$'\n'/,}" --library-name "$library_name"
 
   echo "+++ Generated maven-metadata.xml:"
   cat maven-metadata.xml
@@ -76,7 +77,7 @@ function release_capture_sdk() {
       upload_file "$remote_location_prefix/$version" "$file"
     done
 
-    generate_maven_file "$remote_location_prefix"
+    generate_maven_file "$remote_location_prefix" "capture"
   popd
 }
 
@@ -91,14 +92,13 @@ function release_gradle_library() {
   pushd "$(mktemp -d)"
     unzip -o "$sdk_repo/$archive"
     
-    # Make sure we update the top-level maven-metadata.xml file with the new release version
-    aws s3 cp maven-metadata.xml* "$remote_location_prefix/" --region us-east-1
-
     # Update the per-version files
     aws s3 cp "$sdk_repo/ci/LICENSE.txt" "$remote_location_prefix/$version/LICENSE.txt" --region us-east-1
     aws s3 cp "$sdk_repo/ci/NOTICE.txt" "$remote_location_prefix/$version/NOTICE.txt" --region us-east-1
 
-    aws s3 cp "$version" "$remote_location_prefix/$version/" --recursive --region us-east-1
+    aws s3 cp "*" "$remote_location_prefix/$version/" --recursive --region us-east-1
+
+    generate_maven_file "$remote_location_prefix" "$library_name"
   popd
 }
 

@@ -7,7 +7,7 @@ from packaging import version
 maven_metadata_template = """<?xml version="1.0" encoding="UTF-8"?>
 <metadata modelVersion="1.1.0">
   <groupId>io.bitdrift</groupId>
-  <artifactId>capture</artifactId>
+  <artifactId>{library}</artifactId>
   <version>{latest_version}</version>
   <versioning>
     <latest>{latest_version}</latest>
@@ -20,7 +20,7 @@ maven_metadata_template = """<?xml version="1.0" encoding="UTF-8"?>
 </metadata>"""
 
 
-def generate_maven_metadata(releases):
+def generate_maven_metadata(releases, library):
     if len(releases) == 0:
         print("releases cannot be empty")
         exit(1)
@@ -34,6 +34,7 @@ def generate_maven_metadata(releases):
     )
 
     maven_metadata = maven_metadata_template
+    maven_metadata = maven_metadata.replace("{library}", library)
     maven_metadata = maven_metadata.replace("{latest_version}", latest_release)
     maven_metadata = maven_metadata.replace(
         "{last_updated}", datetime.datetime.now().strftime("%y%m%d%H%M%S")
@@ -55,6 +56,12 @@ def _build_parser():
         "--releases",
         help="The list of available SDK releases",
         type=list_of_strings,
+        required=True,
+    )
+    parser.add_argument(
+        "--library",
+        help="The name of the library to generate maven-metadata for",
+        type=str,
         required=True,
     )
     return parser
