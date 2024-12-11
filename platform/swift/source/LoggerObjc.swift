@@ -24,26 +24,27 @@ public final class LoggerObjc: NSObject {
     /// - parameter sessionStrategy: A session strategy for the management of session IDs.
     /// - parameter apiURL:          The base URL of the Capture API. Rely on its default value unless
     ///                              specifically instructed otherwise during discussions with Bitdrift.
-    ///                              Defaults to Bitdrift's hosted Compose API base URL.
+    ///                              Defaults to Bitdrift's hosted Compose API base
+    /// - parameter enableNetworkIntegrations: Enables the URLSession network integration
     @objc
     public static func start(
         withAPIKey apiKey: String,
         sessionStrategy: SessionStrategyObjc,
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
-        apiURL: URL = URL(string: "https://api.bitdrift.io")!
+        apiURL: URL = URL(string: "https://api.bitdrift.io")!,
+        enableNetworkIntegrations: Bool = false
     ) {
-        Capture.Logger.start(
+        let integrator = Capture.Logger.start(
             withAPIKey: apiKey,
             sessionStrategy: sessionStrategy.underlyingSessionStrategy,
             apiURL: apiURL
         )
+
+        if enableNetworkIntegrations {
+            integrator?.enableIntegrations([.urlSession()])
+        }
     }
 
-    /// Enables network integrations for the default logger instance.
-    @objc
-    public static func enableNetworkIntegrations(disableSwizzling: Bool = false) {
-        Capture.Logger.enableIntegrations([.urlSession()], disableSwizzling: disableSwizzling)
-    }
 
     /// Defines the initialization of a new session within the current configured logger.
     /// If no logger is configured, this is a no-op.
