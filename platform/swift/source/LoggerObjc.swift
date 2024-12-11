@@ -39,6 +39,12 @@ public final class LoggerObjc: NSObject {
         )
     }
 
+    /// Enables network integrations for the default logger instance.
+    @objc
+    public static func enableNetworkIntegrations(disableSwizzling: Bool = false) {
+        Capture.Logger.enableIntegrations([.urlSession()], disableSwizzling: disableSwizzling)
+    }
+
     /// Defines the initialization of a new session within the current configured logger.
     /// If no logger is configured, this is a no-op.
     @objc
