@@ -38,7 +38,7 @@ function generate_maven_file() {
     | awk '{print $2}' \
     | sed 's/^\///;s/\/$//')
 
-  python3 "$sdk_repo/ci/generate_maven_metadata.py" --releases "${releases//$'\n'/,}" --library-name "$library_name"
+  python3 "$sdk_repo/ci/generate_maven_metadata.py" --releases "${releases//$'\n'/,}" --library "library_name"
 
   echo "+++ Generated maven-metadata.xml:"
   cat maven-metadata.xml
