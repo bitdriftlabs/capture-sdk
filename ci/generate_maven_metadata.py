@@ -69,4 +69,4 @@ def _build_parser():
 
 if __name__ == "__main__":
     args = _build_parser().parse_args()
-    generate_maven_metadata(args.releases)
+    generate_maven_metadata(args.releases, args.library)
