@@ -54,7 +54,11 @@ jobs:
     - name: Compress Android Plugin artifacts
       run: |
         readonly dir=$(pwd)
-        (cd capture-plugin/build/repos/releases/io/bitdrift/capture-plugin/${{ inputs.version }} && zip -r "$dir/capture-plugin-${{ inputs.version }}.android.zip" ./*)        
+        (cd capture-plugin/build/repos/releases/io/bitdrift/capture-plugin/${{ inputs.version }} && zip -r "$dir/capture-plugin-${{ inputs.version }}.android.zip" ./*)
+    - name: Compress Android Plugin marker artifacts
+      run: |
+        readonly dir=$(pwd)
+        (cd capture-plugin/build/repos/releases/io/bitdrift/capture-plugin/io.bitdrift.capture-plugin.gradle.plugin/${{ inputs.version }} && zip -r "$dir/capture-plugin-marker-${{ inputs.version }}.android.zip" ./*)
     - name: Upload Timber artifacts
       uses: actions/upload-artifact@v4
       with:

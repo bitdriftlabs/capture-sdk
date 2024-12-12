@@ -11,6 +11,7 @@ readonly capture_archive="$2"
 readonly capture_timber_archive="$3"
 readonly capture_apollo3_archive="$4"
 readonly capture_plugin_archive="$5"
+readonly capture_plugin_archive="$6"
 
 function upload_file() {
   local -r location="$1"
@@ -103,7 +104,30 @@ function release_gradle_library() {
   popd
 }
 
+function release_gradle_plugin() {
+  local -r plugin_name="$1"
+  local -r plugin_marker="$2"
+  local -r archive="$3"
+
+  echo "+++ dl.bitdrift.io Android Integration plugin $plugin_name / $plugin_marker artifacts upload"
+
+  local -r remote_location_prefix="$remote_location_root_prefix/$library_name"
+
+  pushd "$(mktemp -d)"
+    unzip -o "$archive"
+
+    aws s3 cp "$sdk_repo/ci/LICENSE.txt" "$remote_location_prefix//$version/LICENSE.txt" --region us-east-1
+    aws s3 cp "$sdk_repo/ci/NOTICE.txt" "$remote_location_prefix/$version/NOTICE.txt" --region us-east-1
+
+    aws s3 cp . "$remote_location_prefix/$version/" --recursive --region us-east-1
+
+    generate_maven_file "$remote_location_root_prefix/$plugin_name" "$plugin_name"
+    popd
+
+}
+
 release_capture_sdk
 release_gradle_library "capture-timber" "$capture_timber_archive"
 release_gradle_library "capture-apollo3" "$capture_apollo3_archive"
 release_gradle_library "capture-plugin" "$capture_plugin_archive"
+release_gradle_plugin "capture-plugin" "io.bitdrift.capture-plugin.gradle.plugin" "$capture_plugin_archive"

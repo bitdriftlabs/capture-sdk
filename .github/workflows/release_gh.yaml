@@ -151,7 +151,14 @@ jobs:
       sha: ${{ inputs.sha }}
     secrets: inherit
   build-android-integrations:
+<<<<<<< Updated upstream
     name: Build Android Integrations
+||||||| Stash base
+  build-android-capture-timber:
+    name: Build Capture Timber
+=======
+    name: Build Capture Integrations
+>>>>>>> Stashed changes
     needs: ["verify-version"]
     permissions:
       contents: write
@@ -211,6 +218,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: capture-plugin-${{ inputs.version }}.android.zip
+      - uses: actions/download-artifact@v4
+        with:
+          name: capture-plugin-marker-${{ inputs.version }}.android.zip
       - name: Prepare Android artifacts
         run: ./ci/gh_prepare_android_artifacts.sh "$VERSION"
         env:
@@ -240,8 +250,9 @@ jobs:
             "example-apps.ios.zip" \
             "example-apps.android.zip" \
             "capture-timber-$VERSION.android.zip" \
-            "capture-apollo3-$VERSION.android.zip" \
-            "capture-plugin-$VERSION.android.zip"
+            "capture-apollo3-$VERSION.android.zip" \            
+            "capture-plugin-$VERSION.android.zip" \
+            "capture-plugin-marker-$VERSION.android.zip"
         env:
           VERSION: ${{ inputs.version }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
