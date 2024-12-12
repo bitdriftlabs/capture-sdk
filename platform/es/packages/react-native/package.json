@@ -1,0 +1,101 @@
+{
+  "name": "@bitdrift/react-native",
+  "version": "0.4.0",
+  "description": "bitdrift integration for React Native",
+  "main": "dist/commonjs/index",
+  "module": "dist/module/index",
+  "types": "dist/typescript/packages/react-native/src/index.d.ts",
+  "react-native": "src/index",
+  "source": "src/index",
+  "files": [
+    "src",
+    "dist",
+    "android",
+    "ios",
+    "cpp",
+    "*.podspec",
+    "!ios/build",
+    "!android/build",
+    "!android/gradle",
+    "!android/gradlew",
+    "!android/gradlew.bat",
+    "!android/local.properties",
+    "!**/__tests__",
+    "!**/__fixtures__",
+    "!**/__mocks__",
+    "!**/.*"
+  ],
+  "scripts": {
+    "test": "jest",
+    "typecheck": "tsc --noEmit",
+    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
+    "prepare": "bob build",
+    "TODOrelease": "release-it"
+  },
+  "keywords": [
+    "react-native",
+    "ios",
+    "android"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitdriftlabs/bd-react-native.git"
+  },
+  "author": "bitdrift <info@bitdrift.io> (https://bitdrift.io)",
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": {
+    "url": "https://github.com/bitdriftlabs/bd-react-native/issues"
+  },
+  "homepage": "https://github.com/bitdriftlabs/bd-react-native#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "resolutions": {
+    "@types/react": "^18.2.44"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  },
+  "packageManager": "yarn@3.6.1",
+  "release-it": {
+    "git": {
+      "commitMessage": "chore: release ${version}",
+      "tagName": "v${version}"
+    },
+    "npm": {
+      "publish": true
+    },
+    "github": {
+      "release": true
+    },
+    "plugins": {
+      "@release-it/conventional-changelog": {
+        "preset": "angular"
+      }
+    }
+  },
+  "codegenConfig": {
+    "name": "RNBdReactNativeSpec",
+    "type": "modules",
+    "jsSrcsDir": "src"
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "dist",
+    "targets": [
+      "commonjs",
+      "module",
+      [
+        "typescript",
+        {
+          "project": "tsconfig.lib.json",
+          "configFile": true
+        }
+      ]
+    ]
+  },
+  "dependencies": {
+    "@expo/config-plugins": "^8.0.8"
+  }
+}

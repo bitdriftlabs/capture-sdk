@@ -1,0 +1,47 @@
+[package]
+authors      = ["bitdrift"]
+categories   = ["development-tools::debugging"]
+description  = "bitdrift SDK integration"
+edition      = "2021"
+exclude      = ["*.node"]
+keywords     = ["bitdrift", "sdk", "node", "rust"]
+license-file = "LICENSE"
+name         = "core"
+repository   = "https://github.com/bitdriftlabs/capture-es"
+version      = "0.1.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
+napi = { version = "2.12.2", default-features = false, features = ["napi4", "anyhow"] }
+napi-derive = "2.12.2"
+anyhow           = "1.0.81"
+bd-session       = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-key-value     = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-metadata      = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-hyper-network = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-logger        = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-shutdown      = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-resource-utilization = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-events        = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-session-replay = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-device = { git = "https://github.com/bitdriftlabs/shared-core" }
+time             = "0.3.34"
+tokio            = "1.36.0"
+tracing          = "0.1.40"
+parking_lot      = "0.12.3"
+uuid             = "1.7.0"
+
+[dev-dependencies]
+tempdir = "0.3"
+
+[build-dependencies]
+napi-build = "2.0.1"
+
+[profile.release]
+strip = true
+codegen-units   = 1
+lto             = true
+overflow-checks = false

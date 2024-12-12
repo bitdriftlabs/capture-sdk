@@ -1,0 +1,37 @@
+{
+  "name": "@bitdrift/react-native",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/react-native/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/react-native/**/*.{ts,tsx,js,jsx}"]
+      }
+    },
+    "TODOrelease": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "prepare"
+      ],
+      "options": {
+        "commands": [
+          "mkdir -p dist/react-native",
+          "cp -r packages/react-native/dist/* dist/react-native",
+          "cp packages/react-native/*.podspec dist/react-native",
+          "cp -r packages/react-native/ios dist/react-native",
+          "cp -r packages/react-native/android dist/react-native",
+          "cp -r packages/react-native/README.md dist/react-native",
+          "cp -r LICENSE.package dist/react-native/LICENSE",
+          "cp -r packages/react-native/app.plugin.js dist/react-native",
+          "cp packages/react-native/package.dist.json dist/react-native/package.json",
+          "rm dist/react-native/commonjs/package.json"
+        ],
+        "parallel": false
+      }
+    }
+  }
+}

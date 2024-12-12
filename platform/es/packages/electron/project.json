@@ -1,0 +1,52 @@
+{
+  "name": "@bitdrift/electron",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "./packages/electron/src",
+  "projectType": "library",
+  "publishConfig": {
+    "access": "public"
+  },
+  "targets": {
+    "build": {
+      "dependsOn": ["^build"],
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/{projectRoot}",
+        "tsConfig": "./packages/electron/tsconfig.lib.json",
+        "packageJson": "./packages/electron/package.json",
+        "main": "./packages/electron/src/index.ts",
+        "assets": ["packages/electron/*.md", "LICENSE"]
+      }
+    },
+    "test": {
+      "dependsOn": [{
+        "target": "build:rs",
+        "projects": "@bitdrift/core"
+      }],
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "./packages/electron/jest.config.ts",
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        }
+      }
+    },
+    "prepare-release": {
+      "dependsOn": ["build"]
+    },
+    "release": {
+      "version": {
+        "generatorOptions": {
+          "packageRoot": "dist/{projectRoot}",
+          "currentVersionResolver": "git-tag"
+        }
+      }
+    }
+  }
+}

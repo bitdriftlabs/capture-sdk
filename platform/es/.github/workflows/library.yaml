@@ -1,0 +1,62 @@
+name: Run Lint & Tests
+on:
+  pull_request:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  test:
+    name: test
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          # We need to fetch all branches and commits so that Nx affected has a base to compare against.
+          fetch-depth: 0
+
+      - name: Setup Javascript
+        uses: ./.github/actions/javascript-setup
+
+      - name: Rust Setp
+        run: sudo apt-get install -y lld
+
+      - name: Test
+        run: npm run test
+        env:
+          SKIP_PROTO_GEN: true
+
+  lint:
+    name: lint
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          # We need to fetch all branches and commits so that Nx affected has a base to compare against.
+          fetch-depth: 0
+
+      - name: Check license headers
+        run: scripts/check_license.sh
+
+      - name: Rust Setup
+        run: |
+          sudo apt-get install -y lld
+          rustup toolchain install nightly
+          rustup component add --toolchain nightly rustfmt-preview clippy
+
+      - name: Setup Javascript
+        uses: ./.github/actions/javascript-setup
+
+      - name: Lint
+        run: npm run lint
+        env:
+          SKIP_PROTO_GEN: true
