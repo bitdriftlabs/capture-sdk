@@ -1,0 +1,40 @@
+{
+  "name": "@bitdrift/core",
+  "version": "0.0.1",
+  "description": "bitdrift SDK rust core",
+  "author": {
+    "name": "bitdrift",
+    "url": "https://bitdrift.io",
+    "email": "info@bitdrift.io"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bugs": {
+    "url": "https://github.com/bitdriftlabs/capture-es/issues"
+  },
+  "license": "See license in LICENSE file",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "keywords": [
+    "bitdrift-core",
+    "bd-rust",
+    "bdcore"
+  ],
+  "napi": {
+    "name": "core",
+    "triples": {
+      "defaults": false,
+      "additional": [
+        "aarch64-apple-darwin",
+        "x86_64-apple-darwin",
+        "x86_64-pc-windows-msvc",
+        "i686-pc-windows-msvc",
+        "x86_64-unknown-linux-gnu"
+      ]
+    }
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.4"
+  }
+}

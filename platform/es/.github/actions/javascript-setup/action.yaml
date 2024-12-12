@@ -1,0 +1,53 @@
+name: Setup Javascript Environment
+inputs:
+  architecture:
+    description: 'Architecture to use for node'
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    # Install Node
+    - name: Setup
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+        architecture: ${{ inputs.architecture }}
+
+    # We need to do this in a separate step otherwise the sha will change from restore to save.
+    - name: Calculate package-lock sha
+      shell: bash
+      run: echo "CACHE_KEY=${{ runner.os }}-build-cache-node-modules-${{ hashFiles('package-lock.json') }}" >> $GITHUB_ENV
+
+    # Install NPM from cache or fresh
+    - name: Fetch cached node_modules
+      id: cache-npm
+      uses: actions/cache/restore@v4
+      with:
+        path: node_modules
+        key: ${{ env.CACHE_KEY }}
+        restore-keys: |
+          ${{ runner.os }}-build-cache-node-modules-
+
+    - name: Install
+      if: steps.cache-npm.outputs.cache-hit != 'true'
+      shell: bash
+      run: npm i
+
+    - name: List dependencies
+      if: steps.cache-npm.outputs.cache-hit == 'true'
+      shell: bash
+      run: npm list
+
+    # Save NPM cache before moving on, if it was installed fresh
+    - name: Save cached node_modules
+      uses: actions/cache/save@v4
+      if: steps.cache-npm.outputs.cache-hit != 'true'
+      with:
+        path: node_modules
+        key: ${{ env.CACHE_KEY }}
+
+    - name: Derive appropriate SHAs for base and head for `nx affected` commands
+      if: github.ref != 'refs/heads/main'
+      uses: nrwl/nx-set-shas@40f1175ceec169e68c9857c27aa7c5063692aa9a # v4.0.6
