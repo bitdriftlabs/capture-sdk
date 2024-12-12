@@ -1,6 +1,6 @@
 {
   "name": "@bitdrift/react-native",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "bitdrift integration for React Native",
   "main": "dist/commonjs/index",
   "module": "dist/module/index",
@@ -39,14 +39,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bitdriftlabs/bd-react-native.git"
+    "url": "git+https://github.com/bitdriftlabs/capture-es.git"
   },
   "author": "bitdrift <info@bitdrift.io> (https://bitdrift.io)",
   "license": "SEE LICENSE IN LICENSE",
   "bugs": {
-    "url": "https://github.com/bitdriftlabs/bd-react-native/issues"
+    "url": "https://github.com/bitdriftlabs/capture-es/issues"
   },
-  "homepage": "https://github.com/bitdriftlabs/bd-react-native#readme",
+  "homepage": "https://github.com/bitdriftlabs/capture-es#readme",
   "publishConfig": {
     "access": "public"
   },

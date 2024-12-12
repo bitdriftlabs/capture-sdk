@@ -1,4 +1,4 @@
-# bd-react-native
+# @bitdrift/react-native
 
 bitdrift integration for React Native
 
