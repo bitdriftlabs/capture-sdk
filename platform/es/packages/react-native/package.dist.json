@@ -1,10 +1,10 @@
 {
   "name": "@bitdrift/react-native",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "bitdrift integration for React Native",
   "author": "bitdrift <info@bitdrift.io> (https://bitdrift.io)",
   "license": "SEE LICENSE IN LICENSE",
-  "homepage": "https://github.com/bitdriftlabs/bd-react-native#readme",
+  "homepage": "https://github.com/bitdriftlabs/capture-es#readme",
   "summary": "n/a",
 
   "main": "commonjs/index.js",
