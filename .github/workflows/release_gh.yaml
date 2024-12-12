@@ -151,14 +151,7 @@ jobs:
       sha: ${{ inputs.sha }}
     secrets: inherit
   build-android-integrations:
-<<<<<<< Updated upstream
     name: Build Android Integrations
-||||||| Stash base
-  build-android-capture-timber:
-    name: Build Capture Timber
-=======
-    name: Build Capture Integrations
->>>>>>> Stashed changes
     needs: ["verify-version"]
     permissions:
       contents: write
