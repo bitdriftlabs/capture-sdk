@@ -244,7 +244,7 @@ jobs:
             "example-apps.ios.zip" \
             "example-apps.android.zip" \
             "capture-timber-$VERSION.android.zip" \
-            "capture-apollo3-$VERSION.android.zip" \            
+            "capture-apollo3-$VERSION.android.zip" \
             "capture-plugin-$VERSION.android.zip" \
             "capture-plugin-marker-$VERSION.android.zip"
         env:
