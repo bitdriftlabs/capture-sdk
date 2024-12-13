@@ -17,7 +17,7 @@ import java.util.HashMap
 class BdReactNativePackage : TurboReactPackage() {
   override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? {
     return if (name == BdReactNativeModule.NAME) {
-      BdReactNativeModule(reactContext)
+      BdReactNativeModule(reactContext) as NativeModule
     } else {
       null
     }

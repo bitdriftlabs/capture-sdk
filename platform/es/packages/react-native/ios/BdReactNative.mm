@@ -11,18 +11,48 @@ RCT_EXPORT_METHOD(log:(double)level
   [CAPLogger logWithLevel:LogLevel(level) message:message fields:fields];
 }
 
+#ifndef RCT_NEW_ARCH_ENABLED
+
 RCT_EXPORT_METHOD(init:(NSString*)apiKey
-    apiURL:(NSString*)apiURL)
+      options:(NSDictionary*)options)
 {
-  [CAPLogger 
-    startWithAPIKey:apiKey
-    sessionStrategy:[CAPSessionStrategy activityBased]
-    apiURL:[NSURL URLWithString:apiURL]
-  ];
+  NSString *apiURL = options[@"url"];
+
+  if (apiURL != NULL) {
+    [CAPLogger
+      startWithAPIKey:apiKey
+      sessionStrategy:[CAPSessionStrategy activityBased]
+      apiURL:[NSURL URLWithString:apiURL]
+    ];
+  } else {
+    [CAPLogger
+      startWithAPIKey:apiKey
+      sessionStrategy:[CAPSessionStrategy activityBased]
+      apiURL:[NSURL URLWithString:@"https://api.bitdrift.io/"]
+    ];
+  }
 }
 
-// Don't compile this code when we build for the old architecture.
-#ifdef RCT_NEW_ARCH_ENABLED
+#else
+
+RCT_EXPORT_METHOD(init:(NSString*)apiKey
+                  options:(JS::NativeBdReactNative::SpecInitOptions &)options)
+{
+    if (options.url() != NULL) {
+        [CAPLogger
+         startWithAPIKey:apiKey
+         sessionStrategy:[CAPSessionStrategy activityBased]
+         apiURL:[NSURL URLWithString:options.url()]
+        ];
+    } else {
+        [CAPLogger
+         startWithAPIKey:apiKey
+         sessionStrategy:[CAPSessionStrategy activityBased]
+         apiURL:[NSURL URLWithString:@"https://api.bitdrift.io/"]
+        ];
+    }
+}
+
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
     (const facebook::react::ObjCTurboModule::InitParams &)params
 {
