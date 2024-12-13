@@ -54,7 +54,11 @@ jobs:
     - name: Compress Android Plugin artifacts
       run: |
         readonly dir=$(pwd)
-        (cd capture-plugin/build/repos/releases/io/bitdrift/capture-plugin/${{ inputs.version }} && zip -r "$dir/capture-plugin-${{ inputs.version }}.android.zip" ./*)        
+        (cd capture-plugin/build/repos/releases/io/bitdrift/capture-plugin/${{ inputs.version }} && zip -r "$dir/capture-plugin-${{ inputs.version }}.android.zip" ./*)
+    - name: Compress Android Plugin marker artifacts
+      run: |
+        readonly dir=$(pwd)
+        (cd capture-plugin/build/repos/releases/io/bitdrift/capture-plugin/io.bitdrift.capture-plugin.gradle.plugin/${{ inputs.version }} && zip -r "$dir/capture-plugin-marker-${{ inputs.version }}.android.zip" ./*)
     - name: Upload Timber artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -72,4 +76,10 @@ jobs:
       with:
         name: capture-plugin-${{ inputs.version }}.android.zip
         path: platform/jvm/capture-plugin-${{ inputs.version }}.android.zip
+        if-no-files-found: error
+    - name: Upload Gradle Plugin marker
+      uses: actions/upload-artifact@v4
+      with:
+        name: capture-plugin-marker-${{ inputs.version }}.android.zip
+        path: platform/jvm/capture-plugin-marker-${{ inputs.version }}.android.zip
         if-no-files-found: error
