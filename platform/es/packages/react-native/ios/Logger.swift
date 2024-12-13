@@ -7,9 +7,17 @@
 
 import Capture
 
-@objc public class Logger: NSObject {
-    @objc public static func start(key: String, url: String) {
-        Capture.Logger.start(withAPIKey: key, sessionStrategy: SessionStrategy.fixed(), apiURL: URL(string: url)!)
+@objc public class CAPRNLogger: NSObject {
+    @objc public static func start(key: String, url: String?, enableNetworkInstrumentation: Bool) {
+        let integrator = Capture.Logger.start(
+            withAPIKey: key,
+            sessionStrategy: SessionStrategy.fixed(),
+            apiURL: URL(string: url ?? "https://api.bitdrift.io")!
+        )
+
+        if enableNetworkInstrumentation {
+            integrator?.enableIntegrations([.urlSession()])
+        }
     }
 
     @objc

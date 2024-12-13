@@ -25,6 +25,7 @@ exclude_dirs = (
     './.git',
     './target/',
     './examples/',
+    './node_modules/',
 )
 
 extensions_to_check = ('.rs', '.toml', '.kt', '.java', '.swift', '.ts', '.js')
