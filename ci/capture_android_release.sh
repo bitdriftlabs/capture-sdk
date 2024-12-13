@@ -123,7 +123,6 @@ function release_gradle_plugin() {
 
     generate_maven_file "$remote_location_prefix" "$plugin_marker"
     popd
-
 }
 
 release_capture_sdk
