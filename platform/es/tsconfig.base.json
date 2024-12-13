@@ -10,27 +10,15 @@
     "importHelpers": true,
     "target": "es2015",
     "module": "esnext",
-    "lib": [
-      "es2020",
-      "dom"
-    ],
+    "lib": ["es2020", "dom"],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@capture-es/native": [
-        "./dist/native/index.node"
-      ],
-      "@bitdrift/electron": [
-        "logger/src/index.ts"
-      ],
-      "@bitdrift/react-native": [
-        "dist/react-native"
-      ]
+      "@bitdrift/electron": ["logger/src/index.ts"],
+      "@bitdrift/react-native": ["dist/react-native"],
+      "@capture-es/native": ["./dist/native/index.node"]
     }
   },
-  "exclude": [
-    "node_modules",
-    "tmp"
-  ]
+  "exclude": ["node_modules", "tmp"]
 }

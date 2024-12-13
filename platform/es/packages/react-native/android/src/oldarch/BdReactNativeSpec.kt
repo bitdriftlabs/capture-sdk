@@ -12,7 +12,7 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReadableMap
 
-abstract class BdReactNativeSpec internal constructor(context: ReactApplicationContext) :
+abstract class BdReactNativeSpec internal constructor(context: ReactApplicationContext):
   ReactContextBaseJavaModule(context) {
 
   abstract fun init(key: String, options: ReadableMap?)

@@ -11,7 +11,10 @@ import { TurboModuleRegistry } from 'react-native';
 export type LogFields = { [key: string]: string };
 
 export interface Spec extends TurboModule {
-  init(key: string, options?: { url?: string }): void;
+  init(
+    key: string,
+    options?: { url?: string; enableNetworkInstrumentation?: boolean },
+  ): void;
   log(level: number, message: string, fields?: LogFields): void;
 }
 

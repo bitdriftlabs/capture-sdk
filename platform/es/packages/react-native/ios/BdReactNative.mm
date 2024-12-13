@@ -1,5 +1,6 @@
 #import "BdReactNative.h"
 #import "Capture/Capture.h"
+#import "bd_react_native-Swift.h"
 
 @implementation BdReactNative
 RCT_EXPORT_MODULE()
@@ -14,43 +15,31 @@ RCT_EXPORT_METHOD(log:(double)level
 #ifndef RCT_NEW_ARCH_ENABLED
 
 RCT_EXPORT_METHOD(init:(NSString*)apiKey
-      options:(NSDictionary*)options)
+  options:(NSDictionary*)options)
 {
-  NSString *apiURL = options[@"url"];
+  NSString* apiURL = options[@"url"];
+  BOOL enableNetworkInstrumentation = [options[@"enableNetworkInstrumentation"] boolValue];
 
-  if (apiURL != NULL) {
-    [CAPLogger
-      startWithAPIKey:apiKey
-      sessionStrategy:[CAPSessionStrategy activityBased]
-      apiURL:[NSURL URLWithString:apiURL]
-    ];
-  } else {
-    [CAPLogger
-      startWithAPIKey:apiKey
-      sessionStrategy:[CAPSessionStrategy activityBased]
-      apiURL:[NSURL URLWithString:@"https://api.bitdrift.io/"]
-    ];
-  }
+  [CAPRNLogger 
+    startWithKey:apiKey
+    url:apiURL
+    enableNetworkInstrumentation:enableNetworkInstrumentation
+  ];
 }
 
 #else
 
 RCT_EXPORT_METHOD(init:(NSString*)apiKey
-                  options:(JS::NativeBdReactNative::SpecInitOptions &)options)
+  options:(JS::NativeBdReactNative::SpecInitOptions &)options)
 {
-    if (options.url() != NULL) {
-        [CAPLogger
-         startWithAPIKey:apiKey
-         sessionStrategy:[CAPSessionStrategy activityBased]
-         apiURL:[NSURL URLWithString:options.url()]
-        ];
-    } else {
-        [CAPLogger
-         startWithAPIKey:apiKey
-         sessionStrategy:[CAPSessionStrategy activityBased]
-         apiURL:[NSURL URLWithString:@"https://api.bitdrift.io/"]
-        ];
-    }
+  BOOL enableNetworkInstrumentation = options.enableNetworkInstrumentation().has_value() ?
+    options.enableNetworkInstrumentation().value() : false;
+
+  [CAPRNLogger
+    startWithKey:apiKey
+    url:options.url()
+    enableNetworkInstrumentation:enableNetworkInstrumentation
+  ];
 }
 
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:

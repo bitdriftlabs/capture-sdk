@@ -5,21 +5,16 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import { withAppBuildGradle } from '@expo/config-plugins';    
-import { ExpoConfig } from '@expo/config-types';
+import { withPlugins } from '@expo/config-plugins';
+import type { ConfigPlugin } from '@expo/config-plugins';
+import withAndroid from './withAndroid';
+import PluginProps from './config';
 
-module.exports = function withAndroidStrategiesPlugin(config: ExpoConfig) {
-    return withAppBuildGradle(config, (config) => {
-        config.modResults.contents += `
-repositories {
-  maven {
-    url 'https://dl.bitdrift.io/sdk/android-maven'
-    content {
-      includeGroup 'io.bitdrift'
-    }
-  }
-}
-        `;
-        return config;
-      });
-}
+const withBitdriftPlugin: ConfigPlugin<PluginProps | void> = (
+  config,
+  props,
+) => {
+  return withPlugins(config, [[withAndroid, props]]);
+};
+
+export default withBitdriftPlugin;
