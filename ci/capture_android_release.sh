@@ -114,7 +114,7 @@ function release_gradle_plugin() {
   local -r remote_location_prefix="$remote_location_root_prefix/$plugin_name/$plugin_marker"
 
   pushd "$(mktemp -d)"
-    unzip -o "$archive"
+    unzip -o "$sdk_repo/$archive"
 
     aws s3 cp "$sdk_repo/ci/LICENSE.txt" "$remote_location_prefix/$version/LICENSE.txt" --region us-east-1
     aws s3 cp "$sdk_repo/ci/NOTICE.txt" "$remote_location_prefix/$version/NOTICE.txt" --region us-east-1

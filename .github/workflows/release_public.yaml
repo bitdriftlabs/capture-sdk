@@ -92,7 +92,6 @@ jobs:
         gh release download "v$VERSION" -p 'capture-timber*.android.zip'
         gh release download "v$VERSION" -p 'capture-apollo3*.android.zip'
         gh release download "v$VERSION" -p 'capture-plugin*.android.zip'
-        gh release download "v$VERSION" -p 'capture-plugin-marker*.android.zip'
       env:
         VERSION: ${{ inputs.version }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
