@@ -14,7 +14,7 @@ import io.bitdrift.capture.Capture
 import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
-class BdReactNativeModule internal constructor(context: ReactApplicationContext) :
+class BdReactNativeModule internal constructor(context: ReactApplicationContext):
   BdReactNativeSpec(context) {
 
   override fun getName(): String {
@@ -24,8 +24,14 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
   // Example method
   // See https://reactnative.dev/docs/native-modules-android
   @ReactMethod
-  override fun init(key: String, url: String) {
-    Capture.Logger.start(apiKey = key, apiUrl = url.toHttpUrl(), sessionStrategy = SessionStrategy.Fixed())
+  override fun init(key: String, options: ReadableMap?) {
+    val apiUrl = options?.getString("url")
+
+    if (apiUrl != null) {
+      Capture.Logger.start(apiKey = key, apiUrl = apiUrl.toHttpUrl(), sessionStrategy = SessionStrategy.Fixed())
+    } else {
+      Capture.Logger.start(apiKey = key, sessionStrategy = SessionStrategy.Fixed())
+    }
   }
 
   @ReactMethod

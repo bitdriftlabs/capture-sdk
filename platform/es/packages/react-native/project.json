@@ -28,7 +28,9 @@
           "cp -r LICENSE.package dist/react-native/LICENSE",
           "cp -r packages/react-native/app.plugin.js dist/react-native",
           "cp packages/react-native/package.dist.json dist/react-native/package.json",
-          "rm dist/react-native/commonjs/package.json"
+          "rm dist/react-native/commonjs/package.json",
+          "mkdir -p dist/react-native/src",
+          "cp packages/react-native/src/NativeBdReactNative.ts dist/react-native/src",
         ],
         "parallel": false
       }

@@ -10,5 +10,13 @@
   "main": "commonjs/index.js",
   "module": "module/index.js",
   "react-native": "commonjs/index.js",
-  "types": "typescript/packages/react-native/src/index.d.ts"
+  "types": "typescript/packages/react-native/src/index.d.ts",
+  "codegenConfig": {
+     "name": "NativeBdReactNativeSpec",
+     "type": "modules",
+     "jsSrcsDir": "src",
+     "android": {
+       "javaPackageName": "com.bdreactnative"
+     }
+   }
 }

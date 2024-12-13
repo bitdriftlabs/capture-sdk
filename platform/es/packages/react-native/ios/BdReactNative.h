@@ -1,6 +1,6 @@
 
 #ifdef RCT_NEW_ARCH_ENABLED
-#import "BdReactNativeSpec/BdReactNativeSpec.h"
+#import "NativeBdReactNativeSpec/NativeBdReactNativeSpec.h"
 
 @interface BdReactNative : NSObject <NativeBdReactNativeSpec>
 #else

@@ -28,7 +28,7 @@ const BdReactNative = BdReactNativeModule
     );
 
 export function init(key: string, options?: { url?: string }): void {
-  return BdReactNative.init(key, options?.url || 'https://api.bitdrift.io');
+  return BdReactNative.init(key, options);
 }
 
 export function trace(message: string, fields?: LogFields): void {
