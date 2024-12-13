@@ -211,7 +211,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: capture-plugin-${{ inputs.version }}.android.zip
-      - uses: actions/download-artifact@v4
+      - name: Download Android Plugin Marker
+        uses: actions/download-artifact@v4
         with:
           name: capture-plugin-marker-${{ inputs.version }}.android.zip
       - name: Prepare Android artifacts
