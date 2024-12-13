@@ -111,17 +111,17 @@ function release_gradle_plugin() {
 
   echo "+++ dl.bitdrift.io Android Integration plugin $plugin_name / $plugin_marker artifacts upload"
 
-  local -r remote_location_prefix="$remote_location_root_prefix/$library_name"
+  local -r remote_location_prefix="$remote_location_root_prefix/$plugin_name/$plugin_marker"
 
   pushd "$(mktemp -d)"
     unzip -o "$archive"
 
-    aws s3 cp "$sdk_repo/ci/LICENSE.txt" "$remote_location_prefix//$version/LICENSE.txt" --region us-east-1
+    aws s3 cp "$sdk_repo/ci/LICENSE.txt" "$remote_location_prefix/$version/LICENSE.txt" --region us-east-1
     aws s3 cp "$sdk_repo/ci/NOTICE.txt" "$remote_location_prefix/$version/NOTICE.txt" --region us-east-1
 
     aws s3 cp . "$remote_location_prefix/$version/" --recursive --region us-east-1
 
-    generate_maven_file "$remote_location_root_prefix/$plugin_name" "$plugin_name"
+    generate_maven_file "$remote_location_prefix" "$plugin_marker"
     popd
 
 }
