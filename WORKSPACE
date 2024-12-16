@@ -15,8 +15,8 @@ apple_support_dependencies()
 
 http_archive(
     name = "build_bazel_rules_apple",
-    sha256 = "62847b3f444ce514ae386704a119ad7b29fa6dfb65a38bff4ae239f2389a0429",
-    url = "https://github.com/bazelbuild/rules_apple/releases/download/3.8.0/rules_apple.3.8.0.tar.gz",
+    sha256 = "352428421c89dba8859055c3e1ba42f742c224544bf0e196c926d1cf44a2d726",
+    url = "https://github.com/bazelbuild/rules_apple/releases/download/3.16.1/rules_apple.3.16.1.tar.gz",
 )
 
 http_archive(
