@@ -60,7 +60,7 @@ extension SessionReplayTarget: CapturePassable.SessionReplayTarget {
                 .jpegData(withCompressionQuality: 0.1) { context in
                     window.layer.render(in: context.cgContext)
                 }
-            
+
             self.queue.async { [weak self] in
                 self?.logger?.logSessionReplayScreenshot(
                     screen: SessionReplayCapture(data: jpeg),
