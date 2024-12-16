@@ -29,8 +29,10 @@ import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Mockito
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
+import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.nio.charset.StandardCharsets
+import java.util.Base64
 
 class AppExitLoggerTest {
     private val logger: LoggerImpl = mock()
@@ -160,6 +162,289 @@ class AppExitLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
+            eq(expectedFields),
+            eq(null),
+            eq(LogAttributesOverrides(sessionId, timestamp)),
+            eq(false),
+            argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+    }
+
+    @Test
+    fun testLogPreviousExitReasonIfAnyWithTrace() {
+        // ARRANGE
+        val sessionId = "test-session-id"
+        val timestamp = 123L
+        val traceData = "Test trace data"
+        val base64TraceData = Base64.getEncoder().encodeToString(traceData.toByteArray()) // Encode expected data
+
+        val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
+        whenever(mockExitInfo.processStateSummary).thenReturn(sessionId.toByteArray(StandardCharsets.UTF_8))
+        whenever(mockExitInfo.timestamp).thenReturn(timestamp)
+        whenever(mockExitInfo.processName).thenReturn("test-process-name")
+        whenever(mockExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_ANR)
+        whenever(mockExitInfo.importance).thenReturn(RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
+        whenever(mockExitInfo.status).thenReturn(0)
+        whenever(mockExitInfo.pss).thenReturn(1)
+        whenever(mockExitInfo.rss).thenReturn(2)
+        whenever(mockExitInfo.description).thenReturn("test-description")
+        whenever(mockExitInfo.getTraceInputStream()).thenReturn(ByteArrayInputStream(traceData.toByteArray()))
+
+        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        val expectedFields = mapOf(
+            "_app_exit_source" to "ApplicationExitInfo",
+            "_app_exit_process_name" to "test-process-name",
+            "_app_exit_reason" to "ANR",
+            "_app_exit_importance" to "FOREGROUND",
+            "_app_exit_status" to "0",
+            "_app_exit_pss" to "1",
+            "_app_exit_rss" to "2",
+            "_app_exit_description" to "test-description",
+            "_app_exit_trace" to base64TraceData, // Use the Base64 encoded expected value
+        ).toFields()
+
+        verify(logger).log(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.ERROR),
+            eq(expectedFields),
+            eq(null),
+            eq(LogAttributesOverrides(sessionId, timestamp)),
+            eq(false),
+            argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+    }
+
+    @Test
+    fun testLogPreviousExitReasonIfAnyWithoutTrace() {
+        // ARRANGE
+        val sessionId = "test-session-id"
+        val timestamp = 123L
+
+        val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
+        whenever(mockExitInfo.processStateSummary).thenReturn(sessionId.toByteArray(StandardCharsets.UTF_8))
+        whenever(mockExitInfo.timestamp).thenReturn(timestamp)
+        whenever(mockExitInfo.processName).thenReturn("test-process-name")
+        whenever(mockExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_ANR)
+        whenever(mockExitInfo.importance).thenReturn(RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
+        whenever(mockExitInfo.status).thenReturn(0)
+        whenever(mockExitInfo.pss).thenReturn(1)
+        whenever(mockExitInfo.rss).thenReturn(2)
+        whenever(mockExitInfo.description).thenReturn("test-description")
+        whenever(mockExitInfo.getTraceInputStream()).thenReturn(null) // Simulate no trace data available
+
+        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        val expectedFields = mapOf(
+            "_app_exit_source" to "ApplicationExitInfo",
+            "_app_exit_process_name" to "test-process-name",
+            "_app_exit_reason" to "ANR",
+            "_app_exit_importance" to "FOREGROUND",
+            "_app_exit_status" to "0",
+            "_app_exit_pss" to "1",
+            "_app_exit_rss" to "2",
+            "_app_exit_description" to "test-description",
+            // _app_exit_trace is not present
+        ).toFields()
+
+        verify(logger).log(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.ERROR),
+            eq(expectedFields),
+            eq(null),
+            eq(LogAttributesOverrides(sessionId, timestamp)),
+            eq(false),
+            argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+    }
+
+    @Test
+    fun testLogPreviousExitReasonIfAnyWithEmptyTrace() {
+        // ARRANGE
+        val sessionId = "test-session-id"
+        val timestamp = 123L
+        val emptyTraceData = ByteArray(0)
+
+        val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
+        whenever(mockExitInfo.processStateSummary).thenReturn(sessionId.toByteArray(StandardCharsets.UTF_8))
+        whenever(mockExitInfo.timestamp).thenReturn(timestamp)
+        whenever(mockExitInfo.processName).thenReturn("test-process-name")
+        whenever(mockExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_ANR)
+        whenever(mockExitInfo.importance).thenReturn(RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
+        whenever(mockExitInfo.status).thenReturn(0)
+        whenever(mockExitInfo.pss).thenReturn(1)
+        whenever(mockExitInfo.rss).thenReturn(2)
+        whenever(mockExitInfo.description).thenReturn("test-description")
+        whenever(mockExitInfo.getTraceInputStream()).thenReturn(ByteArrayInputStream(emptyTraceData))
+
+        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        val expectedFields = mapOf(
+            "_app_exit_source" to "ApplicationExitInfo",
+            "_app_exit_process_name" to "test-process-name",
+            "_app_exit_reason" to "ANR",
+            "_app_exit_importance" to "FOREGROUND",
+            "_app_exit_status" to "0",
+            "_app_exit_pss" to "1",
+            "_app_exit_rss" to "2",
+            "_app_exit_description" to "test-description",
+            // _app_exit_trace is not present since trace data is empty
+        ).toFields()
+
+        verify(logger).log(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.ERROR),
+            eq(expectedFields),
+            eq(null),
+            eq(LogAttributesOverrides(sessionId, timestamp)),
+            eq(false),
+            argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+    }
+
+    @Test
+    fun testLogPreviousExitReasonIfAnyWithBinaryTrace() {
+        // ARRANGE
+        val sessionId = "test-session-id"
+        val timestamp = 123L
+        val traceData = "Binary trace data".toByteArray()
+        val base64TraceData = Base64.getEncoder().encodeToString(traceData)
+
+        val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
+        whenever(mockExitInfo.processStateSummary).thenReturn(sessionId.toByteArray(StandardCharsets.UTF_8))
+        whenever(mockExitInfo.timestamp).thenReturn(timestamp)
+        whenever(mockExitInfo.processName).thenReturn("test-process-name")
+        whenever(mockExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_ANR)
+        whenever(mockExitInfo.importance).thenReturn(RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
+        whenever(mockExitInfo.status).thenReturn(0)
+        whenever(mockExitInfo.pss).thenReturn(1)
+        whenever(mockExitInfo.rss).thenReturn(2)
+        whenever(mockExitInfo.description).thenReturn("test-description")
+        whenever(mockExitInfo.getTraceInputStream()).thenReturn(ByteArrayInputStream(traceData))
+
+        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        val expectedFields = mapOf(
+            "_app_exit_source" to "ApplicationExitInfo",
+            "_app_exit_process_name" to "test-process-name",
+            "_app_exit_reason" to "ANR",
+            "_app_exit_importance" to "FOREGROUND",
+            "_app_exit_status" to "0",
+            "_app_exit_pss" to "1",
+            "_app_exit_rss" to "2",
+            "_app_exit_description" to "test-description",
+            "_app_exit_trace" to base64TraceData,
+        ).toFields()
+
+        verify(logger).log(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.ERROR),
+            eq(expectedFields),
+            eq(null),
+            eq(LogAttributesOverrides(sessionId, timestamp)),
+            eq(false),
+            argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+    }
+
+    @Test
+    fun testLogPreviousExitReasonIfAnyWithIOException() {
+        // ARRANGE
+        val sessionId = "test-session-id"
+        val timestamp = 123L
+        val ioException = IOException("Test IO exception")
+
+        val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
+        whenever(mockExitInfo.processStateSummary).thenReturn(sessionId.toByteArray(StandardCharsets.UTF_8))
+        whenever(mockExitInfo.timestamp).thenReturn(timestamp)
+        whenever(mockExitInfo.processName).thenReturn("test-process-name")
+        whenever(mockExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_ANR)
+        whenever(mockExitInfo.importance).thenReturn(RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
+        whenever(mockExitInfo.status).thenReturn(0)
+        whenever(mockExitInfo.pss).thenReturn(1)
+        whenever(mockExitInfo.rss).thenReturn(2)
+        whenever(mockExitInfo.description).thenReturn("test-description")
+
+        // Simulate an IOException when accessing the trace input stream
+        whenever(mockExitInfo.getTraceInputStream()).thenThrow(ioException)
+
+        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        val errorFields = mapOf(
+            "_app_exit_source" to "ApplicationExitInfo",
+            "_app_exit_reason" to "TraceReadFailure",
+            "_app_exit_details" to ioException.message.orEmpty(),
+        ).toFields()
+
+        verify(logger).log(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.ERROR),
+            eq(errorFields),
+            eq(null),
+            eq(null),
+            eq(false),
+            argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+    }
+
+    @Test
+    fun testLogPreviousExitReasonIfAnyWithNonRelevantReason() {
+        // ARRANGE
+        val sessionId = "test-session-id"
+        val timestamp = 123L
+
+        val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
+        whenever(mockExitInfo.processStateSummary).thenReturn(sessionId.toByteArray(StandardCharsets.UTF_8))
+        whenever(mockExitInfo.timestamp).thenReturn(timestamp)
+        whenever(mockExitInfo.processName).thenReturn("test-process-name")
+        whenever(mockExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_EXIT_SELF) // Non-relevant reason
+        whenever(mockExitInfo.importance).thenReturn(RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
+        whenever(mockExitInfo.status).thenReturn(0)
+        whenever(mockExitInfo.pss).thenReturn(1)
+        whenever(mockExitInfo.rss).thenReturn(2)
+        whenever(mockExitInfo.description).thenReturn("test-description")
+
+        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        val expectedFields = mapOf(
+            "_app_exit_source" to "ApplicationExitInfo",
+            "_app_exit_process_name" to "test-process-name",
+            "_app_exit_reason" to "EXIT_SELF",
+            "_app_exit_importance" to "FOREGROUND",
+            "_app_exit_status" to "0",
+            "_app_exit_pss" to "1",
+            "_app_exit_rss" to "2",
+            "_app_exit_description" to "test-description",
+            // _app_exit_trace is not present since reason is not REASON_ANR or REASON_CRASH_NATIVE
+        ).toFields()
+
+        verify(logger).log(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.INFO), // Use INFO instead of ERROR
             eq(expectedFields),
             eq(null),
             eq(LogAttributesOverrides(sessionId, timestamp)),
