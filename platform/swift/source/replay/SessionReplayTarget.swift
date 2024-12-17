@@ -51,18 +51,17 @@ extension SessionReplayTarget: CapturePassable.SessionReplayTarget {
                 return
             }
 
-            let layer = window.layer
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1.0
+
+            let start = Uptime()
             let bounds = UIScreen.main.bounds.size
+            let jpeg = UIGraphicsImageRenderer(size: bounds, format: format)
+                .jpegData(withCompressionQuality: 0.1) { context in
+                    window.layer.render(in: context.cgContext)
+                }
 
             self.queue.async { [weak self] in
-                let start = Uptime()
-                let format = UIGraphicsImageRendererFormat()
-                format.scale = 1.0
-
-                let renderer = UIGraphicsImageRenderer(size: bounds, format: format)
-                let jpeg = renderer.jpegData(withCompressionQuality: 0.1) { context in
-                    layer.render(in: context.cgContext)
-                }
                 self?.logger?.logSessionReplayScreenshot(
                     screen: SessionReplayCapture(data: jpeg),
                     duration: Uptime().timeIntervalSince(start)
