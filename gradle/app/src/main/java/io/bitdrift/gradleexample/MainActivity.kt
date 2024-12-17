@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.fab.setOnClickListener { view ->
             Timber.w(Exception("gradleexample test exception"), "Hello Info log from Android gradle test app")
-            Snackbar.make(view, "Calling Logger.logWarning()", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(view, "logging a Warning", Snackbar.LENGTH_SHORT).show()
         }
     }
 

@@ -49,8 +49,10 @@ import android.os.Bundle
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
+import androidx.startup.AppInitializer
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
+import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
@@ -80,6 +82,9 @@ class GradleTestApp : Application() {
         initLogging()
         trackAppLaunch()
         trackAppLifecycle()
+        // This needs to run before calling Logger.start()
+        AppInitializer.getInstance(applicationContext)
+            .initializeComponent(ContextHolder::class.java)
     }
 
     private fun initLogging() {
