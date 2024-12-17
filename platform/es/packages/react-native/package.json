@@ -1,6 +1,6 @@
 {
   "name": "@bitdrift/react-native",
-  "version": "0.4.1",
+  "version": "0.5.1",
   "description": "bitdrift integration for React Native",
   "main": "dist/commonjs/index",
   "module": "dist/module/index",
@@ -79,7 +79,10 @@
   "codegenConfig": {
     "name": "RNBdReactNativeSpec",
     "type": "modules",
-    "jsSrcsDir": "src"
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "com.bdreactnative"
+    }
   },
   "react-native-builder-bob": {
     "source": "src",
@@ -97,6 +100,7 @@
     ]
   },
   "dependencies": {
-    "@expo/config-plugins": "^8.0.8"
+    "@expo/config-plugins": "^8.0.8",
+    "fast-json-stringify": "^6.0.0"
   }
 }

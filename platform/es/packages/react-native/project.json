@@ -14,9 +14,7 @@
     },
     "TODOrelease": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "prepare"
-      ],
+      "dependsOn": ["prepare"],
       "options": {
         "commands": [
           "mkdir -p dist/react-native",
@@ -27,10 +25,10 @@
           "cp -r packages/react-native/README.md dist/react-native",
           "cp -r LICENSE.package dist/react-native/LICENSE",
           "cp -r packages/react-native/app.plugin.js dist/react-native",
-          "cp packages/react-native/package.dist.json dist/react-native/package.json",
+          "jq '{name, version, description, author, license, homepage, bugs, repository, main: (.main | sub(\"^dist/\"; \"\") + \".js\"), module: (.module | sub(\"^dist/\"; \"\") + \".js\"), \"react-native\": (.main | sub(\"^dist/\"; \"\") + \".js\"), types: (.types | sub(\"^dist/\"; \"\")), codegenConfig, dependencies, peerDependencies}' packages/react-native/package.json > dist/react-native/package.json",
           "rm dist/react-native/commonjs/package.json",
           "mkdir -p dist/react-native/src",
-          "cp packages/react-native/src/NativeBdReactNative.ts dist/react-native/src",
+          "cp packages/react-native/src/NativeBdReactNative.ts dist/react-native/src"
         ],
         "parallel": false
       }
