@@ -1,5 +1,5 @@
 import { NativeModules, Platform } from 'react-native';
-import type { LogFields } from './NativeBdReactNative';
+import { log, type SerializableLogFields } from './log';
 
 const LINKING_ERROR =
   `The package '@bitdrift/react-native' doesn't seem to be linked. Make sure: \n\n` +
@@ -34,22 +34,22 @@ export function init(
   return BdReactNative.init(key, options);
 }
 
-export function trace(message: string, fields?: LogFields): void {
-  return BdReactNative.log(0, message, fields);
+export function trace(message: string, fields?: SerializableLogFields): void {
+  return log(0, message, fields);
 }
 
-export function debug(message: string, fields?: LogFields): void {
-  return BdReactNative.log(1, message, fields);
+export function debug(message: string, fields?: SerializableLogFields): void {
+  return log(1, message, fields);
 }
 
-export function info(message: string, fields?: LogFields): void {
-  return BdReactNative.log(2, message, fields);
+export function info(message: string, fields?: SerializableLogFields): void {
+  return log(2, message, fields);
 }
 
-export function warn(message: string, fields?: LogFields): void {
-  return BdReactNative.log(3, message, fields);
+export function warn(message: string, fields?: SerializableLogFields): void {
+  return log(3, message, fields);
 }
 
-export function error(message: string, fields?: LogFields): void {
-  return BdReactNative.log(4, message, fields);
+export function error(message: string, fields?: SerializableLogFields): void {
+  return log(4, message, fields);
 }
