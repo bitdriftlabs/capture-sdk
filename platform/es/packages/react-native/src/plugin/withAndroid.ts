@@ -67,7 +67,7 @@ const withBitdriftSettingsGradle: ConfigPlugin<PluginProps | void> = (
         maven {
             url 'https://dl.bitdrift.io/sdk/android-maven'
             content {
-                includeGroupByRegex "io\\.bitdrift.*"
+                includeGroupByRegex "io\\\\.bitdrift.*"
             }
         }
     } 
