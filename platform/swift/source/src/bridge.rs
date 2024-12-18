@@ -62,10 +62,12 @@ fn initialize_logging() {
       .with_default_directive(LevelFilter::INFO.into())
       .from_env_lossy();
 
-    tracing_subscriber::Registry::default()
+    // Use try_init() to avoid situations where the logger has already been initialized by test
+    // harnesses. This is not ideal but it's the easiest fix for now.
+    let _ = tracing_subscriber::Registry::default()
       .with(filter)
       .with(stderr)
-      .init();
+      .try_init();
   });
 }
 
