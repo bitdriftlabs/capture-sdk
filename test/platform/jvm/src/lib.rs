@@ -50,7 +50,6 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_startTestApiSer
 
 #[ctor::ctor]
 fn setup() {
-  bd_log::SwapLogger::initialize();
   bd_test_helpers::test_global_init();
 }
 
