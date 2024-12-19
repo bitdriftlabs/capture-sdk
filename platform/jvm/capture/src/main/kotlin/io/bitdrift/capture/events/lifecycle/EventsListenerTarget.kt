@@ -9,6 +9,7 @@ package io.bitdrift.capture.events.lifecycle
 
 import io.bitdrift.capture.IEventsListenerTarget
 import io.bitdrift.capture.events.IEventListenerLogger
+import io.bitdrift.capture.events.SafeEventListenerLogger
 
 /**
  * A wrapper around platform event listeners that subscribe to various system notifications
@@ -18,7 +19,7 @@ internal class EventsListenerTarget : IEventsListenerTarget {
     private var listeners: MutableList<IEventListenerLogger> = mutableListOf()
 
     fun add(eventListener: IEventListenerLogger) {
-        listeners.add(eventListener)
+        listeners.add(SafeEventListenerLogger(eventListener))
     }
     override fun start() {
         listeners.forEach { it.start() }
