@@ -27,6 +27,8 @@ internal class AppMemoryPressureListenerLogger(
     private val executor: ExecutorService,
 ) : IEventListenerLogger, ComponentCallbacks2 {
 
+    // TODO(murki): Deprecate using this values altogether
+    @Suppress("DEPRECATION")
     private fun getTrimLevelAsString(level: Int): String {
         return when (level) {
             ComponentCallbacks2.TRIM_MEMORY_BACKGROUND -> "TRIM_MEMORY_BACKGROUND"

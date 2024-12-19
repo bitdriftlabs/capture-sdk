@@ -197,6 +197,7 @@ internal class LoggerImpl(
                 AppLifecycleListenerLogger(
                     this,
                     ProcessLifecycleOwner.get(),
+                    activityManager,
                     runtime,
                     processingQueue,
                 ),
