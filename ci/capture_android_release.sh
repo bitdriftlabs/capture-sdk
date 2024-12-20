@@ -35,6 +35,7 @@ function generate_maven_file() {
 
   releases=$(aws s3 ls "$location/" \
     | grep -v 'maven-metadata.xml' \
+    | grep -v 'io.bitdrift' \
     | awk '{print $2}' \
     | sed 's/^\///;s/\/$//')
 
