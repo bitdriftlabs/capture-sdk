@@ -22,10 +22,17 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
   }
 
   @ReactMethod
-  override fun init(key: String, options: ReadableMap?) {
+  override fun init(key: String, sessionStrategy: String, options: ReadableMap?) {
     val apiUrl = options?.getString("url") ?: "https://api.bitdrift.io"
 
-    Capture.Logger.start(apiKey = key, apiUrl = apiUrl.toHttpUrl(), sessionStrategy = SessionStrategy.Fixed())
+    val strategy =
+    when (sessionStrategy) {
+      "fixed" -> SessionStrategy.Fixed()
+      "activity" -> SessionStrategy.ActivityBased()
+      else -> throw IllegalArgumentException("Invalid session strategy: $sessionStrategy")
+    }
+
+    Capture.Logger.start(apiKey = key, apiUrl = apiUrl.toHttpUrl(), sessionStrategy = strategy)
   }
 
   @ReactMethod

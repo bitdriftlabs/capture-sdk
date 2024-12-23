@@ -15,6 +15,7 @@ RCT_EXPORT_METHOD(log:(double)level
 #ifndef RCT_NEW_ARCH_ENABLED
 
 RCT_EXPORT_METHOD(init:(NSString*)apiKey
+  sessionStrategy:(NSString*)sessionStrategy
   options:(NSDictionary*)options)
 {
   NSString* apiURL = options[@"url"];
@@ -22,6 +23,7 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
 
   [CAPRNLogger 
     startWithKey:apiKey
+    sessionStrategy:sessionStrategy
     url:apiURL
     enableNetworkInstrumentation:enableNetworkInstrumentation
   ];
@@ -30,6 +32,7 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
 #else
 
 RCT_EXPORT_METHOD(init:(NSString*)apiKey
+  sessionStrategy:(NSString*)sessionStrategy
   options:(JS::NativeBdReactNative::SpecInitOptions &)options)
 {
   BOOL enableNetworkInstrumentation = options.enableNetworkInstrumentation().has_value() ?
@@ -37,6 +40,7 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
 
   [CAPRNLogger
     startWithKey:apiKey
+    sessionStrategy:sessionStrategy
     url:options.url()
     enableNetworkInstrumentation:enableNetworkInstrumentation
   ];
