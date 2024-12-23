@@ -1,5 +1,6 @@
 import { NativeModules, Platform } from 'react-native';
 import { log, type SerializableLogFields } from './log';
+import { InitOptions, SessionStrategy } from './NativeBdReactNative';
 
 const LINKING_ERROR =
   `The package '@bitdrift/react-native' doesn't seem to be linked. Make sure: \n\n` +
@@ -29,9 +30,10 @@ const BdReactNative = BdReactNativeModule
 
 export function init(
   key: string,
-  options?: { url?: string; enableNetworkInstrumentation?: boolean },
+  sessionStrategy: SessionStrategy,
+  options?: InitOptions
 ): void {
-  return BdReactNative.init(key, options);
+  return BdReactNative.init(key, sessionStrategy, options);
 }
 
 export function trace(message: string, fields?: SerializableLogFields): void {

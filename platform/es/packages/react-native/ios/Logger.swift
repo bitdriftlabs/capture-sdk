@@ -8,10 +8,19 @@
 import Capture
 
 @objc public class CAPRNLogger: NSObject {
-    @objc public static func start(key: String, url: String?, enableNetworkInstrumentation: Bool) {
+    @objc public static func start(key: String, sessionStrategy: String, url: String?, enableNetworkInstrumentation: Bool) {
+        let strategy = switch sessionStrategy {
+            case "fixed":
+                return SessionStrategy.fixed()
+            case "activity":
+                return SessionStrategy.activity()
+            default:
+                return SessionStrategy.fixed()
+        }
+
         let integrator = Capture.Logger.start(
             withAPIKey: key,
-            sessionStrategy: SessionStrategy.fixed(),
+            sessionStrategy: strategy
             apiURL: URL(string: url ?? "https://api.bitdrift.io")!
         )
 

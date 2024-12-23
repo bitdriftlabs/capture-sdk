@@ -15,7 +15,7 @@ import com.facebook.react.bridge.ReadableMap
 abstract class BdReactNativeSpec internal constructor(context: ReactApplicationContext):
   ReactContextBaseJavaModule(context) {
 
-  abstract fun init(key: String, options: ReadableMap?)
+  abstract fun init(key: String, sessionStrategy: String, options: ReadableMap?)
 
   abstract fun log(level: Double, message: String, jsFields: ReadableMap?)
 }

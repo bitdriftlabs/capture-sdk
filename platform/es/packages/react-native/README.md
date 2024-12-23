@@ -18,7 +18,7 @@ Capture library and log messages at different log levels. Note that this initial
 
 ```js
 import { init, trace, debug, info, warn, error } from '@bitdrift/react-native';
-init('<api key>');
+init('<api key>', 'activity'); // Specify either `activity` or `fixed` session strategy
 
 info('Hello, World!');
 ```
