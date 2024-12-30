@@ -28,9 +28,10 @@ class CaptureApolloInterceptor: ApolloInterceptor {
         val requestBuilder = request.newBuilder()
             .addHttpHeader("x-capture-span-key", "gql")
             .addHttpHeader("x-capture-span-gql-name", "graphql")
-            .addHttpHeader("x-capture-span-gql-field-operation-name", request.operation.name())
             .addHttpHeader("x-capture-span-gql-field-operation-id", request.operation.id())
             .addHttpHeader("x-capture-span-gql-field-operation-type", request.operation.type())
+            .addHttpHeader("x-capture-span-gql-field-operation-name", request.operation.name())
+            .addHttpHeader("x-capture-path-template", "gql-${request.operation.name()}") // set this to override the http _path_template field
         // TODO(murki): Augment request logs with
         //  request.executionContext[CustomScalarAdapters]?.let {
         //    addHttpHeader("x-capture-span-gql-field-operation-variables", request.operation.variables(it).valueMap.toString())
