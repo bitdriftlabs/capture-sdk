@@ -348,12 +348,14 @@ class CaptureOkHttpEventListenerFactoryTest {
             "x-capture-span-gql-field-operation-name" to "myOperationName",
             "x-capture-span-gql-field-operation-id" to "myOperationId",
             "x-capture-span-gql-field-operation-type" to "query",
+            "x-capture-path-template" to "myOperationName",
         )
         val expectedSpanName = "_mySpanName"
         val expectedFields = mapOf(
             "_operation_name" to "myOperationName",
             "_operation_id" to "myOperationId",
             "_operation_type" to "query",
+            "_path_template" to "myOperationName",
         )
 
         val request = Request.Builder()
