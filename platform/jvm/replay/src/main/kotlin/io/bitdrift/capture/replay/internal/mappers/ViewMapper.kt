@@ -9,6 +9,7 @@ package io.bitdrift.capture.replay.internal.mappers
 
 import android.content.res.Resources
 import android.view.View
+import androidx.core.content.res.ResourcesCompat
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
@@ -64,7 +65,7 @@ internal class ViewMapper(
 
     private fun View.viewToReplayRect(): List<ReplayRect> {
         val list = mutableListOf<ReplayRect>()
-        val resourceName = if (id != -1) {
+        val resourceName = if (id != View.NO_ID && id != ResourcesCompat.ID_NULL) {
             try {
                 resources.getResourceEntryName(this.id)
             } catch (ignore: Resources.NotFoundException) {
