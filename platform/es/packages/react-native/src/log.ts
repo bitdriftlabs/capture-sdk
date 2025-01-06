@@ -32,9 +32,12 @@ export const log = (
       ? Object.entries(fields).reduce<LogFields>(
           (acc, [key, value]) => ({
             ...acc,
-            [key]: typeof value === 'string' ? value : stringify({})(value),
+            [key]: serialize(value),
           }),
           {},
         )
       : undefined,
   );
+
+export const serialize = (value: Serializable): string =>
+  typeof value === 'string' ? value : stringify({})(value);

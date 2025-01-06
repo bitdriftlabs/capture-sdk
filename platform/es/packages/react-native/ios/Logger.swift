@@ -56,4 +56,9 @@ import Capture
             return
         }
     }
+
+    @objc
+    public static func addField(_ key: String, value: String) {
+        Capture.Logger.addField(withKey: key, value: value)
+    }
 }
