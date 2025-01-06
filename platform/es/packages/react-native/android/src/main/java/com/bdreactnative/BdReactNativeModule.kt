@@ -59,6 +59,11 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
     }
   }
 
+  @ReactMethod
+  override fun addField(key: String, value: String) {
+    Capture.Logger.addField(key, value)
+  }
+
   companion object {
     const val NAME = "BdReactNative"
   }

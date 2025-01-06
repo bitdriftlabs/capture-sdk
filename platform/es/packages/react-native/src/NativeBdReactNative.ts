@@ -24,7 +24,11 @@ export interface Spec extends TurboModule {
     sessionStrategy: SessionStrategy,
     options?: InitOptions,
   ): void;
+
   log(level: number, message: string, fields?: LogFields): void;
+
+  addField(key: string, value: string): void;
+
   getDeviceID(): Promise<string>;
 }
 

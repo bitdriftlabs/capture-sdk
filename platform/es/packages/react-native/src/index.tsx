@@ -1,5 +1,5 @@
 import { NativeModules, Platform } from 'react-native';
-import { log, type SerializableLogFields } from './log';
+import { log, serialize, type SerializableLogFields, Serializable } from './log';
 import { InitOptions, SessionStrategy } from './NativeBdReactNative';
 import NativeBdReactNative from './NativeBdReactNative';
 export { SessionStrategy } from './NativeBdReactNative';
@@ -64,7 +64,11 @@ export function error(message: string, fields?: SerializableLogFields): void {
   return log(4, message, fields);
 }
 
-/** Set a field to be included in all future log messages. Calling this multiple times for the same key will overwrite the previous value. */
+/** Adds a field to be included in all future log messages. Calling this multiple times for the same key will overwrite the previous value. */
+export function addField(key: string, value: Serializable): void {
+  return NativeBdReactNative.addField(key, serialize(value));
+}
+
 export async function getDeviceID(): Promise<string> {
   return NativeBdReactNative.getDeviceID();
 }
