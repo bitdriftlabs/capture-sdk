@@ -467,7 +467,12 @@ extern "C" fn capture_create_logger(
         // String conversion can fail if the provided string is not UTF-8.
         app_id: Some(unsafe { CStr::from_ptr(app_id) }.to_str()?.to_string()),
         app_version: Some(unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string()),
-        platform: Platform::Ios,
+        platform: Platform::Apple,
+        // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
+        // Further, "os" as sent as a log tag is hard coded as "iOS" so we have a casing
+        // mismatch. We need to untangle all of this but we can do that when we send all fixed
+        // fields as metadata and only use the fixed fields on logs for matching.
+        os: "ios".to_string(),
         device: device.clone(),
         model: unsafe { CStr::from_ptr(model) }.to_str()?.to_string(),
       });
@@ -507,7 +512,6 @@ extern "C" fn capture_create_logger(
         session_replay_target: Box::new(session_replay::Target::new(session_replay_target)),
         events_listener_target: Box::new(events::Target::new(events_listener_target)),
         network: network_manager,
-        platform: Platform::Ios,
         store,
         device,
         static_metadata,

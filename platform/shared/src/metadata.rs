@@ -23,6 +23,8 @@ pub struct Mobile {
 
   pub platform: Platform,
 
+  pub os: String,
+
   /// Provides current device installation identifier.
   pub device: Arc<bd_logger::Device>,
 
@@ -36,6 +38,10 @@ impl bd_api::Metadata for Mobile {
 
   fn platform(&self) -> &bd_api::Platform {
     &self.platform
+  }
+
+  fn os(&self) -> String {
+    self.os.clone()
   }
 
   #[must_use]

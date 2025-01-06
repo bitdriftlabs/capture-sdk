@@ -5,7 +5,6 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use bd_api::Platform;
 use bd_buffer::{AggregateRingBuffer, PerRecordCrc32Check, RingBuffer, RingBufferStats};
 use bd_logger::{log_level, InitParams, LogType, LoggerHandle};
 use bd_noop_network::NoopNetwork;
@@ -66,7 +65,6 @@ fn simple_log(c: &mut Criterion) {
     device,
     store,
     network: Box::new(NoopNetwork {}),
-    platform: Platform::Other("benchmark", "benchmark"),
     static_metadata: Arc::new(EmptyMetadata),
   })
   .build()
@@ -111,7 +109,6 @@ fn with_matcher_and_buffer(c: &mut Criterion) {
     device,
     store,
     network: Box::new(NoopNetwork {}),
-    platform: Platform::Other("benchmark", "benchmark"),
     static_metadata: Arc::new(EmptyMetadata),
   })
   .build()
