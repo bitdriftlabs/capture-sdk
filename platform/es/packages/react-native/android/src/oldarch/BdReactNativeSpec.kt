@@ -17,5 +17,7 @@ abstract class BdReactNativeSpec internal constructor(context: ReactApplicationC
 
   abstract fun init(key: String, sessionStrategy: String, options: ReadableMap?)
 
+  abstract fun getDeviceID(promise: Promise)
+
   abstract fun log(level: Double, message: String, jsFields: ReadableMap?)
 }

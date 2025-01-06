@@ -12,6 +12,7 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.providers.session.SessionStrategy
+import com.facebook.react.bridge.Promise
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
 class BdReactNativeModule internal constructor(context: ReactApplicationContext) :
@@ -33,6 +34,16 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
     }
 
     Capture.Logger.start(apiKey = key, apiUrl = apiUrl.toHttpUrl(), sessionStrategy = strategy)
+  }
+
+  @ReactMethod
+  override fun getDeviceID(promise: Promise) {
+    val deviceId = Capture.Logger.deviceId
+    if (deviceId != null) {
+        promise.resolve(deviceId)
+    } else {
+        promise.reject("device_id_undefined", "Device ID is undefined")
+    }
   }
 
   @ReactMethod

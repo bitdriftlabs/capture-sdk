@@ -16,7 +16,7 @@
     "baseUrl": ".",
     "paths": {
       "@bitdrift/electron": ["logger/src/index.ts"],
-      "@bitdrift/react-native": ["dist/react-native"],
+      "@bitdrift/react-native": ["packages/react-native/src/index.tsx"],
       "@capture-es/native": ["./dist/native/index.node"]
     }
   },
