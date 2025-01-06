@@ -1,0 +1,22 @@
+{
+  "name": "expo-example",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@bitdrift/react-native": "../../dist/react-native",
+    "@react-native-picker/picker": "*",
+    "@testing-library/jest-native": "*",
+    "@testing-library/react-native": "*",
+    "expo": "*",
+    "metro-config": "*",
+    "react": "18.2.0",
+    "react-native": "*",
+    "react-native-svg": "*",
+    "react-native-web": "*"
+  },
+  "scripts": {
+    "eas-build-post-install": "cd ../../ && node tools/scripts/eas-build-post-install.mjs . examples/expo",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
+  }
+}
