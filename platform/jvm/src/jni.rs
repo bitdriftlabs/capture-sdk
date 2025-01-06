@@ -633,6 +633,11 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         app_id: Some(unsafe { env.get_string_unchecked(&application_id) }?.into()),
         app_version: Some(unsafe { env.get_string_unchecked(&application_version) }?.into()),
         platform: Platform::Android,
+        // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
+        // Further, "os" as sent as a log tag is hard coded as "Android" so we have a casing
+        // mismatch. We need to untangle all of this but we can do that when we send all fixed
+        // fields as metadata and only use the fixed fields on logs for matching.
+        os: "android".to_string(),
         device: device.clone(),
         model: unsafe { env.get_string_unchecked(&model) }?.into(),
       });
@@ -680,7 +685,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         device,
         store,
         network: network_manager,
-        platform: Platform::Android,
         static_metadata,
       })
       .with_mobile_features(true)

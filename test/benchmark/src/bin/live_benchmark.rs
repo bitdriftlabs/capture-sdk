@@ -37,7 +37,6 @@ fn test_live_match_performance(c: &mut Criterion) {
   let logger = bd_logger::LoggerBuilder::new(InitParams {
     api_key: "replace me with a real auth token".to_string(),
     network: Box::new(network),
-    platform: bd_api::Platform::Other("benchmark", "benchmark"),
     static_metadata: Arc::new(EmptyMetadata),
     sdk_directory: ".".into(),
     session_strategy: Arc::new(Strategy::Fixed(fixed::Strategy::new(
