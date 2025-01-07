@@ -76,6 +76,37 @@ jobs:
         env:
           SKIP_PROTO_GEN: true
 
+      - name: Azure login
+        uses: azure/login@v2
+        if: contains(matrix.settings.target, 'windows')
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Codesign Microsoft build with Trusted Signing
+        uses: azure/trusted-signing-action@v0.5.0
+        if: contains(matrix.settings.target, 'windows')
+        with:
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-cli-credential: false
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+          endpoint: https://eus.codesigning.azure.net/
+          trusted-signing-account-name: bitdrift
+          certificate-profile-name: PublicTrust
+          files-folder: ${{ github.workspace }}\packages\core
+          files-folder-filter: ${{ env.APP_NAME }}.win32-*.node
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
       - name: Codesign macOS build
         if: contains(matrix.settings.target, 'darwin')
         run: bash tools/sign.sh packages/core/${{ env.APP_NAME }}.darwin-*.node
