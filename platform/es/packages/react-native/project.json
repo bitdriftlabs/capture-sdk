@@ -12,9 +12,33 @@
         "lintFilePatterns": ["packages/react-native/**/*.{ts,tsx,js,jsx}"]
       }
     },
-    "TODOrelease": {
+    "typecheck": {
       "executor": "nx:run-commands",
-      "dependsOn": ["prepare"],
+      "options": {
+        "cwd": "packages/react-native",
+        "commands": ["tsc --noEmit"]
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/react-native",
+        "commands": [
+          "npx del-cli android/build example/android/build example/android/app/build example/ios/build lib"
+        ]
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/react-native",
+        "command": "npx bob build"
+      },
+      "outputs": ["{workspaceRoot}/packages/react-native/dist"]
+    },
+    "prepare-release": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
       "options": {
         "commands": [
           "mkdir -p dist/react-native",
@@ -29,6 +53,20 @@
           "rm dist/react-native/commonjs/package.json",
           "mkdir -p dist/react-native/src",
           "cp packages/react-native/src/NativeBdReactNative.ts dist/react-native/src"
+        ],
+        "parallel": false
+      },
+      "outputs": ["{workspaceRoot}/dist"]
+    },
+    "TODOrelease": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["prepare-release"],
+      "options": {
+        "commands": [
+          "VERSION=$(jq -r '.version' dist/react-native/package.json)",
+          "git tag -a v$VERSION -m \"Release v$VERSION\"",
+          "git push origin v$VERSION",
+          "npm publish dist/react-native"
         ],
         "parallel": false
       }

@@ -26,13 +26,6 @@
     "!**/__mocks__",
     "!**/.*"
   ],
-  "scripts": {
-    "test": "jest",
-    "typecheck": "tsc --noEmit",
-    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
-    "prepare": "bob build",
-    "TODOrelease": "release-it"
-  },
   "keywords": [
     "react-native",
     "ios",
@@ -59,23 +52,6 @@
     "react-native": "*"
   },
   "packageManager": "yarn@3.6.1",
-  "release-it": {
-    "git": {
-      "commitMessage": "chore: release ${version}",
-      "tagName": "v${version}"
-    },
-    "npm": {
-      "publish": true
-    },
-    "github": {
-      "release": true
-    },
-    "plugins": {
-      "@release-it/conventional-changelog": {
-        "preset": "angular"
-      }
-    }
-  },
   "codegenConfig": {
     "name": "RNBdReactNativeSpec",
     "type": "modules",
