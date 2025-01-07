@@ -1,6 +1,6 @@
 {
   "name": "@bitdrift/core",
-  "version": "0.0.1",
+  "version": "0.0.11",
   "description": "bitdrift SDK rust core",
   "author": {
     "name": "bitdrift",
