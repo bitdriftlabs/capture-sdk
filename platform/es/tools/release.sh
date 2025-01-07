@@ -39,9 +39,11 @@ npm exec nx release publish -- -p $TARGETS -y
 
 # Stage all relevant project files but nothing more
 echo "Staging changes for $TARGET_PATHS"
+git checkout -b release-$VERSION
 xargs git add <<< $TARGET_PATHS
 git add package-lock.json package.json
 
 # Push git changes made by the version update script to remote
 git commit -m "chore: release $VERSION" -m "Packages: $TARGETS"
 git push origin
+gh pr create --title "chore: release $VERSION" --body "Packages: $TARGETS" --base main --head release-$VERSION

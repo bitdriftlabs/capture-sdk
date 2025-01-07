@@ -1,8 +1,8 @@
 {
   "name": "@bitdrift/electron",
-  "version": "0.0.8",
+  "version": "0.0.11",
   "dependencies": {
-    "@bitdrift/core": "^0.0.1"
+    "@bitdrift/core": "^0.0.11"
   },
   "publishConfig": {
     "access": "public"
