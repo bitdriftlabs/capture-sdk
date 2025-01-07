@@ -50,3 +50,4 @@ git push origin
 
 echo "Creating PR for release $VERSION"
 gh pr create --title "chore: release $VERSION" --body "Packages: $TARGETS" --base main --head release-$VERSION
+gh pr merge --auto -r
