@@ -8,14 +8,21 @@
   "targets": {
     "run-android": {
       "dependsOn": [{
-        "target": "TODOrelease",
+        "target": "prepare-release",
+        "projects": ["@bitdrift/react-native"],
+        "params": "ignore"
+      }]
+    },
+    "run-ios": {
+      "dependsOn": [{
+        "target": "prepare-release",
         "projects": ["@bitdrift/react-native"],
         "params": "ignore"
       }]
     },
     "prebuild": {
       "dependsOn": [{
-        "target": "TODOrelease",
+        "target": "prepare-release",
         "projects": ["@bitdrift/react-native"],
         "params": "ignore"
       }]

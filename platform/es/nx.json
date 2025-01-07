@@ -27,7 +27,17 @@
       "inputs": ["production", "^production"]
     },
     "build": {
-      "inputs": ["production", "^production"]
+      "inputs": ["production", "^production"],
+      "cache": true
+    },
+    "typecheck": {
+      "cache": true
+    },
+    "lint": {
+      "cache": true
+    },
+    "prepare-release": {
+      "cache": true
     },
     "nx-release-publish": {
       "options": {

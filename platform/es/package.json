@@ -80,13 +80,10 @@
     "react-native-svg-transformer": "1.5.0",
     "react-native-web": "^0.19.13",
     "react-test-renderer": "^18.2.0",
-    "release-it": "^17.10.0",
     "ts-jest": "^29.2.5",
     "ts-node": "10.9.2",
     "tslib": "^2.3.0",
-    "turbo": "^2.2.3",
-    "typescript": "~5.3.3",
-    "verdaccio": "^5.0.4"
+    "typescript": "~5.3.3"
   },
   "dependencies": {
     "@expo/metro-config": "~0.18.1",
