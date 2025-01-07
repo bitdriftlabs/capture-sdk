@@ -14,25 +14,27 @@ version      = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-# Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
-napi = { version = "2.12.2", default-features = false, features = ["napi4", "anyhow"] }
-napi-derive = "2.12.2"
-anyhow           = "1.0.81"
-bd-session       = { git = "https://github.com/bitdriftlabs/shared-core" }
-bd-key-value     = { git = "https://github.com/bitdriftlabs/shared-core" }
-bd-metadata      = { git = "https://github.com/bitdriftlabs/shared-core" }
-bd-hyper-network = { git = "https://github.com/bitdriftlabs/shared-core" }
-bd-logger        = { git = "https://github.com/bitdriftlabs/shared-core" }
-bd-shutdown      = { git = "https://github.com/bitdriftlabs/shared-core" }
+anyhow                  = "1.0.81"
+bd-client-common        = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-device               = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-events               = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-hyper-network        = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-key-value            = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-logger               = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-metadata             = { git = "https://github.com/bitdriftlabs/shared-core" }
 bd-resource-utilization = { git = "https://github.com/bitdriftlabs/shared-core" }
-bd-events        = { git = "https://github.com/bitdriftlabs/shared-core" }
-bd-session-replay = { git = "https://github.com/bitdriftlabs/shared-core" }
-bd-device = { git = "https://github.com/bitdriftlabs/shared-core" }
-time             = "0.3.34"
-tokio            = "1.36.0"
-tracing          = "0.1.40"
-parking_lot      = "0.12.3"
-uuid             = "1.7.0"
+bd-session              = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-session-replay       = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-shutdown             = { git = "https://github.com/bitdriftlabs/shared-core" }
+
+# Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
+napi        = { version = "2.12.2", default-features = false, features = ["napi4", "anyhow"] }
+napi-derive = "2.12.2"
+parking_lot = "0.12.3"
+time        = "0.3.34"
+tokio       = "1.36.0"
+tracing     = "0.1.40"
+uuid        = "1.7.0"
 
 [dev-dependencies]
 tempdir = "0.3"
@@ -41,7 +43,7 @@ tempdir = "0.3"
 napi-build = "2.0.1"
 
 [profile.release]
-strip = true
 codegen-units   = 1
 lto             = true
 overflow-checks = false
+strip           = true

@@ -32,6 +32,7 @@ pub struct Logger {
 #[napi]
 impl Logger {
   #[napi(constructor)]
+  #[allow(clippy::needless_pass_by_value)]
   pub fn new(
     api_key: String,
     api_address: String,
@@ -45,7 +46,7 @@ impl Logger {
     Ok(Self {
       inner: RustLogger::new(
         api_key,
-        api_address,
+        &api_address,
         sdk_directory,
         app_id,
         app_version,
