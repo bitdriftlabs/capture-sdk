@@ -20,7 +20,7 @@ use tempdir::TempDir;
 fn logger() -> anyhow::Result<RustLogger> {
   RustLogger::new(
     "api_key".to_string(),
-    "api_address".to_string(),
+    "api_address",
     "sdk_directory".to_string(),
     "app_id".to_string(),
     "app_version".to_string(),
