@@ -29,6 +29,11 @@ pub struct Logger {
   inner: RustLogger,
 }
 
+#[ctor::ctor]
+fn init_logging() {
+  bd_log::SwapLogger::initialize();
+}
+
 #[napi]
 impl Logger {
   #[napi(constructor)]
