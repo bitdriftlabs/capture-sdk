@@ -25,6 +25,8 @@ exclude_dirs = (
     './.git',
     './target/',
     './examples/',
+    './packages/core/index.d.ts',
+    './packages/core/index.js',
     './node_modules/',
 )
 

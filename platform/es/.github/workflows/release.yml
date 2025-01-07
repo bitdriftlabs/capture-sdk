@@ -141,7 +141,7 @@ jobs:
           name: bindings-${{ matrix.settings.target }}
           path: packages/core
       - name: Test bindings
-        run: npm exec nx test @bitdrift/core
+        run: npm exec nx test:artifacts:js @bitdrift/core
 
   nop-test:
     name: No-op test

@@ -16,7 +16,6 @@
     "build": "nx affected --target=build --parallel --",
     "build-debug": "nx run-many --target=build --parallel --",
     "test": "nx affected --target=test --parallel",
-    "test:all": "nx run-many --target=test --parallel",
     "lint": "nx affected --target=lint --parallel",
     "lint:all": "nx run-many --target=lint --parallel"
   },
