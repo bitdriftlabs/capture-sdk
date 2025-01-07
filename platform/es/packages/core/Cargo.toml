@@ -20,12 +20,14 @@ bd-device               = { git = "https://github.com/bitdriftlabs/shared-core" 
 bd-events               = { git = "https://github.com/bitdriftlabs/shared-core" }
 bd-hyper-network        = { git = "https://github.com/bitdriftlabs/shared-core" }
 bd-key-value            = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-log                  = { git = "https://github.com/bitdriftlabs/shared-core" }
 bd-logger               = { git = "https://github.com/bitdriftlabs/shared-core" }
 bd-metadata             = { git = "https://github.com/bitdriftlabs/shared-core" }
 bd-resource-utilization = { git = "https://github.com/bitdriftlabs/shared-core" }
 bd-session              = { git = "https://github.com/bitdriftlabs/shared-core" }
 bd-session-replay       = { git = "https://github.com/bitdriftlabs/shared-core" }
 bd-shutdown             = { git = "https://github.com/bitdriftlabs/shared-core" }
+ctor                    = "0.2.9"
 
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
 napi        = { version = "2.12.2", default-features = false, features = ["napi4", "anyhow"] }
