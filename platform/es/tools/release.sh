@@ -44,6 +44,9 @@ xargs git add <<< $TARGET_PATHS
 git add package-lock.json package.json
 
 # Push git changes made by the version update script to remote
+echo "Commiting changes for $TARGET_PATHS"
 git commit -m "chore: release $VERSION" -m "Packages: $TARGETS"
 git push origin
+
+echo "Creating PR for release $VERSION"
 gh pr create --title "chore: release $VERSION" --body "Packages: $TARGETS" --base main --head release-$VERSION
