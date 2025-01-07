@@ -28,7 +28,7 @@ describe('bitdrift native logger', () => {
   });
 
   afterAll(() => {
-    fs.rmdirSync('./store', { recursive: true });
+    fs.rmSync('./store', { recursive: true, force: true });
   });
 
   it('logger should be set', () => {
@@ -41,6 +41,7 @@ describe('bitdrift native logger', () => {
 
   it('subsequent calls to sessionId should return the same ID', () => {
     const previousSessionId = logger.sessionId;
+    expect(logger.sessionId).toHaveLength(36);
     expect(logger.sessionId).toEqual(previousSessionId);
   });
 
@@ -49,10 +50,14 @@ describe('bitdrift native logger', () => {
   });
 
   it('new logger should return same device', () => {
+    expect(logger.deviceId).toHaveLength(36);
     expect(logger.deviceId).toEqual(getLogger().deviceId);
   });
 
   it('new logger should return a new session', () => {
-    expect(logger.sessionId).not.toEqual(getLogger().sessionId);
+    const newSession = getLogger().sessionId;
+    expect(logger.sessionId).toHaveLength(36);
+    expect(newSession).toHaveLength(36);
+    expect(logger.sessionId).not.toEqual(newSession);
   });
 });
