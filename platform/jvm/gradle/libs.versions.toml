@@ -1,6 +1,6 @@
 [versions]
 androidBenchkmarkPlugin = "1.2.4"
-androidGradlePlugin = "8.2.2" # have to pin to this version due to 8.3.x breaking our lint https://issuetracker.google.com/issues/332755363
+androidGradlePlugin = "8.4.1" # have to pin to this version due to 8.3.x breaking our lint https://issuetracker.google.com/issues/332755363
 apollo = "3.8.3"
 appcompat = "1.5.1"
 assertjCore = "3.22.0"
