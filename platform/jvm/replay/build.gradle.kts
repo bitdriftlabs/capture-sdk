@@ -23,7 +23,7 @@ dependencies {
 android {
     namespace = "io.bitdrift.capture.replay"
 
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 21
