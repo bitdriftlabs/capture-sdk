@@ -1,6 +1,6 @@
 #import "BdReactNative.h"
 #import "Capture/Capture.h"
-#import "bd_react_native-Swift.h"
+#import "BdReactNative-Swift.h"
 
 @implementation BdReactNative
 RCT_EXPORT_MODULE()
