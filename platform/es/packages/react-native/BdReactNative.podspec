@@ -5,7 +5,7 @@ folly_compiler_flags = '-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1 
 capture_version = '0.16.6'
 
 Pod::Spec.new do |s|
-  s.name         = "bd-react-native"
+  s.name         = "BdReactNative"
   s.version      = package["version"]
   s.summary      = package["description"]
   s.homepage     = package["homepage"]
