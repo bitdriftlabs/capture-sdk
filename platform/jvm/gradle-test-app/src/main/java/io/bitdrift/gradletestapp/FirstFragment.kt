@@ -26,8 +26,8 @@ import androidx.compose.material.Text
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import com.apollographql.apollo3.ApolloClient
-import com.apollographql.apollo3.network.okHttpClient
+import com.apollographql.apollo.ApolloClient
+import com.apollographql.apollo.network.okHttpClient
 import com.example.rocketreserver.BookTripsMutation
 import com.example.rocketreserver.LaunchListQuery
 import com.example.rocketreserver.LoginMutation
@@ -39,7 +39,7 @@ import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LoggerImpl
-import io.bitdrift.capture.apollo3.CaptureApolloInterceptor
+import io.bitdrift.capture.apollo.CaptureApolloInterceptor
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.gradletestapp.databinding.FragmentFirstBinding
 import kotlinx.coroutines.MainScope
