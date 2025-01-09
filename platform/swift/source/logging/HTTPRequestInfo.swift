@@ -80,6 +80,22 @@ public struct HTTPRequestInfo {
                 String(describing: bytesExpectedToSendCount)
         }
 
+        // Best effort to extract graphQL operation name from the headers, this is specific
+        // to Apollo iOS client.
+        if let headers = self.headers {
+            if let operationName = headers["X-APOLLO-OPERATION-NAME"] {
+                fields["_operation_name"] = operationName
+            }
+
+            if let operationType = headers["X-APOLLO-OPERATION-TYPE"] {
+                fields["_operation_type"] = operationType
+            }
+
+            if let operationID = headers["X-APOLLO-OPERATION-ID"] {
+                fields["_operation_id"] = operationID
+            }
+        }
+
         return fields
     }
 
