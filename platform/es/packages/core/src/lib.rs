@@ -25,6 +25,12 @@ mod logger;
 mod tests;
 
 #[napi]
+pub enum SessionStrategy {
+  ActivityBased,
+  Fixed,
+}
+
+#[napi]
 pub struct Logger {
   inner: RustLogger,
 }
@@ -41,6 +47,7 @@ impl Logger {
   pub fn new(
     api_key: String,
     api_address: String,
+    session_strategy: SessionStrategy,
     sdk_directory: String,
     app_id: String,
     app_version: String,
@@ -52,6 +59,7 @@ impl Logger {
       inner: RustLogger::new(
         api_key,
         &api_address,
+        session_strategy,
         sdk_directory,
         app_id,
         app_version,

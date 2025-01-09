@@ -12,6 +12,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+use crate::SessionStrategy;
 use bd_client_common::error::handle_unexpected;
 use bd_key_value::Storage;
 use bd_logger::{
@@ -24,11 +25,13 @@ use bd_logger::{
 };
 use bd_metadata::Platform;
 use bd_session::fixed::{self, UUIDCallbacks};
-use bd_session::{Store, Strategy};
+use bd_session::{activity_based, Store, Strategy};
+use bd_time::SystemTimeProvider;
 use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::PathBuf;
 use std::sync::Arc;
+use time::Duration;
 
 //
 // RustLogger
@@ -45,6 +48,7 @@ impl RustLogger {
   pub fn new(
     api_key: String,
     api_address: &str,
+    session_strategy: SessionStrategy,
     sdk_directory: String,
     app_id: String,
     app_version: String,
@@ -58,10 +62,19 @@ impl RustLogger {
     let store = Arc::new(Store::new(storage));
     let device = Arc::new(bd_device::Device::new(store.clone()));
     let device_clone = device.clone();
-    let session_strategy = Arc::new(Strategy::Fixed(fixed::Strategy::new(
-      store.clone(),
-      Arc::new(UUIDCallbacks),
-    )));
+    let session_strategy = Arc::new(match session_strategy {
+      SessionStrategy::ActivityBased => Strategy::ActivityBased(activity_based::Strategy::new(
+        // This matches the default used on the mobile SDK. We may want to make this
+        // configurable at some point in the future.
+        Duration::minutes(30),
+        store.clone(),
+        Arc::new(SessionCallbacks),
+        Arc::new(SystemTimeProvider),
+      )),
+      SessionStrategy::Fixed => {
+        Strategy::Fixed(fixed::Strategy::new(store.clone(), Arc::new(UUIDCallbacks)))
+      },
+    });
     let session_strategy_clone = session_strategy.clone();
     let shutdown = bd_shutdown::ComponentShutdownTrigger::default();
 
@@ -149,6 +162,14 @@ impl RustLogger {
 
   pub fn device_id(&self) -> String {
     self.device.id()
+  }
+}
+
+struct SessionCallbacks;
+
+impl activity_based::Callbacks for SessionCallbacks {
+  fn session_id_changed(&self, _session_id: &str) {
+    // TODO(snowp): Consider exposing this hook eventually.
   }
 }
 

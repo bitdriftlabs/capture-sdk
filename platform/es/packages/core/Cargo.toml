@@ -27,6 +27,7 @@ bd-resource-utilization = { git = "https://github.com/bitdriftlabs/shared-core" 
 bd-session              = { git = "https://github.com/bitdriftlabs/shared-core" }
 bd-session-replay       = { git = "https://github.com/bitdriftlabs/shared-core" }
 bd-shutdown             = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-time                 = { git = "https://github.com/bitdriftlabs/shared-core" }
 ctor                    = "0.2.9"
 
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix

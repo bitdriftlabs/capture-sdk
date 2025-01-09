@@ -5,19 +5,28 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import { init, error, warn, info, debug, trace } from './Logger';
+import {
+  init,
+  error,
+  warn,
+  info,
+  debug,
+  trace,
+  SessionStrategy,
+} from './Logger';
 
 describe('init/log', () => {
   it('should initialize', () => {
-    const result = init('1234', { url: 'http://bitdrift.io' });
+    const result = init('1234', SessionStrategy.Fixed, {
+      url: 'http://bitdrift.io',
+    });
     expect(result).toBeDefined();
   });
 });
 
-
 describe('log', () => {
   beforeAll(() => {
-    init('foobar', { url: 'http://bitdrift.io' });
+    init('foobar', SessionStrategy.Fixed, { url: 'http://bitdrift.io' });
   });
 
   it('should work', () => {

@@ -693,6 +693,7 @@ dependencies = [
  "bd-session",
  "bd-session-replay",
  "bd-shutdown",
+ "bd-time",
  "ctor",
  "napi",
  "napi-build",
