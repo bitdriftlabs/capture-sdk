@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import { Logger } from '@bitdrift/core';
+import { Logger, SessionStrategy as CoreSessionStrategy } from '@bitdrift/core';
 import { app } from 'electron';
 import { platform as osPlatform, release as osRelease } from 'os';
 
@@ -18,8 +18,19 @@ let logger: Logger | null = null;
 let api_url: string;
 let api_key: string;
 
+export enum SessionStrategy {
+  Activity = 'activity',
+  Fixed = 'fixed',
+}
+
+const sessionStrategyMap = {
+  [SessionStrategy.Activity]: CoreSessionStrategy.ActivityBased,
+  [SessionStrategy.Fixed]: CoreSessionStrategy.Fixed,
+};
+
 export const init = (
   key: string,
+  sessionStrategy: SessionStrategy,
   options?: { url?: string; appVersion?: string },
 ) => {
   const url_or_default = options?.url ?? 'api.bitdrift.io';
@@ -30,6 +41,7 @@ export const init = (
   logger = new Logger(
     key,
     `https://${url_or_default}`,
+    sessionStrategyMap[sessionStrategy],
     app.getPath('userData') + '/bitdrift/',
     app.getName(),
     options?.appVersion ?? app.getVersion(),

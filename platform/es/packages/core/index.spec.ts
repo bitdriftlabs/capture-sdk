@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import * as fs from 'fs';
-import { Logger } from './index.js';
+import { Logger, SessionStrategy } from './index.js';
 
 describe('bitdrift native logger', () => {
   let logger: Logger;
@@ -15,6 +15,7 @@ describe('bitdrift native logger', () => {
     new Logger(
       'api-key',
       'https://api.bitdrift.dev',
+      SessionStrategy.Fixed,
       './store',
       'io.bitdrift.chippy',
       '1.0',

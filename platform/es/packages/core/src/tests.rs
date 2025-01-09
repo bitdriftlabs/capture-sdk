@@ -13,6 +13,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::logger::{DiskStorage, RustLogger};
+use crate::SessionStrategy;
 use bd_key_value::Storage;
 use std::fs::remove_dir_all;
 use tempdir::TempDir;
@@ -21,6 +22,7 @@ fn logger() -> anyhow::Result<RustLogger> {
   RustLogger::new(
     "api_key".to_string(),
     "api_address",
+    SessionStrategy::Fixed,
     "sdk_directory".to_string(),
     "app_id".to_string(),
     "app_version".to_string(),
