@@ -85,6 +85,11 @@ cargo {
     targetDirectory = "../../../target"
     targets = listOf("arm64", "x86_64")
     pythonCommand = "python3"
+    exec = { spec, _ ->
+        // Size optimizations, codegen-units=1 go along side LTO, which accounts for
+        // about 10% reduction; -z has a non-zero smaller impact (a few pp).
+        spec.environment("RUSTFLAGS", "-C link-arg=-Wl,-z,-max-page-size=16384")
+    }
 }
 
 // workaround bug in rust-android-gradle plugin that causes .so to not be available on app launch
