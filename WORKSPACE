@@ -183,11 +183,11 @@ load("//bazel/android:configure.bzl", "android_configure")
 
 android_configure(
     name = "local_config_android",
-    build_tools_version = "34.0.0",
+    build_tools_version = "35.0.0",
     # This value is the minimum supported Android sdk version.
     ndk_api_level = 21,
     # This is the target SDK version.
-    sdk_api_level = 34,
+    sdk_api_level = 35,
 )
 
 load("@local_config_android//:android_configure.bzl", "android_workspace")
