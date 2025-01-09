@@ -15,6 +15,9 @@ enum HTTPFieldKey: String {
     case path = "_path"
     case pathTemplate = "_path_template"
     case query = "_query"
+    case graphQLOperationName = "_operation_name"
+    case graphQLOperationType = "_operation_type"
+    case graphQLOperationID = "_operation_id"
 }
 
 /// An object representing an HTTP request.
@@ -84,15 +87,16 @@ public struct HTTPRequestInfo {
         // to Apollo iOS client.
         if let headers = self.headers {
             if let operationName = headers["X-APOLLO-OPERATION-NAME"] {
-                fields["_operation_name"] = operationName
+                fields[HTTPFieldKey.graphQLOperationName.rawValue] = operationName
+                fields[HTTPFieldKey.pathTemplate.rawValue] = "gql-\(operationName)"
             }
 
             if let operationType = headers["X-APOLLO-OPERATION-TYPE"] {
-                fields["_operation_type"] = operationType
+                fields[HTTPFieldKey.graphQLOperationType.rawValue] = operationType
             }
 
             if let operationID = headers["X-APOLLO-OPERATION-ID"] {
-                fields["_operation_id"] = operationID
+                fields[HTTPFieldKey.graphQLOperationID.rawValue] = operationID
             }
         }
 
