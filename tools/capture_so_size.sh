@@ -3,7 +3,8 @@
 set -euo pipefail
 
 # Build the .aar with Android release flags
-./bazelw build :capture_aar --config release-android --fat_apk_cpu=arm64-v8a
+./bazelw build :capture_aar --config release-android --android_platforms=@rules_android//:arm64-v8a
+
 aar=$(pwd)/bazel-bin/capture_aar_local.aar
 
 mkdir -p /tmp/bitdrift_so

@@ -1,4 +1,4 @@
-load("@com_github_google_flatbuffers//:build_defs.bzl", "flatbuffer_library_public")
+load("@flatbuffers//:build_defs.bzl", "flatbuffer_library_public")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_binary")
 
 flatbuffer_library_public(

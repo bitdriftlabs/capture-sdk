@@ -1,4 +1,4 @@
-load("@io_bazel_rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
+load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
 load("@rules_jvm_external//:defs.bzl", "artifact")
 load("//bazel/android:build.bzl", "bitdrift_kt_android_library", "bitdrift_kt_android_local_test")
 
@@ -63,7 +63,7 @@ bitdrift_kt_android_local_test(
         "//platform/jvm/capture:capture_logger_lib",
         artifact("junit:junit"),
         artifact("org.robolectric:robolectric"),
-        "@robolectric//bazel:android-all",
+        "@rules_robolectric//bazel:android-all",
         artifact("androidx.test:core"),
         artifact("org.mockito:mockito-core"),
         artifact("org.mockito:mockito-inline"),

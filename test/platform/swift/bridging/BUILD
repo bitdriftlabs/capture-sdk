@@ -1,4 +1,4 @@
-load("@build_bazel_rules_swift//swift:swift.bzl", "swift_library")
+load("@rules_swift//swift:swift.bzl", "swift_library")
 load("@rules_cc//cc:defs.bzl", "cc_library", "objc_library")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
 

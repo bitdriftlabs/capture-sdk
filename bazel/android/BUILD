@@ -7,6 +7,7 @@ bitdrift_kt_jvm_library(
     srcs = ["TestSuite.kt"],
     require_javadocs = False,
     visibility = ["//visibility:public"],
+    testonly = True,
     deps = [
         artifact("io.github.classgraph:classgraph"),
         artifact("junit:junit"),

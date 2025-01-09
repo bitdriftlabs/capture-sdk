@@ -1,0 +1,5 @@
+workspace(name = "capture-sdk")
+
+# TODO(fz): Remove this once it's not in the main bazel repo anymore (ie Bazel 8)
+# This is being moved to rules_android but doesn't work right now without it.
+android_sdk_repository(name="androidsdk", api_level=34)

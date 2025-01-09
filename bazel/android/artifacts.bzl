@@ -1,7 +1,7 @@
 """Rules for creating an aar for distribution including native libraries"""
 # Copied from https://github.com/envoyproxy/envoy-mobile/blob/main/bazel/android_artifacts.bzl
 
-load("@build_bazel_rules_android//android:rules.bzl", "android_binary")
+load("@rules_android//android:rules.bzl", "android_binary")
 load("@google_bazel_common//tools/maven:pom_file.bzl", "pom_file")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@rules_java//java:defs.bzl", "java_binary")

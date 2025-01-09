@@ -1,5 +1,5 @@
-load("@build_bazel_rules_android//android:rules.bzl", "aar_import", "android_binary")
-load("@io_bazel_rules_kotlin//kotlin:android.bzl", "kt_android_library")
+load("@rules_android//android:rules.bzl", "aar_import", "android_binary")
+load("@rules_kotlin//kotlin:android.bzl", "kt_android_library")
 load("@rules_jvm_external//:defs.bzl", "artifact")
 
 aar_import(
