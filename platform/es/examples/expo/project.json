@@ -20,6 +20,20 @@
         "params": "ignore"
       }]
     },
+    "android": {
+      "dependsOn": [{
+        "target": "prepare-release",
+        "projects": ["@bitdrift/react-native"],
+        "params": "ignore"
+      }]
+    },
+    "ios": {
+      "dependsOn": [{
+        "target": "prepare-release",
+        "projects": ["@bitdrift/react-native"],
+        "params": "ignore"
+      }]
+    },
     "prebuild": {
       "dependsOn": [{
         "target": "prepare-release",
