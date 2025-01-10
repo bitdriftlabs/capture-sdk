@@ -72,7 +72,7 @@ jobs:
           key: ${{ matrix.settings.target }}-cargo
 
       - name: Build
-        run: npm exec nx build:rs "@bitdrift/core" -- --args="--target ${{ matrix.settings.target }}"
+        run: npm exec nx build "@bitdrift/core" -- --args="--target ${{ matrix.settings.target }}"
         env:
           SKIP_PROTO_GEN: true
 

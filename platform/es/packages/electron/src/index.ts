@@ -5,4 +5,14 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-export { init, error, warn, info, debug, trace, getSessionID, generateDeviceCode } from './lib/Logger';
+export {
+  init,
+  error,
+  warn,
+  info,
+  debug,
+  trace,
+  getSessionID,
+  generateDeviceCode,
+  SessionStrategy,
+} from './lib/Logger';
