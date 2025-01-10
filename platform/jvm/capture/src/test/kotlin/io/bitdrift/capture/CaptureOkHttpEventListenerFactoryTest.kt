@@ -401,4 +401,64 @@ class CaptureOkHttpEventListenerFactoryTest {
         // validate all request fields are present in response
         assertThat(httpResponseInfo.fields.mapValues { it.value.toString() }.entries.containsAll(expectedFields.entries)).isTrue()
     }
+
+    @Test
+    fun testApolloHeadersSendGraphQlSpans() {
+        // ARRANGE
+        val headerFields = mapOf(
+            "x-apollo-operation-name" to "myOperationName",
+            "x-apollo-operation-id" to "myOperationId",
+            "x-apollo-operation-type" to "query",
+        )
+        val expectedSpanName = "_graphql"
+        val expectedFields = mapOf(
+            "_operation_name" to "myOperationName",
+            "_operation_id" to "myOperationId",
+            "_operation_type" to "query",
+            "_path_template" to "gql-myOperationName",
+        )
+
+        val request = Request.Builder()
+            .url(endpoint)
+            .post("test".toRequestBody())
+            .headers(headerFields.toHeaders())
+            .build()
+
+        val response = Response.Builder()
+            .request(request)
+            .protocol(Protocol.HTTP_2)
+            .code(200)
+            .message("message")
+            .header("response_header", "response_header_value")
+            .build()
+
+        val call: Call = mock()
+        whenever(call.request()).thenReturn(request)
+
+        // ACT
+        val factory = CaptureOkHttpEventListenerFactory(null, logger, clock)
+        val listener = factory.create(call)
+
+        listener.callStart(call)
+
+        listener.responseHeadersEnd(call, response)
+        listener.responseBodyEnd(call, 234)
+
+        listener.callEnd(call)
+
+        // ASSERT
+        val httpRequestInfoCapture = argumentCaptor<HttpRequestInfo>()
+        verify(logger).log(httpRequestInfoCapture.capture())
+        val httpResponseInfoCapture = argumentCaptor<HttpResponseInfo>()
+        verify(logger).log(httpResponseInfoCapture.capture())
+
+        val httpRequestInfo = httpRequestInfoCapture.firstValue
+        val httpResponseInfo = httpResponseInfoCapture.firstValue
+
+        assertThat(httpRequestInfo.fields["_span_name"].toString()).isEqualTo(expectedSpanName)
+        // validate all the extra headers are present as properly formatted fields
+        assertThat(httpRequestInfo.fields.mapValues { it.value.toString() }.entries.containsAll(expectedFields.entries)).isTrue()
+        // validate all request fields are present in response
+        assertThat(httpResponseInfo.fields.mapValues { it.value.toString() }.entries.containsAll(expectedFields.entries)).isTrue()
+    }
 }
