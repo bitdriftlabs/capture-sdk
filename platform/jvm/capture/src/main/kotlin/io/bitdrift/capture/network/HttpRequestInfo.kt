@@ -97,13 +97,13 @@ data class HttpRequestInfo @JvmOverloads constructor(
      * @param headers The map of headers from which fields are extracted.
      */
     private fun MutableMap<String, FieldValue>.putOptionalGraphQlHeaders(headers: Map<String, String>?) {
-        headers?.get("x-apollo-operation-name")?.let { gqlOperationName ->
+        headers?.get("X-APOLLO-OPERATION-NAME")?.let { gqlOperationName ->
             put(HttpFieldKey.PATH_TEMPLATE, FieldValue.StringField("gql-$gqlOperationName"))
             put("_operation_name", FieldValue.StringField(gqlOperationName))
-            headers["x-apollo-operation-type"]?.let { gqlOperationKey ->
+            headers["X-APOLLO-OPERATION-TYPE"]?.let { gqlOperationKey ->
                 put("_operation_type", FieldValue.StringField(gqlOperationKey))
             }
-            headers["x-apollo-operation-id"]?.let { gqlOperationId ->
+            headers["X-APOLLO-OPERATION-ID"]?.let { gqlOperationId ->
                 put("_operation_id", FieldValue.StringField(gqlOperationId))
             }
             // override _span_name

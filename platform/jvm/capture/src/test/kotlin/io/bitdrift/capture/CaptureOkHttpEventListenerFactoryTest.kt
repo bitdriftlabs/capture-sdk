@@ -406,9 +406,9 @@ class CaptureOkHttpEventListenerFactoryTest {
     fun testApolloHeadersSendGraphQlSpans() {
         // ARRANGE
         val headerFields = mapOf(
-            "x-apollo-operation-name" to "myOperationName",
-            "x-apollo-operation-id" to "myOperationId",
-            "x-apollo-operation-type" to "query",
+            "X-APOLLO-OPERATION-NAME" to "myOperationName",
+            "X-APOLLO-OPERATION-ID" to "myOperationId",
+            "X-APOLLO-OPERATION-TYPE" to "query",
         )
         val expectedSpanName = "_graphql"
         val expectedFields = mapOf(
