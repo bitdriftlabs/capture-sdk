@@ -17,7 +17,6 @@
 mod integration_test;
 
 use crate::SessionStrategy;
-use bd_client_common::error::handle_unexpected;
 use bd_key_value::Storage;
 use bd_logger::{
   AnnotatedLogField,
@@ -36,6 +35,7 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::PathBuf;
 use std::sync::Arc;
 use time::Duration;
+use tokio::try_join;
 
 //
 // RustLogger
@@ -82,9 +82,6 @@ impl RustLogger {
     let session_strategy_clone = session_strategy.clone();
     let shutdown = bd_shutdown::ComponentShutdownTrigger::default();
 
-    let (network, handle) =
-      bd_hyper_network::HyperNetwork::new(api_address, shutdown.make_shutdown());
-
     let metadata_provider = Arc::new(MetadataProvider::new(
       app_id.clone(),
       app_version.clone(),
@@ -103,6 +100,25 @@ impl RustLogger {
       device.id(),
     ));
 
+    let (network, handle) =
+      bd_hyper_network::HyperNetwork::new(api_address, shutdown.make_shutdown());
+
+    let reporter = {
+      let (reporter, handle) = bd_hyper_network::ErrorReporter::new(api_address.to_string());
+
+      let handle = bd_client_common::error::MetadataErrorReporter::new(
+        Arc::new(handle),
+        Arc::new(SessionProvider {
+          strategy: session_strategy.clone(),
+        }),
+        static_metadata.clone(),
+      );
+
+      bd_client_common::error::UnexpectedErrorHandler::set_reporter(Arc::new(handle));
+
+      reporter
+    };
+
     let (logger, _, logger_future) = LoggerBuilder::new(InitParams {
       sdk_directory,
       api_key,
@@ -119,24 +135,18 @@ impl RustLogger {
     .with_client_stats(true)
     .build()?;
 
-    std::thread::Builder::new()
-      .name("io.bitdrift.capture.logger".to_string())
-      .spawn(move || {
-        tokio::runtime::Builder::new_current_thread()
-          .thread_name("io.bitdrift.capture.logger")
-          .thread_name_fn(|| "io.bitdrift.capture.logger.worker".to_string())
-          .enable_all()
-          .build()
-          .unwrap()
-          .block_on(async {
-            // Make sure we hold onto the shutdown handle to avoid an immediate shutdown.
-            #[allow(clippy::no_effect_underscore_binding)]
-            let _shutdown = shutdown;
+    LoggerBuilder::run_logger_runtime(async {
+      // Make sure we hold onto the shutdown handle to avoid an immediate shutdown.
+      #[allow(clippy::no_effect_underscore_binding)]
+      let _shutdown = shutdown;
 
-            tokio::spawn(network.start());
-            handle_unexpected(logger_future.await, "logger top level run loop");
-          });
+      try_join!(network.start(), logger_future, async {
+        reporter.start().await;
+        Ok(())
       })?;
+
+      Ok(())
+    })?;
 
 
     let handle = logger.new_logger_handle();
@@ -167,6 +177,16 @@ impl RustLogger {
 
   pub fn device_id(&self) -> String {
     self.device.id()
+  }
+}
+
+struct SessionProvider {
+  strategy: Arc<Strategy>,
+}
+
+impl bd_client_common::error::SessionProvider for SessionProvider {
+  fn session_id(&self) -> String {
+    self.strategy.session_id()
   }
 }
 
