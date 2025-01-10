@@ -26,8 +26,8 @@ import androidx.compose.material.Text
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import com.apollographql.apollo.ApolloClient
-import com.apollographql.apollo.network.okHttpClient
+import com.apollographql.apollo3.ApolloClient
+import com.apollographql.apollo3.network.okHttpClient
 import com.example.rocketreserver.BookTripsMutation
 import com.example.rocketreserver.LaunchListQuery
 import com.example.rocketreserver.LoginMutation
@@ -151,7 +151,7 @@ class FirstFragment : Fragment() {
         apolloClient = ApolloClient.Builder()
             .serverUrl("https://apollo-fullstack-tutorial.herokuapp.com/graphql")
             .okHttpClient(okHttpClient)
-            .addInterceptor(CaptureApolloInterceptor())
+//            .addInterceptor(CaptureApolloInterceptor())
             .build()
     }
 

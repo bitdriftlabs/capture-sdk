@@ -57,7 +57,6 @@ truth = { module = "com.google.truth:truth", version.ref = "truth" }
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 android-benchmark = { id = "androidx.benchmark", version.ref = "androidBenchkmarkPlugin" }
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
-apollo-graphql = { id = "com.apollographql.apollo", version.ref = "apollo" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detektPlugin" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokkaPlugin" }
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublishPlugin" }
