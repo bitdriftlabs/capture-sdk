@@ -30,6 +30,7 @@ bd-shutdown             = { git = "https://github.com/bitdriftlabs/shared-core" 
 bd-time                 = { git = "https://github.com/bitdriftlabs/shared-core" }
 ctor                    = "0.2.9"
 
+
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
 napi        = { version = "2.12.2", default-features = false, features = ["napi4", "anyhow"] }
 napi-derive = "2.12.2"
@@ -40,7 +41,12 @@ tracing     = "0.1.40"
 uuid        = "1.7.0"
 
 [dev-dependencies]
-tempdir = "0.3"
+assert_matches   = "1.5.0"
+bd-client-common = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-proto         = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-runtime       = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-test-helpers  = { git = "https://github.com/bitdriftlabs/shared-core" }
+tempdir          = "0.3"
 
 [build-dependencies]
 napi-build = "2.0.1"

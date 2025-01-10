@@ -12,6 +12,10 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+#[cfg(test)]
+#[path = "./integration_test.rs"]
+mod integration_test;
+
 use crate::SessionStrategy;
 use bd_client_common::error::handle_unexpected;
 use bd_key_value::Storage;
@@ -111,7 +115,7 @@ impl RustLogger {
       network: Box::new(handle),
       static_metadata,
     })
-    .with_mobile_features(true)
+    .with_client_stats(true)
     .build()?;
 
     std::thread::Builder::new()
