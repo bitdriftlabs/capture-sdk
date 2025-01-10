@@ -47,7 +47,9 @@ data class HttpRequestInfo @JvmOverloads constructor(
     internal val commonFields: InternalFieldsMap by lazy {
         buildMap {
             putAll(extraFields.toFields())
+            put(SpanField.Key.NAME, FieldValue.StringField("_http"))
             putOptionalHeaderSpanFields(headers)
+            putOptionalGraphQlHeaders(headers)
             put(SpanField.Key.ID, FieldValue.StringField(spanId.toString()))
             put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_START))
             put("_method", FieldValue.StringField(method))
@@ -77,6 +79,7 @@ data class HttpRequestInfo @JvmOverloads constructor(
         headers?.get("x-capture-span-key")?.let { spanKey ->
             val prefix = "x-capture-span-$spanKey"
             val spanName = "_" + headers["$prefix-name"]
+            // override _span_name
             put(SpanField.Key.NAME, FieldValue.StringField(spanName))
             val fieldPrefix = "$prefix-field"
             headers.forEach { (key, value) ->
@@ -85,9 +88,26 @@ data class HttpRequestInfo @JvmOverloads constructor(
                     put(fieldKey, FieldValue.StringField(value))
                 }
             }
-        } ?: run {
-            // Default span name is simply http
-            put(SpanField.Key.NAME, FieldValue.StringField("_http"))
+        }
+    }
+
+    /**
+     * Best effort to extract graphQL operation name from the headers, this is specific to apollo3 kotlin client
+     *
+     * @param headers The map of headers from which fields are extracted.
+     */
+    private fun MutableMap<String, FieldValue>.putOptionalGraphQlHeaders(headers: Map<String, String>?) {
+        headers?.get("X-APOLLO-OPERATION-NAME")?.let { gqlOperationName ->
+            put(HttpFieldKey.PATH_TEMPLATE, FieldValue.StringField("gql-$gqlOperationName"))
+            put("_operation_name", FieldValue.StringField(gqlOperationName))
+            headers["X-APOLLO-OPERATION-TYPE"]?.let { gqlOperationKey ->
+                put("_operation_type", FieldValue.StringField(gqlOperationKey))
+            }
+            headers["X-APOLLO-OPERATION-ID"]?.let { gqlOperationId ->
+                put("_operation_id", FieldValue.StringField(gqlOperationId))
+            }
+            // override _span_name
+            put(SpanField.Key.NAME, FieldValue.StringField("_graphql"))
         }
     }
 }
