@@ -9,9 +9,8 @@
     "src/**/*.spec.ts",
     "src/**/*.spec.tsx",
     "test-setup.ts",
-      "src/**/*.test.ts",
-      "src/**/*.test.tsx",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
   ],
-  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx",
-  ]
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"]
 }

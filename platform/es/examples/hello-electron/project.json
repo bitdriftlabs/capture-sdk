@@ -1,0 +1,33 @@
+{
+  "name": "hello-electron",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "dependsOn": ["^build"],
+      "executor": "@nx/esbuild:esbuild",
+      "options": {
+        "main": "{projectRoot}/main.ts",
+        "tsConfig": "{projectRoot}/tsconfig.json",
+        "outputPath": "dist/{projectRoot}",
+        "assets": ["{projectRoot}/index.html"],
+        "external": ["@bitdrift/core-darwin-arm64", "./core.darwin-arm64.node", "packages/core/core.darwin-arm64.node"],
+        "format": ["cjs"]
+      }
+    },
+    "build-for-serve": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cp packages/core/core.darwin-arm64.node dist/{projectRoot}/"
+      }
+    },
+    "serve": {
+      "dependsOn": ["build-for-serve"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "electron dist/{projectRoot}/main.cjs"
+      }
+    }
+  }
+}

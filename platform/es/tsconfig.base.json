@@ -1,6 +1,7 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "baseUrl": ".",
     "rootDir": ".",
     "sourceMap": true,
     "declaration": false,
@@ -13,11 +14,11 @@
     "lib": ["es2020", "dom"],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
-    "baseUrl": ".",
     "paths": {
-      "@bitdrift/electron": ["logger/src/index.ts"],
-      "@bitdrift/react-native": ["packages/react-native/src/index.tsx"],
-      "@capture-es/native": ["./dist/native/index.node"]
+      "@bitdrift/core": ["./packages/core/index.d.ts"],
+      "@bitdrift/electron": ["./packages/electron/src/index.ts"],
+      "@bitdrift/react-native": ["./packages/react-native/src/index.tsx"],
+      "@bitdrift/core-darwin-arm64": ["./packages/core/core.darwin-arm64.node"]
     }
   },
   "exclude": ["node_modules", "tmp"]

@@ -7,13 +7,12 @@
     "access": "public"
   },
   "targets": {
-    "build:rs": {
+    "build": {
+      "dependsOn": ["^build"],
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/core",
-        "commands": [
-          "napi build --platform --release"
-        ]
+        "cwd": "{projectRoot}",
+        "command": "napi build --platform --release"
       }
     },
     "move-artifacts": {
@@ -45,7 +44,7 @@
       }
     },
     "test:js": {
-      "dependsOn": ["build:rs"],
+      "dependsOn": ["build"],
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {

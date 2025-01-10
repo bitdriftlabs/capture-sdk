@@ -8,8 +8,7 @@
 import { Logger, SessionStrategy as CoreSessionStrategy } from '@bitdrift/core';
 import { app } from 'electron';
 import { platform as osPlatform, release as osRelease } from 'os';
-
-import https = require('https');
+import * as https from 'https';
 
 type LogParams = Parameters<typeof Logger.prototype.log>;
 type LogFields = LogParams[2];
