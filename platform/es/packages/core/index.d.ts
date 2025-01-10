@@ -5,25 +5,11 @@
 
 export const enum SessionStrategy {
   ActivityBased = 0,
-  Fixed = 1,
+  Fixed = 1
 }
 export declare class Logger {
-  constructor(
-    apiKey: string,
-    apiAddress: string,
-    sessionStrategy: SessionStrategy,
-    sdkDirectory: string,
-    appId: string,
-    appVersion: string,
-    platform: string,
-    platformVersion: string,
-    locale: string,
-  );
-  get sessionId(): string;
-  get deviceId(): string;
-  log(
-    level: number,
-    message: string,
-    fields: Record<string, string | number | boolean | Buffer>,
-  ): void;
+  constructor(apiKey: string, apiAddress: string, sessionStrategy: SessionStrategy, sdkDirectory: string, appId: string, appVersion: string, platform: string, platformVersion: string, locale: string)
+  get sessionId(): string
+  get deviceId(): string
+  log(level: number, message: string, fields: Record<string, string | number | boolean | Buffer>): void
 }

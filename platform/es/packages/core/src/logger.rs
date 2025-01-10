@@ -100,6 +100,7 @@ impl RustLogger {
       // env so that we can have this code work for both electron apps and other node-based
       // programs.
       Platform::Electron,
+      device.id(),
     ));
 
     let (logger, _, logger_future) = LoggerBuilder::new(InitParams {
@@ -223,14 +224,21 @@ struct StaticMetadata {
   app_id: String,
   app_version: String,
   platform: Platform,
+  device_id: String,
 }
 
 impl StaticMetadata {
-  pub const fn new(app_id: String, app_version: String, platform: Platform) -> Self {
+  pub const fn new(
+    app_id: String,
+    app_version: String,
+    platform: Platform,
+    device_id: String,
+  ) -> Self {
     Self {
       app_id,
       app_version,
       platform,
+      device_id,
     }
   }
 }
@@ -247,6 +255,10 @@ impl bd_metadata::Metadata for StaticMetadata {
   fn sdk_version(&self) -> &'static str {
     // TODO(snowp): Figure out the story for electron for SDK version.
     "0.1.0"
+  }
+
+  fn device_id(&self) -> String {
+    self.device_id.clone()
   }
 
   fn platform(&self) -> &Platform {
