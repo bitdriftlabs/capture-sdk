@@ -36,7 +36,7 @@ jobs:
       env:
         SKIP_PROTO_GEN: 1
     - name: Build Apollo artifacts with Gradle
-      run: ./gradlew :capture-apollo3:publish -PVERSION_NAME="${{ inputs.version }}" --info
+      run: ./gradlew :capture-apollo:publish -PVERSION_NAME="${{ inputs.version }}" --info
       env:
         SKIP_PROTO_GEN: 1
     - name: Build Gradle Plugin artifacts with Gradle
