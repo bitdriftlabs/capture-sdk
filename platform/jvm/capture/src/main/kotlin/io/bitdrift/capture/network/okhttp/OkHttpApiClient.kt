@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.network.okhttp
 
+import android.util.Log
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.google.gson.Gson
@@ -60,16 +61,20 @@ internal class OkHttpApiClient(
         requestBuilder.header("x-bitdrift-api-key", apiKey)
         client.newCall(requestBuilder.build()).enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    try {
-                        val typedResponse = gson.fromTypedJson<Rp>(response.body?.string().orEmpty())
-                        completion(Ok(typedResponse))
-                    } catch (e: Exception) {
-                        completion(Err(e.toSerializationError()))
+                response.use {
+                    if (response.isSuccessful) {
+                        try {
+                            val typedResponse =
+                                gson.fromTypedJson<Rp>(response.body?.string().orEmpty())
+                            completion(Ok(typedResponse))
+                        } catch (e: Exception) {
+                            completion(Err(e.toSerializationError()))
+                        }
+                    } else {
+                        val responseBody = response.body?.string()
+                        completion(Err(ApiError.ServerError(response.code, responseBody)))
                     }
-                } else {
-                    val responseBody = response.body?.string()
-                    completion(Err(ApiError.ServerError(response.code, responseBody)))
+                    Log.e("bitdrift", "done")
                 }
             }
 
@@ -79,7 +84,8 @@ internal class OkHttpApiClient(
         })
     }
 
-    private inline fun <reified Rp> Gson.fromTypedJson(json: String) = fromJson<Rp>(json, object : TypeToken<Rp>() {}.type)
+    private inline fun <reified Rp> Gson.fromTypedJson(json: String) =
+        fromJson<Rp>(json, object : TypeToken<Rp>() {}.type)
 
     private fun IOException.toNetworkError(): ApiError {
         return ApiError.NetworkError(message = this.toString())
