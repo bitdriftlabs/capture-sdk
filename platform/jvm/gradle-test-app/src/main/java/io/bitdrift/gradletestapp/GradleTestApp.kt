@@ -103,13 +103,15 @@ class GradleTestApp : Application() {
         // ApplicationStartInfo
         if (Build.VERSION.SDK_INT >= 35) {
             val activityManager: ActivityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-            activityManager.addApplicationStartInfoCompletionListener(ContextCompat.getMainExecutor(this)) { appStartInfo ->
+            val appStartInfo = activityManager.getHistoricalProcessStartReasons(1).first()
+//            activityManager.addApplicationStartInfoCompletionListener(ContextCompat.getMainExecutor(this)) { appStartInfo ->
                 val appStartInfoFields = mapOf(
                     "startup_type" to appStartInfo.startType.toStartTypeText(),
                     "startup_state" to appStartInfo.startupState.toStartupStateText(),
                     "startup_launch_mode" to appStartInfo.launchMode.toLaunchModeText(),
                     "startup_was_forced_stopped" to appStartInfo.wasForceStopped().toString(),
                     "startup_reason" to appStartInfo.reason.toStartReasonText(),
+                    "startup_intent_action" to appStartInfo.intent?.action.toString(),
                     "start_timestamp_launch_ns" to (appStartInfo.startupTimestamps[START_TIMESTAMP_LAUNCH]?.toString() ?: "null"),
                     "start_timestamp_fork_ns" to (appStartInfo.startupTimestamps[START_TIMESTAMP_FORK]?.toString() ?: "null"),
                     "start_timestamp_oncreate_ns" to (appStartInfo.startupTimestamps[START_TIMESTAMP_APPLICATION_ONCREATE]?.toString() ?: "null"),
@@ -121,7 +123,7 @@ class GradleTestApp : Application() {
                 )
                 Timber.d("ApplicationStartInfoCompletion event: $appStartInfoFields")
                 Capture.Logger.logInfo(appStartInfoFields) { "ApplicationStartInfoCompletion" }
-            }
+//            }
         }
 
         // Papa
