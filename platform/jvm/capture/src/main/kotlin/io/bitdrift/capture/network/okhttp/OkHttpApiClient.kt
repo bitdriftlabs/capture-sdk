@@ -60,6 +60,7 @@ internal class OkHttpApiClient(
         requestBuilder.header("x-bitdrift-api-key", apiKey)
         client.newCall(requestBuilder.build()).enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
+              response.use {
                 if (response.isSuccessful) {
                     try {
                         val typedResponse = gson.fromTypedJson<Rp>(response.body?.string().orEmpty())
@@ -71,6 +72,7 @@ internal class OkHttpApiClient(
                     val responseBody = response.body?.string()
                     completion(Err(ApiError.ServerError(response.code, responseBody)))
                 }
+              }
             }
 
             override fun onFailure(call: Call, e: IOException) {
