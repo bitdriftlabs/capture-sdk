@@ -17,6 +17,7 @@
 mod integration_test;
 
 use crate::SessionStrategy;
+use bd_client_common::error::handle_unexpected;
 use bd_key_value::Storage;
 use bd_logger::{
   AnnotatedLogField,
@@ -104,7 +105,8 @@ impl RustLogger {
       bd_hyper_network::HyperNetwork::new(api_address, shutdown.make_shutdown());
 
     let reporter = {
-      let (reporter, handle) = bd_hyper_network::ErrorReporter::new(api_address.to_string());
+      let (reporter, handle) =
+        bd_hyper_network::ErrorReporter::new(api_address.to_string(), api_key.clone());
 
       let handle = bd_client_common::error::MetadataErrorReporter::new(
         Arc::new(handle),
@@ -140,10 +142,14 @@ impl RustLogger {
       #[allow(clippy::no_effect_underscore_binding)]
       let _shutdown = shutdown;
 
-      try_join!(network.start(), logger_future, async {
-        reporter.start().await;
-        Ok(())
-      })?;
+      // Since the error reporting relies on the reporter future we need to make sure that we give
+      // the reporter a chance to report on the error returned from the top level task. To
+      // accomplish this we run the reporter in a separate task that we allow to finish after the
+      // logger future has completed.
+
+      let reporter_task = tokio::spawn(reporter.start());
+      handle_unexpected(try_join!(network.start(), logger_future), "top level task");
+      reporter_task.await?;
 
       Ok(())
     })?;
