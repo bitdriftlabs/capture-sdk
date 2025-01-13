@@ -35,6 +35,7 @@ npm exec nx run-many -- -t prepare-release -p $TARGETS
 npm install --package-lock-only --silent
 
 # Do the release with the versions previously updated
+echo "Releaseing targets: $TARGETS"
 npm exec nx release publish -- -p $TARGETS -y
 
 # Stage all relevant project files but nothing more

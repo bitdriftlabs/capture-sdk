@@ -4,7 +4,13 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build",
+        {
+          "target": "build",
+          "projects": "@bitdrift/core"
+        }
+      ],
       "executor": "@nx/esbuild:esbuild",
       "options": {
         "main": "{projectRoot}/main.ts",
