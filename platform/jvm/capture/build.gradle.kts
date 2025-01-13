@@ -45,7 +45,7 @@ android {
     buildToolsVersion = "35.0.0"
 
     defaultConfig {
-        ndkVersion = "27"
+        ndkVersion = "28"
         minSdk = 21
         consumerProguardFiles("consumer-rules.pro")
     }
@@ -74,7 +74,7 @@ android {
         checkReleaseBuilds = true
     }
 
-    ndkVersion = "27.2.12479018"
+    ndkVersion = "28.0.12674087-rc2"
 }
 
 // Rust cargo build toolchain
