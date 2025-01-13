@@ -14,7 +14,7 @@ plugins {
 group = "io.bitdrift"
 
 android {
-    namespace = "io.bitdrift.capture.apollo3"
+    namespace = "io.bitdrift.capture.apollo"
     compileSdk = 35
 
     defaultConfig {
@@ -70,7 +70,7 @@ dependencies {
 mavenPublishing {
     pom {
         name.set("CaptureApollo")
-        description.set("Official Capture integration for Apollo v3 (GraphQL).")
+        description.set("Official Capture integration for Apollo (GraphQL).")
         url.set("https://bitdrift.io")
         licenses {
             license {

@@ -203,10 +203,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: capture-timber-${{ inputs.version }}.android.zip
-      - name: Download Android Apollo3 Integration
+      - name: Download Android Apollo Integration
         uses: actions/download-artifact@v4
         with:
-          name: capture-apollo3-${{ inputs.version }}.android.zip
+          name: capture-apollo-${{ inputs.version }}.android.zip
       - name: Download Android Plugin Integration
         uses: actions/download-artifact@v4
         with:
@@ -244,7 +244,7 @@ jobs:
             "example-apps.ios.zip" \
             "example-apps.android.zip" \
             "capture-timber-$VERSION.android.zip" \
-            "capture-apollo3-$VERSION.android.zip" \
+            "capture-apollo-$VERSION.android.zip" \
             "capture-plugin-$VERSION.android.zip" \
             "capture-plugin-marker-$VERSION.android.zip"
         env:

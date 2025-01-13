@@ -10,7 +10,7 @@ pluginManagement {
 }
 
 include(":capture")
-include(":capture-apollo3")
+include(":capture-apollo")
 include(":capture-timber")
 include(":common")
 include(":replay")
