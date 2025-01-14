@@ -78,7 +78,7 @@ jobs:
 
       - name: build apk
         timeout-minutes: 30
-        run: ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86 //examples/android:android_app
+        run: ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
       - uses: actions/upload-artifact@v4
         with:
           name: android_app.apk

@@ -14,7 +14,7 @@ mod test {
   fn runfiles_path(name: &str) -> PathBuf {
     let runfiles = std::env::var("RUNFILES_DIR").unwrap();
 
-    PathBuf::from(runfiles).join("__main__").join(name)
+    PathBuf::from(runfiles).join("_main").join(name)
   }
 
   #[test]

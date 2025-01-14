@@ -228,7 +228,13 @@ maven.artifact(
     testonly = True,
     artifact = "robolectric",
     group = "org.robolectric",
-    version = "4.13",
+    version = "4.14",
+)
+maven.artifact(
+    testonly = True,
+    artifact = "android-all",
+    group = "org.robolectric",
+    version = "15-robolectric-12650502",
 )
 maven.artifact(
     testonly = True,
