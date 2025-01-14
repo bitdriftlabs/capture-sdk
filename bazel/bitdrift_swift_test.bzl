@@ -1,6 +1,6 @@
 load("@rules_apple//apple:ios.bzl", "ios_unit_test")
-load("@rules_swift//swift:swift.bzl", "swift_library")
 load("@rules_cc//cc:defs.bzl", "objc_library")
+load("@rules_swift//swift:swift.bzl", "swift_library")
 load("//bazel:config.bzl", "MINIMUM_IOS_VERSION_TESTS")
 
 # Macro providing a way to easily/consistently define Swift unit test targets.

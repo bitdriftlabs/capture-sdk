@@ -1,3 +1,4 @@
+load("@rules_detekt//detekt:defs.bzl", "detekt")
 load(
     "@rules_kotlin//kotlin:android.bzl",
     "kt_android_library",
@@ -5,7 +6,6 @@ load(
 )
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
 load("@rules_kotlin//kotlin:lint.bzl", "ktlint_fix", "ktlint_test")
-load("@rules_detekt//detekt:defs.bzl", "detekt")
 
 # Configures a kt_android_library with lint targets.
 def bitdrift_kt_android_library(name, srcs, require_javadocs = True, **args):

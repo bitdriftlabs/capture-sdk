@@ -1,7 +1,7 @@
 load("@rules_apple//apple:apple.bzl", "apple_static_framework_import")
+load("@rules_java//java:defs.bzl", "java_binary")
 load("@rules_kotlin//kotlin:core.bzl", "define_kt_toolchain", "kt_compiler_plugin", "kt_kotlinc_options")
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_javac_options")
-load("@rules_java//java:defs.bzl", "java_binary")
 load("@rules_pkg//:pkg.bzl", "pkg_zip")
 load(
     "@rules_xcodeproj//xcodeproj:defs.bzl",

@@ -1,6 +1,6 @@
 load("@rules_android//android:rules.bzl", "aar_import", "android_binary")
-load("@rules_kotlin//kotlin:android.bzl", "kt_android_library")
 load("@rules_jvm_external//:defs.bzl", "artifact")
+load("@rules_kotlin//kotlin:android.bzl", "kt_android_library")
 
 _maven_deps = [
     artifact("com.google.code.findbugs:jsr305"),
@@ -27,8 +27,8 @@ _maven_deps = [
 
 aar_import(
     name = "imported_capture_aar",
-    deps = _maven_deps,
     aar = "//:capture_aar",
+    deps = _maven_deps,
 )
 
 kt_android_library(

@@ -25,6 +25,7 @@ NDK_API_LEVEL = 21
 ####################
 
 http_jar = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_jar")
+
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 new_git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
@@ -134,7 +135,6 @@ native_binary(
     sha256 = "50cbf3dbb9b675d7bd179b02e7925f3729d2e0c8c9fd4df09ea1cd2f15c50205",
     url = "https://github.com/dduan/DrString/releases/download/0.6.1/drstring-x86_64-unknown-ubuntu.tar.gz",
 )
-
 
 ####################
 # Android extensions
