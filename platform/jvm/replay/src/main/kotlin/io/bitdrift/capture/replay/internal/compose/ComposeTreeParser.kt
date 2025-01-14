@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+@file:Suppress("INVISIBLE_REFERENCE")
 
 package io.bitdrift.capture.replay.internal.compose
 

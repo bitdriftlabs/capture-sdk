@@ -23,7 +23,7 @@ internal class WindowManager(private val errorHandler: ErrorHandler) {
         Class.forName("android.view.WindowManagerGlobal")
     }
 
-    private val windowManagerGlobal: Any by lazy(LazyThreadSafetyMode.NONE) {
+    private val windowManagerGlobal: Any? by lazy(LazyThreadSafetyMode.NONE) {
         global.getDeclaredMethod("getInstance").invoke(null)
     }
 
