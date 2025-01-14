@@ -16,9 +16,9 @@
     "skipDefaultLibCheck": true,
     "paths": {
       "@bitdrift/core": ["./packages/core/index.d.ts"],
+      "@bitdrift/core-darwin-arm64": ["./packages/core/core.darwin-arm64.node"],
       "@bitdrift/electron": ["./packages/electron/src/index.ts"],
-      "@bitdrift/react-native": ["./packages/react-native/src/index.tsx"],
-      "@bitdrift/core-darwin-arm64": ["./packages/core/core.darwin-arm64.node"]
+      "@bitdrift/react-native": ["./packages/react-native/src/index.tsx"]
     }
   },
   "exclude": ["node_modules", "tmp"]
