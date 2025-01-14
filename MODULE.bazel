@@ -43,6 +43,7 @@ multiple_version_override(
     ],
 )
 
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
 bazel_dep(name = "rules_xcodeproj", version = "2.10.0")
 bazel_dep(name = "rules_apple", version = "3.16.1")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
@@ -112,6 +113,13 @@ http_archive(
 )
 
 http_archive(
+    name = "DrString",
+    build_file_content = """exports_files(["drstring"])""",
+    sha256 = "99833f0ad3d9f3bbf40aee88c6f959a0a9b03e3b7b34e2fca660644e13c1f3ef",
+    url = "https://github.com/dduan/DrString/releases/download/0.6.1/drstring-universal-apple-darwin.tar.gz",
+)
+
+http_archive(
     name = "DrString_Linux",
     build_file_content = """
 load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
@@ -149,6 +157,8 @@ register_toolchains("//:kotlin_toolchain")
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.install(
     artifacts = [
+        "com.squareup.okio:okio:3.10.2",
+        "com.squareup.okio:okio-jvm:3.10.2",
         "com.google.code.findbugs:jsr305:3.0.2",
 
         # Dokka (javadocs generator)
@@ -171,11 +181,16 @@ maven.install(
 
         # Compose
         "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:{}".format(KOTLIN_COMPILE_VERSION),
+        "org.jetbrains:annotations:26.0.1",
         "androidx.core:core-ktx:1.15.0",
         "androidx.appcompat:appcompat:1.7.0",
         "androidx.activity:activity-compose:1.7.0",
         "androidx.compose.material:material:{}".format(COMPOSE_VERSION),
         "androidx.compose.ui:ui:{}".format(COMPOSE_VERSION),
+        "androidx.compose.ui:ui-geometry:{}".format(COMPOSE_VERSION),
+        "androidx.compose.ui:ui-unit:{}".format(COMPOSE_VERSION),
+        "androidx.compose.runtime:runtime:{}".format(COMPOSE_VERSION),
+        "androidx.annotation:annotation-jvm:1.9.1",
     ],
     repositories = [
         "https://repo1.maven.org/maven2",
