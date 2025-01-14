@@ -82,7 +82,7 @@ data class HttpRequestInfo @JvmOverloads constructor(
             // override _span_name
             put(SpanField.Key.NAME, FieldValue.StringField(spanName))
             val fieldPrefix = "$prefix-field"
-            headers.forEach { (key, value) ->
+            headers.iterator().forEach { (key, value) ->
                 if (key.startsWith(fieldPrefix)) {
                     val fieldKey = key.removePrefix(fieldPrefix).replace('-', '_')
                     put(fieldKey, FieldValue.StringField(value))

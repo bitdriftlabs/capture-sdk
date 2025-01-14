@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.apollo.graphql)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.compose.compiler)
 }
 
 dependencies {
@@ -49,10 +50,6 @@ android {
         compose = true
         viewBinding = true
         buildConfig = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
     }
 
     defaultConfig {

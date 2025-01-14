@@ -153,7 +153,7 @@ maven.install(
         "androidx.emoji2:emoji2:1.2.0",
 
         # Compose
-        "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:2.1.0",
+        "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:{}".format(KOTLIN_COMPILE_VERSION),
         "androidx.core:core-ktx:1.15.0",
         "androidx.appcompat:appcompat:1.7.0",
         "androidx.activity:activity-compose:1.7.0",

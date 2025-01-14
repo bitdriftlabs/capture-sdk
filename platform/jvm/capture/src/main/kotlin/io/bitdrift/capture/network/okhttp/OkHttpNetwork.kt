@@ -141,7 +141,7 @@ internal class OkHttpNetwork(
                 .url(url)
                 .method("POST", requestBody)
 
-            headers.forEach {
+            headers.iterator().forEach {
                 // PipeDuplexRequestBody takes care of the content-type already.
                 if (it.key != CONTENT_TYPE_HEADER_KEY) {
                     builder.addHeader(it.key, it.value)

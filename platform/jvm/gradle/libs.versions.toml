@@ -14,8 +14,7 @@ junit = "4.13.2"
 kotlinResultJvm = "1.1.18"
 lifecycleCommon = "2.6.1"
 mavenPublishPlugin = "0.28.0"
-kotlinAndroidPlugin = "2.1.0"
-kotlinPlugin = "2.1.0"
+kotlin = "2.1.0"
 mockitoCore = "4.9.0"
 mockitoKotlin = "2.2.0"
 mockitoKotlinVersion = "4.1.0"
@@ -58,9 +57,10 @@ android-application = { id = "com.android.application", version.ref = "androidGr
 android-benchmark = { id = "androidx.benchmark", version.ref = "androidBenchkmarkPlugin" }
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
 apollo-graphql = { id = "com.apollographql.apollo", version.ref = "apollo" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detektPlugin" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokkaPlugin" }
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublishPlugin" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinAndroidPlugin" }
-kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlinPlugin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 rust-android = { id = "org.mozilla.rust-android-gradle.rust-android", version.ref = "rustAndroidPlugin" }

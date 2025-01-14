@@ -26,7 +26,7 @@ internal class ReplayDecorations(
         screen.addAll(filteredCapture)
 
         var imeBounds: ReplayRect
-        windowManager.findRootViews().forEach { rootView ->
+        windowManager.findRootViews().iterator().forEach { rootView ->
             ViewCompat.getRootWindowInsets(rootView)?.let { windowInset ->
 
                 // Add Keyboard overlay
