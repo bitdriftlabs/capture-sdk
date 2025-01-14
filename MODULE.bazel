@@ -111,6 +111,23 @@ http_archive(
     urls = ["https://github.com/apple/swift-argument-parser/archive/1.5.0.tar.gz"],
 )
 
+http_archive(
+    name = "DrString_Linux",
+    build_file_content = """
+load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
+native_binary(
+    name = "DrString_Linux",
+    src = "usr/bin/drstring",
+    out = "usr/bin/drstring",
+    data = glob(["usr/lib/*.so"]),
+    visibility = ["//visibility:public"],
+)
+    """,
+    sha256 = "50cbf3dbb9b675d7bd179b02e7925f3729d2e0c8c9fd4df09ea1cd2f15c50205",
+    url = "https://github.com/dduan/DrString/releases/download/0.6.1/drstring-x86_64-unknown-ubuntu.tar.gz",
+)
+
+
 ####################
 # Android extensions
 ####################
