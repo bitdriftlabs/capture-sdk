@@ -36,8 +36,9 @@ internal class DeviceStateListenerLogger(
     private val powerMonitor: PowerMonitor,
     private val runtime: Runtime,
     private val executor: ExecutorService,
-) : IEventListenerLogger, ComponentCallbacks2, BroadcastReceiver() {
-
+) : BroadcastReceiver(),
+    IEventListenerLogger,
+    ComponentCallbacks2 {
     companion object {
         private const val BATTERY_CHANGE = "BatteryStateChange"
         private const val BATTERY_LOW = "BatteryLowPowerMode"
@@ -79,32 +80,39 @@ internal class DeviceStateListenerLogger(
         }
     }
 
-    override fun onReceive(context: Context?, intent: Intent?) {
+    override fun onReceive(
+        context: Context?,
+        intent: Intent?,
+    ) {
         executor.execute {
             when (intent?.action) {
-                Intent.ACTION_POWER_CONNECTED -> log(
-                    mapOf("_state" to "charging", batteryMonitor.batteryPercentageAttribute()),
-                    BATTERY_CHANGE,
-                )
+                Intent.ACTION_POWER_CONNECTED ->
+                    log(
+                        mapOf("_state" to "charging", batteryMonitor.batteryPercentageAttribute()),
+                        BATTERY_CHANGE,
+                    )
 
-                Intent.ACTION_POWER_DISCONNECTED -> log(
-                    mapOf("_state" to "unplugged", batteryMonitor.batteryPercentageAttribute()),
-                    BATTERY_CHANGE,
-                )
+                Intent.ACTION_POWER_DISCONNECTED ->
+                    log(
+                        mapOf("_state" to "unplugged", batteryMonitor.batteryPercentageAttribute()),
+                        BATTERY_CHANGE,
+                    )
 
-                Intent.ACTION_TIMEZONE_CHANGED -> log(
-                    mapOf("_time_zone" to intent.getStringExtra("time-zone").orEmpty()),
-                    TIMEZONE_CHANGE,
-                )
+                Intent.ACTION_TIMEZONE_CHANGED ->
+                    log(
+                        mapOf("_time_zone" to intent.getStringExtra("time-zone").orEmpty()),
+                        TIMEZONE_CHANGE,
+                    )
 
-                PowerManager.ACTION_POWER_SAVE_MODE_CHANGED -> log(
-                    mapOf(
-                        powerMonitor.isPowerSaveModeEnabledAttribute(),
-                        batteryMonitor.batteryPercentageAttribute(),
-                        batteryMonitor.isBatteryChargingAttribute(),
-                    ),
-                    BATTERY_LOW,
-                )
+                PowerManager.ACTION_POWER_SAVE_MODE_CHANGED ->
+                    log(
+                        mapOf(
+                            powerMonitor.isPowerSaveModeEnabledAttribute(),
+                            batteryMonitor.batteryPercentageAttribute(),
+                            batteryMonitor.isBatteryChargingAttribute(),
+                        ),
+                        BATTERY_LOW,
+                    )
             }
         }
     }
@@ -138,7 +146,10 @@ internal class DeviceStateListenerLogger(
         log(mapOf("_thermal_state" to powerMonitor.toThermalStatusString(status)), THERMAL_STATE_CHANGE)
     }
 
-    private fun log(fields: Map<String, String>, message: String) {
+    private fun log(
+        fields: Map<String, String>,
+        message: String,
+    ) {
         logger.log(LogType.DEVICE, LogLevel.INFO, fields.toFields()) { message }
     }
 }

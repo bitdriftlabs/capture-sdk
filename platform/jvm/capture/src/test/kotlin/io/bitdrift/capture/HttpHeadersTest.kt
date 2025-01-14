@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import io.bitdrift.capture.network.HTTPHeaders
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+
 class HttpHeadersTest {
     @Test
     fun test_authorization_headers_are_removed() {

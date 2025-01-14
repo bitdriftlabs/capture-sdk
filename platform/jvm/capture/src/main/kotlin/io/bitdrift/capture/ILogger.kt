@@ -61,7 +61,10 @@ interface ILogger {
      * @param key the name of the field to add.
      * @param value the value of the field to add.
      */
-    fun addField(key: String, value: String)
+    fun addField(
+        key: String,
+        value: String,
+    )
 
     /**
      * Removes a field with a given key. This operation has no effect if a field with the given key
@@ -107,7 +110,11 @@ interface ILogger {
      * @param fields additional fields to include in the log.
      * @return a [Span] object that can be used to signal the end of the operation.
      */
-    fun startSpan(name: String, level: LogLevel, fields: Map<String, String>? = null): Span
+    fun startSpan(
+        name: String,
+        level: LogLevel,
+        fields: Map<String, String>? = null,
+    ): Span
 
     /**
      * Records information about an HTTP network request

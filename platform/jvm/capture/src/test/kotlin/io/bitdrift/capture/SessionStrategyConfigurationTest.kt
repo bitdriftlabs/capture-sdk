@@ -14,15 +14,15 @@ import org.junit.Test
 import java.util.UUID
 
 class SessionStrategyConfigurationTest {
-
     @Test
     fun fixedRegeneratesUuidAndPropagatesNewSession() {
         var propagatedSession: String? = null
 
-        val sessionStrategyConfiguration = SessionStrategyConfiguration.Fixed(
-            sessionStrategy = SessionStrategy.Fixed(),
-            onSessionIdChanged = { sessionId -> propagatedSession = sessionId },
-        )
+        val sessionStrategyConfiguration =
+            SessionStrategyConfiguration.Fixed(
+                sessionStrategy = SessionStrategy.Fixed(),
+                onSessionIdChanged = { sessionId -> propagatedSession = sessionId },
+            )
         val newSessionId = sessionStrategyConfiguration.generateSessionId()
 
         // validate that the generated session id is a valid UUID
@@ -37,10 +37,11 @@ class SessionStrategyConfigurationTest {
         val sessionIdGenerator = { (++counter).toString() }
         var propagatedSession: String? = null
 
-        val sessionStrategyConfiguration = SessionStrategyConfiguration.Fixed(
-            sessionStrategy = SessionStrategy.Fixed(sessionIdGenerator),
-            onSessionIdChanged = { sessionId -> propagatedSession = sessionId },
-        )
+        val sessionStrategyConfiguration =
+            SessionStrategyConfiguration.Fixed(
+                sessionStrategy = SessionStrategy.Fixed(sessionIdGenerator),
+                onSessionIdChanged = { sessionId -> propagatedSession = sessionId },
+            )
         val newSessionId = sessionStrategyConfiguration.generateSessionId()
 
         assertThat(newSessionId).isEqualTo("1")
@@ -54,14 +55,16 @@ class SessionStrategyConfigurationTest {
         var propagatedSession2: String? = null
         val expectedSessionId = "newSessionId"
 
-        val sessionStrategyConfiguration = SessionStrategyConfiguration.ActivityBased(
-            sessionStrategy = SessionStrategy.ActivityBased(
-                inactivityThresholdMins = oneMinute,
-                onSessionIdChanged = { sessionId -> propagatedSession2 = sessionId },
-            ),
-            onSessionIdChanged = { sessionId -> propagatedSession1 = sessionId },
-            mainThreadHandler = Mocks.sameThreadHandler,
-        )
+        val sessionStrategyConfiguration =
+            SessionStrategyConfiguration.ActivityBased(
+                sessionStrategy =
+                    SessionStrategy.ActivityBased(
+                        inactivityThresholdMins = oneMinute,
+                        onSessionIdChanged = { sessionId -> propagatedSession2 = sessionId },
+                    ),
+                onSessionIdChanged = { sessionId -> propagatedSession1 = sessionId },
+                mainThreadHandler = Mocks.sameThreadHandler,
+            )
         sessionStrategyConfiguration.sessionIdChanged(expectedSessionId)
 
         assertThat(propagatedSession1).isEqualTo(expectedSessionId)

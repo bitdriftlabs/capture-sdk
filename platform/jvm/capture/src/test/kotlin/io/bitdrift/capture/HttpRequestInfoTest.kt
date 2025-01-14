@@ -15,20 +15,20 @@ import org.junit.Test
 import java.util.UUID
 
 class HttpRequestInfoTest {
-
     @Test
     fun testFields() {
         val spanId = UUID.randomUUID()
-        val requestInfo = HttpRequestInfo(
-            host = "api.bitdrift.io",
-            method = "GET",
-            path = HttpUrlPath("/my_path/12345", "/template/<id>"),
-            query = "my=query",
-            headers = mapOf("content-type" to "json"),
-            spanId = spanId,
-            extraFields = mapOf("my_extra_key_1" to "my_extra_value_1"),
-            bytesExpectedToSendCount = 4,
-        )
+        val requestInfo =
+            HttpRequestInfo(
+                host = "api.bitdrift.io",
+                method = "GET",
+                path = HttpUrlPath("/my_path/12345", "/template/<id>"),
+                query = "my=query",
+                headers = mapOf("content-type" to "json"),
+                spanId = spanId,
+                extraFields = mapOf("my_extra_key_1" to "my_extra_value_1"),
+                bytesExpectedToSendCount = 4,
+            )
 
         assertThat(requestInfo.fields).isEqualTo(
             mapOf(

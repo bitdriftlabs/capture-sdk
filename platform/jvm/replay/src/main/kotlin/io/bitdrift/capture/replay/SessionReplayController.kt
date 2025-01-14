@@ -31,11 +31,11 @@ class SessionReplayController(
     sessionReplayConfiguration: SessionReplayConfiguration,
     context: Context,
     mainThreadHandler: MainThreadHandler,
-    executor: ExecutorService = Executors.newSingleThreadExecutor {
-        Thread(it, "io.bitdrift.capture.session-replay")
-    },
+    executor: ExecutorService =
+        Executors.newSingleThreadExecutor {
+            Thread(it, "io.bitdrift.capture.session-replay")
+        },
 ) {
-
     private val replayCaptureEngine: ReplayCaptureEngine
     private val screenshotCaptureEngine: ScreenshotCaptureEngine
 
@@ -45,22 +45,24 @@ class SessionReplayController(
         val windowManager = WindowManager(errorHandler)
         val displayManager = DisplayManagers(context)
 
-        replayCaptureEngine = ReplayCaptureEngine(
-            sessionReplayConfiguration,
-            errorHandler,
-            replayLogger,
-            mainThreadHandler,
-            windowManager,
-            displayManager,
-            executor,
-        )
-        screenshotCaptureEngine = ScreenshotCaptureEngine(
-            errorHandler,
-            screenshotLogger,
-            mainThreadHandler,
-            windowManager,
-            executor,
-        )
+        replayCaptureEngine =
+            ReplayCaptureEngine(
+                sessionReplayConfiguration,
+                errorHandler,
+                replayLogger,
+                mainThreadHandler,
+                windowManager,
+                displayManager,
+                executor,
+            )
+        screenshotCaptureEngine =
+            ScreenshotCaptureEngine(
+                errorHandler,
+                screenshotLogger,
+                mainThreadHandler,
+                windowManager,
+                executor,
+            )
     }
 
     /**
@@ -90,7 +92,10 @@ class SessionReplayController(
             logger?.logDebugInternal(message)
         }
 
-        fun e(e: Throwable?, message: String) {
+        fun e(
+            e: Throwable?,
+            message: String,
+        ) {
             logger?.logErrorInternal(message, e)
         }
     }

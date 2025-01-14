@@ -36,7 +36,9 @@ internal sealed class LoggerState {
     /**
      * The logger has been successfully started and is ready for use. Subsequent attempts to start the logger will be ignored.
      */
-    class Started(val logger: LoggerImpl) : LoggerState()
+    class Started(
+        val logger: LoggerImpl,
+    ) : LoggerState()
 
     /**
      * An attempt to start the logger was made but failed. Subsequent attempts to start the logger will be ignored.
@@ -55,14 +57,13 @@ object Capture {
      *
      * @return ILogger a logger handle
      */
-    fun logger(): ILogger? {
-        return when (val state = default.get()) {
+    fun logger(): ILogger? =
+        when (val state = default.get()) {
             is LoggerState.NotStarted -> null
             is LoggerState.Starting -> null
             is LoggerState.Started -> state.logger
             is LoggerState.StartFailure -> null
         }
-    }
 
     /**
      * Top level entry point for the Capture SDK.
@@ -82,7 +83,11 @@ object Capture {
      */
     object Logger {
         private val defaultCaptureApiUrl =
-            HttpUrl.Builder().scheme("https").host("api.bitdrift.io").build()
+            HttpUrl
+                .Builder()
+                .scheme("https")
+                .host("api.bitdrift.io")
+                .build()
 
         // This is a lazy property to avoid the need to initialize the main thread handler unless needed here
         private val mainThreadHandler by lazy { MainThreadHandler() }
@@ -151,15 +156,16 @@ object Capture {
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
             if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
                 try {
-                    val logger = LoggerImpl(
-                        apiKey = apiKey,
-                        apiUrl = apiUrl,
-                        fieldProviders = fieldProviders,
-                        dateProvider = dateProvider ?: SystemDateProvider(),
-                        configuration = configuration,
-                        sessionStrategy = sessionStrategy,
-                        bridge = bridge,
-                    )
+                    val logger =
+                        LoggerImpl(
+                            apiKey = apiKey,
+                            apiUrl = apiUrl,
+                            fieldProviders = fieldProviders,
+                            dateProvider = dateProvider ?: SystemDateProvider(),
+                            configuration = configuration,
+                            sessionStrategy = sessionStrategy,
+                            bridge = bridge,
+                        )
                     default.set(LoggerState.Started(logger))
                 } catch (e: Throwable) {
                     Log.w("capture", "Failed to start Capture", e)
@@ -237,7 +243,10 @@ object Capture {
          * @param value the value of the field to add.
          */
         @JvmStatic
-        fun addField(key: String, value: String) {
+        fun addField(
+            key: String,
+            value: String,
+        ) {
             logger()?.let {
                 it.addField(key, value)
             }
@@ -265,7 +274,11 @@ object Capture {
          */
         @JvmStatic
         @JvmOverloads
-        fun logTrace(fields: Map<String, String>? = null, throwable: Throwable? = null, message: () -> String) {
+        fun logTrace(
+            fields: Map<String, String>? = null,
+            throwable: Throwable? = null,
+            message: () -> String,
+        ) {
             logger()?.log(level = LogLevel.TRACE, fields = fields, throwable = throwable, message = message)
         }
 
@@ -278,7 +291,11 @@ object Capture {
          */
         @JvmStatic
         @JvmOverloads
-        fun logDebug(fields: Map<String, String>? = null, throwable: Throwable? = null, message: () -> String) {
+        fun logDebug(
+            fields: Map<String, String>? = null,
+            throwable: Throwable? = null,
+            message: () -> String,
+        ) {
             logger()?.log(level = LogLevel.DEBUG, fields = fields, throwable = throwable, message = message)
         }
 
@@ -291,7 +308,11 @@ object Capture {
          */
         @JvmStatic
         @JvmOverloads
-        fun logInfo(fields: Map<String, String>? = null, throwable: Throwable? = null, message: () -> String) {
+        fun logInfo(
+            fields: Map<String, String>? = null,
+            throwable: Throwable? = null,
+            message: () -> String,
+        ) {
             logger()?.log(level = LogLevel.INFO, fields = fields, throwable = throwable, message = message)
         }
 
@@ -304,7 +325,11 @@ object Capture {
          */
         @JvmStatic
         @JvmOverloads
-        fun logWarning(fields: Map<String, String>? = null, throwable: Throwable? = null, message: () -> String) {
+        fun logWarning(
+            fields: Map<String, String>? = null,
+            throwable: Throwable? = null,
+            message: () -> String,
+        ) {
             logger()?.log(level = LogLevel.WARNING, fields = fields, throwable = throwable, message = message)
         }
 
@@ -317,7 +342,11 @@ object Capture {
          */
         @JvmStatic
         @JvmOverloads
-        fun logError(fields: Map<String, String>? = null, throwable: Throwable? = null, message: () -> String) {
+        fun logError(
+            fields: Map<String, String>? = null,
+            throwable: Throwable? = null,
+            message: () -> String,
+        ) {
             logger()?.log(level = LogLevel.ERROR, fields = fields, throwable = throwable, message = message)
         }
 
@@ -331,7 +360,12 @@ object Capture {
          */
         @JvmStatic
         @JvmOverloads
-        fun log(level: LogLevel, fields: Map<String, String>? = null, throwable: Throwable? = null, message: () -> String) {
+        fun log(
+            level: LogLevel,
+            fields: Map<String, String>? = null,
+            throwable: Throwable? = null,
+            message: () -> String,
+        ) {
             logger()?.log(level = level, fields = fields, throwable = throwable, message = message)
         }
 
@@ -356,9 +390,11 @@ object Capture {
          * @return a [Span] object that can be used to signal the end of the operation if Capture has been started.
          */
         @JvmStatic
-        fun startSpan(name: String, level: LogLevel, fields: Map<String, String>? = null): Span? {
-            return logger()?.startSpan(name, level, fields)
-        }
+        fun startSpan(
+            name: String,
+            level: LogLevel,
+            fields: Map<String, String>? = null,
+        ): Span? = logger()?.startSpan(name, level, fields)
 
         /**
          * Wrap the specified [block] in calls to [startSpan] (with the supplied params)
@@ -370,7 +406,12 @@ object Capture {
          * @param block A block of code which is being tracked.
          */
         @JvmStatic
-        inline fun <T> trackSpan(name: String, level: LogLevel, fields: Map<String, String>? = null, crossinline block: () -> T): T {
+        inline fun <T> trackSpan(
+            name: String,
+            level: LogLevel,
+            fields: Map<String, String>? = null,
+            crossinline block: () -> T,
+        ): T {
             val span = this.startSpan(name, level, fields)
             try {
                 val result = block()

@@ -11,8 +11,9 @@ package io.bitdrift.capture.replay
  * The list of view types supported by Bitdrift Replay
  * @param typeValue The numeric value of the type.
  */
-sealed class ReplayType(val typeValue: Int) {
-
+sealed class ReplayType(
+    val typeValue: Int,
+) {
     /**
      * Represents a Replay text label
      */
@@ -83,7 +84,5 @@ sealed class ReplayType(val typeValue: Int) {
      */
     object Ignore : ReplayType(254)
 
-    override fun toString(): String {
-        return this.javaClass.simpleName
-    }
+    override fun toString(): String = this.javaClass.simpleName
 }

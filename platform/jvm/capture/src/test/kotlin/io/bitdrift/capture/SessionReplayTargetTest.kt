@@ -25,13 +25,14 @@ class SessionReplayTargetTest {
     private val errorHandler: ErrorHandler = mock()
     private val handler: MainThreadHandler = Mocks.sameThreadHandler
 
-    private val target = SessionReplayTarget(
-        SessionReplayConfiguration(),
-        errorHandler,
-        ApplicationProvider.getApplicationContext(),
-        logger,
-        handler,
-    )
+    private val target =
+        SessionReplayTarget(
+            SessionReplayConfiguration(),
+            errorHandler,
+            ApplicationProvider.getApplicationContext(),
+            logger,
+            handler,
+        )
 
     init {
         CaptureJniLibrary.load()

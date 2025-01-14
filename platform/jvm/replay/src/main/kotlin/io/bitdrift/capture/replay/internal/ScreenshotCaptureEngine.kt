@@ -28,7 +28,6 @@ internal class ScreenshotCaptureEngine(
     private val executor: ExecutorService,
     private val metrics: ScreenshotMetricsStopwatch = ScreenshotMetricsStopwatch(),
 ) {
-
     fun captureScreenshot() {
         try {
             metrics.start()
@@ -65,7 +64,10 @@ internal class ScreenshotCaptureEngine(
     private fun modernPixelCopySnapshot(topView: View) {
         // TODO(murki): Reduce memory footprint by calling setDestinationBitmap() with a Bitmap.Config.RGB_565 instead
         //  of the default of Bitmap.Config.ARGB_8888
-        val screenshotRequest = PixelCopy.Request.Builder.ofWindow(topView).build()
+        val screenshotRequest =
+            PixelCopy.Request.Builder
+                .ofWindow(topView)
+                .build()
         PixelCopy.request(screenshotRequest, executor) { screenshotResult ->
             val resultBitmap = screenshotResult.bitmap
             try {
@@ -101,11 +103,12 @@ internal class ScreenshotCaptureEngine(
             return
         }
 
-        val resultBitmap = Bitmap.createBitmap(
-            root.width,
-            root.height,
-            Bitmap.Config.RGB_565,
-        )
+        val resultBitmap =
+            Bitmap.createBitmap(
+                root.width,
+                root.height,
+                Bitmap.Config.RGB_565,
+            )
         // TODO(murki): Figure out if there's any benefit from calling this using mainThreadHandler.mainHandler.post{ }
         PixelCopy.request(
             window,
@@ -142,7 +145,11 @@ internal class ScreenshotCaptureEngine(
         )
     }
 
-    private fun finishOnError(expected: Boolean, message: String, e: Throwable? = null) {
+    private fun finishOnError(
+        expected: Boolean,
+        message: String,
+        e: Throwable? = null,
+    ) {
         if (!expected) {
             errorHandler.handleError(message, e)
         }
@@ -164,8 +171,8 @@ internal class ScreenshotCaptureEngine(
         }
     }
 
-    private fun Int.toStatusText(): String {
-        return when (this) {
+    private fun Int.toStatusText(): String =
+        when (this) {
             PixelCopy.SUCCESS -> "SUCCESS"
             PixelCopy.ERROR_UNKNOWN -> "ERROR_UNKNOWN"
             PixelCopy.ERROR_TIMEOUT -> "ERROR_TIMEOUT"
@@ -174,5 +181,4 @@ internal class ScreenshotCaptureEngine(
             PixelCopy.ERROR_DESTINATION_INVALID -> "ERROR_DESTINATION_INVALID"
             else -> "Unknown error: $this"
         }
-    }
 }

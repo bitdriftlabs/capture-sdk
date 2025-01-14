@@ -35,33 +35,42 @@ internal class SessionReplayTarget(
     context: Context,
     private val logger: LoggerImpl,
     mainThreadHandler: MainThreadHandler = MainThreadHandler(),
-) : ISessionReplayTarget, IReplayLogger, IScreenshotLogger {
+) : ISessionReplayTarget,
+    IReplayLogger,
+    IScreenshotLogger {
     // TODO(Augustyniak): Make non nullable and pass at initialization time after
     //  `sessionReplayTarget` argument is moved from logger creation time to logger start time.
     //  Refer to TODO in `LoggerImpl` for more details.
     internal var runtime: Runtime? = null
-    private val sessionReplayController: SessionReplayController = SessionReplayController(
-        errorHandler,
-        this,
-        this,
-        configuration,
-        context,
-        mainThreadHandler,
-    )
+    private val sessionReplayController: SessionReplayController =
+        SessionReplayController(
+            errorHandler,
+            this,
+            this,
+            configuration,
+            context,
+            mainThreadHandler,
+        )
 
     override fun captureScreen() {
-        val skipReplayComposeViews = !(
-            runtime?.isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)
-                ?: RuntimeFeature.SESSION_REPLAY_COMPOSE.defaultValue
+        val skipReplayComposeViews =
+            !(
+                runtime?.isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)
+                    ?: RuntimeFeature.SESSION_REPLAY_COMPOSE.defaultValue
             )
         sessionReplayController.captureScreen(skipReplayComposeViews)
     }
 
-    override fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture, metrics: ReplayCaptureMetrics) {
-        val fields = buildMap {
-            put("screen", encodedScreen.toFieldValue())
-            putAll(metrics.toMap().toFields())
-        }
+    override fun onScreenCaptured(
+        encodedScreen: ByteArray,
+        screen: FilteredCapture,
+        metrics: ReplayCaptureMetrics,
+    ) {
+        val fields =
+            buildMap {
+                put("screen", encodedScreen.toFieldValue())
+                putAll(metrics.toMap().toFields())
+            }
 
         logger.logSessionReplayScreen(fields, metrics.parseDuration)
     }
@@ -70,23 +79,37 @@ internal class SessionReplayTarget(
         sessionReplayController.captureScreenshot()
     }
 
-    override fun onScreenshotCaptured(compressedScreen: ByteArray, metrics: ScreenshotCaptureMetrics) {
-        val fields = buildMap {
-            put("screen_px", compressedScreen.toFieldValue())
-            putAll(metrics.toMap().toFields())
-        }
+    override fun onScreenshotCaptured(
+        compressedScreen: ByteArray,
+        metrics: ScreenshotCaptureMetrics,
+    ) {
+        val fields =
+            buildMap {
+                put("screen_px", compressedScreen.toFieldValue())
+                putAll(metrics.toMap().toFields())
+            }
         logger.logSessionReplayScreenshot(fields, metrics.screenshotTimeMs.toDuration(DurationUnit.MILLISECONDS))
     }
 
-    override fun logVerboseInternal(message: String, fields: Map<String, String>?) {
+    override fun logVerboseInternal(
+        message: String,
+        fields: Map<String, String>?,
+    ) {
         logger.log(LogType.INTERNALSDK, LogLevel.TRACE, fields.toFields()) { message }
     }
 
-    override fun logDebugInternal(message: String, fields: Map<String, String>?) {
+    override fun logDebugInternal(
+        message: String,
+        fields: Map<String, String>?,
+    ) {
         logger.log(LogType.INTERNALSDK, LogLevel.DEBUG, fields.toFields()) { message }
     }
 
-    override fun logErrorInternal(message: String, e: Throwable?, fields: Map<String, String>?) {
+    override fun logErrorInternal(
+        message: String,
+        e: Throwable?,
+        fields: Map<String, String>?,
+    ) {
         logger.log(LogType.INTERNALSDK, LogLevel.ERROR, logger.extractFields(fields, e)) { message }
     }
 }

@@ -21,6 +21,7 @@ internal class EventsListenerTarget : IEventsListenerTarget {
     fun add(eventListener: IEventListenerLogger) {
         listeners.add(SafeEventListenerLogger(eventListener))
     }
+
     override fun start() {
         listeners.iterator().forEach { it.start() }
     }

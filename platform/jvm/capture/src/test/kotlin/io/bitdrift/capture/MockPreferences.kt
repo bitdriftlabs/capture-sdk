@@ -13,19 +13,22 @@ class MockPreferences : IPreferences {
     private val stringStorage = HashMap<String, String>()
     private val longStorage = HashMap<String, Long>()
 
-    override fun getLong(key: String): Long? {
-        return longStorage[key]
-    }
+    override fun getLong(key: String): Long? = longStorage[key]
 
-    override fun setLong(key: String, value: Long) {
+    override fun setLong(
+        key: String,
+        value: Long,
+    ) {
         longStorage[key] = value
     }
 
-    override fun getString(key: String): String? {
-        return stringStorage[key]
-    }
+    override fun getString(key: String): String? = stringStorage[key]
 
-    override fun setString(key: String, value: String?, blocking: Boolean) {
+    override fun setString(
+        key: String,
+        value: String?,
+        blocking: Boolean,
+    ) {
         if (value != null) {
             stringStorage[key] = value
         } else {

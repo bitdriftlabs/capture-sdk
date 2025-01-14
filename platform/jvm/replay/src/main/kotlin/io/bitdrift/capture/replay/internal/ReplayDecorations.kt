@@ -17,7 +17,6 @@ internal class ReplayDecorations(
     private val displayManager: DisplayManagers,
     private val windowManager: WindowManager,
 ) {
-
     fun addDecorations(filteredCapture: FilteredCapture): FilteredCapture {
         // Add screen size as the first element
         val bounds = displayManager.computeDisplayRect()
@@ -33,13 +32,14 @@ internal class ReplayDecorations(
                 val imeType = WindowInsetsCompat.Type.ime()
                 if (windowInset.isVisible(imeType)) {
                     val insets = windowInset.getInsets(imeType)
-                    imeBounds = ReplayRect(
-                        type = ReplayType.Keyboard,
-                        x = rootView.left,
-                        y = rootView.bottom - insets.bottom,
-                        width = rootView.width,
-                        height = insets.bottom,
-                    )
+                    imeBounds =
+                        ReplayRect(
+                            type = ReplayType.Keyboard,
+                            x = rootView.left,
+                            y = rootView.bottom - insets.bottom,
+                            width = rootView.width,
+                            height = insets.bottom,
+                        )
                     SessionReplayController.L.d("Keyboard IME size $imeBounds")
                     screen.add(imeBounds)
                 }

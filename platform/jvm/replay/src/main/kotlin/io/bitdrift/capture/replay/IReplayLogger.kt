@@ -19,5 +19,9 @@ interface IReplayLogger : IInternalLogger {
      * @param screen The list of captured elements after filtering
      * @param metrics Metrics about the screen capture
      */
-    fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture, metrics: ReplayCaptureMetrics)
+    fun onScreenCaptured(
+        encodedScreen: ByteArray,
+        screen: FilteredCapture,
+        metrics: ReplayCaptureMetrics,
+    )
 }

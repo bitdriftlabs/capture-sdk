@@ -21,7 +21,10 @@ internal interface IPreferences {
      * @param key key to set a given value for.
      * @param value value to be set.
      */
-    fun setLong(key: String, value: Long)
+    fun setLong(
+        key: String,
+        value: Long,
+    )
 
     /**
      * Returns a stored string value for a given key.
@@ -37,5 +40,9 @@ internal interface IPreferences {
      * @param value value to be set, pass null to erase a value for a given key.
      * @param blocking whether the operation should return only after the changes are persisted to disk.
      */
-    fun setString(key: String, value: String?, blocking: Boolean)
+    fun setString(
+        key: String,
+        value: String?,
+        blocking: Boolean,
+    )
 }

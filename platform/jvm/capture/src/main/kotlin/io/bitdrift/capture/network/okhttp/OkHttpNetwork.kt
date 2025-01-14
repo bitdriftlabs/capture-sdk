@@ -68,12 +68,11 @@ internal class PipeDuplexRequestBody(
     override fun isDuplex() = true
 }
 
-internal fun newDuplexRequestBody(contentType: MediaType): PipeDuplexRequestBody {
-    return PipeDuplexRequestBody(
+internal fun newDuplexRequestBody(contentType: MediaType): PipeDuplexRequestBody =
+    PipeDuplexRequestBody(
         contentType,
         pipeMaxBufferSize = REQUEST_BODY_BUFFER_SIZE.toLong(),
     )
-}
 
 internal class OkHttpNetwork(
     apiBaseUrl: HttpUrl,
@@ -95,21 +94,26 @@ internal class OkHttpNetwork(
                     } else {
                         listOf(Protocol.H2_PRIOR_KNOWLEDGE)
                     },
-                )
-                .writeTimeout(timeoutSeconds, TimeUnit.SECONDS)
+                ).writeTimeout(timeoutSeconds, TimeUnit.SECONDS)
                 .readTimeout(timeoutSeconds, TimeUnit.SECONDS)
                 .retryOnConnectionFailure(false) // Retrying messes up the write pipe state management, so disable.
                 .build()
         }
 
-    private val executor: ExecutorService = Executors.newSingleThreadExecutor {
-        Thread(it, "io.bitdrift.capture.network.okhttp")
-    }
+    private val executor: ExecutorService =
+        Executors.newSingleThreadExecutor {
+            Thread(it, "io.bitdrift.capture.network.okhttp")
+        }
     private val url: HttpUrl =
-        apiBaseUrl.newBuilder().addPathSegments("bitdrift_public.protobuf.client.v1.ApiService/Mux")
+        apiBaseUrl
+            .newBuilder()
+            .addPathSegments("bitdrift_public.protobuf.client.v1.ApiService/Mux")
             .build()
 
-    override fun startStream(streamId: Long, headers: Map<String, String>): ICaptureStream {
+    override fun startStream(
+        streamId: Long,
+        headers: Map<String, String>,
+    ): ICaptureStream {
         // We call the deallocate call of stream handle N-1 when we create stream handle N, ensuring
         // that we never maintain more than one active stream.
         val streamState = StreamState(streamId, headers)
@@ -122,8 +126,10 @@ internal class OkHttpNetwork(
     // A handle to an active API stream. This holds the streamId which identifies the handle to
     // send upstream events too, and will receive calls via JNI to transmit data over the API
     // stream.
-    private inner class StreamState(streamId: Long, headers: Map<String, String>) :
-        ICaptureStream {
+    private inner class StreamState(
+        streamId: Long,
+        headers: Map<String, String>,
+    ) : ICaptureStream {
         val sink: BufferedSink
         val call: Call
 
@@ -137,9 +143,11 @@ internal class OkHttpNetwork(
         init {
             val contentType = headers[CONTENT_TYPE_HEADER_KEY] ?: APPLICATION_GRPC_CONTENT_TYPE_HEADER_VALUE
             val requestBody = newDuplexRequestBody(contentType.toMediaType())
-            val builder = Request.Builder()
-                .url(url)
-                .method("POST", requestBody)
+            val builder =
+                Request
+                    .Builder()
+                    .url(url)
+                    .method("POST", requestBody)
 
             headers.iterator().forEach {
                 // PipeDuplexRequestBody takes care of the content-type already.
@@ -151,23 +159,31 @@ internal class OkHttpNetwork(
             sink = requestBody.createSink()
             call = client.newCall(builder.build())
 
-            call.enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    // Since we're using an infinite stream, the stream will always end in some kind
-                    // of "failure". This includes things that aren't really failures, like us canceling
-                    // the request during shutdown.
-                    closeStream(e.toString())
-                }
+            call.enqueue(
+                object : Callback {
+                    override fun onFailure(
+                        call: Call,
+                        e: IOException,
+                    ) {
+                        // Since we're using an infinite stream, the stream will always end in some kind
+                        // of "failure". This includes things that aren't really failures, like us canceling
+                        // the request during shutdown.
+                        closeStream(e.toString())
+                    }
 
-                override fun onResponse(call: Call, response: Response) {
-                    // Once we get a response handle, hand it over to the executor for async processing.
-                    executor.execute {
-                        response.use {
-                            consumeResponse(response)
+                    override fun onResponse(
+                        call: Call,
+                        response: Response,
+                    ) {
+                        // Once we get a response handle, hand it over to the executor for async processing.
+                        executor.execute {
+                            response.use {
+                                consumeResponse(response)
+                            }
                         }
                     }
-                }
-            })
+                },
+            )
         }
 
         override fun sendData(dataToSend: ByteArray) {
@@ -200,7 +216,10 @@ internal class OkHttpNetwork(
 
         // Handles received stream unless the stream has already been deallocated.
         @Synchronized
-        private fun handleReceivedData(buffer: ByteArray, length: Int) {
+        private fun handleReceivedData(
+            buffer: ByteArray,
+            length: Int,
+        ) {
             streamId.safeAccess { streamId -> Jni.onApiChunkReceived(streamId, buffer, length) }
         }
 

@@ -12,9 +12,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 /**
  * Decorator class that makes the internal delegate thread-safe and protects against repeated calls
  */
-internal class SafeEventListenerLogger(private val listenerLogger: IEventListenerLogger) :
-    IEventListenerLogger {
-
+internal class SafeEventListenerLogger(
+    private val listenerLogger: IEventListenerLogger,
+) : IEventListenerLogger {
     private val isListening = AtomicBoolean(false)
 
     @Synchronized

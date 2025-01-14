@@ -26,7 +26,6 @@ data class ReplayRect(
     val width: Int,
     val height: Int,
 ) {
-
     /**
      * Encodes this object to an OutputStream while reducing the number of bytes used by each Integer.
      * When the integer is smaller than 255 it is encoded on 1 byte, 2 otherwise.

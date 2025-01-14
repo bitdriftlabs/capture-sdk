@@ -26,9 +26,7 @@ internal sealed class SessionStrategyConfiguration {
         val onSessionIdChanged: (String) -> Unit,
         val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
     ) : SessionStrategyConfiguration() {
-        fun inactivityThresholdMins(): Long {
-            return sessionStrategy.inactivityThresholdMins
-        }
+        fun inactivityThresholdMins(): Long = sessionStrategy.inactivityThresholdMins
 
         fun sessionIdChanged(sessionId: String) {
             onSessionIdChanged(sessionId)

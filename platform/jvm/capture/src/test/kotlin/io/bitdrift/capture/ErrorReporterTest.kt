@@ -45,10 +45,11 @@ class ErrorReporterTest {
 
         val apiClient = OkHttpApiClient(server.url(""), "api-key")
 
-        reporter = ErrorReporterService(
-            listOf(FieldProvider { mapOf("foo" to "bar") }),
-            apiClient,
-        )
+        reporter =
+            ErrorReporterService(
+                listOf(FieldProvider { mapOf("foo" to "bar") }),
+                apiClient,
+            )
 
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
@@ -96,15 +97,16 @@ class ErrorReporterTest {
     @Test
     fun verifyStacktraceSent() {
         @Suppress("UNUSED_VARIABLE")
-        val logger = LoggerImpl(
-            apiKey = "test",
-            apiUrl = testServerUrl(),
-            fieldProviders = listOf(),
-            dateProvider = SystemDateProvider(),
-            sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-            configuration = Configuration(),
-            errorReporter = reporter,
-        )
+        val logger =
+            LoggerImpl(
+                apiKey = "test",
+                apiUrl = testServerUrl(),
+                fieldProviders = listOf(),
+                dateProvider = SystemDateProvider(),
+                sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
+                configuration = Configuration(),
+                errorReporter = reporter,
+            )
 
         val errorHandler = ErrorHandler()
 
@@ -123,6 +125,9 @@ class ErrorReporterTest {
     }
 }
 
-private fun testServerUrl(): HttpUrl {
-    return HttpUrl.Builder().scheme("http").host("test.bitdrift.com").build()
-}
+private fun testServerUrl(): HttpUrl =
+    HttpUrl
+        .Builder()
+        .scheme("http")
+        .host("test.bitdrift.com")
+        .build()

@@ -32,11 +32,12 @@ class DiskUsageMonitorTest {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
 
-        diskUsageMonitor = DiskUsageMonitor(
-            preferences = preferences,
-            context = ContextHolder.APP_CONTEXT,
-            clock = clock,
-        )
+        diskUsageMonitor =
+            DiskUsageMonitor(
+                preferences = preferences,
+                context = ContextHolder.APP_CONTEXT,
+                clock = clock,
+            )
     }
 
     @Test

@@ -35,16 +35,17 @@ class ResourceUtilizationTargetTest {
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private val clock: IClock = mock()
 
-    private val reporter = ResourceUtilizationTarget(
-        memoryMonitor = memoryMonitor,
-        batteryMonitor = batteryMonitor,
-        powerMonitor = powerMonitor,
-        diskUsageMonitor = diskUsageMonitor,
-        errorHandler = errorHandler,
-        logger = logger,
-        executor = executor,
-        clock = clock,
-    )
+    private val reporter =
+        ResourceUtilizationTarget(
+            memoryMonitor = memoryMonitor,
+            batteryMonitor = batteryMonitor,
+            powerMonitor = powerMonitor,
+            diskUsageMonitor = diskUsageMonitor,
+            errorHandler = errorHandler,
+            logger = logger,
+            executor = executor,
+            clock = clock,
+        )
 
     init {
         CaptureJniLibrary.load()

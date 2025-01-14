@@ -13,7 +13,9 @@ package io.bitdrift.capture
  *
  * @property value the numeric representation of the log type.
  */
-enum class LogType(val value: Int) {
+enum class LogType(
+    val value: Int,
+) {
     /**
      * Represents a normal log type, from consumer apps code.
      */

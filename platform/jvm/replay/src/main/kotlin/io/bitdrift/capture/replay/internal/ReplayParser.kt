@@ -21,20 +21,23 @@ internal class ReplayParser(
     private val windowManager: WindowManager,
     private val viewMapper: ViewMapper = ViewMapper(sessionReplayConfiguration),
 ) {
-
     /**
      * Parses a ScannableView tree hierarchy into a list of ReplayRect
      */
-    fun parse(replayCaptureMetrics: ReplayCaptureMetrics, skipReplayComposeViews: Boolean): Capture {
+    fun parse(
+        replayCaptureMetrics: ReplayCaptureMetrics,
+        skipReplayComposeViews: Boolean,
+    ): Capture {
         val result = mutableListOf<List<ReplayRect>>()
 
         // Use a stack to perform a DFS traversal of the tree and avoid recursion
-        val stack: ArrayDeque<ScannableView> = ArrayDeque(
-            windowManager.findRootViews().map {
-                SessionReplayController.L.v("Root view found and added to list: ${it.javaClass.simpleName}")
-                ScannableView.AndroidView(it, skipReplayComposeViews)
-            },
-        )
+        val stack: ArrayDeque<ScannableView> =
+            ArrayDeque(
+                windowManager.findRootViews().map {
+                    SessionReplayController.L.v("Root view found and added to list: ${it.javaClass.simpleName}")
+                    ScannableView.AndroidView(it, skipReplayComposeViews)
+                },
+            )
         while (stack.isNotEmpty()) {
             val currentNode = stack.removeLast()
             try {
