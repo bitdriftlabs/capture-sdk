@@ -68,7 +68,7 @@ To install without Homebrew you can follow these instructions: [https://docs.azu
 
 - Install [Android Studio](https://developer.android.com/studio/archive/). The latest verified-to-work version is **Android Studio Jellyfish | 2023.3.1 Patch 1**. When asked to choose between default or custom installation selecting standard works fine.
 
-#### Gradle: Opening Capture SDK project in Android Studio
+#### Gradle: Open Capture SDK project in Android Studio
 
 Setup the environment, open Android Studio.
 
@@ -91,7 +91,22 @@ Setup the environment, open Android Studio.
             rustup target add x86_64-linux-android
         ```
 
-#### Bazel: Opening Capture SDK project in Android Studio
+#### Bazel
+
+The recommended way of building and running the test app using bazel is via the command line.
+
+#### Useful Bazel Commands
+
+Build the standalone capture AAR library (for arm 64):
+`./bazelw build --config=android --android_platforms=@rules_android//:arm64-v8a :capture_aar`
+
+Build the HelloWorld test app (for arm 64):
+`./bazelw build --config=android --android_platforms=@rules_android//:arm64-v8a :android_app`
+
+You can then iinstall the generated apk into a connected device or emulator with:
+`adb install ./bazel-bin/examples/android/android_app.apk`
+
+#### Open Capture SDK project in Android Studio
 
 - Install [bazel plugin](https://plugins.jetbrains.com/plugin/9185-bazel-for-android-studio)
 
@@ -127,11 +142,3 @@ To run only the JVM tests from command line with bazel use:
 and add it to your path, e.g.
 
 `echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.zshrc`
-
-#### Entering debugging session
-
-With the project ready, you can now start debugging with Android Studio.
-
-1. From Android Studio select one of the available configurations. Note: If you do not see any configuration available either restart Android Studio or click "Add configuration" and select a desired configuration.
-1. Hit the debug icon.
-1. Optionally you could create symbolic breakpoints before running by going to the Debugger tab.
