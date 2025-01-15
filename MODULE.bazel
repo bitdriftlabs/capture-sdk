@@ -156,6 +156,7 @@ register_toolchains("//:kotlin_toolchain")
 
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.install(
+    aar_import_bzl_label = "@rules_android//rules:rules.bzl",
     artifacts = [
         "com.squareup.okio:okio:3.10.2",
         "com.squareup.okio:okio-jvm:3.10.2",
@@ -195,9 +196,8 @@ maven.install(
         "https://repo1.maven.org/maven2",
         "https://maven.google.com",
     ],
-    version_conflict_policy = "pinned",
-    aar_import_bzl_label = "@rules_android//rules:rules.bzl",
     use_starlark_android_rules = True,
+    version_conflict_policy = "pinned",
 )
 
 # Test artifacts

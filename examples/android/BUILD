@@ -19,7 +19,7 @@ _maven_deps = [
     artifact("androidx.compose.runtime:runtime_android"),
     artifact("androidx.compose.ui:ui_android"),
     artifact("androidx.compose.ui:ui-geometry_android"),
-    artifact("androidx.compose.ui:ui-unit_android"), # Why do I need to prepend android to these?
+    artifact("androidx.compose.ui:ui-unit_android"),  # Why do I need to prepend android to these?
     artifact("com.squareup.okio:okio"),
     artifact("com.squareup.okio:okio-jvm"),
     artifact("org.jetbrains.kotlin:kotlin-stdlib"),

@@ -1,4 +1,5 @@
 common --enable_bzlmod
+common --incompatible_disable_native_android_rules
 
 mobile-install --config=android
 
