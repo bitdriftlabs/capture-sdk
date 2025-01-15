@@ -84,6 +84,9 @@ cargo {
     targetDirectory = "../../../target"
     targets = listOf("arm64", "x86_64")
     pythonCommand = "python3"
+    exec = { spec, _ ->
+        spec.environment("RUST_ANDROID_GRADLE_CC_LINK_ARG", "-Wl,-z,max-page-size=16384")
+    }
 }
 
 // workaround bug in rust-android-gradle plugin that causes .so to not be available on app launch
