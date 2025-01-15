@@ -14,7 +14,7 @@ cc_binary(
     linkopts = [
         "-lm",  # Required to avoid dlopen runtime failures unrelated to rust
         "-lz",  # Link against system zlib library
-        "-Wl,-z,max-page-size=16384", # support compiling 16 KB-aligned shared libraries
+        "-Wl,-z,max-page-size=16384", # enable 16 KB ELF alignment
     ] + select({
         "@platforms//os:android": ["-Wl,--retain-symbols-file=$(location :jni_symbols.lds)"],
         "@platforms//os:linux": ["-Wl,--retain-symbols-file=$(location :jni_symbols.lds)"],
