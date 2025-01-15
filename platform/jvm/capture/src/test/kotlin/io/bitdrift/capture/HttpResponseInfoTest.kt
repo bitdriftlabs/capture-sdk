@@ -17,31 +17,33 @@ import org.junit.Test
 import java.util.UUID
 
 class HttpResponseInfoTest {
-
     @Test
     fun testHTTPResponseTemplateOverride() {
         val spanId = UUID.randomUUID()
-        val requestInfo = HttpRequestInfo(
-            host = "foo.com",
-            method = "GET",
-            path = HttpUrlPath("/my_path/12345", "/template/<id>"),
-            query = "my=query",
-            headers = mapOf("content-type" to "json"),
-            spanId = spanId,
-            extraFields = mapOf("my_extra_key_1" to "my_extra_value_1"),
-        )
+        val requestInfo =
+            HttpRequestInfo(
+                host = "foo.com",
+                method = "GET",
+                path = HttpUrlPath("/my_path/12345", "/template/<id>"),
+                query = "my=query",
+                headers = mapOf("content-type" to "json"),
+                spanId = spanId,
+                extraFields = mapOf("my_extra_key_1" to "my_extra_value_1"),
+            )
 
-        val responseInfo = HttpResponseInfo(
-            request = requestInfo,
-            response = HttpResponse(
-                result = HttpResponse.HttpResult.SUCCESS,
-                path = HttpUrlPath("/foo_path/12345", "/template/<id>"),
-                error = RuntimeException("my_error"),
-                headers = mapOf("response_header" to "response_value"),
-            ),
-            durationMs = 60L,
-            extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
-        )
+        val responseInfo =
+            HttpResponseInfo(
+                request = requestInfo,
+                response =
+                    HttpResponse(
+                        result = HttpResponse.HttpResult.SUCCESS,
+                        path = HttpUrlPath("/foo_path/12345", "/template/<id>"),
+                        error = RuntimeException("my_error"),
+                        headers = mapOf("response_header" to "response_value"),
+                    ),
+                durationMs = 60L,
+                extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
+            )
 
         assertThat(responseInfo.fields).isEqualTo(
             mapOf(
@@ -66,27 +68,30 @@ class HttpResponseInfoTest {
     @Test
     fun testHTTPRequestExplicitPathTemplate() {
         val spanId = UUID.randomUUID()
-        val requestInfo = HttpRequestInfo(
-            host = "foo.com",
-            method = "GET",
-            path = HttpUrlPath("/my_path/12345", "/template/<id>"),
-            query = "my=query",
-            headers = mapOf("content-type" to "json"),
-            spanId = spanId,
-            extraFields = mapOf("my_extra_key_1" to "my_extra_value_1"),
-        )
+        val requestInfo =
+            HttpRequestInfo(
+                host = "foo.com",
+                method = "GET",
+                path = HttpUrlPath("/my_path/12345", "/template/<id>"),
+                query = "my=query",
+                headers = mapOf("content-type" to "json"),
+                spanId = spanId,
+                extraFields = mapOf("my_extra_key_1" to "my_extra_value_1"),
+            )
 
-        val responseInfo = HttpResponseInfo(
-            request = requestInfo,
-            response = HttpResponse(
-                result = HttpResponse.HttpResult.SUCCESS,
-                path = HttpUrlPath("/my_path/12345"),
-                error = RuntimeException("my_error"),
-                headers = mapOf("response_header" to "response_value"),
-            ),
-            durationMs = 60L,
-            extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
-        )
+        val responseInfo =
+            HttpResponseInfo(
+                request = requestInfo,
+                response =
+                    HttpResponse(
+                        result = HttpResponse.HttpResult.SUCCESS,
+                        path = HttpUrlPath("/my_path/12345"),
+                        error = RuntimeException("my_error"),
+                        headers = mapOf("response_header" to "response_value"),
+                    ),
+                durationMs = 60L,
+                extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
+            )
 
         assertThat(responseInfo.fields).isEqualTo(
             mapOf(
@@ -112,14 +117,15 @@ class HttpResponseInfoTest {
     fun testHTTPResponseRequestAttributesOverride() {
         val spanId = UUID.randomUUID()
 
-        val requestInfo = HttpRequestInfo(
-            host = "api.bitdrift.io",
-            method = "GET",
-            path = HttpUrlPath("/my_path/12345"),
-            query = "my=query",
-            spanId = spanId,
-            extraFields = mapOf("my_extra_key_1" to "my_extra_value_1"),
-        )
+        val requestInfo =
+            HttpRequestInfo(
+                host = "api.bitdrift.io",
+                method = "GET",
+                path = HttpUrlPath("/my_path/12345"),
+                query = "my=query",
+                spanId = spanId,
+                extraFields = mapOf("my_extra_key_1" to "my_extra_value_1"),
+            )
 
         assertThat(requestInfo.fields).isEqualTo(
             mapOf(
@@ -134,18 +140,20 @@ class HttpResponseInfoTest {
             ).toFields(),
         )
 
-        val responseInfo = HttpResponseInfo(
-            request = requestInfo,
-            response = HttpResponse(
-                host = "foo.com",
-                path = HttpUrlPath("/foo_path/12345"),
-                query = "foo_query",
-                result = HttpResponse.HttpResult.SUCCESS,
-                error = RuntimeException("my_error"),
-            ),
-            durationMs = 60L,
-            extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
-        )
+        val responseInfo =
+            HttpResponseInfo(
+                request = requestInfo,
+                response =
+                    HttpResponse(
+                        host = "foo.com",
+                        path = HttpUrlPath("/foo_path/12345"),
+                        query = "foo_query",
+                        result = HttpResponse.HttpResult.SUCCESS,
+                        error = RuntimeException("my_error"),
+                    ),
+                durationMs = 60L,
+                extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
+            )
 
         assertThat(responseInfo.fields).isEqualTo(
             mapOf(

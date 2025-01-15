@@ -10,12 +10,16 @@ package io.bitdrift.capture
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 
-internal class JniRuntime(private val logger: LoggerId) : Runtime {
-    override fun isEnabled(feature: RuntimeFeature): Boolean {
-        return Jni.isRuntimeEnabled(logger, feature.featureName, feature.defaultValue)
-    }
+internal class JniRuntime(
+    private val logger: LoggerId,
+) : Runtime {
+    override fun isEnabled(feature: RuntimeFeature): Boolean = Jni.isRuntimeEnabled(logger, feature.featureName, feature.defaultValue)
 }
 
 internal object Jni {
-    external fun isRuntimeEnabled(logger: LoggerId, feature: String, defaultValue: Boolean): Boolean
+    external fun isRuntimeEnabled(
+        logger: LoggerId,
+        feature: String,
+        defaultValue: Boolean,
+    ): Boolean
 }

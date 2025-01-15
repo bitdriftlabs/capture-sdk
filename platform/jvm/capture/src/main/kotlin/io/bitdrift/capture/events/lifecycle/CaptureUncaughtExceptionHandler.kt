@@ -23,7 +23,11 @@ internal class CaptureUncaughtExceptionHandler(
     fun uninstall() {
         Thread.setDefaultUncaughtExceptionHandler(prevExceptionHandler)
     }
-    override fun uncaughtException(thread: Thread, throwable: Throwable) {
+
+    override fun uncaughtException(
+        thread: Thread,
+        throwable: Throwable,
+    ) {
         // avoid re-entry
         if (crashing) {
             return

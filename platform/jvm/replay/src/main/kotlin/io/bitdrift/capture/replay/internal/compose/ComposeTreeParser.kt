@@ -33,15 +33,16 @@ internal object ComposeTreeParser {
         get() = this is AndroidComposeView
 
     internal fun parse(androidComposeView: View): ScannableView {
-        val semanticsOwner = if (androidComposeView is AndroidComposeView) {
-            androidComposeView.semanticsOwner
-        } else {
-            SessionReplayController.L.e(
-                null,
-                "View passed to ComposeTreeParser.parse() is not an AndroidComposeView. view=${androidComposeView.javaClass.name}",
-            )
-            return ScannableView.IgnoredComposeView
-        }
+        val semanticsOwner =
+            if (androidComposeView is AndroidComposeView) {
+                androidComposeView.semanticsOwner
+            } else {
+                SessionReplayController.L.e(
+                    null,
+                    "View passed to ComposeTreeParser.parse() is not an AndroidComposeView. view=${androidComposeView.javaClass.name}",
+                )
+                return ScannableView.IgnoredComposeView
+            }
         val rootNode = semanticsOwner.unmergedRootSemanticsNode
         SessionReplayController.L.d("Found Compose SemanticsNode root. Parsing Compose tree.")
         return rootNode.toScannableView()
@@ -52,21 +53,22 @@ internal object ComposeTreeParser {
         val notAttachedOrPlaced = !this.layoutNode.isPlaced || !this.layoutNode.isAttached
         val captureIgnoreSubTree = this.unmergedConfig.getOrNull(CaptureModifier.CaptureIgnore)
         val isVisible = !this.isTransparent && !this.unmergedConfig.contains(SemanticsProperties.InvisibleToUser)
-        val type = if (notAttachedOrPlaced) {
-            return ScannableView.IgnoredComposeView
-        } else if (captureIgnoreSubTree != null) {
-            if (captureIgnoreSubTree) {
-                // short-circuit the entire sub-tree
+        val type =
+            if (notAttachedOrPlaced) {
                 return ScannableView.IgnoredComposeView
+            } else if (captureIgnoreSubTree != null) {
+                if (captureIgnoreSubTree) {
+                    // short-circuit the entire sub-tree
+                    return ScannableView.IgnoredComposeView
+                } else {
+                    // just ignore this one element
+                    ReplayType.Ignore
+                }
+            } else if (!isVisible) {
+                ReplayType.TransparentView
             } else {
-                // just ignore this one element
-                ReplayType.Ignore
+                this.unmergedConfig.toReplayType()
             }
-        } else if (!isVisible) {
-            ReplayType.TransparentView
-        } else {
-            this.unmergedConfig.toReplayType()
-        }
 
         // Handle hybrid interop AndroidViews inside Compose elements
         val interopAndroidView = this.layoutNode.getInteropView()
@@ -78,13 +80,14 @@ internal object ComposeTreeParser {
         }
 
         return ScannableView.ComposeView(
-            replayRect = ReplayRect(
-                type = type,
-                x = this.unclippedGlobalBounds.left.toInt(),
-                y = this.unclippedGlobalBounds.top.toInt(),
-                width = this.unclippedGlobalBounds.width.toInt(),
-                height = this.unclippedGlobalBounds.height.toInt(),
-            ),
+            replayRect =
+                ReplayRect(
+                    type = type,
+                    x = this.unclippedGlobalBounds.left.toInt(),
+                    y = this.unclippedGlobalBounds.top.toInt(),
+                    width = this.unclippedGlobalBounds.width.toInt(),
+                    height = this.unclippedGlobalBounds.height.toInt(),
+                ),
             // The display name is not really used for anything
             displayName = "ComposeView",
             children = this.children.asSequence().map { it.toScannableView() },

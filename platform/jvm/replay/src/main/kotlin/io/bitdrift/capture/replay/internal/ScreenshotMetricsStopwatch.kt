@@ -30,7 +30,10 @@ internal class ScreenshotMetricsStopwatch(
         compressionByteCount = 0
     }
 
-    fun screenshot(screenshotAllocationByteCount: Int, screenshotByteCount: Int) {
+    fun screenshot(
+        screenshotAllocationByteCount: Int,
+        screenshotByteCount: Int,
+    ) {
         screenshotTimeMs = clock.elapsedRealtime() - startMs
         this.screenshotAllocationByteCount = screenshotAllocationByteCount
         this.screenshotByteCount = screenshotByteCount
@@ -41,13 +44,12 @@ internal class ScreenshotMetricsStopwatch(
         this.compressionByteCount = compressionByteCount
     }
 
-    fun data(): ScreenshotCaptureMetrics {
-        return ScreenshotCaptureMetrics(
+    fun data(): ScreenshotCaptureMetrics =
+        ScreenshotCaptureMetrics(
             screenshotTimeMs,
             screenshotAllocationByteCount,
             screenshotByteCount,
             compressionTimeMs,
             compressionByteCount,
         )
-    }
 }

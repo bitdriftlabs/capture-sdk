@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.apollo.graphql)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.compose.compiler)
 }
 
 dependencies {
@@ -9,9 +10,9 @@ dependencies {
     implementation(project(":capture-apollo"))
     implementation(project(":capture-timber"))
     implementation(libs.androidx.material3.android)
-    implementation("androidx.core:core-ktx:1.9.0")
-    implementation("androidx.compose.material:material:1.4.0")
-    implementation("androidx.activity:activity-compose:1.8.0")
+    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.compose.material:material:1.7.6")
+    implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
@@ -49,10 +50,6 @@ android {
         compose = true
         viewBinding = true
         buildConfig = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
     }
 
     defaultConfig {

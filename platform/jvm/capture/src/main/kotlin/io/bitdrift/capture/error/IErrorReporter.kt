@@ -17,5 +17,9 @@ interface IErrorReporter {
      * @param details the details to attach to the report.
      * @param fields the fields to attach to the report.
      */
-    fun reportError(message: String, details: String?, fields: Map<String, String>)
+    fun reportError(
+        message: String,
+        details: String?,
+        fields: Map<String, String>,
+    )
 }

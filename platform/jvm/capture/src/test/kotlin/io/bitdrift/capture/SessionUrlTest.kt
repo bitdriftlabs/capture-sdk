@@ -21,7 +21,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class SessionUrlTest {
-
     @Before
     fun setUp() {
         val initializer = ContextHolder()
@@ -64,8 +63,8 @@ class SessionUrlTest {
         assertThat(logger.sessionUrl).isEqualTo("https://mycustomapiurl.com/s/${logger.sessionId}?utm_source=sdk")
     }
 
-    private fun createLogger(apiUrl: String): LoggerImpl {
-        return LoggerImpl(
+    private fun createLogger(apiUrl: String): LoggerImpl =
+        LoggerImpl(
             apiKey = "test",
             apiUrl = apiUrl.toHttpUrl(),
             configuration = Configuration(),
@@ -73,5 +72,4 @@ class SessionUrlTest {
             dateProvider = SystemDateProvider(),
             sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
         )
-    }
 }

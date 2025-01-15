@@ -21,11 +21,12 @@ internal class EventsListenerTarget : IEventsListenerTarget {
     fun add(eventListener: IEventListenerLogger) {
         listeners.add(SafeEventListenerLogger(eventListener))
     }
+
     override fun start() {
-        listeners.forEach { it.start() }
+        listeners.iterator().forEach { it.start() }
     }
 
     override fun stop() {
-        listeners.forEach { it.stop() }
+        listeners.iterator().forEach { it.stop() }
     }
 }

@@ -42,7 +42,6 @@ android {
     namespace = "io.bitdrift.capture"
 
     compileSdk = 35
-    buildToolsVersion = "35.0.0"
 
     defaultConfig {
         ndkVersion = "28"

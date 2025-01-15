@@ -12,6 +12,8 @@ package io.bitdrift.capture.replay
  *
  * @param categorizers Map used to matching third party Android views to bitdrift view types.
  */
-data class SessionReplayConfiguration @JvmOverloads constructor(
-    val categorizers: Map<ReplayType, List<String>>? = null,
-)
+data class SessionReplayConfiguration
+    @JvmOverloads
+    constructor(
+        val categorizers: Map<ReplayType, List<String>>? = null,
+    )

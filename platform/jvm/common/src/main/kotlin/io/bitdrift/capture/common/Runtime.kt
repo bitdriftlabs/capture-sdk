@@ -14,7 +14,10 @@ package io.bitdrift.capture.common
  * @param featureName the runtime key to use for a certain feature
  * @param defaultValue whether the feature is enabled by default
  */
-sealed class RuntimeFeature(val featureName: String, val defaultValue: Boolean = true) {
+sealed class RuntimeFeature(
+    val featureName: String,
+    val defaultValue: Boolean = true,
+) {
     /**
      * Whether the session replay feature is enabled for Compose views.
      */

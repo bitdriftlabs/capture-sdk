@@ -18,7 +18,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class DeviceAttributesTest {
-
     @Test
     fun model() {
         val deviceAttributes = DeviceAttributes(ApplicationProvider.getApplicationContext()).invoke()

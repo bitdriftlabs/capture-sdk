@@ -23,7 +23,6 @@ import java.util.concurrent.CountDownLatch
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class SessionStrategyTest {
-
     @Before
     fun setUp() {
         val initializer = ContextHolder()
@@ -34,18 +33,20 @@ class SessionStrategyTest {
     fun fixedSessionStrategy() {
         var generatedSessionIds = mutableListOf<String>()
 
-        val logger = LoggerImpl(
-            apiKey = "test",
-            apiUrl = testServerUrl(),
-            fieldProviders = listOf(),
-            dateProvider = mock(),
-            sessionStrategy = SessionStrategy.Fixed {
-                val sessionId = UUID.randomUUID().toString()
-                generatedSessionIds.add(sessionId)
-                sessionId
-            },
-            configuration = Configuration(),
-        )
+        val logger =
+            LoggerImpl(
+                apiKey = "test",
+                apiUrl = testServerUrl(),
+                fieldProviders = listOf(),
+                dateProvider = mock(),
+                sessionStrategy =
+                    SessionStrategy.Fixed {
+                        val sessionId = UUID.randomUUID().toString()
+                        generatedSessionIds.add(sessionId)
+                        sessionId
+                    },
+                configuration = Configuration(),
+            )
 
         val sessionId = logger.sessionId
 
@@ -65,18 +66,20 @@ class SessionStrategyTest {
         val strategyLatch = CountDownLatch(1)
         var observedSessionId: String? = null
 
-        val logger = LoggerImpl(
-            apiKey = "test",
-            apiUrl = testServerUrl(),
-            fieldProviders = listOf(),
-            dateProvider = mock(),
-            sessionStrategy = SessionStrategy.ActivityBased {
-                observedSessionId = it
-                strategyLatch.countDown()
-            },
-            configuration = Configuration(),
-            preferences = mock(),
-        )
+        val logger =
+            LoggerImpl(
+                apiKey = "test",
+                apiUrl = testServerUrl(),
+                fieldProviders = listOf(),
+                dateProvider = mock(),
+                sessionStrategy =
+                    SessionStrategy.ActivityBased {
+                        observedSessionId = it
+                        strategyLatch.countDown()
+                    },
+                configuration = Configuration(),
+                preferences = mock(),
+            )
 
         val sessionId = logger.sessionId
         strategyLatch.await()
@@ -89,7 +92,10 @@ class SessionStrategyTest {
         assertThat(sessionId).isNotEqualTo(newSessionId)
     }
 
-    private fun testServerUrl(): HttpUrl {
-        return HttpUrl.Builder().scheme("http").host("test.bitdrift.com").build()
-    }
+    private fun testServerUrl(): HttpUrl =
+        HttpUrl
+            .Builder()
+            .scheme("http")
+            .host("test.bitdrift.com")
+            .build()
 }

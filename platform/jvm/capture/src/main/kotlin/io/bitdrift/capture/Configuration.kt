@@ -13,6 +13,8 @@ import io.bitdrift.capture.replay.SessionReplayConfiguration
  * A configuration object representing the feature set enabled for Capture.
  * @param sessionReplayConfiguration The resource reporting configuration to use. Passing `null` disables the feature.
  */
-data class Configuration @JvmOverloads constructor(
-    val sessionReplayConfiguration: SessionReplayConfiguration = SessionReplayConfiguration(),
-)
+data class Configuration
+    @JvmOverloads
+    constructor(
+        val sessionReplayConfiguration: SessionReplayConfiguration = SessionReplayConfiguration(),
+    )

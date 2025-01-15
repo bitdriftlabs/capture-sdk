@@ -10,7 +10,6 @@ package io.bitdrift.capture
 import org.junit.Test
 
 class KeyValueStorageTest {
-
     init {
         CaptureJniLibrary.load()
     }

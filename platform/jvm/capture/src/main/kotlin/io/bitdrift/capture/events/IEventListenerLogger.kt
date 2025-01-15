@@ -9,5 +9,6 @@ package io.bitdrift.capture.events
 
 internal interface IEventListenerLogger {
     fun start()
+
     fun stop()
 }

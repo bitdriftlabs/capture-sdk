@@ -14,8 +14,9 @@ import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.replay.SessionReplayController
 
 // Used for retrieving the view hierarchies
-internal class WindowManager(private val errorHandler: ErrorHandler) {
-
+internal class WindowManager(
+    private val errorHandler: ErrorHandler,
+) {
     private var tryWindowInspector = true
 
     private val global by lazy(LazyThreadSafetyMode.NONE) {
@@ -23,7 +24,7 @@ internal class WindowManager(private val errorHandler: ErrorHandler) {
         Class.forName("android.view.WindowManagerGlobal")
     }
 
-    private val windowManagerGlobal: Any by lazy(LazyThreadSafetyMode.NONE) {
+    private val windowManagerGlobal: Any? by lazy(LazyThreadSafetyMode.NONE) {
         global.getDeclaredMethod("getInstance").invoke(null)
     }
 

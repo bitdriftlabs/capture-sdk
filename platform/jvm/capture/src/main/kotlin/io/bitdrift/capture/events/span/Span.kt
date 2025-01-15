@@ -47,14 +47,15 @@ class Span internal constructor(
     // and continues to tick even when the CPU is in power saving modes,
     // so is the recommend basis for general purpose interval timing.
     private val startTimeMs: Long = clock.elapsedRealtime()
-    private val startFields: Map<String, String> = buildMap {
-        fields?.let {
-            putAll(it)
+    private val startFields: Map<String, String> =
+        buildMap {
+            fields?.let {
+                putAll(it)
+            }
+            put(SpanField.Key.ID, id.toString())
+            put(SpanField.Key.NAME, name)
+            put(SpanField.Key.TYPE, SpanField.Value.TYPE_START)
         }
-        put(SpanField.Key.ID, id.toString())
-        put(SpanField.Key.NAME, name)
-        put(SpanField.Key.TYPE, SpanField.Value.TYPE_START)
-    }
 
     init {
         logger?.log(
@@ -73,17 +74,21 @@ class Span internal constructor(
      * @param result the result of the operation.
      * @param fields additional fields to include in the log.
      */
-    fun end(result: SpanResult, fields: Map<String, String>? = null) {
+    fun end(
+        result: SpanResult,
+        fields: Map<String, String>? = null,
+    ) {
         logger?.apply {
-            val endFields = buildMap {
-                putAll(startFields)
-                fields?.let {
-                    putAll(it)
+            val endFields =
+                buildMap {
+                    putAll(startFields)
+                    fields?.let {
+                        putAll(it)
+                    }
+                    put(SpanField.Key.TYPE, SpanField.Value.TYPE_END)
+                    put(SpanField.Key.DURATION, (clock.elapsedRealtime() - startTimeMs).toString())
+                    put(SpanField.Key.RESULT, result.toString().lowercase())
                 }
-                put(SpanField.Key.TYPE, SpanField.Value.TYPE_END)
-                put(SpanField.Key.DURATION, (clock.elapsedRealtime() - startTimeMs).toString())
-                put(SpanField.Key.RESULT, result.toString().lowercase())
-            }
 
             this.log(
                 LogType.SPAN,

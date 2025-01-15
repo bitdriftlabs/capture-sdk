@@ -21,14 +21,13 @@ class ContextHolder : Initializer<ContextHolder> {
         return this
     }
 
-    override fun dependencies(): List<Class<out Initializer<*>>> {
-        return emptyList()
-    }
+    override fun dependencies(): List<Class<out Initializer<*>>> = emptyList()
 
     /**
      * A way to access the Context and Initializer status for the Bitdrift SDK.
      */
     companion object {
+        @Suppress("ktlint:standard:property-naming")
         @SuppressLint("StaticFieldLeak")
         @Volatile
         internal lateinit var APP_CONTEXT: Context

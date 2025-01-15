@@ -39,14 +39,15 @@ class AppExitLoggerTest {
     private val errorHandler: ErrorHandler = mock()
     private val crashHandler: CaptureUncaughtExceptionHandler = mock()
     private val versionChecker: BuildVersionChecker = mock()
-    private val appExitLogger = AppExitLogger(
-        logger,
-        activityManager,
-        runtime,
-        errorHandler,
-        crashHandler,
-        versionChecker,
-    )
+    private val appExitLogger =
+        AppExitLogger(
+            logger,
+            activityManager,
+            runtime,
+            errorHandler,
+            crashHandler,
+            versionChecker,
+        )
 
     @Before
     fun setUp() {
@@ -147,16 +148,17 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        val expectedFields = mapOf(
-            "_app_exit_source" to "ApplicationExitInfo",
-            "_app_exit_process_name" to "test-process-name",
-            "_app_exit_reason" to "ANR",
-            "_app_exit_importance" to "FOREGROUND",
-            "_app_exit_status" to "0",
-            "_app_exit_pss" to "1",
-            "_app_exit_rss" to "2",
-            "_app_exit_description" to "test-description",
-        ).toFields()
+        val expectedFields =
+            mapOf(
+                "_app_exit_source" to "ApplicationExitInfo",
+                "_app_exit_process_name" to "test-process-name",
+                "_app_exit_reason" to "ANR",
+                "_app_exit_importance" to "FOREGROUND",
+                "_app_exit_status" to "0",
+                "_app_exit_pss" to "1",
+                "_app_exit_rss" to "2",
+                "_app_exit_description" to "test-description",
+            ).toFields()
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
@@ -191,13 +193,14 @@ class AppExitLoggerTest {
         // ACT
         appExitLogger.logCrash(currentThread, RuntimeException("wrapper crash", appException))
         // ASSERT
-        val expectedFields = mapOf(
-            "_app_exit_source" to "UncaughtExceptionHandler",
-            "_app_exit_reason" to "Crash",
-            "_app_exit_info" to appException.javaClass.name,
-            "_app_exit_details" to appException.message.orEmpty(),
-            "_app_exit_thread" to currentThread.name,
-        ).toFields()
+        val expectedFields =
+            mapOf(
+                "_app_exit_source" to "UncaughtExceptionHandler",
+                "_app_exit_reason" to "Crash",
+                "_app_exit_info" to appException.javaClass.name,
+                "_app_exit_details" to appException.message.orEmpty(),
+                "_app_exit_thread" to currentThread.name,
+            ).toFields()
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),

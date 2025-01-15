@@ -12,7 +12,6 @@ package io.bitdrift.capture.common
  * Interface is provided to allow for custom clocks to be used in place of the default.
  */
 interface IClock {
-
     /**
      * The time since the system was booted.
      * This clock is guaranteed to be monotonic, and continues to tick even when the CPU is in power saving modes,
