@@ -42,7 +42,6 @@ internal data class ProcPidStatmFile(
 internal class ProcPidStatmFileReader(
     private val reader: FileReader = FileReader(),
 ) {
-
     private val pid: Int = Process.myPid()
 
     private val path = "/proc/$pid/statm"

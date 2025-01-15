@@ -73,46 +73,68 @@ internal class CaptureOkHttpEventListener internal constructor(
         val request = call.request()
 
         val pathTemplateHeaderValues = request.headers.values("x-capture-path-template")
-        val pathTemplate = if (pathTemplateHeaderValues.isEmpty()) { null } else pathTemplateHeaderValues.joinToString(",")
+        val pathTemplate =
+            if (pathTemplateHeaderValues.isEmpty()) {
+                null
+            } else {
+                pathTemplateHeaderValues.joinToString(",")
+            }
 
-        val bytesExpectedToSendCount = if (request.body == null) {
-            // If there is no body set the number of body bytes to send to 0
-            0
-        } else {
-            request.body?.contentLength().validateLength()
-        }
+        val bytesExpectedToSendCount =
+            if (request.body == null) {
+                // If there is no body set the number of body bytes to send to 0
+                0
+            } else {
+                request.body?.contentLength().validateLength()
+            }
 
-        val requestInfo = HttpRequestInfo(
-            host = request.url.host,
-            method = request.method,
-            path = HttpUrlPath(
-                request.url.encodedPath,
-                pathTemplate,
-            ),
-            query = request.url.query,
-            headers = request.headers.toMap(),
-            bytesExpectedToSendCount = bytesExpectedToSendCount,
-        )
+        val requestInfo =
+            HttpRequestInfo(
+                host = request.url.host,
+                method = request.method,
+                path =
+                    HttpUrlPath(
+                        request.url.encodedPath,
+                        pathTemplate,
+                    ),
+                query = request.url.query,
+                headers = request.headers.toMap(),
+                bytesExpectedToSendCount = bytesExpectedToSendCount,
+            )
 
         this.requestInfo = requestInfo
         logger?.log(requestInfo)
     }
 
-    override fun proxySelectStart(call: Call, url: HttpUrl) {
+    override fun proxySelectStart(
+        call: Call,
+        url: HttpUrl,
+    ) {
         runCatching { targetEventListener?.proxySelectStart(call, url) }
     }
 
-    override fun proxySelectEnd(call: Call, url: HttpUrl, proxies: List<Proxy>) {
+    override fun proxySelectEnd(
+        call: Call,
+        url: HttpUrl,
+        proxies: List<Proxy>,
+    ) {
         runCatching { targetEventListener?.proxySelectEnd(call, url, proxies) }
     }
 
-    override fun dnsStart(call: Call, domainName: String) {
+    override fun dnsStart(
+        call: Call,
+        domainName: String,
+    ) {
         runCatching { targetEventListener?.dnsStart(call, domainName) }
 
         dnsStartTimeMs = clock.elapsedRealtime()
     }
 
-    override fun dnsEnd(call: Call, domainName: String, inetAddressList: List<InetAddress>) {
+    override fun dnsEnd(
+        call: Call,
+        domainName: String,
+        inetAddressList: List<InetAddress>,
+    ) {
         runCatching { targetEventListener?.dnsEnd(call, domainName, inetAddressList) }
 
         val dnsStartTimeMs = dnsStartTimeMs ?: return
@@ -120,7 +142,11 @@ internal class CaptureOkHttpEventListener internal constructor(
         dnsResolutionDurationMs = (dnsResolutionDurationMs ?: 0) + currentDnsDurationMs
     }
 
-    override fun connectStart(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
+    override fun connectStart(
+        call: Call,
+        inetSocketAddress: InetSocketAddress,
+        proxy: Proxy,
+    ) {
         runCatching { targetEventListener?.connectStart(call, inetSocketAddress, proxy) }
     }
 
@@ -128,7 +154,10 @@ internal class CaptureOkHttpEventListener internal constructor(
         runCatching { targetEventListener?.secureConnectStart(call) }
     }
 
-    override fun secureConnectEnd(call: Call, handshake: Handshake?) {
+    override fun secureConnectEnd(
+        call: Call,
+        handshake: Handshake?,
+    ) {
         runCatching { targetEventListener?.secureConnectEnd(call, handshake) }
     }
 
@@ -151,11 +180,17 @@ internal class CaptureOkHttpEventListener internal constructor(
         runCatching { targetEventListener?.connectFailed(call, inetSocketAddress, proxy, protocol, ioe) }
     }
 
-    override fun connectionAcquired(call: Call, connection: Connection) {
+    override fun connectionAcquired(
+        call: Call,
+        connection: Connection,
+    ) {
         runCatching { targetEventListener?.connectionAcquired(call, connection) }
     }
 
-    override fun connectionReleased(call: Call, connection: Connection) {
+    override fun connectionReleased(
+        call: Call,
+        connection: Connection,
+    ) {
         runCatching { targetEventListener?.connectionReleased(call, connection) }
     }
 
@@ -163,7 +198,10 @@ internal class CaptureOkHttpEventListener internal constructor(
         runCatching { targetEventListener?.requestHeadersStart(call) }
     }
 
-    override fun requestHeadersEnd(call: Call, request: Request) {
+    override fun requestHeadersEnd(
+        call: Call,
+        request: Request,
+    ) {
         runCatching { targetEventListener?.requestHeadersEnd(call, request) }
 
         requestHeadersBytesCount += request.headers.byteCount()
@@ -173,13 +211,19 @@ internal class CaptureOkHttpEventListener internal constructor(
         runCatching { targetEventListener?.requestBodyStart(call) }
     }
 
-    override fun requestBodyEnd(call: Call, byteCount: Long) {
+    override fun requestBodyEnd(
+        call: Call,
+        byteCount: Long,
+    ) {
         runCatching { targetEventListener?.requestBodyEnd(call, byteCount) }
 
         requestBodyBytesSentCount += byteCount
     }
 
-    override fun requestFailed(call: Call, ioe: IOException) {
+    override fun requestFailed(
+        call: Call,
+        ioe: IOException,
+    ) {
         runCatching { targetEventListener?.requestFailed(call, ioe) }
     }
 
@@ -187,7 +231,10 @@ internal class CaptureOkHttpEventListener internal constructor(
         runCatching { targetEventListener?.responseHeadersStart(call) }
     }
 
-    override fun responseHeadersEnd(call: Call, response: Response) {
+    override fun responseHeadersEnd(
+        call: Call,
+        response: Response,
+    ) {
         runCatching { targetEventListener?.responseHeadersEnd(call, response) }
 
         responseHeadersBytesCount += response.headers.byteCount()
@@ -199,13 +246,19 @@ internal class CaptureOkHttpEventListener internal constructor(
         runCatching { targetEventListener?.responseBodyStart(call) }
     }
 
-    override fun responseBodyEnd(call: Call, byteCount: Long) {
+    override fun responseBodyEnd(
+        call: Call,
+        byteCount: Long,
+    ) {
         runCatching { targetEventListener?.responseBodyEnd(call, byteCount) }
 
         responseBodyBytesReceivedCount += byteCount
     }
 
-    override fun responseFailed(call: Call, ioe: IOException) {
+    override fun responseFailed(
+        call: Call,
+        ioe: IOException,
+    ) {
         runCatching { targetEventListener?.responseFailed(call, ioe) }
     }
 
@@ -228,30 +281,36 @@ internal class CaptureOkHttpEventListener internal constructor(
         // Capture response URL attributes in case there was a redirect and attributes such as host,
         // path, and query have different values for the original request and the response.
         // https://square.github.io/okhttp/features/interceptors/#application-interceptors
-        val httpResponse = HttpResponse(
-            host = request.url.host,
-            path = HttpUrlPath(request.url.encodedPath),
-            query = request.url.query,
-            result = if (isSuccess) {
-                HttpResponse.HttpResult.SUCCESS
-            } else {
-                HttpResponse.HttpResult.FAILURE
-            },
-            statusCode = statusCode,
-            headers = response.headers.toMap(),
-        )
+        val httpResponse =
+            HttpResponse(
+                host = request.url.host,
+                path = HttpUrlPath(request.url.encodedPath),
+                query = request.url.query,
+                result =
+                    if (isSuccess) {
+                        HttpResponse.HttpResult.SUCCESS
+                    } else {
+                        HttpResponse.HttpResult.FAILURE
+                    },
+                statusCode = statusCode,
+                headers = response.headers.toMap(),
+            )
 
-        val httpResponseInfo = HttpResponseInfo(
-            request = requestInfo,
-            response = httpResponse,
-            durationMs = (clock.elapsedRealtime() - callStartTimeMs),
-            metrics = getMetrics(),
-        )
+        val httpResponseInfo =
+            HttpResponseInfo(
+                request = requestInfo,
+                response = httpResponse,
+                durationMs = (clock.elapsedRealtime() - callStartTimeMs),
+                metrics = getMetrics(),
+            )
 
         logger?.log(httpResponseInfo)
     }
 
-    override fun callFailed(call: Call, ioe: IOException) {
+    override fun callFailed(
+        call: Call,
+        ioe: IOException,
+    ) {
         runCatching { targetEventListener?.callFailed(call, ioe) }
 
         val requestInfo = requestInfo ?: return
@@ -263,23 +322,26 @@ internal class CaptureOkHttpEventListener internal constructor(
         // Capture response URL attributes in case there was a redirect and attributes such as host,
         // path, and query have different values for the original request and the response.
         // https://square.github.io/okhttp/features/interceptors/#application-interceptors
-        val httpResponse = HttpResponse(
-            host = request.url.host,
-            path = HttpUrlPath(request.url.encodedPath),
-            query = request.url.query,
-            result = if (isInterruptedException(ioe)) {
-                HttpResponse.HttpResult.CANCELED
-            } else {
-                HttpResponse.HttpResult.FAILURE
-            },
-            error = ioe,
-        )
-        val httpResponseInfo = HttpResponseInfo(
-            request = requestInfo,
-            response = httpResponse,
-            durationMs = (clock.elapsedRealtime() - callStartTimeMs),
-            metrics = getMetrics(),
-        )
+        val httpResponse =
+            HttpResponse(
+                host = request.url.host,
+                path = HttpUrlPath(request.url.encodedPath),
+                query = request.url.query,
+                result =
+                    if (isInterruptedException(ioe)) {
+                        HttpResponse.HttpResult.CANCELED
+                    } else {
+                        HttpResponse.HttpResult.FAILURE
+                    },
+                error = ioe,
+            )
+        val httpResponseInfo =
+            HttpResponseInfo(
+                request = requestInfo,
+                response = httpResponse,
+                durationMs = (clock.elapsedRealtime() - callStartTimeMs),
+                metrics = getMetrics(),
+            )
         logger?.log(httpResponseInfo)
     }
 
@@ -287,11 +349,17 @@ internal class CaptureOkHttpEventListener internal constructor(
         runCatching { targetEventListener?.canceled(call) }
     }
 
-    override fun satisfactionFailure(call: Call, response: Response) {
+    override fun satisfactionFailure(
+        call: Call,
+        response: Response,
+    ) {
         runCatching { targetEventListener?.satisfactionFailure(call, response) }
     }
 
-    override fun cacheHit(call: Call, response: Response) {
+    override fun cacheHit(
+        call: Call,
+        response: Response,
+    ) {
         runCatching { targetEventListener?.cacheHit(call, response) }
     }
 
@@ -299,19 +367,21 @@ internal class CaptureOkHttpEventListener internal constructor(
         runCatching { targetEventListener?.cacheMiss(call) }
     }
 
-    override fun cacheConditionalHit(call: Call, cachedResponse: Response) {
+    override fun cacheConditionalHit(
+        call: Call,
+        cachedResponse: Response,
+    ) {
         runCatching { targetEventListener?.cacheConditionalHit(call, cachedResponse) }
     }
 
-    private fun getMetrics(): HttpRequestMetrics {
-        return HttpRequestMetrics(
+    private fun getMetrics(): HttpRequestMetrics =
+        HttpRequestMetrics(
             requestBodyBytesSentCount = requestBodyBytesSentCount,
             responseBodyBytesReceivedCount = responseBodyBytesReceivedCount,
             requestHeadersBytesCount = requestHeadersBytesCount,
             responseHeadersBytesCount = responseHeadersBytesCount,
             dnsResolutionDurationMs = dnsResolutionDurationMs,
         )
-    }
 
     private fun isInterruptedException(e: Throwable): Boolean {
         val cause = (if (e.cause == null) e else e.cause) ?: return false

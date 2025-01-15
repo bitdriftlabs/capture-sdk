@@ -26,7 +26,6 @@ interface StackTraceProvider {
 
 @Suppress("UndocumentedPublicClass")
 internal object CaptureJniLibrary : IBridge {
-
     /**
      * Loads the shared library. This is safe to call multiple times.
      */
@@ -73,9 +72,7 @@ internal object CaptureJniLibrary : IBridge {
      *
      * @param loggerId the ID of the logger to start.
      */
-    external fun startLogger(
-        loggerId: Long,
-    )
+    external fun startLogger(loggerId: Long)
 
     /**
      * Destroys the logger associated with the provided logger id. If called more than once for a
@@ -292,5 +289,8 @@ internal object CaptureJniLibrary : IBridge {
      * Called to report an error via the ErrorReporter. This is preferred over calling the ErrorReporter
      * directly as it allows for centralized control over error flood controls.
      */
-    external fun reportError(message: String, stackTraceProvider: StackTraceProvider)
+    external fun reportError(
+        message: String,
+        stackTraceProvider: StackTraceProvider,
+    )
 }

@@ -17,32 +17,34 @@ package io.bitdrift.capture.network
  * @param statusCode: The status code received from the server, if any.
  * @param error: The error received as the result of performing an HTTP request, if any.
  */
-data class HttpResponse @JvmOverloads constructor(
-    val result: HttpResult,
-    val host: String? = null,
-    val path: HttpUrlPath? = null,
-    val query: String? = null,
-    val headers: Map<String, String>? = null,
-    val statusCode: Int? = null,
-    val error: Throwable? = null,
-) {
-    /**
-     * Represents the result of an http request operation
-     */
-    enum class HttpResult {
+data class HttpResponse
+    @JvmOverloads
+    constructor(
+        val result: HttpResult,
+        val host: String? = null,
+        val path: HttpUrlPath? = null,
+        val query: String? = null,
+        val headers: Map<String, String>? = null,
+        val statusCode: Int? = null,
+        val error: Throwable? = null,
+    ) {
         /**
-         * Represents a successful http request operation
+         * Represents the result of an http request operation
          */
-        SUCCESS,
+        enum class HttpResult {
+            /**
+             * Represents a successful http request operation
+             */
+            SUCCESS,
 
-        /**
-         * Represents a failed http request operation
-         */
-        FAILURE,
+            /**
+             * Represents a failed http request operation
+             */
+            FAILURE,
 
-        /**
-         * Represents an interrupted or incomplete http request operation
-         */
-        CANCELED,
+            /**
+             * Represents an interrupted or incomplete http request operation
+             */
+            CANCELED,
+        }
     }
-}

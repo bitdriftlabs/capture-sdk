@@ -12,26 +12,23 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 
-internal class BatteryMonitor(private val context: Context) {
+internal class BatteryMonitor(
+    private val context: Context,
+) {
     private val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
 
-    fun batteryPercentageAttribute(): Pair<String, String> {
-        return "_battery_val" to batteryPercentage().toString()
-    }
+    fun batteryPercentageAttribute(): Pair<String, String> = "_battery_val" to batteryPercentage().toString()
 
-    fun isBatteryChargingAttribute(): Pair<String, String> {
-        return Pair("_state", if (isBatteryCharging()) "charging" else "unplugged")
-    }
+    fun isBatteryChargingAttribute(): Pair<String, String> = Pair("_state", if (isBatteryCharging()) "charging" else "unplugged")
 
     private fun isBatteryCharging(): Boolean {
-        val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { filter ->
-            context.registerReceiver(null, filter)
-        }
+        val batteryStatus: Intent? =
+            IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { filter ->
+                context.registerReceiver(null, filter)
+            }
         val status: Int = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
         return (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL)
     }
 
-    private fun batteryPercentage(): Float {
-        return batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) / 100.0f
-    }
+    private fun batteryPercentage(): Float = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) / 100.0f
 }

@@ -28,15 +28,14 @@ data class ReplayCaptureMetrics(
     var parseDuration: Duration = Duration.ZERO,
     var encodingTimeMs: Long = 0L,
 ) {
-
     private val totalDurationMs: Long
         get() = parseDuration.inWholeMilliseconds + encodingTimeMs
 
     /**
      * Convert the metrics to a map
      */
-    fun toMap(): Map<String, String> {
-        return mapOf(
+    fun toMap(): Map<String, String> =
+        mapOf(
             "view_count" to viewCount.toString(),
             "compose_view_count" to composeViewCount.toString(),
             "view_count_after_filter" to viewCountAfterFilter.toString(),
@@ -46,5 +45,4 @@ data class ReplayCaptureMetrics(
             "encoding_time_ms" to encodingTimeMs.toString(),
             "total_duration_ms" to totalDurationMs.toString(),
         )
-    }
 }

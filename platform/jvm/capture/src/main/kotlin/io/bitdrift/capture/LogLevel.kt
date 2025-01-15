@@ -14,7 +14,9 @@ package io.bitdrift.capture
  *
  * @property value the numeric representation of the log level.
  */
-enum class LogLevel(val value: Int) {
+enum class LogLevel(
+    val value: Int,
+) {
     /**
      * Represents an error log level, which is the most severe log level.
      */

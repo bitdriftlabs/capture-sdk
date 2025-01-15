@@ -42,13 +42,14 @@ class AppUpdateListenerLoggerTest {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
 
-        appUpdateLogger = AppUpdateListenerLogger(
-            logger = logger,
-            clientAttributes = clientAttributes,
-            context = ContextHolder.APP_CONTEXT,
-            runtime = runtime,
-            executor = executor,
-        )
+        appUpdateLogger =
+            AppUpdateListenerLogger(
+                logger = logger,
+                clientAttributes = clientAttributes,
+                context = ContextHolder.APP_CONTEXT,
+                runtime = runtime,
+                executor = executor,
+            )
     }
 
     @Test

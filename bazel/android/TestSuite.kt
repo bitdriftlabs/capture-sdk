@@ -22,14 +22,16 @@ object TestSuite {
     fun suite(): TestSuite {
         val suite = TestSuite()
 
-        val scan = ClassGraph()
-            .disableModuleScanning()
-            .enableAnnotationInfo()
-            .enableMethodInfo()
-            .ignoreClassVisibility()
-            .acceptPackages("io.bitdrift.capture")
-            .scan()
-        scan.getClassesWithMethodAnnotation(junitTestAnnotation)
+        val scan =
+            ClassGraph()
+                .disableModuleScanning()
+                .enableAnnotationInfo()
+                .enableMethodInfo()
+                .ignoreClassVisibility()
+                .acceptPackages("io.bitdrift.capture")
+                .scan()
+        scan
+            .getClassesWithMethodAnnotation(junitTestAnnotation)
             .asSequence()
             .sortedByDescending { it.name }
             .map { JUnit4TestAdapter(it.loadClass()) }

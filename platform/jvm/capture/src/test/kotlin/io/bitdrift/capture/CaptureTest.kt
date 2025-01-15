@@ -50,14 +50,16 @@ class CaptureTest {
         val requestInfo = HttpRequestInfo("GET", path = HttpUrlPath("/foo/12345"))
         Logger.log(requestInfo)
 
-        val responseInfo = HttpResponseInfo(
-            requestInfo,
-            response = HttpResponse(
-                result = HttpResponse.HttpResult.SUCCESS,
-                path = HttpUrlPath("/foo_path/12345"),
-            ),
-            durationMs = 60L,
-        )
+        val responseInfo =
+            HttpResponseInfo(
+                requestInfo,
+                response =
+                    HttpResponse(
+                        result = HttpResponse.HttpResult.SUCCESS,
+                        path = HttpUrlPath("/foo_path/12345"),
+                    ),
+                durationMs = 60L,
+            )
         Logger.log(responseInfo)
 
         assertThat(Capture.logger()).isNull()

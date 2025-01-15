@@ -13,16 +13,14 @@ import androidx.core.os.ConfigurationCompat
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.Fields
 
-internal class DeviceAttributes(private val context: Context) : FieldProvider {
+internal class DeviceAttributes(
+    private val context: Context,
+) : FieldProvider {
+    fun model(): String = Build.MODEL
 
-    fun model(): String {
-        return Build.MODEL
-    }
-
-    override fun invoke(): Fields {
-        return mapOf(
+    override fun invoke(): Fields =
+        mapOf(
             "model" to model(),
             "_locale" to ConfigurationCompat.getLocales(context.resources.configuration)[0].toString(),
         )
-    }
 }

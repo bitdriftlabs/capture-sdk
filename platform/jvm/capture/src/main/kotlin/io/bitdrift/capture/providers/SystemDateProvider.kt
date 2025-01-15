@@ -10,7 +10,5 @@ package io.bitdrift.capture.providers
 import java.util.Date
 
 internal class SystemDateProvider : DateProvider {
-    override fun invoke(): Date {
-        return Date()
-    }
+    override fun invoke(): Date = Date()
 }

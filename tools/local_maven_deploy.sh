@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Builds Android aar and creates simlinks to it in a local maven
-# repository so that the SDK can be picked by Grandle when 
+# repository so that the SDK can be picked by Grandle when
 # compiling Grandle example app.
 
 set -euo pipefail
@@ -17,6 +17,6 @@ ln -fs "$(pwd)/bazel-bin/capture-sources.jar" "$local_maven_repo/io/bitdrift/cap
 
 ./bazelw build \
   --announce_rc \
-  --fat_apk_cpu=arm64-v8a \
+  --android_platforms=@rules_android//:arm64-v8a \
   --define=pom_version="SNAPSHOT" \
   //:capture_aar_with_artifacts

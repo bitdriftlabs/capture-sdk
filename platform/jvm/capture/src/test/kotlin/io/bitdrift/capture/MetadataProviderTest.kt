@@ -20,7 +20,6 @@ import java.lang.RuntimeException
 import java.util.Date
 
 class MetadataProviderTest {
-
     @Suppress("TooGenericExceptionThrown")
     @Test
     fun metadata_provider_processes_field_providers_in_order_and_swallows_exceptions() {
@@ -29,27 +28,32 @@ class MetadataProviderTest {
 
         // Processing of field providers continues even if one of them throws
         // an exception.
-        val throwingFieldProvider1 = FieldProvider {
-            throw RuntimeException("throw1")
-        }
-        val throwingFieldProvider2 = FieldProvider {
-            throw RuntimeException("throw2")
-        }
+        val throwingFieldProvider1 =
+            FieldProvider {
+                throw RuntimeException("throw1")
+            }
+        val throwingFieldProvider2 =
+            FieldProvider {
+                throw RuntimeException("throw2")
+            }
 
-        val workingFieldProviders1 = FieldProvider {
-            mapOf("key1" to "value1", "key2" to "value2")
-        }
-        val workingFieldProviders2 = FieldProvider {
-            mapOf("key1" to "value3", "key2" to "value4")
-        }
+        val workingFieldProviders1 =
+            FieldProvider {
+                mapOf("key1" to "value1", "key2" to "value2")
+            }
+        val workingFieldProviders2 =
+            FieldProvider {
+                mapOf("key1" to "value3", "key2" to "value4")
+            }
 
-        val metadataProvider = MetadataProvider(
-            dateProvider = dateProvider,
-            ootbFieldProviders = listOf(throwingFieldProvider1, workingFieldProviders1),
-            customFieldProviders = listOf(throwingFieldProvider2, workingFieldProviders2),
-            errorHandle = mock { },
-            errorLog = { _, _ -> },
-        )
+        val metadataProvider =
+            MetadataProvider(
+                dateProvider = dateProvider,
+                ootbFieldProviders = listOf(throwingFieldProvider1, workingFieldProviders1),
+                customFieldProviders = listOf(throwingFieldProvider2, workingFieldProviders2),
+                errorHandle = mock { },
+                errorLog = { _, _ -> },
+            )
 
         assertThat(metadataProvider.ootbFields()).isEqualTo(
             listOf(

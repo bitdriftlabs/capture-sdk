@@ -27,19 +27,19 @@ internal class ResourceUtilizationTarget(
     private val executor: ExecutorService,
     private val clock: IClock = DefaultClock.getInstance(),
 ) : IResourceUtilizationTarget {
-
     override fun tick() {
         executor.execute {
             try {
                 val start = clock.elapsedRealtime()
 
-                val fields = buildMap {
-                    putAll(memoryMonitor.getMemoryAttributes())
-                    putAll(diskUsageMonitor.getDiskUsage())
-                    putPair(batteryMonitor.batteryPercentageAttribute())
-                    putPair(batteryMonitor.isBatteryChargingAttribute())
-                    putPair(powerMonitor.isPowerSaveModeEnabledAttribute())
-                }
+                val fields =
+                    buildMap {
+                        putAll(memoryMonitor.getMemoryAttributes())
+                        putAll(diskUsageMonitor.getDiskUsage())
+                        putPair(batteryMonitor.batteryPercentageAttribute())
+                        putPair(batteryMonitor.isBatteryChargingAttribute())
+                        putPair(powerMonitor.isPowerSaveModeEnabledAttribute())
+                    }
 
                 val duration = clock.elapsedRealtime() - start
                 logger.logResourceUtilization(fields, duration.toDuration(DurationUnit.MILLISECONDS))
@@ -50,9 +50,7 @@ internal class ResourceUtilizationTarget(
     }
 }
 
-internal fun MutableMap<String, String>.putPair(
-    pair: Pair<String, String>,
-): MutableMap<String, String> {
+internal fun MutableMap<String, String>.putPair(pair: Pair<String, String>): MutableMap<String, String> {
     this[pair.first] = pair.second
     return this
 }

@@ -17,7 +17,10 @@ import javax.annotation.concurrent.ThreadSafe
  * As soon as deallocate() is called, the deallocation function will be invoked and the inner value becomes inaccessible.
  */
 @ThreadSafe
-internal class DeallocationGuard<T>(private val inner: T, private val deallocator: (T) -> Unit) {
+internal class DeallocationGuard<T>(
+    private val inner: T,
+    private val deallocator: (T) -> Unit,
+) {
     // Note that this must be protected via @Synchronized blocks, as a `deallocate` call and a interaction
     // could both check an AtomicBool and both see `deallocated = false`, resulting in the calls overlapping
     // and causing undefined behavior.

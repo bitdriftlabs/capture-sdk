@@ -13,7 +13,7 @@ def _impl(ctx):
     library_outputs = []
     objdump_outputs = []
     for platform, dep in ctx.split_attr.dep.items():
-        # When --fat_apk_cpu isn't set, the platform is None
+        # When --android_platforms isn't set, the platform is None
         if len(dep.files.to_list()) != 1:
             fail("Expected exactly one file in the library")
 

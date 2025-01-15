@@ -20,7 +20,6 @@ internal class ClientAttributes(
     context: Context,
     private val processLifecycleOwner: LifecycleOwner,
 ) : FieldProvider {
-
     val appId = context.packageName ?: "unknown"
 
     val appVersion: String
@@ -39,14 +38,15 @@ internal class ClientAttributes(
         }
 
     @Suppress("SwallowedException")
-    private val packageInfo: PackageInfo? = try {
-        context.packageManager.getPackageInfoCompat(appId)
-    } catch (e: Exception) {
-        null
-    }
+    private val packageInfo: PackageInfo? =
+        try {
+            context.packageManager.getPackageInfoCompat(appId)
+        } catch (e: Exception) {
+            null
+        }
 
-    override fun invoke(): Fields {
-        return mapOf(
+    override fun invoke(): Fields =
+        mapOf(
             // The package name which identifies the running app (e.g. me.foobar.android)
             "app_id" to appId,
             // Operating system. Always Android for this code path.
@@ -62,7 +62,6 @@ internal class ClientAttributes(
             // This number helps determine whether one version is more recent than another.
             "_app_version_code" to appVersionCode.toString(),
         )
-    }
 
     private fun isForeground(): String {
         // refer to lifecycle states https://developer.android.com/topic/libraries/architecture/lifecycle#lc
@@ -76,7 +75,10 @@ internal class ClientAttributes(
         }
     }
 
-    private fun PackageManager.getPackageInfoCompat(packageName: String, flags: Int = 0): PackageInfo =
+    private fun PackageManager.getPackageInfoCompat(
+        packageName: String,
+        flags: Int = 0,
+    ): PackageInfo =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(flags.toLong()))
         } else {

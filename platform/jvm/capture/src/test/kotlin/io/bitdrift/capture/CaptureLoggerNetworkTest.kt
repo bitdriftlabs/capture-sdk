@@ -20,7 +20,6 @@ import org.junit.rules.TemporaryFolder
 import java.util.Date
 
 class CaptureLoggerNetworkTest {
-
     init {
         CaptureJniLibrary.load()
     }
@@ -35,17 +34,11 @@ class CaptureLoggerNetworkTest {
     private var testServerPort: Int? = null
 
     class TestMetadataProvider : IMetadataProvider {
-        override fun timestamp(): Long {
-            return Date().time
-        }
+        override fun timestamp(): Long = Date().time
 
-        override fun ootbFields(): InternalFieldsList {
-            return listOf()
-        }
+        override fun ootbFields(): InternalFieldsList = listOf()
 
-        override fun customFields(): InternalFieldsList {
-            return listOf()
-        }
+        override fun customFields(): InternalFieldsList = listOf()
     }
 
     companion object {
@@ -65,26 +58,28 @@ class CaptureLoggerNetworkTest {
     private fun createLogger(): Long {
         testServerPort = CaptureTestJniLibrary.startTestApiServer(pingIdleTimeout)
 
-        val network = OkHttpNetwork(
-            apiBaseUrl = testServerUrl(testServerPort!!),
-            timeoutSeconds = streamTimeoutSeconds,
-        )
+        val network =
+            OkHttpNetwork(
+                apiBaseUrl = testServerUrl(testServerPort!!),
+                timeoutSeconds = streamTimeoutSeconds,
+            )
 
-        val logger = CaptureJniLibrary.createLogger(
-            directory.newFolder().path,
-            apiKey = "abc123",
-            SessionStrategy.Fixed().createSessionStrategyConfiguration { },
-            loggerBridge,
-            mock(),
-            mock(),
-            mock(),
-            "test",
-            "test",
-            "test",
-            network,
-            mock(),
-            mock(),
-        )
+        val logger =
+            CaptureJniLibrary.createLogger(
+                directory.newFolder().path,
+                apiKey = "abc123",
+                SessionStrategy.Fixed().createSessionStrategyConfiguration { },
+                loggerBridge,
+                mock(),
+                mock(),
+                mock(),
+                "test",
+                "test",
+                "test",
+                network,
+                mock(),
+                mock(),
+            )
         CaptureJniLibrary.startLogger(logger)
         return logger
     }
@@ -143,28 +138,30 @@ class CaptureLoggerNetworkTest {
     fun `okhttp network server not available`() {
         // We start the logger without starting the test server, so any attempt at connecting
         // to it should immediately fail (connection refused).
-        val network = OkHttpNetwork(
-            apiBaseUrl = testServerUrl(50051),
-            timeoutSeconds = 1,
-        )
-        val loggerId = CaptureJniLibrary.createLogger(
-            directory.newFolder().path,
-            apiKey = "abc123",
-            SessionStrategyConfiguration.Fixed(
-                sessionStrategy = SessionStrategy.Fixed(),
-                onSessionIdChanged = { },
-            ),
-            loggerBridge,
-            mock(),
-            mock(),
-            mock(),
-            "test",
-            "test",
-            "test",
-            network,
-            mock(),
-            mock(),
-        )
+        val network =
+            OkHttpNetwork(
+                apiBaseUrl = testServerUrl(50051),
+                timeoutSeconds = 1,
+            )
+        val loggerId =
+            CaptureJniLibrary.createLogger(
+                directory.newFolder().path,
+                apiKey = "abc123",
+                SessionStrategyConfiguration.Fixed(
+                    sessionStrategy = SessionStrategy.Fixed(),
+                    onSessionIdChanged = { },
+                ),
+                loggerBridge,
+                mock(),
+                mock(),
+                mock(),
+                "test",
+                "test",
+                "test",
+                network,
+                mock(),
+                mock(),
+            )
         CaptureJniLibrary.startLogger(loggerId)
         logger = loggerId
 
@@ -175,28 +172,30 @@ class CaptureLoggerNetworkTest {
     @Test
     fun large_upload() {
         val port = CaptureTestJniLibrary.startTestApiServer(500)
-        val network = OkHttpNetwork(
-            apiBaseUrl = testServerUrl(port),
-            timeoutSeconds = 1,
-        )
+        val network =
+            OkHttpNetwork(
+                apiBaseUrl = testServerUrl(port),
+                timeoutSeconds = 1,
+            )
 
-        val logger = CaptureJniLibrary.createLogger(
-            directory.newFolder().path,
-            apiKey = "abc123",
-            SessionStrategy.Fixed().createSessionStrategyConfiguration { },
-            loggerBridge,
-            mock(),
-            mock(),
-            mock(),
-            "test",
-            "test",
-            "test",
-            network,
-            // this test fails if we pass mock() in here. It has something to do with
-            // jni trying to call methods on Mockito mocks.
-            MockPreferences(),
-            mock(),
-        )
+        val logger =
+            CaptureJniLibrary.createLogger(
+                directory.newFolder().path,
+                apiKey = "abc123",
+                SessionStrategy.Fixed().createSessionStrategyConfiguration { },
+                loggerBridge,
+                mock(),
+                mock(),
+                mock(),
+                "test",
+                "test",
+                "test",
+                network,
+                // this test fails if we pass mock() in here. It has something to do with
+                // jni trying to call methods on Mockito mocks.
+                MockPreferences(),
+                mock(),
+            )
         CaptureJniLibrary.startLogger(logger)
 
         CaptureTestJniLibrary.runLargeUploadTest(logger)
@@ -204,7 +203,11 @@ class CaptureLoggerNetworkTest {
         CaptureJniLibrary.destroyLogger(logger)
     }
 
-    private fun testServerUrl(port: Int): HttpUrl {
-        return HttpUrl.Builder().scheme("http").host("localhost").port(port).build()
-    }
+    private fun testServerUrl(port: Int): HttpUrl =
+        HttpUrl
+            .Builder()
+            .scheme("http")
+            .host("localhost")
+            .port(port)
+            .build()
 }

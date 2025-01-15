@@ -45,7 +45,6 @@ internal val View.phoneWindow: Window?
     }
 
 internal object WindowSpy {
-
     /**
      * Originally, DecorView was an inner class of PhoneWindow. In the initial import in 2009,
      * PhoneWindow is in com.android.internal.policy.impl.PhoneWindow and that didn't change until
@@ -62,11 +61,12 @@ internal object WindowSpy {
     private val decorViewClass by lazy(NONE) {
         val sdkInt = Build.VERSION.SDK_INT
         // TODO: we can only consider API 26
-        val decorViewClassName = when {
-            sdkInt >= 24 -> "com.android.internal.policy.DecorView"
-            sdkInt == 23 -> "com.android.internal.policy.PhoneWindow\$DecorView"
-            else -> "com.android.internal.policy.impl.PhoneWindow\$DecorView"
-        }
+        val decorViewClassName =
+            when {
+                sdkInt >= 24 -> "com.android.internal.policy.DecorView"
+                sdkInt == 23 -> "com.android.internal.policy.PhoneWindow\$DecorView"
+                else -> "com.android.internal.policy.impl.PhoneWindow\$DecorView"
+            }
         try {
             Class.forName(decorViewClassName)
         } catch (ignored: Throwable) {
@@ -105,8 +105,8 @@ internal object WindowSpy {
         }
     }
 
-    fun pullWindow(maybeDecorView: View): Window? {
-        return decorViewClass?.let { decorViewClass ->
+    fun pullWindow(maybeDecorView: View): Window? =
+        decorViewClass?.let { decorViewClass ->
             if (decorViewClass.isInstance(maybeDecorView)) {
                 windowField?.let { windowField ->
                     windowField[maybeDecorView] as Window
@@ -115,5 +115,4 @@ internal object WindowSpy {
                 null
             }
         }
-    }
 }

@@ -14,32 +14,39 @@ import android.content.Context.MODE_PRIVATE
 /**
  * Convenience wrapper for working with `SharedPreferences`.
  */
-internal class Preferences(private val context: Context) : IPreferences {
+internal class Preferences(
+    private val context: Context,
+) : IPreferences {
     private val underlyingPreferences = context.getSharedPreferences("io.bitdrift.storage", MODE_PRIVATE)
 
-    override fun getLong(key: String): Long? {
-        return if (underlyingPreferences.contains(key)) {
+    override fun getLong(key: String): Long? =
+        if (underlyingPreferences.contains(key)) {
             underlyingPreferences.getLong(key, -1)
         } else {
             null
         }
-    }
 
-    override fun setLong(key: String, value: Long) {
+    override fun setLong(
+        key: String,
+        value: Long,
+    ) {
         underlyingPreferences.edit().putLong(key, value).apply()
     }
 
-    override fun getString(key: String): String? {
-        return underlyingPreferences.getString(key, null)
-    }
+    override fun getString(key: String): String? = underlyingPreferences.getString(key, null)
 
     @SuppressLint("ApplySharedPref")
-    override fun setString(key: String, value: String?, blocking: Boolean) {
-        val edit = if (value == null) {
-            underlyingPreferences.edit().remove(key)
-        } else {
-            underlyingPreferences.edit().putString(key, value)
-        }
+    override fun setString(
+        key: String,
+        value: String?,
+        blocking: Boolean,
+    ) {
+        val edit =
+            if (value == null) {
+                underlyingPreferences.edit().remove(key)
+            } else {
+                underlyingPreferences.edit().putString(key, value)
+            }
 
         if (blocking) {
             edit.commit()

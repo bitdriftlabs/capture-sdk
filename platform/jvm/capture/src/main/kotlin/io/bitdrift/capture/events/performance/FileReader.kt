@@ -12,7 +12,6 @@ import java.io.FileNotFoundException
 import java.io.IOException
 
 internal class FileReader {
-
     fun readFile(path: String): Result<String> =
         try {
             val file = File(path)
@@ -21,8 +20,7 @@ internal class FileReader {
             Result.failure(handleException(ex))
         }
 
-    private fun FileNotFoundException.isPermissionDenied(): Boolean =
-        message?.contains(PERMISSION_DENIED_PATTERN) ?: false
+    private fun FileNotFoundException.isPermissionDenied(): Boolean = message?.contains(PERMISSION_DENIED_PATTERN) ?: false
 
     private fun handleException(ex: Exception): Exception =
         if (ex is FileNotFoundException && ex.isPermissionDenied()) {

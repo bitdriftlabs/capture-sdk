@@ -26,8 +26,8 @@ data class ScreenshotCaptureMetrics(
     /**
      * Convert the metrics to a map
      */
-    fun toMap(): Map<String, String> {
-        return mapOf(
+    fun toMap(): Map<String, String> =
+        mapOf(
             "screenshot_time_ms" to screenshotTimeMs.toString(),
             "screenshot_allocation_byte_count" to screenshotAllocationByteCount.toString(),
             "screenshot_byte_count" to screenshotByteCount.toString(),
@@ -35,5 +35,4 @@ data class ScreenshotCaptureMetrics(
             "compression_byte_count" to compressionByteCount.toString(),
             "total_duration_ms" to totalDurationMs.toString(),
         )
-    }
 }

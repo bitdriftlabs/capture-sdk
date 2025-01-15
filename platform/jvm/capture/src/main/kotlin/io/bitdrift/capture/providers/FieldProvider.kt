@@ -12,7 +12,10 @@ package io.bitdrift.capture.providers
  * @param key the field key.
  * @param value the field value.
  */
-data class Field(val key: String, val value: FieldValue) {
+data class Field(
+    val key: String,
+    val value: FieldValue,
+) {
     /**
      * The String value of the field. The property throws if the underlying
      * field value is not of a String type.
@@ -57,17 +60,19 @@ sealed class FieldValue {
      * A string representation of a field value.
      * @param stringValue the underlying string representation
      */
-    data class StringField(val stringValue: String) : FieldValue() {
-        override fun toString(): String {
-            return stringValue
-        }
+    data class StringField(
+        val stringValue: String,
+    ) : FieldValue() {
+        override fun toString(): String = stringValue
     }
 
     /**
      * A binary representation of a field value.
      * @param byteArrayValue the underlying binary representation
      */
-    data class BinaryField(val byteArrayValue: ByteArray) : FieldValue() {
+    data class BinaryField(
+        val byteArrayValue: ByteArray,
+    ) : FieldValue() {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
@@ -75,13 +80,9 @@ sealed class FieldValue {
             return byteArrayValue.contentEquals(other.byteArrayValue)
         }
 
-        override fun hashCode(): Int {
-            return byteArrayValue.contentHashCode()
-        }
+        override fun hashCode(): Int = byteArrayValue.contentHashCode()
 
-        override fun toString(): String {
-            return String(byteArrayValue)
-        }
+        override fun toString(): String = String(byteArrayValue)
     }
 }
 
@@ -97,27 +98,28 @@ fun interface FieldProvider : () -> Fields
 /**
  * Converts a String into FieldValue.StringField.
  */
-internal fun String.toFieldValue() = with(this@toFieldValue) {
-    FieldValue.StringField(this)
-}
+internal fun String.toFieldValue() =
+    with(this@toFieldValue) {
+        FieldValue.StringField(this)
+    }
 
 /**
  * Converts a ByteArray into FieldValue.BinaryField.
  */
-internal fun ByteArray.toFieldValue() = with(this@toFieldValue) {
-    FieldValue.BinaryField(this)
-}
+internal fun ByteArray.toFieldValue() =
+    with(this@toFieldValue) {
+        FieldValue.BinaryField(this)
+    }
 
 /**
  * Converts a key-value pair into a Field
  */
-internal fun Pair<String, String>.toField(): Pair<String, FieldValue> {
-    return Pair(this.first, this.second.toFieldValue())
-}
+internal fun Pair<String, String>.toField(): Pair<String, FieldValue> = Pair(this.first, this.second.toFieldValue())
 
 /**
  * Converts a Map<String, String> into a List<Field>.
  */
-internal fun Map<String, String>?.toFields(): Map<String, FieldValue> {
-    return this?.entries?.associate { it.key to it.value.toFieldValue() } ?: emptyMap()
-}
+internal fun Map<String, String>?.toFields(): Map<String, FieldValue> =
+    this?.entries?.associate {
+        it.key to it.value.toFieldValue()
+    } ?: emptyMap()
