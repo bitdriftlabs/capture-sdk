@@ -44,10 +44,12 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        ndkVersion = "28"
         minSdk = 21
+        ndkVersion = "27"
         consumerProguardFiles("consumer-rules.pro")
     }
+
+    ndkVersion = "27.2.12479018"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -72,8 +74,6 @@ android {
         checkDependencies = true
         checkReleaseBuilds = true
     }
-
-    ndkVersion = "28.0.12674087-rc2"
 }
 
 // Rust cargo build toolchain

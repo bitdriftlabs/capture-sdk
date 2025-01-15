@@ -25,7 +25,7 @@ android {
     }
 
     testOptions {
-        targetSdk = 34
+        targetSdk = 35
     }
 
     testBuildType = "release"
