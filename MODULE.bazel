@@ -8,9 +8,9 @@ RUST_VERSION = "1.83.0"
 
 OKHTTP_VERSION = "4.12.0"
 
-LIFECYCLE_VERSION = "2.6.1"
+LIFECYCLE_VERSION = "2.8.7"
 
-COMPOSE_VERSION = "1.4.0"
+COMPOSE_VERSION = "1.7.0"
 
 KOTLIN_COMPILE_VERSION = "2.1.0"
 
@@ -170,25 +170,24 @@ maven.install(
         "com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.18",
         "com.google.code.gson:gson:2.10.1",
         "com.squareup.okhttp3:okhttp:{}".format(OKHTTP_VERSION),
-        "androidx.startup:startup-runtime:1.1.1",
-        "androidx.core:core:1.9.0",
-        "net.bytebuddy:byte-buddy:1.12.19",
+        "androidx.startup:startup-runtime:1.2.0",
+        "androidx.core:core:1.15.0",
         "com.google.guava:listenablefuture:1.0",  #required by androidx.lifecycle:lifecycle-process below
         "androidx.lifecycle:lifecycle-common:{}".format(LIFECYCLE_VERSION),
         "androidx.lifecycle:lifecycle-process:{}".format(LIFECYCLE_VERSION),
         "org.jetbrains.kotlin:kotlin-stdlib:{}".format(KOTLIN_STD_VERSION),
-        "androidx.emoji2:emoji2:1.2.0",
+        "androidx.emoji2:emoji2:1.5.0",
+        "androidx.collection:collection:1.4.5",
 
         # Compose
         "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:{}".format(KOTLIN_COMPILE_VERSION),
         "org.jetbrains:annotations:26.0.1",
         "androidx.core:core-ktx:1.15.0",
         "androidx.appcompat:appcompat:1.7.0",
-        "androidx.activity:activity-compose:1.7.0",
+        "androidx.activity:activity-compose:1.9.3",
         "androidx.compose.material:material:{}".format(COMPOSE_VERSION),
         "androidx.compose.ui:ui:{}".format(COMPOSE_VERSION),
-        "androidx.compose.ui:ui-geometry:{}".format(COMPOSE_VERSION),
-        "androidx.compose.ui:ui-unit:{}".format(COMPOSE_VERSION),
+        "androidx.compose.ui:ui-tooling:{}".format(COMPOSE_VERSION),
         "androidx.compose.runtime:runtime:{}".format(COMPOSE_VERSION),
         "androidx.annotation:annotation-jvm:1.9.1",
     ],
@@ -197,6 +196,8 @@ maven.install(
         "https://maven.google.com",
     ],
     version_conflict_policy = "pinned",
+    aar_import_bzl_label = "@rules_android//rules:rules.bzl",
+    use_starlark_android_rules = True,
 )
 
 # Test artifacts
