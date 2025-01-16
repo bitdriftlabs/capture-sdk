@@ -3,11 +3,6 @@ common --incompatible_disable_native_android_rules
 
 mobile-install --config=android
 
-build --enable_platform_specific_config
-build:macos --apple_crosstool_top=@local_config_apple_cc//:toolchain
-build:macos --crosstool_top=@local_config_apple_cc//:toolchain
-build:macos --host_crosstool_top=@local_config_apple_cc//:toolchain
-
 # We need access to ld in order to build libunwind on Linux
 build:libunwind --action_env=PATH=/usr/bin
 
