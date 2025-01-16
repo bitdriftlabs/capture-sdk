@@ -25,9 +25,11 @@ sealed class SessionStrategy {
      *  Subsequent function calls are performed every time [io.bitdrift.Bitdrift.Logger.startNewSession]
      *  method is called using the thread on which the method is called.
      */
-    data class Fixed @JvmOverloads constructor(
-        val sessionIdGenerator: () -> String = { UUID.randomUUID().toString() },
-    ) : SessionStrategy()
+    data class Fixed
+        @JvmOverloads
+        constructor(
+            val sessionIdGenerator: () -> String = { UUID.randomUUID().toString() },
+        ) : SessionStrategy()
 
     /**
      * A session strategy that generates a new session ID after a certain period of app inactivity.
@@ -42,15 +44,16 @@ sealed class SessionStrategy {
      * @param onSessionIdChanged optional callback that is invoked with the new value every time the session Id changes.
      *  This callback is invoked in the main thread.
      */
-    data class ActivityBased @JvmOverloads constructor(
-        val inactivityThresholdMins: Long = 30,
-        val onSessionIdChanged: ((String) -> Unit)? = null,
-    ) : SessionStrategy()
+    data class ActivityBased
+        @JvmOverloads
+        constructor(
+            val inactivityThresholdMins: Long = 30,
+            val onSessionIdChanged: ((String) -> Unit)? = null,
+        ) : SessionStrategy()
 
-    internal fun createSessionStrategyConfiguration(onSessionIdChanged: (String) -> Unit): SessionStrategyConfiguration {
-        return when (this) {
+    internal fun createSessionStrategyConfiguration(onSessionIdChanged: (String) -> Unit): SessionStrategyConfiguration =
+        when (this) {
             is Fixed -> SessionStrategyConfiguration.Fixed(this, onSessionIdChanged)
             is ActivityBased -> SessionStrategyConfiguration.ActivityBased(this, onSessionIdChanged)
         }
-    }
 }

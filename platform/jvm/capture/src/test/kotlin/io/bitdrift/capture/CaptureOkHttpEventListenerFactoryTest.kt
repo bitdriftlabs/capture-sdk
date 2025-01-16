@@ -44,21 +44,25 @@ class CaptureOkHttpEventListenerFactoryTest {
         val dnsDurationMs = dnsEndTimeMs - dnsStartTimeMs
         whenever(clock.elapsedRealtime()).thenReturn(requestTimeMs, dnsStartTimeMs, dnsEndTimeMs, responseTimeMs)
 
-        val request = Request.Builder()
-            .url(endpoint)
-            .post("test".toRequestBody())
-            .header("foo", "bar")
-            .build()
+        val request =
+            Request
+                .Builder()
+                .url(endpoint)
+                .post("test".toRequestBody())
+                .header("foo", "bar")
+                .build()
         val call: Call = mock()
         whenever(call.request()).thenReturn(request)
 
-        val response = Response.Builder()
-            .request(request)
-            .protocol(Protocol.HTTP_2)
-            .code(200)
-            .message("message")
-            .header("response_header", "response_header_value")
-            .build()
+        val response =
+            Response
+                .Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_2)
+                .code(200)
+                .message("message")
+                .header("response_header", "response_header_value")
+                .build()
 
         // ACT
         val factory = CaptureOkHttpEventListenerFactory(null, logger, clock)
@@ -129,22 +133,26 @@ class CaptureOkHttpEventListenerFactoryTest {
         val responseTimeMs = 150L
         whenever(clock.elapsedRealtime()).thenReturn(requestTimeMs, responseTimeMs)
 
-        val request = Request.Builder()
-            .url(endpoint)
-            .post("test".toRequestBody())
-            .header("foo", "bar")
-            .header("x-capture-path-template", "/foo/<id>")
-            .build()
+        val request =
+            Request
+                .Builder()
+                .url(endpoint)
+                .post("test".toRequestBody())
+                .header("foo", "bar")
+                .header("x-capture-path-template", "/foo/<id>")
+                .build()
         val call: Call = mock()
         whenever(call.request()).thenReturn(request)
 
-        val response = Response.Builder()
-            .request(request)
-            .protocol(Protocol.HTTP_2)
-            .code(200)
-            .message("message")
-            .header("response_header", "response_header_value")
-            .build()
+        val response =
+            Response
+                .Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_2)
+                .code(200)
+                .message("message")
+                .header("response_header", "response_header_value")
+                .build()
 
         // ACT
         val factory = CaptureOkHttpEventListenerFactory(null, logger, clock)
@@ -194,21 +202,25 @@ class CaptureOkHttpEventListenerFactoryTest {
             responseTimeMs,
         )
 
-        val request = Request.Builder()
-            .url(endpoint)
-            .post("test".toRequestBody())
-            .header("foo", "bar")
-            .build()
+        val request =
+            Request
+                .Builder()
+                .url(endpoint)
+                .post("test".toRequestBody())
+                .header("foo", "bar")
+                .build()
         val call: Call = mock()
         whenever(call.request()).thenReturn(request)
 
-        val response = Response.Builder()
-            .request(request)
-            .protocol(Protocol.HTTP_2)
-            .code(200)
-            .message("message")
-            .header("response_header", "response_header_value")
-            .build()
+        val response =
+            Response
+                .Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_2)
+                .code(200)
+                .message("message")
+                .header("response_header", "response_header_value")
+                .build()
 
         // ACT
         val factory = CaptureOkHttpEventListenerFactory(null, logger, clock)
@@ -246,21 +258,25 @@ class CaptureOkHttpEventListenerFactoryTest {
     @Test
     fun testRequestAndErrorThrown() {
         // ARRANGE
-        val request = Request.Builder()
-            .url(endpoint)
-            .post("test".toRequestBody())
-            .header("foo", "bar")
-            .build()
+        val request =
+            Request
+                .Builder()
+                .url(endpoint)
+                .post("test".toRequestBody())
+                .header("foo", "bar")
+                .build()
         val call: Call = mock()
         whenever(call.request()).thenReturn(request)
 
-        val response = Response.Builder()
-            .request(request)
-            .protocol(Protocol.HTTP_2)
-            .code(200)
-            .message("message")
-            .header("response_header", "response_header_value")
-            .build()
+        val response =
+            Response
+                .Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_2)
+                .code(200)
+                .message("message")
+                .header("response_header", "response_header_value")
+                .build()
 
         val errorMessage = "test error"
         val err = FileNotFoundException(errorMessage)
@@ -294,21 +310,25 @@ class CaptureOkHttpEventListenerFactoryTest {
     @Test
     fun testRequestAndErrorThrownCanceled() {
         // ARRANGE
-        val request = Request.Builder()
-            .url(endpoint)
-            .post("test".toRequestBody())
-            .header("foo", "bar")
-            .build()
+        val request =
+            Request
+                .Builder()
+                .url(endpoint)
+                .post("test".toRequestBody())
+                .header("foo", "bar")
+                .build()
         val call: Call = mock()
         whenever(call.request()).thenReturn(request)
 
-        val response = Response.Builder()
-            .request(request)
-            .protocol(Protocol.HTTP_2)
-            .code(200)
-            .message("message")
-            .header("response_header", "response_header_value")
-            .build()
+        val response =
+            Response
+                .Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_2)
+                .code(200)
+                .message("message")
+                .header("response_header", "response_header_value")
+                .build()
 
         val errorMessage = "test error"
         val err = InterruptedIOException(errorMessage)
@@ -342,33 +362,41 @@ class CaptureOkHttpEventListenerFactoryTest {
     @Test
     fun testExtraHeadersSendCustomSpans() {
         // ARRANGE
-        val headerFields = mapOf(
-            "x-capture-span-key" to "gql",
-            "x-capture-span-gql-name" to "mySpanName",
-            "x-capture-span-gql-field-operation-name" to "myOperationName",
-            "x-capture-span-gql-field-operation-id" to "myOperationId",
-            "x-capture-span-gql-field-operation-type" to "query",
-        )
+        val headerFields =
+            mapOf(
+                "x-capture-span-key" to "gql",
+                "x-capture-span-gql-name" to "mySpanName",
+                "x-capture-span-gql-field-operation-name" to "myOperationName",
+                "x-capture-span-gql-field-operation-id" to "myOperationId",
+                "x-capture-span-gql-field-operation-type" to "query",
+                "x-capture-path-template" to "gql-myOperationName",
+            )
         val expectedSpanName = "_mySpanName"
-        val expectedFields = mapOf(
-            "_operation_name" to "myOperationName",
-            "_operation_id" to "myOperationId",
-            "_operation_type" to "query",
-        )
+        val expectedFields =
+            mapOf(
+                "_operation_name" to "myOperationName",
+                "_operation_id" to "myOperationId",
+                "_operation_type" to "query",
+                "_path_template" to "gql-myOperationName",
+            )
 
-        val request = Request.Builder()
-            .url(endpoint)
-            .post("test".toRequestBody())
-            .headers(headerFields.toHeaders())
-            .build()
+        val request =
+            Request
+                .Builder()
+                .url(endpoint)
+                .post("test".toRequestBody())
+                .headers(headerFields.toHeaders())
+                .build()
 
-        val response = Response.Builder()
-            .request(request)
-            .protocol(Protocol.HTTP_2)
-            .code(200)
-            .message("message")
-            .header("response_header", "response_header_value")
-            .build()
+        val response =
+            Response
+                .Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_2)
+                .code(200)
+                .message("message")
+                .header("response_header", "response_header_value")
+                .build()
 
         val call: Call = mock()
         whenever(call.request()).thenReturn(request)
@@ -395,8 +423,94 @@ class CaptureOkHttpEventListenerFactoryTest {
 
         assertThat(httpRequestInfo.fields["_span_name"].toString()).isEqualTo(expectedSpanName)
         // validate all the extra headers are present as properly formatted fields
-        assertThat(httpRequestInfo.fields.mapValues { it.value.toString() }.entries.containsAll(expectedFields.entries)).isTrue()
+        assertThat(
+            httpRequestInfo.fields
+                .mapValues { it.value.toString() }
+                .entries
+                .containsAll(expectedFields.entries),
+        ).isTrue()
         // validate all request fields are present in response
-        assertThat(httpResponseInfo.fields.mapValues { it.value.toString() }.entries.containsAll(expectedFields.entries)).isTrue()
+        assertThat(
+            httpResponseInfo.fields
+                .mapValues { it.value.toString() }
+                .entries
+                .containsAll(expectedFields.entries),
+        ).isTrue()
+    }
+
+    @Test
+    fun testApolloHeadersSendGraphQlSpans() {
+        // ARRANGE
+        val headerFields =
+            mapOf(
+                "X-APOLLO-OPERATION-NAME" to "myOperationName",
+                "X-APOLLO-OPERATION-ID" to "myOperationId",
+                "X-APOLLO-OPERATION-TYPE" to "query",
+            )
+        val expectedSpanName = "_graphql"
+        val expectedFields =
+            mapOf(
+                "_operation_name" to "myOperationName",
+                "_operation_id" to "myOperationId",
+                "_operation_type" to "query",
+                "_path_template" to "gql-myOperationName",
+            )
+
+        val request =
+            Request
+                .Builder()
+                .url(endpoint)
+                .post("test".toRequestBody())
+                .headers(headerFields.toHeaders())
+                .build()
+
+        val response =
+            Response
+                .Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_2)
+                .code(200)
+                .message("message")
+                .header("response_header", "response_header_value")
+                .build()
+
+        val call: Call = mock()
+        whenever(call.request()).thenReturn(request)
+
+        // ACT
+        val factory = CaptureOkHttpEventListenerFactory(null, logger, clock)
+        val listener = factory.create(call)
+
+        listener.callStart(call)
+
+        listener.responseHeadersEnd(call, response)
+        listener.responseBodyEnd(call, 234)
+
+        listener.callEnd(call)
+
+        // ASSERT
+        val httpRequestInfoCapture = argumentCaptor<HttpRequestInfo>()
+        verify(logger).log(httpRequestInfoCapture.capture())
+        val httpResponseInfoCapture = argumentCaptor<HttpResponseInfo>()
+        verify(logger).log(httpResponseInfoCapture.capture())
+
+        val httpRequestInfo = httpRequestInfoCapture.firstValue
+        val httpResponseInfo = httpResponseInfoCapture.firstValue
+
+        assertThat(httpRequestInfo.fields["_span_name"].toString()).isEqualTo(expectedSpanName)
+        // validate all the extra headers are present as properly formatted fields
+        assertThat(
+            httpRequestInfo.fields
+                .mapValues { it.value.toString() }
+                .entries
+                .containsAll(expectedFields.entries),
+        ).isTrue()
+        // validate all request fields are present in response
+        assertThat(
+            httpResponseInfo.fields
+                .mapValues { it.value.toString() }
+                .entries
+                .containsAll(expectedFields.entries),
+        ).isTrue()
     }
 }

@@ -34,7 +34,6 @@ internal class AppExitLogger(
     private val crashHandler: CaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler(),
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
 ) {
-
     companion object {
         const val APP_EXIT_EVENT_NAME = "AppExit"
     }
@@ -75,15 +74,16 @@ internal class AppExitLogger(
             return
         }
 
-        val exits = try {
-            // a null packageName means match all packages belonging to the caller's process (UID)
-            // pid should be 0, a value of 0 means to ignore this parameter and return all matching records
-            // maxNum should be 1, The maximum number of results to be returned, as we need only the last one
-            activityManager.getHistoricalProcessExitReasons(null, 0, 1)
-        } catch (error: Throwable) {
-            errorHandler.handleError("Failed to retrieve ProcessExitReasons from ActivityManager", error)
-            emptyList()
-        }
+        val exits =
+            try {
+                // a null packageName means match all packages belonging to the caller's process (UID)
+                // pid should be 0, a value of 0 means to ignore this parameter and return all matching records
+                // maxNum should be 1, The maximum number of results to be returned, as we need only the last one
+                activityManager.getHistoricalProcessExitReasons(null, 0, 1)
+            } catch (error: Throwable) {
+                errorHandler.handleError("Failed to retrieve ProcessExitReasons from ActivityManager", error)
+                emptyList()
+            }
         if (exits.isEmpty()) {
             return
         }
@@ -100,7 +100,10 @@ internal class AppExitLogger(
         ) { APP_EXIT_EVENT_NAME }
     }
 
-    fun logCrash(thread: Thread, throwable: Throwable) {
+    fun logCrash(
+        thread: Thread,
+        throwable: Throwable,
+    ) {
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)) {
             return
         }
@@ -154,8 +157,8 @@ internal class AppExitLogger(
         ).toFields()
     }
 
-    private fun Int.toReasonText(): String {
-        return when (this) {
+    private fun Int.toReasonText(): String =
+        when (this) {
             ApplicationExitInfo.REASON_EXIT_SELF -> "EXIT_SELF"
             ApplicationExitInfo.REASON_SIGNALED -> "SIGNALED"
             ApplicationExitInfo.REASON_LOW_MEMORY -> "LOW_MEMORY"
@@ -172,10 +175,9 @@ internal class AppExitLogger(
             ApplicationExitInfo.REASON_FREEZER -> "FREEZER"
             else -> "UNKNOWN"
         }
-    }
 
-    private fun Int.toImportanceText(): String {
-        return when (this) {
+    private fun Int.toImportanceText(): String =
+        when (this) {
             RunningAppProcessInfo.IMPORTANCE_CACHED -> "CACHED"
             RunningAppProcessInfo.IMPORTANCE_CANT_SAVE_STATE -> "CANT_SAVE_STATE"
             RunningAppProcessInfo.IMPORTANCE_FOREGROUND -> "FOREGROUND"
@@ -187,12 +189,12 @@ internal class AppExitLogger(
             RunningAppProcessInfo.IMPORTANCE_VISIBLE -> "VISIBLE"
             else -> "UNKNOWN"
         }
-    }
 
     @TargetApi(Build.VERSION_CODES.R)
-    private fun Int.toLogLevel(): LogLevel {
-        return when (this) {
-            in listOf(
+    private fun Int.toLogLevel(): LogLevel =
+        when (this) {
+            in
+            listOf(
                 ApplicationExitInfo.REASON_CRASH,
                 ApplicationExitInfo.REASON_CRASH_NATIVE,
                 ApplicationExitInfo.REASON_ANR,
@@ -201,5 +203,4 @@ internal class AppExitLogger(
             -> LogLevel.ERROR
             else -> LogLevel.INFO
         }
-    }
 }

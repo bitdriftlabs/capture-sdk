@@ -9,6 +9,7 @@ package io.bitdrift.capture.replay.internal.mappers
 
 import android.content.res.Resources
 import android.view.View
+import androidx.core.content.res.ResourcesCompat
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
@@ -23,15 +24,15 @@ internal class ViewMapper(
     private val textMapper: TextMapper = TextMapper(),
     private val backgroundMapper: BackgroundMapper = BackgroundMapper(),
 ) {
-
-    fun updateMetrics(node: ScannableView, replayCaptureMetrics: ReplayCaptureMetrics) {
-        return when (node) {
-            is ScannableView.AndroidView -> {
-                replayCaptureMetrics.viewCount += 1
-            }
-            is ScannableView.ComposeView -> {
-                replayCaptureMetrics.composeViewCount += 1
-            }
+    fun updateMetrics(
+        node: ScannableView,
+        replayCaptureMetrics: ReplayCaptureMetrics,
+    ) = when (node) {
+        is ScannableView.AndroidView -> {
+            replayCaptureMetrics.viewCount += 1
+        }
+        is ScannableView.ComposeView -> {
+            replayCaptureMetrics.composeViewCount += 1
         }
     }
 
@@ -49,10 +50,8 @@ internal class ViewMapper(
     /**
      * Matches Android views and compose views to the corresponding Bitdrift Type.
      */
-    fun mapView(
-        node: ScannableView,
-    ): List<ReplayRect> {
-        return when (node) {
+    fun mapView(node: ScannableView): List<ReplayRect> =
+        when (node) {
             is ScannableView.AndroidView -> {
                 node.view.viewToReplayRect()
             }
@@ -60,21 +59,21 @@ internal class ViewMapper(
                 listOf(node.replayRect)
             }
         }
-    }
 
     private fun View.viewToReplayRect(): List<ReplayRect> {
         val list = mutableListOf<ReplayRect>()
-        val resourceName = if (id != -1) {
-            try {
-                resources.getResourceEntryName(this.id)
-            } catch (ignore: Resources.NotFoundException) {
-                // Do nothing.
-                SessionReplayController.L.e(ignore, "Ignoring view due to:${ignore.message} for ${this.id}")
-                "Failed to retrieve ID"
+        val resourceName =
+            if (id != View.NO_ID && id != ResourcesCompat.ID_NULL) {
+                try {
+                    resources.getResourceEntryName(this.id)
+                } catch (ignore: Resources.NotFoundException) {
+                    // Do nothing.
+                    SessionReplayController.L.e(ignore, "Ignoring view due to:${ignore.message} for ${this.id}")
+                    "Failed to retrieve ID"
+                }
+            } else {
+                "no_resource_id"
             }
-        } else {
-            "no_resource_id"
-        }
 
         val type = viewMapperConfiguration.mapper[this.javaClass.simpleName]
         if (type == null) {

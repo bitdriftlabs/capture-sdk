@@ -4,6 +4,7 @@ load("//bazel/android:build.bzl", "bitdrift_kt_jvm_library")
 # Test suite used for all the jvm tests.
 bitdrift_kt_jvm_library(
     name = "test_suite_lib",
+    testonly = True,
     srcs = ["TestSuite.kt"],
     require_javadocs = False,
     visibility = ["//visibility:public"],

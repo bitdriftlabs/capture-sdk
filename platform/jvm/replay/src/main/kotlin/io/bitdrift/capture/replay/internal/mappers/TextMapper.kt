@@ -21,12 +21,14 @@ import android.widget.TextView
 import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.internal.ReplayRect
 
-internal data class TextMapperConfig(val showViewOutline: Boolean, val interlinePadding: Int)
+internal data class TextMapperConfig(
+    val showViewOutline: Boolean,
+    val interlinePadding: Int,
+)
 
 internal class TextMapper(
     private val textMapperConfig: TextMapperConfig = TextMapperConfig(false, interlinePadding = 4),
 ) : Mapper() {
-
     override fun map(view: View): MutableList<ReplayRect> {
         val list = super.map(view)
 
@@ -77,7 +79,10 @@ internal class TextMapper(
         return list
     }
 
-    private fun addDrawables(view: TextView, list: MutableList<ReplayRect>) {
+    private fun addDrawables(
+        view: TextView,
+        list: MutableList<ReplayRect>,
+    ) {
         // start
         view.compoundDrawables[0]?.let { drawableStart ->
             val bounds = Rect(drawableStart.bounds)
@@ -120,7 +125,10 @@ internal class TextMapper(
     }
 
     // Retrieve the text for the given line
-    private fun retrieveLine(view: TextView, line: Int): String {
+    private fun retrieveLine(
+        view: TextView,
+        line: Int,
+    ): String {
         val lineStart = view.layout.getLineStart(line)
         val lineEnd = view.layout.getLineEnd(line)
         return view.text.substring(lineStart, lineEnd)
@@ -138,10 +146,11 @@ internal class TextMapper(
                 when (gravity and Gravity.HORIZONTAL_GRAVITY_MASK) {
                     Gravity.LEFT -> bounds.offset(view.compoundPaddingStart, 0)
                     Gravity.RIGHT -> bounds.offset(view.width - bounds.width(), 0)
-                    Gravity.CENTER_HORIZONTAL -> bounds.offset(
-                        (view.width + view.compoundPaddingStart - view.compoundPaddingEnd - bounds.width()) / 2,
-                        0,
-                    )
+                    Gravity.CENTER_HORIZONTAL ->
+                        bounds.offset(
+                            (view.width + view.compoundPaddingStart - view.compoundPaddingEnd - bounds.width()) / 2,
+                            0,
+                        )
                 }
             }
             TEXT_ALIGNMENT_TEXT_START,
@@ -166,10 +175,11 @@ internal class TextMapper(
             TEXT_ALIGNMENT_GRAVITY -> {
                 when (gravity and Gravity.VERTICAL_GRAVITY_MASK) {
                     Gravity.TOP -> bounds.offset(0, view.compoundPaddingTop)
-                    Gravity.CENTER_VERTICAL -> bounds.offset(
-                        0,
-                        (view.height + view.compoundPaddingTop - view.compoundPaddingBottom - totalLinesHeight) / 2,
-                    )
+                    Gravity.CENTER_VERTICAL ->
+                        bounds.offset(
+                            0,
+                            (view.height + view.compoundPaddingTop - view.compoundPaddingBottom - totalLinesHeight) / 2,
+                        )
                     Gravity.BOTTOM -> bounds.offset(0, view.height - totalLinesHeight)
                 }
             }

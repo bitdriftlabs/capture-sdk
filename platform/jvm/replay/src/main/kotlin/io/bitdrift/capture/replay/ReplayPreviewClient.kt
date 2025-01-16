@@ -43,24 +43,28 @@ class ReplayPreviewClient(
     host: String = "10.0.2.2",
     port: Int = 3001,
 ) : IReplayLogger {
-
-    private val replayCaptureEngine = ReplayCaptureEngine(
-        sessionReplayConfiguration,
-        errorHandler,
-        logger,
-        MainThreadHandler(),
-        WindowManager(errorHandler),
-        DisplayManagers(context),
-        Executors.newSingleThreadExecutor(),
-    )
+    private val replayCaptureEngine =
+        ReplayCaptureEngine(
+            sessionReplayConfiguration,
+            errorHandler,
+            logger,
+            MainThreadHandler(),
+            WindowManager(errorHandler),
+            DisplayManagers(context),
+            Executors.newSingleThreadExecutor(),
+        )
 
     // Calling this is necessary to capture the display size
-    private val client: OkHttpClient = OkHttpClient.Builder()
-        .readTimeout(0, TimeUnit.MILLISECONDS)
-        .build()
-    private val request: Request = Request.Builder()
-        .url("$protocol://$host:$port")
-        .build()
+    private val client: OkHttpClient =
+        OkHttpClient
+            .Builder()
+            .readTimeout(0, TimeUnit.MILLISECONDS)
+            .build()
+    private val request: Request =
+        Request
+            .Builder()
+            .url("$protocol://$host:$port")
+            .build()
     private var webSocket: WebSocket? = null
     private var lastEncodedScreen: ByteArray? = null
 
@@ -69,10 +73,11 @@ class ReplayPreviewClient(
      */
     fun connect() {
         webSocket?.close(1001, "ReplayPreviewClient closing and re-creating socket")
-        webSocket = client.newWebSocket(
-            request,
-            WebSocketLogger,
-        )
+        webSocket =
+            client.newWebSocket(
+                request,
+                WebSocketLogger,
+            )
         Log.d("ReplayPreviewClient", "New Web Socket created")
     }
 
@@ -87,55 +92,89 @@ class ReplayPreviewClient(
      * Get the last captured screen. Needs [captureScreen] to be called at least once
      * @return The last captured screen as a base64 encoded string
      */
-    fun getLastCapturedScreen(): String {
-        return if (lastEncodedScreen != null) {
+    fun getLastCapturedScreen(): String =
+        if (lastEncodedScreen != null) {
             String(Base64.encode(lastEncodedScreen, Base64.DEFAULT))
         } else {
             ""
         }
-    }
 
-    override fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture, metrics: ReplayCaptureMetrics) {
+    override fun onScreenCaptured(
+        encodedScreen: ByteArray,
+        screen: FilteredCapture,
+        metrics: ReplayCaptureMetrics,
+    ) {
         lastEncodedScreen = encodedScreen
         webSocket?.send(encodedScreen.toByteString(0, encodedScreen.size))
         // forward the callback to the module's logger
         logger.onScreenCaptured(encodedScreen, screen, metrics)
     }
 
-    override fun logVerboseInternal(message: String, fields: Map<String, String>?) {
+    override fun logVerboseInternal(
+        message: String,
+        fields: Map<String, String>?,
+    ) {
         logger.logVerboseInternal(message, fields)
     }
 
-    override fun logDebugInternal(message: String, fields: Map<String, String>?) {
+    override fun logDebugInternal(
+        message: String,
+        fields: Map<String, String>?,
+    ) {
         logger.logDebugInternal(message, fields)
     }
 
-    override fun logErrorInternal(message: String, e: Throwable?, fields: Map<String, String>?) {
+    override fun logErrorInternal(
+        message: String,
+        e: Throwable?,
+        fields: Map<String, String>?,
+    ) {
         logger.logErrorInternal(message, e, fields)
     }
 
     private object WebSocketLogger : WebSocketListener() {
-        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+        override fun onClosed(
+            webSocket: WebSocket,
+            code: Int,
+            reason: String,
+        ) {
             Log.d("ReplayPreviewClient", "onClosed($webSocket, $code, $reason)")
         }
 
-        override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+        override fun onClosing(
+            webSocket: WebSocket,
+            code: Int,
+            reason: String,
+        ) {
             Log.d("ReplayPreviewClient", "onClosing($webSocket, $code, $reason)")
         }
 
-        override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+        override fun onFailure(
+            webSocket: WebSocket,
+            t: Throwable,
+            response: Response?,
+        ) {
             Log.d("ReplayPreviewClient", "onFailure($webSocket, $t, $response)")
         }
 
-        override fun onMessage(webSocket: WebSocket, text: String) {
+        override fun onMessage(
+            webSocket: WebSocket,
+            text: String,
+        ) {
             Log.d("ReplayPreviewClient", "onMessage($webSocket, $text)")
         }
 
-        override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
+        override fun onMessage(
+            webSocket: WebSocket,
+            bytes: ByteString,
+        ) {
             Log.d("ReplayPreviewClient", "onMessage($webSocket, $bytes)")
         }
 
-        override fun onOpen(webSocket: WebSocket, response: Response) {
+        override fun onOpen(
+            webSocket: WebSocket,
+            response: Response,
+        ) {
             Log.d("ReplayPreviewClient", "onOpen($webSocket, $response)")
         }
     }

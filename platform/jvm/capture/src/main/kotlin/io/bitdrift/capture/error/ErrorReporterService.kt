@@ -20,7 +20,6 @@ internal class ErrorReporterService(
     private val fieldProviders: List<FieldProvider>,
     private val apiClient: OkHttpApiClient,
 ) : IErrorReporter {
-
     private fun headers(): Map<String, String> {
         val map = mutableMapOf<String, String>()
 
@@ -34,13 +33,18 @@ internal class ErrorReporterService(
         return map
     }
 
-    override fun reportError(message: String, details: String?, fields: Map<String, String>) {
+    override fun reportError(
+        message: String,
+        details: String?,
+        fields: Map<String, String>,
+    ) {
         val typedRequest = ErrorReportRequest(message, details)
 
-        val allFields = buildMap {
-            putAll(headers())
-            putAll(fields)
-        }
+        val allFields =
+            buildMap {
+                putAll(headers())
+                putAll(fields)
+            }
 
         apiClient.perform<ErrorReportRequest, Unit>(HttpApiEndpoint.ReportSdkError, typedRequest, allFields) { result ->
             result.onSuccess {
@@ -60,4 +64,7 @@ internal class ErrorReporterService(
     }
 }
 
-internal data class ErrorReportRequest(@SerializedName("message") val message: String, @SerializedName("details") val details: String?)
+internal data class ErrorReportRequest(
+    @SerializedName("message") val message: String,
+    @SerializedName("details") val details: String?,
+)

@@ -47,7 +47,7 @@ jobs:
           # Check if any status indicates a relevant change or error
           if [[ "$bazel_status" == "1" || "$workflow_status" == "1" || "$gradle_status" == "1" ]]; then
             echo "An unexpected issue occurred during checks."
-            exit 1          
+            exit 1
           elif [[ "$bazel_status" == "0" || "$workflow_status" == "0" || "$gradle_status" == "0" ]]; then
             echo "Changes detected in one or more checks. Running tests."
             echo "run_tests=true" >> $GITHUB_ENV
@@ -78,7 +78,7 @@ jobs:
 
       - name: build apk
         timeout-minutes: 30
-        run: ./bazelw build --config ci --config release-android --fat_apk_cpu=x86_64 //examples/android:android_app
+        run: ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
       - uses: actions/upload-artifact@v4
         with:
           name: android_app.apk
@@ -158,7 +158,7 @@ jobs:
     runs-on: ubuntu-latest-8-cores
     strategy:
       matrix:
-        api-level: [21, 34]
+        api-level: [21, 35]
     steps:
       # Checkout repo to Github Actions runner
       - name: Checkout

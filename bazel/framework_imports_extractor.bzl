@@ -7,7 +7,7 @@ supported by 'apple_static_framework_import'.
 """
 
 load(
-    "@build_bazel_rules_apple//apple/internal:transition_support.bzl",
+    "@rules_apple//apple/internal:transition_support.bzl",
     "transition_support",
 )
 load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")

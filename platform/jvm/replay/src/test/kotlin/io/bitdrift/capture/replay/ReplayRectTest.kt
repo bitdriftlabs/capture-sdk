@@ -12,7 +12,6 @@ import org.junit.Assert
 import org.junit.Test
 
 class ReplayRectTest {
-
     @Test
     fun testRectToByteEncoding() {
         val expected = byteArrayOf(0.toByte(), 1.toByte(), 2.toByte(), 3.toByte(), 4.toByte())
@@ -65,15 +64,16 @@ class ReplayRectTest {
 
     @Test
     fun testRectToByteEncoding_screenSize() {
-        val expected = byteArrayOf(
-            52.toByte(),
-            0.toByte(),
-            0.toByte(),
-            4.toByte(),
-            56.toByte(),
-            7.toByte(),
-            128.toByte(),
-        )
+        val expected =
+            byteArrayOf(
+                52.toByte(),
+                0.toByte(),
+                0.toByte(),
+                4.toByte(),
+                56.toByte(),
+                7.toByte(),
+                128.toByte(),
+            )
         val actual = ReplayRect(ReplayType.View, 0, 0, 1080, 1920).toByteArray()
         Assert.assertEquals(expected.size, actual.size)
         for ((i, e) in expected.withIndex()) {

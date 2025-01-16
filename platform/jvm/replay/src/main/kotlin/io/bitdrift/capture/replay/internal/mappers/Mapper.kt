@@ -27,7 +27,11 @@ internal open class Mapper {
         return list
     }
 
-    fun addView(type: ReplayType = ReplayType.View, view: View, list: MutableList<ReplayRect>) {
+    fun addView(
+        type: ReplayType = ReplayType.View,
+        view: View,
+        list: MutableList<ReplayRect>,
+    ) {
         list.add(ReplayRect(type, viewOriginX, viewOriginY, view.width, view.height))
     }
 

@@ -25,12 +25,12 @@ internal class AppMemoryPressureListenerLogger(
     private val memoryMonitor: MemoryMonitor,
     private val runtime: Runtime,
     private val executor: ExecutorService,
-) : IEventListenerLogger, ComponentCallbacks2 {
-
-    // TODO(murki): Deprecate using this values altogether
+) : IEventListenerLogger,
+    ComponentCallbacks2 {
+    // TODO(murki): Remove the usage of these fields altogether
     @Suppress("DEPRECATION")
-    private fun getTrimLevelAsString(level: Int): String {
-        return when (level) {
+    private fun getTrimLevelAsString(level: Int): String =
+        when (level) {
             ComponentCallbacks2.TRIM_MEMORY_BACKGROUND -> "TRIM_MEMORY_BACKGROUND"
             ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW -> "TRIM_MEMORY_RUNNING_LOW"
             ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL -> "TRIM_MEMORY_RUNNING_CRITICAL"
@@ -40,12 +40,12 @@ internal class AppMemoryPressureListenerLogger(
             ComponentCallbacks2.TRIM_MEMORY_COMPLETE -> "TRIM_MEMORY_COMPLETE"
             else -> level.toString()
         }
-    }
 
     private fun extraMemFields(level: Int): Map<String, String> {
-        val fields = mutableMapOf(
-            "_trim_level" to getTrimLevelAsString(level),
-        )
+        val fields =
+            mutableMapOf(
+                "_trim_level" to getTrimLevelAsString(level),
+            )
 
         fields.putAll(memoryMonitor.getMemoryAttributes())
 

@@ -13,13 +13,14 @@ import android.util.DisplayMetrics
 import android.view.WindowManager
 import io.bitdrift.capture.replay.ReplayType
 
-internal class DisplayManagers(context: Context) {
-
+internal class DisplayManagers(
+    context: Context,
+) {
     private val windowManager: WindowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
     @Suppress("DEPRECATION")
-    fun computeDisplayRect(): ReplayRect {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+    fun computeDisplayRect(): ReplayRect =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val bounds = windowManager.currentWindowMetrics.bounds
             ReplayRect(ReplayType.View, bounds.left, bounds.top, bounds.width(), bounds.height())
         } else {
@@ -27,5 +28,4 @@ internal class DisplayManagers(context: Context) {
             windowManager.defaultDisplay.getRealMetrics(displayMetrics)
             ReplayRect(ReplayType.View, 0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels)
         }
-    }
 }

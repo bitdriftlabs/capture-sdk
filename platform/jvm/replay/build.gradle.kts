@@ -23,7 +23,7 @@ dependencies {
 android {
     namespace = "io.bitdrift.capture.replay"
 
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 21
@@ -38,6 +38,8 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
         allWarningsAsErrors = true
+        // Needed to be able to use INVISIBLE_REFERENCE see https://youtrack.jetbrains.com/issue/KT-67920
+        freeCompilerArgs += listOf("-Xdont-warn-on-error-suppression")
     }
 
     lint {

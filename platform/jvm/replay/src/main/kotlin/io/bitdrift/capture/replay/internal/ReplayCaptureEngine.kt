@@ -33,7 +33,6 @@ internal class ReplayCaptureEngine(
     private val replayEncoder: ReplayEncoder = ReplayEncoder(),
     private val clock: IClock = DefaultClock.getInstance(),
 ) {
-
     fun captureScreen(skipReplayComposeViews: Boolean) {
         mainThreadHandler.run {
             captureScreen(skipReplayComposeViews) { byteArray, screen, metrics ->
@@ -49,9 +48,10 @@ internal class ReplayCaptureEngine(
         val startTime = clock.elapsedRealtime()
 
         val replayCaptureMetrics = ReplayCaptureMetrics()
-        val timedValue = measureTimedValue {
-            captureParser.parse(replayCaptureMetrics, skipReplayComposeViews)
-        }
+        val timedValue =
+            measureTimedValue {
+                captureParser.parse(replayCaptureMetrics, skipReplayComposeViews)
+            }
 
         executor.execute {
             captureFilter.filter(timedValue.value)?.let { filteredCapture ->

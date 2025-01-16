@@ -1,0 +1,362 @@
+module(name = "capture-sdk")
+
+####################
+# Constants
+####################
+
+RUST_VERSION = "1.83.0"
+
+OKHTTP_VERSION = "4.12.0"
+
+LIFECYCLE_VERSION = "2.8.7"
+
+COMPOSE_VERSION = "1.7.0"
+
+KOTLIN_COMPILE_VERSION = "2.1.0"
+
+KOTLIN_COMPILER_SHA = "b6698d5728ad8f9edcdd01617d638073191d8a03139cc538a391b4e3759ad297"
+
+KOTLIN_STD_VERSION = KOTLIN_COMPILE_VERSION
+
+NDK_API_LEVEL = 21
+
+####################
+# Bazel dependencies
+####################
+
+http_jar = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_jar")
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+new_git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
+
+bazel_dep(name = "rules_robolectric", version = "4.14.1.2")
+bazel_dep(name = "rules_multirun", version = "0.10.0")
+bazel_dep(name = "apple_support", version = "1.17.1", repo_name = "build_bazel_apple_support")
+bazel_dep(name = "rules_swift", version = "2.3.1")
+
+# We need to support 1x because flatbuffers haven't updated to 2x yet
+multiple_version_override(
+    module_name = "rules_swift",
+    versions = [
+        "2.3.1",
+        "1.16.0",
+    ],
+)
+
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "rules_xcodeproj", version = "2.10.0")
+bazel_dep(name = "rules_apple", version = "3.16.1")
+bazel_dep(name = "rules_pkg", version = "1.0.1")
+bazel_dep(name = "rules_cc", version = "0.1.0")
+bazel_dep(name = "rules_java", version = "8.6.3")
+bazel_dep(name = "rules_android", version = "0.6.0")
+bazel_dep(name = "rules_android_ndk", version = "0.1.2")
+bazel_dep(name = "rules_jvm_external", version = "6.6")
+bazel_dep(name = "rules_detekt", version = "0.8.1.2")
+bazel_dep(name = "flatbuffers", version = "24.3.25")
+bazel_dep(name = "platforms", version = "0.0.11")
+bazel_dep(name = "rules_kotlin", version = "2.1.0")
+bazel_dep(name = "rules_rust", version = "0.56.0")
+
+# Requiered by android_artifacts for pom_file, it's not in bazel central registry
+bazel_dep(name = "google_bazel_common", version = "0.0.1")
+
+http_jar(
+    name = "bazel_diff",
+    sha256 = "0b9e32f9c20e570846b083743fe967ae54d13e2a1f7364983e0a7792979442be",
+    url = "https://github.com/Tinder/bazel-diff/releases/download/7.0.0/bazel-diff_deploy.jar",
+)
+
+# We need the latest version of rules_rust before 0.57.0 is released (bzlmod integration changed)
+# TODO(fz): Remove this once 0.57.0 is released
+git_override(
+    module_name = "rules_rust",
+    commit = "5e426fa427f6ce197da281233525cc486dfdf07c",
+    remote = "https://github.com/bazelbuild/rules_rust",
+)
+
+new_git_repository(
+    name = "bitdrift_api",
+    branch = "main",
+    build_file = "//bazel:BUILD.bitdriftlabs_api",
+    remote = "https://github.com/bitdriftlabs/api.git",
+)
+
+git_override(
+    module_name = "google_bazel_common",
+    commit = "a348dcc487d9bea3d527be3b591a4170338257e6",
+    remote = "https://github.com/google/bazel-common",
+)
+
+http_archive(
+    name = "Difference",
+    build_file = "@//bazel/third_party:Difference.BUILD",
+    sha256 = "7ffc131fd19b7c1ea390d186b942aa6b7ff732add9e6df34281fe9f777656968",
+    strip_prefix = "Difference-1.1.0",
+    urls = ["https://github.com/krzysztofzablocki/Difference/archive/1.1.0.tar.gz"],
+)
+
+http_archive(
+    name = "SwiftBenchmark",
+    build_file = "@//bazel/third_party:SwiftBenchmark.BUILD",
+    sha256 = "9c5bccfbddaeed7d3aa731118644655c0e550ab2267e1a3238ca0daa06ade0f9",
+    strip_prefix = "swift-benchmark-0.1.2",
+    urls = ["https://github.com/google/swift-benchmark/archive/0.1.2.tar.gz"],
+)
+
+http_archive(
+    name = "SwiftArgumentParser",
+    build_file = "@//bazel/third_party:SwiftArgumentParser.BUILD",
+    sha256 = "946a4cf7bdd2e4f0f8b82864c56332238ba3f0a929c6d1a15f55affdb10634e6",
+    strip_prefix = "swift-argument-parser-1.5.0",
+    urls = ["https://github.com/apple/swift-argument-parser/archive/1.5.0.tar.gz"],
+)
+
+http_archive(
+    name = "DrString",
+    build_file_content = """exports_files(["drstring"])""",
+    sha256 = "99833f0ad3d9f3bbf40aee88c6f959a0a9b03e3b7b34e2fca660644e13c1f3ef",
+    url = "https://github.com/dduan/DrString/releases/download/0.6.1/drstring-universal-apple-darwin.tar.gz",
+)
+
+http_archive(
+    name = "DrString_Linux",
+    build_file_content = """
+load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
+native_binary(
+    name = "DrString_Linux",
+    src = "usr/bin/drstring",
+    out = "usr/bin/drstring",
+    data = glob(["usr/lib/*.so"]),
+    visibility = ["//visibility:public"],
+)
+    """,
+    sha256 = "50cbf3dbb9b675d7bd179b02e7925f3729d2e0c8c9fd4df09ea1cd2f15c50205",
+    url = "https://github.com/dduan/DrString/releases/download/0.6.1/drstring-x86_64-unknown-ubuntu.tar.gz",
+)
+
+####################
+# Android extensions
+####################
+
+android_ndk_repository_extension = use_extension("@rules_android_ndk//:extension.bzl", "android_ndk_repository_extension")
+android_ndk_repository_extension.configure(api_level = NDK_API_LEVEL)
+use_repo(android_ndk_repository_extension, "androidndk")
+
+register_toolchains("@androidndk//:all")
+
+rules_kotlin_extensions = use_extension("@rules_kotlin//src/main/starlark/core/repositories:bzlmod_setup.bzl", "rules_kotlin_extensions")
+rules_kotlin_extensions.kotlinc_version(
+    sha256 = KOTLIN_COMPILER_SHA,
+    version = KOTLIN_COMPILE_VERSION,
+)
+
+register_toolchains("//:kotlin_toolchain")
+
+maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+maven.install(
+    aar_import_bzl_label = "@rules_android//rules:rules.bzl",
+    artifacts = [
+        "com.squareup.okio:okio:3.10.2",
+        "com.squareup.okio:okio-jvm:3.10.2",
+        "com.google.code.findbugs:jsr305:3.0.2",
+
+        # Dokka (javadocs generator)
+        "org.jetbrains.dokka:analysis-kotlin-descriptors:1.9.10",
+        "org.jetbrains.dokka:dokka-base:1.9.10",
+        "org.jetbrains.dokka:dokka-cli:1.9.10",
+
+        # Library dependencies
+        "com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.18",
+        "com.google.code.gson:gson:2.10.1",
+        "com.squareup.okhttp3:okhttp:{}".format(OKHTTP_VERSION),
+        "androidx.startup:startup-runtime:1.2.0",
+        "androidx.core:core:1.15.0",
+        "com.google.guava:listenablefuture:1.0",  #required by androidx.lifecycle:lifecycle-process below
+        "androidx.lifecycle:lifecycle-common:{}".format(LIFECYCLE_VERSION),
+        "androidx.lifecycle:lifecycle-process:{}".format(LIFECYCLE_VERSION),
+        "org.jetbrains.kotlin:kotlin-stdlib:{}".format(KOTLIN_STD_VERSION),
+        "androidx.emoji2:emoji2:1.5.0",
+        "androidx.collection:collection:1.4.5",
+
+        # Compose
+        "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:{}".format(KOTLIN_COMPILE_VERSION),
+        "org.jetbrains:annotations:26.0.1",
+        "androidx.core:core-ktx:1.15.0",
+        "androidx.appcompat:appcompat:1.7.0",
+        "androidx.activity:activity-compose:1.9.3",
+        "androidx.compose.material:material:{}".format(COMPOSE_VERSION),
+        "androidx.compose.ui:ui:{}".format(COMPOSE_VERSION),
+        "androidx.compose.ui:ui-tooling:{}".format(COMPOSE_VERSION),
+        "androidx.compose.runtime:runtime:{}".format(COMPOSE_VERSION),
+        "androidx.annotation:annotation-jvm:1.9.1",
+    ],
+    repositories = [
+        "https://repo1.maven.org/maven2",
+        "https://maven.google.com",
+    ],
+    use_starlark_android_rules = True,
+    version_conflict_policy = "pinned",
+)
+
+# Test artifacts
+maven.artifact(
+    testonly = True,
+    artifact = "mockito-core",
+    group = "org.mockito",
+    version = "4.11.0",
+)
+maven.artifact(
+    testonly = True,
+    artifact = "mockito-inline",
+    group = "org.mockito",
+    version = "4.11.0",
+)
+maven.artifact(
+    testonly = True,
+    artifact = "mockito-kotlin",
+    group = "com.nhaarman.mockitokotlin2",
+    version = "2.2.0",
+)
+maven.artifact(
+    testonly = True,
+    artifact = "core",
+    group = "androidx.test",
+    version = "1.6.0",
+)
+maven.artifact(
+    testonly = True,
+    artifact = "robolectric",
+    group = "org.robolectric",
+    version = "4.14",
+)
+maven.artifact(
+    testonly = True,
+    artifact = "android-all",
+    group = "org.robolectric",
+    version = "15-robolectric-12650502",
+)
+maven.artifact(
+    testonly = True,
+    artifact = "assertj-core",
+    group = "org.assertj",
+    version = "3.22.0",
+)
+maven.artifact(
+    testonly = True,
+    artifact = "mockwebserver",
+    group = "com.squareup.okhttp3",
+    version = OKHTTP_VERSION,
+)
+maven.artifact(
+    testonly = True,
+    artifact = "junit",
+    group = "junit",
+    version = "4.13.2",
+)
+maven.artifact(
+    testonly = True,
+    artifact = "classgraph",
+    group = "io.github.classgraph",
+    version = "4.8.146",
+)
+use_repo(maven, "maven")
+
+####################
+# Rust extensions
+####################
+
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(
+    extra_target_triples = [
+        "aarch64-apple-ios-sim",
+        "aarch64-apple-ios",
+        "aarch64-linux-android",
+        "armv7-linux-androideabi",
+        "i686-linux-android",
+        "x86_64-apple-ios",
+        "x86_64-linux-android",
+    ],
+    rustfmt_version = "nightly/2024-09-09",
+    # We need this shas, since these archives are generated by us and we want to make sure we always use these as opposed
+    # to the official ones. There is a `rust_std_checksum.sh` script that generates these shas in the `tools` directory.
+    # For security reasons, we include all shas here to make sure that a malicious actor with access to rust-std-mobile
+    # can't include a compromised tool.
+    #
+    # tl;dr; run e.g. $ ./tools/rust_std_checksum.sh 1.82.0
+    sha256s = {
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios-sim.tar.gz": "93dfa00fb69caf9772853409d600b03bf274cea82f76be73920c9c9da0e326bf",
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios.tar.gz": "a3d44bc13377a49412aaa6a6b83c21f6b2e3ca7591c03748af08a307adc26793",
+        "rust-std-" + RUST_VERSION + "-x86_64-apple-ios.tar.gz": "ffa21586b4d414a6ddf43b27390a06463529d1c0c3217e20bfc7e9ad0c40bbf7",
+        "rust-std-" + RUST_VERSION + "-aarch64-linux-android.tar.gz": "1e402899fc714e1aa09d6930a4047a4dc0fd59607bd362538dfa27e13589517b",
+        "rust-std-" + RUST_VERSION + "-armv7-linux-androideabi.tar.gz": "48ec8b7a089dd5dec7e16a446ac1e4c5fa8c474bb5bce98df0a557640b319d37",
+        "rust-std-" + RUST_VERSION + "-i686-linux-android.tar.gz": "0d74f42a65641456c96c82c9dc27a5dec51ee178a3391c9c744370d64acf632f",
+        "rustc-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "feef342e824def809558cb2d4913fa31258a798a933c13018556bdc76dd2e3b7",
+        "cargo-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "368bcb0627eed5a235d06cce634904d01396e39ddce253e6fea9831eb711fda0",
+        "llvm-tools-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "c3fedc1e1e722bffb6df67992de9b7394b5b76d9ce4dee8d7de32dd0db296214",
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "7b9fa15213cf3fae3a4ae80bb2a0ebabdce29599aa381bbb7b12bb5043fe9a04",
+        "clippy-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "4ce4017695945041bdfd92f6d3f327a9665fb045774a56a451436092524ce38b",
+        "rustfmt-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "3362689cd250a6db2ad6192aac4550119543a5d7ca0a25453e77f86dbb3f2381",
+    },
+    urls = [
+        # NOTE: `urls` are technically mirrors so we want to make sure we always try our own first then the official ones.
+        # We'll ensure that the ones we want to serve always come from us by the previous sha256s dictionary. Please ensure
+        # that the extensions on both of these are the same.
+        "https://github.com/bitdriftlabs/rust-std-mobile/releases/download/" + RUST_VERSION + "/{}.tar.gz",
+
+        # We need this because we only serve std for mobile archs but rustc, clippy, cargo, llvm-tools and even std for
+        # apple-darwin/linux are served from the official mirror.
+        "https://static.rust-lang.org/dist/{}.tar.gz",
+    ],
+    versions = [
+        RUST_VERSION,
+    ],
+)
+use_repo(rust, "rust_toolchains")
+
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crate.from_cargo(
+    name = "crates",
+    cargo_config = "//:Cargo.toml",
+    cargo_lockfile = "//:Cargo.lock",
+    # This trades the chance that the registry gets corrupted for speed when repinning.
+    isolated = False,
+    lockfile = "//:Cargo.Bazel.lock",
+    manifests = [
+        "//:Cargo.toml",
+        "//proto:Cargo.toml",
+        "//platform/jvm:Cargo.toml",
+        "//test/platform/jvm:Cargo.toml",
+        "//platform/shared:Cargo.toml",
+        "//platform/swift/source:Cargo.toml",
+        "//platform/test_helpers:Cargo.toml",
+        "//test/platform/pom_checker:Cargo.toml",
+        "//test/platform/swift/bridging:Cargo.toml",
+        "//test/benchmark:Cargo.toml",
+    ],
+)
+crate.annotation(
+    build_script_env = {"SKIP_PROTO_GEN": "1"},
+    crate = "bd-grpc",
+)
+crate.annotation(
+    build_script_env = {"SKIP_PROTO_GEN": "1"},
+    crate = "bd-pgv",
+)
+crate.annotation(
+    build_script_env = {"SKIP_PROTO_GEN": "1"},
+    crate = "bd-proto",
+)
+
+# A recent rustix update seems to have broken something here, so manually add in the crates we need to build under Bazel.
+crate.annotation(
+    crate = "linux-raw-sys",
+    crate_features = [
+        "errno",
+        "std",
+        "general",
+        "ioctl",
+    ],
+)
+use_repo(crate, "crates")

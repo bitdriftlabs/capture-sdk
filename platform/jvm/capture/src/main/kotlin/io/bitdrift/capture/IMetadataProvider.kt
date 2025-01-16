@@ -12,7 +12,6 @@ package io.bitdrift.capture
  * group and timestamp.
  */
 internal interface IMetadataProvider {
-
     /**
      * Returns the current ms since UTC epoch using the active DateProvider.
      */

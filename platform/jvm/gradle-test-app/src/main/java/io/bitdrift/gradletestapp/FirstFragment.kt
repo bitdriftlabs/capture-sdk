@@ -26,9 +26,11 @@ import androidx.compose.material.Text
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import com.apollographql.apollo3.ApolloClient
-import com.apollographql.apollo3.network.okHttpClient
+import com.apollographql.apollo.ApolloClient
+import com.apollographql.apollo.network.okHttpClient
+import com.example.rocketreserver.BookTripsMutation
 import com.example.rocketreserver.LaunchListQuery
+import com.example.rocketreserver.LoginMutation
 import com.github.michaelbull.result.onFailure
 import com.github.michaelbull.result.onSuccess
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
@@ -37,7 +39,7 @@ import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LoggerImpl
-import io.bitdrift.capture.apollo3.CaptureApolloInterceptor
+import io.bitdrift.capture.apollo.CaptureApolloInterceptor
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.gradletestapp.databinding.FragmentFirstBinding
 import kotlinx.coroutines.MainScope
@@ -216,10 +218,19 @@ class FirstFragment : Fragment() {
         })
     }
 
+    private val graphQlOperations by lazy {
+        listOf(
+            apolloClient.query(LaunchListQuery()),
+            apolloClient.mutation(LoginMutation(email = "me@example.com")),
+            apolloClient.mutation(BookTripsMutation(launchIds = listOf())),
+        )
+    }
+
     private fun performGraphQlRequest(view: View) {
+        val operation = graphQlOperations.random()
         MainScope().launch {
             try {
-                val response = apolloClient.query(LaunchListQuery()).execute()
+                val response = operation.execute()
                 Logger.logDebug(mapOf("response_data" to response.data.toString())) { "GraphQL response data received" }
             } catch (e: Exception) {
                 Timber.e(e, "GraphQL request failed")

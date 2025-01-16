@@ -15,8 +15,10 @@ import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 internal class DeviceCodeService(
     private val apiClient: OkHttpApiClient,
 ) {
-
-    fun createTemporaryDeviceCode(deviceId: String, completion: (CaptureResult<String>) -> Unit) {
+    fun createTemporaryDeviceCode(
+        deviceId: String,
+        completion: (CaptureResult<String>) -> Unit,
+    ) {
         val typedRequest = DeviceCodeRequest(deviceId)
 
         apiClient.perform<DeviceCodeRequest, DeviceCodeResponse>(HttpApiEndpoint.GetTemporaryDeviceCode, typedRequest) { result ->
@@ -25,6 +27,10 @@ internal class DeviceCodeService(
     }
 }
 
-internal data class DeviceCodeRequest(@SerializedName("device_id") val deviceId: String)
+internal data class DeviceCodeRequest(
+    @SerializedName("device_id") val deviceId: String,
+)
 
-internal data class DeviceCodeResponse(@SerializedName("code") val code: String)
+internal data class DeviceCodeResponse(
+    @SerializedName("code") val code: String,
+)

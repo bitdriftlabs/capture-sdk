@@ -32,17 +32,18 @@ internal class AppLifecycleListenerLogger(
     private val runtime: Runtime,
     private val executor: ExecutorService,
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
-) : IEventListenerLogger, LifecycleEventObserver {
-
-    private val lifecycleEventNames = hashMapOf(
-        Lifecycle.Event.ON_CREATE to "AppCreate",
-        Lifecycle.Event.ON_START to "AppStart",
-        Lifecycle.Event.ON_RESUME to "AppResume",
-        Lifecycle.Event.ON_PAUSE to "AppPause",
-        Lifecycle.Event.ON_STOP to "AppStop",
-        Lifecycle.Event.ON_DESTROY to "AppDestroy",
-        Lifecycle.Event.ON_ANY to "AppAny",
-    )
+) : IEventListenerLogger,
+    LifecycleEventObserver {
+    private val lifecycleEventNames =
+        hashMapOf(
+            Lifecycle.Event.ON_CREATE to "AppCreate",
+            Lifecycle.Event.ON_START to "AppStart",
+            Lifecycle.Event.ON_RESUME to "AppResume",
+            Lifecycle.Event.ON_PAUSE to "AppPause",
+            Lifecycle.Event.ON_STOP to "AppStop",
+            Lifecycle.Event.ON_DESTROY to "AppDestroy",
+            Lifecycle.Event.ON_ANY to "AppAny",
+        )
 
     override fun start() {
         mainThreadHandler.run {
@@ -56,7 +57,10 @@ internal class AppLifecycleListenerLogger(
         }
     }
 
-    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+    override fun onStateChanged(
+        source: LifecycleOwner,
+        event: Lifecycle.Event,
+    ) {
         executor.execute {
             if (!runtime.isEnabled(RuntimeFeature.APP_LIFECYCLE_EVENTS)) {
                 return@execute

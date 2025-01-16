@@ -36,7 +36,7 @@ jobs:
       env:
         SKIP_PROTO_GEN: 1
     - name: Build Apollo artifacts with Gradle
-      run: ./gradlew :capture-apollo3:publish -PVERSION_NAME="${{ inputs.version }}" --info
+      run: ./gradlew :capture-apollo:publish -PVERSION_NAME="${{ inputs.version }}" --info
       env:
         SKIP_PROTO_GEN: 1
     - name: Build Gradle Plugin artifacts with Gradle
@@ -50,7 +50,7 @@ jobs:
     - name: Compress Apollo artifacts
       run: |
         readonly dir=$(pwd)
-        (cd capture-apollo3/build/repos/releases/io/bitdrift/capture-apollo3/${{ inputs.version }} && zip -r "$dir/capture-apollo3-${{ inputs.version }}.android.zip" ./*)        
+        (cd capture-apollo/build/repos/releases/io/bitdrift/capture-apollo/${{ inputs.version }} && zip -r "$dir/capture-apollo-${{ inputs.version }}.android.zip" ./*)        
     - name: Compress Android Plugin artifacts
       run: |
         readonly dir=$(pwd)
@@ -68,8 +68,8 @@ jobs:
     - name: Upload Apollo artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: capture-apollo3-${{ inputs.version }}.android.zip
-        path: platform/jvm/capture-apollo3-${{ inputs.version }}.android.zip
+        name: capture-apollo-${{ inputs.version }}.android.zip
+        path: platform/jvm/capture-apollo-${{ inputs.version }}.android.zip
         if-no-files-found: error        
     - name: Upload Gradle Plugin artifacts
       uses: actions/upload-artifact@v4

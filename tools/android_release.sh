@@ -15,7 +15,6 @@ fi
   --announce_rc \
   --config=ci \
   --config=release-android \
-  --fat_apk_cpu=x86,x86_64,armeabi-v7a,arm64-v8a \
   --define=pom_version="$version" \
   //:capture_aar_with_artifacts //:capture_symbols
 

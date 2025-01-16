@@ -5,16 +5,16 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.apollo3
+package io.bitdrift.capture.apollo
 
-import com.apollographql.apollo3.api.ApolloRequest
-import com.apollographql.apollo3.api.ApolloResponse
-import com.apollographql.apollo3.api.Mutation
-import com.apollographql.apollo3.api.Operation
-import com.apollographql.apollo3.api.Query
-import com.apollographql.apollo3.api.Subscription
-import com.apollographql.apollo3.interceptor.ApolloInterceptor
-import com.apollographql.apollo3.interceptor.ApolloInterceptorChain
+import com.apollographql.apollo.api.ApolloRequest
+import com.apollographql.apollo.api.ApolloResponse
+import com.apollographql.apollo.api.Mutation
+import com.apollographql.apollo.api.Operation
+import com.apollographql.apollo.api.Query
+import com.apollographql.apollo.api.Subscription
+import com.apollographql.apollo.interceptor.ApolloInterceptor
+import com.apollographql.apollo.interceptor.ApolloInterceptorChain
 import io.bitdrift.capture.Capture
 import kotlinx.coroutines.flow.Flow
 
@@ -28,9 +28,10 @@ class CaptureApolloInterceptor: ApolloInterceptor {
         val requestBuilder = request.newBuilder()
             .addHttpHeader("x-capture-span-key", "gql")
             .addHttpHeader("x-capture-span-gql-name", "graphql")
-            .addHttpHeader("x-capture-span-gql-field-operation-name", request.operation.name())
             .addHttpHeader("x-capture-span-gql-field-operation-id", request.operation.id())
             .addHttpHeader("x-capture-span-gql-field-operation-type", request.operation.type())
+            .addHttpHeader("x-capture-span-gql-field-operation-name", request.operation.name())
+            .addHttpHeader("x-capture-path-template", "gql-${request.operation.name()}") // set this to override the http _path_template field
         // TODO(murki): Augment request logs with
         //  request.executionContext[CustomScalarAdapters]?.let {
         //    addHttpHeader("x-capture-span-gql-field-operation-variables", request.operation.variables(it).valueMap.toString())

@@ -29,8 +29,3 @@ rust-project.json
 /perf.data
 /perf.data.old
 vendor
-
-# TODO(mattklein123): Theoretically we should be using these files now, but they cause errors and
-# are spit out so need to sort this out.
-MODULE.bazel
-MODULE.bazel.lock

@@ -19,21 +19,14 @@ internal class MetadataProvider(
     private val errorHandle: ErrorHandler = ErrorHandler(),
     private val errorLog: ((String, Throwable) -> Unit) = { message, throwable -> Log.w("capture", message, throwable) },
 ) : IMetadataProvider {
+    override fun timestamp(): Long = dateProvider.invoke().time
 
-    override fun timestamp(): Long {
-        return dateProvider.invoke().time
-    }
+    override fun ootbFields(): InternalFieldsList = fields(ootbFieldProviders)
 
-    override fun ootbFields(): InternalFieldsList {
-        return fields(ootbFieldProviders)
-    }
+    override fun customFields(): InternalFieldsList = fields(customFieldProviders)
 
-    override fun customFields(): InternalFieldsList {
-        return fields(customFieldProviders)
-    }
-
-    private fun fields(fieldProviders: List<FieldProvider>): InternalFieldsList {
-        return buildList {
+    private fun fields(fieldProviders: List<FieldProvider>): InternalFieldsList =
+        buildList {
             for (fieldProvider in fieldProviders) {
                 try {
                     this.addAll(
@@ -51,5 +44,4 @@ internal class MetadataProvider(
                 }
             }
         }
-    }
 }

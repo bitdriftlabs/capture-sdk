@@ -42,13 +42,14 @@ android {
     namespace = "io.bitdrift.capture"
 
     compileSdk = 35
-    buildToolsVersion = "35.0.0"
 
     defaultConfig {
-        ndkVersion = "27"
         minSdk = 21
+        ndkVersion = "27"
         consumerProguardFiles("consumer-rules.pro")
     }
+
+    ndkVersion = "27.2.12479018"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -73,8 +74,6 @@ android {
         checkDependencies = true
         checkReleaseBuilds = true
     }
-
-    ndkVersion = "27.2.12479018"
 }
 
 // Rust cargo build toolchain
@@ -85,6 +84,10 @@ cargo {
     targetDirectory = "../../../target"
     targets = listOf("arm64", "x86_64")
     pythonCommand = "python3"
+    exec = { spec, _ ->
+        // enable 16 KB ELF alignment
+        spec.environment("RUST_ANDROID_GRADLE_CC_LINK_ARG", "-Wl,-z,max-page-size=16384")
+    }
 }
 
 // workaround bug in rust-android-gradle plugin that causes .so to not be available on app launch

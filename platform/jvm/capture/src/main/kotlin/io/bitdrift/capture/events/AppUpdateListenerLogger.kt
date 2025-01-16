@@ -24,7 +24,6 @@ internal class AppUpdateListenerLogger(
     private val runtime: Runtime,
     private val executor: ExecutorService,
 ) : IEventListenerLogger {
-
     override fun start() {
         executor.execute {
             maybeLogAppUpdate(clientAttributes.appVersion, clientAttributes.appVersionCode)
@@ -35,7 +34,10 @@ internal class AppUpdateListenerLogger(
     override fun stop() {}
 
     // Internal for tests purposes only.
-    private fun maybeLogAppUpdate(appVersion: String, appVersionCode: Long) {
+    private fun maybeLogAppUpdate(
+        appVersion: String,
+        appVersionCode: Long,
+    ) {
         if (!runtime.isEnabled(RuntimeFeature.APP_UPDATE_EVENTS)) {
             return
         }
@@ -44,10 +46,11 @@ internal class AppUpdateListenerLogger(
             return
         }
 
-        val timedValue = measureTimedValue {
-            val baseAPK = File(this.context.applicationInfo.sourceDir)
-            baseAPK.length()
-        }
+        val timedValue =
+            measureTimedValue {
+                val baseAPK = File(this.context.applicationInfo.sourceDir)
+                baseAPK.length()
+            }
 
         logger.logAppUpdate(
             appVersion,

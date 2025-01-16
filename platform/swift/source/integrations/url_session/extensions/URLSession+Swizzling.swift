@@ -7,6 +7,27 @@
 
 import Foundation
 
+// Proxying delegates of some 3rd party frameworks leads to crashes. Disable proxying for
+// problematic classes.
+// Refer to the following GitHub comments for more details:
+//  * https://github.com/google/gtm-session-fetcher/issues/190#issuecomment-604205556
+//  * https://github.com/google/gtm-session-fetcher/issues/190#issuecomment-604757154
+let disabledDelegateClassStrings = [
+    "GTMSessionFetcher",
+]
+
+let disabledDelegateClasses = [
+    // GooglePlaces SDK
+    "GMPx_GTMSessionFetcherService",
+    "GMPx_GTMSessionFetcherSessionDelegateDispatcher",
+    // GoogleMaps SDK
+    "GMSx_GTMSessionFetcherService",
+    "GMSx_GTMSessionFetcherSessionDelegateDispatcher",
+    // GTMSessionFetcher SDK
+    "GTMSessionFetcherService",
+    "GTMSessionFetcherSessionDelegateDispatcher",
+].compactMap(NSClassFromString)
+
 extension URLSession {
     // Accessing `cap_underlyingShared` is be thread-safe.
     // Apple docs about type (static) properties:
@@ -34,26 +55,12 @@ extension URLSession {
         // initializer.
 
         if let delegate {
-            // Proxying delegates of some 3rd party frameworks leads to crashes. Disable proxying for
-            // problematic classes.
-            // Refer to the following GitHub comments for more details:
-            //  * https://github.com/google/gtm-session-fetcher/issues/190#issuecomment-604205556
-            //  * https://github.com/google/gtm-session-fetcher/issues/190#issuecomment-604757154
-            let disabledDelegateClassNames = [
-                // GooglePlaces SDK
-                "GMPx_GTMSessionFetcherService",
-                "GMPx_GTMSessionFetcherSessionDelegateDispatcher",
-                // GoogleMaps SDK
-                "GMSx_GTMSessionFetcherService",
-                "GMSx_GTMSessionFetcherSessionDelegateDispatcher",
-                // GTMSessionFetcher SDK
-                "GTMSessionFetcherService",
-                "GTMSessionFetcherSessionDelegateDispatcher",
-            ]
-
-            let shouldDisableProxying = disabledDelegateClassNames
-                .compactMap { NSClassFromString($0) }
-                .contains { delegate.isKind(of: $0) }
+            let delegateClassName = NSStringFromClass(type(of: delegate))
+            let shouldDisableProxying =
+                // First look for the delegate class to match any banned string
+                disabledDelegateClassStrings.contains(where: delegateClassName.contains) ||
+                // Then look for the delegate to be of a banned class or inherited from one
+                disabledDelegateClasses.contains(where: delegate.isKind)
 
             if shouldDisableProxying {
                 return Self.cap_makeSession(
