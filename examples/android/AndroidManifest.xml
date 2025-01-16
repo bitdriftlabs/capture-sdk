@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-sdk
             android:minSdkVersion="21"
-            android:targetSdkVersion="34"/>
+            android:targetSdkVersion="35"/>
 
     <application
             android:name=".HelloWorldApp"

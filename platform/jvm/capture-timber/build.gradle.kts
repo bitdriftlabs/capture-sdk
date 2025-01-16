@@ -15,7 +15,7 @@ group = "io.bitdrift"
 
 android {
     namespace = "io.bitdrift.capture.timber"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 21
