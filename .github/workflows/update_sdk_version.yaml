@@ -66,4 +66,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.org-pr-create-token.outputs.token }}
         run: |
-          gh pr create --fill
+          gh pr create --fill --head update-sdk-version-${{ inputs.version }}
