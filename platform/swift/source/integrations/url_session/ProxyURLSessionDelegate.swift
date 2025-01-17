@@ -53,7 +53,7 @@ final class ProxyURLSessionTaskDelegate: ProxyURLSessionDelegate {
     )
     {
         URLSessionTaskTracker.shared.task(task, didFinishCollecting: metrics)
-        
+
         if let delegate = self.target, delegate.responds(to: kFinishedCollectingMetrics) {
             delegate.urlSession?(session, task: task, didFinishCollecting: metrics)
             return
@@ -61,11 +61,9 @@ final class ProxyURLSessionTaskDelegate: ProxyURLSessionDelegate {
 
         // We need to call the session delegate method because otherwise by attaching this proxy
         // delegate to a task delegate and conforming to this method, we'll prevent the networking
-        // framewokr to call URLSession's delegate method and therefore changing the behavior of the
+        // framework to call URLSession's delegate method and therefore changing the behavior of the
         // stack.
-        if let sessionDelegate = session.delegate as? URLSessionTaskDelegate,
-            !sessionDelegate.isKind(of: ProxyURLSessionDelegate.self)
-        {
+        if let sessionDelegate = session.delegate as? URLSessionTaskDelegate {
             sessionDelegate.urlSession?(session, task: task, didFinishCollecting: metrics)
         }
     }
