@@ -77,6 +77,7 @@ internal class LoggerImpl(
             ProcessLifecycleOwner.get(),
         ),
     preferences: IPreferences = Preferences(context),
+    logCrash: Boolean = false,
     private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey),
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
@@ -258,8 +259,15 @@ internal class LoggerImpl(
                 // Capture logger.
                 appExitLogger.installAppExitLogger()
 
-                CaptureJniLibrary.startLogger(this.loggerId)
+            CaptureJniLibrary.startLogger(this.loggerId)
+
+            System.err.println("!")
+
+            if (logCrash) {
+                System.err.println("logging crash")
+                logCrash()
             }
+        }
 
         CaptureJniLibrary.writeSDKStartLog(
             this.loggerId,
@@ -331,6 +339,10 @@ internal class LoggerImpl(
             httpResponseInfo.fields,
             httpResponseInfo.matchingFields,
         ) { httpResponseInfo.name }
+    }
+
+    override fun logCrash() {
+        log(LogType.NORMAL, LogLevel.DEBUG) { "App Error Reported" }
     }
 
     override fun log(

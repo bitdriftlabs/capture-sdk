@@ -70,6 +70,10 @@ public protocol Logging {
         function: String?
     )
 
+    /// Logs a message indicating that a crash has been observed. This is special in that this can be called before the SDK has been initialized
+    /// and will ensure to log the crash event once the SDK has been initialized.
+    func logCrash()
+
     /// Adds a field to all logs emitted by the logger from this point forward.
     /// If a field with a given key has already been registered with the logger, its value is
     /// replaced with the new one.

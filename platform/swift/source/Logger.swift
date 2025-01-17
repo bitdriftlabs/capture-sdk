@@ -64,7 +64,8 @@ public final class Logger {
         sessionStrategy: SessionStrategy,
         dateProvider: DateProvider?,
         fieldProviders: [FieldProvider],
-        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory(),
+        crashRecorded: Bool
     )
     {
         self.init(
@@ -78,7 +79,8 @@ public final class Logger {
             fieldProviders: fieldProviders,
             storageProvider: Storage.shared,
             timeProvider: SystemTimeProvider(),
-            loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
+            loggerBridgingFactoryProvider: loggerBridgingFactoryProvider,
+            crashRecorded: crashRecorded
         )
     }
 
@@ -117,7 +119,8 @@ public final class Logger {
         enableNetwork: Bool = true,
         storageProvider: StorageProvider,
         timeProvider: TimeProvider,
-        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory(),
+        crashRecorded: Bool
     )
     {
         self.timeProvider = timeProvider
@@ -219,6 +222,10 @@ public final class Logger {
 
         self.underlyingLogger.start()
 
+        if crashRecorded {
+            Self.logCrash(logger: self.underlyingLogger)
+        }
+
         self.dispatchSourceMemoryMonitor = Self.setUpMemoryStateMonitoring(logger: self.underlyingLogger)
 
         self.deviceCodeController = DeviceCodeController(client: client)
@@ -262,6 +269,18 @@ public final class Logger {
             type: type,
             blocking: blocking
         )
+    }
+
+    static func logCrash(logger: CoreLogging) {
+        logger.log(
+            level: .error,
+            message: "App Error Reported",
+            type: .normal
+        )
+    }
+    
+    public func logCrash() {
+        Self.logCrash(logger: self.underlyingLogger)
     }
 
     // MARK: - Static
@@ -376,6 +395,7 @@ extension Logger: Logging {
     public var deviceID: String {
         return self.underlyingLogger.getDeviceID()
     }
+    
 
     public func log(
         level: LogLevel,

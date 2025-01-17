@@ -61,6 +61,9 @@ public final class MockLogging {
 }
 
 extension MockLogging: Logging {
+    public func logCrash() {
+    }
+    
     public var sessionID: String { "fooID" }
     public var sessionURL: String { "fooURL" }
 

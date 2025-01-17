@@ -86,7 +86,8 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
                     ),
                 ],
                 storageProvider: self.storage,
-                timeProvider: SystemTimeProvider()
+                timeProvider: SystemTimeProvider(),
+                crashRecorded: false
             )
         )
 

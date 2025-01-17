@@ -20,6 +20,7 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.concurrent.Volatile
 import kotlin.time.Duration
 
 internal sealed class LoggerState {
@@ -92,6 +93,9 @@ object Capture {
         // This is a lazy property to avoid the need to initialize the main thread handler unless needed here
         private val mainThreadHandler by lazy { MainThreadHandler() }
 
+        @Volatile
+        private var crashReported = false
+
         /**
          * Initializes the Capture SDK with the specified API key, providers, and configuration.
          * Calling other SDK methods has no effect unless the logger has been initialized.
@@ -156,16 +160,16 @@ object Capture {
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
             if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
                 try {
-                    val logger =
-                        LoggerImpl(
-                            apiKey = apiKey,
-                            apiUrl = apiUrl,
-                            fieldProviders = fieldProviders,
-                            dateProvider = dateProvider ?: SystemDateProvider(),
-                            configuration = configuration,
-                            sessionStrategy = sessionStrategy,
-                            bridge = bridge,
-                        )
+                    val logger = LoggerImpl(
+                        apiKey = apiKey,
+                        apiUrl = apiUrl,
+                        fieldProviders = fieldProviders,
+                        dateProvider = dateProvider ?: SystemDateProvider(),
+                        configuration = configuration,
+                        sessionStrategy = sessionStrategy,
+                        bridge = bridge,
+                        logCrash = crashReported,
+                    )
                     default.set(LoggerState.Started(logger))
                 } catch (e: Throwable) {
                     Log.w("capture", "Failed to start Capture", e)
@@ -367,6 +371,21 @@ object Capture {
             message: () -> String,
         ) {
             logger()?.log(level = level, fields = fields, throwable = throwable, message = message)
+        }
+
+        /**
+         * Logs a crash event. This can be called before the SDK has been initialized, which will result in one
+         * crash event to be recorded at the time of initialization.
+         */
+        @JvmStatic
+        fun logCrash() {
+            val logger = logger()
+
+            if (logger != null) {
+                logger.logCrash()
+            } else {
+                crashReported = true
+            }
         }
 
         /**
