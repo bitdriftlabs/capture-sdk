@@ -60,52 +60,26 @@ final class URLSessionIntegration {
     // MARK: - Private
 
     fileprivate static func enableNetworkInstrumentationOnce() {
-        self.installHooks()
+        self.installURLSessionDelegateHook()
     }
 
-    private static func installHooks() {
-        // TODO(Augustyniak): Avoid swizzling if swizzling disabled.
-        self.installURLSessionHooks()
-        let klass: AnyClass = self.getTaskClass()
-        self.installURLSessionDelegateHook(class: klass)
-    }
-
-    private static func installURLSessionHooks() {
-        // Even though `URLSession.init(configuration:delegate:delegateQueue:)` appears to be a standard
-        // initializer in Swift (an instance method), it's backed by the static
-        // `[NSURLSession sessionWithConfiguration:delegate:delegateQueue:]` method. Therefore, we work
-        // with it as if it were a static method that returns an instance of URLSession.
-        exchangeClassMethod(
-            class: URLSession.self,
-            selector: #selector(URLSession.init(configuration:delegate:delegateQueue:)),
-            with: #selector(URLSession.cap_makeSession(configuration:delegate:delegateQueue:))
-        )
-
-        // Unfortunately, swizzling `URLSession.init(configuration:delegate:delegateQueue:)` isn't enough to
-        // swizzle the initializer used to create `URLSession.shared`. Therefore, we swizzle
-        // `URLSession.shared` directly.
-        exchangeClassMethod(
-            class: URLSession.self,
-            selector: #selector(getter: URLSession.shared),
-            with: #selector(URLSession.cap_shared)
-        )
-    }
-
-    private static func installURLSessionDelegateHook(class: AnyClass) {
+    private static func installURLSessionDelegateHook() {
         if #available(iOS 15.0, *) {
+            let URLSessionTaskInternalClass: AnyClass = self.getTaskClass()
             exchangeInstanceMethod(
-                class: `class`,
-                selector: #selector(setter: URLSessionTask.delegate),
-                with: #selector(URLSessionTask.cap_setDelegate)
+                class: URLSessionTaskInternalClass,
+                selector: #selector(URLSessionTask.resume),
+                with: #selector(URLSessionTask.cap_resume)
             )
+        } else {
+            Self.shared.logger?.log(level: .error,
+                                    message: "Network Swizzling is not available in iOS < 15.0")
         }
     }
 
     private static func getTaskClass() -> AnyClass {
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
-        var request = URLRequest(url: URL(string: "www.bitdrift.io")!)
-        request.setValue("true", forHTTPHeaderField: kCaptureAPIHeaderField)
-
+        let request = URLRequest(url: URL(string: "www.bitdrift.io")!)
         let session = URLSession(configuration: .ephemeral)
         defer { session.invalidateAndCancel() }
 

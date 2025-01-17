@@ -30,11 +30,6 @@ final class URLSessionTaskTracker {
     static let shared = URLSessionTaskTracker()
 
     func taskWillStart(_ task: URLSessionTask) {
-        // Do not instrument requests performed by the Capture SDK itself.
-        if task.cap_isCaptureAPI {
-            return
-        }
-
         // TODO(Augustyniak): Add supports for the these two types of tasks.
         if task is URLSessionStreamTask {
             return
