@@ -102,6 +102,7 @@ internal class ViewMapper(
     }
 
     private fun isValidResId(resId: Int): Boolean {
+        @Suppress("MaxLineLength")
         // the checks below are to avoid spamming logcat with errors emitted by the Android sub-system when calling resources.getResourceEntryName(invalidResourceId)
         // see: https://cs.android.com/android/platform/superproject/main/+/6adcde7195b0c9efd344a2bec2412909ab66d047:frameworks/base/libs/androidfw/AssetManager2.cpp;l=657
         // lifted from: https://cs.android.com/android/platform/superproject/main/+/a2a9539615425091c7413249e5dc063009cf222b:frameworks/base/libs/androidfw/include/androidfw/ResourceUtils.h;l=62
