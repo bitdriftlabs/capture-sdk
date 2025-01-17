@@ -106,8 +106,8 @@ internal class ViewMapper(
         // see: https://cs.android.com/android/platform/superproject/main/+/6adcde7195b0c9efd344a2bec2412909ab66d047:frameworks/base/libs/androidfw/AssetManager2.cpp;l=657
         // lifted from: https://cs.android.com/android/platform/superproject/main/+/a2a9539615425091c7413249e5dc063009cf222b:frameworks/base/libs/androidfw/include/androidfw/ResourceUtils.h;l=62
         return resId != View.NO_ID &&
-                resId != ResourcesCompat.ID_NULL &&
-                (resId.toUInt() and 0x00ff0000u) != 0u &&
-                (resId.toUInt() and 0xff000000u) != 0u
+            resId != ResourcesCompat.ID_NULL &&
+            (resId.toUInt() and 0x00ff0000u) != 0u &&
+            (resId.toUInt() and 0xff000000u) != 0u
     }
 }
