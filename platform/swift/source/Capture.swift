@@ -18,7 +18,7 @@ extension Logger {
     struct SDKNotStartedfError: Swift.Error {}
 
     private static var syncedHasCrashed: Atomic<Bool> = Atomic<Bool>(false)
-    
+
     // MARK: - General
 
     /// An instance of the underlying logger, if the Capture SDK is started. Returns `nil` if the

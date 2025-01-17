@@ -278,7 +278,7 @@ public final class Logger {
             type: .normal
         )
     }
-    
+
     public func logCrash() {
         Self.logCrash(logger: self.underlyingLogger)
     }
@@ -395,7 +395,6 @@ extension Logger: Logging {
     public var deviceID: String {
         return self.underlyingLogger.getDeviceID()
     }
-    
 
     public func log(
         level: LogLevel,

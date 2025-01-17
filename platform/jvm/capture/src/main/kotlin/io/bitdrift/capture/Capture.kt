@@ -160,16 +160,17 @@ object Capture {
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
             if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
                 try {
-                    val logger = LoggerImpl(
-                        apiKey = apiKey,
-                        apiUrl = apiUrl,
-                        fieldProviders = fieldProviders,
-                        dateProvider = dateProvider ?: SystemDateProvider(),
-                        configuration = configuration,
-                        sessionStrategy = sessionStrategy,
-                        bridge = bridge,
-                        logCrash = crashReported,
-                    )
+                    val logger =
+                        LoggerImpl(
+                            apiKey = apiKey,
+                            apiUrl = apiUrl,
+                            fieldProviders = fieldProviders,
+                            dateProvider = dateProvider ?: SystemDateProvider(),
+                            configuration = configuration,
+                            sessionStrategy = sessionStrategy,
+                            bridge = bridge,
+                            logCrash = crashReported,
+                        )
                     default.set(LoggerState.Started(logger))
                 } catch (e: Throwable) {
                     Log.w("capture", "Failed to start Capture", e)

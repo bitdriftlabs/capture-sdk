@@ -259,15 +259,15 @@ internal class LoggerImpl(
                 // Capture logger.
                 appExitLogger.installAppExitLogger()
 
-            CaptureJniLibrary.startLogger(this.loggerId)
+                CaptureJniLibrary.startLogger(this.loggerId)
 
-            System.err.println("!")
+                System.err.println("!")
 
-            if (logCrash) {
-                System.err.println("logging crash")
-                logCrash()
+                if (logCrash) {
+                    System.err.println("logging crash")
+                    logCrash()
+                }
             }
-        }
 
         CaptureJniLibrary.writeSDKStartLog(
             this.loggerId,

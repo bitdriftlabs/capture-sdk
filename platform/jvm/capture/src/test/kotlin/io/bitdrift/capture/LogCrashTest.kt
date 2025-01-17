@@ -20,7 +20,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class LogCrashTest {
-
     // Run this test in a separate file from the other related tests as it relies on the static handle keeping track
     // of log crashes, so we want to avoid polluting other tests.
     @Test
