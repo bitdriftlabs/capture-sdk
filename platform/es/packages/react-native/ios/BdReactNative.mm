@@ -59,8 +59,7 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
   sessionStrategy:(NSString*)sessionStrategy
   options:(JS::NativeBdReactNative::InitOptions& )options)
 {
-  BOOL enableNetworkInstrumentation = options.enableNetworkInstrumentation().has_value() ?
-    options.enableNetworkInstrumentation().value() : false;
+  BOOL enableNetworkInstrumentation = options != nil && options.enableNetworkInstrumentation().has_value() ? options.enableNetworkInstrumentation().value() : false;
 
   [CAPRNLogger
     startWithKey:apiKey
