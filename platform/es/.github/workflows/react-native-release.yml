@@ -1,0 +1,47 @@
+name: React Native Release
+
+permissions:
+  contents: write
+  id-token: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The package version to use e.g. 1.80.0'
+        required: true
+        type: string
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.event.inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Javascript
+        uses: ./.github/actions/javascript-setup
+      - name: Prepare release
+        run: |
+          npm version --workspace @bitdrift/react-native $VERSION
+          npx nx prepare-release @bitdrift/react-native
+      - name: Publish release
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: npm publish ./dist/react-native
+      - name: Create a PR with the updated version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+          git checkout -b release-rn-$VERSION
+          git add packages/react-native/package.json package-lock.json
+          git commit -m "chore: release react-native $VERSION"
+          git push --set-upstream origin release-rn-$VERSION
+
+          gh pr create --title "chore: release react-native $VERSION" --base main --head release-rn-$VERSION
+          gh pr merge --auto -r
+
