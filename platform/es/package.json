@@ -15,7 +15,6 @@
   "scripts": {
     "build": "nx affected --target=build --parallel --",
     "build-debug": "nx run-many --target=build --parallel --",
-    "start:electron-example": "nx serve hello-electron",
     "test": "nx affected --target=test --parallel",
     "lint": "nx affected --target=lint --parallel",
     "lint:all": "nx run-many --target=lint --parallel"
