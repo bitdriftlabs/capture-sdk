@@ -32,7 +32,7 @@ const createWindow = async () => {
     height: 600,
     webPreferences: {
       contextIsolation: true,
-      preload: __dirname + '/preload.js',
+      preload: __dirname + '/preload.cjs',
     },
   });
 
