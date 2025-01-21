@@ -44,6 +44,6 @@ jobs:
           git commit -m "chore: release react-native $VERSION"
           git push --set-upstream origin release-rn-$VERSION
 
-          gh pr create --title "chore: release react-native $VERSION" --base main --head release-rn-$VERSION
+          gh pr create --title "chore: release react-native $VERSION" --body "v$VERSION" --base main --head release-rn-$VERSION
           gh pr merge --auto -r
 
