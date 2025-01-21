@@ -20,5 +20,5 @@ And edit your env file with the proper values.
 To run the example app, from the root of the project, run:
 
 ```bash
-nx serve hello-electron
+npx nx serve hello-electron
 ```
