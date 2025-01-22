@@ -27,10 +27,26 @@ const sessionStrategyMap = {
   [SessionStrategy.Fixed]: CoreSessionStrategy.Fixed,
 };
 
+/**
+ * Optional parameters to configure the logger.
+ * @param url - The URL to use to authenticate with the bitdrift API. Defaults to 'api.bitdrift.io'.
+ * @param appVersion - The version of the application. Defaults to the version of the application based on the package.json file.
+ */
+export type InitOptions = {
+  url?: string;
+  appVersion?: string;
+};
+
+/**
+ * Initializes the logger with the given key and session strategy.
+ * @param key - The API key to use to authenticate with the bitdrift API.
+ * @param sessionStrategy - The session strategy to use for logging.
+ * @param options - Optional parameters to configure the logger.
+ */
 export const init = (
   key: string,
   sessionStrategy: SessionStrategy,
-  options?: { url?: string; appVersion?: string },
+  options?: InitOptions,
 ) => {
   const url_or_default = options?.url ?? 'api.bitdrift.io';
 
@@ -51,38 +67,61 @@ export const init = (
   return logger;
 };
 
+/**
+ * Logs a message with severity level 4 (error).
+ */
 export const error = (message: string, fields?: LogFields) => {
   if (!logger) throw new Error('Logger not initialized');
 
   logger.log(4, message, fields || {});
 };
 
+/**
+ * Logs a message with severity level 3 (warning).
+ */
 export const warn = (message: string, fields?: LogFields) => {
   if (!logger) throw new Error('Logger not initialized');
 
   logger.log(3, message, fields || {});
 };
 
+/**
+ * Logs a message with severity level 2 (info).
+ */
 export const info = (message: string, fields?: LogFields) => {
   if (!logger) throw new Error('Logger not initialized');
 
   logger.log(2, message, fields || {});
 };
 
+/**
+ * Logs a message with severity level 1 (debug).
+ */
 export const debug = (message: string, fields?: LogFields) => {
   if (!logger) throw new Error('Logger not initialized');
 
   logger.log(1, message, fields ?? {});
 };
 
+/**
+ * Logs a message with severity level 0 (trace).
+ */
 export const trace = (message: string, fields?: LogFields) => {
   if (!logger) throw new Error('Logger not initialized');
 
   logger.log(0, message, fields || {});
 };
 
+/**
+ * Gets the ID of the current session.
+ * @returns The ID of the current session.
+ */
 export const getSessionID = () => logger?.sessionId;
 
+/**
+ * Generates a temporary device code for the current device.
+ * @returns The generated device code.
+ */
 export const generateDeviceCode = async (): Promise<string> => {
   const deviceId = logger?.deviceId;
   const postData = JSON.stringify({ device_id: deviceId });
