@@ -42,7 +42,7 @@ extension Integration {
 final class URLSessionIntegration {
     /// The instance of Capture logger the library should use for logging.
     private let underlyingLogger = Atomic<Logging?>(nil)
-    fileprivate var swizzled = Atomic(false)
+    fileprivate static var swizzled = Atomic(false)
     static let shared = URLSessionIntegration()
 
     var logger: Logging? {
@@ -51,7 +51,7 @@ final class URLSessionIntegration {
 
     func start(logger: Logging, disableSwizzling: Bool) {
         self.underlyingLogger.update { $0 = logger }
-        if disableSwizzling || self.swizzled.load() {
+        if disableSwizzling || Self.swizzled.load() {
             return
         }
 
@@ -63,7 +63,7 @@ final class URLSessionIntegration {
     private func toggleURLSessionTaskSwizzling() {
         if #available(iOS 15.0, *) {
             let URLSessionTaskInternalClass: AnyClass = self.getTaskClass()
-            self.swizzled.update { swizzled in
+            Self.swizzled.update { swizzled in
                 swizzled.toggle()
 
                 exchangeInstanceMethod(
@@ -92,7 +92,7 @@ extension URLSessionIntegration {
     /// Exchanging the method twice should in theory restore the original implementation.
     /// Note: This should only be used in tests.
     func disableURLSessionTaskSwizzling() {
-        if self.swizzled.load() {
+        if Self.swizzled.load() {
             self.toggleURLSessionTaskSwizzling()
         }
     }
