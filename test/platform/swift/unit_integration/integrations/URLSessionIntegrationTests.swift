@@ -94,7 +94,7 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         let task = URLSession.shared.dataTask(with: self.makeURLRequest()) { _, _, _ in }
         task.resume()
-        
+
         XCTAssertEqual(
             .completed,
             XCTWaiter().wait(for: [requestExpectation, responseExpectation], timeout: 2)
@@ -102,7 +102,7 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         XCTAssertTrue(self.logger.logs.isEmpty)
     }
-    
+
     // MARK: - Tasks
 
     func testCustomSessionTasks() throws {
