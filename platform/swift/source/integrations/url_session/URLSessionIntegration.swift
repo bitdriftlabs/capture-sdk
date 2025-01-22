@@ -7,8 +7,6 @@
 
 import Foundation
 
-// Ensures that the hook installation process happens at most once.
-private let kSwizzleOnce: () = URLSessionIntegration.enableNetworkInstrumentationOnce()
 // The OS logger to use by the library.
 let kLogger = OSLogger(subsystem: "Capture.URLSessionIntegration")
 
@@ -44,6 +42,7 @@ extension Integration {
 final class URLSessionIntegration {
     /// The instance of Capture logger the library should use for logging.
     private let underlyingLogger = Atomic<Logging?>(nil)
+    fileprivate var swizzled = Atomic(false)
     static let shared = URLSessionIntegration()
 
     var logger: Logging? {
@@ -52,37 +51,49 @@ final class URLSessionIntegration {
 
     func start(logger: Logging, disableSwizzling: Bool) {
         self.underlyingLogger.update { $0 = logger }
-        if !disableSwizzling {
-            kSwizzleOnce
+        if disableSwizzling || self.swizzled.load() {
+            return
         }
+
+        self.toggleURLSessionTaskSwizzling()
     }
 
     // MARK: - Private
 
-    fileprivate static func enableNetworkInstrumentationOnce() {
-        self.installURLSessionDelegateHook()
-    }
-
-    private static func installURLSessionDelegateHook() {
+    private func toggleURLSessionTaskSwizzling() {
         if #available(iOS 15.0, *) {
             let URLSessionTaskInternalClass: AnyClass = self.getTaskClass()
-            exchangeInstanceMethod(
-                class: URLSessionTaskInternalClass,
-                selector: #selector(URLSessionTask.resume),
-                with: #selector(URLSessionTask.cap_resume)
-            )
+            self.swizzled.update { swizzled in
+                swizzled.toggle()
+
+                exchangeInstanceMethod(
+                    class: URLSessionTaskInternalClass,
+                    selector: #selector(URLSessionTask.resume),
+                    with: #selector(URLSessionTask.cap_resume)
+                )
+            }
         } else {
             Self.shared.logger?.log(level: .error,
                                     message: "Network Swizzling is not available in iOS < 15.0")
         }
     }
 
-    private static func getTaskClass() -> AnyClass {
+    private func getTaskClass() -> AnyClass {
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
         let request = URLRequest(url: URL(string: "www.bitdrift.io")!)
         let session = URLSession(configuration: .ephemeral)
         defer { session.invalidateAndCancel() }
 
         return type(of: session.dataTask(with: request))
+    }
+}
+
+extension URLSessionIntegration {
+    /// Exchanging the method twice should in theory restore the original implementation.
+    /// Note: This should only be used in tests.
+    func disableURLSessionTaskSwizzling() {
+        if self.swizzled.load() {
+            self.toggleURLSessionTaskSwizzling()
+        }
     }
 }
