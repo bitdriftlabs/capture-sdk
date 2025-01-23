@@ -30,6 +30,11 @@ internal sealed class LoggerState {
     data object NotStarted : LoggerState()
 
     /**
+     * The logger has not yet been started, but a crash event has been reported.
+     */
+    data object NotStartedPendingCrash
+
+    /**
      * The logger is in the process of being started. Subsequent attempts to start the logger will be ignored.
      */
     data object Starting : LoggerState()

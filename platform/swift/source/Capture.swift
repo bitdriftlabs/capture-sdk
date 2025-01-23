@@ -17,8 +17,6 @@ public typealias FieldValue = Encodable & Sendable
 extension Logger {
     struct SDKNotStartedfError: Swift.Error {}
 
-    private static var syncedHasCrashed: Atomic<Bool> = Atomic<Bool>(false)
-
     // MARK: - General
 
     /// An instance of the underlying logger, if the Capture SDK is started. Returns `nil` if the
@@ -77,7 +75,6 @@ extension Logger {
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider
     ) -> LoggerIntegrator?
     {
-        let crashRecorded = syncedHasCrashed.load()
         return self.createOnce {
             return Logger(
                 withAPIKey: apiKey,
@@ -87,7 +84,7 @@ extension Logger {
                 dateProvider: dateProvider,
                 fieldProviders: fieldProviders,
                 loggerBridgingFactoryProvider: loggerBridgingFactoryProvider,
-                crashRecorded: crashRecorded
+                crashRecorded: $0
             )
         }
     }
@@ -303,14 +300,7 @@ extension Logger {
 
     /// Logs a crash event. This method should be called when a crash is detected in the app. If this is called before the SDK has been initialized, the SDK will emit a log as soon as it is started.
     public static func logCrash() {
-        // TODO (snowp): This coordinates two different mutexes which is always a pain, see if we can do better.
-        guard let inner =  Self.getShared() else {
-            // Not yet initialized, so we'll log the crash as soon as the SDK is started.
-            Self.syncedHasCrashed.update { $0 = true }
-            return
-        }
-
-        inner.logCrash()
+        Self.recordCrash()
     }
 
     // MARK: - Network Activity Logging
