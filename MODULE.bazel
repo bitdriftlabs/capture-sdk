@@ -12,9 +12,9 @@ LIFECYCLE_VERSION = "2.8.7"
 
 COMPOSE_VERSION = "1.7.0"
 
-KOTLIN_COMPILE_VERSION = "2.1.0"
+KOTLIN_COMPILE_VERSION = "2.0.0"
 
-KOTLIN_COMPILER_SHA = "b6698d5728ad8f9edcdd01617d638073191d8a03139cc538a391b4e3759ad297"
+KOTLIN_COMPILER_SHA = "ef578730976154fd2c5968d75af8c2703b3de84a78dffe913f670326e149da3b"
 
 KOTLIN_STD_VERSION = KOTLIN_COMPILE_VERSION
 
@@ -56,7 +56,7 @@ bazel_dep(name = "rules_jvm_external", version = "6.6")
 bazel_dep(name = "rules_detekt", version = "0.8.1.2")
 bazel_dep(name = "flatbuffers", version = "24.3.25")
 bazel_dep(name = "platforms", version = "0.0.11")
-bazel_dep(name = "rules_kotlin", version = "2.1.0")
+bazel_dep(name = "rules_kotlin", version = "2.0.0")
 bazel_dep(name = "rules_rust", version = "0.56.0")
 
 # Requiered by android_artifacts for pom_file, it's not in bazel central registry
