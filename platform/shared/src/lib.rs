@@ -204,7 +204,7 @@ impl LoggerHolder {
       },
       kind: LogFieldKind::Ootb,
     }];
-  
+
     self.log(
       log_level::INFO,
       LogType::UX,

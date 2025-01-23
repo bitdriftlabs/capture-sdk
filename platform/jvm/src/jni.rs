@@ -1067,7 +1067,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeScreenVie
     || -> anyhow::Result<()> {
       let screen_name = unsafe { env.get_string_unchecked(&screen_name)? }
         .to_string_lossy()
-        .to_string();      
+        .to_string();
       let logger = unsafe { LoggerId::from_raw(logger_id) };
       logger.log_screen_view(screen_name);
 
