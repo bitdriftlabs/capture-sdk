@@ -25,13 +25,13 @@ const BdReactNativeModule = isTurboModuleEnabled
 const BdReactNative = BdReactNativeModule
   ? BdReactNativeModule
   : new Proxy(
-      {},
-      {
-        get() {
-          throw new Error(LINKING_ERROR);
-        },
+    {},
+    {
+      get() {
+        throw new Error(LINKING_ERROR);
       },
-    );
+    },
+  );
 
 export function init(
   key: string,
@@ -41,7 +41,7 @@ export function init(
   api_url = options?.url ?? 'api.bitdrift.io';
   api_key = key;
 
-  return BdReactNative.init(key, sessionStrategy, options);
+  return BdReactNative.init(key, sessionStrategy, options ?? {});
 }
 
 export function trace(message: string, fields?: SerializableLogFields): void {
@@ -71,6 +71,14 @@ export function addField(key: string, value: Serializable): void {
 
 export async function getDeviceID(): Promise<string> {
   return NativeBdReactNative.getDeviceID();
+}
+
+export async function getSessionID(): Promise<string> {
+  return NativeBdReactNative.getSessionID();
+}
+
+export async function getSessionURL(): Promise<string> {
+  return NativeBdReactNative.getSessionURL();
 }
 
 /**

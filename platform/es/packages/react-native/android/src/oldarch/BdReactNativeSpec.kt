@@ -19,6 +19,10 @@ abstract class BdReactNativeSpec internal constructor(context: ReactApplicationC
 
   abstract fun getDeviceID(promise: Promise)
 
+  abstract fun getSessionID(promise: Promise)
+
+  abstract fun getSessionURL(promise: Promise)
+
   abstract fun log(level: Double, message: String, jsFields: ReadableMap?)
 
   abstract fun addField(key: String, value: String)
