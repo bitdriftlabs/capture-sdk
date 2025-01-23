@@ -84,9 +84,11 @@ cargo {
     targetDirectory = "../../../target"
     targets = listOf("arm64", "x86_64")
     pythonCommand = "python3"
-    exec = { spec, _ ->
-        // enable 16 KB ELF alignment
-        spec.environment("RUST_ANDROID_GRADLE_CC_LINK_ARG", "-Wl,-z,max-page-size=16384")
+    exec = { spec, toolchain ->
+        if (toolchain.platform == "arm64") {
+            // enable 16 KB ELF alignment on Android to support API 35+
+            spec.environment("RUST_ANDROID_GRADLE_CC_LINK_ARG", "-Wl,-z,max-page-size=16384")
+        }
     }
 }
 
