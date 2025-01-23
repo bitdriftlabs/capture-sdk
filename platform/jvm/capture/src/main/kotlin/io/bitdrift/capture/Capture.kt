@@ -382,6 +382,16 @@ object Capture {
         }
 
         /**
+         * Logs a screen view event.
+         *
+         * @param screenName the name of the screen.
+         */
+        @JvmStatic
+        fun logScreenView(screenName: String) {
+            logger()?.logScreenView(screenName)
+        }
+
+        /**
          * Signals that an operation has started at this point in time.
          *
          * @param name the name of the operation.

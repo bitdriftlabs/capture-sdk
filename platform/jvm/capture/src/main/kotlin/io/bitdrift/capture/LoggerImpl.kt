@@ -309,6 +309,14 @@ internal class LoggerImpl(
         CaptureJniLibrary.writeAppLaunchTTILog(this.loggerId, duration.toDouble(DurationUnit.SECONDS))
     }
 
+    override fun logScreenView(screenName: String) {
+        log(
+            LogType.UX,
+            LogLevel.INFO,
+            mapOf("_screen_name" to screenName).toFields(),
+        ) { "ScreenView" }
+    }
+
     override fun startSpan(
         name: String,
         level: LogLevel,

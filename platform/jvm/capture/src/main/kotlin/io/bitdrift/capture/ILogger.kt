@@ -99,6 +99,13 @@ interface ILogger {
     fun logAppLaunchTTI(duration: Duration)
 
     /**
+     * Logs a screen view event.
+     *
+     * @param screenName the name of the screen.
+     */
+    fun logScreenView(screenName: String)
+
+    /**
      * Signals that an operation has started at this point in time. Each operation consists of start
      * and end event logs. The start event is emitted immediately upon calling the
      * `Logger.startSpan(...)` method, while the corresponding end event is emitted when the
