@@ -20,7 +20,6 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.Volatile
 import kotlin.time.Duration
 
@@ -52,7 +51,8 @@ internal sealed class LoggerState {
  * Top level namespace Capture SDK.
  */
 object Capture {
-    @GuardedBy("guard")
+    @GuardedBy("mutex")
+    @Volatile
     private var default: LoggerState = LoggerState.NotStarted
     private val mutex: Any = Any()
 
@@ -154,27 +154,29 @@ object Capture {
                 Log.w(
                     "capture",
                     "Attempted to initialize Capture before androidx.startup.Initializers " +
-                            "are run. Aborting logger initialization.",
+                        "are run. Aborting logger initialization.",
                 )
                 return
             }
 
             synchronized(mutex) {
-                val crashed = when (default) {
-                    is LoggerState.NotStarted -> {
-                        false
-                    }
+                val crashed =
+                    when (default) {
+                        is LoggerState.NotStarted -> {
+                            false
+                        }
 
-                    is LoggerState.NotStartedPendingCrash -> {
-                        true
-                    }
+                        is LoggerState.NotStartedPendingCrash -> {
+                            true
+                        }
 
-                    is LoggerState.Started,
-                    is LoggerState.StartFailure -> {
-                        Log.w("capture", "Multiple attempts to start Capture")
-                        return
+                        is LoggerState.Started,
+                        is LoggerState.StartFailure,
+                        -> {
+                            Log.w("capture", "Multiple attempts to start Capture")
+                            return
+                        }
                     }
-                }
 
                 try {
                     val logger =
@@ -195,7 +197,6 @@ object Capture {
                     default = LoggerState.StartFailure
                 }
             }
-
         }
 
         /**
@@ -305,7 +306,7 @@ object Capture {
                 level = LogLevel.TRACE,
                 fields = fields,
                 throwable = throwable,
-                message = message
+                message = message,
             )
         }
 
@@ -327,7 +328,7 @@ object Capture {
                 level = LogLevel.DEBUG,
                 fields = fields,
                 throwable = throwable,
-                message = message
+                message = message,
             )
         }
 
@@ -349,7 +350,7 @@ object Capture {
                 level = LogLevel.INFO,
                 fields = fields,
                 throwable = throwable,
-                message = message
+                message = message,
             )
         }
 
@@ -371,7 +372,7 @@ object Capture {
                 level = LogLevel.WARNING,
                 fields = fields,
                 throwable = throwable,
-                message = message
+                message = message,
             )
         }
 
@@ -393,7 +394,7 @@ object Capture {
                 level = LogLevel.ERROR,
                 fields = fields,
                 throwable = throwable,
-                message = message
+                message = message,
             )
         }
 
@@ -432,7 +433,6 @@ object Capture {
                     }
 
                     is LoggerState.NotStartedPendingCrash, is LoggerState.StartFailure -> {}
-
                 }
             }
         }
