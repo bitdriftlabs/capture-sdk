@@ -30,6 +30,10 @@ export interface Spec extends TurboModule {
   addField(key: string, value: string): void;
 
   getDeviceID(): Promise<string>;
+
+  getSessionID(): Promise<string>;
+
+  getSessionURL(): Promise<string>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('BdReactNative');

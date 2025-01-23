@@ -47,6 +47,27 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
   }
 
   @ReactMethod
+  override fun getSessionID(promise: Promise) {
+    val sessionId = Capture.Logger.sessionId
+    if (sessionId != null) {
+      promise.resolve(sessionId)
+    } else {
+      promise.reject("session_id_undefined", "Session ID is undefined")
+    }
+  }
+
+  @ReactMethod
+  override fun getSessionURL(promise: Promise) {
+    val sessionUrl = Capture.Logger.sessionUrl
+    if (sessionUrl != null) {
+      promise.resolve(sessionUrl)
+    } else {
+      promise.reject("session_url_undefined", "Session URL is undefined")
+    }
+  }
+
+
+  @ReactMethod
   override fun log(level: Double, message: String, jsFields: ReadableMap?) {
     val fields = jsFields?.toHashMap()?.mapValues { it.value.toString() } ?: emptyMap()
 
