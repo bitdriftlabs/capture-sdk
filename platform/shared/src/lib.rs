@@ -195,6 +195,26 @@ impl LoggerHolder {
       );
     });
   }
+
+  pub fn log_screen_view(&self, screen_name: String) {
+    let fields = vec![AnnotatedLogField {
+      field: LogField {
+        key: "_screen_name".into(),
+        value: screen_name.into(),
+      },
+      kind: LogFieldKind::Ootb,
+    }];
+  
+    self.log(
+      log_level::INFO,
+      LogType::UX,
+      "ScreenView".into(),
+      fields,
+      vec![],
+      None,
+      false,
+    );
+  }
 }
 
 impl<'a> From<LoggerId<'a>> for i64 {

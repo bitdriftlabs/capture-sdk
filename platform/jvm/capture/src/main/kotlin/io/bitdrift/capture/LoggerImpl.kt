@@ -310,11 +310,7 @@ internal class LoggerImpl(
     }
 
     override fun logScreenView(screenName: String) {
-        log(
-            LogType.UX,
-            LogLevel.INFO,
-            mapOf("_screen_name" to screenName).toFields(),
-        ) { "ScreenView" }
+        CaptureJniLibrary.writeScreenViewLog(this.loggerId, screenName)
     }
 
     override fun startSpan(

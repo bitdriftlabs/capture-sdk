@@ -1056,6 +1056,27 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppLaunch
   );
 }
 
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeScreenViewLog(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  screen_name: JString<'_>,
+) {
+  bd_client_common::error::with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let screen_name = unsafe { env.get_string_unchecked(&screen_name)? }
+        .to_string_lossy()
+        .to_string();      
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.log_screen_view(screen_name);
+
+      Ok(())
+    },
+    "jni write screen view log",
+  );
+}
+
 
 #[no_mangle]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_flush(
