@@ -142,7 +142,7 @@ extension MockCoreLogging: CoreLogging {
     }
 
     public func logAppLaunchTTI(_: TimeInterval) {}
-    
+
     public func logScreenView(screenName _: String) {}
 
     public func addField(withKey _: String, value _: String) {}

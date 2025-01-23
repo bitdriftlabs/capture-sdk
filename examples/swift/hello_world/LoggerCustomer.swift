@@ -144,7 +144,7 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
             span?.end(.success, fields: ["test_key": "test_value"])
         }
     }
-    
+
     func simulateNavigation() {
         Logger.logScreenView(screenName: "First Screen")
 

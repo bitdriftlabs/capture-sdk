@@ -44,7 +44,7 @@ protocol LoggerBridging {
     )
 
     func logAppLaunchTTI(_ duration: TimeInterval)
-    
+
     func logScreenView(screenName: String)
 
     func start()
