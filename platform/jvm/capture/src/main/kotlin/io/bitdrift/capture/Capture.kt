@@ -8,6 +8,7 @@
 package io.bitdrift.capture
 
 import android.util.Log
+import androidx.annotation.GuardedBy
 import com.github.michaelbull.result.Err
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
@@ -30,9 +31,9 @@ internal sealed class LoggerState {
     data object NotStarted : LoggerState()
 
     /**
-     * The logger is in the process of being started. Subsequent attempts to start the logger will be ignored.
+     * The logger has not yet been started, but a crash event has been recorded.
      */
-    data object Starting : LoggerState()
+    data object NotStartedPendingCrash : LoggerState()
 
     /**
      * The logger has been successfully started and is ready for use. Subsequent attempts to start the logger will be ignored.
@@ -51,7 +52,9 @@ internal sealed class LoggerState {
  * Top level namespace Capture SDK.
  */
 object Capture {
-    private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
+    @GuardedBy("guard")
+    private var default: LoggerState = LoggerState.NotStarted
+    private val mutex: Any = Any()
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -59,11 +62,13 @@ object Capture {
      * @return ILogger a logger handle
      */
     fun logger(): ILogger? =
-        when (val state = default.get()) {
-            is LoggerState.NotStarted -> null
-            is LoggerState.Starting -> null
-            is LoggerState.Started -> state.logger
-            is LoggerState.StartFailure -> null
+        synchronized(mutex) {
+            when (val state = default) {
+                is LoggerState.NotStarted -> null
+                is LoggerState.NotStartedPendingCrash -> null
+                is LoggerState.Started -> state.logger
+                is LoggerState.StartFailure -> null
+            }
         }
 
     /**
@@ -92,9 +97,6 @@ object Capture {
 
         // This is a lazy property to avoid the need to initialize the main thread handler unless needed here
         private val mainThreadHandler by lazy { MainThreadHandler() }
-
-        @Volatile
-        private var crashReported = false
 
         /**
          * Initializes the Capture SDK with the specified API key, providers, and configuration.
@@ -152,13 +154,28 @@ object Capture {
                 Log.w(
                     "capture",
                     "Attempted to initialize Capture before androidx.startup.Initializers " +
-                        "are run. Aborting logger initialization.",
+                            "are run. Aborting logger initialization.",
                 )
                 return
             }
 
-            // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
-            if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
+            synchronized(mutex) {
+                val crashed = when (default) {
+                    is LoggerState.NotStarted -> {
+                        false
+                    }
+
+                    is LoggerState.NotStartedPendingCrash -> {
+                        true
+                    }
+
+                    is LoggerState.Started,
+                    is LoggerState.StartFailure -> {
+                        Log.w("capture", "Multiple attempts to start Capture")
+                        return
+                    }
+                }
+
                 try {
                     val logger =
                         LoggerImpl(
@@ -169,16 +186,16 @@ object Capture {
                             configuration = configuration,
                             sessionStrategy = sessionStrategy,
                             bridge = bridge,
-                            logCrash = crashReported,
+                            logCrash = crashed,
                         )
-                    default.set(LoggerState.Started(logger))
+                    default = LoggerState.Started(logger)
                 } catch (e: Throwable) {
                     Log.w("capture", "Failed to start Capture", e)
-                    default.set(LoggerState.StartFailure)
+
+                    default = LoggerState.StartFailure
                 }
-            } else {
-                Log.w("capture", "Multiple attempts to start Capture")
             }
+
         }
 
         /**
@@ -284,7 +301,12 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.TRACE, fields = fields, throwable = throwable, message = message)
+            logger()?.log(
+                level = LogLevel.TRACE,
+                fields = fields,
+                throwable = throwable,
+                message = message
+            )
         }
 
         /**
@@ -301,7 +323,12 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.DEBUG, fields = fields, throwable = throwable, message = message)
+            logger()?.log(
+                level = LogLevel.DEBUG,
+                fields = fields,
+                throwable = throwable,
+                message = message
+            )
         }
 
         /**
@@ -318,7 +345,12 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.INFO, fields = fields, throwable = throwable, message = message)
+            logger()?.log(
+                level = LogLevel.INFO,
+                fields = fields,
+                throwable = throwable,
+                message = message
+            )
         }
 
         /**
@@ -335,7 +367,12 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.WARNING, fields = fields, throwable = throwable, message = message)
+            logger()?.log(
+                level = LogLevel.WARNING,
+                fields = fields,
+                throwable = throwable,
+                message = message
+            )
         }
 
         /**
@@ -352,7 +389,12 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.ERROR, fields = fields, throwable = throwable, message = message)
+            logger()?.log(
+                level = LogLevel.ERROR,
+                fields = fields,
+                throwable = throwable,
+                message = message
+            )
         }
 
         /**
@@ -380,12 +422,18 @@ object Capture {
          */
         @JvmStatic
         fun logCrash() {
-            val logger = logger()
+            synchronized(mutex) {
+                when (val state = default) {
+                    is LoggerState.NotStarted ->
+                        default = LoggerState.NotStartedPendingCrash
 
-            if (logger != null) {
-                logger.logCrash()
-            } else {
-                crashReported = true
+                    is LoggerState.Started -> {
+                        state.logger.logCrash()
+                    }
+
+                    is LoggerState.NotStartedPendingCrash, is LoggerState.StartFailure -> {}
+
+                }
             }
         }
 
@@ -468,7 +516,9 @@ object Capture {
          * Used for testing purposes.
          */
         internal fun resetShared() {
-            default.set(LoggerState.NotStarted)
+            synchronized(mutex) {
+                default = LoggerState.NotStarted
+            }
         }
     }
 }
