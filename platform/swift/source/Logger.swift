@@ -59,6 +59,7 @@ public final class Logger {
     ///                                            attributes to attach to emitted logs.
     /// - parameter loggerBridgingFactoryProvider: A class to use for Rust bridging. Used for testing
     ///                                            purposes.
+    /// - parameter crashRecorded:                 Whether a crash event should be recorded upon logger start.
     convenience init?(
         withAPIKey apiKey: String,
         apiURL: URL,
@@ -109,6 +110,7 @@ public final class Logger {
     /// - parameter timeProvider:                  The time source to use by the logger.
     /// - parameter loggerBridgingFactoryProvider: A class to use for Rust bridging. Used for testing
     ///                                            purposes.
+    /// - parameter crashRecorded:                 Whether a crash event should be recorded upon logger start.
     init?(
         withAPIKey apiKey: String,
         bufferDirectory: URL?,
