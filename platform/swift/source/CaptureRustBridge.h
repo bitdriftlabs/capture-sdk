@@ -177,6 +177,17 @@ void capture_write_app_launch_tti_log(
     double duration_s
 );
 
+/* 
+* Writes a screen view log.
+*
+* @param loggerId the ID of the logger to write to.
+* @param screen_name the name of the screen.
+*/
+void capture_write_screen_view_log(
+    logger_id logger_id,
+    NSString *screen_name
+);
+
 /*
  * Starts new sessions using configured session strategy.
  *

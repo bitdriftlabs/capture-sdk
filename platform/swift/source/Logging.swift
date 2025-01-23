@@ -103,6 +103,11 @@ public protocol Logging {
     /// - parameter duration: The time between a user's intent to launch the app and when the app becomes
     ///                       interactive. Calls with a negative duration are ignored.
     func logAppLaunchTTI(_ duration: TimeInterval)
+    
+    /// Logs a screen view event.
+    ///
+    /// - parameter screenName: The name of the screen.
+    func logScreenView(screenName: String)
 
     // MARK: - Spans
 

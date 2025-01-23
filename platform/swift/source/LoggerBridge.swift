@@ -148,6 +148,10 @@ final class LoggerBridge: LoggerBridging {
     func logAppLaunchTTI(_ duration: TimeInterval) {
         capture_write_app_launch_tti_log(self.loggerID, duration)
     }
+    
+    func logScreenView(screenName: String) {
+        capture_write_screen_view_log(self.loggerID, screenName)
+    }
 
     func startNewSession() {
         capture_start_new_session(self.loggerID)

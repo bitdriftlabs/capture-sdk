@@ -466,6 +466,10 @@ extension Logger: Logging {
     public func logAppLaunchTTI(_ duration: TimeInterval) {
         self.underlyingLogger.logAppLaunchTTI(duration)
     }
+    
+    public func logScreenView(screenName: String) {
+        self.underlyingLogger.logScreenView(screenName: screenName)
+    }
 
     public func startSpan(
         name: String,

@@ -144,6 +144,14 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
             span?.end(.success, fields: ["test_key": "test_value"])
         }
     }
+    
+    func simulateNavigation() {
+        Logger.logScreenView(screenName: "First Screen")
+
+        DispatchQueue.main.asyncAfter(deadline: .now().advanced(by: .milliseconds(500))) {
+            Logger.logScreenView(screenName: "Second Screen")
+        }
+    }
 
     func log(with level: LogLevel) {
         let fields: [String: Encodable] = [

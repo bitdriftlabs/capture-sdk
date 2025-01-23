@@ -131,6 +131,10 @@ extension CoreLogger: CoreLogging {
     func logAppLaunchTTI(_ duration: TimeInterval) {
         self.underlyingLogger.logAppLaunchTTI(duration)
     }
+    
+    func logScreenView(screenName: String) {
+        self.underlyingLogger.logScreenView(screenName: screenName)
+    }
 
     func startNewSession() {
         self.underlyingLogger.startNewSession()

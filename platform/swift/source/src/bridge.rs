@@ -783,6 +783,18 @@ extern "C" fn capture_write_app_launch_tti_log(logger_id: LoggerId<'_>, duration
 }
 
 #[no_mangle]
+extern "C" fn capture_write_screen_view_log(logger_id: LoggerId<'_>, screen_name: *const Object,) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let screen_name = unsafe { nsstring_into_string(screen_name) }?;
+      logger_id.log_screen_view(screen_name);
+      Ok(())
+    },
+    "swift write screen view log",
+  );
+}
+
+#[no_mangle]
 extern "C" fn capture_start_new_session(logger_id: LoggerId<'_>) {
   logger_id.start_new_session();
 }
