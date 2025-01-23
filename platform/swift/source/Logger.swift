@@ -24,7 +24,6 @@ public final class Logger {
         case startFailure
     }
 
-
     private let underlyingLogger: CoreLogging
     private let timeProvider: TimeProvider
 
@@ -303,9 +302,9 @@ public final class Logger {
                 } else {
                     state = .startFailure
                 }
-            case .startFailure, .started(_):
+            case .startFailure, .started:
                 return
-            };
+            }
         }
 
         return switch state {
@@ -329,18 +328,18 @@ public final class Logger {
             nil
         }
     }
-    
+
     /// Records a crash event. This can safely be called before the logger has been initialized,
     /// in which case the crash event will be remembered and emitted upon SDK initialization.
     static func recordCrash() {
         Self.syncedShared.update { state in
             switch state {
             case .notStarted:
-                state = .notStartedPendingCrash;
+                state = .notStartedPendingCrash
             case .started(let integrator):
-                integrator.logger.logCrash();
+                integrator.logger.logCrash()
             case .notStartedPendingCrash, .startFailure:
-                break;
+                break
             }
         }
     }
