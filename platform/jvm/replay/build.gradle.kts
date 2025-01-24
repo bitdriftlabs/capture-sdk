@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
 
     id("dependency-license-config")
+
+    alias(libs.plugins.maven.publish)
 }
 
 dependencies {
@@ -19,6 +21,8 @@ dependencies {
     testImplementation(libs.assertj.core)
     testImplementation(libs.junit)
 }
+
+group = "io.bitdrift"
 
 android {
     namespace = "io.bitdrift.capture.replay"
@@ -50,5 +54,11 @@ android {
         abortOnError = true
         checkDependencies = true
         checkReleaseBuilds = true
+    }
+}
+
+publishing {
+    repositories {
+      mavenLocal()
     }
 }
