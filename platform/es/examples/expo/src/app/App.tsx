@@ -33,7 +33,7 @@ const LOG_LEVELS = new Map([
 
 const hasAPIKeyConfigured = Boolean(
   process.env.EXPO_PUBLIC_BITDRIFT_API_KEY &&
-    process.env.EXPO_PUBLIC_BITDRIFT_API_URL,
+  process.env.EXPO_PUBLIC_BITDRIFT_API_URL,
 );
 
 const sendRandomRequest = async () => {
