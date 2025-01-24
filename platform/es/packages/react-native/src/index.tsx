@@ -1,5 +1,10 @@
 import { NativeModules, Platform } from 'react-native';
-import { log, serialize, type SerializableLogFields, Serializable } from './log';
+import {
+  log,
+  serialize,
+  type SerializableLogFields,
+  Serializable,
+} from './log';
 import { InitOptions, SessionStrategy } from './NativeBdReactNative';
 import NativeBdReactNative from './NativeBdReactNative';
 export { SessionStrategy } from './NativeBdReactNative';
@@ -25,13 +30,13 @@ const BdReactNativeModule = isTurboModuleEnabled
 const BdReactNative = BdReactNativeModule
   ? BdReactNativeModule
   : new Proxy(
-    {},
-    {
-      get() {
-        throw new Error(LINKING_ERROR);
+      {},
+      {
+        get() {
+          throw new Error(LINKING_ERROR);
+        },
       },
-    },
-  );
+    );
 
 export function init(
   key: string,
@@ -64,9 +69,27 @@ export function error(message: string, fields?: SerializableLogFields): void {
   return log(4, message, fields);
 }
 
-/** Adds a field to be included in all future log messages. Calling this multiple times for the same key will overwrite the previous value. */
+/**
+ * Adds a field to be included in all future log messages.
+ *
+ * Calling this multiple times for the same key will overwrite the previous value.
+ *
+ * @param key The key of the field to add.
+ * @param value The value of the field to add.
+ */
 export function addField(key: string, value: Serializable): void {
   return NativeBdReactNative.addField(key, serialize(value));
+}
+
+/**
+ * Removes a field that was previously added with {@link addField}.
+ *
+ * Calling this if the field has not been added will have no effect.
+ *
+ * @param key The key of the field to remove.
+ */
+export function removeField(key: string): void {
+  return NativeBdReactNative.removeField(key);
 }
 
 export async function getDeviceID(): Promise<string> {

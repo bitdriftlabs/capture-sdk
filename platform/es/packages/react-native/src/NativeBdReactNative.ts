@@ -29,6 +29,8 @@ export interface Spec extends TurboModule {
 
   addField(key: string, value: string): void;
 
+  removeField(key: string): void;
+
   getDeviceID(): Promise<string>;
 
   getSessionID(): Promise<string>;

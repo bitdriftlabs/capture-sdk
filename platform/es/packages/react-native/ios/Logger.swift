@@ -63,6 +63,11 @@ import Capture
     }
     
     @objc
+    public static func removeField(_ key: String) {
+        Capture.Logger.removeField(withKey: key)
+    }
+
+    @objc
     public static func getSessionID(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
         let sessionID = Capture.Logger.sessionID
         if (sessionID == nil) {
