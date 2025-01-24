@@ -100,6 +100,8 @@ extension MockLoggerBridging: LoggerBridging {
 
     public func logAppLaunchTTI(_: TimeInterval) {}
 
+    public func logScreenView(screenName _: String) {}
+
     public func addField(withKey _: String, value _: String) {}
 
     public func removeField(withKey _: String) {}

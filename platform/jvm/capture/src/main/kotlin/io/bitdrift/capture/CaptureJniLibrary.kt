@@ -257,6 +257,17 @@ internal object CaptureJniLibrary : IBridge {
     )
 
     /**
+     * Writes a screen view log.
+     *
+     * @param loggerId the ID of the logger to write to.
+     * @param screenName the name of the screen.
+     */
+    external fun writeScreenViewLog(
+        loggerId: Long,
+        screenName: String,
+    )
+
+    /**
      * Flushes logger's state to disk.
      *
      * @param blocking Whether the method should return only after the flushing completes.

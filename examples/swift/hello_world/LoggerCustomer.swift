@@ -145,6 +145,14 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         }
     }
 
+    func simulateNavigation() {
+        Logger.logScreenView(screenName: "First Screen")
+
+        DispatchQueue.main.asyncAfter(deadline: .now().advanced(by: .milliseconds(500))) {
+            Logger.logScreenView(screenName: "Second Screen")
+        }
+    }
+
     func log(with level: LogLevel) {
         let fields: [String: Encodable] = [
             "date_time": Date(),

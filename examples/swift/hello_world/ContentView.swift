@@ -46,6 +46,11 @@ struct ContentView: View {
                 }) {
                     Text("Simulate Span Event").frame(maxWidth: .infinity)
                 }
+                Button(action: {
+                    self.loggerCustomer.simulateNavigation()
+                }) {
+                    Text("Simulate Navigation to Screen").frame(maxWidth: .infinity)
+                }
                 Button(action: { Thread.sleep(forTimeInterval: 5.0) }) {
                     Text("Simulate ANR (5s)").frame(maxWidth: .infinity)
                 }
