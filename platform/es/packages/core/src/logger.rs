@@ -35,6 +35,7 @@ use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Instant;
 use time::Duration;
 use tokio::try_join;
 
@@ -61,6 +62,7 @@ impl RustLogger {
     os_version: String,
     locale: String,
   ) -> anyhow::Result<Self> {
+    let start = Instant::now();
     let sdk_directory = PathBuf::from(sdk_directory);
 
     let storage = Box::new(DiskStorage::new(sdk_directory.join("storage"))?);
@@ -156,6 +158,8 @@ impl RustLogger {
 
 
     let handle = logger.new_logger_handle();
+
+    handle.log_sdk_start(vec![], start.elapsed().try_into().unwrap_or_default());
 
     Ok(Self {
       _logger: logger,

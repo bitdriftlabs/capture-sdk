@@ -78,6 +78,11 @@ async fn basic_test() {
 
   assert_matches!(server.next_log_upload().await, Some(log_upload) => {
     assert_eq!(log_upload.logs.len(), 1);
+    assert_eq!(root_as_log(&log_upload.logs[0]).unwrap().message_as_string_data().unwrap().data(), "SDKConfigured");
+  });
+
+  assert_matches!(server.next_log_upload().await, Some(log_upload) => {
+    assert_eq!(log_upload.logs.len(), 1);
     assert_eq!(root_as_log(&log_upload.logs[0]).unwrap().message_as_string_data().unwrap().data(), "message");
   });
 }
