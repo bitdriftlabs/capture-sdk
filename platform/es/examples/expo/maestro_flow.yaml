@@ -1,0 +1,8 @@
+appId: com.bitdrift.io.expoExample
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Generate Temporary Device Code"
+    timeout: 20000
+    label: Wait for RN app to launch
+- tapOn: "Generate Temporary Device Code"

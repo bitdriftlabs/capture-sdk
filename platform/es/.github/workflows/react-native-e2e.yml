@@ -1,0 +1,80 @@
+name: React Native E2E
+on:
+  pull_request:
+
+jobs:
+  test-android:
+    strategy:
+      matrix:
+        settings:
+          - host: ubuntu-latest
+            new_arch: true
+          - host: ubuntu-latest
+            new_arch: false
+
+    name: android [new_arch = ${{ matrix.settings.new_arch }}]
+    runs-on: ${{ matrix.settings.host }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Javascript
+        uses: ./.github/actions/javascript-setup
+
+      - name: Setup linux dependencies
+        run: sudo apt-get install -y lld
+
+      - name: Setup rust/dependencies
+        # // TODO we dont need all these
+        run: rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            .cargo-cache
+            target/
+          key: ${{ matrix.settings.target }}-cargo
+      - name: Install Maestro
+        run: |
+          wget -q -O /tmp/${MAESTRO_VERSION} "https://github.com/mobile-dev-inc/maestro/releases/download/cli-${MAESTRO_VERSION}/maestro.zip"
+          unzip -q /tmp/${MAESTRO_VERSION} -d /opt/ 
+          rm /tmp/${MAESTRO_VERSION}
+          echo "/opt/maestro/bin" >> $GITHUB_PATH
+        env:
+          MAESTRO_VERSION: 1.39.9
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Prebuild
+        run: npm exec nx prebuild expo-example
+        env:
+          NEW_ARCH: ${{ matrix.settings.new_arch }}
+      - name: Serve Expo
+        run: npm exec nx start expo-example > /tmp/expo_logs &
+      - name: run tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          script: cd examples/expo/android && ./gradlew installDebug --build-cache -PreactNativeDevServerPort=19000 -PreactNativeArchitectures=x86 && maestro test ../maestro_flow.yaml
+        env:
+          MAESTRO_CLI_NO_ANALYTICS: true
+      - name: Upload Maestro artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: maestro-test-results
+          path: /home/runner/.maestro/tests/*
+      - name: Print Expo logs
+        if: always()
+        run: cat /tmp/expo_logs
