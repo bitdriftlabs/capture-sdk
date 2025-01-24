@@ -26,4 +26,6 @@ abstract class BdReactNativeSpec internal constructor(context: ReactApplicationC
   abstract fun log(level: Double, message: String, jsFields: ReadableMap?)
 
   abstract fun addField(key: String, value: String)
+
+  abstract fun removeField(key: String)
 }

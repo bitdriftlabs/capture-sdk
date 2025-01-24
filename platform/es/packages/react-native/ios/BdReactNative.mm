@@ -18,6 +18,11 @@ RCT_EXPORT_METHOD(addField:(NSString*)key
     [CAPRNLogger addField:key value:value];
 }
 
+RCT_EXPORT_METHOD(removeField:(NSString*)key)
+{
+    [CAPRNLogger removeField:key];
+}
+
 RCT_EXPORT_METHOD(getDeviceID:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject) {
     [CAPRNLogger getDeviceID:resolve rejecter:reject];
 }
