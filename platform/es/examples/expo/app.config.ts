@@ -3,6 +3,7 @@ const newArchEnabled = process.env.NEW_ARCH !== 'false';
 export default {
   expo: {
     name: 'ExpoExample',
+    newArchEnabled: newArchEnabled,
     slug: 'expo-example',
     entryPoint: 'expo-router/entry',
     version: '1.0.0',
