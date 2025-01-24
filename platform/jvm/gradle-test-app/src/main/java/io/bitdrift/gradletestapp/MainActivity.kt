@@ -13,7 +13,6 @@ import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
-import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
@@ -34,14 +33,20 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
 
         navController = findNavController(R.id.nav_host_fragment_content_main)
+        navController.addOnDestinationChangedListener { _, _, _ ->
+            invalidateOptionsMenu()
+        }
         appBarConfiguration = AppBarConfiguration(navController.graph)
         setupActionBarWithNavController(navController, appBarConfiguration)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
+        return if (isNotEntryPointFragment()) {
+            false
+        } else {
+            menuInflater.inflate(R.menu.menu_main, menu)
+            true
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -60,5 +65,9 @@ class MainActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         return navController.navigateUp(appBarConfiguration)
                 || super.onSupportNavigateUp()
+    }
+
+    private fun isNotEntryPointFragment():Boolean{
+        return navController.currentDestination?.id != R.id.FirstFragment
     }
 }
