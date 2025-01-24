@@ -40,6 +40,13 @@
         "projects": ["@bitdrift/react-native"],
         "params": "ignore"
       }]
+    },
+    "start": {
+      "dependsOn": [{
+        "target": "prepare-release",
+        "projects": ["@bitdrift/react-native"],
+        "params": "ignore"
+      }]
     }
   }
 }
