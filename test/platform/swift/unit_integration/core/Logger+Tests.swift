@@ -33,7 +33,8 @@ extension Logger {
                 fieldProviders: fieldProviders,
                 storageProvider: MockStorageProvider(),
                 timeProvider: SystemTimeProvider(),
-                loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
+                loggerBridgingFactoryProvider: loggerBridgingFactoryProvider,
+                crashRecorded: false
             )
         )
     }

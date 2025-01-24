@@ -90,6 +90,11 @@ interface ILogger {
     )
 
     /**
+     * Logs a single crash event. This logs a simple log message that indicates that a crash has occurred.
+     */
+    fun logCrash()
+
+    /**
      * Writes an app launch TTI log event. This event should be logged only once per Logger configuration.
      * Consecutive calls have no effect.
      *

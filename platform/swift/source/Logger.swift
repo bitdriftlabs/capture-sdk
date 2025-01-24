@@ -14,6 +14,8 @@ public final class Logger {
     enum State {
         // The logger has not yet been started.
         case notStarted
+        // The logger has not yet started, but has been notified of a crash.
+        case notStartedPendingCrash
         // The logger has been successfully started and is ready for use.
         // Subsequent attempts to start the logger will be ignored.
         case started(LoggerIntegrator)
@@ -57,6 +59,7 @@ public final class Logger {
     ///                                            attributes to attach to emitted logs.
     /// - parameter loggerBridgingFactoryProvider: A class to use for Rust bridging. Used for testing
     ///                                            purposes.
+    /// - parameter crashRecorded:                 Whether a crash event should be recorded upon logger start.
     convenience init?(
         withAPIKey apiKey: String,
         apiURL: URL,
@@ -64,7 +67,8 @@ public final class Logger {
         sessionStrategy: SessionStrategy,
         dateProvider: DateProvider?,
         fieldProviders: [FieldProvider],
-        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory(),
+        crashRecorded: Bool
     )
     {
         self.init(
@@ -78,7 +82,8 @@ public final class Logger {
             fieldProviders: fieldProviders,
             storageProvider: Storage.shared,
             timeProvider: SystemTimeProvider(),
-            loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
+            loggerBridgingFactoryProvider: loggerBridgingFactoryProvider,
+            crashRecorded: crashRecorded
         )
     }
 
@@ -105,6 +110,7 @@ public final class Logger {
     /// - parameter timeProvider:                  The time source to use by the logger.
     /// - parameter loggerBridgingFactoryProvider: A class to use for Rust bridging. Used for testing
     ///                                            purposes.
+    /// - parameter crashRecorded:                 Whether a crash event should be recorded upon logger start.
     init?(
         withAPIKey apiKey: String,
         bufferDirectory: URL?,
@@ -117,7 +123,8 @@ public final class Logger {
         enableNetwork: Bool = true,
         storageProvider: StorageProvider,
         timeProvider: TimeProvider,
-        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory(),
+        crashRecorded: Bool
     )
     {
         self.timeProvider = timeProvider
@@ -219,6 +226,10 @@ public final class Logger {
 
         self.underlyingLogger.start()
 
+        if crashRecorded {
+            Self.logCrash(logger: self.underlyingLogger)
+        }
+
         self.dispatchSourceMemoryMonitor = Self.setUpMemoryStateMonitoring(logger: self.underlyingLogger)
 
         self.deviceCodeController = DeviceCodeController(client: client)
@@ -264,25 +275,44 @@ public final class Logger {
         )
     }
 
+    static func logCrash(logger: CoreLogging) {
+        logger.log(
+            level: .error,
+            message: "App Error Reported",
+            type: .normal
+        )
+    }
+
+    public func logCrash() {
+        Self.logCrash(logger: self.underlyingLogger)
+    }
+
     // MARK: - Static
 
-    static func createOnce(_ createLogger: () -> Logger?) -> LoggerIntegrator? {
+    static func createOnce(_ createLogger: (Bool) -> Logger?) -> LoggerIntegrator? {
         let state = self.syncedShared.update { state in
-            guard case .notStarted = state else {
+            switch state {
+            case .notStartedPendingCrash:
+                if let createdLogger = createLogger(true) {
+                    state = .started(LoggerIntegrator(logger: createdLogger))
+                } else {
+                    state = .startFailure
+                }
+            case .notStarted:
+                if let createdLogger = createLogger(true) {
+                    state = .started(LoggerIntegrator(logger: createdLogger))
+                } else {
+                    state = .startFailure
+                }
+            case .startFailure, .started:
                 return
-            }
-
-            if let createdLogger = createLogger() {
-                state = .started(LoggerIntegrator(logger: createdLogger))
-            } else {
-                state = .startFailure
             }
         }
 
         return switch state {
         case .started(let logger):
             logger
-        case .notStarted, .startFailure:
+        case .notStarted, .notStartedPendingCrash, .startFailure:
             nil
         }
     }
@@ -292,12 +322,27 @@ public final class Logger {
     /// - returns: The shared instance of logger.
     static func getShared() -> Logging? {
         return switch Self.syncedShared.load() {
-        case .notStarted:
+        case .notStarted, .notStartedPendingCrash:
             nil
         case .started(let integrator):
             integrator.logger
         case .startFailure:
             nil
+        }
+    }
+
+    /// Records a crash event. This can safely be called before the logger has been initialized,
+    /// in which case the crash event will be remembered and emitted upon SDK initialization.
+    static func recordCrash() {
+        Self.syncedShared.update { state in
+            switch state {
+            case .notStarted:
+                state = .notStartedPendingCrash
+            case .started(let integrator):
+                integrator.logger.logCrash()
+            case .notStartedPendingCrash, .startFailure:
+                break
+            }
         }
     }
 

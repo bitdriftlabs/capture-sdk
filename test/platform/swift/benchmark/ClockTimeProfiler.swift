@@ -68,7 +68,8 @@ final class LoggerWarmConfigurationBenchmark: AnyBenchmark {
             fieldProviders: [],
             enableNetwork: false,
             storageProvider: Storage.shared,
-            timeProvider: SystemTimeProvider()
+            timeProvider: SystemTimeProvider(),
+            crashRecorded: false
         )
     }
 
@@ -107,7 +108,8 @@ final class LoggerColdConfigurationBenchmark: AnyBenchmark {
             fieldProviders: [],
             enableNetwork: false,
             storageProvider: Storage.shared,
-            timeProvider: SystemTimeProvider()
+            timeProvider: SystemTimeProvider(),
+            crashRecorded: false
         )
         self.logger?.log(level: .info, message: kLogMessage, fields: [:], error: nil)
     }
@@ -288,7 +290,8 @@ private extension Logger {
             fieldProviders: [],
             enableNetwork: false,
             storageProvider: Storage.shared,
-            timeProvider: SystemTimeProvider()
+            timeProvider: SystemTimeProvider(),
+            crashRecorded: false
         )
         )
     }

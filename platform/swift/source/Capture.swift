@@ -83,7 +83,8 @@ extension Logger {
                 sessionStrategy: sessionStrategy,
                 dateProvider: dateProvider,
                 fieldProviders: fieldProviders,
-                loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
+                loggerBridgingFactoryProvider: loggerBridgingFactoryProvider,
+                crashRecorded: $0
             )
         }
     }
@@ -293,6 +294,13 @@ extension Logger {
     ///                       interactive. Calls with a negative duration are ignored.
     public static func logAppLaunchTTI(_ duration: TimeInterval) {
         Self.getShared()?.logAppLaunchTTI(duration)
+    }
+
+    // MARK: - Crash Logging
+
+    /// Logs a crash event. This method should be called when a crash is detected in the app. If this is called before the SDK has been initialized, the SDK will emit a log as soon as it is started.
+    public static func logCrash() {
+        Self.recordCrash()
     }
 
     // MARK: - Network Activity Logging
