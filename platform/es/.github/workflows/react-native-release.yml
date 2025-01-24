@@ -3,6 +3,7 @@ name: React Native Release
 permissions:
   contents: write
   id-token: write
+  pull-requests: write
 
 on:
   workflow_dispatch:
