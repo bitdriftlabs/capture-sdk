@@ -8,12 +8,12 @@
 package io.bitdrift.capture.replay
 
 import android.content.Context
+import io.bitdrift.capture.common.BitdriftWindowManager
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.internal.DisplayManagers
 import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
 import io.bitdrift.capture.replay.internal.ScreenshotCaptureEngine
-import io.bitdrift.capture.replay.internal.WindowManager
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -42,7 +42,7 @@ class SessionReplayController(
     init {
         L.logger = replayLogger
 
-        val windowManager = WindowManager(errorHandler)
+        val windowManager = BitdriftWindowManager(errorHandler)
         val displayManager = DisplayManagers(context)
 
         replayCaptureEngine =

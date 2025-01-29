@@ -51,10 +51,13 @@ import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
+import io.bitdrift.capture.Capture.forceInitOnBackground
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
+import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.timber.CaptureTree
+import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import papa.AppLaunchType
 import papa.PapaEvent
@@ -72,31 +75,30 @@ import kotlin.time.toDuration
  */
 class GradleTestApp : Application() {
 
+    private val bitdriftAPIKey = "TBF"
+    private val BITDRIFT_URL = HttpUrl.Builder().scheme("https").host("api.bitdrift.io").build()
+    private val kLoggerRunningDurationThreshold = 15_000L
+
     private var activitySpan: Span? = null
 
     override fun onCreate() {
         super.onCreate()
+        val startTime = System.currentTimeMillis()
         Timber.i("Hello World!")
         initLogging()
         trackAppLaunch()
         trackAppLifecycle()
+
+        println("FRAN_TAG: on create total time in milli " + (System.currentTimeMillis() - startTime) + " ms. forceInitOnBackground set to $forceInitOnBackground")
     }
 
     private fun initLogging() {
-        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
-        val stringApiUrl = prefs.getString("apiUrl", null)
-        val apiUrl = stringApiUrl?.toHttpUrlOrNull()
-        if (apiUrl == null) {
-            Log.e("GradleTestApp", "Failed to initialize bitdrift logger due to invalid API URL: $stringApiUrl")
-            return
-        }
-        BitdriftInit.initBitdriftCaptureInJava(apiUrl, prefs.getString("apiKey", ""))
-        // Timber
-        if (BuildConfig.DEBUG) {
-            Timber.plant(Timber.DebugTree())
-        }
-        Timber.plant(CaptureTree())
-        Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
+
+        Capture.Logger.start(
+            apiKey = bitdriftAPIKey,
+            apiUrl = BITDRIFT_URL,
+            sessionStrategy = SessionStrategy.ActivityBased(),
+        )
     }
 
     private fun trackAppLaunch() {

@@ -16,6 +16,7 @@ import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
+import io.bitdrift.capture.Capture
 import io.bitdrift.gradletestapp.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -55,6 +56,7 @@ class MainActivity : AppCompatActivity() {
         // as you specify a parent activity in AndroidManifest.xml.
         return when (item.itemId) {
             R.id.action_settings -> {
+                Capture.Logger.logScreenView("config_fragment")
                 navController.navigate(R.id.action_FirstFragment_to_ConfigFragment)
                 true
             }

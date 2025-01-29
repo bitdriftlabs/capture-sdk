@@ -23,6 +23,7 @@ _maven_deps = [
     artifact("com.squareup.okio:okio"),
     artifact("com.squareup.okio:okio-jvm"),
     artifact("org.jetbrains.kotlin:kotlin-stdlib"),
+    artifact("androidx.metrics:metrics-performance"),
     artifact("org.jetbrains:annotations"),
 ]
 

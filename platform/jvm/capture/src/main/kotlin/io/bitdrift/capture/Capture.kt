@@ -9,6 +9,7 @@ package io.bitdrift.capture
 
 import android.util.Log
 import com.github.michaelbull.result.Err
+import io.bitdrift.capture.common.BackgroundExecutor
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
@@ -52,6 +53,10 @@ internal sealed class LoggerState {
 object Capture {
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
 
+    /**
+     * Determines if it should initialize on caller thread or specific background thread
+     */
+    val forceInitOnBackground = false
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
      *
@@ -117,6 +122,21 @@ object Capture {
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
         ) {
+            if(forceInitOnBackground){
+                BackgroundExecutor.get().execute {
+                    start(
+                        apiKey,
+                        sessionStrategy,
+                        configuration,
+                        fieldProviders,
+                        dateProvider,
+                        apiUrl,
+                        CaptureJniLibrary,
+                    )
+                }
+                return
+            }
+
             start(
                 apiKey,
                 sessionStrategy,

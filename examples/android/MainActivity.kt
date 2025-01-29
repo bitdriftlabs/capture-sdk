@@ -48,24 +48,39 @@ import kotlin.system.exitProcess
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
+import kotlin.random.Random.Default.nextFloat
+import kotlin.random.Random.Default.nextLong
+
 class MainActivity : ComponentActivity() {
 
+    private var randomizerCounter = 0
     private val replayPreviewClient: ReplayPreviewClient by lazy {
         ReplayPreviewClient(
-            object: ErrorHandler {
+            object : ErrorHandler {
                 override fun handleError(detail: String, e: Throwable?) {
                     Log.e("HelloWorldApp", "Replay handleError: $detail $e")
                 }
             },
-            object: IReplayLogger {
+            object : IReplayLogger {
                 override fun onScreenCaptured(
                     encodedScreen: ByteArray,
                     screen: FilteredCapture,
                     metrics: ReplayCaptureMetrics
                 ) {
-                    Log.i("HelloWorldApp", "Replay onScreenCaptured: took=${metrics.parseDuration.inWholeMilliseconds}ms")
+                    Log.i(
+                        "HelloWorldApp",
+                        "Replay onScreenCaptured: took=${metrics.parseDuration.inWholeMilliseconds}ms"
+                    )
                     Log.i("HelloWorldApp", "Replay onScreenCaptured: screen=${screen}")
-                    Log.i("HelloWorldApp", "Replay onScreenCaptured: encodedScreen=${Base64.encodeToString(encodedScreen, 0)}")
+                    Log.i(
+                        "HelloWorldApp",
+                        "Replay onScreenCaptured: encodedScreen=${
+                            Base64.encodeToString(
+                                encodedScreen,
+                                0
+                            )
+                        }"
+                    )
                 }
 
                 override fun logVerboseInternal(message: String, fields: Map<String, String>?) {
@@ -76,7 +91,11 @@ class MainActivity : ComponentActivity() {
                     Log.d("HelloWorldApp", message)
                 }
 
-                override fun logErrorInternal(message: String, e: Throwable?, fields: Map<String, String>?) {
+                override fun logErrorInternal(
+                    message: String,
+                    e: Throwable?,
+                    fields: Map<String, String>?
+                ) {
                     Log.e("HelloWorldApp", message, e)
                 }
             },
@@ -95,7 +114,8 @@ class MainActivity : ComponentActivity() {
         setContentView(R.layout.android_main)
         Log.v("HelloWorldApp", "MainActivity launched")
 
-        clipboardManager = applicationContext.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboardManager =
+            applicationContext.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
         sessionIdTextView = findViewById(R.id.session_id)
         sessionIdTextView.text = Logger.sessionId
@@ -103,9 +123,11 @@ class MainActivity : ComponentActivity() {
         deviceCodeTextView = findViewById(R.id.device_code)
 
         logLevelSpinner = findViewById(R.id.spinner)
-        logLevelSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, LogLevel.values())
+        logLevelSpinner.adapter =
+            ArrayAdapter(this, android.R.layout.simple_spinner_item, LogLevel.values())
         appExitReasonSpinner = findViewById(R.id.spinner2)
-        appExitReasonSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, AppExitReason.values())
+        appExitReasonSpinner.adapter =
+            ArrayAdapter(this, android.R.layout.simple_spinner_item, AppExitReason.values())
 
         createComposeUI()
 
@@ -145,12 +167,21 @@ class MainActivity : ComponentActivity() {
         val selectedLogLevel = logLevelSpinner.selectedItem.toString()
         Log.v("HelloWorldApp", "Calling Log method with level=$selectedLogLevel")
         val myException = Exception("Fake Test Exception")
-        Logger.log(LogLevel.valueOf(selectedLogLevel), mapOf("key" to "value"), myException) { "$selectedLogLevel log sent from Hello World!!" }
+        Logger.log(
+            LogLevel.valueOf(selectedLogLevel),
+            mapOf("key" to "value"),
+            myException
+        ) { "$selectedLogLevel log sent from Hello World!!" }
     }
 
     fun makeOkHttpRequest(@Suppress("UNUSED_PARAMETER") view: View) {
+        simulateJank()
+
         val req = Request.Builder()
-            .url(HttpUrl.Builder().scheme("https").host("api-fe.bitdrift.io").addPathSegment("/fe/ping").build())
+            .url(
+                HttpUrl.Builder().scheme("https").host("api-fe.bitdrift.io")
+                    .addPathSegment("/fe/ping").build()
+            )
             .method("GET", null)
             .build()
 
@@ -162,7 +193,10 @@ class MainActivity : ComponentActivity() {
             }
 
             override fun onFailure(call: Call, e: IOException) {
-                Log.v("HelloWorldApp", "Http request failed with exception=${e.javaClass::class.simpleName}")
+                Log.v(
+                    "HelloWorldApp",
+                    "Http request failed with exception=${e.javaClass::class.simpleName}"
+                )
             }
         })
     }
@@ -202,7 +236,8 @@ class MainActivity : ComponentActivity() {
     }
 
     fun copyReplayBase64(@Suppress("UNUSED_PARAMETER") view: View) {
-        val data = ClipData.newPlainText("replayBase64", replayPreviewClient.getLastCapturedScreen())
+        val data =
+            ClipData.newPlainText("replayBase64", replayPreviewClient.getLastCapturedScreen())
         clipboardManager.setPrimaryClip(data)
     }
 
@@ -212,14 +247,17 @@ class MainActivity : ComponentActivity() {
             AppExitReason.APP_CRASH_EXCEPTION_MAIN -> {
                 throw RuntimeException("Forced unhandled exception in main thread")
             }
+
             AppExitReason.APP_CRASH_EXCEPTION_BG -> {
                 Thread {
                     throw RuntimeException("Forced unhandled exception in background thread")
                 }.start()
             }
+
             AppExitReason.ANR -> {
                 Thread.sleep(6000)
             }
+
             AppExitReason.SYSTEM_EXIT -> {
                 exitProcess(0)
             }
@@ -232,4 +270,31 @@ class MainActivity : ComponentActivity() {
         SYSTEM_EXIT,
         ANR
     }
+
+    /**
+     * Inject random delay to cause jank in the app.
+     * For any given item, there should be a 30% chance of jank (>32ms), and a 2% chance of
+     * extreme jank (>500ms).
+     * Regular jank will be between 32 and 82ms, extreme from 500-700ms.
+     */
+    fun simulateJank(
+        jankProbability: Double = 0.5,
+        extremeJankProbability: Double = 0.5
+    ) {
+
+        randomizerCounter++
+        var duration = 0L
+        if (randomizerCounter % 5 == 0) {
+            duration = 500
+        }else{
+            duration = 70
+        }
+        try {
+            // Make jank easier to spot in the profiler through tracing.
+            Thread.sleep(duration)
+        } catch (e: Exception) {
+        }
+
+    }
+
 }

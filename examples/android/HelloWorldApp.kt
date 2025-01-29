@@ -18,7 +18,7 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl
 import java.util.UUID
 
-private const val bitdriftAPIKey = "<YOUR API KEY GOES HERE>"
+private const val bitdriftAPIKey = "TBF"
 private val BITDRIFT_URL = HttpUrl.Builder().scheme("https").host("api.bitdrift.io").build()
 private val kLoggerRunningDurationThreshold = 15_000L
 
@@ -34,7 +34,7 @@ class HelloWorldApp : Application() {
         Logger.start(
             apiKey = bitdriftAPIKey,
             apiUrl = BITDRIFT_URL,
-            sessionStrategy = SessionStrategy.Fixed { UUID.randomUUID().toString() },
+            sessionStrategy = SessionStrategy.ActivityBased(),
             fieldProviders = listOf(
                 FieldProvider {
                     mapOf(

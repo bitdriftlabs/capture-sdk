@@ -14,10 +14,12 @@ import android.content.pm.ApplicationInfo
 import android.system.Os
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.metrics.performance.FrameData
 import com.github.michaelbull.result.Err
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
+import io.bitdrift.capture.common.BitdriftWindowManager
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.error.ErrorReporterService
 import io.bitdrift.capture.error.IErrorReporter
@@ -45,6 +47,7 @@ import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.replay.internal.JankStatsMonitor
 import okhttp3.HttpUrl
 import java.io.File
 import java.util.concurrent.ExecutorService
@@ -89,6 +92,10 @@ internal class LoggerImpl(
     private val diskUsageMonitor: DiskUsageMonitor
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
+    private val jankStatsMonitor : JankStatsMonitor by lazy{
+        val bitdriftWindowManager = BitdriftWindowManager(errorHandler)
+        JankStatsMonitor(bitdriftWindowManager)
+    }
 
     // we can assume a properly formatted api url is being used, so we can follow the same pattern
     // making sure we only replace the first occurrence
@@ -286,6 +293,7 @@ internal class LoggerImpl(
     override fun startNewSession() {
         CaptureJniLibrary.startNewSession(this.loggerId)
         appExitSaveCurrentSessionId()
+        jankStatsMonitor.startCollection()
     }
 
     override fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {

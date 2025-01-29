@@ -77,7 +77,7 @@
     </LinearLayout>
 
     <Button
-        android:text="Make OkHttp Request"
+        android:text="Make OkHttp Request Bazel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/button2"

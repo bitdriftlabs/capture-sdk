@@ -10,6 +10,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.ui)
     implementation(libs.okhttp)
+    implementation(libs.jankstats)
 
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockito.inline)

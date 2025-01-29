@@ -19,6 +19,7 @@ bitdrift_kt_android_library(
         artifact("androidx.compose.ui:ui"),
         artifact("org.jetbrains.kotlin:kotlin-stdlib"),
         artifact("com.squareup.okhttp3:okhttp"),
+        artifact("androidx.metrics:metrics-performance")
     ],
 )
 

@@ -13,6 +13,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
+import androidx.metrics.performance.JankStats
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.Fields
 
@@ -36,6 +37,11 @@ internal class ClientAttributes(
                 packageInfo?.versionCode?.toLong() ?: -1
             }
         }
+
+    /**
+     * Just for testing binary size increase
+     */
+    private var jankStats: JankStats? = null
 
     @Suppress("SwallowedException")
     private val packageInfo: PackageInfo? =
