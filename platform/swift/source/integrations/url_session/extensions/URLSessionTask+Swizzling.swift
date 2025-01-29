@@ -5,21 +5,21 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+@_implementationOnly import CaptureLoggerBridge
 import Foundation
 import ObjectiveC
-@_implementationOnly import CaptureLoggerBridge
 
 extension URLSessionTask {
     @available(iOS 15.0, *)
     @objc
     func cap_resume() {
         defer { self.cap_resume() }
-        if (self.state == .completed || self.state == .canceling) {
+        if self.state == .completed || self.state == .canceling {
             return
         }
 
         URLSessionTaskTracker.shared.taskWillStart(self)
-        try? ObjCTry.do {
+        try? ObjCWrapper.doTry {
             self.delegate = ProxyURLSessionTaskDelegate(target: self.delegate)
         }
     }

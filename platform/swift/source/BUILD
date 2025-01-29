@@ -35,7 +35,7 @@ swift_library(
     module_name = "Capture",
     private_deps = [
         ":CapturePassable",
-        ":rust_bridge",
+        ":objc_bridge",
     ],
     tags = [
         "macos_only",
@@ -71,12 +71,12 @@ bitdrift_rust_library(
 )
 
 objc_library(
-    name = "rust_bridge",
+    name = "objc_bridge",
+    srcs = ["ObjCWrapper.mm"],
     hdrs = [
         "CaptureRustBridge.h",
-        "ObjcWrapper.h",
+        "ObjCWrapper.h",
     ],
-    srcs = ["ObjcWrapper.mm"],
     module_name = "CaptureLoggerBridge",
     tags = ["macos_only"],
     visibility = ["//visibility:public"],

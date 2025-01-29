@@ -86,7 +86,7 @@ final class URLSessionIntegration {
 
         let task = session.dataTask(with: request)
         defer { task.cancel() }
-        
+
         return type(of: task)
     }
 }

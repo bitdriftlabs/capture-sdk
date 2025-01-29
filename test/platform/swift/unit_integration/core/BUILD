@@ -8,7 +8,7 @@ bitdrift_mobile_swift_test(
     visibility = ["//visibility:public"],
     deps = [
         "//platform/swift/source:ios_lib",
-        "//platform/swift/source:rust_bridge",
+        "//platform/swift/source:objc_bridge",
         "//test/platform/swift/benchmark:benchmarks",
         "//test/platform/swift/bridging:rust_bridge",
         "//test/platform/swift/unit_integration/mocks",

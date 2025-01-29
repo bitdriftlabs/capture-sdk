@@ -12,6 +12,6 @@ swift_library(
     visibility = ["//visibility:public"],
     deps = [
         "//platform/swift/source:ios_lib",
-        "//platform/swift/source:rust_bridge",
+        "//platform/swift/source:objc_bridge",
     ],
 )
