@@ -7,13 +7,20 @@
 
 import Foundation
 import ObjectiveC
+@_implementationOnly import CaptureLoggerBridge
 
 extension URLSessionTask {
     @available(iOS 15.0, *)
     @objc
     func cap_resume() {
+        defer { self.cap_resume() }
+        if (self.state == .completed || self.state == .canceling) {
+            return
+        }
+
         URLSessionTaskTracker.shared.taskWillStart(self)
-        self.delegate = ProxyURLSessionTaskDelegate(target: self.delegate)
-        self.cap_resume()
+        try? ObjCTry.do {
+            self.delegate = ProxyURLSessionTaskDelegate(target: self.delegate)
+        }
     }
 }

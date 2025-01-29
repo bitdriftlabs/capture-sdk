@@ -74,7 +74,9 @@ objc_library(
     name = "rust_bridge",
     hdrs = [
         "CaptureRustBridge.h",
+        "ObjcWrapper.h",
     ],
+    srcs = ["ObjcWrapper.mm"],
     module_name = "CaptureLoggerBridge",
     tags = ["macos_only"],
     visibility = ["//visibility:public"],
