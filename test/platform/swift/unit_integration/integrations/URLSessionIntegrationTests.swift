@@ -132,6 +132,37 @@ final class URLSessionIntegrationTests: XCTestCase {
         }
     }
 
+    func testBackgroundSessionTasks() throws {
+        self.customSetUp(swizzle: true)
+
+        let session = URLSession(configuration: .background(withIdentifier: "w00t"))
+        let task = session.dataTask(with: self.makeURL())
+
+        let logRequestExpectation = self.expectation(description: "request logged")
+        self.logger.logRequestExpectation = logRequestExpectation
+        task.resume()
+
+        XCTAssertEqual(.completed, XCTWaiter().wait(for: [logRequestExpectation], timeout: 3, enforceOrder: false))
+        XCTAssertEqual(1, self.logger.logs.count)
+
+        let requestInfo = try XCTUnwrap(self.logger.logs[0].request())
+        var requestInfoFields = try XCTUnwrap(requestInfo.toFields() as? [String: String])
+        requestInfoFields["_span_id"] = nil
+
+        XCTAssertEqual(
+            [
+                "_host": "api-fe.bitdrift.io",
+                "_method": "GET",
+                "_path": "/fe/ping",
+                "_query": "q=test",
+            ],
+            requestInfoFields
+        )
+
+        self.customTearDown()
+        session.finishTasksAndInvalidate()
+    }
+
     func testCustomCaptureSessionTasks() throws {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
             self.customSetUp(swizzle: false)
@@ -543,9 +574,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         XCTAssertEqual(
             [
-                "_host": "www.google.com",
+                "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
-                "_path": "/search",
+                "_path": "/fe/ping",
                 "_query": "q=test",
             ],
             requestInfoFields
@@ -564,9 +595,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         XCTAssertEqual(
             [
-                "_host": "www.google.com",
+                "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
-                "_path": "/search",
+                "_path": "/fe/ping",
                 "_query": "q=test",
                 "_result": "success",
                 "_status_code": "200",
@@ -610,9 +641,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         XCTAssertEqual(
             [
-                "_host": "www.google.com",
+                "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
-                "_path": "/search",
+                "_path": "/fe/ping",
                 "_query": "q=test",
             ],
             requestInfoFields
@@ -631,9 +662,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         XCTAssertEqual(
             [
-                "_host": "www.google.com",
+                "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
-                "_path": "/search",
+                "_path": "/fe/ping",
                 "_query": "q=test",
                 "_result": "canceled",
             ],
@@ -778,7 +809,7 @@ final class URLSessionIntegrationTests: XCTestCase {
         // significantly more time when ran on the CI.
         // TODO(Augustyniak): Move to using bitdrift ping.
         // swiftlint:disable:next force_unwrapping
-        return URL(string: "http://www.google.com/search?q=test")!
+        return URL(string: "https://api-fe.bitdrift.io/fe/ping?q=test")!
     }
 
     private func makeTempFileURL(name: String) throws -> URL {

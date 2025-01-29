@@ -138,6 +138,6 @@ build:ios-tsan --features=tsan
 
 build:asan --config=fake-nightly
 build:asan --features=address
-build:tsan --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=address
+build:asan --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=address
 
 try-import %workspace%/tmp/ci-bazelrc

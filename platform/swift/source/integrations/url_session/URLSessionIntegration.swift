@@ -84,7 +84,10 @@ final class URLSessionIntegration {
         let session = URLSession(configuration: .ephemeral)
         defer { session.invalidateAndCancel() }
 
-        return type(of: session.dataTask(with: request))
+        let task = session.dataTask(with: request)
+        defer { task.cancel() }
+
+        return type(of: task)
     }
 }
 

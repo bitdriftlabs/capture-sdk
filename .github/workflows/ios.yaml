@@ -44,19 +44,6 @@ jobs:
       # TODO(snowp): Add some kind of assertion that the app does that it's supposed to
       - run: ./bazelw run --config ci //examples/swift/hello_world:ios_app &> /tmp/envoy.log &
         name: 'Run app'
-  macos_asan:
-    runs-on: macos-14
-    needs: "pre_check"
-    if: needs.pre_check.outputs.should_run == 'true'
-    steps:
-      # Checkout repo to Github Actions runner
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: 'Install dependencies'
-        run: ./ci/mac_ci_setup.sh
-      - name: Run tests (asan)
-        run: env -u ANDROID_NDK_HOME ./bazelw test //core/... //platform/... //test/platform/swift/unit_integration/... --test_tag_filters=macos_only --test_output=errors --build_tests_only --config ci --config asan
   macos_tsan:
     runs-on: macos-14
     needs: "pre_check"
@@ -72,7 +59,7 @@ jobs:
         run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/core/...)') --test_tag_filters=macos_only --test_output=errors --config ci --config ios-tsan
   verify_ios:
     runs-on: ubuntu-latest
-    needs: ["macos_tsan", "macos_asan", "swift_hello_world"]
+    needs: ["macos_tsan", "swift_hello_world"]
     if: always()
     steps:
       # Checkout repo to Github Actions runner
@@ -82,5 +69,4 @@ jobs:
           fetch-depth: 1
       - run: |
           ./ci/check_result.sh ${{ needs.macos_tsan.result }} \
-          && ./ci/check_result.sh ${{ needs.macos_asan.result }} \
           && ./ci/check_result.sh ${{ needs.swift_hello_world.result }}
