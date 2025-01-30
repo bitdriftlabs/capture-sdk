@@ -209,10 +209,11 @@ internal class LoggerImpl(
                     AppLifecycleListenerLogger(
                         this,
                         ProcessLifecycleOwner.get(),
-                        runtime,
-                        processingQueue,
-                    ),
-                )
+                        activityManager,
+                    runtime,
+                    processingQueue,
+                ),
+            )
 
                 eventsListenerTarget.add(
                     DeviceStateListenerLogger(
