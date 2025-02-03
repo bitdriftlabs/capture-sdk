@@ -118,7 +118,7 @@ jobs:
       - name: 'Install dependencies'
         run: ./ci/mac_ci_setup.sh
       - name: build
-        run: ./bazelw build --announce_rc --config=ci --config=release-common --cpu=darwin_arm64 --platforms @build_bazel_apple_support//platforms:macos_arm64 //platform/jvm:capture && cp bazel-bin/platform/jvm/libcapture.dylib libcapture.dylib.arm64
+        run: ./bazelw build --announce_rc --config=ci --config=release-common --cpu=darwin_arm64 --platforms @build_bazel_apple_support//platforms:macos_arm64 //platform/shared:capture && cp bazel-bin/platform/jvm/libcapture.dylib libcapture.dylib.arm64
       - uses: actions/upload-artifact@v4
         with:
           name: libcapture.dylib.arm64
@@ -137,7 +137,7 @@ jobs:
       - name: 'Install dependencies'
         run: ./ci/mac_ci_setup.sh
       - name: build
-        run: ./bazelw build --announce_rc --config=ci --config=release-common --cpu=darwin_x86_64 //platform/jvm:capture && cp bazel-bin/platform/jvm/libcapture.dylib libcapture.dylib.x86_64
+        run: ./bazelw build --announce_rc --config=ci --config=release-common --cpu=darwin_x86_64 //platform/shared:capture && cp bazel-bin/platform/jvm/libcapture.dylib libcapture.dylib.x86_64
       - uses: actions/upload-artifact@v4
         with:
           name: libcapture.dylib.x86_64
