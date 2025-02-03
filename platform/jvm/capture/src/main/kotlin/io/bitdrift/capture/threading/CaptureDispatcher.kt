@@ -14,6 +14,7 @@ sealed class CaptureDispatcher private constructor(private val threadName: Strin
      * Returns the associated [ExecutorService] for the [CaptureDispatcher] type
      */
     val executorService: ExecutorService = buildExecutorService(threadName)
+            .also { register(this) }
 
     /**
      * [ExecutorService] to be used for handling different types of [EventsListenerTarget]
@@ -36,7 +37,26 @@ sealed class CaptureDispatcher private constructor(private val threadName: Strin
         }
     }
 
-    private companion object {
+    @Suppress("UndocumentedPublicClass")
+    companion object {
         private const val CAPTURE_EXECUTOR_SERVICE_NAME = "io.bitdrift.capture"
+
+        private val initializedDispatchers = mutableListOf<CaptureDispatcher>()
+
+        /**
+         * Shuts down all used dispatchers
+         */
+        fun shutdownAll() {
+            initializedDispatchers.forEach { captureDispatcher ->
+                captureDispatcher.executorService.shutdown()
+            }
+            initializedDispatchers.clear()
+        }
+
+        private fun register(dispatcher: CaptureDispatcher) {
+            if (!initializedDispatchers.contains(dispatcher)) {
+                initializedDispatchers.add(dispatcher)
+            }
+        }
     }
 }
