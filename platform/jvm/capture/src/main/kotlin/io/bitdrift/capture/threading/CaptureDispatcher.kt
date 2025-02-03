@@ -30,13 +30,6 @@ sealed class CaptureDispatcher private constructor(private val threadName: Strin
      */
     object SessionReplay: CaptureDispatcher("session-replay")
 
-    /**
-     * Tears down the existing service
-     */
-    fun shutDown() {
-        executorService.shutdown()
-    }
-
     private fun buildExecutorService(threadName: String): ExecutorService {
         return Executors.newSingleThreadExecutor {
             Thread(it, "$CAPTURE_EXECUTOR_SERVICE_NAME.$threadName")

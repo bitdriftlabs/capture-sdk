@@ -76,6 +76,7 @@ internal fun newDuplexRequestBody(contentType: MediaType): PipeDuplexRequestBody
 internal class OkHttpNetwork(
     apiBaseUrl: HttpUrl,
     timeoutSeconds: Long = 2L * 60,
+    private val networkDispatcher: CaptureDispatcher.Network = CaptureDispatcher.Network
 ) : ICaptureNetwork {
     private val client: OkHttpClient =
         run {
@@ -98,8 +99,6 @@ internal class OkHttpNetwork(
                 .retryOnConnectionFailure(false) // Retrying messes up the write pipe state management, so disable.
                 .build()
         }
-
-    private val networkDispatcher: CaptureDispatcher.Network = CaptureDispatcher.Network
 
     private val url: HttpUrl =
         apiBaseUrl

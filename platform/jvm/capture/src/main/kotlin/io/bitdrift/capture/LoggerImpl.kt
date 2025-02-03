@@ -76,6 +76,7 @@ internal class LoggerImpl(
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     private val bridge: IBridge = CaptureJniLibrary,
+    private val eventListenerDispatcher: CaptureDispatcher = CaptureDispatcher.EventListener
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val memoryMonitor = MemoryMonitor(context)
@@ -93,8 +94,6 @@ internal class LoggerImpl(
     private val eventsListenerTarget = EventsListenerTarget()
 
     private val sessionReplayTarget: SessionReplayTarget?
-
-    private val processingQueue = CaptureDispatcher.EventListener.executorService
 
     @VisibleForTesting
     internal val loggerId: LoggerId
@@ -158,7 +157,7 @@ internal class LoggerImpl(
                         diskUsageMonitor,
                         errorHandler,
                         this,
-                        processingQueue,
+                        eventListenerDispatcher.executorService,
                     )
 
                 val sessionReplayTarget =
@@ -207,7 +206,7 @@ internal class LoggerImpl(
                         this,
                         ProcessLifecycleOwner.get(),
                         runtime,
-                        processingQueue,
+                        eventListenerDispatcher.executorService,
                     ),
                 )
 
@@ -218,7 +217,7 @@ internal class LoggerImpl(
                         batteryMonitor,
                         powerMonitor,
                         runtime,
-                        processingQueue,
+                        eventListenerDispatcher.executorService,
                     ),
                 )
 
@@ -228,7 +227,7 @@ internal class LoggerImpl(
                         context,
                         memoryMonitor,
                         runtime,
-                        processingQueue,
+                        eventListenerDispatcher.executorService,
                     ),
                 )
 
@@ -238,7 +237,7 @@ internal class LoggerImpl(
                         clientAttributes,
                         context,
                         runtime,
-                        processingQueue,
+                        eventListenerDispatcher.executorService,
                     ),
                 )
 
