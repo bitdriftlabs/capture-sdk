@@ -45,7 +45,7 @@ import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.threading.CaptureDispatcher
+import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import java.io.File
 import kotlin.time.Duration
@@ -76,7 +76,7 @@ internal class LoggerImpl(
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     private val bridge: IBridge = CaptureJniLibrary,
-    private val eventListenerDispatcher: CaptureDispatcher = CaptureDispatcher.EventListener
+    private val eventListenerDispatcher: CaptureDispatchers.EventListener = CaptureDispatchers.EventListener
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val memoryMonitor = MemoryMonitor(context)

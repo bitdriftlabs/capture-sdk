@@ -11,7 +11,7 @@ import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.network.ICaptureStream
 import io.bitdrift.capture.network.Jni
-import io.bitdrift.capture.threading.CaptureDispatcher
+import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.HttpUrl
@@ -76,7 +76,7 @@ internal fun newDuplexRequestBody(contentType: MediaType): PipeDuplexRequestBody
 internal class OkHttpNetwork(
     apiBaseUrl: HttpUrl,
     timeoutSeconds: Long = 2L * 60,
-    private val networkDispatcher: CaptureDispatcher.Network = CaptureDispatcher.Network
+    private val networkDispatcher: CaptureDispatchers.Network = CaptureDispatchers.Network
 ) : ICaptureNetwork {
     private val client: OkHttpClient =
         run {

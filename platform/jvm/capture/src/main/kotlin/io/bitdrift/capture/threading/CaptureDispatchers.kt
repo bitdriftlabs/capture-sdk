@@ -8,10 +8,10 @@ import java.util.concurrent.Executors
  *
  * The initial implementation exposes an [executorService]
  */
-sealed class CaptureDispatcher private constructor(private val threadName: String) {
+sealed class CaptureDispatchers private constructor(private val threadName: String) {
 
     /**
-     * Returns the associated [ExecutorService] for the [CaptureDispatcher] type
+     * Returns the associated [ExecutorService] for the [CaptureDispatchers] type
      */
     val executorService: ExecutorService = buildExecutorService(threadName)
             .also { register(this) }
@@ -19,17 +19,17 @@ sealed class CaptureDispatcher private constructor(private val threadName: Strin
     /**
      * [ExecutorService] to be used for handling different types of [EventsListenerTarget]
      */
-    object EventListener : CaptureDispatcher("event-listener")
+    object EventListener : CaptureDispatchers("event-listener")
 
     /**
      * [ExecutorService] to be used for networking capture
      */
-    object Network: CaptureDispatcher("network.okhttp")
+    object Network: CaptureDispatchers("network.okhttp")
 
     /**
      * [ExecutorService] to be used for Session-Replay
      */
-    object SessionReplay: CaptureDispatcher("session-replay")
+    object SessionReplay: CaptureDispatchers("session-replay")
 
     private fun buildExecutorService(threadName: String): ExecutorService {
         return Executors.newSingleThreadExecutor {
@@ -37,26 +37,24 @@ sealed class CaptureDispatcher private constructor(private val threadName: Strin
         }
     }
 
-    @Suppress("UndocumentedPublicClass")
+    /**
+     * Exposes [CapturedDispatchers.shutdownAll]
+     */
     companion object {
         private const val CAPTURE_EXECUTOR_SERVICE_NAME = "io.bitdrift.capture"
 
-        private val initializedDispatchers = mutableListOf<CaptureDispatcher>()
+        private val initializedDispatchers = mutableSetOf<CaptureDispatchers>()
 
         /**
          * Shuts down all used dispatchers
          */
         fun shutdownAll() {
-            initializedDispatchers.forEach { captureDispatcher ->
-                captureDispatcher.executorService.shutdown()
-            }
+            initializedDispatchers.forEach { it.executorService.shutdown() }
             initializedDispatchers.clear()
         }
 
-        private fun register(dispatcher: CaptureDispatcher) {
-            if (!initializedDispatchers.contains(dispatcher)) {
-                initializedDispatchers.add(dispatcher)
-            }
+        private fun register(dispatcher: CaptureDispatchers) {
+            initializedDispatchers.add(dispatcher)
         }
     }
 }
