@@ -13,9 +13,7 @@ sealed class CaptureDispatcher private constructor(private val threadName: Strin
     /**
      * Returns the associated [ExecutorService] for the [CaptureDispatcher] type
      */
-    val executorService: ExecutorService by lazy {
-        buildExecutorService(threadName)
-    }
+    val executorService: ExecutorService = buildExecutorService(threadName)
 
     /**
      * [ExecutorService] to be used for handling different types of [EventsListenerTarget]
