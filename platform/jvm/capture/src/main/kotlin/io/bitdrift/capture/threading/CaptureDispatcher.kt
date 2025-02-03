@@ -18,7 +18,7 @@ sealed class CaptureDispatcher private constructor(private val threadName: Strin
     }
 
     /**
-     * [ExecutorService] to be used for processing main events
+     * [ExecutorService] to be used for handling different types of [EventsListenerTarget]
      */
     object EventListener : CaptureDispatcher("event-listener")
 
