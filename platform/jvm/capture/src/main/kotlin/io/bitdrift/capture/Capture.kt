@@ -9,6 +9,7 @@ package io.bitdrift.capture
 
 import android.util.Log
 import com.github.michaelbull.result.Err
+import io.bitdrift.capture.common.BackgroundExecutor
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
@@ -155,21 +156,23 @@ object Capture {
 
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
             if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
-                try {
-                    val logger =
-                        LoggerImpl(
-                            apiKey = apiKey,
-                            apiUrl = apiUrl,
-                            fieldProviders = fieldProviders,
-                            dateProvider = dateProvider ?: SystemDateProvider(),
-                            configuration = configuration,
-                            sessionStrategy = sessionStrategy,
-                            bridge = bridge,
-                        )
-                    default.set(LoggerState.Started(logger))
-                } catch (e: Throwable) {
-                    Log.w("capture", "Failed to start Capture", e)
-                    default.set(LoggerState.StartFailure)
+                BackgroundExecutor.runAction {
+                    try {
+                        val logger =
+                            LoggerImpl(
+                                apiKey = apiKey,
+                                apiUrl = apiUrl,
+                                fieldProviders = fieldProviders,
+                                dateProvider = dateProvider ?: SystemDateProvider(),
+                                configuration = configuration,
+                                sessionStrategy = sessionStrategy,
+                                bridge = bridge,
+                            )
+                        default.set(LoggerState.Started(logger))
+                    } catch (e: Throwable) {
+                        Log.w("capture", "Failed to start Capture", e)
+                        default.set(LoggerState.StartFailure)
+                    }
                 }
             } else {
                 Log.w("capture", "Multiple attempts to start Capture")
