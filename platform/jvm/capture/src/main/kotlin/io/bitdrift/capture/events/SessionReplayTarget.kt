@@ -25,6 +25,7 @@ import io.bitdrift.capture.replay.ScreenshotCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.internal.FilteredCapture
+import io.bitdrift.capture.threading.CaptureDispatcher
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -50,6 +51,7 @@ internal class SessionReplayTarget(
             configuration,
             context,
             mainThreadHandler,
+            CaptureDispatcher.SessionReplay.executorService
         )
 
     override fun captureScreen() {

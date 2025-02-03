@@ -45,10 +45,9 @@ import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.threading.CaptureDispatcher
 import okhttp3.HttpUrl
 import java.io.File
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
@@ -65,10 +64,6 @@ internal class LoggerImpl(
     fieldProviders: List<FieldProvider>,
     dateProvider: DateProvider,
     private val errorHandler: ErrorHandler = ErrorHandler(),
-    processingQueue: ExecutorService =
-        Executors.newSingleThreadExecutor {
-            Thread(it, "io.bitdrift.capture.event-listener")
-        },
     sessionStrategy: SessionStrategy,
     context: Context = ContextHolder.APP_CONTEXT,
     clientAttributes: ClientAttributes =
@@ -98,6 +93,8 @@ internal class LoggerImpl(
     private val eventsListenerTarget = EventsListenerTarget()
 
     private val sessionReplayTarget: SessionReplayTarget?
+
+    private val processingQueue = CaptureDispatcher.EventListener.executorService
 
     @VisibleForTesting
     internal val loggerId: LoggerId

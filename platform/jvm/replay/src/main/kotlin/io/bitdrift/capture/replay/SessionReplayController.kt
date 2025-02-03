@@ -31,10 +31,7 @@ class SessionReplayController(
     sessionReplayConfiguration: SessionReplayConfiguration,
     context: Context,
     mainThreadHandler: MainThreadHandler,
-    executor: ExecutorService =
-        Executors.newSingleThreadExecutor {
-            Thread(it, "io.bitdrift.capture.session-replay")
-        },
+    executor: ExecutorService,
 ) {
     private val replayCaptureEngine: ReplayCaptureEngine
     private val screenshotCaptureEngine: ScreenshotCaptureEngine
