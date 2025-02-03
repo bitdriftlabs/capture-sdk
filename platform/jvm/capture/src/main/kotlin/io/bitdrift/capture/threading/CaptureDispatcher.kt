@@ -33,11 +33,6 @@ sealed class CaptureDispatcher private constructor(private val threadName: Strin
     object SessionReplay: CaptureDispatcher("session-replay")
 
     /**
-     * Returns the associated [ExecutorService] for the [CaptureDispatcher] type
-     */
-    fun get():ExecutorService = executorService
-
-    /**
      * Tears down the existing service
      */
     fun shutDown() {
