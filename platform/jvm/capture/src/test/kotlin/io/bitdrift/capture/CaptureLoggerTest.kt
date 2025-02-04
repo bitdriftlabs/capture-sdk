@@ -9,6 +9,7 @@ package io.bitdrift.capture
 
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.test.core.app.ApplicationProvider
+import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.argThat
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
@@ -30,6 +31,7 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
@@ -64,6 +66,7 @@ class CaptureLoggerTest {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
 
+        CaptureDispatchers.setTestExecutorService(MoreExecutors.newDirectExecutorService())
         CaptureJniLibrary.load()
 
         testServerPort = CaptureTestJniLibrary.startTestApiServer(-1)
