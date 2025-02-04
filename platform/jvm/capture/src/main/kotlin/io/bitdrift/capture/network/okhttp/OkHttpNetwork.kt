@@ -76,7 +76,7 @@ internal fun newDuplexRequestBody(contentType: MediaType): PipeDuplexRequestBody
 internal class OkHttpNetwork(
     apiBaseUrl: HttpUrl,
     timeoutSeconds: Long = 2L * 60,
-    private val networkDispatcher: CaptureDispatchers.Network = CaptureDispatchers.Network
+    private val networkDispatcher: CaptureDispatchers.Network = CaptureDispatchers.Network,
 ) : ICaptureNetwork {
     private val client: OkHttpClient =
         run {

@@ -15,7 +15,6 @@ import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
 import io.bitdrift.capture.replay.internal.ScreenshotCaptureEngine
 import io.bitdrift.capture.replay.internal.WindowManager
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 /**
  * Sets up and controls the replay feature

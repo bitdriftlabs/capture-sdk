@@ -8,12 +8,14 @@ import java.util.concurrent.Executors
  *
  * The initial implementation exposes an [executorService]
  */
-sealed class CaptureDispatchers private constructor(private val threadName: String) {
-
+sealed class CaptureDispatchers private constructor(
+    threadName: String,
+) {
     /**
      * Returns the associated [ExecutorService] for the [CaptureDispatchers] type
      */
-    val executorService: ExecutorService = buildExecutorService(threadName)
+    val executorService: ExecutorService =
+        buildExecutorService(threadName)
             .also { register(this) }
 
     /**
@@ -24,18 +26,17 @@ sealed class CaptureDispatchers private constructor(private val threadName: Stri
     /**
      * [ExecutorService] to be used for networking capture
      */
-    object Network: CaptureDispatchers("network.okhttp")
+    object Network : CaptureDispatchers("network.okhttp")
 
     /**
      * [ExecutorService] to be used for Session-Replay
      */
-    object SessionReplay: CaptureDispatchers("session-replay")
+    object SessionReplay : CaptureDispatchers("session-replay")
 
-    private fun buildExecutorService(threadName: String): ExecutorService {
-        return Executors.newSingleThreadExecutor {
+    private fun buildExecutorService(threadName: String): ExecutorService =
+        Executors.newSingleThreadExecutor {
             Thread(it, "$CAPTURE_EXECUTOR_SERVICE_NAME.$threadName")
         }
-    }
 
     /**
      * Exposes [CapturedDispatchers.shutdownAll]

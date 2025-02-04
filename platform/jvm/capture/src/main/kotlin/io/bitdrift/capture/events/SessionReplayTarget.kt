@@ -51,7 +51,7 @@ internal class SessionReplayTarget(
             configuration,
             context,
             mainThreadHandler,
-            CaptureDispatchers.SessionReplay.executorService
+            CaptureDispatchers.SessionReplay.executorService,
         )
 
     override fun captureScreen() {
