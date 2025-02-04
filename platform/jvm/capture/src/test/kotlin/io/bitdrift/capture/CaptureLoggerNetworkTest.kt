@@ -7,13 +7,16 @@
 
 package io.bitdrift.capture
 
+import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.network.okhttp.OkHttpNetwork
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
+import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -43,6 +46,11 @@ class CaptureLoggerNetworkTest {
 
     companion object {
         val loggerBridge: TestMetadataProvider = TestMetadataProvider()
+    }
+
+    @Before
+    fun setUp() {
+        CaptureDispatchers.setTestExecutorService(MoreExecutors.newDirectExecutorService())
     }
 
     @After

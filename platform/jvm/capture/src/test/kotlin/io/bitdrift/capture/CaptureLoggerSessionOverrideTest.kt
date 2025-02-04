@@ -12,12 +12,14 @@ import android.app.ActivityManager
 import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.test.core.app.ApplicationProvider
+import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
@@ -52,6 +54,7 @@ class CaptureLoggerSessionOverrideTest {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
 
+        CaptureDispatchers.setTestExecutorService(MoreExecutors.newDirectExecutorService())
         CaptureJniLibrary.load()
 
         testServerPort = CaptureTestJniLibrary.startTestApiServer(-1)

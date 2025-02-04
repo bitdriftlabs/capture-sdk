@@ -11,6 +11,7 @@ import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.network.ICaptureStream
 import io.bitdrift.capture.network.Jni
+import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.HttpUrl
@@ -26,8 +27,6 @@ import okio.BufferedSink
 import okio.Pipe
 import okio.buffer
 import java.io.IOException
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
@@ -77,6 +76,7 @@ internal fun newDuplexRequestBody(contentType: MediaType): PipeDuplexRequestBody
 internal class OkHttpNetwork(
     apiBaseUrl: HttpUrl,
     timeoutSeconds: Long = 2L * 60,
+    private val networkDispatcher: CaptureDispatchers.Network = CaptureDispatchers.Network,
 ) : ICaptureNetwork {
     private val client: OkHttpClient =
         run {
@@ -100,10 +100,6 @@ internal class OkHttpNetwork(
                 .build()
         }
 
-    private val executor: ExecutorService =
-        Executors.newSingleThreadExecutor {
-            Thread(it, "io.bitdrift.capture.network.okhttp")
-        }
     private val url: HttpUrl =
         apiBaseUrl
             .newBuilder()
@@ -176,7 +172,7 @@ internal class OkHttpNetwork(
                         response: Response,
                     ) {
                         // Once we get a response handle, hand it over to the executor for async processing.
-                        executor.execute {
+                        networkDispatcher.executorService.execute {
                             response.use {
                                 consumeResponse(response)
                             }

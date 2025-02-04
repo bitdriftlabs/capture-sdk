@@ -45,10 +45,9 @@ import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import java.io.File
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
@@ -65,10 +64,6 @@ internal class LoggerImpl(
     fieldProviders: List<FieldProvider>,
     dateProvider: DateProvider,
     private val errorHandler: ErrorHandler = ErrorHandler(),
-    processingQueue: ExecutorService =
-        Executors.newSingleThreadExecutor {
-            Thread(it, "io.bitdrift.capture.event-listener")
-        },
     sessionStrategy: SessionStrategy,
     context: Context = ContextHolder.APP_CONTEXT,
     clientAttributes: ClientAttributes =
@@ -81,6 +76,7 @@ internal class LoggerImpl(
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     private val bridge: IBridge = CaptureJniLibrary,
+    private val eventListenerDispatcher: CaptureDispatchers.EventListener = CaptureDispatchers.EventListener,
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val memoryMonitor = MemoryMonitor(context)
@@ -161,7 +157,7 @@ internal class LoggerImpl(
                         diskUsageMonitor,
                         errorHandler,
                         this,
-                        processingQueue,
+                        eventListenerDispatcher.executorService,
                     )
 
                 val sessionReplayTarget =
@@ -210,7 +206,7 @@ internal class LoggerImpl(
                         this,
                         ProcessLifecycleOwner.get(),
                         runtime,
-                        processingQueue,
+                        eventListenerDispatcher.executorService,
                     ),
                 )
 
@@ -221,7 +217,7 @@ internal class LoggerImpl(
                         batteryMonitor,
                         powerMonitor,
                         runtime,
-                        processingQueue,
+                        eventListenerDispatcher.executorService,
                     ),
                 )
 
@@ -231,7 +227,7 @@ internal class LoggerImpl(
                         context,
                         memoryMonitor,
                         runtime,
-                        processingQueue,
+                        eventListenerDispatcher.executorService,
                     ),
                 )
 
@@ -241,7 +237,7 @@ internal class LoggerImpl(
                         clientAttributes,
                         context,
                         runtime,
-                        processingQueue,
+                        eventListenerDispatcher.executorService,
                     ),
                 )
 
