@@ -4,6 +4,9 @@ import {
   removeField,
   debug,
   SessionStrategy,
+  getSessionID,
+  getSessionURL,
+  getDeviceID,
 } from '@bitdrift/react-native';
 
 const BITDRIFT_API_KEY = process.env.EXPO_PUBLIC_BITDRIFT_API_KEY;
