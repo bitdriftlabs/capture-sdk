@@ -71,8 +71,8 @@ internal sealed class CaptureDispatchers private constructor(
          */
         @JvmStatic
         @VisibleForTesting
-        internal fun setTestExecutorService(testExecutorService:ExecutorService){
-            listOf(EventListener, Network, SessionReplay).forEach{
+        internal fun setTestExecutorService(testExecutorService: ExecutorService) {
+            listOf(EventListener, Network, SessionReplay).forEach {
                 it._executorService = testExecutorService
             }
         }
