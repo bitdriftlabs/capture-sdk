@@ -1,7 +1,5 @@
 load("@cxx.rs//tools/bazel:rust_cxx_bridge.bzl", "rust_cxx_bridge")
-load("@rules_cc//cc:defs.bzl", "cc_binary")
-load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
-load("@crates//:defs.bzl", "aliases", "all_crate_deps")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
 
 cc_binary(
@@ -26,8 +24,8 @@ cc_binary(
     visibility = ["//visibility:public"],
     deps = [
         "symbols.lds",
-        ":platform-linux",
         ":cxx_bridge_linked",
+        ":platform-linux",
     ],
 )
 
@@ -45,8 +43,8 @@ cc_library(
     srcs = ["src/lib.rs.cc"],
     hdrs = ["src/lib.rs.h"],
     includes = ["."],
-    deps = [":cxx_bridge/include"],
     visibility = ["//visibility:public"],
+    deps = [":cxx_bridge/include"],
     alwayslink = True,
 )
 
