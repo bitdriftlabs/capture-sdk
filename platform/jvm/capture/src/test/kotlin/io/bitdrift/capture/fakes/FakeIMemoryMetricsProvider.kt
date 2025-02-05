@@ -33,11 +33,11 @@ class FakeIMemoryMetricsProvider : IMemoryMetricsProvider {
     companion object {
         val DEFAULT_MEMORY_ATTRIBUTES_MAP =
             mapOf(
-                "_jvm_used_mb" to "0.1",
-                "_jvm_total_mb" to "0.5",
-                "_native_used_mb" to "0.2",
-                "_native_total_mb" to "0.5",
-                "_memory_class" to "1",
+                "_jvm_used_kb" to "50",
+                "_jvm_total_kb" to "100",
+                "_native_used_kb" to "200",
+                "_native_total_kb" to "500",
+                "_memory_class" to "1024",
             )
     }
 }

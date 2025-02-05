@@ -11,7 +11,7 @@ import android.app.ActivityManager
 import android.content.Context
 import android.os.Debug
 
-private const val MB = 1024L * 1024L
+private const val KB = 1024L
 
 internal class MemoryMetricsProvider(
     context: Context,
@@ -20,20 +20,20 @@ internal class MemoryMetricsProvider(
 
     override fun getMemoryAttributes(): Map<String, String> =
         mapOf(
-            "_jvm_used_mb" to usedJvmMemory(),
-            "_jvm_total_mb" to totalJvmMemory(),
-            "_native_used_mb" to allocatedNativeHeapSize(),
-            "_native_total_mb" to totalNativeHeapSize(),
+            "_jvm_used_kb" to usedJvmMemory(),
+            "_jvm_total_kb" to totalJvmMemory(),
+            "_native_used_kb" to allocatedNativeHeapSize(),
+            "_native_total_kb" to totalNativeHeapSize(),
             "_memory_class" to memoryClass(),
         )
 
-    private fun totalJvmMemory(): String = (Runtime.getRuntime().totalMemory() / MB).toString()
+    private fun totalJvmMemory(): String = (Runtime.getRuntime().totalMemory() / KB).toString()
 
-    private fun usedJvmMemory(): String = ((Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / MB).toString()
+    private fun usedJvmMemory(): String = ((Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / KB).toString()
 
-    private fun allocatedNativeHeapSize(): String = (Debug.getNativeHeapAllocatedSize() / MB).toString()
+    private fun allocatedNativeHeapSize(): String = (Debug.getNativeHeapAllocatedSize() / KB).toString()
 
-    private fun totalNativeHeapSize(): String = (Debug.getNativeHeapSize() / MB).toString()
+    private fun totalNativeHeapSize(): String = (Debug.getNativeHeapSize() / KB).toString()
 
-    private fun memoryClass(): String = (activityManager.memoryClass).toString()
+    private fun memoryClass(): String = (activityManager.memoryClass * KB).toString()
 }
