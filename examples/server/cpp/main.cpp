@@ -17,7 +17,7 @@ using namespace bitdrift;
 int main(){
     auto logger = new_logger(
         "<API KEY>",
-        "https://api.bitdrift.dev",
+        "https://api.bitdrift.io",
         "/tmp/storage",
         "hello-world",
         "0.0.1",
