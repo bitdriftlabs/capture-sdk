@@ -21,6 +21,7 @@ import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.events.performance.MemoryMonitor
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.lang.reflect.InvocationTargetException
@@ -33,6 +34,7 @@ internal class AppExitLogger(
     private val errorHandler: ErrorHandler,
     private val crashHandler: CaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler(),
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
+    private val memoryMonitor: MemoryMonitor,
 ) {
     companion object {
         const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -92,10 +94,11 @@ internal class AppExitLogger(
         // extract stored id from previous session in order to override the log, bail if not present
         val sessionId = lastExitInfo.processStateSummary?.toString(StandardCharsets.UTF_8) ?: return
         val timestampMs = lastExitInfo.timestamp
+
         logger.log(
             LogType.LIFECYCLE,
             lastExitInfo.reason.toLogLevel(),
-            lastExitInfo.toFields(),
+            buildAppExitAndMemoryFieldsMap(lastExitInfo),
             attributesOverrides = LogAttributesOverrides(sessionId, timestampMs),
         ) { APP_EXIT_EVENT_NAME }
     }
@@ -142,7 +145,15 @@ internal class AppExitLogger(
     }
 
     @TargetApi(Build.VERSION_CODES.R)
-    private fun ApplicationExitInfo.toFields(): InternalFieldsMap {
+    private fun buildAppExitAndMemoryFieldsMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap {
+        val combinedFieldsMap = mutableMapOf<String, String>()
+        combinedFieldsMap.putAll(applicationExitInfo.toMap())
+        combinedFieldsMap.putAll(memoryMonitor.getMemoryAttributes())
+        return combinedFieldsMap.toFields()
+    }
+
+    @TargetApi(Build.VERSION_CODES.R)
+    private fun ApplicationExitInfo.toMap(): Map<String, String> {
         // https://developer.android.com/reference/kotlin/android/app/ApplicationExitInfo
         return mapOf(
             "_app_exit_source" to "ApplicationExitInfo",
@@ -154,7 +165,7 @@ internal class AppExitLogger(
             "_app_exit_rss" to this.rss.toString(),
             "_app_exit_description" to this.description.orEmpty(),
             // TODO(murki): Extract getTraceInputStream() for REASON_ANR or REASON_CRASH_NATIVE
-        ).toFields()
+        )
     }
 
     private fun Int.toReasonText(): String =

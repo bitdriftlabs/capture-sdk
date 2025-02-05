@@ -247,6 +247,7 @@ internal class LoggerImpl(
                         activityManager,
                         runtime,
                         errorHandler,
+                        memoryMonitor = memoryMonitor,
                     )
 
                 // Install the app exit logger before the Capture logger is started to ensure
