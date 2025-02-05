@@ -145,12 +145,11 @@ internal class AppExitLogger(
     }
 
     @TargetApi(Build.VERSION_CODES.R)
-    private fun buildAppExitAndMemoryFieldsMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap {
-        val combinedFieldsMap = mutableMapOf<String, String>()
-        combinedFieldsMap.putAll(applicationExitInfo.toMap())
-        combinedFieldsMap.putAll(memoryMonitor.getMemoryAttributes())
-        return combinedFieldsMap.toFields()
-    }
+    private fun buildAppExitAndMemoryFieldsMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap =
+        buildMap {
+            putAll(applicationExitInfo.toMap())
+            putAll(memoryMonitor.getMemoryAttributes())
+        }.toFields()
 
     @TargetApi(Build.VERSION_CODES.R)
     private fun ApplicationExitInfo.toMap(): Map<String, String> {
