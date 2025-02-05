@@ -31,6 +31,7 @@ import io.bitdrift.capture.events.lifecycle.EventsListenerTarget
 import io.bitdrift.capture.events.performance.AppMemoryPressureListenerLogger
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
+import io.bitdrift.capture.events.performance.MemoryMetricsProvider
 import io.bitdrift.capture.events.performance.MemoryMonitor
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
 import io.bitdrift.capture.events.span.Span
@@ -79,7 +80,7 @@ internal class LoggerImpl(
     private val eventListenerDispatcher: CaptureDispatchers.EventListener = CaptureDispatchers.EventListener,
 ) : ILogger {
     private val metadataProvider: MetadataProvider
-    private val memoryMonitor = MemoryMonitor(context)
+    private val memoryMetricsProvider: MemoryMetricsProvider = MemoryMonitor(context)
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
     private val diskUsageMonitor: DiskUsageMonitor
@@ -151,7 +152,7 @@ internal class LoggerImpl(
 
                 resourceUtilizationTarget =
                     ResourceUtilizationTarget(
-                        memoryMonitor,
+                        memoryMetricsProvider,
                         batteryMonitor,
                         powerMonitor,
                         diskUsageMonitor,
@@ -225,7 +226,7 @@ internal class LoggerImpl(
                     AppMemoryPressureListenerLogger(
                         this,
                         context,
-                        memoryMonitor,
+                        memoryMetricsProvider,
                         runtime,
                         eventListenerDispatcher.executorService,
                     ),
@@ -247,7 +248,7 @@ internal class LoggerImpl(
                         activityManager,
                         runtime,
                         errorHandler,
-                        memoryMonitor = memoryMonitor,
+                        memoryMetricsProvider = memoryMetricsProvider,
                     )
 
                 // Install the app exit logger before the Capture logger is started to ensure

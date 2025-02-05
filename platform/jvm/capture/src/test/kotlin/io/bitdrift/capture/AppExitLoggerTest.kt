@@ -22,6 +22,7 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.CaptureUncaughtExceptionHandler
+import io.bitdrift.capture.events.performance.MemoryMetricsProvider
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
@@ -39,6 +40,7 @@ class AppExitLoggerTest {
     private val errorHandler: ErrorHandler = mock()
     private val crashHandler: CaptureUncaughtExceptionHandler = mock()
     private val versionChecker: BuildVersionChecker = mock()
+    private val memoryMetricsProvider: MemoryMetricsProvider = mock()
     private val appExitLogger =
         AppExitLogger(
             logger,
@@ -47,6 +49,7 @@ class AppExitLoggerTest {
             errorHandler,
             crashHandler,
             versionChecker,
+            memoryMetricsProvider,
         )
 
     @Before

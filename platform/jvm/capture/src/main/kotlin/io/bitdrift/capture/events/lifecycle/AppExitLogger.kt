@@ -21,7 +21,7 @@ import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.events.performance.MemoryMonitor
+import io.bitdrift.capture.events.performance.MemoryMetricsProvider
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.lang.reflect.InvocationTargetException
@@ -34,7 +34,7 @@ internal class AppExitLogger(
     private val errorHandler: ErrorHandler,
     private val crashHandler: CaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler(),
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
-    private val memoryMonitor: MemoryMonitor,
+    private val memoryMetricsProvider: MemoryMetricsProvider,
 ) {
     companion object {
         const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -148,7 +148,7 @@ internal class AppExitLogger(
     private fun buildAppExitAndMemoryFieldsMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap =
         buildMap {
             putAll(applicationExitInfo.toMap())
-            putAll(memoryMonitor.getMemoryAttributes())
+            putAll(memoryMetricsProvider.getMemoryAttributes())
         }.toFields()
 
     @TargetApi(Build.VERSION_CODES.R)

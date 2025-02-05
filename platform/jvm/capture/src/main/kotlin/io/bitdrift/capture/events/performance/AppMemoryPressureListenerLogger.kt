@@ -22,7 +22,7 @@ import java.util.concurrent.ExecutorService
 internal class AppMemoryPressureListenerLogger(
     private val logger: LoggerImpl,
     private val context: Context,
-    private val memoryMonitor: MemoryMonitor,
+    private val memoryMetricsProvider: MemoryMetricsProvider,
     private val runtime: Runtime,
     private val executor: ExecutorService,
 ) : IEventListenerLogger,
@@ -47,7 +47,7 @@ internal class AppMemoryPressureListenerLogger(
                 "_trim_level" to getTrimLevelAsString(level),
             )
 
-        fields.putAll(memoryMonitor.getMemoryAttributes())
+        fields.putAll(memoryMetricsProvider.getMemoryAttributes())
 
         return fields
     }

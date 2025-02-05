@@ -15,10 +15,10 @@ private const val KB = 1024L
 
 internal class MemoryMonitor(
     context: Context,
-) {
+) : MemoryMetricsProvider {
     private val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
 
-    fun getMemoryAttributes(): Map<String, String> =
+    override fun getMemoryAttributes(): Map<String, String> =
         mapOf(
             "_jvm_used_kb" to usedJvmMemory(),
             "_jvm_total_kb" to totalJvmMemory(),

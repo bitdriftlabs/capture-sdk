@@ -17,7 +17,7 @@ import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
-import io.bitdrift.capture.events.performance.MemoryMonitor
+import io.bitdrift.capture.events.performance.MemoryMetricsProvider
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
 import org.junit.Test
 import java.util.concurrent.ExecutorService
@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 
 class ResourceUtilizationTargetTest {
-    private val memoryMonitor: MemoryMonitor = mock()
+    private val memoryMetricsProvider: MemoryMetricsProvider = mock()
     private val batteryMonitor: BatteryMonitor = mock()
     private val powerMonitor: PowerMonitor = mock()
     private val diskUsageMonitor: DiskUsageMonitor = mock()
@@ -37,7 +37,7 @@ class ResourceUtilizationTargetTest {
 
     private val reporter =
         ResourceUtilizationTarget(
-            memoryMonitor = memoryMonitor,
+            memoryMetricsProvider = memoryMetricsProvider,
             batteryMonitor = batteryMonitor,
             powerMonitor = powerMonitor,
             diskUsageMonitor = diskUsageMonitor,
@@ -59,7 +59,7 @@ class ResourceUtilizationTargetTest {
     @Test
     @Suppress("INVISIBLE_MEMBER")
     fun resourceUtilizationTickEmitsLog() {
-        whenever(memoryMonitor.getMemoryAttributes()).thenReturn(
+        whenever(memoryMetricsProvider.getMemoryAttributes()).thenReturn(
             mapOf(
                 "_jvm_used_kb" to "50",
                 "_jvm_total_kb" to "100",
@@ -100,7 +100,7 @@ class ResourceUtilizationTargetTest {
     @Test
     fun resourceUtilizationTickSnapshotFails() {
         val exception = IllegalArgumentException()
-        whenever(memoryMonitor.getMemoryAttributes()).thenThrow(exception)
+        whenever(memoryMetricsProvider.getMemoryAttributes()).thenThrow(exception)
 
         reporter.tick()
 
