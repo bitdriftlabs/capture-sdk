@@ -17,8 +17,9 @@ import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
-import io.bitdrift.capture.events.performance.MemoryMonitor
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
+import io.bitdrift.capture.fakes.FakeIMemoryMetricsProvider
+import org.junit.After
 import org.junit.Test
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -26,7 +27,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 
 class ResourceUtilizationTargetTest {
-    private val memoryMonitor: MemoryMonitor = mock()
+    private val memoryMetricsProvider = FakeIMemoryMetricsProvider()
     private val batteryMonitor: BatteryMonitor = mock()
     private val powerMonitor: PowerMonitor = mock()
     private val diskUsageMonitor: DiskUsageMonitor = mock()
@@ -37,7 +38,7 @@ class ResourceUtilizationTargetTest {
 
     private val reporter =
         ResourceUtilizationTarget(
-            memoryMonitor = memoryMonitor,
+            memoryMetricsProvider = memoryMetricsProvider,
             batteryMonitor = batteryMonitor,
             powerMonitor = powerMonitor,
             diskUsageMonitor = diskUsageMonitor,
@@ -59,16 +60,6 @@ class ResourceUtilizationTargetTest {
     @Test
     @Suppress("INVISIBLE_MEMBER")
     fun resourceUtilizationTickEmitsLog() {
-        whenever(memoryMonitor.getMemoryAttributes()).thenReturn(
-            mapOf(
-                "_jvm_used_kb" to "50",
-                "_jvm_total_kb" to "100",
-                "_native_used_kb" to "200",
-                "_native_total_kb" to "500",
-                "_memory_class" to "1024",
-            ),
-        )
-
         whenever(batteryMonitor.batteryPercentageAttribute()).thenReturn(Pair("_battery_val", "0.75"))
         whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
 
@@ -100,12 +91,16 @@ class ResourceUtilizationTargetTest {
     @Test
     fun resourceUtilizationTickSnapshotFails() {
         val exception = IllegalArgumentException()
-        whenever(memoryMonitor.getMemoryAttributes()).thenThrow(exception)
+        memoryMetricsProvider.setException(exception)
 
         reporter.tick()
 
         executor.awaitTermination(1, TimeUnit.SECONDS)
-
         verify(errorHandler).handleError(eq("resource utilization tick"), refEq(exception))
+    }
+
+    @After
+    fun tearDown() {
+        memoryMetricsProvider.clear()
     }
 }
