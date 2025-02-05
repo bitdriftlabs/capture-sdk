@@ -154,18 +154,14 @@ class AppExitLoggerTest {
         // ASSERT
         val expectedFields =
             buildMap {
-                putAll(
-                    mapOf(
-                        "_app_exit_source" to "ApplicationExitInfo",
-                        "_app_exit_process_name" to "test-process-name",
-                        "_app_exit_reason" to "ANR",
-                        "_app_exit_importance" to "FOREGROUND",
-                        "_app_exit_status" to "0",
-                        "_app_exit_pss" to "1",
-                        "_app_exit_rss" to "2",
-                        "_app_exit_description" to "test-description",
-                    ),
-                )
+                put("_app_exit_source", "ApplicationExitInfo")
+                put("_app_exit_process_name", "test-process-name")
+                put("_app_exit_reason", "ANR")
+                put("_app_exit_importance", "FOREGROUND")
+                put("_app_exit_status", "0")
+                put("_app_exit_pss", "1")
+                put("_app_exit_rss", "2")
+                put("_app_exit_description", "test-description")
                 putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
             }.toFields()
         verify(logger).log(
@@ -204,15 +200,11 @@ class AppExitLoggerTest {
         // ASSERT
         val expectedFields =
             buildMap {
-                putAll(
-                    mapOf(
-                        "_app_exit_source" to "UncaughtExceptionHandler",
-                        "_app_exit_reason" to "Crash",
-                        "_app_exit_info" to appException.javaClass.name,
-                        "_app_exit_details" to appException.message.orEmpty(),
-                        "_app_exit_thread" to currentThread.name,
-                    ),
-                )
+                put("_app_exit_source", "UncaughtExceptionHandler")
+                put("_app_exit_reason", "Crash")
+                put("_app_exit_info", appException.javaClass.name)
+                put("_app_exit_details", appException.message.orEmpty())
+                put("_app_exit_thread", currentThread.name)
                 putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
             }.toFields()
         verify(logger).log(
