@@ -2,6 +2,12 @@ load("@cxx.rs//tools/bazel:rust_cxx_bridge.bzl", "rust_cxx_bridge")
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
 
+filegroup(
+    name = "capture_with_headers",
+    srcs = [":capture", "src/lib.rs.h"],
+    visibility = ["//visibility:public"],
+)
+
 cc_binary(
     name = "capture",
     linkopts = ["-lz"] + select({
@@ -10,6 +16,7 @@ cc_binary(
             "-Wl,-exported_symbol,__ZNK6Logger*",
             "-Wl,-exported_symbol,__Z10new_logger*",
             "-Wl,-exported_symbol,__ZN4rust*",
+            "-Wl,-exported_symbol,__ZNK4rust1*",
         ],
         "//conditions:default": ["@platforms//:incompatible"],
     }) + select({
