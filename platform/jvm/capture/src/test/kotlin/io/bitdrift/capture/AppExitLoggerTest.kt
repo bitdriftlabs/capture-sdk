@@ -22,7 +22,8 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.CaptureUncaughtExceptionHandler
-import io.bitdrift.capture.events.performance.MemoryMetricsProvider
+import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
+import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
@@ -40,7 +41,7 @@ class AppExitLoggerTest {
     private val errorHandler: ErrorHandler = mock()
     private val crashHandler: CaptureUncaughtExceptionHandler = mock()
     private val versionChecker: BuildVersionChecker = mock()
-    private val memoryMetricsProvider: MemoryMetricsProvider = mock()
+    private val memoryMetricsProvider = FakeMemoryMetricsProvider()
     private val appExitLogger =
         AppExitLogger(
             logger,
@@ -152,16 +153,21 @@ class AppExitLoggerTest {
 
         // ASSERT
         val expectedFields =
-            mapOf(
-                "_app_exit_source" to "ApplicationExitInfo",
-                "_app_exit_process_name" to "test-process-name",
-                "_app_exit_reason" to "ANR",
-                "_app_exit_importance" to "FOREGROUND",
-                "_app_exit_status" to "0",
-                "_app_exit_pss" to "1",
-                "_app_exit_rss" to "2",
-                "_app_exit_description" to "test-description",
-            ).toFields()
+            buildMap {
+                putAll(
+                    mapOf(
+                        "_app_exit_source" to "ApplicationExitInfo",
+                        "_app_exit_process_name" to "test-process-name",
+                        "_app_exit_reason" to "ANR",
+                        "_app_exit_importance" to "FOREGROUND",
+                        "_app_exit_status" to "0",
+                        "_app_exit_pss" to "1",
+                        "_app_exit_rss" to "2",
+                        "_app_exit_description" to "test-description",
+                    ),
+                )
+                putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
+            }.toFields()
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
@@ -197,13 +203,18 @@ class AppExitLoggerTest {
         appExitLogger.logCrash(currentThread, RuntimeException("wrapper crash", appException))
         // ASSERT
         val expectedFields =
-            mapOf(
-                "_app_exit_source" to "UncaughtExceptionHandler",
-                "_app_exit_reason" to "Crash",
-                "_app_exit_info" to appException.javaClass.name,
-                "_app_exit_details" to appException.message.orEmpty(),
-                "_app_exit_thread" to currentThread.name,
-            ).toFields()
+            buildMap {
+                putAll(
+                    mapOf(
+                        "_app_exit_source" to "UncaughtExceptionHandler",
+                        "_app_exit_reason" to "Crash",
+                        "_app_exit_info" to appException.javaClass.name,
+                        "_app_exit_details" to appException.message.orEmpty(),
+                        "_app_exit_thread" to currentThread.name,
+                    ),
+                )
+                putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
+            }.toFields()
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
