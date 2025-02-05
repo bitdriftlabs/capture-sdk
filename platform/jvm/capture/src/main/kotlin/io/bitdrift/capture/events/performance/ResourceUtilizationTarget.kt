@@ -18,7 +18,7 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 internal class ResourceUtilizationTarget(
-    private val memoryMetricsProvider: MemoryMetricsProvider,
+    private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val batteryMonitor: BatteryMonitor,
     private val powerMonitor: PowerMonitor,
     private val diskUsageMonitor: DiskUsageMonitor,

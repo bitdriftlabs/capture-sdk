@@ -21,7 +21,7 @@ import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.events.performance.MemoryMetricsProvider
+import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.lang.reflect.InvocationTargetException
@@ -34,7 +34,7 @@ internal class AppExitLogger(
     private val errorHandler: ErrorHandler,
     private val crashHandler: CaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler(),
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
-    private val memoryMetricsProvider: MemoryMetricsProvider,
+    private val memoryMetricsProvider: IMemoryMetricsProvider,
 ) {
     companion object {
         const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -154,15 +154,11 @@ internal class AppExitLogger(
     ): InternalFieldsMap {
         val rootCause = throwable.getRootCause()
         return buildMap {
-            putAll(
-                mapOf(
-                    APP_EXIT_SOURCE_KEY to "UncaughtExceptionHandler",
-                    APP_EXIT_REASON_KEY to "Crash",
-                    APP_EXIT_INFO_KEY to rootCause.javaClass.name,
-                    APP_EXIT_DETAILS_KEY to rootCause.message.orEmpty(),
-                    APP_EXIT_THREAD_KEY to thread.name,
-                ),
-            )
+            put(APP_EXIT_SOURCE_KEY, "UncaughtExceptionHandler")
+            put(APP_EXIT_REASON_KEY, "Crash")
+            put(APP_EXIT_INFO_KEY, rootCause.javaClass.name)
+            put(APP_EXIT_DETAILS_KEY, rootCause.message.orEmpty())
+            put(APP_EXIT_THREAD_KEY, thread.name)
             putAll(memoryMetricsProvider.getMemoryAttributes())
         }.toFields()
     }

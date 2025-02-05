@@ -18,7 +18,7 @@ import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
-import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
+import io.bitdrift.capture.fakes.FakeIMemoryMetricsProvider
 import org.junit.After
 import org.junit.Test
 import java.util.concurrent.ExecutorService
@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 
 class ResourceUtilizationTargetTest {
-    private val memoryMetricsProvider = FakeMemoryMetricsProvider()
+    private val memoryMetricsProvider = FakeIMemoryMetricsProvider()
     private val batteryMonitor: BatteryMonitor = mock()
     private val powerMonitor: PowerMonitor = mock()
     private val diskUsageMonitor: DiskUsageMonitor = mock()
@@ -72,11 +72,11 @@ class ResourceUtilizationTargetTest {
         verify(logger).logResourceUtilization(
             eq(
                 mapOf(
-                    "_jvm_used_kb" to "50",
-                    "_jvm_total_kb" to "100",
-                    "_native_used_kb" to "200",
-                    "_native_total_kb" to "500",
-                    "_memory_class" to "1024",
+                    "_jvm_used_mb" to "0.1",
+                    "_jvm_total_mb" to "0.5",
+                    "_native_used_mb" to "0.2",
+                    "_native_total_mb" to "0.5",
+                    "_memory_class" to "1",
                     "_battery_val" to "0.75",
                     "_state" to "charging",
                     "_low_power_enabled" to "1",

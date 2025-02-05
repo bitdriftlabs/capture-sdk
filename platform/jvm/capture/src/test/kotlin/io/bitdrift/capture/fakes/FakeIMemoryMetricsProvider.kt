@@ -7,12 +7,12 @@
 
 package io.bitdrift.capture.fakes
 
-import io.bitdrift.capture.events.performance.MemoryMetricsProvider
+import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 
 /**
- * Fake [MemoryMetricsProvider] with default memory attribute values
+ * Fake [IMemoryMetricsProvider] with default memory attribute values
  */
-class FakeMemoryMetricsProvider : MemoryMetricsProvider {
+class FakeIMemoryMetricsProvider : IMemoryMetricsProvider {
     private var exception: Exception? = null
 
     override fun getMemoryAttributes(): Map<String, String> {
@@ -33,11 +33,11 @@ class FakeMemoryMetricsProvider : MemoryMetricsProvider {
     companion object {
         val DEFAULT_MEMORY_ATTRIBUTES_MAP =
             mapOf(
-                "_jvm_used_kb" to "50",
-                "_jvm_total_kb" to "100",
-                "_native_used_kb" to "200",
-                "_native_total_kb" to "500",
-                "_memory_class" to "1024",
+                "_jvm_used_mb" to "0.1",
+                "_jvm_total_mb" to "0.5",
+                "_native_used_mb" to "0.2",
+                "_native_total_mb" to "0.5",
+                "_memory_class" to "1",
             )
     }
 }

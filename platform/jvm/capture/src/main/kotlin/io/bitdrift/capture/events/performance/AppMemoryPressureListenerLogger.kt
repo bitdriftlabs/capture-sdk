@@ -22,7 +22,7 @@ import java.util.concurrent.ExecutorService
 internal class AppMemoryPressureListenerLogger(
     private val logger: LoggerImpl,
     private val context: Context,
-    private val memoryMetricsProvider: MemoryMetricsProvider,
+    private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val runtime: Runtime,
     private val executor: ExecutorService,
 ) : IEventListenerLogger,
