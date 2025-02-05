@@ -40,6 +40,10 @@ impl bd_api::Metadata for Mobile {
     &self.platform
   }
 
+  fn device_id(&self) -> String {
+    self.device.id()
+  }
+
   fn os(&self) -> String {
     self.os.clone()
   }

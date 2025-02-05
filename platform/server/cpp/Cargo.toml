@@ -1,0 +1,31 @@
+[package]
+edition      = "2021"
+license-file = "LICENSE"
+name         = "platform-linux"
+publish      = false
+version      = "1.0.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow.workspace             = true
+bd-client-common.workspace   = true
+bd-device.workspace          = true
+bd-events.workspace          = true
+bd-hyper-network.workspace   = true
+bd-key-value.workspace       = true
+bd-log.workspace             = true
+bd-logger.workspace = true
+bd-metadata.workspace = true
+bd-session.workspace = true
+bd-shutdown.workspace = true
+bd-time.workspace = true
+ctor.workspace = true
+time.workspace = true
+tokio.workspace              = true
+cxx.workspace = true
+parking_lot.workspace = true
+bd-session-replay.workspace = true
+bd-resource-utilization.workspace = true
+tracing.workspace = true
