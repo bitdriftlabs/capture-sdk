@@ -10,11 +10,6 @@ use logger::RustLogger;
 
 mod logger;
 
-struct LogField {
-  key: String,
-  value: String,
-}
-
 struct Logger {
   inner: RustLogger,
 }
@@ -58,7 +53,7 @@ impl Logger {
     Ok(self.inner.device_id())
   }
 
-  pub fn log(&self, level: u32, message: String, fields: Vec<LogField>) -> anyhow::Result<()> {
+  pub fn log(&self, level: u32, message: String, fields: Vec<ffi::LogField>) -> anyhow::Result<()> {
     let fields: AnnotatedLogFields = fields
       .into_iter()
       .map(|field| AnnotatedLogField {
@@ -72,20 +67,26 @@ impl Logger {
 
     tracing::trace!("Logging message: {level} {message} with fields {fields:?}");
 
-    // Safety: We know that the level corresponds to a valid log_level due to us controlling the
-    // call site and only passing 0-4 integer values.
-    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    let level = match level {
+      0..=4 => level,
+      _ => bd_logger::log_level::INFO,
+    };
+
     self.inner.log(level, message, fields);
 
     Ok(())
   }
 }
 
-#[cxx::bridge]
+#[cxx::bridge(namespace = "bitdrift")]
 mod ffi {
+  struct LogField {
+    pub key: String,
+    pub value: String,
+  }
+
   extern "Rust" {
     type Logger;
-    type LogField;
 
     fn new_logger(
       api_key: String,

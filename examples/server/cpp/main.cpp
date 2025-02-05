@@ -12,7 +12,7 @@
 #include <thread>
 
 using namespace std;
-using namespace rust;
+using namespace bitdrift;
 
 int main(){
     auto logger = new_logger(
@@ -28,7 +28,12 @@ int main(){
     cout << "Device ID: " << logger->device_id().c_str() << endl;
 
     for (int i = 0; i < 100; i++) {
-        logger->log(1, "Hello, World!", Vec<LogField>());
+        rust::Vec<LogField> fields = {
+            LogField { "key1", "value1" },
+            LogField { "key2", "value2" },
+            LogField { "key3", "value3" }
+        };
+        logger->log(1, "Hello, World!", fields);
         this_thread::sleep_for(std::chrono::seconds(5));
     }
 
