@@ -516,7 +516,7 @@ extern "C" fn capture_create_logger(
         device,
         static_metadata,
       })
-      .with_mobile_features(true)
+      .with_client_stats(true)
       .with_internal_logger(true)
       .build()
       .map(|(logger, _, future)| LoggerHolder::new(logger, future))?;
