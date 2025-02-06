@@ -22,6 +22,7 @@ import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
+import io.bitdrift.capture.events.performance.IThreadMetricsProvider
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.lang.reflect.InvocationTargetException
@@ -35,6 +36,7 @@ internal class AppExitLogger(
     private val crashHandler: CaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler(),
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
     private val memoryMetricsProvider: IMemoryMetricsProvider,
+    private val threadMetricsProvider: IThreadMetricsProvider,
 ) {
     companion object {
         const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -109,7 +111,7 @@ internal class AppExitLogger(
         logger.log(
             LogType.LIFECYCLE,
             lastExitInfo.reason.toLogLevel(),
-            buildAppExitAndMemoryFieldsMap(lastExitInfo),
+            buildAppExitMap(lastExitInfo),
             attributesOverrides = LogAttributesOverrides(sessionId, timestampMs),
         ) { APP_EXIT_EVENT_NAME }
     }
@@ -126,7 +128,7 @@ internal class AppExitLogger(
         logger.log(
             LogType.LIFECYCLE,
             LogLevel.ERROR,
-            buildCrashAndMemoryFieldsMap(thread, throwable),
+            buildUncaughtExceptionHandlerMap(thread, throwable),
             blocking = true, // this ensures we block until the log has been persisted to disk
         ) {
             APP_EXIT_EVENT_NAME
@@ -148,7 +150,7 @@ internal class AppExitLogger(
         return error
     }
 
-    private fun buildCrashAndMemoryFieldsMap(
+    private fun buildUncaughtExceptionHandlerMap(
         thread: Thread,
         throwable: Throwable,
     ): InternalFieldsMap {
@@ -160,14 +162,16 @@ internal class AppExitLogger(
             put(APP_EXIT_DETAILS_KEY, rootCause.message.orEmpty())
             put(APP_EXIT_THREAD_KEY, thread.name)
             putAll(memoryMetricsProvider.getMemoryAttributes())
+            putAll(threadMetricsProvider.getThreadAttributes())
         }.toFields()
     }
 
     @TargetApi(Build.VERSION_CODES.R)
-    private fun buildAppExitAndMemoryFieldsMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap =
+    private fun buildAppExitMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap =
         buildMap {
             putAll(applicationExitInfo.toMap())
             putAll(memoryMetricsProvider.getMemoryAttributes())
+            putAll(threadMetricsProvider.getThreadAttributes())
         }.toFields()
 
     @TargetApi(Build.VERSION_CODES.R)
