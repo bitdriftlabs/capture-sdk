@@ -44,6 +44,10 @@ impl bd_api::Metadata for Mobile {
     self.os.clone()
   }
 
+  fn device_id(&self) -> String {
+    self.device.id()
+  }
+
   #[must_use]
   fn collect_inner(&self) -> HashMap<String, String> {
     let mut metadata_map = HashMap::new();
@@ -56,7 +60,6 @@ impl bd_api::Metadata for Mobile {
       metadata_map.insert("app_version".to_string(), app_version.to_string());
     }
 
-    metadata_map.insert("device_id".to_string(), self.device.id());
     metadata_map.insert("model".to_string(), self.model.clone());
 
     metadata_map

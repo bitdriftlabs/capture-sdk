@@ -31,3 +31,6 @@ uuid.workspace               = true
 [dev-dependencies]
 bd-test-helpers.workspace   = true
 pretty_assertions.workspace = true
+
+[features]
+cargo-clippy = []
