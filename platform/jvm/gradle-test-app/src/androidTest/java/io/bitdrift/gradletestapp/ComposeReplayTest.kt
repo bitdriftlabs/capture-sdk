@@ -72,12 +72,12 @@ class ComposeReplayTest {
     private lateinit var replayClient: ReplayPreviewClient
     private val replay: AtomicReference<Pair<FilteredCapture, ReplayCaptureMetrics>?> = AtomicReference(null)
     private lateinit var latch: CountDownLatch
-
+    private val fakeBackgroundThreadHandler = FakeBackgroundThreadHandler()
     @Before
     fun setUp() {
         latch = CountDownLatch(1)
         // We defer to ReplayPreviewClient to manage the screen capture logic
-        replayClient = TestUtils.createReplayPreviewClient(replay, latch, InstrumentationRegistry.getInstrumentation().targetContext)
+        replayClient = TestUtils.createReplayPreviewClient(replay, latch, InstrumentationRegistry.getInstrumentation().targetContext, fakeBackgroundThreadHandler)
     }
 
     private fun verifyReplayScreen(viewCount: Int = 3): FilteredCapture {

@@ -157,7 +157,7 @@ internal class LoggerImpl(
                         diskUsageMonitor,
                         errorHandler,
                         this,
-                        eventListenerDispatcher.executorService,
+                        eventListenerDispatcher,
                     )
 
                 val sessionReplayTarget =
@@ -206,7 +206,7 @@ internal class LoggerImpl(
                         this,
                         ProcessLifecycleOwner.get(),
                         runtime,
-                        eventListenerDispatcher.executorService,
+                        eventListenerDispatcher,
                     ),
                 )
 
@@ -217,7 +217,7 @@ internal class LoggerImpl(
                         batteryMonitor,
                         powerMonitor,
                         runtime,
-                        eventListenerDispatcher.executorService,
+                        eventListenerDispatcher,
                     ),
                 )
 
@@ -227,7 +227,7 @@ internal class LoggerImpl(
                         context,
                         memoryMetricsProvider,
                         runtime,
-                        eventListenerDispatcher.executorService,
+                        eventListenerDispatcher,
                     ),
                 )
 
@@ -237,7 +237,7 @@ internal class LoggerImpl(
                         clientAttributes,
                         context,
                         runtime,
-                        eventListenerDispatcher.executorService,
+                        eventListenerDispatcher,
                     ),
                 )
 

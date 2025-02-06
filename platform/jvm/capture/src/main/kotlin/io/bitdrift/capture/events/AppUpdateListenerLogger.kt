@@ -10,10 +10,10 @@ package io.bitdrift.capture.events
 import android.content.Context
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.attributes.ClientAttributes
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import java.io.File
-import java.util.concurrent.ExecutorService
 import kotlin.time.DurationUnit
 import kotlin.time.measureTimedValue
 
@@ -22,10 +22,10 @@ internal class AppUpdateListenerLogger(
     private val clientAttributes: ClientAttributes,
     private val context: Context,
     private val runtime: Runtime,
-    private val executor: ExecutorService,
+    private val backgroundThreadHandler: IBackgroundThreadHandler,
 ) : IEventListenerLogger {
     override fun start() {
-        executor.execute {
+        backgroundThreadHandler.runAction {
             maybeLogAppUpdate(clientAttributes.appVersion, clientAttributes.appVersionCode)
         }
     }

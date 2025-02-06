@@ -8,6 +8,7 @@
 package io.bitdrift.capture.threading
 
 import androidx.annotation.VisibleForTesting
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -17,17 +18,23 @@ import java.util.concurrent.Executors
  * The initial implementation exposes an [executorService]
  */
 internal sealed class CaptureDispatchers private constructor(
-    threadName: String,
-) {
-    private var _executorService: ExecutorService =
+    private val threadName: String,
+) : IBackgroundThreadHandler {
+    private var executorService: ExecutorService =
         buildExecutorService(threadName)
             .also { register(this) }
 
-    /**
-     * Returns the associated [ExecutorService] for the [CaptureDispatchers] type
-     */
-    val executorService: ExecutorService
-        get() = _executorService
+    override fun runAction(action: () -> Unit) {
+        executorService.execute(action)
+    }
+
+    override fun shutdown() {
+        executorService.shutdown()
+    }
+
+    override fun threadName(): String = threadName
+
+    override fun asExecutorService(): ExecutorService = executorService
 
     /**
      * [ExecutorService] to be used for handling different types of [EventsListenerTarget]
@@ -73,7 +80,7 @@ internal sealed class CaptureDispatchers private constructor(
         @VisibleForTesting
         internal fun setTestExecutorService(testExecutorService: ExecutorService) {
             listOf(EventListener, Network, SessionReplay).forEach {
-                it._executorService = testExecutorService
+                it.executorService = testExecutorService
             }
         }
 

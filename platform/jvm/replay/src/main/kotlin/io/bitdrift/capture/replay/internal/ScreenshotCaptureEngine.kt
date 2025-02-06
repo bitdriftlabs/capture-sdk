@@ -15,17 +15,17 @@ import android.view.PixelCopy
 import android.view.View
 import androidx.annotation.RequiresApi
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.IScreenshotLogger
 import java.io.ByteArrayOutputStream
-import java.util.concurrent.ExecutorService
 
 internal class ScreenshotCaptureEngine(
     private val errorHandler: ErrorHandler,
     private val logger: IScreenshotLogger,
     private val mainThreadHandler: MainThreadHandler,
     private val windowManager: WindowManager,
-    private val executor: ExecutorService,
+    private val backgroundThreadHandler: IBackgroundThreadHandler,
     private val metrics: ScreenshotMetricsStopwatch = ScreenshotMetricsStopwatch(),
 ) {
     fun captureScreenshot() {
@@ -68,7 +68,7 @@ internal class ScreenshotCaptureEngine(
             PixelCopy.Request.Builder
                 .ofWindow(topView)
                 .build()
-        PixelCopy.request(screenshotRequest, executor) { screenshotResult ->
+        PixelCopy.request(screenshotRequest, backgroundThreadHandler.asExecutorService()) { screenshotResult ->
             val resultBitmap = screenshotResult.bitmap
             try {
                 if (screenshotResult.status != PixelCopy.SUCCESS) {
@@ -124,7 +124,7 @@ internal class ScreenshotCaptureEngine(
                 }
 
                 // TODO(murki): Try to avoid so much context switching between main and background threads
-                executor.execute {
+                backgroundThreadHandler.runAction {
                     try {
                         metrics.screenshot(resultBitmap.allocationByteCount, resultBitmap.byteCount)
                         val screenshotBytes = compressScreenshot(resultBitmap)

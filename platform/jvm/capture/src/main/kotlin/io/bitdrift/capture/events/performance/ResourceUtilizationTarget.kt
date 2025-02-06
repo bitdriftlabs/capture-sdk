@@ -11,9 +11,9 @@ import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.IResourceUtilizationTarget
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.DefaultClock
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.common.PowerMonitor
-import java.util.concurrent.ExecutorService
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -24,11 +24,11 @@ internal class ResourceUtilizationTarget(
     private val diskUsageMonitor: DiskUsageMonitor,
     private val errorHandler: ErrorHandler,
     private val logger: LoggerImpl,
-    private val executor: ExecutorService,
+    private val backgroundThreadHandler: IBackgroundThreadHandler,
     private val clock: IClock = DefaultClock.getInstance(),
 ) : IResourceUtilizationTarget {
     override fun tick() {
-        executor.execute {
+        backgroundThreadHandler.runAction {
             try {
                 val start = clock.elapsedRealtime()
 

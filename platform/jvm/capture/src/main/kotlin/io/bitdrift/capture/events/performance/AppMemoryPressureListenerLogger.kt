@@ -13,18 +13,18 @@ import android.content.res.Configuration
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.providers.toFields
-import java.util.concurrent.ExecutorService
 
 internal class AppMemoryPressureListenerLogger(
     private val logger: LoggerImpl,
     private val context: Context,
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val runtime: Runtime,
-    private val executor: ExecutorService,
+    private val backgroundThreadHandler: IBackgroundThreadHandler,
 ) : IEventListenerLogger,
     ComponentCallbacks2 {
     // TODO(murki): Remove the usage of these fields altogether
@@ -61,9 +61,9 @@ internal class AppMemoryPressureListenerLogger(
     }
 
     override fun onTrimMemory(level: Int) {
-        executor.execute {
+        backgroundThreadHandler.runAction action@{
             if (!runtime.isEnabled(RuntimeFeature.APP_MEMORY_PRESSURE)) {
-                return@execute
+                return@action
             }
             // refer to levels https://developer.android.com/reference/android/content/ComponentCallbacks2
             logger.log(

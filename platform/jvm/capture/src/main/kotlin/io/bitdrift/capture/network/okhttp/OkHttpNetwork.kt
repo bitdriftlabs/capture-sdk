@@ -172,7 +172,7 @@ internal class OkHttpNetwork(
                         response: Response,
                     ) {
                         // Once we get a response handle, hand it over to the executor for async processing.
-                        networkDispatcher.executorService.execute {
+                        networkDispatcher.runAction {
                             response.use {
                                 consumeResponse(response)
                             }

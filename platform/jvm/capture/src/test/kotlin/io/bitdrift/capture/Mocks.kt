@@ -16,7 +16,7 @@ object Mocks {
     @Suppress("UNCHECKED_CAST")
     val sameThreadHandler: MainThreadHandler by lazy {
         mock {
-            on { run(any()) } doAnswer { (it.arguments[0] as Function0<Unit>).invoke() }
+            on { runAction(any()) } doAnswer { (it.arguments[0] as Function0<Unit>).invoke() }
         }
     }
 }

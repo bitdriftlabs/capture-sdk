@@ -20,13 +20,13 @@ import androidx.annotation.RequiresApi
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.providers.toFields
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicReference
 
 internal class DeviceStateListenerLogger(
@@ -35,7 +35,7 @@ internal class DeviceStateListenerLogger(
     private val batteryMonitor: BatteryMonitor,
     private val powerMonitor: PowerMonitor,
     private val runtime: Runtime,
-    private val executor: ExecutorService,
+    private val backgroundThreadHandler: IBackgroundThreadHandler,
 ) : BroadcastReceiver(),
     IEventListenerLogger,
     ComponentCallbacks2 {
@@ -67,7 +67,7 @@ internal class DeviceStateListenerLogger(
         context.registerComponentCallbacks(this)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            powerMonitor.powerManager?.addThermalStatusListener(executor, thermalCallback)
+            powerMonitor.powerManager?.addThermalStatusListener(backgroundThreadHandler.asExecutorService(), thermalCallback)
         }
     }
 
@@ -84,7 +84,7 @@ internal class DeviceStateListenerLogger(
         context: Context?,
         intent: Intent?,
     ) {
-        executor.execute {
+        backgroundThreadHandler.runAction {
             when (intent?.action) {
                 Intent.ACTION_POWER_CONNECTED ->
                     log(
@@ -118,7 +118,7 @@ internal class DeviceStateListenerLogger(
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
-        executor.execute {
+        backgroundThreadHandler.runAction {
             val diff = newConfig.diff(prevConfig.get())
             prevConfig.set(Configuration(newConfig))
             // detect whether the configuration change was an orientation change

@@ -22,7 +22,7 @@ class MainThreadHandler {
     /**
      * Schedule the given code to run on the main thread
      */
-    fun run(run: () -> Unit) {
+    fun runAction(run: () -> Unit) {
         mainHandler.post { run() }
     }
 }

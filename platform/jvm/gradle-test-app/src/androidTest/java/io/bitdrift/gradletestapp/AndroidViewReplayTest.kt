@@ -34,13 +34,13 @@ class AndroidViewReplayTest {
     private lateinit var replayClient: ReplayPreviewClient
     private val replay: AtomicReference<Pair<FilteredCapture, ReplayCaptureMetrics>?> = AtomicReference(null)
     private lateinit var latch: CountDownLatch
-
+    private val fakeBackgroundThreadHandler = FakeBackgroundThreadHandler()
     @Before
     fun setUp() {
         scenario = launchFragmentInContainer(themeResId = R.style.Theme_MyApplication, initialState = Lifecycle.State.RESUMED)
 
         latch = CountDownLatch(1)
-        replayClient = TestUtils.createReplayPreviewClient(replay, latch, InstrumentationRegistry.getInstrumentation().targetContext)
+        replayClient = TestUtils.createReplayPreviewClient(replay, latch, InstrumentationRegistry.getInstrumentation().targetContext, fakeBackgroundThreadHandler)
     }
 
     @Test

@@ -11,6 +11,7 @@ import android.content.Context
 import android.util.Base64
 import android.util.Log
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.internal.DisplayManagers
 import io.bitdrift.capture.replay.internal.FilteredCapture
@@ -23,7 +24,6 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
 import okio.ByteString.Companion.toByteString
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
@@ -42,6 +42,7 @@ class ReplayPreviewClient(
     protocol: String = "ws",
     host: String = "10.0.2.2",
     port: Int = 3001,
+    backgroundThreadHandler: IBackgroundThreadHandler,
 ) : IReplayLogger {
     private val replayCaptureEngine =
         ReplayCaptureEngine(
@@ -51,7 +52,7 @@ class ReplayPreviewClient(
             MainThreadHandler(),
             WindowManager(errorHandler),
             DisplayManagers(context),
-            Executors.newSingleThreadExecutor(),
+            backgroundThreadHandler,
         )
 
     // Calling this is necessary to capture the display size

@@ -13,17 +13,17 @@ import androidx.lifecycle.LifecycleOwner
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
-import java.util.concurrent.ExecutorService
 
 internal class AppLifecycleListenerLogger(
     private val logger: LoggerImpl,
     private val processLifecycleOwner: LifecycleOwner,
     private val runtime: Runtime,
-    private val executor: ExecutorService,
+    private val backgroundThreadHandler: IBackgroundThreadHandler,
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) : IEventListenerLogger,
     LifecycleEventObserver {
@@ -39,13 +39,13 @@ internal class AppLifecycleListenerLogger(
         )
 
     override fun start() {
-        mainThreadHandler.run {
+        mainThreadHandler.runAction {
             processLifecycleOwner.lifecycle.addObserver(this)
         }
     }
 
     override fun stop() {
-        mainThreadHandler.run {
+        mainThreadHandler.runAction {
             processLifecycleOwner.lifecycle.removeObserver(this)
         }
     }
@@ -54,7 +54,7 @@ internal class AppLifecycleListenerLogger(
         source: LifecycleOwner,
         event: Lifecycle.Event,
     ) {
-        executor.execute {
+        backgroundThreadHandler.runAction execute@{
             if (!runtime.isEnabled(RuntimeFeature.APP_LIFECYCLE_EVENTS)) {
                 return@execute
             }

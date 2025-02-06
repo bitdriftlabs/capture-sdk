@@ -11,11 +11,13 @@ import android.content.Context
 import android.util.Base64
 import android.util.Log
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.replay.IReplayLogger
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.ReplayPreviewClient
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 
 object TestUtils {
@@ -23,7 +25,8 @@ object TestUtils {
     fun createReplayPreviewClient(
         replay: AtomicReference<Pair<FilteredCapture, ReplayCaptureMetrics>?>,
         latch: CountDownLatch,
-        context: Context
+        context: Context,
+        backgroundThreadHandler: IBackgroundThreadHandler
     ): ReplayPreviewClient {
         return ReplayPreviewClient(
             object : ErrorHandler {
@@ -67,6 +70,7 @@ object TestUtils {
                 }
             },
             context,
+            backgroundThreadHandler = backgroundThreadHandler
         )
     }
 }

@@ -9,12 +9,12 @@ package io.bitdrift.capture.replay
 
 import android.content.Context
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.internal.DisplayManagers
 import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
 import io.bitdrift.capture.replay.internal.ScreenshotCaptureEngine
 import io.bitdrift.capture.replay.internal.WindowManager
-import java.util.concurrent.ExecutorService
 
 /**
  * Sets up and controls the replay feature
@@ -30,7 +30,7 @@ class SessionReplayController(
     sessionReplayConfiguration: SessionReplayConfiguration,
     context: Context,
     mainThreadHandler: MainThreadHandler,
-    executor: ExecutorService,
+    backgroundThreadHandler: IBackgroundThreadHandler,
 ) {
     private val replayCaptureEngine: ReplayCaptureEngine
     private val screenshotCaptureEngine: ScreenshotCaptureEngine
@@ -49,7 +49,7 @@ class SessionReplayController(
                 mainThreadHandler,
                 windowManager,
                 displayManager,
-                executor,
+                backgroundThreadHandler,
             )
         screenshotCaptureEngine =
             ScreenshotCaptureEngine(
@@ -57,7 +57,7 @@ class SessionReplayController(
                 screenshotLogger,
                 mainThreadHandler,
                 windowManager,
-                executor,
+                backgroundThreadHandler,
             )
     }
 
