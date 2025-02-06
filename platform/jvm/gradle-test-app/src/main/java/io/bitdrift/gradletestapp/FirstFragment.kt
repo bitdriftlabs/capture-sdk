@@ -41,6 +41,7 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.apollo.CaptureApolloInterceptor
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
+import io.bitdrift.gradletestapp.appterminations.ArtifitialAppTerminations
 import io.bitdrift.gradletestapp.databinding.FragmentFirstBinding
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
@@ -259,11 +260,14 @@ class FirstFragment : Fragment() {
     private fun forceAppExit(view: View) {
         val selectedAppExitReason = binding.spnAppExitOptions.selectedItem.toString()
         when (AppExitReason.valueOf(selectedAppExitReason)) {
-            AppExitReason.APP_CRASH_EXCEPTION -> {
-                throw RuntimeException("Forced unhandled exception")
+            AppExitReason.APP_REGULAR_CRASH -> {
+                ArtifitialAppTerminations.forceRegularCrash()
+            }
+            AppExitReason.APP_CRASH_TOO_MANY_THREADS -> {
+                ArtifitialAppTerminations.forceTooManyThreadsCrash()
             }
             AppExitReason.ANR -> {
-                Thread.sleep(15000)
+                ArtifitialAppTerminations.forceAnr()
             }
             AppExitReason.SYSTEM_EXIT -> {
                 exitProcess(0)
@@ -277,8 +281,9 @@ class FirstFragment : Fragment() {
     }
 
     enum class AppExitReason {
-        APP_CRASH_EXCEPTION,
+        APP_REGULAR_CRASH,
         APP_CRASH_NATIVE,
+        APP_CRASH_TOO_MANY_THREADS,
         SYSTEM_EXIT,
         ANR
     }

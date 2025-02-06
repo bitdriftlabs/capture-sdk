@@ -17,6 +17,6 @@ class FakeThreadMetricsProvider : IThreadMetricsProvider {
     override fun getThreadAttributes(): Map<String, String> = DEFAULT_THREAD_ATTRIBUTES_MAP
 
     companion object {
-        val DEFAULT_THREAD_ATTRIBUTES_MAP = mapOf("_total_thread_count" to "25")
+        val DEFAULT_THREAD_ATTRIBUTES_MAP = mapOf("_total_active_thread_count" to "25")
     }
 }

@@ -11,11 +11,11 @@ package io.bitdrift.capture.events.performance
  * Concrete implementation of [IMemoryMetricsProvider]
  */
 internal class ThreadMetricsProvider : IThreadMetricsProvider {
-    override fun getThreadAttributes(): Map<String, String> = mapOf(THREAD_COUNT_KEY to getCurrentThreadCount())
+    override fun getThreadAttributes(): Map<String, String> = mapOf(THREAD_COUNT_KEY to getActiveThreadCount())
 
-    private fun getCurrentThreadCount(): String = Thread.getAllStackTraces().size.toString()
+    private fun getActiveThreadCount(): String = Thread.activeCount().toString()
 
     private companion object {
-        private const val THREAD_COUNT_KEY = "_total_thread_count"
+        private const val THREAD_COUNT_KEY = "_total_active_thread_count"
     }
 }
