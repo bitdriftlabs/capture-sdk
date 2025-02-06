@@ -37,7 +37,7 @@ class FakeIMemoryMetricsProvider : IMemoryMetricsProvider {
                 "_jvm_total_kb" to "100",
                 "_native_used_kb" to "200",
                 "_native_total_kb" to "500",
-                "_memory_class" to "1024",
+                "_memory_class" to "1",
             )
     }
 }

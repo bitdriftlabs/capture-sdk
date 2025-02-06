@@ -35,5 +35,5 @@ internal class MemoryMetricsProvider(
 
     private fun totalNativeHeapSize(): String = (Debug.getNativeHeapSize() / KB).toString()
 
-    private fun memoryClass(): String = (activityManager.memoryClass * KB).toString()
+    private fun memoryClass(): String = (activityManager.memoryClass).toString()
 }
