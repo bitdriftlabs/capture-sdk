@@ -26,6 +26,7 @@ startupRuntime = "1.2.0"
 timber = "5.0.1"
 truth = "1.1.4"
 ui = "1.7.6"
+corePerformance = "1.0.0"
 
 [libraries]
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
@@ -51,6 +52,8 @@ okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
+core-performance = { module = "androidx.core:core-performance", version.ref = "corePerformance" }
+core-performance-play-services = { module = "androidx.core:core-performance-play-services", version.ref = "corePerformance" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

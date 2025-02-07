@@ -179,6 +179,8 @@ maven.install(
         "org.jetbrains.kotlin:kotlin-stdlib:{}".format(KOTLIN_STD_VERSION),
         "androidx.emoji2:emoji2:1.5.0",
         "androidx.collection:collection:1.4.5",
+        "androidx.core:core-performance:1.0.0",
+        "androidx.core:core-performance-play-services:1.0.0",
 
         # Compose
         "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:{}".format(KOTLIN_COMPILE_VERSION),
