@@ -33,6 +33,7 @@ import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
 import io.bitdrift.capture.events.performance.MemoryMetricsProvider
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
+import io.bitdrift.capture.events.performance.ThreadMetricsProvider
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
@@ -80,6 +81,7 @@ internal class LoggerImpl(
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val memoryMetricsProvider = MemoryMetricsProvider(context)
+    private val threadMetricsProvider = ThreadMetricsProvider()
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
     private val diskUsageMonitor: DiskUsageMonitor
@@ -248,6 +250,7 @@ internal class LoggerImpl(
                         runtime,
                         errorHandler,
                         memoryMetricsProvider = memoryMetricsProvider,
+                        threadMetricsProvider = threadMetricsProvider,
                     )
 
                 // Install the app exit logger before the Capture logger is started to ensure

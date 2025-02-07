@@ -24,6 +24,8 @@ import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.fakes.FakeIMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeIMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
+import io.bitdrift.capture.fakes.FakeThreadMetricsProvider
+import io.bitdrift.capture.fakes.FakeThreadMetricsProvider.Companion.DEFAULT_THREAD_ATTRIBUTES_MAP
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
@@ -42,6 +44,8 @@ class AppExitLoggerTest {
     private val crashHandler: CaptureUncaughtExceptionHandler = mock()
     private val versionChecker: BuildVersionChecker = mock()
     private val memoryMetricsProvider = FakeIMemoryMetricsProvider()
+    private val fakeThreadMetricsProvider = FakeThreadMetricsProvider()
+
     private val appExitLogger =
         AppExitLogger(
             logger,
@@ -51,6 +55,7 @@ class AppExitLoggerTest {
             crashHandler,
             versionChecker,
             memoryMetricsProvider,
+            fakeThreadMetricsProvider,
         )
 
     @Before
@@ -163,6 +168,7 @@ class AppExitLoggerTest {
                 put("_app_exit_rss", "2")
                 put("_app_exit_description", "test-description")
                 putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
+                putAll(DEFAULT_THREAD_ATTRIBUTES_MAP)
             }.toFields()
         verify(logger).log(
             eq(LogType.LIFECYCLE),
@@ -206,6 +212,7 @@ class AppExitLoggerTest {
                 put("_app_exit_details", appException.message.orEmpty())
                 put("_app_exit_thread", currentThread.name)
                 putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
+                putAll(DEFAULT_THREAD_ATTRIBUTES_MAP)
             }.toFields()
         verify(logger).log(
             eq(LogType.LIFECYCLE),
