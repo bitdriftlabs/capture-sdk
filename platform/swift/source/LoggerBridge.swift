@@ -177,6 +177,10 @@ final class LoggerBridge: LoggerBridging {
         capture_flush(self.loggerID, blocking)
     }
 
+    func disableDiskReadWrite(disable: Bool) {
+        capture_disable_disk_read_write(self.loggerID, disable)
+    }
+
     func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
         return variable.load(loggerID: self.loggerID)
     }

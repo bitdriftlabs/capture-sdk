@@ -177,7 +177,7 @@ void capture_write_app_launch_tti_log(
     double duration_s
 );
 
-/* 
+/*
 * Writes a screen view log.
 *
 * @param loggerId the ID of the logger to write to.
@@ -240,6 +240,14 @@ void capture_remove_log_field(logger_id logger_id, const char *key);
  * @param blocking whether the method should return only after the flush is complete.
  */
 void capture_flush(logger_id logger_id, bool blocking);
+
+/*
+ * Disable/enable disk read/write for a logger.
+ *
+ * @param logger_id the logger to disable/enable.
+ * @param disable whether to disable or enable disk access.
+ */
+void capture_disable_disk_read_write(logger_id logger_id, bool disable);
 
 /**
  * Signals the specified logger to shut down.

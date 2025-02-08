@@ -856,6 +856,18 @@ extern "C" fn capture_flush(logger_id: LoggerId<'_>, blocking: bool) {
   );
 }
 
+#[no_mangle]
+extern "C" fn capture_disable_disk_read_write(logger_id: LoggerId<'_>, disable: bool) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      logger_id.disable_disk_read_write(disable);
+
+      Ok(())
+    },
+    "swift disable disk read write",
+  );
+}
+
 mod flags {
   use bd_runtime::{bool_feature_flag, int_feature_flag};
 
