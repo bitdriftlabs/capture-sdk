@@ -3,6 +3,7 @@ import {
   init,
   debug,
   generateDeviceCode,
+  getDeviceID,
   SessionStrategy,
 } from '@bitdrift/electron';
 import { config as configDotenv } from 'dotenv';
@@ -39,6 +40,7 @@ const createWindow = async () => {
   debug('App started');
   win.loadFile('index.html');
   console.log(`Device Code: ${await generateDeviceCode()}`);
+  console.log(`Device ID: ${getDeviceID()}`);
   win.webContents.openDevTools();
 };
 

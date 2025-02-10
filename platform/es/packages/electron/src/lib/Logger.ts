@@ -119,6 +119,12 @@ export const trace = (message: string, fields?: LogFields) => {
 export const getSessionID = () => logger?.sessionId;
 
 /**
+  * Gets the ID of the current device.
+  * @returns The ID of the current device.
+  */
+export const getDeviceID = () => logger?.deviceId;
+
+/**
  * Generates a temporary device code for the current device.
  * @returns The generated device code.
  */

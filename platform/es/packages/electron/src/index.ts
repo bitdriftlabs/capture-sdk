@@ -13,6 +13,7 @@ export {
   debug,
   trace,
   getSessionID,
+  getDeviceID,
   generateDeviceCode,
   SessionStrategy,
 } from './lib/Logger';
