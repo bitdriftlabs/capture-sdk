@@ -42,6 +42,7 @@ ios_application(
     ],
     infoplists = ["Info.plist"],
     minimum_os_version = "14.0",
+    entitlements = "Protected.entitlements",
     provisioning_profile = select({
         "//bazel:ios_device_build": "//bazel/ios:ios_provisioning_profile",
         "//conditions:default": None,
@@ -71,6 +72,7 @@ ios_application(
         "ipad",
     ],
     infoplists = ["Info.plist"],
+    entitlements = "Protected.entitlements",
     minimum_os_version = "14.0",
     provisioning_profile = select({
         "//bazel:ios_device_build": "//bazel/ios:ios_provisioning_profile",
