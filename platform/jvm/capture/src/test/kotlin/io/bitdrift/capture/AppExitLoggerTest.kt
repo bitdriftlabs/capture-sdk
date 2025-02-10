@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import android.app.ActivityManager
 import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
+import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.argThat
@@ -25,6 +26,7 @@ import io.bitdrift.capture.events.lifecycle.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.fakes.FakeIMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeIMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
 import org.junit.Test
@@ -38,25 +40,28 @@ class AppExitLoggerTest {
     private val logger: LoggerImpl = mock()
     private val activityManager: ActivityManager = mock()
     private val runtime: Runtime = mock()
+
     private val errorHandler: ErrorHandler = mock()
     private val crashHandler: CaptureUncaughtExceptionHandler = mock()
     private val versionChecker: BuildVersionChecker = mock()
     private val memoryMetricsProvider = FakeIMemoryMetricsProvider()
-    private val appExitLogger =
-        AppExitLogger(
-            logger,
-            activityManager,
-            runtime,
-            errorHandler,
-            crashHandler,
-            versionChecker,
-            memoryMetricsProvider,
-        )
+    private lateinit var appExitLogger: AppExitLogger
 
     @Before
     fun setUp() {
+        CaptureDispatchers.setTestExecutorService(MoreExecutors.newDirectExecutorService())
         whenever(runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)).thenReturn(true)
         whenever(versionChecker.isAtLeast(anyInt())).thenReturn(true)
+        appExitLogger =
+            AppExitLogger(
+                logger,
+                activityManager,
+                runtime,
+                errorHandler,
+                crashHandler,
+                versionChecker,
+                memoryMetricsProvider,
+            )
     }
 
     @Test

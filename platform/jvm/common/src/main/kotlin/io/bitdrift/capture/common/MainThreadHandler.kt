@@ -25,4 +25,27 @@ class MainThreadHandler {
     fun run(run: () -> Unit) {
         mainHandler.post { run() }
     }
+
+    /**
+     * Common main thread checkers
+     */
+    companion object {
+        private const val CALLED_FROM_MAIN_THREAD = "Should not be called from the main thread"
+
+        /**
+         * Checks whether this call happens on the main thread
+         */
+        @JvmStatic
+        fun checkIsNotOnMainThread() {
+            if (isOnMainThread()) {
+                throw IllegalStateException(CALLED_FROM_MAIN_THREAD)
+            }
+        }
+
+        /**
+         * Checks whether this call happens on the main thread
+         */
+        @JvmStatic
+        fun isOnMainThread(): Boolean = Looper.myLooper() == Looper.getMainLooper()
+    }
 }

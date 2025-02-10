@@ -76,7 +76,7 @@ internal class LoggerImpl(
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     private val bridge: IBridge = CaptureJniLibrary,
-    private val eventListenerDispatcher: CaptureDispatchers.EventListener = CaptureDispatchers.EventListener,
+    private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val memoryMetricsProvider = MemoryMetricsProvider(context)
