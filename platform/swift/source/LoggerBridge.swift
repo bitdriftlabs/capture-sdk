@@ -10,6 +10,31 @@ import Foundation
 
 typealias LoggerID = Int64
 
+/// Creates the directory we'll use for the SDK's ring buffer and other storage files,
+/// and disables file protection on it to prevent the app from crashing with EXEC_BAD_ACCESS
+/// when the device is locked. Failing to set the protection policy on the directory will result
+/// in a nil logger.
+///
+/// - parameter path: The path to be created and/or set to none protection
+private func makeDirectoryAndDisableProtection(at path: String) throws {
+    let url = NSURL(fileURLWithPath: path)
+    let manager = FileManager.default
+    if !manager.fileExists(atPath: path) {
+        try manager.createDirectory(
+            atPath: path,
+            withIntermediateDirectories: true,
+            attributes: [FileAttributeKey.protectionKey: FileProtectionType.none]
+        )
+        return
+    }
+
+    var fileProtection: AnyObject?
+    try url.getResourceValue(&fileProtection, forKey: .fileProtectionKey)
+    if let protection = fileProtection as? FileProtectionType, protection != .none {
+        try url.setResourceValue(FileProtectionType.none, forKey: .fileProtectionKey)
+    }
+}
+
 /// A wrapper around Rust logger ID that makes it possible to call Rust logger methods.
 /// It shutdowns underlying Rust logger on release.
 final class LoggerBridge: LoggerBridging {
@@ -30,6 +55,14 @@ final class LoggerBridge: LoggerBridging {
         network: Network?,
         errorReporting: RemoteErrorReporting
     ) {
+        do {
+            try bufferDirectoryPath.map(makeDirectoryAndDisableProtection(at:))
+        } catch {
+            // To be safe we don't initialize the logger if we can't create the directory or set
+            // the file protection policy.
+            return nil
+        }
+
         let loggerID = capture_create_logger(
             bufferDirectoryPath,
             apiKey,
