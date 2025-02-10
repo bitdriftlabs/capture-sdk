@@ -36,13 +36,13 @@ swift_library(
 ios_application(
     name = "ios_app",
     bundle_id = "io.bitdrift.example.helloworld",
+    entitlements = "Protected.entitlements",
     families = [
         "iphone",
         "ipad",
     ],
     infoplists = ["Info.plist"],
     minimum_os_version = "14.0",
-    entitlements = "Protected.entitlements",
     provisioning_profile = select({
         "//bazel:ios_device_build": "//bazel/ios:ios_provisioning_profile",
         "//conditions:default": None,
@@ -67,12 +67,12 @@ swift_library(
 ios_application(
     name = "hello_world_app",
     bundle_id = "io.bitdrift.example.helloworld",
+    entitlements = "Protected.entitlements",
     families = [
         "iphone",
         "ipad",
     ],
     infoplists = ["Info.plist"],
-    entitlements = "Protected.entitlements",
     minimum_os_version = "14.0",
     provisioning_profile = select({
         "//bazel:ios_device_build": "//bazel/ios:ios_provisioning_profile",

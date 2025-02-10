@@ -1,4 +1,5 @@
 load("@rules_multirun//:defs.bzl", "multirun", command = "command_force_opt")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
 # Commands
 

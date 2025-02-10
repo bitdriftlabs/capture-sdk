@@ -58,6 +58,7 @@ bazel_dep(name = "flatbuffers", version = "24.3.25")
 bazel_dep(name = "platforms", version = "0.0.11")
 bazel_dep(name = "rules_kotlin", version = "2.0.0")
 bazel_dep(name = "rules_rust", version = "0.56.0")
+bazel_dep(name = "rules_shell", version = "0.4.0")
 
 # Requiered by android_artifacts for pom_file, it's not in bazel central registry
 bazel_dep(name = "google_bazel_common", version = "0.0.1")
