@@ -20,12 +20,12 @@ class CaptureStartMonitor(private val application: Application) : LoggerStateLis
 
     override fun onLoggerStateUpdate(loggerState: LoggerState) {
         val message = when (loggerState) {
-            is LoggerState.NotStarted -> "Capture SDK not started yet"
-            is LoggerState.Starting -> "Capture SDK starting now"
             is LoggerState.Started -> "Capture SDK started. Took ${loggerState.startDuration} on ${loggerState.callerThreadName} thread"
             is LoggerState.StartFailure -> "Capture SDK start failure. ${loggerState.throwable.message}"
+            else -> null
         }
-        Toast.makeText(application, message, Toast.LENGTH_LONG).show()
-        Log.v("GradleTestApp", message)
+        message?.let {
+            Toast.makeText(application, it, Toast.LENGTH_LONG).show()
+        }
     }
 }
