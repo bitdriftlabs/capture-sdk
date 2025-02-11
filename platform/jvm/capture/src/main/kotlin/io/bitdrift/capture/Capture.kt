@@ -34,7 +34,7 @@ interface ICaptureStartListener {
     /**
      * Notifies when [Capture.Logger.start] fails
      */
-    fun onStartFailure(error: Error)
+    fun onStartFailure(error: SdkNotStartedError)
 }
 
 /**

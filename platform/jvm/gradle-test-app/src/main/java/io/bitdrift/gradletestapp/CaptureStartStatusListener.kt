@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat.MessagingStyle.Message
 import io.bitdrift.capture.Error
 import io.bitdrift.capture.ICaptureStartListener
+import io.bitdrift.capture.SdkNotStartedError
 
 /**
  * A generic monitor for [Capture.Logger.start()] call
@@ -22,7 +23,7 @@ class CaptureStartStatusListener(private val application: Application) : ICaptur
         showToaster(message = "Capture SDK started successfully")
     }
 
-    override fun onStartFailure(error: Error) {
+    override fun onStartFailure(error: SdkNotStartedError) {
         showToaster(message = "Capture SDK couldn't start. ${error.message}")
     }
 
