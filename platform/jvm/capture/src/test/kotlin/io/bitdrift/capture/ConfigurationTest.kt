@@ -24,6 +24,9 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class ConfigurationTest {
+
+    private val loggerStateListener :LoggerStateListener = mock()
+
     @Test
     fun configurationFailure() {
         val initializer = ContextHolder()
@@ -56,6 +59,7 @@ class ConfigurationTest {
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,
             bridge = bridge,
+            loggerStateListener = loggerStateListener
         )
 
         // The configuration failed so the logger is still `null`.
@@ -85,6 +89,7 @@ class ConfigurationTest {
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,
             bridge = bridge,
+            loggerStateListener = loggerStateListener
         )
 
         Assertions.assertThat(Capture.logger()).isNull()
