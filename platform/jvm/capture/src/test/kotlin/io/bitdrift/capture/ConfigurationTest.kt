@@ -9,12 +9,14 @@ package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.anyOrNull
+import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
+import com.nhaarman.mockitokotlin2.verifyNoMoreInteractions
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.providers.session.SessionStrategy
-import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,8 +26,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class ConfigurationTest {
-
-    private val loggerStateListener :LoggerStateListener = mock()
+    private val loggerStateListener: LoggerStateListener = mock()
 
     @Test
     fun configurationFailure() {
@@ -52,18 +53,12 @@ class ConfigurationTest {
         ).thenReturn(-1L)
 
         // We start without configured logger.
-        Assertions.assertThat(Capture.logger()).isNull()
+        assertThat(Capture.logger()).isNull()
 
-        Capture.Logger.start(
-            apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
-            dateProvider = null,
-            bridge = bridge,
-            loggerStateListener = loggerStateListener
-        )
+        startLoggerWithDefault(bridge)
 
         // The configuration failed so the logger is still `null`.
-        Assertions.assertThat(Capture.logger()).isNull()
+        assertThat(Capture.logger()).isNull()
 
         // We confirm that we actually tried to configure the logger.
         verify(bridge, times(1)).createLogger(
@@ -82,17 +77,17 @@ class ConfigurationTest {
             anyOrNull(),
         )
 
+        val loggerStateCaptor = argumentCaptor<LoggerState>()
+        verify(loggerStateListener, times(2))
+            .onLoggerStateUpdate(loggerStateCaptor.capture())
+        assertThat(loggerStateCaptor.firstValue is LoggerState.Starting).isTrue()
+        assertThat(loggerStateCaptor.secondValue is LoggerState.StartFailure).isTrue()
+
         // We perform another attempt to configure the logger to verify that
         // consecutive configure calls are no-ops.
-        Capture.Logger.start(
-            apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
-            dateProvider = null,
-            bridge = bridge,
-            loggerStateListener = loggerStateListener
-        )
+        startLoggerWithDefault(bridge)
 
-        Assertions.assertThat(Capture.logger()).isNull()
+        assertThat(Capture.logger()).isNull()
 
         // We verify that the second configure call was a no-op.
         verify(bridge, times(1)).createLogger(
@@ -110,10 +105,21 @@ class ConfigurationTest {
             anyOrNull(),
             anyOrNull(),
         )
+        verifyNoMoreInteractions(loggerStateListener)
     }
 
     @After
     fun tearDown() {
         Capture.Logger.resetShared()
+    }
+
+    private fun startLoggerWithDefault(bridge: IBridge) {
+        Capture.Logger.start(
+            apiKey = "test1",
+            sessionStrategy = SessionStrategy.Fixed(),
+            dateProvider = null,
+            bridge = bridge,
+            loggerStateListener = loggerStateListener,
+        )
     }
 }

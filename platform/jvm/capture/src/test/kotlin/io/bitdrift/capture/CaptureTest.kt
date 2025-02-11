@@ -8,6 +8,12 @@
 package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
+import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.argumentCaptor
+import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.never
+import com.nhaarman.mockitokotlin2.times
+import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
@@ -26,19 +32,19 @@ import org.robolectric.annotation.Config
 @Config(sdk = [21])
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class CaptureTest {
+    private val loggerStateListener: LoggerStateListener = mock()
+    private val loggerStateCaptor = argumentCaptor<LoggerState>()
+
     // This Test needs to run first since the following tests need to initialize
     // the ContextHolder before they can run.
     @Test
     fun aConfigureSkipsLoggerCreationWhenContextNotInitialized() {
         assertThat(Capture.logger()).isNull()
 
-        Logger.start(
-            apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
-            dateProvider = null,
-        )
+        startLogger(apiKey = "test1")
 
         assertThat(Capture.logger()).isNull()
+        verify(loggerStateListener, never()).onLoggerStateUpdate(any())
     }
 
     // Accessing fields prior to the configuration of the logger may lead to crash since it can
@@ -72,23 +78,56 @@ class CaptureTest {
 
         assertThat(Capture.logger()).isNull()
 
-        Logger.start(
-            apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
-            dateProvider = null,
-        )
+        startLogger(apiKey = "test1")
 
         val logger = Capture.logger()
         assertThat(logger).isNotNull()
         assertThat(Logger.deviceId).isNotNull()
+        verifyLoggerStateSuccessListener()
 
-        Logger.start(
-            apiKey = "test2",
-            sessionStrategy = SessionStrategy.Fixed(),
-            dateProvider = null,
-        )
+        startLogger(apiKey = "test2")
+        verifyLoggerStateSuccessListener()
 
         // Calling reconfigure a second time does not change the static logger.
         assertThat(logger).isEqualTo(Capture.logger())
+    }
+
+    @Test
+    fun loggerStart_withEmptyApiKey_shouldEmitApiKeyErrorFailure() {
+        val initializer = ContextHolder()
+        initializer.create(ApplicationProvider.getApplicationContext())
+
+        startLogger(apiKey = "")
+
+        assertThat(Capture.logger()).isNull()
+        verifyApiKeyError()
+    }
+
+    private fun verifyApiKeyError() {
+        verify(loggerStateListener, times(1)).onLoggerStateUpdate(loggerStateCaptor.capture())
+        val latestEmission = loggerStateCaptor.lastValue
+        assertThat(latestEmission is LoggerState.StartFailure).isTrue()
+        val apiKeyErrorMessage =
+            when (latestEmission) {
+                is LoggerState.StartFailure -> latestEmission.throwable.message
+                else -> ""
+            }
+        assertThat(apiKeyErrorMessage).isEqualTo("API key is empty")
+    }
+
+    private fun verifyLoggerStateSuccessListener() {
+        verify(loggerStateListener, times(2))
+            .onLoggerStateUpdate(loggerStateCaptor.capture())
+        assertThat(loggerStateCaptor.firstValue is LoggerState.Starting).isTrue()
+        assertThat(loggerStateCaptor.secondValue is LoggerState.Started).isTrue()
+    }
+
+    private fun startLogger(apiKey: String) {
+        Logger.start(
+            apiKey = apiKey,
+            sessionStrategy = SessionStrategy.Fixed(),
+            dateProvider = null,
+            loggerStateListener = loggerStateListener,
+        )
     }
 }
