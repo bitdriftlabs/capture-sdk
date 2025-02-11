@@ -54,13 +54,16 @@ internal class AppExitLogger(
         private const val APP_EXIT_DESCRIPTION_KEY = "_app_exit_description"
     }
 
+    @WorkerThread
     fun installAppExitLogger() {
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)) {
             return
         }
-        crashHandler.install(this)
-        saveCurrentSessionId()
-        logPreviousExitReasonIfAny()
+        commonBackgroundDispatcher.launchAsync {
+            crashHandler.install(this)
+            saveCurrentSessionId()
+            logPreviousExitReasonIfAny()
+        }
     }
 
     fun uninstallAppExitLogger() {
