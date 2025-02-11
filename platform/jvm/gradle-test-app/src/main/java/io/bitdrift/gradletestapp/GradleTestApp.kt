@@ -47,6 +47,7 @@ import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import io.bitdrift.capture.Capture
@@ -83,14 +84,21 @@ class GradleTestApp : Application() {
     }
 
     private fun initLogging() {
+        val loggerStateListener = CaptureStartMonitor(this)
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         val stringApiUrl = prefs.getString("apiUrl", null)
         val apiUrl = stringApiUrl?.toHttpUrlOrNull()
         if (apiUrl == null) {
-            Log.e("GradleTestApp", "Failed to initialize bitdrift logger due to invalid API URL: $stringApiUrl")
+            val invalidApiUrlMessage = "Failed to initialize bitdrift logger due to invalid API URL: $stringApiUrl"
+            Toast.makeText(this, invalidApiUrlMessage, Toast.LENGTH_LONG).show()
+            Log.e("GradleTestApp", invalidApiUrlMessage)
             return
         }
-        BitdriftInit.initBitdriftCaptureInJava(apiUrl, prefs.getString("apiKey", ""))
+        BitdriftInit.initBitdriftCaptureInJava(
+            apiUrl,
+            prefs.getString("apiKey", ""),
+            loggerStateListener)
+
         // Timber
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
