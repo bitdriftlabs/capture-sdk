@@ -11,12 +11,12 @@ import android.app.Application
 import android.util.Log
 import android.widget.Toast
 import io.bitdrift.capture.LoggerState
-import io.bitdrift.capture.ICaptureStartListener
+import io.bitdrift.capture.LoggerStateListener
 
 /**
  * A generic monitor for [Capture.Logger.start()] call
  */
-class CaptureStartMonitor(private val application: Application) : ICaptureStartListener {
+class CaptureStartMonitor(private val application: Application) : LoggerStateListener {
 
     override fun onLoggerStateUpdate(loggerState: LoggerState) {
         val message = when (loggerState) {

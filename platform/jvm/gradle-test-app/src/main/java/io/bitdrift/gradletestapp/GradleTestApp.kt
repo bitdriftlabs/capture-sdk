@@ -94,6 +94,7 @@ class GradleTestApp : Application() {
             Log.e("GradleTestApp", invalidApiUrlMessage)
             return
         }
+
         BitdriftInit.initBitdriftCaptureInJava(
             apiUrl,
             prefs.getString("apiKey", ""),
