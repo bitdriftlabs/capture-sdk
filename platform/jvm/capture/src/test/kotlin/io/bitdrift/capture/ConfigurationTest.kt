@@ -11,6 +11,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.verifyNoMoreInteractions
@@ -26,7 +27,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class ConfigurationTest {
-    private val loggerStateListener: LoggerStateListener = mock()
+    private val captureStartListener: ICaptureStartListener = mock()
 
     @Test
     fun configurationFailure() {
@@ -77,11 +78,11 @@ class ConfigurationTest {
             anyOrNull(),
         )
 
-        val loggerStateCaptor = argumentCaptor<LoggerState>()
-        verify(loggerStateListener, times(2))
-            .onLoggerStateUpdate(loggerStateCaptor.capture())
-        assertThat(loggerStateCaptor.firstValue is LoggerState.Starting).isTrue()
-        assertThat(loggerStateCaptor.secondValue is LoggerState.StartFailure).isTrue()
+        val sdkNotStartedErrorCaptor = argumentCaptor<SdkNotStartedError>()
+        verify(captureStartListener).onStartFailure(sdkNotStartedErrorCaptor.capture())
+        verify(captureStartListener, never()).onStartSuccess()
+        assertThat(sdkNotStartedErrorCaptor.lastValue.message)
+            .isEqualTo("Failed to start Capture. initialization of the rust logger failed")
 
         // We perform another attempt to configure the logger to verify that
         // consecutive configure calls are no-ops.
@@ -105,7 +106,7 @@ class ConfigurationTest {
             anyOrNull(),
             anyOrNull(),
         )
-        verifyNoMoreInteractions(loggerStateListener)
+        verifyNoMoreInteractions(captureStartListener)
     }
 
     @After
@@ -119,7 +120,7 @@ class ConfigurationTest {
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,
             bridge = bridge,
-            loggerStateListener = loggerStateListener,
+            captureStartListener = captureStartListener,
         )
     }
 }

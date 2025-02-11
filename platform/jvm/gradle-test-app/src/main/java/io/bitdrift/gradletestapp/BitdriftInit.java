@@ -9,7 +9,7 @@ package io.bitdrift.gradletestapp;
 
 import io.bitdrift.capture.Capture;
 import io.bitdrift.capture.Configuration;
-import io.bitdrift.capture.LoggerStateListener;
+import io.bitdrift.capture.ICaptureStartListener;
 import io.bitdrift.capture.providers.FieldProvider;
 import io.bitdrift.capture.providers.session.SessionStrategy;
 
@@ -22,7 +22,7 @@ import okhttp3.HttpUrl;
 
 public class BitdriftInit {
     public static void initBitdriftCaptureInJava(
-            HttpUrl apiUrl, String apiKey, LoggerStateListener loggerStateListener) {
+            HttpUrl apiUrl, String apiKey, ICaptureStartListener ICaptureStartListener) {
         String userID = UUID.randomUUID().toString();
         List<FieldProvider> fieldProviders = new ArrayList<>();
         fieldProviders.add(() -> {
@@ -38,7 +38,7 @@ public class BitdriftInit {
             fieldProviders,
             null,
             apiUrl,
-            loggerStateListener
+                ICaptureStartListener
         );
     }
 }

@@ -10,7 +10,6 @@ package io.bitdrift.gradletestapp
 import android.app.Activity
 import android.app.ActivityManager
 import android.app.Application
-import android.app.ApplicationExitInfo
 import android.app.ApplicationStartInfo.LAUNCH_MODE_SINGLE_INSTANCE
 import android.app.ApplicationStartInfo.LAUNCH_MODE_SINGLE_INSTANCE_PER_TASK
 import android.app.ApplicationStartInfo.LAUNCH_MODE_SINGLE_TASK
@@ -60,11 +59,8 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import papa.AppLaunchType
 import papa.PapaEvent
 import papa.PapaEventListener
-import papa.PapaEventLogger
-import papa.PreLaunchState
 import timber.log.Timber
 import kotlin.random.Random
-import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -84,7 +80,7 @@ class GradleTestApp : Application() {
     }
 
     private fun initLogging() {
-        val loggerStateListener = CaptureStartMonitor(this)
+        val loggerStateListener = CaptureStartStatusListener(this)
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         val stringApiUrl = prefs.getString("apiUrl", null)
         val apiUrl = stringApiUrl?.toHttpUrlOrNull()

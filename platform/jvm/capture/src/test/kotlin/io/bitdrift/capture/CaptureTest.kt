@@ -12,7 +12,6 @@ import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
-import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.network.HttpRequestInfo
@@ -32,8 +31,8 @@ import org.robolectric.annotation.Config
 @Config(sdk = [21])
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class CaptureTest {
-    private val loggerStateListener: LoggerStateListener = mock()
-    private val loggerStateCaptor = argumentCaptor<LoggerState>()
+    private val captureStartListener: ICaptureStartListener = mock()
+    private val sdkNotStartedErrorCaptor = argumentCaptor<SdkNotStartedError>()
 
     // This Test needs to run first since the following tests need to initialize
     // the ContextHolder before they can run.
@@ -44,7 +43,7 @@ class CaptureTest {
         startLogger(apiKey = "test1")
 
         assertThat(Capture.logger()).isNull()
-        verify(loggerStateListener, never()).onLoggerStateUpdate(any())
+        verify(captureStartListener, never()).onStartFailure(any())
     }
 
     // Accessing fields prior to the configuration of the logger may lead to crash since it can
@@ -104,22 +103,14 @@ class CaptureTest {
     }
 
     private fun verifyApiKeyError() {
-        verify(loggerStateListener, times(1)).onLoggerStateUpdate(loggerStateCaptor.capture())
-        val latestEmission = loggerStateCaptor.lastValue
-        assertThat(latestEmission is LoggerState.StartFailure).isTrue()
-        val apiKeyErrorMessage =
-            when (latestEmission) {
-                is LoggerState.StartFailure -> latestEmission.throwable.message
-                else -> ""
-            }
-        assertThat(apiKeyErrorMessage).isEqualTo("API key is empty")
+        verify(captureStartListener).onStartFailure(sdkNotStartedErrorCaptor.capture())
+        verify(captureStartListener, never()).onStartSuccess()
+        assertThat(sdkNotStartedErrorCaptor.lastValue.message).isEqualTo("API key is empty")
     }
 
     private fun verifyLoggerStateSuccessListener() {
-        verify(loggerStateListener, times(2))
-            .onLoggerStateUpdate(loggerStateCaptor.capture())
-        assertThat(loggerStateCaptor.firstValue is LoggerState.Starting).isTrue()
-        assertThat(loggerStateCaptor.secondValue is LoggerState.Started).isTrue()
+        verify(captureStartListener).onStartSuccess()
+        verify(captureStartListener, never()).onStartFailure(any())
     }
 
     private fun startLogger(apiKey: String) {
@@ -127,7 +118,7 @@ class CaptureTest {
             apiKey = apiKey,
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,
-            loggerStateListener = loggerStateListener,
+            captureStartListener = captureStartListener,
         )
     }
 }

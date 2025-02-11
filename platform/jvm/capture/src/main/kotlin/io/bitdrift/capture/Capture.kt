@@ -25,17 +25,22 @@ import kotlin.time.Duration
 /**
  * Emits changes to [LoggerState] upon a call to Capture.Logger.start
  */
-fun interface LoggerStateListener {
+interface ICaptureStartListener {
     /**
-     * Reports on each [LoggerState] changes
+     * Notifies when [Capture.Logger.start] is successful
      */
-    fun onLoggerStateUpdate(loggerState: LoggerState)
+    fun onStartSuccess()
+
+    /**
+     * Notifies when [Capture.Logger.start] fails
+     */
+    fun onStartFailure(error: Error)
 }
 
 /**
  * Represents the different Logger States
  */
-sealed class LoggerState {
+internal sealed class LoggerState {
     /**
      * The logger has not yet been started.
      */
@@ -50,18 +55,13 @@ sealed class LoggerState {
      * The logger has been successfully started and is ready for use. Subsequent attempts to start the logger will be ignored.
      */
     class Started(
-        internal val logger: ILogger,
+        val logger: ILogger,
     ) : LoggerState()
 
     /**
      * An attempt to start the logger was made but failed. Subsequent attempts to start the logger will be ignored.
      */
-    class StartFailure(
-        /**
-         * The reason for Capture.Logger.start() failure
-         */
-        val throwable: Throwable,
-    ) : LoggerState()
+    data object StartFailure : LoggerState()
 }
 
 /**
@@ -123,7 +123,7 @@ object Capture {
          * @param apiUrl The base URL of Capture API. Depend on its default value unless specifically
          *               instructed otherwise during discussions with bitdrift. Defaults to bitdrift's hosted
          *               Compose API base URL.
-         * @param loggerStateListener optional listener that emits  [LoggerState] changes.
+         * @param captureStartListener optional listener that emits  [LoggerState] changes.
          *
          */
         @Synchronized
@@ -136,7 +136,7 @@ object Capture {
             fieldProviders: List<FieldProvider> = listOf(),
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
-            loggerStateListener: LoggerStateListener? = null,
+            captureStartListener: ICaptureStartListener? = null,
         ) {
             start(
                 apiKey,
@@ -146,7 +146,7 @@ object Capture {
                 dateProvider,
                 apiUrl,
                 CaptureJniLibrary,
-                loggerStateListener,
+                captureStartListener,
             )
         }
 
@@ -161,7 +161,7 @@ object Capture {
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             bridge: IBridge,
-            loggerStateListener: LoggerStateListener? = null,
+            captureStartListener: ICaptureStartListener? = null,
         ) {
             // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
             // while subsequent logger access relies on volatile reads.
@@ -177,18 +177,13 @@ object Capture {
             }
 
             if (apiKey.isEmpty()) {
-                val apiKeyException = IllegalArgumentException("API key is empty")
-                default
-                    .set(LoggerState.StartFailure(apiKeyException))
-                    .apply {
-                        loggerStateListener?.onLoggerStateUpdate(default.get())
-                    }
+                default.set(LoggerState.StartFailure)
+                captureStartListener?.onStartFailure(SdkNotStartedError("API key is empty"))
                 return
             }
 
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
             if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
-                loggerStateListener?.onLoggerStateUpdate(default.get())
                 try {
                     val logger =
                         LoggerImpl(
@@ -201,11 +196,13 @@ object Capture {
                             bridge = bridge,
                         )
                     default.set(LoggerState.Started(logger))
+                    captureStartListener?.onStartSuccess()
                 } catch (e: Throwable) {
-                    Log.w("capture", "Failed to start Capture", e)
-                    default.set(LoggerState.StartFailure(e))
+                    val errorMessage = "Failed to start Capture. ${e.message}"
+                    Log.w("capture", errorMessage)
+                    default.set(LoggerState.StartFailure)
+                    captureStartListener?.onStartFailure(SdkNotStartedError(errorMessage))
                 }
-                loggerStateListener?.onLoggerStateUpdate(default.get())
             } else {
                 Log.w("capture", "Multiple attempts to start Capture")
             }
@@ -262,7 +259,7 @@ object Capture {
                     mainThreadHandler.run { completion(it) }
                 }
             } ?: run {
-                mainThreadHandler.run { completion(Err(SdkNotStartedError)) }
+                mainThreadHandler.run { completion(Err(SdkNotStartedError())) }
             }
         }
 
