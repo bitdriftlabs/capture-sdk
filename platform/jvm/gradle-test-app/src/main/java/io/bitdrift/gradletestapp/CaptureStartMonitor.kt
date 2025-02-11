@@ -20,7 +20,7 @@ class CaptureStartMonitor(private val application: Application) : LoggerStateLis
 
     override fun onLoggerStateUpdate(loggerState: LoggerState) {
         val message = when (loggerState) {
-            is LoggerState.Started -> "Capture SDK started. Took ${loggerState.startDuration} on ${loggerState.callerThreadName} thread"
+            is LoggerState.Started -> "Capture SDK started"
             is LoggerState.StartFailure -> "Capture SDK start failure. ${loggerState.throwable.message}"
             else -> null
         }

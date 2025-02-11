@@ -21,8 +21,6 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 
 /**
  * Emits changes to [LoggerState] upon a call to Capture.Logger.start
@@ -53,14 +51,6 @@ sealed class LoggerState {
      */
     class Started(
         internal val logger: ILogger,
-        /**
-         * Reports the total duration of Capture.Logger.start
-         */
-        val startDuration: Duration,
-        /**
-         * Reports the thread where Capture.Logger.start took place
-         */
-        val callerThreadName: String,
     ) : LoggerState()
 
     /**
@@ -200,7 +190,6 @@ object Capture {
             if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
                 loggerStateListener?.onLoggerStateUpdate(default.get())
                 try {
-                    val loggerCreationStartTime = System.currentTimeMillis()
                     val logger =
                         LoggerImpl(
                             apiKey = apiKey,
@@ -211,9 +200,7 @@ object Capture {
                             sessionStrategy = sessionStrategy,
                             bridge = bridge,
                         )
-                    val loggerCreationTotalTime = (System.currentTimeMillis() - loggerCreationStartTime)
-                    val elapsedDuration = loggerCreationTotalTime.toDuration(DurationUnit.MILLISECONDS)
-                    default.set(LoggerState.Started(logger, elapsedDuration, Thread.currentThread().name))
+                    default.set(LoggerState.Started(logger))
                 } catch (e: Throwable) {
                     Log.w("capture", "Failed to start Capture", e)
                     default.set(LoggerState.StartFailure(e))
