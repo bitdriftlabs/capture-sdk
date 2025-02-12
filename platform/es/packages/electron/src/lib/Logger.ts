@@ -67,49 +67,45 @@ export const init = (
   return logger;
 };
 
+const loggerOrError = () => {
+  if (!logger) throw new Error('Logger not initialized');
+
+  return logger;
+};
+
 /**
  * Logs a message with severity level 4 (error).
  */
 export const error = (message: string, fields?: LogFields) => {
-  if (!logger) throw new Error('Logger not initialized');
-
-  logger.log(4, message, fields || {});
+  loggerOrError().log(4, message, fields || {});
 };
 
 /**
  * Logs a message with severity level 3 (warning).
  */
 export const warn = (message: string, fields?: LogFields) => {
-  if (!logger) throw new Error('Logger not initialized');
-
-  logger.log(3, message, fields || {});
+  loggerOrError().log(3, message, fields || {});
 };
 
 /**
  * Logs a message with severity level 2 (info).
  */
 export const info = (message: string, fields?: LogFields) => {
-  if (!logger) throw new Error('Logger not initialized');
-
-  logger.log(2, message, fields || {});
+  loggerOrError().log(2, message, fields || {});
 };
 
 /**
  * Logs a message with severity level 1 (debug).
  */
 export const debug = (message: string, fields?: LogFields) => {
-  if (!logger) throw new Error('Logger not initialized');
-
-  logger.log(1, message, fields ?? {});
+  loggerOrError().log(1, message, fields ?? {});
 };
 
 /**
  * Logs a message with severity level 0 (trace).
  */
 export const trace = (message: string, fields?: LogFields) => {
-  if (!logger) throw new Error('Logger not initialized');
-
-  logger.log(0, message, fields || {});
+  loggerOrError().log(0, message, fields || {});
 };
 
 /**
@@ -119,10 +115,32 @@ export const trace = (message: string, fields?: LogFields) => {
 export const getSessionID = () => logger?.sessionId;
 
 /**
-  * Gets the ID of the current device.
-  * @returns The ID of the current device.
-  */
+ * Gets the ID of the current device.
+ * @returns The ID of the current device.
+ */
 export const getDeviceID = () => logger?.deviceId;
+
+/**
+ * Adds a field to all logs emitted by the logger from this point forward.
+ * If a field with a given key has already been registered with the logger, its value is
+ * replaced with the new one.
+ *
+ * @param field - The name of the field to add.
+ * @param value - The value of the field to add.
+ */
+export const addField = (field: string, value: LogFields[keyof LogFields]) => {
+  loggerOrError().addField(field, value);
+};
+
+/**
+ * Removes a field with a given key. This operation has no effect if a field with the given key
+ * is not registered with the logger.
+ *
+ * @param field - The name of the field to remove.
+ */
+export const removeField = (field: string) => {
+  loggerOrError().removeField(field);
+};
 
 /**
  * Generates a temporary device code for the current device.

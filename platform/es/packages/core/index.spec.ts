@@ -29,7 +29,7 @@ describe('bitdrift native logger', () => {
   });
 
   afterAll(() => {
-    fs.rmSync('./store', { recursive: true, force: true });
+    fs.rmdirSync('./store', { recursive: true });
   });
 
   it('logger should be set', () => {
@@ -60,5 +60,14 @@ describe('bitdrift native logger', () => {
     expect(logger.sessionId).toHaveLength(36);
     expect(newSession).toHaveLength(36);
     expect(logger.sessionId).not.toEqual(newSession);
+  });
+
+  it('Can add and remove fields', () => {
+    getLogger().addField('test_str', 'Hello');
+    getLogger().addField('test_int', 1);
+    getLogger().addField('test_bool', true);
+    getLogger().addField('test_buf', Buffer.from('Hello'));
+    getLogger().removeField('test_buf');
+    getLogger().removeField('non_existent');
   });
 });
