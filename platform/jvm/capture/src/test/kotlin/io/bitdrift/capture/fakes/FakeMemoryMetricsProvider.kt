@@ -12,7 +12,7 @@ import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 /**
  * Fake [IMemoryMetricsProvider] with default memory attribute values
  */
-class FakeIMemoryMetricsProvider : IMemoryMetricsProvider {
+class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
     private var exception: Exception? = null
 
     override fun getMemoryAttributes(): Map<String, String> {

@@ -13,16 +13,19 @@ import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.annotation.VisibleForTesting
+import androidx.annotation.WorkerThread
 import io.bitdrift.capture.InternalFieldsMap
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
@@ -35,6 +38,7 @@ internal class AppExitLogger(
     private val crashHandler: CaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler(),
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
     private val memoryMetricsProvider: IMemoryMetricsProvider,
+    private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
 ) {
     companion object {
         const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -51,13 +55,16 @@ internal class AppExitLogger(
         private const val APP_EXIT_DESCRIPTION_KEY = "_app_exit_description"
     }
 
+    @WorkerThread
     fun installAppExitLogger() {
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)) {
             return
         }
-        crashHandler.install(this)
-        saveCurrentSessionId()
-        logPreviousExitReasonIfAny()
+        backgroundThreadHandler.runAsync {
+            crashHandler.install(this)
+            saveCurrentSessionId()
+            logPreviousExitReasonIfAny()
+        }
     }
 
     fun uninstallAppExitLogger() {

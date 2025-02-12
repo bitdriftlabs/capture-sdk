@@ -22,8 +22,9 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.CaptureUncaughtExceptionHandler
-import io.bitdrift.capture.fakes.FakeIMemoryMetricsProvider
-import io.bitdrift.capture.fakes.FakeIMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
+import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
+import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
+import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
@@ -38,25 +39,29 @@ class AppExitLoggerTest {
     private val logger: LoggerImpl = mock()
     private val activityManager: ActivityManager = mock()
     private val runtime: Runtime = mock()
+
     private val errorHandler: ErrorHandler = mock()
     private val crashHandler: CaptureUncaughtExceptionHandler = mock()
     private val versionChecker: BuildVersionChecker = mock()
-    private val memoryMetricsProvider = FakeIMemoryMetricsProvider()
-    private val appExitLogger =
-        AppExitLogger(
-            logger,
-            activityManager,
-            runtime,
-            errorHandler,
-            crashHandler,
-            versionChecker,
-            memoryMetricsProvider,
-        )
+    private val memoryMetricsProvider = FakeMemoryMetricsProvider()
+    private val backgroundThreadHandler = FakeBackgroundThreadHandler()
+    private lateinit var appExitLogger: AppExitLogger
 
     @Before
     fun setUp() {
         whenever(runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)).thenReturn(true)
         whenever(versionChecker.isAtLeast(anyInt())).thenReturn(true)
+        appExitLogger =
+            AppExitLogger(
+                logger,
+                activityManager,
+                runtime,
+                errorHandler,
+                crashHandler,
+                versionChecker,
+                memoryMetricsProvider,
+                backgroundThreadHandler,
+            )
     }
 
     @Test
