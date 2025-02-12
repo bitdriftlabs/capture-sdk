@@ -8,6 +8,7 @@
 package io.bitdrift.capture.threading
 
 import androidx.annotation.VisibleForTesting
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -18,7 +19,7 @@ import java.util.concurrent.Executors
  */
 internal sealed class CaptureDispatchers private constructor(
     threadName: String,
-) {
+) : IBackgroundThreadHandler {
     private var _executorService: ExecutorService =
         buildExecutorService(threadName)
             .also { register(this) }
@@ -32,7 +33,7 @@ internal sealed class CaptureDispatchers private constructor(
     /**
      * Run the specified task on the associated CaptureDispatcher
      */
-    fun launchAsync(task: () -> Unit) {
+    override fun runAsync(task: () -> Unit) {
         executorService.execute(task)
     }
 

@@ -20,6 +20,7 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
@@ -37,7 +38,7 @@ internal class AppExitLogger(
     private val crashHandler: CaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler(),
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
     private val memoryMetricsProvider: IMemoryMetricsProvider,
-    private val commonBackgroundDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
+    private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
 ) {
     companion object {
         const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -59,7 +60,8 @@ internal class AppExitLogger(
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)) {
             return
         }
-        commonBackgroundDispatcher.launchAsync {
+//        checkIsNotOnMainThread()
+        backgroundThreadHandler.runAsync {
             crashHandler.install(this)
             saveCurrentSessionId()
             logPreviousExitReasonIfAny()
@@ -88,39 +90,36 @@ internal class AppExitLogger(
 
     @TargetApi(Build.VERSION_CODES.R)
     @VisibleForTesting
-    @WorkerThread
     internal fun logPreviousExitReasonIfAny() {
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) || !versionChecker.isAtLeast(Build.VERSION_CODES.R)) {
             return
         }
 
-        commonBackgroundDispatcher.launchAsync {
-            val exits =
-                try {
-                    // a null packageName means match all packages belonging to the caller's process (UID)
-                    // pid should be 0, a value of 0 means to ignore this parameter and return all matching records
-                    // maxNum should be 1, The maximum number of results to be returned, as we need only the last one
-                    activityManager.getHistoricalProcessExitReasons(null, 0, 1)
-                } catch (error: Throwable) {
-                    errorHandler.handleError("Failed to retrieve ProcessExitReasons from ActivityManager", error)
-                    emptyList()
-                }
-            if (exits.isEmpty()) {
-                return@launchAsync
+        val exits =
+            try {
+                // a null packageName means match all packages belonging to the caller's process (UID)
+                // pid should be 0, a value of 0 means to ignore this parameter and return all matching records
+                // maxNum should be 1, The maximum number of results to be returned, as we need only the last one
+                activityManager.getHistoricalProcessExitReasons(null, 0, 1)
+            } catch (error: Throwable) {
+                errorHandler.handleError("Failed to retrieve ProcessExitReasons from ActivityManager", error)
+                emptyList()
             }
-
-            val lastExitInfo = exits.first()
-            // extract stored id from previous session in order to override the log, bail if not present
-            val sessionId = lastExitInfo.processStateSummary?.toString(StandardCharsets.UTF_8) ?: return@launchAsync
-            val timestampMs = lastExitInfo.timestamp
-
-            logger.log(
-                LogType.LIFECYCLE,
-                lastExitInfo.reason.toLogLevel(),
-                buildAppExitAndMemoryFieldsMap(lastExitInfo),
-                attributesOverrides = LogAttributesOverrides(sessionId, timestampMs),
-            ) { APP_EXIT_EVENT_NAME }
+        if (exits.isEmpty()) {
+            return
         }
+
+        val lastExitInfo = exits.first()
+        // extract stored id from previous session in order to override the log, bail if not present
+        val sessionId = lastExitInfo.processStateSummary?.toString(StandardCharsets.UTF_8) ?: return
+        val timestampMs = lastExitInfo.timestamp
+
+        logger.log(
+            LogType.LIFECYCLE,
+            lastExitInfo.reason.toLogLevel(),
+            buildAppExitAndMemoryFieldsMap(lastExitInfo),
+            attributesOverrides = LogAttributesOverrides(sessionId, timestampMs),
+        ) { APP_EXIT_EVENT_NAME }
     }
 
     fun logCrash(
