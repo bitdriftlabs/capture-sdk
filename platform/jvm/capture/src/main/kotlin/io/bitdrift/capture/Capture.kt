@@ -19,14 +19,18 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl
+import org.jetbrains.annotations.VisibleForTesting
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
 
-internal sealed class LoggerState {
+/**
+ * Represents the different Logger States
+ */
+sealed class LoggerState {
     /**
      * The logger has not yet been started.
      */
-    data object NotStarted : LoggerState()
+    internal data object NotStarted : LoggerState()
 
     /**
      * The logger is in the process of being started. Subsequent attempts to start the logger will be ignored.
@@ -37,13 +41,18 @@ internal sealed class LoggerState {
      * The logger has been successfully started and is ready for use. Subsequent attempts to start the logger will be ignored.
      */
     class Started(
-        val logger: LoggerImpl,
+        internal val logger: ILogger,
     ) : LoggerState()
 
     /**
      * An attempt to start the logger was made but failed. Subsequent attempts to start the logger will be ignored.
      */
-    data object StartFailure : LoggerState()
+    data class StartFailure(
+        /**
+         * Provides the reason for the start failure
+         */
+        val sdkNotStartedError: SdkNotStartedError,
+    ) : LoggerState()
 }
 
 /**
@@ -116,7 +125,7 @@ object Capture {
             fieldProviders: List<FieldProvider> = listOf(),
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
-        ) {
+        ): LoggerState =
             start(
                 apiKey,
                 sessionStrategy,
@@ -126,7 +135,6 @@ object Capture {
                 apiUrl,
                 CaptureJniLibrary,
             )
-        }
 
         @Synchronized
         @JvmStatic
@@ -139,18 +147,27 @@ object Capture {
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             bridge: IBridge,
-        ) {
+        ): LoggerState {
             // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
             // while subsequent logger access relies on volatile reads.
 
             // There's nothing we can do if we don't have yet access to the application context.
             if (!ContextHolder.isInitialized) {
+                val errorMessage =
+                    "Attempted to initialize Capture before having a valid ApplicationContext"
                 Log.w(
                     "capture",
-                    "Attempted to initialize Capture before androidx.startup.Initializers " +
-                        "are run. Aborting logger initialization.",
+                    errorMessage,
                 )
-                return
+                val startFailureMissingAppContext = buildStartFailure(errorMessage)
+                default.set(startFailureMissingAppContext)
+                return startFailureMissingAppContext
+            }
+
+            if (apiKey.isEmpty()) {
+                val apiKeyError = buildStartFailure("API key is empty")
+                default.set(apiKeyError)
+                return apiKeyError
             }
 
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
@@ -169,11 +186,12 @@ object Capture {
                     default.set(LoggerState.Started(logger))
                 } catch (e: Throwable) {
                     Log.w("capture", "Failed to start Capture", e)
-                    default.set(LoggerState.StartFailure)
+                    default.set(LoggerState.StartFailure(SdkNotStartedError()))
                 }
             } else {
                 Log.w("capture", "Multiple attempts to start Capture")
             }
+            return default.get()
         }
 
         /**
@@ -227,7 +245,7 @@ object Capture {
                     mainThreadHandler.run { completion(it) }
                 }
             } ?: run {
-                mainThreadHandler.run { completion(Err(SdkNotStartedError)) }
+                mainThreadHandler.run { completion(Err(SdkNotStartedError())) }
             }
         }
 
@@ -460,5 +478,13 @@ object Capture {
         internal fun resetShared() {
             default.set(LoggerState.NotStarted)
         }
+
+        private fun buildStartFailure(errorMessage: String): LoggerState.StartFailure =
+            LoggerState.StartFailure(SdkNotStartedError(errorMessage))
+    }
+
+    @VisibleForTesting
+    internal fun resetLoggerStateForTest() {
+        default.set(LoggerState.NotStarted)
     }
 }

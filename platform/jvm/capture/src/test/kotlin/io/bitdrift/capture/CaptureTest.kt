@@ -15,6 +15,7 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.providers.session.SessionStrategy
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.Before
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,18 +27,28 @@ import org.robolectric.annotation.Config
 @Config(sdk = [21])
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class CaptureTest {
+    @Before
+    fun setup() {
+        Capture.resetLoggerStateForTest()
+    }
+
     // This Test needs to run first since the following tests need to initialize
     // the ContextHolder before they can run.
     @Test
     fun aConfigureSkipsLoggerCreationWhenContextNotInitialized() {
         assertThat(Capture.logger()).isNull()
 
-        Logger.start(
-            apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
-            dateProvider = null,
-        )
-
+        val loggerState =
+            Logger.start(
+                apiKey = "test1",
+                sessionStrategy = SessionStrategy.Fixed(),
+                dateProvider = null,
+            )
+        assertThat(loggerState is LoggerState.StartFailure).isTrue()
+        if (loggerState is LoggerState.StartFailure) {
+            assertThat(loggerState.sdkNotStartedError.message)
+                .isEqualTo("Attempted to initialize Capture before having a valid ApplicationContext")
+        }
         assertThat(Capture.logger()).isNull()
     }
 
@@ -69,26 +80,35 @@ class CaptureTest {
     fun cIdempotentConfigure() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
-
+        assertThat(ContextHolder.isInitialized).isTrue()
         assertThat(Capture.logger()).isNull()
 
-        Logger.start(
-            apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
-            dateProvider = null,
-        )
+        val loggerStateStarted =
+            Logger.start(
+                apiKey = "test1",
+                sessionStrategy = SessionStrategy.Fixed(),
+                dateProvider = null,
+            )
+        assertLoggerStateStarted(loggerStateStarted)
 
-        val logger = Capture.logger()
-        assertThat(logger).isNotNull()
-        assertThat(Logger.deviceId).isNotNull()
+        val updatedLoggerState =
+            Logger.start(
+                apiKey = "test2",
+                sessionStrategy = SessionStrategy.Fixed(),
+                dateProvider = null,
+            )
 
-        Logger.start(
-            apiKey = "test2",
-            sessionStrategy = SessionStrategy.Fixed(),
-            dateProvider = null,
-        )
+        // Calling reconfigure a second time does not change the logger state
+        assertLoggerStateStarted(updatedLoggerState)
+        assertThat(updatedLoggerState).isEqualTo(loggerStateStarted)
+    }
 
-        // Calling reconfigure a second time does not change the static logger.
-        assertThat(logger).isEqualTo(Capture.logger())
+    private fun assertLoggerStateStarted(loggerState: LoggerState) {
+        assertThat(loggerState is LoggerState.Started).isTrue()
+        if (loggerState is LoggerState.Started) {
+            assertThat(loggerState.logger).isNotNull()
+            assertThat(loggerState.logger.deviceId).isNotNull()
+            assertThat(Capture.logger()).isEqualTo(loggerState.logger)
+        }
     }
 }
