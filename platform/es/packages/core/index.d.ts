@@ -11,5 +11,7 @@ export declare class Logger {
   constructor(apiKey: string, apiAddress: string, sessionStrategy: SessionStrategy, sdkDirectory: string, appId: string, appVersion: string, platform: string, platformVersion: string, locale: string)
   get sessionId(): string
   get deviceId(): string
+  addField(field: string, value: string | number | boolean | Buffer): void
+  removeField(key: string): void
   log(level: number, message: string, fields: Record<string, string | number | boolean | Buffer>): void
 }

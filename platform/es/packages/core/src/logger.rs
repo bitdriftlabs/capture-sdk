@@ -23,6 +23,7 @@ use bd_logger::{
   AnnotatedLogField,
   AnnotatedLogFields,
   InitParams,
+  LogField,
   LogLevel,
   LogType,
   LoggerBuilder,
@@ -156,7 +157,6 @@ impl RustLogger {
       Ok(())
     })?;
 
-
     let handle = logger.new_logger_handle();
 
     handle.log_sdk_start(vec![], start.elapsed().try_into().unwrap_or_default());
@@ -187,6 +187,14 @@ impl RustLogger {
 
   pub fn device_id(&self) -> String {
     self.device.id()
+  }
+
+  pub fn add_field(&self, field: LogField) {
+    self.handle.add_log_field(field);
+  }
+
+  pub fn remove_field(&self, key: &str) {
+    self.handle.remove_log_field(key);
   }
 }
 

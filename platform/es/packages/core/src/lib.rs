@@ -81,6 +81,23 @@ impl Logger {
   }
 
   #[napi]
+  pub fn add_field(&self, field: String, value: Either4<String, u32, bool, Buffer>) {
+    let value: LogFieldValue = match value {
+      Either4::A(value) => value.into(),
+      Either4::B(value) => value.to_string().into(),
+      Either4::C(value) => value.to_string().into(),
+      Either4::D(value) => value.to_vec().into(),
+    };
+    self.inner.add_field(LogField { key: field, value });
+  }
+
+  #[napi]
+  #[allow(clippy::needless_pass_by_value)]
+  pub fn remove_field(&self, key: String) {
+    self.inner.remove_field(&key);
+  }
+
+  #[napi]
   pub fn log(
     &self,
     level: u32,
