@@ -60,7 +60,6 @@ internal class AppExitLogger(
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)) {
             return
         }
-//        checkIsNotOnMainThread()
         backgroundThreadHandler.runAsync {
             crashHandler.install(this)
             saveCurrentSessionId()
