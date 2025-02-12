@@ -24,6 +24,7 @@ _maven_deps = [
     artifact("com.squareup.okio:okio-jvm"),
     artifact("org.jetbrains.kotlin:kotlin-stdlib"),
     artifact("org.jetbrains:annotations"),
+    artifact("androidx.metrics:metrics-performance"),
 ]
 
 aar_import(
