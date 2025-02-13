@@ -35,7 +35,7 @@ npm exec nx run-many -- -t prepare-release -p $TARGETS
 npm install --package-lock-only --silent
 
 # Do the release with the versions previously updated
-echo "Releaseing targets: $TARGETS"
+echo "Releasing targets: $TARGETS"
 npm exec nx release publish -- -p $TARGETS -y
 
 # Stage all relevant project files but nothing more
@@ -45,7 +45,7 @@ xargs git add <<< $TARGET_PATHS
 git add package-lock.json package.json
 
 # Push git changes made by the version update script to remote
-echo "Commiting changes for $TARGET_PATHS"
+echo "Committing changes for $TARGET_PATHS"
 git commit -m "chore: release $VERSION" -m "Packages: $TARGETS"
 git push --set-upstream origin release-$VERSION
 
