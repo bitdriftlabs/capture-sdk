@@ -1,14 +1,19 @@
-import { contextBridge, ipcRenderer } from 'electron';
+// capture-es - bitdrift's ES SDK
+// Copyright Bitdrift, Inc. All rights reserved.
+//
+// Use of this source code is governed by a source available license that can be found in the
+// LICENSE file or at:
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-export type Fields = Record<string, string | number | boolean | Buffer>;
+import { initRenderer } from '@bitdrift/electron/renderer';
 
-const factory = (level: number) => (msg: string, fields: Fields) =>
-  ipcRenderer.send('bitdrift:log', level, msg, fields);
-
-contextBridge.exposeInMainWorld('logger', {
-  trace: factory(0),
-  debug: factory(1),
-  info: factory(2),
-  warn: factory(3),
-  error: factory(4),
+initRenderer({
+  autoExposeInMainWorld: {
+    exposeAs: 'logger',
+  },
+  experimental: {
+    sessionReplayConfiguration: {
+      frequency: 3000,
+    },
+  },
 });

@@ -18,6 +18,7 @@
       "@bitdrift/core": ["./packages/core/index.d.ts"],
       "@bitdrift/core-darwin-arm64": ["./packages/core/core.darwin-arm64.node"],
       "@bitdrift/electron": ["./packages/electron/src/index.ts"],
+      "@bitdrift/electron/renderer": ["./packages/electron/src/renderer.ts"],
       "@bitdrift/react-native": ["./packages/react-native/src/index.tsx"]
     }
   },

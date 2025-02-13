@@ -85,6 +85,12 @@
         "runIosTargetName": "run-ios",
         "runAndroidTargetName": "run-android"
       }
+    },
+    {
+      "plugin": "@nx/rollup/plugin",
+      "options": {
+        "buildTargetName": "build"
+      }
     }
   ]
 }

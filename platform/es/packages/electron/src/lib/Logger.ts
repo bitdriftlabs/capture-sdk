@@ -10,12 +10,12 @@ import { app } from 'electron';
 import { platform as osPlatform, release as osRelease } from 'os';
 import * as https from 'https';
 
-type LogParams = Parameters<typeof Logger.prototype.log>;
-type LogFields = LogParams[2];
+import { type AutoExposeOptions, autoAddListener } from './autoAddListener';
+import { LogFields } from './types';
 
 let logger: Logger | null = null;
-let api_url: string;
-let api_key: string;
+let apiUrl: string;
+let apiKey: string;
 
 export enum SessionStrategy {
   Activity = 'activity',
@@ -29,12 +29,14 @@ const sessionStrategyMap = {
 
 /**
  * Optional parameters to configure the logger.
- * @param url - The URL to use to authenticate with the bitdrift API. Defaults to 'api.bitdrift.io'.
- * @param appVersion - The version of the application. Defaults to the version of the application based on the package.json file.
  */
 export type InitOptions = {
+  /** The URL to use to authenticate with the bitdrift API. Defaults to 'api.bitdrift.io'. */
   url?: string;
+  /** The version of the application. Defaults to the version of the application based on the package.json file. */
   appVersion?: string;
+  /** Whether to automatically register main event listeners. */
+  autoAddMainListener?: boolean | AutoExposeOptions;
 };
 
 /**
@@ -48,14 +50,14 @@ export const init = (
   sessionStrategy: SessionStrategy,
   options?: InitOptions,
 ) => {
-  const url_or_default = options?.url ?? 'api.bitdrift.io';
+  const urlOrDefault = options?.url ?? 'api.bitdrift.io';
 
-  api_url = url_or_default;
-  api_key = key;
+  apiUrl = urlOrDefault;
+  apiKey = key;
 
   logger = new Logger(
     key,
-    `https://${url_or_default}`,
+    `https://${urlOrDefault}`,
     sessionStrategyMap[sessionStrategy],
     app.getPath('userData') + '/bitdrift/',
     app.getName(),
@@ -64,6 +66,16 @@ export const init = (
     osRelease(),
     app.getLocaleCountryCode(),
   );
+
+  if (options?.autoAddMainListener) {
+    autoAddListener(
+      logger,
+      typeof options.autoAddMainListener === 'boolean'
+        ? {}
+        : options.autoAddMainListener,
+    );
+  }
+
   return logger;
 };
 
@@ -151,14 +163,14 @@ export const generateDeviceCode = async (): Promise<string> => {
   const postData = JSON.stringify({ device_id: deviceId });
 
   const options = {
-    hostname: api_url,
+    hostname: apiUrl,
     port: 443,
     path: '/v1/device/code',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Content-Length': Buffer.byteLength(postData),
-      'x-bitdrift-api-key': api_key,
+      'x-bitdrift-api-key': apiKey,
     },
   };
 
