@@ -12,9 +12,11 @@ import androidx.lifecycle.LifecycleOwner
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.lifecycle.AppLifecycleListenerLogger
+import io.bitdrift.capture.events.lifecycle.IWindowListener
 import org.junit.Test
 import org.mockito.ArgumentMatchers.eq
 import java.util.concurrent.ExecutorService
@@ -23,6 +25,8 @@ import java.util.concurrent.TimeUnit
 
 class AppLifecycleListenerLoggerTest {
     private val logger: LoggerImpl = mock()
+    private val errorHandler: ErrorHandler = mock()
+    private val windowListener: IWindowListener = mock()
     private val processLifecycleOwner: LifecycleOwner = mock()
     private val runtime: Runtime = mock()
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -32,7 +36,7 @@ class AppLifecycleListenerLoggerTest {
     fun testLogsAreFlushedOnStop() {
         // ARRANGE
         whenever(runtime.isEnabled(RuntimeFeature.APP_LIFECYCLE_EVENTS)).thenReturn(true)
-        val listener = AppLifecycleListenerLogger(logger, processLifecycleOwner, runtime, executor, handler)
+        val listener = AppLifecycleListenerLogger(logger, processLifecycleOwner, runtime, executor, handler, errorHandler, windowListener)
 
         // ACT
         listener.onStateChanged(processLifecycleOwner, Lifecycle.Event.ON_STOP)
@@ -40,5 +44,6 @@ class AppLifecycleListenerLoggerTest {
 
         // ASSERT
         verify(logger).flush(eq(false))
+        verify(windowListener).onWindowRemoved()
     }
 }

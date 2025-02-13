@@ -35,6 +35,7 @@ mod test {
       "com.michael-bull.kotlin-result:kotlin-result-jvm",
       "com.squareup.okhttp3:okhttp",
       "org.jetbrains.kotlin:kotlin-stdlib",
+      "androidx.metrics:metrics-performance",
     ];
 
     let root = simple_xml::from_file(runfiles_path("capture_aar_pom_xml.xml")).unwrap();

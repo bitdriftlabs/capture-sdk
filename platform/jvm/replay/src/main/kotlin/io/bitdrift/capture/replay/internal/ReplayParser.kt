@@ -8,6 +8,7 @@
 package io.bitdrift.capture.replay.internal
 
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController

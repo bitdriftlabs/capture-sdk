@@ -9,6 +9,7 @@ package io.bitdrift.capture.replay.internal
 
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.SessionReplayController
 

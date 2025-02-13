@@ -7,15 +7,19 @@
 
 package io.bitdrift.capture.events.lifecycle
 
+import android.view.Window
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.common.WindowManager
+import io.bitdrift.capture.common.phoneWindow
 import io.bitdrift.capture.events.IEventListenerLogger
 import java.util.concurrent.ExecutorService
 
@@ -25,8 +29,12 @@ internal class AppLifecycleListenerLogger(
     private val runtime: Runtime,
     private val executor: ExecutorService,
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
+    errorHandler: ErrorHandler,
+    private val windowListener: IWindowListener,
 ) : IEventListenerLogger,
     LifecycleEventObserver {
+    private val windowManager = WindowManager(errorHandler)
+
     private val lifecycleEventNames =
         hashMapOf(
             Lifecycle.Event.ON_CREATE to "AppCreate",
@@ -58,6 +66,7 @@ internal class AppLifecycleListenerLogger(
             if (!runtime.isEnabled(RuntimeFeature.APP_LIFECYCLE_EVENTS)) {
                 return@execute
             }
+
             // refer to lifecycle states https://developer.android.com/topic/libraries/architecture/lifecycle#lc
             logger.log(
                 LogType.LIFECYCLE,
@@ -67,6 +76,33 @@ internal class AppLifecycleListenerLogger(
             if (event == Lifecycle.Event.ON_STOP) {
                 logger.flush(false)
             }
+
+            emitWindowChanges(event)
         }
     }
+
+    private fun emitWindowChanges(event: Lifecycle.Event) {
+        when (event) {
+            Lifecycle.Event.ON_CREATE,
+            Lifecycle.Event.ON_START,
+            Lifecycle.Event.ON_RESUME,
+            -> {
+                getCurrentWindow()?.let {
+                    mainThreadHandler.run { windowListener.onWindowAvailable(it) }
+                }
+            }
+
+            Lifecycle.Event.ON_DESTROY,
+            Lifecycle.Event.ON_STOP,
+            -> {
+                mainThreadHandler.run { windowListener.onWindowRemoved() }
+            }
+
+            else -> {
+                // ignore rest of events
+            }
+        }
+    }
+
+    private fun getCurrentWindow(): Window? = windowManager.findRootViews().firstOrNull()?.phoneWindow
 }
