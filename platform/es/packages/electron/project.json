@@ -41,14 +41,15 @@
       }
     },
     "prepare-release": {
-      "dependsOn": ["build"],
+      "dependsOn": [],
       "executor": "nx:run-commands",
       "options": {
         "commands": [
+          "nx build @bitdrift/electron --exclude-task-dependencies",
           "cp {projectRoot}/README.md dist/{projectRoot}/README.md",
           "cp LICENSE dist/{projectRoot}/LICENSE"
         ],
-        "parallel": true
+        "parallel": false
       }
     },
     "release": {
