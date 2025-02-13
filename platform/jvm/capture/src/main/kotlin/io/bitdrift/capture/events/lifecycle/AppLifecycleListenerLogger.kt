@@ -13,6 +13,7 @@ import androidx.lifecycle.LifecycleOwner
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
@@ -25,6 +26,8 @@ internal class AppLifecycleListenerLogger(
     private val runtime: Runtime,
     private val executor: ExecutorService,
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
+    private val windowManager: IWindowManager,
+    private val lifecycleWindowListener: ILifecycleWindowListener,
 ) : IEventListenerLogger,
     LifecycleEventObserver {
     private val lifecycleEventNames =
@@ -58,6 +61,7 @@ internal class AppLifecycleListenerLogger(
             if (!runtime.isEnabled(RuntimeFeature.APP_LIFECYCLE_EVENTS)) {
                 return@execute
             }
+
             // refer to lifecycle states https://developer.android.com/topic/libraries/architecture/lifecycle#lc
             logger.log(
                 LogType.LIFECYCLE,
@@ -67,6 +71,17 @@ internal class AppLifecycleListenerLogger(
             if (event == Lifecycle.Event.ON_STOP) {
                 logger.flush(false)
             }
+        }
+        emitWindowChanges(event)
+    }
+
+    private fun emitWindowChanges(event: Lifecycle.Event) {
+        if (event == Lifecycle.Event.ON_RESUME) {
+            windowManager.getCurrentWindow()?.let {
+                lifecycleWindowListener.onWindowAvailable(it)
+            }
+        } else if (event == Lifecycle.Event.ON_STOP) {
+            lifecycleWindowListener.onWindowRemoved()
         }
     }
 }

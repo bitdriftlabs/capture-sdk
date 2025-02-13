@@ -19,6 +19,7 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.error.ErrorReporterService
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.events.AppUpdateListenerLogger
@@ -31,6 +32,7 @@ import io.bitdrift.capture.events.lifecycle.EventsListenerTarget
 import io.bitdrift.capture.events.performance.AppMemoryPressureListenerLogger
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
+import io.bitdrift.capture.events.performance.JankStatsMonitor
 import io.bitdrift.capture.events.performance.MemoryMetricsProvider
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
 import io.bitdrift.capture.events.span.Span
@@ -85,6 +87,7 @@ internal class LoggerImpl(
     private val diskUsageMonitor: DiskUsageMonitor
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
+    private val jankStatsMonitor: JankStatsMonitor
 
     // we can assume a properly formatted api url is being used, so we can follow the same pattern
     // making sure we only replace the first occurrence
@@ -201,12 +204,16 @@ internal class LoggerImpl(
                 sessionReplayTarget.runtime = runtime
                 diskUsageMonitor.runtime = runtime
 
+                jankStatsMonitor = JankStatsMonitor(this, runtime, errorHandler)
+
                 eventsListenerTarget.add(
                     AppLifecycleListenerLogger(
                         this,
                         ProcessLifecycleOwner.get(),
                         runtime,
                         eventListenerDispatcher.executorService,
+                        windowManager = WindowManager(errorHandler),
+                        lifecycleWindowListener = jankStatsMonitor,
                     ),
                 )
 
