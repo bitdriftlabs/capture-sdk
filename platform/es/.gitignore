@@ -93,6 +93,8 @@ yarn-error.log
 # Local napi core
 packages/core/*.node
 packages/core/npm
+packages/core/**/*.node
+packages/core/artifacts/
 
 # Expo
 node_modules/
