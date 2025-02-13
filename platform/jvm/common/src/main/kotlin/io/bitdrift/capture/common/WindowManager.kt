@@ -11,7 +11,9 @@ import android.os.Build
 import android.view.View
 import android.view.inspector.WindowInspector
 
-// Used for retrieving the view hierarchies
+/**
+ * Used for retrieving the view hierarchies
+ */
 class WindowManager(
     private val errorHandler: ErrorHandler,
 ) {

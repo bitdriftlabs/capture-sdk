@@ -62,6 +62,11 @@ sealed class RuntimeFeature(
      * Whether the logger should be flushed on crash.
      */
     data object LOGGER_FLUSHING_ON_CRASH : RuntimeFeature("client_feature.android.logger_flushing_on_force_quit", defaultValue = true)
+
+    /**
+     * Whether Jank Stats reporting is enabled
+     */
+    data object JANK_STATS_EVENTS : RuntimeFeature("client_feature.android.jank_stats_reporting")
 }
 
 /**

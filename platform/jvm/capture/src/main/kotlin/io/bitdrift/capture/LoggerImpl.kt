@@ -31,6 +31,7 @@ import io.bitdrift.capture.events.lifecycle.EventsListenerTarget
 import io.bitdrift.capture.events.performance.AppMemoryPressureListenerLogger
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
+import io.bitdrift.capture.events.performance.JankStatsMonitor
 import io.bitdrift.capture.events.performance.MemoryMetricsProvider
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
 import io.bitdrift.capture.events.span.Span
@@ -207,6 +208,8 @@ internal class LoggerImpl(
                         ProcessLifecycleOwner.get(),
                         runtime,
                         eventListenerDispatcher.executorService,
+                        errorHandler = errorHandler,
+                        windowListener = JankStatsMonitor(this, runtime),
                     ),
                 )
 
