@@ -181,6 +181,10 @@ impl RustLogger {
     );
   }
 
+  pub fn log_session_replay_screen(&self, fields: AnnotatedLogFields, duration: Duration) {
+    self.handle.log_session_replay_screen(fields, duration);
+  }
+
   pub fn session_id(&self) -> String {
     self.session_strategy.session_id()
   }

@@ -8,15 +8,16 @@
   },
   "targets": {
     "build": {
-      "executor": "@nx/js:tsc",
       "dependsOn": ["^build"],
-      "outputs": ["{options.outputPath}"],
+      "executor": "@nx/rollup:rollup",
       "options": {
-        "outputPath": "dist/{projectRoot}",
-        "tsConfig": "{projectRoot}/tsconfig.lib.json",
-        "packageJson": "{projectRoot}/package.json",
         "main": "{projectRoot}/src/index.ts",
-        "assets": ["{projectRoot}/README.md", "LICENSE"]
+        "outputPath": "dist/{projectRoot}",
+        "format": ["cjs", "esm"],
+        "tsConfig": "{projectRoot}/tsconfig.lib.json",
+        "additionalEntryPoints": ["{projectRoot}/src/renderer.ts"],
+        "generateExportsField": true,
+        "external": ["electron"]
       }
     },
     "test": {
@@ -40,15 +41,14 @@
       }
     },
     "prepare-release": {
-      "dependsOn": [],
-      "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
       "options": {
-        "outputPath": "dist/{projectRoot}",
-        "tsConfig": "{projectRoot}/tsconfig.lib.json",
-        "packageJson": "{projectRoot}/package.json",
-        "main": "{projectRoot}/src/index.ts",
-        "assets": []
+        "commands": [
+          "cp {projectRoot}/README.md dist/{projectRoot}/README.md",
+          "cp LICENSE dist/{projectRoot}/LICENSE"
+        ],
+        "parallel": true
       }
     },
     "release": {

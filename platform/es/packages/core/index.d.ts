@@ -14,4 +14,5 @@ export declare class Logger {
   addField(field: string, value: string | number | boolean | Buffer): void
   removeField(key: string): void
   log(level: number, message: string, fields: Record<string, string | number | boolean | Buffer>): void
+  logSessionReplayScreen(fields: Record<string, string | number | boolean | Buffer>, durationMs: number): void
 }

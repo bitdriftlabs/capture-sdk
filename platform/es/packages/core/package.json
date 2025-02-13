@@ -36,5 +36,12 @@
   },
   "devDependencies": {
     "@napi-rs/cli": "^2.18.4"
+  },
+  "optionalDependencies": {
+    "@bitdrift/core-darwin-arm64": "0.0.14",
+    "@bitdrift/core-darwin-x64": "0.0.14",
+    "@bitdrift/core-win32-x64-msvc": "0.0.14",
+    "@bitdrift/core-win32-ia32-msvc": "0.0.14",
+    "@bitdrift/core-linux-x64-gnu": "0.0.14"
   }
 }

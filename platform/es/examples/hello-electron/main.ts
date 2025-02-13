@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import {
   init,
   debug,
@@ -11,20 +11,14 @@ import { config as configDotenv } from 'dotenv';
 configDotenv();
 
 // Initialize bitdrift
-const logger = init(
-  process.env['BITDRIFT_KEY'] ?? 'invalid key',
-  SessionStrategy.Fixed,
-  {
-    url: process.env['BITDRIFT_URL'],
-    appVersion: '1.0.0',
+init(process.env['BITDRIFT_KEY'] ?? 'invalid key', SessionStrategy.Fixed, {
+  url: process.env['BITDRIFT_URL'],
+  appVersion: '1.0.0',
+  autoAddMainListener: {
+    experimental: {
+      sessionReplayEnabled: true,
+    },
   },
-);
-
-ipcMain.on('bitdrift:log', (_, level, message, fields) => {
-  console.log(
-    `Renderer sending log level: ${level} message: ${message} with fields: ${JSON.stringify(fields)}`,
-  );
-  logger.log(level, message, fields ?? {});
 });
 
 const createWindow = async () => {

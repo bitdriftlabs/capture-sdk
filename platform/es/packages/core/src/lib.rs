@@ -18,6 +18,7 @@ use napi::bindgen_prelude::{Buffer, Either4};
 use napi::Result;
 use napi_derive::napi;
 use std::collections::HashMap;
+use time::Duration;
 
 mod logger;
 
@@ -127,6 +128,40 @@ impl Logger {
     // call site and only passing 0-4 integer values.
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     self.inner.log(level, message, fields);
+
+    Ok(())
+  }
+
+  #[napi]
+  pub fn log_session_replay_screen(
+    &self,
+    fields: HashMap<String, Either4<String, u32, bool, Buffer>>,
+    duration_ms: u32,
+  ) -> Result<()> {
+    let fields: AnnotatedLogFields = fields
+      .into_iter()
+      .map(|(key, value)| {
+        let value: LogFieldValue = match value {
+          Either4::A(value) => value.into(),
+          Either4::B(value) => value.to_string().into(),
+          Either4::C(value) => value.to_string().into(),
+          Either4::D(value) => value.to_vec().into(),
+        };
+
+        AnnotatedLogField {
+          kind: LogFieldKind::Ootb,
+          field: LogField { key, value },
+        }
+      })
+      .collect();
+    let duration = Duration::milliseconds(duration_ms.into());
+
+    tracing::trace!("Logging session replay message: {duration_ms} with fields {fields:?}");
+
+    // Safety: We know that the level corresponds to a valid log_level due to us controlling the
+    // call site and only passing 0-4 integer values.
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    self.inner.log_session_replay_screen(fields, duration);
 
     Ok(())
   }
