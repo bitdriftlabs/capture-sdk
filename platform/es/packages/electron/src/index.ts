@@ -14,6 +14,8 @@ export {
   trace,
   getSessionID,
   getDeviceID,
+  addField,
+  removeField,
   generateDeviceCode,
   SessionStrategy,
 } from './lib/Logger';
