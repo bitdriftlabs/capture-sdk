@@ -85,9 +85,10 @@ Session replay is an experimental feature that allows you to replay user session
 In the main process:
 ```javascript
 init('<api-key>', SessionStrategy.Activity, {
-  autoAddMainListener: true,
-  experimental: {
-    sessionReplayEnabled: true
+  autoAddMainListener: {
+    experimental: {
+      sessionReplayEnabled: true
+    }
   }
 });
 ```
