@@ -123,5 +123,6 @@ publishing {
         maven {
             url = uri(layout.buildDirectory.dir("repos/releases"))
         }
+      mavenLocal()
     }
 }
