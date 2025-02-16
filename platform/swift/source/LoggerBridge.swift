@@ -16,22 +16,17 @@ typealias LoggerID = Int64
 /// in a nil logger.
 ///
 /// - parameter path: The path to be created and/or set to none protection
-private func makeDirectoryAndDisableProtection(at path: String) throws {
+func makeDirectoryAndDisableProtection(at path: String) throws {
     let url = NSURL(fileURLWithPath: path)
     let manager = FileManager.default
     if !manager.fileExists(atPath: path) {
-        try manager.createDirectory(
-            atPath: path,
-            withIntermediateDirectories: true,
-            attributes: [FileAttributeKey.protectionKey: FileProtectionType.none]
-        )
-        return
+        try manager.createDirectory(atPath: path, withIntermediateDirectories: true)
     }
 
     var fileProtection: AnyObject?
     try url.getResourceValue(&fileProtection, forKey: .fileProtectionKey)
-    if let protection = fileProtection as? FileProtectionType, protection != .none {
-        try url.setResourceValue(FileProtectionType.none, forKey: .fileProtectionKey)
+    if let protection = fileProtection as? URLFileProtection, protection != .none {
+        try url.setResourceValue(URLFileProtection.none, forKey: .fileProtectionKey)
     }
 }
 
