@@ -295,7 +295,7 @@ internal class LoggerImpl(
              *  `SharedPreferences`.
              */
             deviceCodeService.createTemporaryDeviceCode(deviceId, completion)
-        } ?: completion(Err(SdkNotStartedError))
+        } ?: completion(Err(SdkNotStartedError()))
     }
 
     private fun appExitSaveCurrentSessionId(sessionId: String? = null) {

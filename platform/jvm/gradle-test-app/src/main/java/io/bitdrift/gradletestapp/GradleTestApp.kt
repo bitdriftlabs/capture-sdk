@@ -47,11 +47,13 @@ import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.LoggerState
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.timber.CaptureTree
@@ -87,16 +89,25 @@ class GradleTestApp : Application() {
         val stringApiUrl = prefs.getString("apiUrl", null)
         val apiUrl = stringApiUrl?.toHttpUrlOrNull()
         if (apiUrl == null) {
-            Log.e("GradleTestApp", "Failed to initialize bitdrift logger due to invalid API URL: $stringApiUrl")
+            val invalidUrlMessage = "Failed to initialize bitdrift logger due to invalid API URL: $stringApiUrl"
+            notifyError(invalidUrlMessage)
             return
         }
-        BitdriftInit.initBitdriftCaptureInJava(apiUrl, prefs.getString("apiKey", ""))
+        val loggerState = BitdriftInit.initBitdriftCaptureInJava(apiUrl, prefs.getString("apiKey", ""))
+        if(loggerState is LoggerState.StartFailure){
+            notifyError(loggerState.sdkNotStartedError.message)
+        }
         // Timber
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
         Timber.plant(CaptureTree())
         Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
+    }
+
+    private fun notifyError(message:String){
+        Log.e("GradleTestApp", message)
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 
     private fun trackAppLaunch() {

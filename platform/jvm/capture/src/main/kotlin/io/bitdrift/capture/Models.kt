@@ -57,4 +57,6 @@ sealed class ApiError(
 /**
  * Represents a failed operation due to the SDK not being started
  */
-data object SdkNotStartedError : Error("SDK not started")
+data class SdkNotStartedError(
+    override val message: String = "SDK not started",
+) : Error(message)
