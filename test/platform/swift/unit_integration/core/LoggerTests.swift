@@ -285,6 +285,54 @@ final class LoggerTests: XCTestCase {
             "_request._query": "bar",
         ], try log.matchingFields?.toDictionary())
     }
+    
+    func testFolderPermissions() throws {
+        func protection(at path: String) throws -> URLFileProtection? {
+            let url = NSURL(fileURLWithPath: path)
+            var fileProtection: AnyObject?
+            try url.getResourceValue(&fileProtection, forKey: .fileProtectionKey)
+            return fileProtection as? URLFileProtection
+        }
+
+        // Create root path with complete protection
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        let existingWithNone = root.appendingPathComponent("existingWithNone")
+        try! FileManager.default.createDirectory(at: existingWithNone,
+                                                 withIntermediateDirectories: true)
+
+        try! FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try! (root as NSURL).setResourceValue(URLFileProtection.complete,
+                                              forKey: .fileProtectionKey)
+
+        // Create a new directory inside the root path (should inherit complete protection)
+        let existingWithComplete = root.appendingPathComponent("existingWithComplete")
+        try! FileManager.default.createDirectory(at: existingWithComplete,
+                                                 withIntermediateDirectories: true)
+
+        // Make sure protections are correct
+        XCTAssertEqual(.complete, try! protection(at: root.path))
+        XCTAssertEqual(.complete, try! protection(at: existingWithComplete.path))
+        XCTAssertNil(try! protection(at: existingWithNone.path))
+
+        // Test to see if disable protection works on a new path
+        let newPath = root.appendingPathComponent("newPath")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: newPath.path))
+        try! makeDirectoryAndDisableProtection(at: newPath.path)
+        XCTAssertEqual(.completeUntilFirstUserAuthentication,
+                       try! protection(at: newPath.path))
+
+        // Test to see if disable protection works on an existing path with complete
+        XCTAssertTrue(FileManager.default.fileExists(atPath: existingWithComplete.path))
+        try! makeDirectoryAndDisableProtection(at: existingWithComplete.path)
+        XCTAssertEqual(.completeUntilFirstUserAuthentication,
+                       try! protection(at: existingWithComplete.path))
+
+        // Test to see if disable protection works on an existing path with none
+        XCTAssertTrue(FileManager.default.fileExists(atPath: existingWithNone.path))
+        try! makeDirectoryAndDisableProtection(at: existingWithNone.path)
+        XCTAssertNil(try! protection(at: existingWithNone.path))
+    }
 }
 
 extension [Field] {
