@@ -285,8 +285,8 @@ final class LoggerTests: XCTestCase {
             "_request._query": "bar",
         ], try log.matchingFields?.toDictionary())
     }
-    
-    func testFolderPermissions() throws {
+
+    func testSDKDirectoryPermissions() throws {
         func protection(at path: String) throws -> URLFileProtection? {
             let url = NSURL(fileURLWithPath: path)
             var fileProtection: AnyObject?
