@@ -40,17 +40,17 @@ internal sealed class CaptureDispatchers private constructor(
     /**
      * [ExecutorService] A common background single thread worker that will be used to process events sequentially
      */
-    object CommonBackground : CaptureDispatchers("background-thread-worker")
+    data object CommonBackground : CaptureDispatchers("background-thread-worker")
 
     /**
      * [ExecutorService] to be used for networking capture
      */
-    object Network : CaptureDispatchers("network.okhttp")
+    data object Network : CaptureDispatchers("network.okhttp")
 
     /**
      * [ExecutorService] to be used for Session-Replay
      */
-    object SessionReplay : CaptureDispatchers("session-replay")
+    data object SessionReplay : CaptureDispatchers("session-replay")
 
     private fun buildExecutorService(threadName: String): ExecutorService =
         Executors.newSingleThreadExecutor {
