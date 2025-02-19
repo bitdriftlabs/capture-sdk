@@ -29,18 +29,20 @@ final class URLSessionTaskTracker {
 
     static let shared = URLSessionTaskTracker()
 
+    private func supports(task: URLSessionTask) -> Bool {
+        // TODO(fz): Add supports for other types of tasks (stream, download, avdownload, etc).
+        return (
+            task is URLSessionDataTask ||
+            task is URLSessionDownloadTask ||
+            task is URLSessionUploadTask
+        )
+    }
+    
     func taskWillStart(_ task: URLSessionTask) {
-        // TODO(Augustyniak): Add supports for the these two types of tasks.
-        if task is URLSessionStreamTask {
+        if !self.supports(task: task) {
             return
         }
-
-        if #available(iOS 13.0, *) {
-            if task is URLSessionWebSocketTask {
-                return
-            }
-        }
-
+        
         self.lock.withLock {
             guard task.cap_requestInfo == nil else {
                 // Defensive check in case we've logged a request for a given task already.
