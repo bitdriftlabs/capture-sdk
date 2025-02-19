@@ -54,20 +54,30 @@ class JankStatsMonitorTest {
     }
 
     @Test
-    fun onFrame_withFrozenFrame_shouldLogJankFrameData() {
+    fun onFrame_withSlowFrame_shouldLogWithWarningAndDroppedFrameMessage() {
+        val jankDurationInMilli = 690L
+
+        triggerOnFrame(isJankyFrame = true, durationInMilli = jankDurationInMilli)
+
+        assertLogDetails(jankDurationInMilli, LogType.UX, LogLevel.WARNING, "DroppedFrame")
+    }
+
+    @Test
+    fun onFrame_withSlowFrame_shouldLogWithErrorAndDroppedFrameMessage() {
         val jankDurationInMilli = 700L
 
         triggerOnFrame(isJankyFrame = true, durationInMilli = jankDurationInMilli)
 
-        verify(logger).log(
-            eq(LogType.UX),
-            eq(LogLevel.ERROR),
-            eq(mapOf("_duration_ms" to jankDurationInMilli.toString().toFieldValue())),
-            eq(null),
-            eq(null),
-            eq(false),
-            argThat { message: () -> String -> message.invoke() == "DroppedFrame" },
-        )
+        assertLogDetails(jankDurationInMilli, LogType.UX, LogLevel.ERROR, "DroppedFrame")
+    }
+
+    @Test
+    fun onFrame_withAnrFrame_shouldLogWithErrorAndAnrMessage() {
+        val jankDurationInMilli = 5000L
+
+        triggerOnFrame(isJankyFrame = true, durationInMilli = jankDurationInMilli)
+
+        assertLogDetails(jankDurationInMilli, LogType.UX, LogLevel.ERROR, "ANR")
     }
 
     @Test
@@ -116,5 +126,22 @@ class JankStatsMonitorTest {
             )
 
         jankStatsMonitor.onFrame(frameData)
+    }
+
+    private fun assertLogDetails(
+        jankDurationInMilli: Long,
+        expectedLogType: LogType,
+        expectedLogLevel: LogLevel,
+        expectedMessage: String,
+    ) {
+        verify(logger).log(
+            eq(expectedLogType),
+            eq(expectedLogLevel),
+            eq(mapOf("_duration_ms" to jankDurationInMilli.toString().toFieldValue())),
+            eq(null),
+            eq(null),
+            eq(false),
+            argThat { message: () -> String -> message.invoke() == expectedMessage },
+        )
     }
 }

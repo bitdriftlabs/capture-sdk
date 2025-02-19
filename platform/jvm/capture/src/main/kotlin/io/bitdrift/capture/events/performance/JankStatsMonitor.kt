@@ -68,16 +68,6 @@ internal class JankStatsMonitor(
         }
     }
 
-    @WorkerThread
-    private fun FrameData.sendJankFrameData() {
-        val fieldValue = this.durationToMilli().toString().toFieldValue()
-        logger.log(
-            LogType.UX,
-            LogLevel.ERROR,
-            mapOf(SpanField.Key.DURATION to fieldValue),
-        ) { LOG_KEY_ID_MESSAGE }
-    }
-
     private fun setJankStatsForCurrentWindow(window: Window) {
         try {
             jankStats = JankStats.createAndTrack(window, this)
@@ -97,11 +87,83 @@ internal class JankStatsMonitor(
         jankStats = null
     }
 
+    @WorkerThread
+    private fun FrameData.sendJankFrameData() {
+        val jankFrameLogDetails = this.getLogDetails()
+        logger.log(
+            LogType.UX,
+            jankFrameLogDetails.logLevel,
+            mapOf(SpanField.Key.DURATION to this.durationToMilli().toString().toFieldValue()),
+        ) { jankFrameLogDetails.message }
+    }
+
+    @WorkerThread
+    private fun FrameData.getLogDetails(): JankFrameLogDetails =
+        when (this.toJankType()) {
+            JankFrameType.SLOW -> {
+                JankFrameLogDetails(
+                    LogLevel.WARNING,
+                    DROPPED_FRAME_MESSAGE_ID,
+                )
+            }
+
+            JankFrameType.FROZEN -> {
+                JankFrameLogDetails(
+                    LogLevel.ERROR,
+                    DROPPED_FRAME_MESSAGE_ID,
+                )
+            }
+
+            JankFrameType.ANR -> {
+                JankFrameLogDetails(
+                    LogLevel.ERROR,
+                    ANR_MESSAGE_ID,
+                )
+            }
+        }
+
+    private fun FrameData.toJankType(): JankFrameType =
+        if (this.durationToMilli() < FROZEN_FRAME_THRESHOLD_MS) {
+            JankFrameType.SLOW
+        } else if (this.durationToMilli() < ANR_FRAME_THRESHOLD_MS) {
+            JankFrameType.FROZEN
+        } else {
+            JankFrameType.ANR
+        }
+
     private fun FrameData.durationToMilli(): Long = this.frameDurationUiNanos / TO_MILLI
+
+    /**
+     * The different type of Janks according to Play Vitals
+     */
+    private enum class JankFrameType {
+        /**
+         * Has a duration >= 16 ms and below 700 ms
+         */
+        SLOW,
+
+        /**
+         * With a duration between 700 ms and below 5000 ms
+         */
+        FROZEN,
+
+        /**
+         * With a duration above 5000 ms
+         */
+        ANR,
+    }
+
+    private data class JankFrameLogDetails(
+        val logLevel: LogLevel,
+        val message: String,
+    )
 
     private companion object {
         private const val TO_MILLI = 1_000_000L
-        private const val LOG_KEY_ID_MESSAGE = "DroppedFrame"
+        private const val DROPPED_FRAME_MESSAGE_ID = "DroppedFrame"
+        private const val ANR_MESSAGE_ID = "ANR"
         private const val DEFAULT_JANK_HEURISTICS_MULTIPLIER = 2.0F
+        private const val FROZEN_FRAME_THRESHOLD_MS = 700L
+        private const val ANR_FRAME_THRESHOLD_MS = 5000L
     }
 }
