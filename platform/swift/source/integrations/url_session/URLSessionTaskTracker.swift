@@ -60,6 +60,10 @@ final class URLSessionTaskTracker {
 
     // Observation: This method is called on `URLSession` delegate queue.
     func task(_ task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+        if !self.supports(task: task) {
+            return
+        }
+
         self.lock.withLock {
             guard let requestInfo = task.cap_requestInfo else {
                 return
