@@ -103,7 +103,7 @@ sealed class RuntimeConfig(
      * Frozen Frame: >=FROZEN_FRAME_THRESHOLD_IN_MILLI_SECONDS to <ANR_FRAME_THRESHOLD_IN_MILLI_SECONDS
      * ANR Frame: >=ANR_FRAME_THRESHOLD_IN_MILLI_SECONDS
      */
-    data object ANR_FRAME_THRESHOLD_IN_MILLI_SECONDS : RuntimeConfig("client_feature.android.application_anr_reporting.threshold_ms, 5000)
+    data object ANR_FRAME_THRESHOLD_IN_MILLI_SECONDS : RuntimeConfig("client_feature.android.frozen_frame.threshold_ms, 5000)
 }
 
 /**
