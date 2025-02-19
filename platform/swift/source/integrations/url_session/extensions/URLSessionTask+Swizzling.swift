@@ -14,7 +14,9 @@ extension URLSessionTask {
     @objc
     func cap_resume() {
         defer { self.cap_resume() }
-        if self.state == .completed || self.state == .canceling {
+        if self.state == .completed || self.state == .canceling ||
+            !URLSessionTaskTracker.supports(task: self)
+        {
             return
         }
 

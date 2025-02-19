@@ -29,20 +29,27 @@ final class URLSessionTaskTracker {
 
     static let shared = URLSessionTaskTracker()
 
-    private func supports(task: URLSessionTask) -> Bool {
-        // TODO(fz): Add supports for other types of tasks (stream, download, avdownload, etc).
+    /// Ensures the given task type is supported by our current network instrumentation. Some of these don't have all properties we
+    /// access, and those are only known at runtime. To play safe, we only check the positive case here we know we support.
+    ///
+    /// TODO(fz): Add supports for other types of tasks (stream, download, avdownload, etc).
+    ///
+    /// - parameter task: The instance of the task to check for support.
+    ///
+    /// - returns: `true` if the task is supported, `false` otherwise.
+    static func supports(task: URLSessionTask) -> Bool {
         return (
             task is URLSessionDataTask ||
-            task is URLSessionDownloadTask ||
-            task is URLSessionUploadTask
+                task is URLSessionDownloadTask ||
+                task is URLSessionUploadTask
         )
     }
-    
+
     func taskWillStart(_ task: URLSessionTask) {
-        if !self.supports(task: task) {
+        if !Self.supports(task: task) {
             return
         }
-        
+
         self.lock.withLock {
             guard task.cap_requestInfo == nil else {
                 // Defensive check in case we've logged a request for a given task already.
@@ -60,7 +67,7 @@ final class URLSessionTaskTracker {
 
     // Observation: This method is called on `URLSession` delegate queue.
     func task(_ task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
-        if !self.supports(task: task) {
+        if !Self.supports(task: task) {
             return
         }
 
