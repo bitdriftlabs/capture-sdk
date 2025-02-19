@@ -1181,6 +1181,31 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_isRuntimeEnabled(
   .into()
 }
 
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_Jni_captureRuntimeIntValue(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  variable_name: JString<'_>,
+  default_value: jint,
+) -> jint {
+  bd_client_common::error::with_handle_unexpected_or(
+    || {
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let binding = unsafe { env.get_string_unchecked(&variable_name) }?;
+      let variable_name = binding.to_str()?;
+      Ok(
+        logger
+          .runtime_snapshot()
+          .get_integer(variable_name, default_value as u32) as jint,
+      )
+    },
+    default_value,
+    "jni captureRuntimeIntValue",
+  )
+  .into()
+}
+
 fn unix_milliseconds_to_date(millis_since_utc_epoch: i64) -> anyhow::Result<OffsetDateTime> {
   let seconds = millis_since_utc_epoch / 1000;
   let nano = (millis_since_utc_epoch % 1000) * 10_i64.pow(6);

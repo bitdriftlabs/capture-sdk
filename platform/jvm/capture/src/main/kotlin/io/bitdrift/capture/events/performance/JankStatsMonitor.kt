@@ -24,6 +24,7 @@ import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
+import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.events.span.SpanField
@@ -48,6 +49,14 @@ internal class JankStatsMonitor(
     LifecycleEventObserver,
     JankStats.OnFrameListener {
     private var jankStats: JankStats? = null
+
+    private val frozenFrameThreshold by lazy {
+        runtime.getConfigValue(RuntimeConfig.FROZEN_FRAME_THRESHOLD_IN_MILLI_SECONDS)
+    }
+
+    private val anrFrameThreshold by lazy {
+        runtime.getConfigValue(RuntimeConfig.ANR_FRAME_THRESHOLD_IN_MILLI_SECONDS)
+    }
 
     override fun start() {
         mainThreadHandler.run {
@@ -98,9 +107,7 @@ internal class JankStatsMonitor(
             }
 
             jankStats = JankStats.createAndTrack(window, this)
-
-            // TODO(FranAguilera): BIT-4665 To update Runtime to provide heuristics value from config
-            jankStats?.jankHeuristicMultiplier = DEFAULT_JANK_HEURISTICS_MULTIPLIER
+            jankStats?.jankHeuristicMultiplier = runtime.getConfigValue(RuntimeConfig.JANK_FRAME_HEURISTICS_MULTIPLIER).toFloat()
         } catch (illegalStateException: IllegalStateException) {
             errorHandler.handleError(
                 "Couldn't create JankStats instance",
@@ -150,9 +157,9 @@ internal class JankStatsMonitor(
         }
 
     private fun FrameData.toJankType(): JankFrameType =
-        if (this.durationToMilli() < DEFAULT_FROZEN_FRAME_THRESHOLD_MS) {
+        if (this.durationToMilli() < frozenFrameThreshold) {
             JankFrameType.SLOW
-        } else if (this.durationToMilli() < DEFAULT_ANR_FRAME_THRESHOLD_MS) {
+        } else if (this.durationToMilli() < anrFrameThreshold) {
             JankFrameType.FROZEN
         } else {
             JankFrameType.ANR
@@ -189,12 +196,5 @@ internal class JankStatsMonitor(
         private const val TO_MILLI = 1_000_000L
         private const val DROPPED_FRAME_MESSAGE_ID = "DroppedFrame"
         private const val ANR_MESSAGE_ID = "ANR"
-
-        // TODO(FranAguilera): BIT-4665 To update Runtime to provide heuristics value from config
-        private const val DEFAULT_JANK_HEURISTICS_MULTIPLIER = 2.0F
-
-        // TODO(FranAguilera): BIT-4665 To update Runtime to provide these thresholds from config
-        private const val DEFAULT_FROZEN_FRAME_THRESHOLD_MS = 700L
-        private const val DEFAULT_ANR_FRAME_THRESHOLD_MS = 5000L
     }
 }
