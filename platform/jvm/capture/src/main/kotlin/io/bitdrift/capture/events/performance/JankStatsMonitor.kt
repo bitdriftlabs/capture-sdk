@@ -20,7 +20,8 @@ import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.lifecycle.ILifecycleWindowListener
-import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.events.span.SpanField
+import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.threading.CaptureDispatchers
 
 /**
@@ -69,17 +70,19 @@ internal class JankStatsMonitor(
 
     @WorkerThread
     private fun FrameData.sendJankFrameData() {
-        val fields =
-            mapOf(
-                DURATION_IN_MILLI_LOG_KEY to "${this.durationToMilli()}",
-                FRAME_TYPE_LOG_KEY to "${this.toType()}",
-            ).toFields()
-        logger.log(LogType.UX, LogLevel.ERROR, fields) { "JankFrame" }
+        val fieldValue = this.durationToMilli().toString().toFieldValue()
+        logger.log(
+            LogType.UX,
+            LogLevel.ERROR,
+            mapOf(SpanField.Key.DURATION to fieldValue),
+        ) { LOG_KEY_ID_MESSAGE }
     }
 
     private fun setJankStatsForCurrentWindow(window: Window) {
         try {
             jankStats = JankStats.createAndTrack(window, this)
+
+            // BIT-4665 To update Runtime to provide heuristics value from config
             jankStats?.jankHeuristicMultiplier = DEFAULT_JANK_HEURISTICS_MULTIPLIER
         } catch (illegalStateException: IllegalStateException) {
             errorHandler.handleError(
@@ -96,45 +99,9 @@ internal class JankStatsMonitor(
 
     private fun FrameData.durationToMilli(): Long = this.frameDurationUiNanos / TO_MILLI
 
-    private fun FrameData.toType(): JankFrameType =
-        if (this.durationToMilli() < FROZEN_FRAME_THRESHOLD_MILLI) {
-            JankFrameType.SLOW
-        } else if (this.durationToMilli() < ANR_FRAME_THRESHOLD_MILLI) {
-            JankFrameType.FROZEN
-        } else {
-            JankFrameType.ANR
-        }
-
     private companion object {
         private const val TO_MILLI = 1_000_000L
+        private const val LOG_KEY_ID_MESSAGE = "DroppedFrame"
         private const val DEFAULT_JANK_HEURISTICS_MULTIPLIER = 2.0F
-        private const val DURATION_IN_MILLI_LOG_KEY = "_jank_frame_duration_ms"
-        private const val FRAME_TYPE_LOG_KEY = "_jank_frame_type"
-        private const val FROZEN_FRAME_THRESHOLD_MILLI = 700L
-        private const val ANR_FRAME_THRESHOLD_MILLI = 5000L
     }
-}
-
-/**
- * The different type of Janks according to Play Vitals
- */
-enum class JankFrameType(
-    private val displayName: String,
-) {
-    /**
-     * Has a duration below 700 ms
-     */
-    SLOW("SLOW"),
-
-    /**
-     * With a duration between 700 ms and below 5000 ms
-     */
-    FROZEN("FROZEN"),
-
-    /**
-     * With a duration above 5000 ms
-     */
-    ANR("ANR"), ;
-
-    override fun toString(): String = displayName
 }

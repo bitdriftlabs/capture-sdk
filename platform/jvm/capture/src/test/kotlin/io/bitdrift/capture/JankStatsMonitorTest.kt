@@ -19,10 +19,9 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.events.performance.JankFrameType
 import io.bitdrift.capture.events.performance.JankStatsMonitor
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
-import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.providers.toFieldValue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -50,34 +49,25 @@ class JankStatsMonitorTest {
         window = activity.window
 
         whenever(runtime.isEnabled(RuntimeFeature.JANK_STATS_EVENTS)).thenReturn(true)
-        jankStatsMonitor = JankStatsMonitor(logger, runtime, errorHandler, FakeBackgroundThreadHandler())
+        jankStatsMonitor =
+            JankStatsMonitor(logger, runtime, errorHandler, FakeBackgroundThreadHandler())
     }
 
     @Test
-    fun onFrame_withSlowJankyFrame_shouldLogJankFrameData() {
-        val jankDurationInMilli = 50L
-
-        triggerOnFrame(isJankyFrame = true, durationInMilli = jankDurationInMilli)
-
-        assertJankFrameData(durationInMilli = jankDurationInMilli, jankType = JankFrameType.SLOW)
-    }
-
-    @Test
-    fun onFrame_withFrozenJankyFrame_shouldLogJankFrameData() {
+    fun onFrame_withFrozenFrame_shouldLogJankFrameData() {
         val jankDurationInMilli = 700L
 
         triggerOnFrame(isJankyFrame = true, durationInMilli = jankDurationInMilli)
 
-        assertJankFrameData(durationInMilli = jankDurationInMilli, jankType = JankFrameType.FROZEN)
-    }
-
-    @Test
-    fun onFrame_withANRJankyFrame_shouldLogJankFrameData() {
-        val jankDurationInMilli = 5000L
-
-        triggerOnFrame(isJankyFrame = true, durationInMilli = jankDurationInMilli)
-
-        assertJankFrameData(durationInMilli = jankDurationInMilli, jankType = JankFrameType.ANR)
+        verify(logger).log(
+            eq(LogType.UX),
+            eq(LogLevel.ERROR),
+            eq(mapOf("_duration_ms" to jankDurationInMilli.toString().toFieldValue())),
+            eq(null),
+            eq(null),
+            eq(false),
+            argThat { message: () -> String -> message.invoke() == "DroppedFrame" },
+        )
     }
 
     @Test
@@ -126,26 +116,5 @@ class JankStatsMonitorTest {
             )
 
         jankStatsMonitor.onFrame(frameData)
-    }
-
-    private fun assertJankFrameData(
-        durationInMilli: Long,
-        jankType: JankFrameType,
-    ) {
-        val expectedFields =
-            buildMap {
-                put("_jank_frame_duration_ms", durationInMilli.toString())
-                put("_jank_frame_type", jankType.toString())
-            }.toFields()
-
-        verify(logger).log(
-            eq(LogType.UX),
-            eq(LogLevel.ERROR),
-            eq(expectedFields),
-            eq(null),
-            eq(null),
-            eq(false),
-            argThat { message: () -> String -> message.invoke() == "JankFrame" },
-        )
     }
 }
