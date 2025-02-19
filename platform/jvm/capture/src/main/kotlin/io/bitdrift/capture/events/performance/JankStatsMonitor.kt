@@ -50,11 +50,11 @@ internal class JankStatsMonitor(
     JankStats.OnFrameListener {
     private var jankStats: JankStats? = null
 
-    private val frozenFrameThreshold by lazy {
+    private val frozenFrameThresholdInMilli by lazy {
         runtime.getConfigValue(RuntimeConfig.FROZEN_FRAME_THRESHOLD_IN_MILLI_SECONDS)
     }
 
-    private val anrFrameThreshold by lazy {
+    private val anrFrameThresholdInMilli by lazy {
         runtime.getConfigValue(RuntimeConfig.ANR_FRAME_THRESHOLD_IN_MILLI_SECONDS)
     }
 
@@ -157,9 +157,9 @@ internal class JankStatsMonitor(
         }
 
     private fun FrameData.toJankType(): JankFrameType =
-        if (this.durationToMilli() < frozenFrameThreshold) {
+        if (this.durationToMilli() < frozenFrameThresholdInMilli) {
             JankFrameType.SLOW
-        } else if (this.durationToMilli() < anrFrameThreshold) {
+        } else if (this.durationToMilli() < anrFrameThresholdInMilli) {
             JankFrameType.FROZEN
         } else {
             JankFrameType.ANR
@@ -172,17 +172,17 @@ internal class JankStatsMonitor(
      */
     private enum class JankFrameType {
         /**
-         * Has a duration >= 16 ms and below 700 ms
+         * Has a duration >= 16 ms and below [RuntimeConfig.FROZEN_FRAME_THRESHOLD_IN_MILLI_SECONDS]
          */
         SLOW,
 
         /**
-         * With a duration between 700 ms and below 5000 ms
+         * With a duration between [RuntimeConfig.FROZEN_FRAME_THRESHOLD_IN_MILLI_SECONDS] and below [RuntimeConfig.ANR_FRAME_THRESHOLD_IN_MILLI_SECONDS]
          */
         FROZEN,
 
         /**
-         * With a duration above 5000 ms
+         * With a duration above [RuntimeConfig.ANR_FRAME_THRESHOLD_IN_MILLI_SECONDS]
          */
         ANR,
     }
