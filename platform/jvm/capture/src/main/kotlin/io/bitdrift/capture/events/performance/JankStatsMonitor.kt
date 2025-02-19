@@ -9,7 +9,11 @@ package io.bitdrift.capture.events.performance
 
 import android.os.Build
 import android.view.Window
+import androidx.annotation.UiThread
 import androidx.annotation.WorkerThread
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.metrics.performance.FrameData
 import androidx.metrics.performance.JankStats
 import io.bitdrift.capture.ErrorHandler
@@ -17,9 +21,11 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.IBackgroundThreadHandler
+import io.bitdrift.capture.common.IWindowManager
+import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.events.lifecycle.ILifecycleWindowListener
+import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.threading.CaptureDispatchers
@@ -32,27 +38,42 @@ import io.bitdrift.capture.threading.CaptureDispatchers
  */
 internal class JankStatsMonitor(
     private val logger: LoggerImpl,
+    private val processLifecycleOwner: LifecycleOwner,
     private val runtime: Runtime,
+    private val windowManager: IWindowManager,
     private val errorHandler: ErrorHandler,
+    private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
-) : ILifecycleWindowListener,
+) : IEventListenerLogger,
+    LifecycleEventObserver,
     JankStats.OnFrameListener {
     private var jankStats: JankStats? = null
 
-    override fun onWindowAvailable(window: Window) {
-        stopCollection()
-
-        if (runtime.isEnabled(RuntimeFeature.JANK_STATS_EVENTS)) {
-            setJankStatsForCurrentWindow(window)
+    override fun start() {
+        mainThreadHandler.run {
+            processLifecycleOwner.lifecycle.addObserver(this)
         }
     }
 
-    override fun onWindowRemoved() {
-        stopCollection()
+    override fun stop() {
+        mainThreadHandler.run {
+            processLifecycleOwner.lifecycle.removeObserver(this)
+        }
+    }
+
+    override fun onStateChanged(
+        source: LifecycleOwner,
+        event: Lifecycle.Event,
+    ) {
+        if (event == Lifecycle.Event.ON_RESUME) {
+            windowManager.getCurrentWindow()?.let { setJankStatsForCurrentWindow(it) }
+        } else if (event == Lifecycle.Event.ON_STOP) {
+            stopCollection()
+        }
     }
 
     override fun onFrame(volatileFrameData: FrameData) {
-        if (!runtime.isEnabled(RuntimeFeature.JANK_STATS_EVENTS)) {
+        if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
             stopCollection()
             return
         }
@@ -68,11 +89,17 @@ internal class JankStatsMonitor(
         }
     }
 
+    @UiThread
     private fun setJankStatsForCurrentWindow(window: Window) {
         try {
+            if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
+                stopCollection()
+                return
+            }
+
             jankStats = JankStats.createAndTrack(window, this)
 
-            // BIT-4665 To update Runtime to provide heuristics value from config
+            // TODO(FranAguilera): BIT-4665 To update Runtime to provide heuristics value from config
             jankStats?.jankHeuristicMultiplier = DEFAULT_JANK_HEURISTICS_MULTIPLIER
         } catch (illegalStateException: IllegalStateException) {
             errorHandler.handleError(
@@ -123,9 +150,9 @@ internal class JankStatsMonitor(
         }
 
     private fun FrameData.toJankType(): JankFrameType =
-        if (this.durationToMilli() < FROZEN_FRAME_THRESHOLD_MS) {
+        if (this.durationToMilli() < DEFAULT_FROZEN_FRAME_THRESHOLD_MS) {
             JankFrameType.SLOW
-        } else if (this.durationToMilli() < ANR_FRAME_THRESHOLD_MS) {
+        } else if (this.durationToMilli() < DEFAULT_ANR_FRAME_THRESHOLD_MS) {
             JankFrameType.FROZEN
         } else {
             JankFrameType.ANR
@@ -162,8 +189,12 @@ internal class JankStatsMonitor(
         private const val TO_MILLI = 1_000_000L
         private const val DROPPED_FRAME_MESSAGE_ID = "DroppedFrame"
         private const val ANR_MESSAGE_ID = "ANR"
+
+        // TODO(FranAguilera): BIT-4665 To update Runtime to provide heuristics value from config
         private const val DEFAULT_JANK_HEURISTICS_MULTIPLIER = 2.0F
-        private const val FROZEN_FRAME_THRESHOLD_MS = 700L
-        private const val ANR_FRAME_THRESHOLD_MS = 5000L
+
+        // TODO(FranAguilera): BIT-4665 To update Runtime to provide these thresholds from config
+        private const val DEFAULT_FROZEN_FRAME_THRESHOLD_MS = 700L
+        private const val DEFAULT_ANR_FRAME_THRESHOLD_MS = 5000L
     }
 }

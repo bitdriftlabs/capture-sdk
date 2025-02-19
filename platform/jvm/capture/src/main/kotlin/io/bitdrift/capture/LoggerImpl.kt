@@ -87,7 +87,6 @@ internal class LoggerImpl(
     private val diskUsageMonitor: DiskUsageMonitor
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
-    private val jankStatsMonitor: JankStatsMonitor
 
     // we can assume a properly formatted api url is being used, so we can follow the same pattern
     // making sure we only replace the first occurrence
@@ -204,16 +203,12 @@ internal class LoggerImpl(
                 sessionReplayTarget.runtime = runtime
                 diskUsageMonitor.runtime = runtime
 
-                jankStatsMonitor = JankStatsMonitor(this, runtime, errorHandler)
-
                 eventsListenerTarget.add(
                     AppLifecycleListenerLogger(
                         this,
                         ProcessLifecycleOwner.get(),
                         runtime,
                         eventListenerDispatcher.executorService,
-                        windowManager = WindowManager(errorHandler),
-                        lifecycleWindowListener = jankStatsMonitor,
                     ),
                 )
 
@@ -245,6 +240,16 @@ internal class LoggerImpl(
                         context,
                         runtime,
                         eventListenerDispatcher.executorService,
+                    ),
+                )
+
+                eventsListenerTarget.add(
+                    JankStatsMonitor(
+                        this,
+                        ProcessLifecycleOwner.get(),
+                        runtime,
+                        WindowManager(errorHandler),
+                        errorHandler,
                     ),
                 )
 

@@ -18,7 +18,6 @@ import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.lifecycle.AppLifecycleListenerLogger
-import io.bitdrift.capture.events.lifecycle.ILifecycleWindowListener
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,7 +33,6 @@ import java.util.concurrent.TimeUnit
 class AppLifecycleListenerLoggerTest {
     private val logger: LoggerImpl = mock()
     private val windowManager: IWindowManager = mock()
-    private val lifecycleWindowListener: ILifecycleWindowListener = mock()
     private val processLifecycleOwner: LifecycleOwner = mock()
     private val runtime: Runtime = mock()
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -52,8 +50,6 @@ class AppLifecycleListenerLoggerTest {
                 runtime,
                 executor,
                 handler,
-                windowManager,
-                lifecycleWindowListener,
             )
         whenever(runtime.isEnabled(RuntimeFeature.APP_LIFECYCLE_EVENTS)).thenReturn(true)
         appLifecycleListenerLogger.start()
@@ -66,8 +62,6 @@ class AppLifecycleListenerLoggerTest {
         triggerLifecycleEvent(Lifecycle.Event.ON_STOP)
 
         verify(logger).flush(eq(false))
-        verify(lifecycleWindowListener).onWindowRemoved()
-        verify(lifecycleWindowListener, never()).onWindowAvailable(any())
     }
 
     @Test
@@ -78,8 +72,6 @@ class AppLifecycleListenerLoggerTest {
         triggerLifecycleEvent(Lifecycle.Event.ON_START)
         triggerLifecycleEvent(Lifecycle.Event.ON_RESUME)
 
-        verify(lifecycleWindowListener).onWindowAvailable(any())
-        verify(lifecycleWindowListener, never()).onWindowRemoved()
         verify(logger, never()).flush(any())
     }
 
@@ -89,8 +81,6 @@ class AppLifecycleListenerLoggerTest {
 
         triggerLifecycleEvent(Lifecycle.Event.ON_RESUME)
 
-        verify(lifecycleWindowListener, never()).onWindowAvailable(any())
-        verify(lifecycleWindowListener, never()).onWindowRemoved()
         verify(logger, never()).flush(any())
     }
 
