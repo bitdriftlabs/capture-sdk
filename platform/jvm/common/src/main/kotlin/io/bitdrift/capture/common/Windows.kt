@@ -23,7 +23,7 @@
  * limitations under the License.
  */
 
-package io.bitdrift.capture.replay.internal
+package io.bitdrift.capture.common
 
 import android.os.Build
 import android.util.Log

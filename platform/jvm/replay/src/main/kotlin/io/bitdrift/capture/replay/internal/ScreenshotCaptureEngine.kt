@@ -16,6 +16,8 @@ import android.view.View
 import androidx.annotation.RequiresApi
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.MainThreadHandler
+import io.bitdrift.capture.common.WindowManager
+import io.bitdrift.capture.common.phoneWindow
 import io.bitdrift.capture.replay.IScreenshotLogger
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.ExecutorService
