@@ -15,6 +15,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.metrics.performance.FrameData
+import androidx.metrics.performance.FrameDataApi24
+import androidx.metrics.performance.FrameDataApi31
 import androidx.metrics.performance.JankStats
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.LogLevel
@@ -157,7 +159,17 @@ internal class JankStatsMonitor(
             JankFrameType.ANR
         }
 
-    private fun FrameData.durationToMilli(): Long = this.frameDurationUiNanos / TO_MILLI
+    private fun FrameData.durationToMilli(): Long {
+        val durationInNano =
+            when (this) {
+                is FrameDataApi31 -> this.frameDurationTotalNanos
+                is FrameDataApi24 -> this.frameDurationCpuNanos
+                else -> {
+                    frameDurationUiNanos
+                }
+            }
+        return durationInNano / TO_MILLI
+    }
 
     /**
      * The different type of Janks according to Play Vitals
