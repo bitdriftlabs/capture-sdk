@@ -16,7 +16,7 @@ internal class JniRuntime(
 ) : Runtime {
     override fun isEnabled(feature: RuntimeFeature): Boolean = Jni.isRuntimeEnabled(logger, feature.featureName, feature.defaultValue)
 
-    override fun getConfigValue(config: RuntimeConfig): Int = Jni.captureRuntimeIntValue(logger, config.configName, config.defaultValue)
+    override fun getConfigValue(config: RuntimeConfig): Int = Jni.runtimeValue(logger, config.configName, config.defaultValue)
 }
 
 internal object Jni {
@@ -26,7 +26,7 @@ internal object Jni {
         defaultValue: Boolean,
     ): Boolean
 
-    external fun captureRuntimeIntValue(
+    external fun runtimeValue(
         logger: LoggerId,
         variableName: String,
         defaultValue: Int,

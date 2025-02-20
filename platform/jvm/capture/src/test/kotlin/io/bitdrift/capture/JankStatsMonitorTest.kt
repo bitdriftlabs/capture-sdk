@@ -61,8 +61,8 @@ class JankStatsMonitorTest {
         whenever(windowManager.getCurrentWindow()).thenReturn(window)
 
         whenever(runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)).thenReturn(true)
-        whenever(runtime.getConfigValue(RuntimeConfig.FROZEN_FRAME_THRESHOLD_IN_MILLI_SECONDS)).thenReturn(700)
-        whenever(runtime.getConfigValue(RuntimeConfig.ANR_FRAME_THRESHOLD_IN_MILLI_SECONDS)).thenReturn(5000)
+        whenever(runtime.getConfigValue(RuntimeConfig.FROZEN_FRAME_THRESHOLD_IN_MS)).thenReturn(700)
+        whenever(runtime.getConfigValue(RuntimeConfig.ANR_FRAME_THRESHOLD_MS)).thenReturn(5000)
 
         jankStatsMonitor =
             JankStatsMonitor(
@@ -117,7 +117,7 @@ class JankStatsMonitorTest {
 
     @Test
     fun onStateChanged_withOnResumeAndUpdatedConfigAnrValueAndAnrFrame_shouldLogWithErrorAndAnrMessage() {
-        whenever(runtime.getConfigValue(RuntimeConfig.ANR_FRAME_THRESHOLD_IN_MILLI_SECONDS)).thenReturn(2000)
+        whenever(runtime.getConfigValue(RuntimeConfig.ANR_FRAME_THRESHOLD_MS)).thenReturn(2000)
         val jankDurationInMilli = 2000L
 
         triggerLifecycleEvent(
