@@ -1206,7 +1206,6 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeValue(
     default_value,
     "jni runtimeValue",
   )
-  .into()
 }
 
 
