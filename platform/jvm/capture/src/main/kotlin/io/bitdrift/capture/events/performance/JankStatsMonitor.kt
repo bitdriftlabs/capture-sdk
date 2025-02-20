@@ -165,7 +165,7 @@ internal class JankStatsMonitor(
                 is FrameDataApi31 -> this.frameDurationTotalNanos
                 is FrameDataApi24 -> this.frameDurationCpuNanos
                 else -> {
-                    frameDurationUiNanos
+                    this.frameDurationUiNanos
                 }
             }
         return durationInNano / TO_MILLI
