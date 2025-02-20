@@ -5,6 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+import AVFoundation
 @testable import Capture
 import CaptureMocks
 import Foundation
@@ -130,6 +131,32 @@ final class URLSessionIntegrationTests: XCTestCase {
             self.customTearDown()
             session.finishTasksAndInvalidate()
         }
+    }
+
+    @available(iOS 15.0, *)
+    func testCreateInvalidTask() throws {
+        self.customSetUp(swizzle: true)
+
+        let requestExpectation = self.expectation(description: "request not logged")
+        requestExpectation.isInverted = true
+        let responseExpectation = self.expectation(description: "response not logged")
+        responseExpectation.isInverted = true
+
+        let session = AVAssetDownloadURLSession(configuration: .background(withIdentifier: "w00t"),
+                                                assetDownloadDelegate: nil,
+                                                delegateQueue: nil)
+
+        let task = session
+            .makeAssetDownloadTask(downloadConfiguration: .init(asset: .init(url: self.makeURL()),
+                                                                title: "we"))
+        task.resume()
+
+        XCTAssertEqual(
+            .completed,
+            XCTWaiter().wait(for: [requestExpectation, responseExpectation], timeout: 2)
+        )
+
+        XCTAssertTrue(self.logger.logs.isEmpty)
     }
 
     func testBackgroundSessionTasks() throws {
