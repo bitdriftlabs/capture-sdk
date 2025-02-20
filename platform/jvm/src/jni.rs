@@ -1182,6 +1182,8 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_isRuntimeEnabled(
 }
 
 #[no_mangle]
+// Java/Kotlin types are always signed, but get_integer is unsigned.
+#[allow(clippy::cast_sign_loss)]
 pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeValue(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
