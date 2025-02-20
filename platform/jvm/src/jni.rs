@@ -1208,7 +1208,6 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeValue(
   )
 }
 
-
 fn unix_milliseconds_to_date(millis_since_utc_epoch: i64) -> anyhow::Result<OffsetDateTime> {
   let seconds = millis_since_utc_epoch / 1000;
   let nano = (millis_since_utc_epoch % 1000) * 10_i64.pow(6);
