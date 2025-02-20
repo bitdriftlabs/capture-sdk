@@ -1181,6 +1181,32 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_isRuntimeEnabled(
   .into()
 }
 
+#[no_mangle]
+// Java/Kotlin types are always signed, but get_integer is unsigned.
+#[allow(clippy::cast_sign_loss)]
+pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeValue(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  variable_name: JString<'_>,
+  default_value: jint,
+) -> jint {
+  bd_client_common::error::with_handle_unexpected_or(
+    || {
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let binding = unsafe { env.get_string_unchecked(&variable_name) }?;
+      let variable_name = binding.to_str()?;
+      let integer_value = logger
+        .runtime_snapshot()
+        .get_integer(variable_name, default_value as u32);
+
+      Ok(jint::try_from(integer_value).map_or(default_value, |value| value))
+    },
+    default_value,
+    "jni runtimeValue",
+  )
+}
+
 fn unix_milliseconds_to_date(millis_since_utc_epoch: i64) -> anyhow::Result<OffsetDateTime> {
   let seconds = millis_since_utc_epoch / 1000;
   let nano = (millis_since_utc_epoch % 1000) * 10_i64.pow(6);

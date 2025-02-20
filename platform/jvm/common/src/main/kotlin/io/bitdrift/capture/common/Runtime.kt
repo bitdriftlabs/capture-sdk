@@ -70,6 +70,43 @@ sealed class RuntimeFeature(
 }
 
 /**
+ * Known runtime config values.
+ * @param configName the runtime key to use for this config value
+ * @param defaultValue The value
+ */
+sealed class RuntimeConfig(
+    val configName: String,
+    val defaultValue: Int,
+) {
+    /**
+     * The configured value for [jankHeuristicMultiplier] from [JankStatsMonitoring]. More info at https://developer.android.com/topic/performance/jankstats#jank-heuristics
+     */
+    data object JANK_FRAME_HEURISTICS_MULTIPLIER : RuntimeConfig("client_feature.android.jank_frame_heuristics_multiplier", 2)
+
+    /**
+     * The upper bound threshold that defines what constitutes a FROZEN frame reported via [JankStats]
+     *
+     * The default value is 700ms
+     *
+     * Slow Frame: >= 16ms to < FROZEN_FRAME_THRESHOLD_MS
+     * Frozen Frame: >= FROZEN_FRAME_THRESHOLD_MS to < ANR_FRAME_THRESHOLD_MS
+     * ANR Frame: >= ANR_FRAME_THRESHOLD_MS
+     */
+    data object FROZEN_FRAME_THRESHOLD_MS : RuntimeConfig("client_feature.android.frozen_frame.threshold_ms", 700)
+
+    /**
+     * The upper bound threshold that defines what constitutes an ANR frame reported via [JankStats]
+     *
+     * The default value is 5000ms
+     *
+     * Slow Frame: >= 16ms to < FROZEN_FRAME_THRESHOLD_MS
+     * Frozen Frame: >= FROZEN_FRAME_THRESHOLD_MS to < ANR_FRAME_THRESHOLD_MS
+     * ANR Frame: >= ANR_FRAME_THRESHOLD_MS
+     */
+    data object ANR_FRAME_THRESHOLD_MS : RuntimeConfig("client_feature.android.anr_frame.threshold_ms", 5000)
+}
+
+/**
  * Allows checking whether a runtime feature is enabled. Features may be remotely disabled via the a runtime flag, making it possible to
  * disable features that are known to be problematic with certain SDK versions.
  */
@@ -79,4 +116,10 @@ interface Runtime {
      * @param feature the feature flag to check
      */
     fun isEnabled(feature: RuntimeFeature): Boolean
+
+    /**
+     * Returns the configured value
+     * @param config the configuration value to check
+     */
+    fun getConfigValue(config: RuntimeConfig): Int
 }

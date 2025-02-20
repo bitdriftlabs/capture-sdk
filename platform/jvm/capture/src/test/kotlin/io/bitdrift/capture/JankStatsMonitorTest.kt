@@ -21,6 +21,7 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.Runtime
+import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.JankStatsMonitor
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
@@ -58,7 +59,10 @@ class JankStatsMonitorTest {
 
         whenever(processLifecycleOwner.lifecycle).thenReturn(lifecycle)
         whenever(windowManager.getCurrentWindow()).thenReturn(window)
+
         whenever(runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)).thenReturn(true)
+        whenever(runtime.getConfigValue(RuntimeConfig.FROZEN_FRAME_THRESHOLD_MS)).thenReturn(700)
+        whenever(runtime.getConfigValue(RuntimeConfig.ANR_FRAME_THRESHOLD_MS)).thenReturn(5000)
 
         jankStatsMonitor =
             JankStatsMonitor(
@@ -101,6 +105,20 @@ class JankStatsMonitorTest {
     @Test
     fun onStateChanged_withOnResumeAndAnrFrame_shouldLogWithErrorAndAnrMessage() {
         val jankDurationInMilli = 5000L
+
+        triggerLifecycleEvent(
+            lifecycleEvent = Lifecycle.Event.ON_RESUME,
+            isJankyFrame = true,
+            durationInMilli = jankDurationInMilli,
+        )
+
+        assertLogDetails(jankDurationInMilli, LogLevel.ERROR, "ANR")
+    }
+
+    @Test
+    fun onStateChanged_withOnResumeAndUpdatedConfigAnrValueAndAnrFrame_shouldLogWithErrorAndAnrMessage() {
+        whenever(runtime.getConfigValue(RuntimeConfig.ANR_FRAME_THRESHOLD_MS)).thenReturn(2000)
+        val jankDurationInMilli = 2000L
 
         triggerLifecycleEvent(
             lifecycleEvent = Lifecycle.Event.ON_RESUME,
