@@ -88,19 +88,19 @@ sealed class RuntimeConfig(
      *
      * The default value is 700ms
      *
-     * Slow Frame: >= 16ms to < FROZEN_FRAME_THRESHOLD_IN_MS
-     * Frozen Frame: >= FROZEN_FRAME_THRESHOLD_IN_MS to < ANR_FRAME_THRESHOLD_MS
+     * Slow Frame: >= 16ms to < FROZEN_FRAME_THRESHOLD_MS
+     * Frozen Frame: >= FROZEN_FRAME_THRESHOLD_MS to < ANR_FRAME_THRESHOLD_MS
      * ANR Frame: >= ANR_FRAME_THRESHOLD_MS
      */
-    data object FROZEN_FRAME_THRESHOLD_IN_MS : RuntimeConfig("client_feature.android.frozen_frame.threshold_ms", 700)
+    data object FROZEN_FRAME_THRESHOLD_MS : RuntimeConfig("client_feature.android.frozen_frame.threshold_ms", 700)
 
     /**
      * The upper bound threshold that defines what constitutes an ANR frame reported via [JankStats]
      *
      * The default value is 5000ms
      *
-     * Slow Frame: >= 16ms to < FROZEN_FRAME_THRESHOLD_IN_MS
-     * Frozen Frame: >= FROZEN_FRAME_THRESHOLD_IN_MS to < ANR_FRAME_THRESHOLD_MS
+     * Slow Frame: >= 16ms to < FROZEN_FRAME_THRESHOLD_MS
+     * Frozen Frame: >= FROZEN_FRAME_THRESHOLD_MS to < ANR_FRAME_THRESHOLD_MS
      * ANR Frame: >= ANR_FRAME_THRESHOLD_MS
      */
     data object ANR_FRAME_THRESHOLD_MS : RuntimeConfig("client_feature.android.anr_frame.threshold_ms", 5000)

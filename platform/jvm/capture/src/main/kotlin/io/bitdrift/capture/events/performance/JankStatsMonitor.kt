@@ -149,7 +149,7 @@ internal class JankStatsMonitor(
         }
 
     private fun FrameData.toJankType(): JankFrameType =
-        if (this.durationToMilli() < runtime.getConfigValue(RuntimeConfig.FROZEN_FRAME_THRESHOLD_IN_MS)) {
+        if (this.durationToMilli() < runtime.getConfigValue(RuntimeConfig.FROZEN_FRAME_THRESHOLD_MS)) {
             JankFrameType.SLOW
         } else if (this.durationToMilli() < runtime.getConfigValue(RuntimeConfig.ANR_FRAME_THRESHOLD_MS)) {
             JankFrameType.FROZEN
@@ -164,12 +164,12 @@ internal class JankStatsMonitor(
      */
     private enum class JankFrameType {
         /**
-         * Has a duration >= 16 ms and below [RuntimeConfig.FROZEN_FRAME_THRESHOLD_IN_MS]
+         * Has a duration >= 16 ms and below [RuntimeConfig.FROZEN_FRAME_THRESHOLD_MS]
          */
         SLOW,
 
         /**
-         * With a duration between [RuntimeConfig.FROZEN_FRAME_THRESHOLD_IN_MS] and below [RuntimeConfig.ANR_FRAME_THRESHOLD_MS]
+         * With a duration between [RuntimeConfig.FROZEN_FRAME_THRESHOLD_MS] and below [RuntimeConfig.ANR_FRAME_THRESHOLD_MS]
          */
         FROZEN,
 
