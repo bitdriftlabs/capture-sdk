@@ -52,6 +52,8 @@ internal class JankStatsMonitor(
     JankStats.OnFrameListener {
     private var jankStats: JankStats? = null
 
+    private val minJankFrameThresholdMs by lazy { runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS) }
+
     override fun start() {
         mainThreadHandler.run {
             processLifecycleOwner.lifecycle.addObserver(this)
@@ -76,7 +78,7 @@ internal class JankStatsMonitor(
     }
 
     override fun onFrame(volatileFrameData: FrameData) {
-        if (volatileFrameData.isJank) {
+        if (volatileFrameData.isJankAndMinDurationReached()) {
             if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
                 stopCollection()
                 return
@@ -91,6 +93,8 @@ internal class JankStatsMonitor(
             }
         }
     }
+
+    private fun FrameData.isJankAndMinDurationReached(): Boolean = isJank && minJankFrameThresholdMs > this.durationToMilli()
 
     @UiThread
     private fun setJankStatsForCurrentWindow(window: Window) {
