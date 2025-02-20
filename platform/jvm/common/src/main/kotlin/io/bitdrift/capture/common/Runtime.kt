@@ -84,11 +84,22 @@ sealed class RuntimeConfig(
     data object JANK_FRAME_HEURISTICS_MULTIPLIER : RuntimeConfig("client_feature.android.jank_frame_heuristics_multiplier", 2)
 
     /**
+     * The lower bound threshold on what it defines a Jank Frame by its duration [JankStats]
+     *
+     * The default value is 16 ms
+     *
+     * Slow Frame: >= MIN_JANK_FRAME_THRESHOLD_MS to < FROZEN_FRAME_THRESHOLD_MS
+     * Frozen Frame: >= FROZEN_FRAME_THRESHOLD_MS to < ANR_FRAME_THRESHOLD_MS
+     * ANR Frame: >= ANR_FRAME_THRESHOLD_MS
+     */
+    data object MIN_JANK_FRAME_THRESHOLD_MS : RuntimeConfig("client_feature.android.frozen_frame.threshold_ms", 16)
+
+    /**
      * The upper bound threshold that defines what constitutes a FROZEN frame reported via [JankStats]
      *
      * The default value is 700ms
      *
-     * Slow Frame: >= 16ms to < FROZEN_FRAME_THRESHOLD_MS
+     * Slow Frame: >= MIN_JANK_FRAME_THRESHOLD_MS to < FROZEN_FRAME_THRESHOLD_MS
      * Frozen Frame: >= FROZEN_FRAME_THRESHOLD_MS to < ANR_FRAME_THRESHOLD_MS
      * ANR Frame: >= ANR_FRAME_THRESHOLD_MS
      */
@@ -99,7 +110,7 @@ sealed class RuntimeConfig(
      *
      * The default value is 5000ms
      *
-     * Slow Frame: >= 16ms to < FROZEN_FRAME_THRESHOLD_MS
+     * Slow Frame: >= MIN_JANK_FRAME_THRESHOLD_MS to < FROZEN_FRAME_THRESHOLD_MS
      * Frozen Frame: >= FROZEN_FRAME_THRESHOLD_MS to < ANR_FRAME_THRESHOLD_MS
      * ANR Frame: >= ANR_FRAME_THRESHOLD_MS
      */
