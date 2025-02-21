@@ -63,7 +63,6 @@ class JankStatsMonitorTest {
         whenever(runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)).thenReturn(true)
         whenever(runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS)).thenReturn(16)
         whenever(runtime.getConfigValue(RuntimeConfig.FROZEN_FRAME_THRESHOLD_MS)).thenReturn(700)
-        whenever(runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS)).thenReturn(16)
         whenever(runtime.getConfigValue(RuntimeConfig.ANR_FRAME_THRESHOLD_MS)).thenReturn(5000)
 
         jankStatsMonitor =
