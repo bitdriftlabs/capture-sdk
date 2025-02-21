@@ -127,9 +127,18 @@ public struct HTTPResponseInfo {
                     .flatMap(String.init)
                 fields["_response_headers_bytes_count"] = metrics.responseHeadersBytesCount
                     .flatMap(String.init)
-                fields["_dns_resolution_duration_ms"] = metrics.dnsResolutionDuration
-                    .flatMap { "\($0.toMilliseconds())" }
             }
+
+            fields["_dns_resolution_duration_ms"] = metrics.dnsResolutionDuration
+                .flatMap { "\($0.toMilliseconds())" }
+            fields["_tls_duration_ms"] = metrics.tlsDuration
+                .flatMap { "\($0.toMilliseconds())" }
+            fields["_tcp_duration_ms"] = metrics.tcpDuration
+                .flatMap { "\($0.toMilliseconds())" }
+            fields["_fetch_init_duration_ms"] = metrics.fetchInitializationDuration
+                .flatMap { "\($0.toMilliseconds())" }
+            fields["_response_latency_ms"] = metrics.responseLatency
+                .flatMap { "\($0.toMilliseconds())" }
         }
 
         return fields
