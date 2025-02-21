@@ -56,9 +56,17 @@ class CaptureOkHttpEventListenerFactoryTest {
         val fetchInitDurationMs = dnsStartTimeMs - callStartTimeMs
         val responseLatencyMs = responseHeadersStartTimeMs - requestBodyEndTimeMs
         whenever(clock.elapsedRealtime()).thenReturn(
-            callStartTimeMs, dnsStartTimeMs, dnsEndTimeMs, connectStartTimeMs,  tlsStartTimeMs,
-            tlsEndTimeMs, connectEndTimeMs, requestHeadersEndTimeMs, requestBodyEndTimeMs,
-            responseHeadersStartTimeMs, callEndtimeMs
+            callStartTimeMs,
+            dnsStartTimeMs,
+            dnsEndTimeMs,
+            connectStartTimeMs,
+            tlsStartTimeMs,
+            tlsEndTimeMs,
+            connectEndTimeMs,
+            requestHeadersEndTimeMs,
+            requestBodyEndTimeMs,
+            responseHeadersStartTimeMs,
+            callEndtimeMs,
         )
 
         val request =

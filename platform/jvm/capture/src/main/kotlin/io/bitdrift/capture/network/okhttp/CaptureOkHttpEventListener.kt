@@ -154,7 +154,7 @@ internal class CaptureOkHttpEventListener internal constructor(
         val elapsed = clock.elapsedRealtime()
 
         // Calculate initialization time as the first dnsStart - callStart
-        if (fetchInitializationMs == null ) {
+        if (fetchInitializationMs == null) {
             fetchInitializationMs = (elapsed - callStartTimeMs)
         }
 

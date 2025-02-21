@@ -8,7 +8,7 @@
 import Foundation
 
 /// Metrics collected for the execution of an HTTP request.
-/// 
+///
 /// See https://developer.apple.com/documentation/foundation/urlsessiontasktransactionmetrics for
 /// the flow of these events.
 public struct HTTPRequestMetrics {
@@ -121,7 +121,6 @@ extension HTTPRequestMetrics {
                 {
                     return nil
                 }
-                
 
                 return endDate.timeIntervalSince(startDate)
             }
@@ -131,7 +130,6 @@ extension HTTPRequestMetrics {
         } else {
             return nil
         }
-
     }
 
     private static func getResponseLatency(metrics: URLSessionTaskMetrics) -> TimeInterval? {
