@@ -208,10 +208,10 @@ internal class LoggerImpl(
                         this,
                         ProcessLifecycleOwner.get(),
                         activityManager,
-                    runtime,
-                    eventListenerDispatcher.executorService,
-                ),
-            )
+                        runtime,
+                        eventListenerDispatcher.executorService,
+                    ),
+                )
 
                 eventsListenerTarget.add(
                     DeviceStateListenerLogger(

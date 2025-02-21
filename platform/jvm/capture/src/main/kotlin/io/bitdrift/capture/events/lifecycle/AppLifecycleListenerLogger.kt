@@ -10,7 +10,6 @@ package io.bitdrift.capture.events.lifecycle
 import android.app.ActivityManager
 import android.app.ApplicationStartInfo
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -66,11 +65,12 @@ internal class AppLifecycleListenerLogger(
                 return@execute
             }
 
-            val fields = if (event == Lifecycle.Event.ON_CREATE && (Build.VERSION.SDK_INT > Build.VERSION_CODES.UPSIDE_DOWN_CAKE)) {
-                extractAppStartInfoFields()
-            } else {
-                null
-            } ?: emptyMap()
+            val fields =
+                if (event == Lifecycle.Event.ON_CREATE && (Build.VERSION.SDK_INT > Build.VERSION_CODES.UPSIDE_DOWN_CAKE)) {
+                    extractAppStartInfoFields()
+                } else {
+                    null
+                } ?: emptyMap()
             // refer to lifecycle states https://developer.android.com/topic/libraries/architecture/lifecycle#lc
             logger.log(
                 LogType.LIFECYCLE,
@@ -86,7 +86,7 @@ internal class AppLifecycleListenerLogger(
 
     @RequiresApi(35)
     private fun extractAppStartInfoFields(): Map<String, String>? {
-       val appStartInfo = activityManager.getHistoricalProcessStartReasons(1).firstOrNull() ?: return null
+        val appStartInfo = activityManager.getHistoricalProcessStartReasons(1).firstOrNull() ?: return null
         val ts = StartupTimestamps.fromMap(appStartInfo.startupTimestamps)
         return buildMap {
             put("startup_type", appStartInfo.startType.toStartTypeText())
@@ -102,53 +102,49 @@ internal class AppLifecycleListenerLogger(
         }
     }
 
-    private fun Int.toStartTypeText(): String {
-        return when (this) {
+    private fun Int.toStartTypeText(): String =
+        when (this) {
             ApplicationStartInfo.START_TYPE_UNSET -> "UNSET"
-            ApplicationStartInfo.START_TYPE_COLD  -> "COLD"
-            ApplicationStartInfo.START_TYPE_WARM  -> "WARM"
-            ApplicationStartInfo.START_TYPE_HOT   -> "HOT"
-            else                                  -> "UNKNOWN"
+            ApplicationStartInfo.START_TYPE_COLD -> "COLD"
+            ApplicationStartInfo.START_TYPE_WARM -> "WARM"
+            ApplicationStartInfo.START_TYPE_HOT -> "HOT"
+            else -> "UNKNOWN"
         }
-    }
 
-    private fun Int.toStartupStateText(): String {
-        return when (this) {
-            ApplicationStartInfo.STARTUP_STATE_STARTED           -> "STARTED"
-            ApplicationStartInfo.STARTUP_STATE_ERROR             -> "ERROR"
+    private fun Int.toStartupStateText(): String =
+        when (this) {
+            ApplicationStartInfo.STARTUP_STATE_STARTED -> "STARTED"
+            ApplicationStartInfo.STARTUP_STATE_ERROR -> "ERROR"
             ApplicationStartInfo.STARTUP_STATE_FIRST_FRAME_DRAWN -> "FIRST_FRAME_DRAWN"
-            else                                                 -> "UNKNOWN"
+            else -> "UNKNOWN"
         }
-    }
 
-    private fun Int.toLaunchModeText(): String {
-        return when (this) {
-            ApplicationStartInfo.LAUNCH_MODE_STANDARD                 -> "STANDARD"
-            ApplicationStartInfo.LAUNCH_MODE_SINGLE_TOP               -> "SINGLE_TOP"
-            ApplicationStartInfo.LAUNCH_MODE_SINGLE_INSTANCE          -> "SINGLE_INSTANCE"
-            ApplicationStartInfo.LAUNCH_MODE_SINGLE_TASK              -> "SINGLE_TASK"
+    private fun Int.toLaunchModeText(): String =
+        when (this) {
+            ApplicationStartInfo.LAUNCH_MODE_STANDARD -> "STANDARD"
+            ApplicationStartInfo.LAUNCH_MODE_SINGLE_TOP -> "SINGLE_TOP"
+            ApplicationStartInfo.LAUNCH_MODE_SINGLE_INSTANCE -> "SINGLE_INSTANCE"
+            ApplicationStartInfo.LAUNCH_MODE_SINGLE_TASK -> "SINGLE_TASK"
             ApplicationStartInfo.LAUNCH_MODE_SINGLE_INSTANCE_PER_TASK -> "SINGLE_INSTANCE_PER_TASK"
-            else                                                      -> "UNKNOWN"
+            else -> "UNKNOWN"
         }
-    }
 
-    private fun Int.toStartReasonText(): String {
-        return when (this) {
-            ApplicationStartInfo.START_REASON_ALARM            -> "ALARM"
-            ApplicationStartInfo.START_REASON_BACKUP           -> "BACKUP"
-            ApplicationStartInfo.START_REASON_BOOT_COMPLETE    -> "BOOT_COMPLETE"
-            ApplicationStartInfo.START_REASON_BROADCAST        -> "BROADCAST"
+    private fun Int.toStartReasonText(): String =
+        when (this) {
+            ApplicationStartInfo.START_REASON_ALARM -> "ALARM"
+            ApplicationStartInfo.START_REASON_BACKUP -> "BACKUP"
+            ApplicationStartInfo.START_REASON_BOOT_COMPLETE -> "BOOT_COMPLETE"
+            ApplicationStartInfo.START_REASON_BROADCAST -> "BROADCAST"
             ApplicationStartInfo.START_REASON_CONTENT_PROVIDER -> "CONTENT_PROVIDER"
-            ApplicationStartInfo.START_REASON_JOB              -> "JOB"
-            ApplicationStartInfo.START_REASON_LAUNCHER         -> "LAUNCHER"
+            ApplicationStartInfo.START_REASON_JOB -> "JOB"
+            ApplicationStartInfo.START_REASON_LAUNCHER -> "LAUNCHER"
             ApplicationStartInfo.START_REASON_LAUNCHER_RECENTS -> "LAUNCHER_RECENTS"
-            ApplicationStartInfo.START_REASON_OTHER            -> "OTHER"
-            ApplicationStartInfo.START_REASON_PUSH             -> "PUSH"
-            ApplicationStartInfo.START_REASON_SERVICE          -> "SERVICE"
-            ApplicationStartInfo.START_REASON_START_ACTIVITY   -> "START_ACTIVITY"
-            else                                               -> "UNKNOWN"
+            ApplicationStartInfo.START_REASON_OTHER -> "OTHER"
+            ApplicationStartInfo.START_REASON_PUSH -> "PUSH"
+            ApplicationStartInfo.START_REASON_SERVICE -> "SERVICE"
+            ApplicationStartInfo.START_REASON_START_ACTIVITY -> "START_ACTIVITY"
+            else -> "UNKNOWN"
         }
-    }
 
     @RequiresApi(35)
     data class StartupTimestamps(
@@ -162,30 +158,33 @@ internal class AppLifecycleListenerLogger(
         val reservedRangeDeveloper: Long? = null,
         val reservedRangeDeveloperStart: Long? = null,
         val reservedRangeSystem: Long? = null,
-        val surfaceFlingerCompositionComplete: Long? = null
+        val surfaceFlingerCompositionComplete: Long? = null,
     ) {
         companion object {
-            fun fromMap(timestampMap: Map<Int, Long>): StartupTimestamps = StartupTimestamps(
-                applicationOnCreate = timestampMap[ApplicationStartInfo.START_TIMESTAMP_APPLICATION_ONCREATE],
-                bindApplication = timestampMap[ApplicationStartInfo.START_TIMESTAMP_BIND_APPLICATION],
-                firstFrame = timestampMap[ApplicationStartInfo.START_TIMESTAMP_FIRST_FRAME],
-                fork = timestampMap[ApplicationStartInfo.START_TIMESTAMP_FORK],
-                fullyDrawn = timestampMap[ApplicationStartInfo.START_TIMESTAMP_FULLY_DRAWN],
-                initialRenderThreadFrame = timestampMap[ApplicationStartInfo.START_TIMESTAMP_INITIAL_RENDERTHREAD_FRAME],
-                launch = timestampMap[ApplicationStartInfo.START_TIMESTAMP_LAUNCH],
-                reservedRangeDeveloper = timestampMap[ApplicationStartInfo.START_TIMESTAMP_RESERVED_RANGE_DEVELOPER],
-                reservedRangeDeveloperStart = timestampMap[ApplicationStartInfo.START_TIMESTAMP_RESERVED_RANGE_DEVELOPER_START],
-                reservedRangeSystem = timestampMap[ApplicationStartInfo.START_TIMESTAMP_RESERVED_RANGE_SYSTEM],
-                surfaceFlingerCompositionComplete = timestampMap[ApplicationStartInfo.START_TIMESTAMP_SURFACEFLINGER_COMPOSITION_COMPLETE]
-            )
+            fun fromMap(timestampMap: Map<Int, Long>): StartupTimestamps =
+                StartupTimestamps(
+                    applicationOnCreate = timestampMap[ApplicationStartInfo.START_TIMESTAMP_APPLICATION_ONCREATE],
+                    bindApplication = timestampMap[ApplicationStartInfo.START_TIMESTAMP_BIND_APPLICATION],
+                    firstFrame = timestampMap[ApplicationStartInfo.START_TIMESTAMP_FIRST_FRAME],
+                    fork = timestampMap[ApplicationStartInfo.START_TIMESTAMP_FORK],
+                    fullyDrawn = timestampMap[ApplicationStartInfo.START_TIMESTAMP_FULLY_DRAWN],
+                    initialRenderThreadFrame = timestampMap[ApplicationStartInfo.START_TIMESTAMP_INITIAL_RENDERTHREAD_FRAME],
+                    launch = timestampMap[ApplicationStartInfo.START_TIMESTAMP_LAUNCH],
+                    reservedRangeDeveloper = timestampMap[ApplicationStartInfo.START_TIMESTAMP_RESERVED_RANGE_DEVELOPER],
+                    reservedRangeDeveloperStart = timestampMap[ApplicationStartInfo.START_TIMESTAMP_RESERVED_RANGE_DEVELOPER_START],
+                    reservedRangeSystem = timestampMap[ApplicationStartInfo.START_TIMESTAMP_RESERVED_RANGE_SYSTEM],
+                    surfaceFlingerCompositionComplete = timestampMap[ApplicationStartInfo.START_TIMESTAMP_SURFACEFLINGER_COMPOSITION_COMPLETE],
+                )
         }
 
+        // An attempt to calculate TTID
+        // see: https://developer.android.com/topic/performance/appstartup/analysis-optimization#ttid-ttfd
         val timeToInitialDisplayMs: Long
-            get() = if (firstFrame != null && launch != null) {
-                (firstFrame - launch) / 1_000_000
-            } else {
-                -1
-            }
-
+            get() =
+                if (firstFrame != null && launch != null) {
+                    (firstFrame - launch) / 1_000_000
+                } else {
+                    -1
+                }
     }
 }
