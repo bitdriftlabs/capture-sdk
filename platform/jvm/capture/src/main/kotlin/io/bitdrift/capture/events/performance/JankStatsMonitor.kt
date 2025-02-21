@@ -52,8 +52,6 @@ internal class JankStatsMonitor(
     JankStats.OnFrameListener {
     private var jankStats: JankStats? = null
 
-    private val minJankFrameThresholdMs by lazy { runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS) }
-
     override fun start() {
         mainThreadHandler.run {
             processLifecycleOwner.lifecycle.addObserver(this)
@@ -78,7 +76,20 @@ internal class JankStatsMonitor(
     }
 
     override fun onFrame(volatileFrameData: FrameData) {
-        if (volatileFrameData.isJankAndMinDurationReached()) {
+        if (volatileFrameData.isJank) {
+            if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
+                stopCollection()
+                return
+            }
+
+            if (volatileFrameData.durationToMilli()
+                < runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS)
+            ) {
+                // The Frame is considered as Jank but it didn't reached the min
+                // threshold defined by MIN_JANK_FRAME_THRESHOLD_MS config
+                return
+            }
+
             // Below API 24 [onFrame(volatileFrameData)] call happens on the main thread
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
                 backgroundThreadHandler.runAsync { volatileFrameData.sendJankFrameData() }
@@ -88,15 +99,6 @@ internal class JankStatsMonitor(
             }
         }
     }
-
-    /**
-     * Will only report frames as Jank if duration is at least the configured value at
-     * `MIN_JANK_FRAME_THRESHOLD_MS` (which is a default of 16 ms).
-     * This is given that depending on device characteristics, frame can be reported as Jank
-     * even the duration is below 16 ms
-     */
-    private fun FrameData.isJankAndMinDurationReached(): Boolean =
-        isJank && minJankFrameThresholdMs > this.durationToMilli()
 
     @UiThread
     private fun setJankStatsForCurrentWindow(window: Window) {
