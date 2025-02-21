@@ -76,11 +76,6 @@ internal class JankStatsMonitor(
     }
 
     override fun onFrame(volatileFrameData: FrameData) {
-        if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
-            stopCollection()
-            return
-        }
-
         if (volatileFrameData.isJank) {
             // Below API 24 [onFrame(volatileFrameData)] call happens on the main thread
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
@@ -162,10 +157,10 @@ internal class JankStatsMonitor(
     private fun FrameData.durationToMilli(): Long {
         val durationInNano =
             when (this) {
-                is FrameDataApi31 -> this.frameDurationTotalNanos
-                is FrameDataApi24 -> this.frameDurationCpuNanos
+                is FrameDataApi31 -> frameDurationTotalNanos
+                is FrameDataApi24 -> frameDurationCpuNanos
                 else -> {
-                    this.frameDurationUiNanos
+                    frameDurationUiNanos
                 }
             }
         return durationInNano / TO_MILLI
