@@ -88,61 +88,64 @@ internal class AppLifecycleListenerLogger(
     private fun extractAppStartInfoFields(): Map<String, String>? {
        val appStartInfo = activityManager.getHistoricalProcessStartReasons(1).firstOrNull() ?: return null
         val ts = StartupTimestamps.fromMap(appStartInfo.startupTimestamps)
-        Log.i("ApplicationStartInfo", "timestamps: $ts")
-        return mapOf(
-            "startup_type" to appStartInfo.startType.toStartTypeText(),
-            "startup_state" to appStartInfo.startupState.toStartupStateText(),
-            "startup_launch_mode" to appStartInfo.launchMode.toLaunchModeText(),
-            "startup_was_forced_stopped" to appStartInfo.wasForceStopped().toString(),
-            "startup_reason" to appStartInfo.reason.toStartReasonText(),
-            "startup_intent_action" to appStartInfo.intent?.action.toString(),
-        )
+        return buildMap {
+            put("startup_type", appStartInfo.startType.toStartTypeText())
+            put("startup_state", appStartInfo.startupState.toStartupStateText())
+            put("startup_launch_mode", appStartInfo.launchMode.toLaunchModeText())
+            put("startup_was_forced_stopped", appStartInfo.wasForceStopped().toString())
+            put("startup_reason", appStartInfo.reason.toStartReasonText())
+            appStartInfo.intent?.action?.let { put("startup_intent_action", it) }
+            if (appStartInfo.startupState == ApplicationStartInfo.STARTUP_STATE_FIRST_FRAME_DRAWN && ts.timeToInitialDisplayMs != -1L) {
+                // TODO(murki): Call Logger.logAppLaunchTTI() if this value turns to be reliable
+                put("startup_time_to_initial_display_ms", ts.timeToInitialDisplayMs.toString())
+            }
+        }
     }
 
     private fun Int.toStartTypeText(): String {
         return when (this) {
-            ApplicationStartInfo.START_TYPE_UNSET -> "START_TYPE_UNSET"
-            ApplicationStartInfo.START_TYPE_COLD  -> "START_TYPE_COLD"
-            ApplicationStartInfo.START_TYPE_WARM  -> "START_TYPE_WARM"
-            ApplicationStartInfo.START_TYPE_HOT   -> "START_TYPE_HOT"
+            ApplicationStartInfo.START_TYPE_UNSET -> "UNSET"
+            ApplicationStartInfo.START_TYPE_COLD  -> "COLD"
+            ApplicationStartInfo.START_TYPE_WARM  -> "WARM"
+            ApplicationStartInfo.START_TYPE_HOT   -> "HOT"
             else                                  -> "UNKNOWN"
         }
     }
 
     private fun Int.toStartupStateText(): String {
         return when (this) {
-            ApplicationStartInfo.STARTUP_STATE_STARTED           -> "STARTUP_STATE_STARTED"
-            ApplicationStartInfo.STARTUP_STATE_ERROR             -> "STARTUP_STATE_ERROR"
-            ApplicationStartInfo.STARTUP_STATE_FIRST_FRAME_DRAWN -> "STARTUP_STATE_FIRST_FRAME_DRAWN"
+            ApplicationStartInfo.STARTUP_STATE_STARTED           -> "STARTED"
+            ApplicationStartInfo.STARTUP_STATE_ERROR             -> "ERROR"
+            ApplicationStartInfo.STARTUP_STATE_FIRST_FRAME_DRAWN -> "FIRST_FRAME_DRAWN"
             else                                                 -> "UNKNOWN"
         }
     }
 
     private fun Int.toLaunchModeText(): String {
         return when (this) {
-            ApplicationStartInfo.LAUNCH_MODE_STANDARD                 -> "LAUNCH_MODE_STANDARD"
-            ApplicationStartInfo.LAUNCH_MODE_SINGLE_TOP               -> "LAUNCH_MODE_SINGLE_TOP"
-            ApplicationStartInfo.LAUNCH_MODE_SINGLE_INSTANCE          -> "LAUNCH_MODE_SINGLE_INSTANCE"
-            ApplicationStartInfo.LAUNCH_MODE_SINGLE_TASK              -> "LAUNCH_MODE_SINGLE_TASK"
-            ApplicationStartInfo.LAUNCH_MODE_SINGLE_INSTANCE_PER_TASK -> "LAUNCH_MODE_SINGLE_INSTANCE_PER_TASK"
+            ApplicationStartInfo.LAUNCH_MODE_STANDARD                 -> "STANDARD"
+            ApplicationStartInfo.LAUNCH_MODE_SINGLE_TOP               -> "SINGLE_TOP"
+            ApplicationStartInfo.LAUNCH_MODE_SINGLE_INSTANCE          -> "SINGLE_INSTANCE"
+            ApplicationStartInfo.LAUNCH_MODE_SINGLE_TASK              -> "SINGLE_TASK"
+            ApplicationStartInfo.LAUNCH_MODE_SINGLE_INSTANCE_PER_TASK -> "SINGLE_INSTANCE_PER_TASK"
             else                                                      -> "UNKNOWN"
         }
     }
 
     private fun Int.toStartReasonText(): String {
         return when (this) {
-            ApplicationStartInfo.START_REASON_ALARM            -> "START_REASON_ALARM"
-            ApplicationStartInfo.START_REASON_BACKUP           -> "START_REASON_BACKUP"
-            ApplicationStartInfo.START_REASON_BOOT_COMPLETE    -> "START_REASON_BOOT_COMPLETE"
-            ApplicationStartInfo.START_REASON_BROADCAST        -> "START_REASON_BROADCAST"
-            ApplicationStartInfo.START_REASON_CONTENT_PROVIDER -> "START_REASON_CONTENT_PROVIDER"
-            ApplicationStartInfo.START_REASON_JOB              -> "START_REASON_JOB"
-            ApplicationStartInfo.START_REASON_LAUNCHER         -> "START_REASON_LAUNCHER"
-            ApplicationStartInfo.START_REASON_LAUNCHER_RECENTS -> "START_REASON_LAUNCHER_RECENTS"
-            ApplicationStartInfo.START_REASON_OTHER            -> "START_REASON_OTHER"
-            ApplicationStartInfo.START_REASON_PUSH             -> "START_REASON_PUSH"
-            ApplicationStartInfo.START_REASON_SERVICE          -> "START_REASON_SERVICE"
-            ApplicationStartInfo.START_REASON_START_ACTIVITY   -> "START_REASON_START_ACTIVITY"
+            ApplicationStartInfo.START_REASON_ALARM            -> "ALARM"
+            ApplicationStartInfo.START_REASON_BACKUP           -> "BACKUP"
+            ApplicationStartInfo.START_REASON_BOOT_COMPLETE    -> "BOOT_COMPLETE"
+            ApplicationStartInfo.START_REASON_BROADCAST        -> "BROADCAST"
+            ApplicationStartInfo.START_REASON_CONTENT_PROVIDER -> "CONTENT_PROVIDER"
+            ApplicationStartInfo.START_REASON_JOB              -> "JOB"
+            ApplicationStartInfo.START_REASON_LAUNCHER         -> "LAUNCHER"
+            ApplicationStartInfo.START_REASON_LAUNCHER_RECENTS -> "LAUNCHER_RECENTS"
+            ApplicationStartInfo.START_REASON_OTHER            -> "OTHER"
+            ApplicationStartInfo.START_REASON_PUSH             -> "PUSH"
+            ApplicationStartInfo.START_REASON_SERVICE          -> "SERVICE"
+            ApplicationStartInfo.START_REASON_START_ACTIVITY   -> "START_ACTIVITY"
             else                                               -> "UNKNOWN"
         }
     }
@@ -176,5 +179,13 @@ internal class AppLifecycleListenerLogger(
                 surfaceFlingerCompositionComplete = timestampMap[ApplicationStartInfo.START_TIMESTAMP_SURFACEFLINGER_COMPOSITION_COMPLETE]
             )
         }
+
+        val timeToInitialDisplayMs: Long
+            get() = if (firstFrame != null && launch != null) {
+                (firstFrame - launch) / 1_000_000
+            } else {
+                -1
+            }
+
     }
 }
