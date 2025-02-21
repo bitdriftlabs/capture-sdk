@@ -26,6 +26,8 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import java.io.FileNotFoundException
 import java.io.InterruptedIOException
+import java.net.InetSocketAddress
+import java.net.Proxy
 
 class CaptureOkHttpEventListenerFactoryTest {
     private val endpoint = "https://api.bitdrift.io/my_path/12345?my_query=my_value"
@@ -35,14 +37,29 @@ class CaptureOkHttpEventListenerFactoryTest {
     @Test
     fun testRequestAndResponseReuseCommonInfo() {
         // ARRANGE
-        val requestTimeMs = 100L
+        val callStartTimeMs = 100L
         val dnsStartTimeMs = 110L
         val dnsEndTimeMs = 115L
-        val responseTimeMs = 150L
+        val connectStartTimeMs = 120L
+        val tlsStartTimeMs = 125L
+        val tlsEndTimeMs = 130L
+        val connectEndTimeMs = 135L
+        val requestHeadersEndTimeMs = 140L
+        val requestBodyEndTimeMs = 145L
+        val responseHeadersStartTimeMs = 150L
+        val callEndtimeMs = 155L
 
-        val callDurationMs = responseTimeMs - requestTimeMs
+        val callDurationMs = callEndtimeMs - callStartTimeMs
         val dnsDurationMs = dnsEndTimeMs - dnsStartTimeMs
-        whenever(clock.elapsedRealtime()).thenReturn(requestTimeMs, dnsStartTimeMs, dnsEndTimeMs, responseTimeMs)
+        val tlsDurationMs = tlsEndTimeMs - tlsStartTimeMs
+        val tcpDurationMs = tlsStartTimeMs - connectStartTimeMs
+        val fetchInitDurationMs = dnsStartTimeMs - callStartTimeMs
+        val responseLatencyMs = responseHeadersStartTimeMs - requestBodyEndTimeMs
+        whenever(clock.elapsedRealtime()).thenReturn(
+            callStartTimeMs, dnsStartTimeMs, dnsEndTimeMs, connectStartTimeMs,  tlsStartTimeMs,
+            tlsEndTimeMs, connectEndTimeMs, requestHeadersEndTimeMs, requestBodyEndTimeMs,
+            responseHeadersStartTimeMs, callEndtimeMs
+        )
 
         val request =
             Request
@@ -73,9 +90,17 @@ class CaptureOkHttpEventListenerFactoryTest {
         listener.dnsStart(call, "foo.com")
         listener.dnsEnd(call, "foo.com", listOf())
 
+        listener.connectStart(call, InetSocketAddress.createUnresolved("foo.com", 443), Proxy.NO_PROXY)
+
+        listener.secureConnectStart(call)
+        listener.secureConnectEnd(call, handshake = null)
+
+        listener.connectEnd(call, InetSocketAddress.createUnresolved("foo.com", 443), Proxy.NO_PROXY, null)
+
         listener.requestHeadersEnd(call, request)
         listener.requestBodyEnd(call, 4)
 
+        listener.responseHeadersStart(call)
         listener.responseHeadersEnd(call, response)
         listener.responseBodyEnd(call, 234)
 
@@ -115,6 +140,10 @@ class CaptureOkHttpEventListenerFactoryTest {
         assertThat(httpResponseInfo.fields["_status_code"].toString()).isEqualTo("200")
         assertThat(httpResponseInfo.fields["_duration_ms"].toString()).isEqualTo(callDurationMs.toString())
         assertThat(httpResponseInfo.fields["_dns_resolution_duration_ms"].toString()).isEqualTo(dnsDurationMs.toString())
+        assertThat(httpResponseInfo.fields["_tls_duration_ms"].toString()).isEqualTo(tlsDurationMs.toString())
+        assertThat(httpResponseInfo.fields["_tcp_duration_ms"].toString()).isEqualTo(tcpDurationMs.toString())
+        assertThat(httpResponseInfo.fields["_fetch_init_duration_ms"].toString()).isEqualTo(fetchInitDurationMs.toString())
+        assertThat(httpResponseInfo.fields["_response_latency_ms"].toString()).isEqualTo(responseLatencyMs.toString())
 
         assertThat(httpResponseInfo.fields["_request_body_bytes_sent_count"].toString()).isEqualTo("4")
         assertThat(httpResponseInfo.fields["_response_body_bytes_received_count"].toString()).isEqualTo("234")

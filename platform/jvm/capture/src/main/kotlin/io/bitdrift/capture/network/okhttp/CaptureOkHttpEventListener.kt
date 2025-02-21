@@ -55,12 +55,37 @@ internal class CaptureOkHttpEventListener internal constructor(
      */
     private var dnsResolutionDurationMs: Long? = null
 
-    private var callStartTimeMs: Long = 0
+    /**
+     * The cumulative duration of all TLS handshakes performed during the execution of a given HTTP
+     * request. Due to retries of different routes or redirects a single pair of
+     * `callStart` and `callEnd`/`callFailed` may include multiple TLS handshakes.
+     */
+    private var tlsDurationMs: Long? = null
 
     /**
-     * The start time of the last DNS query.
+     * The cumulative duration of all TCP handshakes performed during the execution of a given
+     * HTTP request. Due to retries of different routes or redirects a single pair of
+     * `callStart` and `callEnd`/`callFailed` may include multiple TCP handshakes.
      */
+    private var tcpDurationMs: Long? = null
+
+    /**
+     * The duration between the `callStart` and the first DNS resolution.
+     */
+    private var fetchInitializationMs: Long? = null
+
+    /**
+     * The cumulative duration of all responses from the time the request is sent to the time we get
+     * the first byte from the server. Due to retries of different routes or redirects a single pair
+     * of `callStart` and `callEnd`/`callFailed` may include multiple request/responses.
+     */
+    private var responseLatencyMs: Long? = null
+
+    private var connectStartTimeMs: Long? = null
     private var dnsStartTimeMs: Long? = null
+    private var callStartTimeMs: Long = 0
+    private var tlsStartTimeMs: Long? = null
+    private var requestEndTimeMs: Long? = null
 
     private var requestInfo: HttpRequestInfo? = null
     private var lastResponse: Response? = null
@@ -126,8 +151,14 @@ internal class CaptureOkHttpEventListener internal constructor(
         domainName: String,
     ) {
         runCatching { targetEventListener?.dnsStart(call, domainName) }
+        val elapsed = clock.elapsedRealtime()
 
-        dnsStartTimeMs = clock.elapsedRealtime()
+        // Calculate initialization time as the first dnsStart - callStart
+        if (fetchInitializationMs == null ) {
+            fetchInitializationMs = (elapsed - callStartTimeMs)
+        }
+
+        dnsStartTimeMs = elapsed
     }
 
     override fun dnsEnd(
@@ -136,9 +167,10 @@ internal class CaptureOkHttpEventListener internal constructor(
         inetAddressList: List<InetAddress>,
     ) {
         runCatching { targetEventListener?.dnsEnd(call, domainName, inetAddressList) }
+        val elapsed = clock.elapsedRealtime()
 
         val dnsStartTimeMs = dnsStartTimeMs ?: return
-        val currentDnsDurationMs = (clock.elapsedRealtime() - dnsStartTimeMs)
+        val currentDnsDurationMs = (elapsed - dnsStartTimeMs)
         dnsResolutionDurationMs = (dnsResolutionDurationMs ?: 0) + currentDnsDurationMs
     }
 
@@ -148,10 +180,20 @@ internal class CaptureOkHttpEventListener internal constructor(
         proxy: Proxy,
     ) {
         runCatching { targetEventListener?.connectStart(call, inetSocketAddress, proxy) }
+
+        connectStartTimeMs = clock.elapsedRealtime()
     }
 
     override fun secureConnectStart(call: Call) {
         runCatching { targetEventListener?.secureConnectStart(call) }
+        val elapsed = clock.elapsedRealtime()
+
+        // If this is an https request, we measure the tcp time as tlsStart - connectStart
+        val connectStartTimeMs = connectStartTimeMs ?: return
+        val currentTCPDurationMs = (elapsed - connectStartTimeMs)
+        tcpDurationMs = (tcpDurationMs ?: 0) + currentTCPDurationMs
+
+        tlsStartTimeMs = elapsed
     }
 
     override fun secureConnectEnd(
@@ -159,6 +201,11 @@ internal class CaptureOkHttpEventListener internal constructor(
         handshake: Handshake?,
     ) {
         runCatching { targetEventListener?.secureConnectEnd(call, handshake) }
+        val elapsed = clock.elapsedRealtime()
+
+        val tlsStartTimeMs = tlsStartTimeMs ?: return
+        val currentTLSDurationMs = (elapsed - tlsStartTimeMs)
+        tlsDurationMs = (tlsDurationMs ?: 0) + currentTLSDurationMs
     }
 
     override fun connectEnd(
@@ -168,6 +215,15 @@ internal class CaptureOkHttpEventListener internal constructor(
         protocol: Protocol?,
     ) {
         runCatching { targetEventListener?.connectEnd(call, inetSocketAddress, proxy, protocol) }
+        val elapsed = clock.elapsedRealtime()
+
+        // If this is not an https request (ie there wasn't a handshake), we measure the tcp time as
+        // connectEnd - connectStart.
+        if (tlsStartTimeMs == null) {
+            val connectStartTimeMs = connectStartTimeMs ?: return
+            val currentTCPDurationMs = (elapsed - connectStartTimeMs)
+            tcpDurationMs = (tcpDurationMs ?: 0) + currentTCPDurationMs
+        }
     }
 
     override fun connectFailed(
@@ -204,6 +260,8 @@ internal class CaptureOkHttpEventListener internal constructor(
     ) {
         runCatching { targetEventListener?.requestHeadersEnd(call, request) }
 
+        // Measure it here too in case the request has no body
+        requestEndTimeMs = clock.elapsedRealtime()
         requestHeadersBytesCount += request.headers.byteCount()
     }
 
@@ -217,6 +275,7 @@ internal class CaptureOkHttpEventListener internal constructor(
     ) {
         runCatching { targetEventListener?.requestBodyEnd(call, byteCount) }
 
+        requestEndTimeMs = clock.elapsedRealtime()
         requestBodyBytesSentCount += byteCount
     }
 
@@ -229,6 +288,10 @@ internal class CaptureOkHttpEventListener internal constructor(
 
     override fun responseHeadersStart(call: Call) {
         runCatching { targetEventListener?.responseHeadersStart(call) }
+
+        val requestEndTimeMs = requestEndTimeMs ?: return
+        val currentResponseLatencyMs = (clock.elapsedRealtime() - requestEndTimeMs)
+        responseLatencyMs = (responseLatencyMs ?: 0) + currentResponseLatencyMs
     }
 
     override fun responseHeadersEnd(
@@ -381,6 +444,10 @@ internal class CaptureOkHttpEventListener internal constructor(
             requestHeadersBytesCount = requestHeadersBytesCount,
             responseHeadersBytesCount = responseHeadersBytesCount,
             dnsResolutionDurationMs = dnsResolutionDurationMs,
+            tlsDurationMs = tlsDurationMs,
+            tcpDurationMs = tcpDurationMs,
+            fetchInitializationMs = fetchInitializationMs,
+            responseLatencyMs = responseLatencyMs,
         )
 
     private fun isInterruptedException(e: Throwable): Boolean {

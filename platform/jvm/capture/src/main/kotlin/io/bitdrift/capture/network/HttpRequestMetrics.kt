@@ -34,4 +34,31 @@ data class HttpRequestMetrics
          * of a given HTTP request.
          */
         internal var dnsResolutionDurationMs: Long? = null,
+
+        /**
+         * The cumulative duration of all TLS handshakes performed during the execution of a given
+         * HTTP request. Due to retries of different routes or redirects a single pair of
+         * `callStart` and `callEnd`/`callFailed` may include multiple TLS handshakes.
+         */
+        internal var tlsDurationMs: Long? = null,
+
+        /**
+         * The cumulative duration of all TCP handshakes performed during the execution of a given
+         * HTTP request. Due to retries of different routes or redirects a single pair of
+         * `callStart` and `callEnd`/`callFailed` may include multiple TCP handshakes.
+         */
+        internal var tcpDurationMs: Long? = null,
+
+        /**
+         * The duration between the `callStart` and the first DNS resolution.
+         */
+        internal var fetchInitializationMs: Long? = null,
+
+        /**
+         * The cumulative duration of all responses from the time the request is sent to the time we
+         * get the first byte from the server. Due to retries of different routes or redirects a
+         * single pair of `callStart` and `callEnd`/`callFailed` may include multiple
+         * request/responses.
+         */
+        internal var responseLatencyMs: Long? = null,
     )

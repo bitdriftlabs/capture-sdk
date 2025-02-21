@@ -8,6 +8,9 @@
 import Foundation
 
 /// Metrics collected for the execution of an HTTP request.
+/// 
+/// See https://developer.apple.com/documentation/foundation/urlsessiontasktransactionmetrics for
+/// the flow of these events.
 public struct HTTPRequestMetrics {
     /// The number of body bytes sent over-the-wire.
     let requestBodyBytesSentCount: Int64?

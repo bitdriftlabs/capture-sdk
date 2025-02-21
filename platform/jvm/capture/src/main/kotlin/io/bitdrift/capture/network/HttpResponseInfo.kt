@@ -100,6 +100,10 @@ data class HttpResponseInfo
                                 FieldValue.StringField(it.responseHeadersBytesCount.toString()),
                             )
                             putOptional("_dns_resolution_duration_ms", it.dnsResolutionDurationMs)
+                            putOptional("_tls_duration_ms", it.tlsDurationMs)
+                            putOptional("_tcp_duration_ms", it.tcpDurationMs)
+                            putOptional("_fetch_init_duration_ms", it.fetchInitializationMs)
+                            putOptional("_response_latency_ms", it.responseLatencyMs)
                         }
                     }
 

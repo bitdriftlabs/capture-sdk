@@ -818,6 +818,10 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         let expectedOptionalFields = [
             "_dns_resolution_duration_ms",
+            "_tls_duration_ms",
+            "_tcp_duration_ms",
+            "_fetch_init_duration_ms",
+            "_response_latency_ms",
         ]
 
         for field in expectedOptionalFields {
