@@ -102,6 +102,11 @@ protocol CoreLogging: AnyObject {
     ///                       interactive.
     func logAppLaunchTTI(_ duration: TimeInterval)
 
+    /// Logs a screen view event.
+    ///
+    /// - parameter screenName: The name of the screen.
+    func logScreenView(screenName: String)
+
     /// Stars new session using configured session strategy.
     func startNewSession()
 

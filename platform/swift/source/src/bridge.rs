@@ -516,7 +516,7 @@ extern "C" fn capture_create_logger(
         device,
         static_metadata,
       })
-      .with_mobile_features(true)
+      .with_client_stats(true)
       .with_internal_logger(true)
       .build()
       .map(|(logger, _, future)| LoggerHolder::new(logger, future))?;
@@ -779,6 +779,18 @@ extern "C" fn capture_write_app_launch_tti_log(logger_id: LoggerId<'_>, duration
       Ok(())
     },
     "swift write app launch TTI log",
+  );
+}
+
+#[no_mangle]
+extern "C" fn capture_write_screen_view_log(logger_id: LoggerId<'_>, screen_name: *const Object) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let screen_name = unsafe { nsstring_into_string(screen_name) }?;
+      logger_id.log_screen_view(screen_name);
+      Ok(())
+    },
+    "swift write screen view log",
   );
 }
 

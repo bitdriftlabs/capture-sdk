@@ -118,6 +118,7 @@ class FirstFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.btnNavigateConfiguration.setOnClickListener {
+            Logger.logScreenView("config_fragment")
             findNavController().navigate(R.id.action_FirstFragment_to_ConfigFragment)
         }
         binding.btnCopySessionUrl.setOnClickListener(this::copySessionUrl)
@@ -129,6 +130,7 @@ class FirstFragment : Fragment() {
         binding.btnAppExit.setOnClickListener(this::forceAppExit)
         binding.btnNavigateCompose.setOnClickListener {
             Timber.i("Navigating to Compose Fragment")
+            Logger.logScreenView("compose_second_fragment")
             findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
         }
 

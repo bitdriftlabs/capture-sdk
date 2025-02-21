@@ -22,6 +22,7 @@ dependencies {
     implementation("com.jakewharton.timber:timber:5.0.1")
     implementation("com.google.android.material:material:1.8.0")
     implementation("com.squareup.papa:papa:0.26")
+    implementation("androidx.metrics:metrics-performance:1.0.0-beta01")
 
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.4.0")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")

@@ -19,6 +19,7 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.error.ErrorReporterService
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.events.AppUpdateListenerLogger
@@ -31,7 +32,8 @@ import io.bitdrift.capture.events.lifecycle.EventsListenerTarget
 import io.bitdrift.capture.events.performance.AppMemoryPressureListenerLogger
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
-import io.bitdrift.capture.events.performance.MemoryMonitor
+import io.bitdrift.capture.events.performance.JankStatsMonitor
+import io.bitdrift.capture.events.performance.MemoryMetricsProvider
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
@@ -45,10 +47,9 @@ import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import java.io.File
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
@@ -65,10 +66,6 @@ internal class LoggerImpl(
     fieldProviders: List<FieldProvider>,
     dateProvider: DateProvider,
     private val errorHandler: ErrorHandler = ErrorHandler(),
-    processingQueue: ExecutorService =
-        Executors.newSingleThreadExecutor {
-            Thread(it, "io.bitdrift.capture.event-listener")
-        },
     sessionStrategy: SessionStrategy,
     context: Context = ContextHolder.APP_CONTEXT,
     clientAttributes: ClientAttributes =
@@ -81,9 +78,10 @@ internal class LoggerImpl(
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     private val bridge: IBridge = CaptureJniLibrary,
+    private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
 ) : ILogger {
     private val metadataProvider: MetadataProvider
-    private val memoryMonitor = MemoryMonitor(context)
+    private val memoryMetricsProvider = MemoryMetricsProvider(context)
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
     private val diskUsageMonitor: DiskUsageMonitor
@@ -155,13 +153,13 @@ internal class LoggerImpl(
 
                 resourceUtilizationTarget =
                     ResourceUtilizationTarget(
-                        memoryMonitor,
+                        memoryMetricsProvider,
                         batteryMonitor,
                         powerMonitor,
                         diskUsageMonitor,
                         errorHandler,
                         this,
-                        processingQueue,
+                        eventListenerDispatcher.executorService,
                     )
 
                 val sessionReplayTarget =
@@ -211,7 +209,7 @@ internal class LoggerImpl(
                         ProcessLifecycleOwner.get(),
                         activityManager,
                     runtime,
-                    processingQueue,
+                    eventListenerDispatcher.executorService,
                 ),
             )
 
@@ -222,7 +220,7 @@ internal class LoggerImpl(
                         batteryMonitor,
                         powerMonitor,
                         runtime,
-                        processingQueue,
+                        eventListenerDispatcher.executorService,
                     ),
                 )
 
@@ -230,9 +228,9 @@ internal class LoggerImpl(
                     AppMemoryPressureListenerLogger(
                         this,
                         context,
-                        memoryMonitor,
+                        memoryMetricsProvider,
                         runtime,
-                        processingQueue,
+                        eventListenerDispatcher.executorService,
                     ),
                 )
 
@@ -242,7 +240,17 @@ internal class LoggerImpl(
                         clientAttributes,
                         context,
                         runtime,
-                        processingQueue,
+                        eventListenerDispatcher.executorService,
+                    ),
+                )
+
+                eventsListenerTarget.add(
+                    JankStatsMonitor(
+                        this,
+                        ProcessLifecycleOwner.get(),
+                        runtime,
+                        WindowManager(errorHandler),
+                        errorHandler,
                     ),
                 )
 
@@ -252,6 +260,7 @@ internal class LoggerImpl(
                         activityManager,
                         runtime,
                         errorHandler,
+                        memoryMetricsProvider = memoryMetricsProvider,
                     )
 
                 // Install the app exit logger before the Capture logger is started to ensure
@@ -308,6 +317,10 @@ internal class LoggerImpl(
 
     override fun logAppLaunchTTI(duration: Duration) {
         CaptureJniLibrary.writeAppLaunchTTILog(this.loggerId, duration.toDouble(DurationUnit.SECONDS))
+    }
+
+    override fun logScreenView(screenName: String) {
+        CaptureJniLibrary.writeScreenViewLog(this.loggerId, screenName)
     }
 
     override fun startSpan(

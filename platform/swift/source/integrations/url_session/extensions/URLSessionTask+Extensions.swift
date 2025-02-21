@@ -8,16 +8,8 @@
 import Foundation
 
 private var kRequestInfoKey: UInt8 = 0
-let kCaptureAPIHeaderField = "x-capture-api"
 
 extension URLSessionTask {
-    /// Whether a given request is Capture SDK internal request. The relevant headers are set by an upstream
-    /// Capture SDK.
-    var cap_isCaptureAPI: Bool {
-        // swiftlint:disable:previous identifier_name
-        self.originalRequest?.allHTTPHeaderFields?[kCaptureAPIHeaderField] == "true"
-    }
-
     /// The HTTP Request Info associated with a given `URLSessionTask`.
     var cap_requestInfo: HTTPRequestInfo? {
         // swiftlint:disable:previous identifier_name

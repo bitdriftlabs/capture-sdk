@@ -62,6 +62,59 @@ sealed class RuntimeFeature(
      * Whether the logger should be flushed on crash.
      */
     data object LOGGER_FLUSHING_ON_CRASH : RuntimeFeature("client_feature.android.logger_flushing_on_force_quit", defaultValue = true)
+
+    /**
+     * Whether Dropped Frames reporting is enabled
+     */
+    data object DROPPED_EVENTS_MONITORING : RuntimeFeature("client_feature.android.dropped_frames_reporting")
+}
+
+/**
+ * Known runtime config values.
+ * @param configName the runtime key to use for this config value
+ * @param defaultValue The value
+ */
+sealed class RuntimeConfig(
+    val configName: String,
+    val defaultValue: Int,
+) {
+    /**
+     * The configured value for [jankHeuristicMultiplier] from [JankStatsMonitoring]. More info at https://developer.android.com/topic/performance/jankstats#jank-heuristics
+     */
+    data object JANK_FRAME_HEURISTICS_MULTIPLIER : RuntimeConfig("client_feature.android.jank_frame_heuristics_multiplier", 2)
+
+    /**
+     * The lower bound threshold on what it defines a Jank Frame by its duration [JankStats]
+     *
+     * The default value is 16 ms
+     *
+     * Slow Frame: >= MIN_JANK_FRAME_THRESHOLD_MS to < FROZEN_FRAME_THRESHOLD_MS
+     * Frozen Frame: >= FROZEN_FRAME_THRESHOLD_MS to < ANR_FRAME_THRESHOLD_MS
+     * ANR Frame: >= ANR_FRAME_THRESHOLD_MS
+     */
+    data object MIN_JANK_FRAME_THRESHOLD_MS : RuntimeConfig("client_feature.android.min_jank_frame.threshold_ms", 16)
+
+    /**
+     * The upper bound threshold that defines what constitutes a FROZEN frame reported via [JankStats]
+     *
+     * The default value is 700ms
+     *
+     * Slow Frame: >= MIN_JANK_FRAME_THRESHOLD_MS to < FROZEN_FRAME_THRESHOLD_MS
+     * Frozen Frame: >= FROZEN_FRAME_THRESHOLD_MS to < ANR_FRAME_THRESHOLD_MS
+     * ANR Frame: >= ANR_FRAME_THRESHOLD_MS
+     */
+    data object FROZEN_FRAME_THRESHOLD_MS : RuntimeConfig("client_feature.android.frozen_frame.threshold_ms", 700)
+
+    /**
+     * The upper bound threshold that defines what constitutes an ANR frame reported via [JankStats]
+     *
+     * The default value is 5000ms
+     *
+     * Slow Frame: >= MIN_JANK_FRAME_THRESHOLD_MS to < FROZEN_FRAME_THRESHOLD_MS
+     * Frozen Frame: >= FROZEN_FRAME_THRESHOLD_MS to < ANR_FRAME_THRESHOLD_MS
+     * ANR Frame: >= ANR_FRAME_THRESHOLD_MS
+     */
+    data object ANR_FRAME_THRESHOLD_MS : RuntimeConfig("client_feature.android.anr_frame.threshold_ms", 5000)
 }
 
 /**
@@ -74,4 +127,10 @@ interface Runtime {
      * @param feature the feature flag to check
      */
     fun isEnabled(feature: RuntimeFeature): Boolean
+
+    /**
+     * Returns the configured value
+     * @param config the configuration value to check
+     */
+    fun getConfigValue(config: RuntimeConfig): Int
 }

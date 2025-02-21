@@ -42,6 +42,7 @@ bitdrift_kt_android_library(
         artifact("com.squareup.okhttp3:okhttp"),
         artifact("com.google.code.findbugs:jsr305"),
         artifact("com.google.code.gson:gson"),
+        artifact("androidx.metrics:metrics-performance"),
     ],
 )
 

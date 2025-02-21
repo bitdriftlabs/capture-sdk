@@ -10,12 +10,14 @@ import Foundation
 private let kFinishedCollectingMetrics
     = #selector(URLSessionTaskDelegate.urlSession(_:task:didFinishCollecting:))
 
+/// This proxy should be use exclusively in URLSession delegates, do not use this in URLSessionTasks, for that use
+/// `ProxyURLSessionTaskDelegate` instead, which calls the session delegate callbacks too.
 @objc(CAPProxyURLSessionDelegate)
-final class ProxyURLSessionDelegate: NSObject {
+class ProxyURLSessionDelegate: NSObject {
     /// `URLSession`'s `delegate` property is a `strong` reference. It's uncommon for delegates on iOS to be
     /// `strong` references but to make our delegate mimic the behavior of `URLSession`'s delegate we hold
     /// a strong reference to the underlying delegate.
-    private let target: URLSessionTaskDelegate?
+    fileprivate let target: URLSessionTaskDelegate?
 
     init(target: URLSessionTaskDelegate?) {
         self.target = target
@@ -26,11 +28,7 @@ final class ProxyURLSessionDelegate: NSObject {
     }
 
     override func responds(to aSelector: Selector!) -> Bool {
-        if kFinishedCollectingMetrics == aSelector {
-            return true
-        }
-
-        return self.target?.responds(to: aSelector) ?? false
+        return self.target?.responds(to: aSelector) ?? super.responds(to: aSelector)
     }
 }
 
@@ -42,8 +40,31 @@ extension ProxyURLSessionDelegate: URLSessionTaskDelegate {
     )
     {
         URLSessionTaskTracker.shared.task(task, didFinishCollecting: metrics)
-        if self.target?.responds(to: kFinishedCollectingMetrics) ?? false {
-            self.target?.urlSession?(session, task: task, didFinishCollecting: metrics)
+        self.target?.urlSession?(session, task: task, didFinishCollecting: metrics)
+    }
+}
+
+@objc(CAPProxyURLSessionTaskDelegate)
+final class ProxyURLSessionTaskDelegate: ProxyURLSessionDelegate {
+    override func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didFinishCollecting metrics: URLSessionTaskMetrics
+    )
+    {
+        URLSessionTaskTracker.shared.task(task, didFinishCollecting: metrics)
+
+        if let delegate = self.target, delegate.responds(to: kFinishedCollectingMetrics) {
+            delegate.urlSession?(session, task: task, didFinishCollecting: metrics)
+            return
+        }
+
+        // We need to call the session delegate method because otherwise by attaching this proxy
+        // delegate to a task delegate and conforming to this method, we'll prevent the networking
+        // framework to call URLSession's delegate method and therefore changing the behavior of the
+        // stack.
+        if let sessionDelegate = session.delegate as? URLSessionTaskDelegate {
+            sessionDelegate.urlSession?(session, task: task, didFinishCollecting: metrics)
         }
     }
 }

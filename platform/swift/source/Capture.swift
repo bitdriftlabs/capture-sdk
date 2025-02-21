@@ -295,6 +295,10 @@ extension Logger {
         Self.getShared()?.logAppLaunchTTI(duration)
     }
 
+    public static func logScreenView(screenName: String) {
+        Self.getShared()?.logScreenView(screenName: screenName)
+    }
+
     // MARK: - Network Activity Logging
 
     /// Logs information about a network request.

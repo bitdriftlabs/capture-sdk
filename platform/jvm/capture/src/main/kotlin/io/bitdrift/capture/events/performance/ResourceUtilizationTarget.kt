@@ -18,7 +18,7 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 internal class ResourceUtilizationTarget(
-    private val memoryMonitor: MemoryMonitor,
+    private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val batteryMonitor: BatteryMonitor,
     private val powerMonitor: PowerMonitor,
     private val diskUsageMonitor: DiskUsageMonitor,
@@ -34,7 +34,7 @@ internal class ResourceUtilizationTarget(
 
                 val fields =
                     buildMap {
-                        putAll(memoryMonitor.getMemoryAttributes())
+                        putAll(memoryMetricsProvider.getMemoryAttributes())
                         putAll(diskUsageMonitor.getDiskUsage())
                         putPair(batteryMonitor.batteryPercentageAttribute())
                         putPair(batteryMonitor.isBatteryChargingAttribute())

@@ -36,6 +36,7 @@ swift_library(
 ios_application(
     name = "ios_app",
     bundle_id = "io.bitdrift.example.helloworld",
+    entitlements = "Protected.entitlements",
     families = [
         "iphone",
         "ipad",
@@ -66,6 +67,7 @@ swift_library(
 ios_application(
     name = "hello_world_app",
     bundle_id = "io.bitdrift.example.helloworld",
+    entitlements = "Protected.entitlements",
     families = [
         "iphone",
         "ipad",

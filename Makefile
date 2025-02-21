@@ -38,7 +38,7 @@ format: lint-shell ktlint rustfmt buildifier fix-swift lint-yaml
 
 .PHONY: repin
 repin:
-	CARGO_BAZEL_REPIN=1 ./bazelw sync --only=crate_index
+	CARGO_BAZEL_REPIN=true ./bazelw sync --only=crate_index
 
 .PHONY: push-additional-images
 push-additional-images:

@@ -7,8 +7,6 @@
 
 import Foundation
 
-// Ensures that the hook installation process happens at most once.
-private let kSwizzleOnce: () = URLSessionIntegration.enableNetworkInstrumentationOnce()
 // The OS logger to use by the library.
 let kLogger = OSLogger(subsystem: "Capture.URLSessionIntegration")
 
@@ -44,6 +42,7 @@ extension Integration {
 final class URLSessionIntegration {
     /// The instance of Capture logger the library should use for logging.
     private let underlyingLogger = Atomic<Logging?>(nil)
+    fileprivate static var swizzled = Atomic(false)
     static let shared = URLSessionIntegration()
 
     var logger: Logging? {
@@ -52,63 +51,52 @@ final class URLSessionIntegration {
 
     func start(logger: Logging, disableSwizzling: Bool) {
         self.underlyingLogger.update { $0 = logger }
-        if !disableSwizzling {
-            kSwizzleOnce
+        if disableSwizzling || Self.swizzled.load() {
+            return
         }
+
+        self.toggleURLSessionTaskSwizzling()
     }
 
     // MARK: - Private
 
-    fileprivate static func enableNetworkInstrumentationOnce() {
-        self.installHooks()
-    }
-
-    private static func installHooks() {
-        // TODO(Augustyniak): Avoid swizzling if swizzling disabled.
-        self.installURLSessionHooks()
-        let klass: AnyClass = self.getTaskClass()
-        self.installURLSessionDelegateHook(class: klass)
-    }
-
-    private static func installURLSessionHooks() {
-        // Even though `URLSession.init(configuration:delegate:delegateQueue:)` appears to be a standard
-        // initializer in Swift (an instance method), it's backed by the static
-        // `[NSURLSession sessionWithConfiguration:delegate:delegateQueue:]` method. Therefore, we work
-        // with it as if it were a static method that returns an instance of URLSession.
-        exchangeClassMethod(
-            class: URLSession.self,
-            selector: #selector(URLSession.init(configuration:delegate:delegateQueue:)),
-            with: #selector(URLSession.cap_makeSession(configuration:delegate:delegateQueue:))
-        )
-
-        // Unfortunately, swizzling `URLSession.init(configuration:delegate:delegateQueue:)` isn't enough to
-        // swizzle the initializer used to create `URLSession.shared`. Therefore, we swizzle
-        // `URLSession.shared` directly.
-        exchangeClassMethod(
-            class: URLSession.self,
-            selector: #selector(getter: URLSession.shared),
-            with: #selector(URLSession.cap_shared)
-        )
-    }
-
-    private static func installURLSessionDelegateHook(class: AnyClass) {
+    private func toggleURLSessionTaskSwizzling() {
         if #available(iOS 15.0, *) {
-            exchangeInstanceMethod(
-                class: `class`,
-                selector: #selector(setter: URLSessionTask.delegate),
-                with: #selector(URLSessionTask.cap_setDelegate)
-            )
+            let URLSessionTaskInternalClass: AnyClass = self.getTaskClass()
+            Self.swizzled.update { swizzled in
+                swizzled.toggle()
+
+                exchangeInstanceMethod(
+                    class: URLSessionTaskInternalClass,
+                    selector: #selector(URLSessionTask.resume),
+                    with: #selector(URLSessionTask.cap_resume)
+                )
+            }
+        } else {
+            Self.shared.logger?.log(level: .error,
+                                    message: "Network Swizzling is not available in iOS < 15.0")
         }
     }
 
-    private static func getTaskClass() -> AnyClass {
+    private func getTaskClass() -> AnyClass {
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
-        var request = URLRequest(url: URL(string: "www.bitdrift.io")!)
-        request.setValue("true", forHTTPHeaderField: kCaptureAPIHeaderField)
-
+        let request = URLRequest(url: URL(string: "www.bitdrift.io")!)
         let session = URLSession(configuration: .ephemeral)
         defer { session.invalidateAndCancel() }
 
-        return type(of: session.dataTask(with: request))
+        let task = session.dataTask(with: request)
+        defer { task.cancel() }
+
+        return type(of: task)
+    }
+}
+
+extension URLSessionIntegration {
+    /// Exchanging the method twice should in theory restore the original implementation.
+    /// Note: This should only be used in tests.
+    func disableURLSessionTaskSwizzling() {
+        if Self.swizzled.load() {
+            self.toggleURLSessionTaskSwizzling()
+        }
     }
 }

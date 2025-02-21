@@ -22,6 +22,9 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.CaptureUncaughtExceptionHandler
+import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
+import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
+import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
@@ -36,23 +39,29 @@ class AppExitLoggerTest {
     private val logger: LoggerImpl = mock()
     private val activityManager: ActivityManager = mock()
     private val runtime: Runtime = mock()
+
     private val errorHandler: ErrorHandler = mock()
     private val crashHandler: CaptureUncaughtExceptionHandler = mock()
     private val versionChecker: BuildVersionChecker = mock()
-    private val appExitLogger =
-        AppExitLogger(
-            logger,
-            activityManager,
-            runtime,
-            errorHandler,
-            crashHandler,
-            versionChecker,
-        )
+    private val memoryMetricsProvider = FakeMemoryMetricsProvider()
+    private val backgroundThreadHandler = FakeBackgroundThreadHandler()
+    private lateinit var appExitLogger: AppExitLogger
 
     @Before
     fun setUp() {
         whenever(runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)).thenReturn(true)
         whenever(versionChecker.isAtLeast(anyInt())).thenReturn(true)
+        appExitLogger =
+            AppExitLogger(
+                logger,
+                activityManager,
+                runtime,
+                errorHandler,
+                crashHandler,
+                versionChecker,
+                memoryMetricsProvider,
+                backgroundThreadHandler,
+            )
     }
 
     @Test
@@ -149,16 +158,17 @@ class AppExitLoggerTest {
 
         // ASSERT
         val expectedFields =
-            mapOf(
-                "_app_exit_source" to "ApplicationExitInfo",
-                "_app_exit_process_name" to "test-process-name",
-                "_app_exit_reason" to "ANR",
-                "_app_exit_importance" to "FOREGROUND",
-                "_app_exit_status" to "0",
-                "_app_exit_pss" to "1",
-                "_app_exit_rss" to "2",
-                "_app_exit_description" to "test-description",
-            ).toFields()
+            buildMap {
+                put("_app_exit_source", "ApplicationExitInfo")
+                put("_app_exit_process_name", "test-process-name")
+                put("_app_exit_reason", "ANR")
+                put("_app_exit_importance", "FOREGROUND")
+                put("_app_exit_status", "0")
+                put("_app_exit_pss", "1")
+                put("_app_exit_rss", "2")
+                put("_app_exit_description", "test-description")
+                putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
+            }.toFields()
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
@@ -194,13 +204,14 @@ class AppExitLoggerTest {
         appExitLogger.logCrash(currentThread, RuntimeException("wrapper crash", appException))
         // ASSERT
         val expectedFields =
-            mapOf(
-                "_app_exit_source" to "UncaughtExceptionHandler",
-                "_app_exit_reason" to "Crash",
-                "_app_exit_info" to appException.javaClass.name,
-                "_app_exit_details" to appException.message.orEmpty(),
-                "_app_exit_thread" to currentThread.name,
-            ).toFields()
+            buildMap {
+                put("_app_exit_source", "UncaughtExceptionHandler")
+                put("_app_exit_reason", "Crash")
+                put("_app_exit_info", appException.javaClass.name)
+                put("_app_exit_details", appException.message.orEmpty())
+                put("_app_exit_thread", currentThread.name)
+                putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
+            }.toFields()
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),

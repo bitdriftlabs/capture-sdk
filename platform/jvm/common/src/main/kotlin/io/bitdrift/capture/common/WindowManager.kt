@@ -5,24 +5,27 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.replay.internal
+package io.bitdrift.capture.common
 
 import android.os.Build
 import android.view.View
+import android.view.Window
 import android.view.inspector.WindowInspector
-import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.replay.SessionReplayController
 
-// Used for retrieving the view hierarchies
-internal class WindowManager(
+/**
+ * Used for retrieving the view hierarchies
+ */
+class WindowManager(
     private val errorHandler: ErrorHandler,
-) {
+) : IWindowManager {
     private var tryWindowInspector = true
 
     private val global by lazy(LazyThreadSafetyMode.NONE) {
         //noinspection PrivateApi
         Class.forName("android.view.WindowManagerGlobal")
     }
+
+    override fun getCurrentWindow(): Window? = findRootViews().firstOrNull()?.phoneWindow
 
     private val windowManagerGlobal: Any? by lazy(LazyThreadSafetyMode.NONE) {
         global.getDeclaredMethod("getInstance").invoke(null)
@@ -52,7 +55,6 @@ internal class WindowManager(
             @Suppress("UNCHECKED_CAST")
             return getWindowViews.get(windowManagerGlobal) as List<View>
         } catch (e: Throwable) {
-            SessionReplayController.L.e(e, "Failed to retrieve windows")
             errorHandler.handleError("Failed to retrieve windows", e)
             return emptyList()
         }
