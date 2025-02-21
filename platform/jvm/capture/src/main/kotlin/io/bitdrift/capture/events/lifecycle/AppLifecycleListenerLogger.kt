@@ -173,7 +173,8 @@ internal class AppLifecycleListenerLogger(
                     reservedRangeDeveloper = timestampMap[ApplicationStartInfo.START_TIMESTAMP_RESERVED_RANGE_DEVELOPER],
                     reservedRangeDeveloperStart = timestampMap[ApplicationStartInfo.START_TIMESTAMP_RESERVED_RANGE_DEVELOPER_START],
                     reservedRangeSystem = timestampMap[ApplicationStartInfo.START_TIMESTAMP_RESERVED_RANGE_SYSTEM],
-                    surfaceFlingerCompositionComplete = timestampMap[ApplicationStartInfo.START_TIMESTAMP_SURFACEFLINGER_COMPOSITION_COMPLETE],
+                    surfaceFlingerCompositionComplete =
+                        timestampMap[ApplicationStartInfo.START_TIMESTAMP_SURFACEFLINGER_COMPOSITION_COMPLETE],
                 )
         }
 
