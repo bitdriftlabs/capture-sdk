@@ -21,7 +21,19 @@ public struct HTTPRequestMetrics {
 
     /// The cumulative duration of all DNS resolution query(ies) performed during the execution
     /// of a given HTTP request.
-    internal var dnsResolutionDuration: TimeInterval?
+    let dnsResolutionDuration: TimeInterval?
+
+    /// The cumulative duration of all TLS handshakes performed during the execution of a given HTTP request.
+    let tlsDuration: TimeInterval?
+
+    /// The cumulative duration of all connection establishments performed during the execution of a given HTTP request.
+    let tcpDuration: TimeInterval?
+
+    /// The cumulative duration of all connection establishments performed during the execution of a given HTTP request.
+    let fetchInitializationDuration: TimeInterval?
+
+    /// The cumulative duration of all responses from the time the request is sent to the time we get the first byte from the server
+    let responseLatency: TimeInterval?
 
     /// Initializes a new instance of the receiver.
     ///
@@ -29,20 +41,36 @@ public struct HTTPRequestMetrics {
     /// - parameter responseBodyBytesReceivedCount: The number of response body bytes received over-the-wire.
     /// - parameter requestHeadersBytesCount:       The number of request HTTP headers bytes.
     /// - parameter responseHeadersBytesCount:      The number of response HTTP headers bytes.
-    /// - parameter dnsResolutionDuration:          The cumulative duration of all DNS resolution query(ies)
+    /// - parameter dnsResolutionDuration:          The cumulative duration of all DNS resolution query(ies) performed
+    ///                                             during the execution of a given HTTP request.
+    /// - parameter tlsDuration:                    The cumulative duration of all TLS handshakes performed during
+    ///                                             the execution of a given HTTP request.
+    /// - parameter tcpDuration:                    The cumulative duration of all connection establishments
     ///                                             performed during the execution of a given HTTP request.
+    /// - parameter fetchInitializationDuration:    The cumulative duration of all connection establishments
+    ///                                             performed during the execution of a given HTTP request.
+    /// - parameter responseLatency:                The cumulative duration of all responses from the time the
+    ///                                             request is sent to the time we get the first byte from the server.
     public init(
         requestBodyBytesSentCount: Int64? = nil,
         responseBodyBytesReceivedCount: Int64? = nil,
         requestHeadersBytesCount: Int64? = nil,
         responseHeadersBytesCount: Int64? = nil,
-        dnsResolutionDuration: TimeInterval? = nil
+        dnsResolutionDuration: TimeInterval? = nil,
+        tlsDuration: TimeInterval? = nil,
+        tcpDuration: TimeInterval? = nil,
+        fetchInitializationDuration: TimeInterval? = nil,
+        responseLatency: TimeInterval? = nil
     ) {
         self.requestBodyBytesSentCount = requestBodyBytesSentCount
         self.responseBodyBytesReceivedCount = responseBodyBytesReceivedCount
         self.requestHeadersBytesCount = requestHeadersBytesCount
         self.responseHeadersBytesCount = responseHeadersBytesCount
         self.dnsResolutionDuration = dnsResolutionDuration
+        self.tlsDuration = tlsDuration
+        self.tcpDuration = tcpDuration
+        self.fetchInitializationDuration = fetchInitializationDuration
+        self.responseLatency = responseLatency
     }
 }
 
@@ -62,31 +90,73 @@ extension HTTPRequestMetrics {
                 responseHeadersBytesCount: metrics.transactionMetrics
                     .map(\.countOfResponseHeaderBytesReceived)
                     .reduce(0, +),
-                dnsResolutionDuration: Self.getDNSResolutionDuration(metrics: metrics)
+                dnsResolutionDuration: Self.getDNSResolutionDuration(metrics: metrics),
+                tlsDuration: Self.getTLSDuration(metrics: metrics),
+                tcpDuration: Self.getTCPDuration(metrics: metrics),
+                fetchInitializationDuration: Self.getInitializationDuration(metrics: metrics),
+                responseLatency: Self.getResponseLatency(metrics: metrics)
             )
         } else {
             self.init(
-                dnsResolutionDuration: Self.getDNSResolutionDuration(metrics: metrics)
+                dnsResolutionDuration: Self.getDNSResolutionDuration(metrics: metrics),
+                tlsDuration: Self.getTLSDuration(metrics: metrics),
+                tcpDuration: Self.getTCPDuration(metrics: metrics),
+                fetchInitializationDuration: Self.getInitializationDuration(metrics: metrics),
+                responseLatency: Self.getResponseLatency(metrics: metrics)
             )
         }
     }
 
-    private static func getDNSResolutionDuration(metrics: URLSessionTaskMetrics) -> TimeInterval? {
-        let dnsResolutionDurations = metrics.transactionMetrics
+    private static func reduce(metrics: URLSessionTaskMetrics,
+                               startPath: KeyPath<URLSessionTaskTransactionMetrics, Date?>,
+                               endPath: KeyPath<URLSessionTaskTransactionMetrics, Date?>) -> TimeInterval?
+    {
+        let durations = metrics.transactionMetrics
             .compactMap { metrics -> TimeInterval? in
-                guard let startDate = metrics.domainLookupStartDate,
-                      let endDate = metrics.domainLookupEndDate else
+                guard let startDate = metrics[keyPath: startPath],
+                      let endDate = metrics[keyPath: endPath] else
                 {
                     return nil
                 }
+                
 
                 return endDate.timeIntervalSince(startDate)
             }
 
-        if !dnsResolutionDurations.isEmpty {
-            return dnsResolutionDurations.reduce(0, +)
+        if !durations.isEmpty {
+            return durations.reduce(0, +)
         } else {
             return nil
         }
+
+    }
+
+    private static func getResponseLatency(metrics: URLSessionTaskMetrics) -> TimeInterval? {
+        Self.reduce(metrics: metrics, startPath: \.requestEndDate, endPath: \.responseStartDate)
+    }
+
+    private static func getInitializationDuration(metrics: URLSessionTaskMetrics) -> TimeInterval? {
+        Self.reduce(metrics: metrics, startPath: \.fetchStartDate, endPath: \.domainLookupStartDate)
+    }
+
+    private static func getTCPDuration(metrics: URLSessionTaskMetrics) -> TimeInterval? {
+        guard let secureTCP = Self.reduce(metrics: metrics, startPath: \.connectStartDate,
+                                          endPath: \.secureConnectionStartDate) else
+        {
+            return Self.reduce(metrics: metrics, startPath: \.connectStartDate,
+                               endPath: \.connectEndDate)
+        }
+
+        return secureTCP
+    }
+
+    private static func getTLSDuration(metrics: URLSessionTaskMetrics) -> TimeInterval? {
+        Self.reduce(metrics: metrics, startPath: \.secureConnectionStartDate,
+                    endPath: \.secureConnectionEndDate)
+    }
+
+    private static func getDNSResolutionDuration(metrics: URLSessionTaskMetrics) -> TimeInterval? {
+        Self.reduce(metrics: metrics, startPath: \.domainLookupStartDate,
+                    endPath: \.domainLookupEndDate)
     }
 }
