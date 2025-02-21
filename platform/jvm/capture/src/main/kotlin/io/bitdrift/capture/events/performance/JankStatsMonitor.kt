@@ -77,6 +77,11 @@ internal class JankStatsMonitor(
 
     override fun onFrame(volatileFrameData: FrameData) {
         if (volatileFrameData.isJank) {
+            if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
+                stopCollection()
+                return
+            }
+
             // Below API 24 [onFrame(volatileFrameData)] call happens on the main thread
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
                 backgroundThreadHandler.runAsync { volatileFrameData.sendJankFrameData() }
