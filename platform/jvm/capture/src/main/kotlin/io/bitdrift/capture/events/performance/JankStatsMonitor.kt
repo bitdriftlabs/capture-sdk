@@ -90,10 +90,13 @@ internal class JankStatsMonitor(
     }
 
     /**
-     * Will only report frames as Jank if duration is at least the configured value at `MIN_JANK_FRAME_THRESHOLD_MS` (which is a default of 16 ms)
-     * This is given that depending on device characteristics, frame can be reported as Jank even the duration is below 16 ms
+     * Will only report frames as Jank if duration is at least the configured value at
+     * `MIN_JANK_FRAME_THRESHOLD_MS` (which is a default of 16 ms).
+     * This is given that depending on device characteristics, frame can be reported as Jank
+     * even the duration is below 16 ms
      */
-    private fun FrameData.isJankAndMinDurationReached(): Boolean = isJank && minJankFrameThresholdMs > this.durationToMilli()
+    private fun FrameData.isJankAndMinDurationReached(): Boolean =
+        isJank && minJankFrameThresholdMs > this.durationToMilli()
 
     @UiThread
     private fun setJankStatsForCurrentWindow(window: Window) {
