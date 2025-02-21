@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture
 
+import android.app.ActivityManager
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.nhaarman.mockitokotlin2.mock
@@ -24,6 +25,7 @@ import java.util.concurrent.TimeUnit
 class AppLifecycleListenerLoggerTest {
     private val logger: LoggerImpl = mock()
     private val processLifecycleOwner: LifecycleOwner = mock()
+    private val activityManager: ActivityManager = mock()
     private val runtime: Runtime = mock()
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private val handler = Mocks.sameThreadHandler
@@ -32,7 +34,7 @@ class AppLifecycleListenerLoggerTest {
     fun testLogsAreFlushedOnStop() {
         // ARRANGE
         whenever(runtime.isEnabled(RuntimeFeature.APP_LIFECYCLE_EVENTS)).thenReturn(true)
-        val listener = AppLifecycleListenerLogger(logger, processLifecycleOwner, runtime, executor, handler)
+        val listener = AppLifecycleListenerLogger(logger, processLifecycleOwner, activityManager, runtime, executor, handler)
 
         // ACT
         listener.onStateChanged(processLifecycleOwner, Lifecycle.Event.ON_STOP)
