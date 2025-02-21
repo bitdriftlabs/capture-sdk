@@ -82,6 +82,14 @@ internal class JankStatsMonitor(
                 return
             }
 
+            if (volatileFrameData.durationToMilli()
+                < runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS)
+            ) {
+                // The Frame is considered as Jank but it didn't reached the min
+                // threshold defined by MIN_JANK_FRAME_THRESHOLD_MS config
+                return
+            }
+
             // Below API 24 [onFrame(volatileFrameData)] call happens on the main thread
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
                 backgroundThreadHandler.runAsync { volatileFrameData.sendJankFrameData() }
