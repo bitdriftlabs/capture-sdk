@@ -22,6 +22,7 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.utils.BuildVersionChecker
 import java.util.concurrent.ExecutorService
 
 internal class AppLifecycleListenerLogger(
@@ -31,6 +32,7 @@ internal class AppLifecycleListenerLogger(
     private val runtime: Runtime,
     private val executor: ExecutorService,
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
+    private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
 ) : IEventListenerLogger,
     LifecycleEventObserver {
     private val lifecycleEventNames =
@@ -66,8 +68,8 @@ internal class AppLifecycleListenerLogger(
             }
 
             val fields =
-                if (event == Lifecycle.Event.ON_CREATE && (Build.VERSION.SDK_INT > Build.VERSION_CODES.UPSIDE_DOWN_CAKE)) {
-                    extractAppStartInfoFields()
+                if (event == Lifecycle.Event.ON_CREATE && (versionChecker.isAtLeast(Build.VERSION_CODES.VANILLA_ICE_CREAM))) {
+                    runCatching { extractAppStartInfoFields() }.getOrElse { null }
                 } else {
                     null
                 } ?: emptyMap()
@@ -96,7 +98,7 @@ internal class AppLifecycleListenerLogger(
             put("startup_reason", appStartInfo.reason.toStartReasonText())
             appStartInfo.intent?.action?.let { put("startup_intent_action", it) }
             if (appStartInfo.startupState == ApplicationStartInfo.STARTUP_STATE_FIRST_FRAME_DRAWN && ts.timeToInitialDisplayMs != -1L) {
-                // TODO(murki): Call Logger.logAppLaunchTTI() if this value turns to be reliable
+                // TODO(murki) BIT-4720: Call Logger.logAppLaunchTTI() if this value turns out to be reliable
                 put("startup_time_to_initial_display_ms", ts.timeToInitialDisplayMs.toString())
             }
         }
