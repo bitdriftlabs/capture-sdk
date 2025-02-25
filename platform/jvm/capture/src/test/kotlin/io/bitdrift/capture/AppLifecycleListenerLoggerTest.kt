@@ -45,7 +45,8 @@ class AppLifecycleListenerLoggerTest {
     fun setUp() {
         whenever(runtime.isEnabled(RuntimeFeature.APP_LIFECYCLE_EVENTS)).thenReturn(true)
         whenever(versionChecker.isAtLeast(anyInt())).thenReturn(false)
-        appLifecycleLogger = AppLifecycleListenerLogger(logger, processLifecycleOwner, activityManager, runtime, executor, handler, versionChecker)
+        appLifecycleLogger =
+            AppLifecycleListenerLogger(logger, processLifecycleOwner, activityManager, runtime, executor, handler, versionChecker)
     }
 
     @Test
@@ -134,7 +135,7 @@ class AppLifecycleListenerLoggerTest {
             mapOf(
                 ApplicationStartInfo.START_TIMESTAMP_LAUNCH to launchTime,
                 ApplicationStartInfo.START_TIMESTAMP_FIRST_FRAME to firstFrameTime,
-            )
+            ),
         )
         whenever(activityManager.getHistoricalProcessStartReasons(1)).thenReturn(listOf(mockStartInfo))
 
