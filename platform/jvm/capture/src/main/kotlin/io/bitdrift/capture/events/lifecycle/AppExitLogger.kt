@@ -41,7 +41,7 @@ internal class AppExitLogger(
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
 ) {
     companion object {
-        const val APP_EXIT_EVENT_NAME = "AppExit"
+        private const val APP_EXIT_EVENT_NAME = "AppExit"
         private const val APP_EXIT_SOURCE_KEY = "_app_exit_source"
         private const val APP_EXIT_REASON_KEY = "_app_exit_reason"
         private const val APP_EXIT_INFO_KEY = "_app_exit_info"

@@ -31,7 +31,7 @@ public class BitdriftInit {
 
         Capture.Logger.start(
             apiKey,
-            new SessionStrategy.ActivityBased(),
+            new SessionStrategy.Fixed(),
             new Configuration(),
             fieldProviders,
             null,

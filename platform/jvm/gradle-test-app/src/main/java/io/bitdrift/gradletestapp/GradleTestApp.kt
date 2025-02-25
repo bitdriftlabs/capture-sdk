@@ -110,6 +110,7 @@ class GradleTestApp : Application() {
                     "startup_launch_mode" to appStartInfo.launchMode.toLaunchModeText(),
                     "startup_was_forced_stopped" to appStartInfo.wasForceStopped().toString(),
                     "startup_reason" to appStartInfo.reason.toStartReasonText(),
+                    "startup_intent_action" to appStartInfo.intent?.action.toString(),
                     "start_timestamp_launch_ns" to (appStartInfo.startupTimestamps[START_TIMESTAMP_LAUNCH]?.toString() ?: "null"),
                     "start_timestamp_fork_ns" to (appStartInfo.startupTimestamps[START_TIMESTAMP_FORK]?.toString() ?: "null"),
                     "start_timestamp_oncreate_ns" to (appStartInfo.startupTimestamps[START_TIMESTAMP_APPLICATION_ONCREATE]?.toString() ?: "null"),
@@ -119,7 +120,6 @@ class GradleTestApp : Application() {
                     "start_timestamp_initial_renderthread_frame_ns" to (appStartInfo.startupTimestamps[START_TIMESTAMP_INITIAL_RENDERTHREAD_FRAME]?.toString() ?: "null"),
                     "start_timestamp_surfaceflinger_composition_complete_ns" to (appStartInfo.startupTimestamps[START_TIMESTAMP_SURFACEFLINGER_COMPOSITION_COMPLETE]?.toString() ?: "null")
                 )
-                Timber.d("ApplicationStartInfoCompletion event: $appStartInfoFields")
                 Capture.Logger.logInfo(appStartInfoFields) { "ApplicationStartInfoCompletion" }
             }
         }
