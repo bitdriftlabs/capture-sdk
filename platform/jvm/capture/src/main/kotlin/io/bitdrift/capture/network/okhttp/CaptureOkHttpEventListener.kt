@@ -92,6 +92,9 @@ internal class CaptureOkHttpEventListener internal constructor(
 
     override fun callStart(call: Call) {
         runCatching { targetEventListener?.callStart(call) }
+        if (call.shouldIgnoreCurrentPath()) {
+            return
+        }
 
         callStartTimeMs = clock.elapsedRealtime()
 
@@ -461,5 +464,11 @@ internal class CaptureOkHttpEventListener internal constructor(
             return null
         }
         return this
+    }
+
+    private fun Call.shouldIgnoreCurrentPath(): Boolean = request().url.encodedPath == EXCLUDED_BITDRIFT_PATH
+
+    private companion object {
+        private const val EXCLUDED_BITDRIFT_PATH = "/bitdrift_public.protobuf.client.v1.ApiService/Mux"
     }
 }
