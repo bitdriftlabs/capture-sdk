@@ -234,11 +234,8 @@ class AppExitLoggerTest {
     @Test
     fun logPreviousExitReasonIfAny_whenCrashNativeAndEmptyTrace_shouldNotAddCrashArtifactMetadata() {
         // ARRANGE
-        setupMockRuntimeAndExitData(
-            isCrashArtifactEnabled = true,
-            exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE,
-            traceInputStream = null,
-        )
+        whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(true)
+        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = null)
 
         // ACT
         appExitLogger.logPreviousExitReasonIfAny()
@@ -250,12 +247,8 @@ class AppExitLoggerTest {
     @Test
     fun logPreviousExitReasonIfAny_whenCrashNative_shouldAddCrashArtifactMetadata() {
         // ARRANGE
-        val traceInputStream = createTestInputStream()
-        setupMockRuntimeAndExitData(
-            isCrashArtifactEnabled = true,
-            exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE,
-            traceInputStream = traceInputStream,
-        )
+        whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(true)
+        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = createTestInputStream())
 
         // ACT
         appExitLogger.logPreviousExitReasonIfAny()
@@ -267,12 +260,8 @@ class AppExitLoggerTest {
     @Test
     fun logPreviousExitReasonIfAny_whenCrashNativeValidTombstoneAndKillSwitch_shouldNotAddCrashArtifactMetadata() {
         // ARRANGE
-        val traceInputStream = createTestInputStream()
-        setupMockRuntimeAndExitData(
-            isCrashArtifactEnabled = false,
-            exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE,
-            traceInputStream = traceInputStream,
-        )
+        whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(false)
+        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = createTestInputStream())
 
         // ACT
         appExitLogger.logPreviousExitReasonIfAny()
@@ -284,27 +273,14 @@ class AppExitLoggerTest {
     @Test
     fun logPreviousExitReasonIfAny_whenAnr_shouldNotAddCrashArtifactMetadata() {
         // ARRANGE
-        val traceInputStream = createTestInputStream()
-        setupMockRuntimeAndExitData(
-            isCrashArtifactEnabled = false,
-            exitReason = ApplicationExitInfo.REASON_ANR,
-            traceInputStream = traceInputStream,
-        )
+        whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(true)
+        mockAppExitData(exitReason = ApplicationExitInfo.REASON_ANR, traceInputStream = createTestInputStream())
 
         // ACT
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
         assertCrashArtifactNotAdded()
-    }
-
-    private fun setupMockRuntimeAndExitData(
-        isCrashArtifactEnabled: Boolean,
-        exitReason: Int,
-        traceInputStream: InputStream?,
-    ) {
-        whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(isCrashArtifactEnabled)
-        mockAppExitData(exitReason, traceInputStream)
     }
 
     private fun mockAppExitData(
