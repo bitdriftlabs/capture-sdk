@@ -14,6 +14,7 @@ cc_binary(
     linkopts = [
         "-lm",  # Required to avoid dlopen runtime failures unrelated to rust
         "-lz",  # Link against system zlib library
+        "-Wl,--build-id", # Include build id in the binary
     ] + select({
         "@platforms//os:android": [
             "-Wl,-z,max-page-size=16384",  # enable 16 KB ELF alignment on Android to support API 35+
@@ -30,9 +31,6 @@ cc_binary(
             "-Wl,-framework,Security",
         ],
         "//conditions:default": ["@platforms//:incompatible"],
-    }) + select({
-        "//bazel:dbg_build": ["-Wl,--build-id"],
-        "//conditions:default": [],
     }),
     linkshared = True,
     tags = [
