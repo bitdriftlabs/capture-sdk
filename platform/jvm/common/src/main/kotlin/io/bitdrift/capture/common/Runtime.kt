@@ -67,6 +67,11 @@ sealed class RuntimeFeature(
      * Whether Dropped Frames reporting is enabled
      */
     data object DROPPED_EVENTS_MONITORING : RuntimeFeature("client_feature.android.dropped_frames_reporting")
+
+    /**
+     * Whether we should send crash artifact data via AppExit
+     */
+    data object SEND_CRASH_ARTIFACT : RuntimeFeature("client_feature.android.send_crash_artifact")
 }
 
 /**

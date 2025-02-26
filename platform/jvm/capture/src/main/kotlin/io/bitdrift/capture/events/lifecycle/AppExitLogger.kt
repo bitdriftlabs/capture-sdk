@@ -24,6 +24,7 @@ import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
+import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildVersionChecker
@@ -53,6 +54,7 @@ internal class AppExitLogger(
         private const val APP_EXIT_PSS_KEY = "_app_exit_pss"
         private const val APP_EXIT_RSS_KEY = "_app_exit_rss"
         private const val APP_EXIT_DESCRIPTION_KEY = "_app_exit_description"
+        private const val APP_EXIT_CRASH_ARTIFACT_KEY = "_crash_artifact"
     }
 
     @WorkerThread
@@ -116,7 +118,7 @@ internal class AppExitLogger(
         logger.log(
             LogType.LIFECYCLE,
             lastExitInfo.reason.toLogLevel(),
-            buildAppExitAndMemoryFieldsMap(lastExitInfo),
+            buildAppExitInternalFieldsMap(lastExitInfo),
             attributesOverrides = LogAttributesOverrides(sessionId, timestampMs),
         ) { APP_EXIT_EVENT_NAME }
     }
@@ -171,11 +173,27 @@ internal class AppExitLogger(
     }
 
     @TargetApi(Build.VERSION_CODES.R)
-    private fun buildAppExitAndMemoryFieldsMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap =
+    private fun buildAppExitInternalFieldsMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap =
         buildMap {
-            putAll(applicationExitInfo.toMap())
-            putAll(memoryMetricsProvider.getMemoryAttributes())
-        }.toFields()
+            putAll(applicationExitInfo.toMap().toFields())
+            putAll(memoryMetricsProvider.getMemoryAttributes().toFields())
+            applicationExitInfo.getNativeCrashByteArray()?.let {
+                put(APP_EXIT_CRASH_ARTIFACT_KEY, it.toFieldValue())
+            }
+        }
+
+    @TargetApi(Build.VERSION_CODES.R)
+    private fun ApplicationExitInfo.getNativeCrashByteArray(): ByteArray? {
+        if (reason == ApplicationExitInfo.REASON_CRASH_NATIVE &&
+            traceInputStream != null &&
+            runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)
+        ) {
+            traceInputStream?.let {
+                return it.readBytes()
+            }
+        }
+        return null
+    }
 
     @TargetApi(Build.VERSION_CODES.R)
     private fun ApplicationExitInfo.toMap(): Map<String, String> {
