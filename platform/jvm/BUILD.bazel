@@ -18,6 +18,7 @@ cc_binary(
         "@platforms//os:android": [
             "-Wl,-z,max-page-size=16384",  # enable 16 KB ELF alignment on Android to support API 35+
             "-Wl,--retain-symbols-file=$(location :jni_symbols.lds)",
+            "-Wl,--build-id",  # Include build id in the binary
         ],
         "@platforms//os:linux": ["-Wl,--retain-symbols-file=$(location :jni_symbols.lds)"],
         # The linker on macos doesn't support the same options or file formats as linux, so use a pattern match here (not availabile on linux).
@@ -30,9 +31,6 @@ cc_binary(
             "-Wl,-framework,Security",
         ],
         "//conditions:default": ["@platforms//:incompatible"],
-    }) + select({
-        "//bazel:dbg_build": ["-Wl,--build-id"],
-        "//conditions:default": [],
     }),
     linkshared = True,
     tags = [
