@@ -61,8 +61,7 @@ extension RuntimeVariable<Bool> {
 
     static let applicationANRReporting = RuntimeVariable(
         name: "client_feature.ios.application_anr_reporting",
-        // TODO(Augustyniak): Flip default to `true` once we verify that the feature doesn't cause any issues.
-        defaultValue: false
+        defaultValue: true
     )
 
     static let applicationLifecycleReporting = RuntimeVariable(
