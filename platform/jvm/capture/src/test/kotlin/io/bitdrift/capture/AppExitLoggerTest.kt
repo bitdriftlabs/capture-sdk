@@ -248,7 +248,7 @@ class AppExitLoggerTest {
     fun logPreviousExitReasonIfAny_whenCrashNative_shouldAddCrashArtifactMetadata() {
         // ARRANGE
         whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(true)
-        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = createTestInputStream())
+        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = createValidInputStream())
 
         // ACT
         appExitLogger.logPreviousExitReasonIfAny()
@@ -261,7 +261,7 @@ class AppExitLoggerTest {
     fun logPreviousExitReasonIfAny_whenCrashNativeValidTombstoneAndKillSwitch_shouldNotAddCrashArtifactMetadata() {
         // ARRANGE
         whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(false)
-        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = createTestInputStream())
+        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = createValidInputStream())
 
         // ACT
         appExitLogger.logPreviousExitReasonIfAny()
@@ -271,10 +271,26 @@ class AppExitLoggerTest {
     }
 
     @Test
+    fun logPreviousExitReasonIfAny_whenCrashNative_shouldNotAddCrashArtifactMetadataAndLogError() {
+        // ARRANGE
+        whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(true)
+        val invalidInputStream = createInvalidInputStream()
+
+        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = invalidInputStream)
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        assertCrashArtifactNotAdded()
+        verify(errorHandler).handleError("Couldn't convert TraceInputStream to ByteArray", INPUT_STREAM_EXCEPTION)
+    }
+
+    @Test
     fun logPreviousExitReasonIfAny_whenAnr_shouldNotAddCrashArtifactMetadata() {
         // ARRANGE
         whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(true)
-        mockAppExitData(exitReason = ApplicationExitInfo.REASON_ANR, traceInputStream = createTestInputStream())
+        mockAppExitData(exitReason = ApplicationExitInfo.REASON_ANR, traceInputStream = createValidInputStream())
 
         // ACT
         appExitLogger.logPreviousExitReasonIfAny()
@@ -331,11 +347,17 @@ class AppExitLoggerTest {
         assertThat(expectedFieldsCaptor.firstValue).doesNotContainKey("_crash_artifact")
     }
 
-    private fun createTestInputStream(): InputStream = ByteArrayInputStream(FAKE_CRASH_STACKTRACE.toByteArray(Charsets.UTF_8))
+    private fun createValidInputStream(): InputStream = ByteArrayInputStream(FAKE_CRASH_STACKTRACE.toByteArray(Charsets.UTF_8))
+
+    private fun createInvalidInputStream(): InputStream =
+        object : InputStream() {
+            override fun read(): Int = throw INPUT_STREAM_EXCEPTION
+        }
 
     private companion object {
         private const val SESSION_ID = "test-session-id"
         private const val FAKE_CRASH_STACKTRACE = "SIG crash"
         private const val TIME_STAMP = 123L
+        private val INPUT_STREAM_EXCEPTION = IllegalArgumentException("Invalid size")
     }
 }

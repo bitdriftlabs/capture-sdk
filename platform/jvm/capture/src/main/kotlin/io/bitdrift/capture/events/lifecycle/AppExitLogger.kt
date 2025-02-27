@@ -188,8 +188,12 @@ internal class AppExitLogger(
             traceInputStream != null &&
             runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)
         ) {
-            traceInputStream?.let {
-                return it.readBytes()
+            try {
+                traceInputStream?.use {
+                    return it.readBytes()
+                }
+            } catch (error: Throwable) {
+                errorHandler.handleError("Couldn't convert TraceInputStream to ByteArray", error)
             }
         }
         return null
