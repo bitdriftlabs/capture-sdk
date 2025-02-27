@@ -13,6 +13,7 @@ import android.app.ApplicationExitInfo
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.argThat
+import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
@@ -25,14 +26,18 @@ import io.bitdrift.capture.events.lifecycle.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
+import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Mockito
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
+import java.io.ByteArrayInputStream
 import java.io.IOException
+import java.io.InputStream
 import java.nio.charset.StandardCharsets
 
 class AppExitLoggerTest {
@@ -200,8 +205,10 @@ class AppExitLoggerTest {
         whenever(runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_CRASH)).thenReturn(true)
         val currentThread = Thread.currentThread()
         val appException = IOException("real app crash")
+
         // ACT
         appExitLogger.logCrash(currentThread, RuntimeException("wrapper crash", appException))
+
         // ASSERT
         val expectedFields =
             buildMap {
@@ -222,5 +229,135 @@ class AppExitLoggerTest {
             argThat { i: () -> String -> i.invoke() == "AppExit" },
         )
         verify(logger).flush(true)
+    }
+
+    @Test
+    fun logPreviousExitReasonIfAny_whenCrashNativeAndEmptyTrace_shouldNotAddCrashArtifactMetadata() {
+        // ARRANGE
+        whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(true)
+        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = null)
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        assertCrashArtifactNotAdded()
+    }
+
+    @Test
+    fun logPreviousExitReasonIfAny_whenCrashNative_shouldAddCrashArtifactMetadata() {
+        // ARRANGE
+        whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(true)
+        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = createValidInputStream())
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        assertCrashArtifactAdded()
+    }
+
+    @Test
+    fun logPreviousExitReasonIfAny_whenCrashNativeValidTombstoneAndKillSwitch_shouldNotAddCrashArtifactMetadata() {
+        // ARRANGE
+        whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(false)
+        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = createValidInputStream())
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        assertCrashArtifactNotAdded()
+    }
+
+    @Test
+    fun logPreviousExitReasonIfAny_whenCrashNative_shouldNotAddCrashArtifactMetadataAndLogError() {
+        // ARRANGE
+        whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(true)
+        val invalidInputStream = createInvalidInputStream()
+
+        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = invalidInputStream)
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        assertCrashArtifactNotAdded()
+        verify(errorHandler).handleError("Couldn't convert TraceInputStream to ByteArray", INPUT_STREAM_EXCEPTION)
+    }
+
+    @Test
+    fun logPreviousExitReasonIfAny_whenAnr_shouldNotAddCrashArtifactMetadata() {
+        // ARRANGE
+        whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(true)
+        mockAppExitData(exitReason = ApplicationExitInfo.REASON_ANR, traceInputStream = createValidInputStream())
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        assertCrashArtifactNotAdded()
+    }
+
+    private fun mockAppExitData(
+        exitReason: Int,
+        traceInputStream: InputStream? = null,
+    ) {
+        val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
+        whenever(mockExitInfo.processStateSummary).thenReturn(SESSION_ID.toByteArray(StandardCharsets.UTF_8))
+        whenever(mockExitInfo.timestamp).thenReturn(TIME_STAMP)
+        whenever(mockExitInfo.processName).thenReturn("test-process-name")
+        whenever(mockExitInfo.reason).thenReturn(exitReason)
+        whenever(mockExitInfo.importance).thenReturn(RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
+        whenever(mockExitInfo.status).thenReturn(0)
+        whenever(mockExitInfo.pss).thenReturn(1)
+        whenever(mockExitInfo.rss).thenReturn(2)
+        whenever(mockExitInfo.description).thenReturn("test-description")
+        whenever(mockExitInfo.traceInputStream).thenReturn(traceInputStream)
+        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
+    }
+
+    private fun assertCrashArtifactAdded() {
+        val expectedFieldsCaptor = argumentCaptor<InternalFieldsMap>()
+        verify(logger).log(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.ERROR),
+            expectedFieldsCaptor.capture(),
+            eq(null),
+            eq(LogAttributesOverrides(SESSION_ID, TIME_STAMP)),
+            eq(false),
+            argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+        val fieldValues = expectedFieldsCaptor.firstValue
+        assertThat(fieldValues).containsKey("_crash_artifact")
+        assertThat(fieldValues["_crash_artifact"]).isEqualTo(FAKE_CRASH_STACKTRACE.toByteArray().toFieldValue())
+    }
+
+    private fun assertCrashArtifactNotAdded() {
+        val expectedFieldsCaptor = argumentCaptor<InternalFieldsMap>()
+        verify(logger).log(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.ERROR),
+            expectedFieldsCaptor.capture(),
+            eq(null),
+            eq(LogAttributesOverrides(SESSION_ID, TIME_STAMP)),
+            eq(false),
+            argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+        assertThat(expectedFieldsCaptor.firstValue).doesNotContainKey("_crash_artifact")
+    }
+
+    private fun createValidInputStream(): InputStream = ByteArrayInputStream(FAKE_CRASH_STACKTRACE.toByteArray(Charsets.UTF_8))
+
+    private fun createInvalidInputStream(): InputStream =
+        object : InputStream() {
+            override fun read(): Int = throw INPUT_STREAM_EXCEPTION
+        }
+
+    private companion object {
+        private const val SESSION_ID = "test-session-id"
+        private const val FAKE_CRASH_STACKTRACE = "SIG crash"
+        private const val TIME_STAMP = 123L
+        private val INPUT_STREAM_EXCEPTION = IllegalArgumentException("Invalid size")
     }
 }
