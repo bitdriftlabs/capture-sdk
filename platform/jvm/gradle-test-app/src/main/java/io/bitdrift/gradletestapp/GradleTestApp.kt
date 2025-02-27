@@ -66,6 +66,9 @@ import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
+import io.bitdrift.gradletestapp.ConfigurationSettingsFragment
+import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
+import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED
 
 /**
  * A Java app entry point that initializes the Bitdrift Logger.
@@ -90,7 +93,11 @@ class GradleTestApp : Application() {
             Log.e("GradleTestApp", "Failed to initialize bitdrift logger due to invalid API URL: $stringApiUrl")
             return
         }
-        BitdriftInit.initBitdriftCaptureInJava(apiUrl, prefs.getString("apiKey", ""))
+        BitdriftInit.initBitdriftCaptureInJava(
+            apiUrl,
+            prefs.getString("apiKey", ""),
+            prefs.getString(SESSION_STRATEGY_PREFS_KEY, FIXED.displayName),
+        )
         // Timber
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())

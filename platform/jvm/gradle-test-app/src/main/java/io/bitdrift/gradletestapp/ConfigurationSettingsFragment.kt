@@ -7,13 +7,15 @@
 
 package io.bitdrift.gradletestapp
 
+import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.preference.EditTextPreference
+import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
+import io.bitdrift.capture.providers.session.SessionStrategy
 import kotlin.system.exitProcess
 
 class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
@@ -30,14 +32,14 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         val apiUrlPref = EditTextPreference(context)
         apiUrlPref.key = "apiUrl"
         apiUrlPref.title = "API URL"
-        apiUrlPref.summary = "App needs to be restarted for changes to take effect"
+        apiUrlPref.summary = SELECTION_SUMMARY
 
         backendCategory.addPreference(apiUrlPref)
 
         val apiKeyPref = EditTextPreference(context)
         apiKeyPref.key = "apiKey"
         apiKeyPref.title = "API Key"
-        apiKeyPref.summary = "App needs to be restarted for changes to take effect"
+        apiKeyPref.summary = SELECTION_SUMMARY
 
         backendCategory.addPreference(apiKeyPref)
 
@@ -54,8 +56,35 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
             exitProcess(0)
         }
 
+        val sessionStrategyPref = buildSessionStrategyOption(context)
+        backendCategory.addPreference(sessionStrategyPref)
+
         screen.addPreference(restartPreference)
 
         preferenceScreen = screen
+    }
+
+    private fun buildSessionStrategyOption(context: Context): ListPreference {
+        val sessionStrategyPref = ListPreference(context)
+        sessionStrategyPref.key = SESSION_STRATEGY_PREFS_KEY
+        sessionStrategyPref.title = SESSION_STRATEGY_TITLE
+        sessionStrategyPref.entries = SESSION_STRATEGY_ENTRIES
+        sessionStrategyPref.entryValues = SESSION_STRATEGY_ENTRIES
+        sessionStrategyPref.summary = SELECTION_SUMMARY
+        sessionStrategyPref.setDefaultValue(SessionStrategyPreferences.FIXED.displayName)
+        return sessionStrategyPref
+    }
+
+    enum class SessionStrategyPreferences(val displayName: String) {
+        FIXED("Fixed"),
+        ACTIVITY_BASED("Activity Based")
+    }
+
+    companion object {
+        const val SESSION_STRATEGY_PREFS_KEY = "sessionStrategy"
+        private const val SELECTION_SUMMARY = "App needs to be restarted for changes to take effect"
+        private const val SESSION_STRATEGY_TITLE = "Session Strategy"
+        private val SESSION_STRATEGY_ENTRIES =
+            arrayOf(SessionStrategyPreferences.FIXED.displayName, SessionStrategyPreferences.ACTIVITY_BASED.displayName)
     }
 }
