@@ -57,7 +57,6 @@ class SecondFragment : Fragment() {
 
         binding.buttonSecond.setOnClickListener {
             Timber.i("Navigating to First Fragment")
-            Logger.logScreenView("first_fragment")
             findNavController().navigate(R.id.action_SecondFragment_to_FirstFragment)
         }
     }

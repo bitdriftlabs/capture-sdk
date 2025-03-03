@@ -129,15 +129,13 @@ internal class JankStatsMonitor(
     @WorkerThread
     private fun FrameData.sendJankFrameData() {
         val jankFrameLogDetails = this.getLogDetails()
-        val map =             buildMap {
-            put(SpanField.Key.DURATION, this@sendJankFrameData.durationToMilli().toString().toFieldValue())
-            putAll(this@sendJankFrameData.states.toFields())
-        }
-        Log.w("miguel-jank", "Jank frame detected=${jankFrameLogDetails.message}, map=$map")
         logger.log(
             LogType.UX,
             jankFrameLogDetails.logLevel,
-            map,
+            buildMap {
+                put(SpanField.Key.DURATION, this@sendJankFrameData.durationToMilli().toString().toFieldValue())
+                putAll(this@sendJankFrameData.states.toFields())
+            },
         ) { jankFrameLogDetails.message }
     }
 
