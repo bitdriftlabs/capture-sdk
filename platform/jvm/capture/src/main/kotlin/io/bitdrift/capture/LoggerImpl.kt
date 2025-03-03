@@ -14,6 +14,7 @@ import android.content.pm.ApplicationInfo
 import android.system.Os
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.metrics.performance.PerformanceMetricsState
 import com.github.michaelbull.result.Err
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
@@ -33,6 +34,7 @@ import io.bitdrift.capture.events.performance.AppMemoryPressureListenerLogger
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
 import io.bitdrift.capture.events.performance.JankStatsMonitor
+import io.bitdrift.capture.events.performance.JankStatsMonitor.Companion.SCREEN_NAME_KEY
 import io.bitdrift.capture.events.performance.MemoryMetricsProvider
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
 import io.bitdrift.capture.events.span.Span
@@ -79,6 +81,7 @@ internal class LoggerImpl(
     private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     private val bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
+    private val windowManager: WindowManager = WindowManager(errorHandler),
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val memoryMetricsProvider = MemoryMetricsProvider(context)
@@ -168,6 +171,7 @@ internal class LoggerImpl(
                         errorHandler,
                         context,
                         logger = this,
+                        windowManager = windowManager,
                     )
 
                 this.sessionReplayTarget = sessionReplayTarget
@@ -249,7 +253,7 @@ internal class LoggerImpl(
                         this,
                         ProcessLifecycleOwner.get(),
                         runtime,
-                        WindowManager(errorHandler),
+                        windowManager,
                         errorHandler,
                     ),
                 )
@@ -320,6 +324,13 @@ internal class LoggerImpl(
     }
 
     override fun logScreenView(screenName: String) {
+        if (runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
+            // Use metrics state holder to pass the screen name to JankStatsMonitor
+            windowManager.findRootViews().firstOrNull()?.let { rootView ->
+                PerformanceMetricsState.getHolderForHierarchy(rootView).state?.putState(SCREEN_NAME_KEY, screenName)
+            }
+        }
+
         CaptureJniLibrary.writeScreenViewLog(this.loggerId, screenName)
     }
 

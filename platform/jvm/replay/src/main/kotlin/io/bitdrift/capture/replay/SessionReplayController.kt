@@ -31,6 +31,7 @@ class SessionReplayController(
     context: Context,
     mainThreadHandler: MainThreadHandler,
     executor: ExecutorService,
+    windowManager: WindowManager,
 ) {
     private val replayCaptureEngine: ReplayCaptureEngine
     private val screenshotCaptureEngine: ScreenshotCaptureEngine
@@ -38,7 +39,6 @@ class SessionReplayController(
     init {
         L.logger = replayLogger
 
-        val windowManager = WindowManager(errorHandler)
         val displayManager = DisplayManagers(context)
 
         replayCaptureEngine =

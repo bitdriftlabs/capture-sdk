@@ -8,6 +8,7 @@
 package io.bitdrift.capture.events.performance
 
 import android.os.Build
+import android.util.Log
 import android.view.Window
 import androidx.annotation.UiThread
 import androidx.annotation.WorkerThread
@@ -18,6 +19,7 @@ import androidx.metrics.performance.FrameData
 import androidx.metrics.performance.FrameDataApi24
 import androidx.metrics.performance.FrameDataApi31
 import androidx.metrics.performance.JankStats
+import androidx.metrics.performance.StateInfo
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
@@ -30,6 +32,7 @@ import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.events.span.SpanField
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.threading.CaptureDispatchers
 
@@ -126,14 +129,27 @@ internal class JankStatsMonitor(
     @WorkerThread
     private fun FrameData.sendJankFrameData() {
         val jankFrameLogDetails = this.getLogDetails()
+        val map =             buildMap {
+            put(SpanField.Key.DURATION, this@sendJankFrameData.durationToMilli().toString().toFieldValue())
+            putAll(this@sendJankFrameData.states.toFields())
+        }
+        Log.w("miguel-jank", "Jank frame detected=${jankFrameLogDetails.message}, map=$map")
         logger.log(
             LogType.UX,
             jankFrameLogDetails.logLevel,
-            mapOf(SpanField.Key.DURATION to this.durationToMilli().toString().toFieldValue()),
+            map,
         ) { jankFrameLogDetails.message }
     }
 
     @WorkerThread
+    private fun List<StateInfo>.toFields(): Map<String, FieldValue> {
+        // Convert the list of StateInfo to a map of fields using StateInfo's key and value properties
+        return this.associate { stateInfo ->
+            stateInfo.key to stateInfo.value.toFieldValue()
+        }
+    }
+
+            @WorkerThread
     private fun FrameData.getLogDetails(): JankFrameLogDetails =
         when (this.toJankType()) {
             JankFrameType.SLOW -> {
@@ -204,9 +220,10 @@ internal class JankStatsMonitor(
         val message: String,
     )
 
-    private companion object {
+    internal companion object {
         private const val TO_MILLI = 1_000_000L
         private const val DROPPED_FRAME_MESSAGE_ID = "DroppedFrame"
         private const val ANR_MESSAGE_ID = "ANR"
+        internal const val SCREEN_NAME_KEY = "_screen_name"
     }
 }
