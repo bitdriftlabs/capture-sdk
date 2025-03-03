@@ -8,7 +8,6 @@
 package io.bitdrift.capture.events.performance
 
 import android.os.Build
-import android.util.Log
 import android.view.Window
 import androidx.annotation.UiThread
 import androidx.annotation.WorkerThread
@@ -147,7 +146,7 @@ internal class JankStatsMonitor(
         }
     }
 
-            @WorkerThread
+    @WorkerThread
     private fun FrameData.getLogDetails(): JankFrameLogDetails =
         when (this.toJankType()) {
             JankFrameType.SLOW -> {
