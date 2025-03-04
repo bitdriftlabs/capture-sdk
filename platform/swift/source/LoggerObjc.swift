@@ -20,11 +20,12 @@ public final class LoggerObjc: NSObject {
     /// Calling other SDK methods has no effect unless the logger has been initialized.
     /// Subsequent calls to this function will have no effect.
     ///
-    /// - parameter apiKey:          The API key provided by bitdrift.
-    /// - parameter sessionStrategy: A session strategy for the management of session IDs.
-    /// - parameter apiURL:          The base URL of the Capture API. Rely on its default value unless
-    ///                              specifically instructed otherwise during discussions with Bitdrift.
-    ///                              Defaults to Bitdrift's hosted Compose API base URL.
+    /// - parameter apiKey:                      The API key provided by bitdrift.
+    /// - parameter sessionStrategy:             A session strategy for the management of session IDs.
+    /// - parameter apiURL:                      The base URL of the Capture API. Rely on its default value unless
+    ///                                          specifically instructed otherwise during discussions with Bitdrift.
+    ///                                          Defaults to Bitdrift's hosted Compose API base URL.
+    /// - parameter enableURLSessionIntegration: A flag indicating if automatic URLSession capture is enabled.
     @objc
     public static func start(
         withAPIKey apiKey: String,
@@ -40,7 +41,7 @@ public final class LoggerObjc: NSObject {
                 apiURL: apiURL
             )
 
-        if let logger = logger, enableURLSessionIntegration {
+        if let logger, enableURLSessionIntegration {
             logger.enableIntegrations([.urlSession()], disableSwizzling: false)
         }
     }
@@ -186,6 +187,8 @@ public final class LoggerObjc: NSObject {
     }
 
     /// Retrieves the session URL. It is `nil` before the Capture SDK is started.
+    ///
+    /// - returns: The Session URL represented as a string.
     @objc
     public static func sessionURL() -> String? {
         return Capture.Logger.sessionURL
