@@ -19,6 +19,7 @@ import com.github.michaelbull.result.Err
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
+import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.error.ErrorReporterService
@@ -81,7 +82,7 @@ internal class LoggerImpl(
     private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     private val bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
-    private val windowManager: WindowManager = WindowManager(errorHandler),
+    private val windowManager: IWindowManager = WindowManager(errorHandler),
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val memoryMetricsProvider = MemoryMetricsProvider(context)
@@ -326,7 +327,7 @@ internal class LoggerImpl(
     override fun logScreenView(screenName: String) {
         if (runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
             // Use metrics state holder to pass the screen name to JankStatsMonitor
-            windowManager.findRootViews().firstOrNull()?.let { rootView ->
+            windowManager.getAllRootViews().firstOrNull()?.let { rootView ->
                 PerformanceMetricsState.getHolderForHierarchy(rootView).state?.putState(SCREEN_NAME_KEY, screenName)
             }
         }

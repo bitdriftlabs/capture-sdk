@@ -15,8 +15,8 @@ import android.view.PixelCopy
 import android.view.View
 import androidx.annotation.RequiresApi
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
-import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.common.phoneWindow
 import io.bitdrift.capture.replay.IScreenshotLogger
 import java.io.ByteArrayOutputStream
@@ -26,14 +26,14 @@ internal class ScreenshotCaptureEngine(
     private val errorHandler: ErrorHandler,
     private val logger: IScreenshotLogger,
     private val mainThreadHandler: MainThreadHandler,
-    private val windowManager: WindowManager,
+    private val windowManager: IWindowManager,
     private val executor: ExecutorService,
     private val metrics: ScreenshotMetricsStopwatch = ScreenshotMetricsStopwatch(),
 ) {
     fun captureScreenshot() {
         try {
             metrics.start()
-            val rootView = windowManager.findRootViews().firstOrNull()
+            val rootView = windowManager.getFirstRootView()
             if (rootView == null || rootView.width <= 0 || rootView.height <= 0 || !rootView.isShown) {
                 finishOnError(expected = true, "Screenshot triggered: Root view is invalid, skipping capture")
                 return

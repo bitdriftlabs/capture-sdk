@@ -13,10 +13,10 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.replay.IReplayLogger
@@ -37,7 +37,7 @@ internal class SessionReplayTarget(
     context: Context,
     private val logger: LoggerImpl,
     mainThreadHandler: MainThreadHandler = MainThreadHandler(),
-    windowManager: WindowManager,
+    windowManager: IWindowManager,
 ) : ISessionReplayTarget,
     IReplayLogger,
     IScreenshotLogger {

@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.events.SessionReplayTarget
@@ -25,7 +26,7 @@ class SessionReplayTargetTest {
     private val logger: LoggerImpl = mock()
     private val errorHandler: ErrorHandler = mock()
     private val handler: MainThreadHandler = Mocks.sameThreadHandler
-    private val windowManager: WindowManager = mock()
+    private val windowManager: IWindowManager = mock()
 
     private val target =
         SessionReplayTarget(
