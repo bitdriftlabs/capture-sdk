@@ -295,6 +295,9 @@ extension Logger {
         Self.getShared()?.logAppLaunchTTI(duration)
     }
 
+    /// Writes a log that indicates that a "screen" has been presented. This is useful for snakeys and other journeys visualization.
+    ///
+    /// - parameter screenName: The human readable unique identifier of the screen being presented.
     public static func logScreenView(screenName: String) {
         Self.getShared()?.logScreenView(screenName: screenName)
     }
