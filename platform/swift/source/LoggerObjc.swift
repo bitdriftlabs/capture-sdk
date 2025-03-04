@@ -227,6 +227,24 @@ public final class LoggerObjc: NSObject {
     public static func removeField(key: String) {
         Capture.Logger.removeField(withKey: key)
     }
+
+    /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a
+    /// given device in real-time fashion. The creation of the device code requires communication with
+    /// the bitdrift remote service.
+    ///
+    /// - parameter completion: The closure that is called when the operation is complete. Called on the
+    ///                         main queue.
+    @objc
+    public static func createTemporaryDeviceCode(completion: @escaping (String?, Error?) -> Void) {
+        Capture.Logger.createTemporaryDeviceCode { result in
+            switch result {
+            case .success(let deviceCode):
+                completion(deviceCode, nil)
+            case .failure(let error):
+                completion(nil, error)
+            }
+        }
+    }
 }
 
 /// Describes the strategy to use for session management.
