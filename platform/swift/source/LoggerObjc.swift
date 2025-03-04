@@ -30,20 +30,26 @@ public final class LoggerObjc: NSObject {
         withAPIKey apiKey: String,
         sessionStrategy: SessionStrategyObjc,
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
-        apiURL: URL = URL(string: "https://api.bitdrift.io")!
+        apiURL: URL = URL(string: "https://api.bitdrift.io")!,
+        enableURLSessionIntegration: Bool = true
     ) {
-        Capture.Logger.start(
-            withAPIKey: apiKey,
-            sessionStrategy: sessionStrategy.underlyingSessionStrategy,
-            apiURL: apiURL
-        )
+        let logger = Capture.Logger
+            .start(
+                withAPIKey: apiKey,
+                sessionStrategy: sessionStrategy.underlyingSessionStrategy,
+                apiURL: apiURL
+            )
+
+        if let logger = logger, enableURLSessionIntegration {
+            logger.enableIntegrations([.urlSession()], disableSwizzling: false)
+        }
     }
 
     /// Defines the initialization of a new session within the current configured logger.
     /// If no logger is configured, this is a no-op.
     @objc
     public static func startNewSession() {
-        Capture.Logger.shared?.startNewSession()
+        Capture.Logger.startNewSession()
     }
 
     /// Logs a trace level message to the default logger instance.
@@ -153,12 +159,36 @@ public final class LoggerObjc: NSObject {
         )
     }
 
+    /// Writes an app launch TTI log event. This event should be logged only once per Logger start.
+    /// Consecutive calls have no effect.
+    ///
+    /// - parameter duration: The time between a user's intent to launch the app and when the app becomes
+    ///                       interactive. Calls with a negative duration are ignored.
+    @objc
+    public static func logAppLaunchTTI(_ duration: TimeInterval) {
+        Capture.Logger.logAppLaunchTTI(duration)
+    }
+
+    /// Writes a log that indicates that a "screen" has been presented. This is useful for snakeys and other journeys visualization.
+    ///
+    /// - parameter screenName: The human readable unique identifier of the screen being presented.
+    @objc
+    public static func logScreenView(screenName: String) {
+        Capture.Logger.logScreenView(screenName: screenName)
+    }
+
     /// Retrieves the session ID. It's equal to `nil` prior to the configuration of Capture SDK.
     ///
     /// - returns: The ID for the current ongoing session.
     @objc
     public static func sessionID() -> String? {
         return Capture.Logger.sessionID
+    }
+
+    /// Retrieves the session URL. It is `nil` before the Capture SDK is started.
+    @objc
+    public static func sessionURL() -> String? {
+        return Capture.Logger.sessionURL
     }
 
     /// A canonical identifier for a device that remains consistent as long as an application
@@ -171,6 +201,31 @@ public final class LoggerObjc: NSObject {
     @objc
     public static func deviceID() -> String? {
         return Capture.Logger.deviceID
+    }
+
+    // MARK: - Extra
+
+    /// Adds a field to all logs emitted by the logger from this point forward.
+    /// If a field with a given key has already been registered with the logger, its value is
+    /// replaced with the new one.
+    ///
+    /// Fields added with this method take precedence over fields provided by registered `FieldProvider`s
+    /// and are overwritten by fields provided with custom logs.
+    ///
+    /// - parameter key:   The name of the field to add.
+    /// - parameter value: The value of the field to add.
+    @objc
+    public static func addField(key: String, value: String) {
+        Capture.Logger.addField(withKey: key, value: value)
+    }
+
+    /// Removes a field with a given key. This operation has no effect if a field with the given key
+    /// is not registered with the logger.
+    ///
+    /// - parameter key: The name of the field to remove.
+    @objc
+    public static func removeField(key: String) {
+        Capture.Logger.removeField(withKey: key)
     }
 }
 
