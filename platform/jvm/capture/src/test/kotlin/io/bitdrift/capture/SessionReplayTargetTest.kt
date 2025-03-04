@@ -12,7 +12,6 @@ import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
-import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.events.SessionReplayTarget
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import org.junit.Test

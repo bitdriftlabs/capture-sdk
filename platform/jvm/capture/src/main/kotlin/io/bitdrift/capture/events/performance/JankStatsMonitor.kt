@@ -18,6 +18,7 @@ import androidx.metrics.performance.FrameData
 import androidx.metrics.performance.FrameDataApi24
 import androidx.metrics.performance.FrameDataApi31
 import androidx.metrics.performance.JankStats
+import androidx.metrics.performance.PerformanceMetricsState
 import androidx.metrics.performance.StateInfo
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.LogLevel
@@ -74,6 +75,14 @@ internal class JankStatsMonitor(
             windowManager.getCurrentWindow()?.let { setJankStatsForCurrentWindow(it) }
         } else if (event == Lifecycle.Event.ON_STOP) {
             stopCollection()
+        }
+    }
+
+    fun trackScreenNameChanged(screenName: String) {
+        if (runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
+            windowManager.getFirstRootView()?.let { rootView ->
+                PerformanceMetricsState.getHolderForHierarchy(rootView).state?.putState(SCREEN_NAME_KEY, screenName)
+            }
         }
     }
 
@@ -217,10 +226,10 @@ internal class JankStatsMonitor(
         val message: String,
     )
 
-    internal companion object {
+    private companion object {
         private const val TO_MILLI = 1_000_000L
         private const val DROPPED_FRAME_MESSAGE_ID = "DroppedFrame"
         private const val ANR_MESSAGE_ID = "ANR"
-        internal const val SCREEN_NAME_KEY = "_screen_name"
+        private const val SCREEN_NAME_KEY = "_screen_name"
     }
 }
