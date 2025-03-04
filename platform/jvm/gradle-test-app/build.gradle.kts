@@ -26,6 +26,7 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.4.0")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")
+    debugImplementation ("com.squareup.leakcanary:leakcanary-android:2.14")
 
     testImplementation("junit:junit:4.13.2")
 
