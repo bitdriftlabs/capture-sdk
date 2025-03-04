@@ -17,6 +17,7 @@ import {
   trace,
   error,
   warn,
+  logScreenView,
 } from '@bitdrift/react-native';
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
@@ -65,6 +66,8 @@ const HomeScreen = () => {
       log?.(`[${selectedLogLevel.toUpperCase()}]: Log emitted`, {
         randomNumber: Math.random(),
       });
+
+      logScreenView('HomeScreen');
       showToast(`Logged: [${selectedLogLevel.toUpperCase()}]: Log emitted`);
     }
   };

@@ -90,6 +90,11 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
     Capture.Logger.removeField(key)
   }
 
+  @ReactMethod
+  override fun logScreenView(screenView: String) {
+    Capture.Logger.logScreenView(screenView)
+  }
+
   companion object {
     const val NAME = "BdReactNative"
   }
