@@ -105,6 +105,14 @@ export async function getSessionURL(): Promise<string> {
 }
 
 /**
+  * Logs a screen view event. This can be called to record that a screen was viewed.
+  * @param screenName The name of the screen that was viewed.
+  */
+export function logScreenView(screenName: string): void {
+  return NativeBdReactNative.logScreenView(screenName);
+}
+
+/**
  * Generate a device code for the current device. Useful for streaming logs from a specific device using {@link https://docs.bitdrift.dev/cli/quickstart.html#log-tailing|bd tail}.
  * @returns The device code for the current device.
  */

@@ -35,6 +35,11 @@ RCT_EXPORT_METHOD(getSessionURL:(RCTPromiseResolveBlock)resolve reject:(RCTPromi
     [CAPRNLogger getSessionURL:resolve rejecter:reject];
 }
 
+RCT_EXPORT_METHOD(logScreenView:(NSString *)screenName)
+{
+    [CAPRNLogger logScreenViewWithScreenName:screenName];
+}
+
 #ifndef RCT_NEW_ARCH_ENABLED
 
 RCT_EXPORT_METHOD(init:(NSString*)apiKey
