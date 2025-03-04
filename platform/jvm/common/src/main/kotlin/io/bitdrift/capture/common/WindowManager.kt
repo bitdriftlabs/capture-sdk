@@ -25,7 +25,9 @@ class WindowManager(
         Class.forName("android.view.WindowManagerGlobal")
     }
 
-    override fun getCurrentWindow(): Window? = findRootViews().firstOrNull()?.phoneWindow
+    override fun getCurrentWindow(): Window? = getFirstRootView()?.phoneWindow
+
+    override fun getFirstRootView(): View? = getAllRootViews().firstOrNull()
 
     private val windowManagerGlobal: Any? by lazy(LazyThreadSafetyMode.NONE) {
         global.getDeclaredMethod("getInstance").invoke(null)
@@ -41,7 +43,7 @@ class WindowManager(
      * Find all DecorViews from [android.view.WindowManagerGlobal]
      */
     @Suppress("KDocUnresolvedReference")
-    fun findRootViews(): List<View> {
+    override fun getAllRootViews(): List<View> {
         // TODO(murki): Consider using the Curtains library for this
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && tryWindowInspector) {
             try {

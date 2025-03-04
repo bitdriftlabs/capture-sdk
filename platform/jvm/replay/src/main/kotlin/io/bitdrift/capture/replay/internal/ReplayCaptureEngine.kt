@@ -10,8 +10,8 @@ package io.bitdrift.capture.replay.internal
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IClock
+import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
-import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.replay.IReplayLogger
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
@@ -25,7 +25,7 @@ internal class ReplayCaptureEngine(
     errorHandler: ErrorHandler,
     private val logger: IReplayLogger,
     private val mainThreadHandler: MainThreadHandler,
-    windowManager: WindowManager,
+    windowManager: IWindowManager,
     displayManager: DisplayManagers,
     private val executor: ExecutorService,
     private val captureParser: ReplayParser = ReplayParser(sessionReplayConfiguration, errorHandler, windowManager),

@@ -18,6 +18,7 @@ import com.github.michaelbull.result.Err
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
+import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.error.ErrorReporterService
@@ -79,6 +80,7 @@ internal class LoggerImpl(
     private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     private val bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
+    windowManager: IWindowManager = WindowManager(errorHandler),
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val memoryMetricsProvider = MemoryMetricsProvider(context)
@@ -87,6 +89,7 @@ internal class LoggerImpl(
     private val diskUsageMonitor: DiskUsageMonitor
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
+    private val jankStatsMonitor: JankStatsMonitor
 
     // we can assume a properly formatted api url is being used, so we can follow the same pattern
     // making sure we only replace the first occurrence
@@ -162,15 +165,14 @@ internal class LoggerImpl(
                         eventListenerDispatcher.executorService,
                     )
 
-                val sessionReplayTarget =
+                this.sessionReplayTarget =
                     SessionReplayTarget(
                         configuration = configuration.sessionReplayConfiguration,
                         errorHandler,
                         context,
                         logger = this,
+                        windowManager = windowManager,
                     )
-
-                this.sessionReplayTarget = sessionReplayTarget
 
                 val loggerId =
                     bridge.createLogger(
@@ -244,15 +246,16 @@ internal class LoggerImpl(
                     ),
                 )
 
-                eventsListenerTarget.add(
+                jankStatsMonitor =
                     JankStatsMonitor(
                         this,
                         ProcessLifecycleOwner.get(),
                         runtime,
-                        WindowManager(errorHandler),
+                        windowManager,
                         errorHandler,
-                    ),
-                )
+                    )
+
+                eventsListenerTarget.add(jankStatsMonitor)
 
                 appExitLogger =
                     AppExitLogger(
@@ -320,6 +323,7 @@ internal class LoggerImpl(
     }
 
     override fun logScreenView(screenName: String) {
+        jankStatsMonitor.trackScreenNameChanged(screenName)
         CaptureJniLibrary.writeScreenViewLog(this.loggerId, screenName)
     }
 

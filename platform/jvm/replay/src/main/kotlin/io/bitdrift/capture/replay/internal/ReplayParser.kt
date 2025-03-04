@@ -8,7 +8,7 @@
 package io.bitdrift.capture.replay.internal
 
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.common.WindowManager
+import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
@@ -19,7 +19,7 @@ internal typealias Capture = List<List<ReplayRect>>
 internal class ReplayParser(
     sessionReplayConfiguration: SessionReplayConfiguration,
     private val errorHandler: ErrorHandler,
-    private val windowManager: WindowManager,
+    private val windowManager: IWindowManager,
     private val viewMapper: ViewMapper = ViewMapper(sessionReplayConfiguration),
 ) {
     /**
@@ -34,7 +34,7 @@ internal class ReplayParser(
         // Use a stack to perform a DFS traversal of the tree and avoid recursion
         val stack: ArrayDeque<ScannableView> =
             ArrayDeque(
-                windowManager.findRootViews().map {
+                windowManager.getAllRootViews().map {
                     SessionReplayController.L.v("Root view found and added to list: ${it.javaClass.simpleName}")
                     ScannableView.AndroidView(it, skipReplayComposeViews)
                 },

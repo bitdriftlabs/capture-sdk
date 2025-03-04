@@ -116,7 +116,7 @@ class FirstFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        Logger.logScreenView("first_fragment")
         binding.btnNavigateConfiguration.setOnClickListener {
             Logger.logScreenView("config_fragment")
             findNavController().navigate(R.id.action_FirstFragment_to_ConfigFragment)

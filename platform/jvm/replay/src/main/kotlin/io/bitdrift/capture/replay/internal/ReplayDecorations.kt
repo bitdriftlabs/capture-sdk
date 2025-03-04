@@ -9,14 +9,14 @@ package io.bitdrift.capture.replay.internal
 
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import io.bitdrift.capture.common.WindowManager
+import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.SessionReplayController
 
 // Add the screen and keyboard layouts to the replay capture
 internal class ReplayDecorations(
     private val displayManager: DisplayManagers,
-    private val windowManager: WindowManager,
+    private val windowManager: IWindowManager,
 ) {
     fun addDecorations(filteredCapture: FilteredCapture): FilteredCapture {
         // Add screen size as the first element
@@ -26,7 +26,7 @@ internal class ReplayDecorations(
         screen.addAll(filteredCapture)
 
         var imeBounds: ReplayRect
-        windowManager.findRootViews().iterator().forEach { rootView ->
+        windowManager.getAllRootViews().iterator().forEach { rootView ->
             ViewCompat.getRootWindowInsets(rootView)?.let { windowInset ->
 
                 // Add Keyboard overlay
