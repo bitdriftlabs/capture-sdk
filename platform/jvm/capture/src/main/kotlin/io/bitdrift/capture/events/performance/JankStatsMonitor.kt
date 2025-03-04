@@ -51,7 +51,6 @@ internal class JankStatsMonitor(
 ) : IEventListenerLogger,
     LifecycleEventObserver,
     JankStats.OnFrameListener {
-
     private var jankStatsWeakRef: WeakReference<JankStats>? = null
 
     override fun start() {
@@ -122,7 +121,7 @@ internal class JankStatsMonitor(
         }
     }
 
-    private fun getJankStats():JankStats? = jankStatsWeakRef?.get()
+    private fun getJankStats(): JankStats? = jankStatsWeakRef?.get()
 
     private fun stopCollection() {
         getJankStats()?.isTrackingEnabled = false
