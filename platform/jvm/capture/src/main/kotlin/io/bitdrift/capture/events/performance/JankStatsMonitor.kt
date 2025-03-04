@@ -35,6 +35,7 @@ import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.threading.CaptureDispatchers
+import java.lang.ref.WeakReference
 
 /**
  * Reports Jank Frames and its duration in ms
@@ -53,7 +54,7 @@ internal class JankStatsMonitor(
 ) : IEventListenerLogger,
     LifecycleEventObserver,
     JankStats.OnFrameListener {
-    private var jankStats: JankStats? = null
+    private var jankStatsWeakRef: WeakReference<JankStats>? = null
 
     override fun start() {
         mainThreadHandler.run {
@@ -72,7 +73,9 @@ internal class JankStatsMonitor(
         event: Lifecycle.Event,
     ) {
         if (event == Lifecycle.Event.ON_RESUME) {
-            windowManager.getCurrentWindow()?.let { setJankStatsForCurrentWindow(it) }
+            windowManager.getCurrentWindow()?.let {
+                setJankStatsForCurrentWindow(it)
+            }
         } else if (event == Lifecycle.Event.ON_STOP) {
             stopCollection()
         }
@@ -119,8 +122,8 @@ internal class JankStatsMonitor(
                 return
             }
 
-            jankStats = JankStats.createAndTrack(window, this)
-            jankStats?.jankHeuristicMultiplier = runtime.getConfigValue(RuntimeConfig.JANK_FRAME_HEURISTICS_MULTIPLIER).toFloat()
+            jankStatsWeakRef = WeakReference(JankStats.createAndTrack(window, this))
+            getJankStats()?.jankHeuristicMultiplier = runtime.getConfigValue(RuntimeConfig.JANK_FRAME_HEURISTICS_MULTIPLIER).toFloat()
         } catch (illegalStateException: IllegalStateException) {
             errorHandler.handleError(
                 "Couldn't create JankStats instance",
@@ -129,9 +132,11 @@ internal class JankStatsMonitor(
         }
     }
 
+    private fun getJankStats(): JankStats? = jankStatsWeakRef?.get()
+
     private fun stopCollection() {
-        jankStats?.isTrackingEnabled = false
-        jankStats = null
+        getJankStats()?.isTrackingEnabled = false
+        jankStatsWeakRef?.clear()
     }
 
     @WorkerThread
