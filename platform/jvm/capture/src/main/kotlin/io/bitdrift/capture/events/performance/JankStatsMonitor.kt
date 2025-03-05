@@ -13,14 +13,17 @@ import android.os.Build
 import android.os.Bundle
 import android.view.Window
 import androidx.annotation.UiThread
+import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.metrics.performance.FrameData
 import androidx.metrics.performance.FrameDataApi24
 import androidx.metrics.performance.FrameDataApi31
 import androidx.metrics.performance.JankStats
 import androidx.metrics.performance.PerformanceMetricsState
 import androidx.metrics.performance.StateInfo
-import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
@@ -44,7 +47,9 @@ import io.bitdrift.capture.threading.CaptureDispatchers
  *
  */
 internal class JankStatsMonitor(
+    private val application: Application,
     private val logger: LoggerImpl,
+    private val processLifecycleOwner: LifecycleOwner,
     private val runtime: Runtime,
     private val windowManager: IWindowManager,
     private val errorHandler: ErrorHandler,
@@ -52,12 +57,16 @@ internal class JankStatsMonitor(
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
 ) : IEventListenerLogger,
     Application.ActivityLifecycleCallbacks,
+    LifecycleEventObserver,
     JankStats.OnFrameListener {
-    private var jankStats: JankStats? = null
-    private val application = APP_CONTEXT as Application
+    @VisibleForTesting
+    internal var jankStats: JankStats? = null
+    private var performanceMetricsStateHolder: PerformanceMetricsState.Holder? = null
 
     override fun start() {
         mainThreadHandler.run {
+            // TODO(FranAguilera): BIT-4785. To improve detection of Application/Activity lifecycles
+            processLifecycleOwner.lifecycle.addObserver(this)
             application.registerActivityLifecycleCallbacks(this)
         }
     }
@@ -65,7 +74,49 @@ internal class JankStatsMonitor(
     override fun stop() {
         stopCollection()
         mainThreadHandler.run {
+            processLifecycleOwner.lifecycle.removeObserver(this)
             application.unregisterActivityLifecycleCallbacks(this)
+        }
+    }
+
+    override fun onFrame(volatileFrameData: FrameData) {
+        if (volatileFrameData.isJank) {
+            if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
+                stopCollection()
+                return
+            }
+
+            if (volatileFrameData.durationToMilli()
+                < runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS)
+            ) {
+                // The Frame is considered as Jank but it didn't reached the min
+                // threshold defined by MIN_JANK_FRAME_THRESHOLD_MS config
+                return
+            }
+
+            // Below API 24 [onFrame(volatileFrameData)] call happens on the main thread
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+                backgroundThreadHandler.runAsync { volatileFrameData.sendJankFrameData() }
+            } else {
+                // For >= 24 this happens on `FrameMetricsAggregator` thread
+                volatileFrameData.sendJankFrameData()
+            }
+        }
+    }
+
+    /**
+     * [LifecycleEventObserver] callback to determine when Application is first created
+     */
+    override fun onStateChanged(
+        source: LifecycleOwner,
+        event: Lifecycle.Event,
+    ) {
+        if (event == Lifecycle.Event.ON_CREATE) {
+            windowManager.getCurrentWindow()?.let {
+                setJankStatsForCurrentWindow(it)
+                // We are done detecting initial Application ON_CREATE, we don't need to listen anymore
+                processLifecycleOwner.lifecycle.removeObserver(this)
+            }
         }
     }
 
@@ -105,34 +156,7 @@ internal class JankStatsMonitor(
 
     fun trackScreenNameChanged(screenName: String) {
         if (runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
-            windowManager.getFirstRootView()?.let { rootView ->
-                PerformanceMetricsState.getHolderForHierarchy(rootView).state?.putState(SCREEN_NAME_KEY, screenName)
-            }
-        }
-    }
-
-    override fun onFrame(volatileFrameData: FrameData) {
-        if (volatileFrameData.isJank) {
-            if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
-                stopCollection()
-                return
-            }
-
-            if (volatileFrameData.durationToMilli()
-                < runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS)
-            ) {
-                // The Frame is considered as Jank but it didn't reached the min
-                // threshold defined by MIN_JANK_FRAME_THRESHOLD_MS config
-                return
-            }
-
-            // Below API 24 [onFrame(volatileFrameData)] call happens on the main thread
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-                backgroundThreadHandler.runAsync { volatileFrameData.sendJankFrameData() }
-            } else {
-                // For >= 24 this happens on `FrameMetricsAggregator` thread
-                volatileFrameData.sendJankFrameData()
-            }
+            performanceMetricsStateHolder?.state?.putState(SCREEN_NAME_KEY, screenName)
         }
     }
 
@@ -144,6 +168,7 @@ internal class JankStatsMonitor(
                 return
             }
             jankStats = JankStats.createAndTrack(window, this)
+            performanceMetricsStateHolder = PerformanceMetricsState.getHolderForHierarchy(window.decorView.rootView)
             jankStats?.jankHeuristicMultiplier = runtime.getConfigValue(RuntimeConfig.JANK_FRAME_HEURISTICS_MULTIPLIER).toFloat()
         } catch (illegalStateException: IllegalStateException) {
             errorHandler.handleError(
@@ -155,7 +180,9 @@ internal class JankStatsMonitor(
 
     private fun stopCollection() {
         jankStats?.isTrackingEnabled = false
+        performanceMetricsStateHolder?.state?.removeState(SCREEN_NAME_KEY)
         jankStats = null
+        performanceMetricsStateHolder = null
     }
 
     @WorkerThread

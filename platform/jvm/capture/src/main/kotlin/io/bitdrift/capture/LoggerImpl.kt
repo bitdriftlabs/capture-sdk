@@ -9,6 +9,7 @@ package io.bitdrift.capture
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
+import android.app.Application
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.system.Os
@@ -89,7 +90,7 @@ internal class LoggerImpl(
     private val diskUsageMonitor: DiskUsageMonitor
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
-    private val jankStatsMonitor: JankStatsMonitor
+    private var jankStatsMonitor: JankStatsMonitor? = null
 
     // we can assume a properly formatted api url is being used, so we can follow the same pattern
     // making sure we only replace the first occurrence
@@ -246,15 +247,7 @@ internal class LoggerImpl(
                     ),
                 )
 
-                jankStatsMonitor =
-                    JankStatsMonitor(
-                        this,
-                        runtime,
-                        windowManager,
-                        errorHandler,
-                    )
-
-                eventsListenerTarget.add(jankStatsMonitor)
+                addJankStatsMonitorTarget(windowManager, context)
 
                 appExitLogger =
                     AppExitLogger(
@@ -322,7 +315,7 @@ internal class LoggerImpl(
     }
 
     override fun logScreenView(screenName: String) {
-        jankStatsMonitor.trackScreenNameChanged(screenName)
+        jankStatsMonitor?.trackScreenNameChanged(screenName)
         CaptureJniLibrary.writeScreenViewLog(this.loggerId, screenName)
     }
 
@@ -512,6 +505,28 @@ internal class LoggerImpl(
                     Os.setenv("RUST_LOG", internalLogLevel, true)
                 }
             }
+        }
+    }
+
+    private fun addJankStatsMonitorTarget(
+        windowManager: IWindowManager,
+        context: Context,
+    ) {
+        if (context is Application) {
+            jankStatsMonitor =
+                JankStatsMonitor(
+                    context,
+                    this,
+                    ProcessLifecycleOwner.get(),
+                    runtime,
+                    windowManager,
+                    errorHandler,
+                )
+            jankStatsMonitor?.let {
+                eventsListenerTarget.add(it)
+            }
+        } else {
+            errorHandler.handleError("Couldn't start JankStatsMonitor", IllegalArgumentException("Invalid application provided"))
         }
     }
 }
