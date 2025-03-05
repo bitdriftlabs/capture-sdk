@@ -249,7 +249,6 @@ internal class LoggerImpl(
                 jankStatsMonitor =
                     JankStatsMonitor(
                         this,
-                        ProcessLifecycleOwner.get(),
                         runtime,
                         windowManager,
                         errorHandler,

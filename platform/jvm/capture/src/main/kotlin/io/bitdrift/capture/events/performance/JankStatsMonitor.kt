@@ -7,19 +7,20 @@
 
 package io.bitdrift.capture.events.performance
 
+import android.app.Activity
+import android.app.Application
 import android.os.Build
+import android.os.Bundle
 import android.view.Window
 import androidx.annotation.UiThread
 import androidx.annotation.WorkerThread
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
 import androidx.metrics.performance.FrameData
 import androidx.metrics.performance.FrameDataApi24
 import androidx.metrics.performance.FrameDataApi31
 import androidx.metrics.performance.JankStats
 import androidx.metrics.performance.PerformanceMetricsState
 import androidx.metrics.performance.StateInfo
+import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
@@ -35,7 +36,6 @@ import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.threading.CaptureDispatchers
-import java.lang.ref.WeakReference
 
 /**
  * Reports Jank Frames and its duration in ms
@@ -45,40 +45,62 @@ import java.lang.ref.WeakReference
  */
 internal class JankStatsMonitor(
     private val logger: LoggerImpl,
-    private val processLifecycleOwner: LifecycleOwner,
     private val runtime: Runtime,
     private val windowManager: IWindowManager,
     private val errorHandler: ErrorHandler,
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
 ) : IEventListenerLogger,
-    LifecycleEventObserver,
+    Application.ActivityLifecycleCallbacks,
     JankStats.OnFrameListener {
-    private var jankStatsWeakRef: WeakReference<JankStats>? = null
+    private var jankStats: JankStats? = null
+    private val application = APP_CONTEXT as Application
 
     override fun start() {
         mainThreadHandler.run {
-            processLifecycleOwner.lifecycle.addObserver(this)
+            application.registerActivityLifecycleCallbacks(this)
         }
     }
 
     override fun stop() {
+        stopCollection()
         mainThreadHandler.run {
-            processLifecycleOwner.lifecycle.removeObserver(this)
+            application.unregisterActivityLifecycleCallbacks(this)
         }
     }
 
-    override fun onStateChanged(
-        source: LifecycleOwner,
-        event: Lifecycle.Event,
+    override fun onActivityResumed(activity: Activity) {
+        setJankStatsForCurrentWindow(activity.window)
+    }
+
+    override fun onActivityPaused(activity: Activity) {
+        stopCollection()
+    }
+
+    override fun onActivityCreated(
+        activity: Activity,
+        savedInstanceState: Bundle?,
     ) {
-        if (event == Lifecycle.Event.ON_RESUME) {
-            windowManager.getCurrentWindow()?.let {
-                setJankStatsForCurrentWindow(it)
-            }
-        } else if (event == Lifecycle.Event.ON_STOP) {
-            stopCollection()
-        }
+        // no-op
+    }
+
+    override fun onActivityStarted(activity: Activity) {
+        // no-op
+    }
+
+    override fun onActivityStopped(activity: Activity) {
+        // no-op
+    }
+
+    override fun onActivitySaveInstanceState(
+        activity: Activity,
+        outState: Bundle,
+    ) {
+        // no-op
+    }
+
+    override fun onActivityDestroyed(activity: Activity) {
+        // no-op
     }
 
     fun trackScreenNameChanged(screenName: String) {
@@ -121,9 +143,8 @@ internal class JankStatsMonitor(
                 stopCollection()
                 return
             }
-
-            jankStatsWeakRef = WeakReference(JankStats.createAndTrack(window, this))
-            getJankStats()?.jankHeuristicMultiplier = runtime.getConfigValue(RuntimeConfig.JANK_FRAME_HEURISTICS_MULTIPLIER).toFloat()
+            jankStats = JankStats.createAndTrack(window, this)
+            jankStats?.jankHeuristicMultiplier = runtime.getConfigValue(RuntimeConfig.JANK_FRAME_HEURISTICS_MULTIPLIER).toFloat()
         } catch (illegalStateException: IllegalStateException) {
             errorHandler.handleError(
                 "Couldn't create JankStats instance",
@@ -132,11 +153,9 @@ internal class JankStatsMonitor(
         }
     }
 
-    private fun getJankStats(): JankStats? = jankStatsWeakRef?.get()
-
     private fun stopCollection() {
-        getJankStats()?.isTrackingEnabled = false
-        jankStatsWeakRef?.clear()
+        jankStats?.isTrackingEnabled = false
+        jankStats = null
     }
 
     @WorkerThread
