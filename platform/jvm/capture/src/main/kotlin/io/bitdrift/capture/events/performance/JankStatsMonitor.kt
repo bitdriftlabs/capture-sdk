@@ -18,6 +18,8 @@ import androidx.metrics.performance.FrameData
 import androidx.metrics.performance.FrameDataApi24
 import androidx.metrics.performance.FrameDataApi31
 import androidx.metrics.performance.JankStats
+import androidx.metrics.performance.PerformanceMetricsState
+import androidx.metrics.performance.StateInfo
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
@@ -30,6 +32,7 @@ import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.events.span.SpanField
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.threading.CaptureDispatchers
 import java.lang.ref.WeakReference
@@ -75,6 +78,14 @@ internal class JankStatsMonitor(
             }
         } else if (event == Lifecycle.Event.ON_STOP) {
             stopCollection()
+        }
+    }
+
+    fun trackScreenNameChanged(screenName: String) {
+        if (runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
+            windowManager.getFirstRootView()?.let { rootView ->
+                PerformanceMetricsState.getHolderForHierarchy(rootView).state?.putState(SCREEN_NAME_KEY, screenName)
+            }
         }
     }
 
@@ -134,8 +145,19 @@ internal class JankStatsMonitor(
         logger.log(
             LogType.UX,
             jankFrameLogDetails.logLevel,
-            mapOf(SpanField.Key.DURATION to this.durationToMilli().toString().toFieldValue()),
+            buildMap {
+                put(SpanField.Key.DURATION, this@sendJankFrameData.durationToMilli().toString().toFieldValue())
+                putAll(this@sendJankFrameData.states.toFields())
+            },
         ) { jankFrameLogDetails.message }
+    }
+
+    @WorkerThread
+    private fun List<StateInfo>.toFields(): Map<String, FieldValue> {
+        // Convert the list of StateInfo to a map of fields using StateInfo's key and value properties
+        return this.associate { stateInfo ->
+            stateInfo.key to stateInfo.value.toFieldValue()
+        }
     }
 
     @WorkerThread
@@ -213,5 +235,6 @@ internal class JankStatsMonitor(
         private const val TO_MILLI = 1_000_000L
         private const val DROPPED_FRAME_MESSAGE_ID = "DroppedFrame"
         private const val ANR_MESSAGE_ID = "ANR"
+        private const val SCREEN_NAME_KEY = "_screen_name"
     }
 }
