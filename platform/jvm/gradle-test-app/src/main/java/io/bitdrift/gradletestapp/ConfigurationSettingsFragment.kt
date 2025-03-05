@@ -15,7 +15,7 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
-import io.bitdrift.capture.providers.session.SessionStrategy
+import androidx.preference.PreferenceManager
 import kotlin.system.exitProcess
 
 class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
@@ -36,12 +36,15 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
 
         backendCategory.addPreference(apiUrlPref)
 
-        val apiKeyPref = EditTextPreference(context)
-        apiKeyPref.key = "apiKey"
-        apiKeyPref.title = "API Key"
-        apiKeyPref.summary = SELECTION_SUMMARY
-
-        backendCategory.addPreference(apiKeyPref)
+        val apiKeysPreference = Preference(context)
+        apiKeysPreference.key = "api_keys"
+        apiKeysPreference.title = "API Keys"
+        apiKeysPreference.summary = SELECTION_SUMMARY
+        apiKeysPreference.setOnPreferenceClickListener {
+            showApiKeysDialog(context)
+            true
+        }
+        backendCategory.addPreference(apiKeysPreference)
 
         val restartPreference = Preference(context)
         restartPreference.key = "restart"
@@ -73,6 +76,11 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         sessionStrategyPref.summary = SELECTION_SUMMARY
         sessionStrategyPref.setDefaultValue(SessionStrategyPreferences.FIXED.displayName)
         return sessionStrategyPref
+    }
+
+    private fun showApiKeysDialog(context: Context) {
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        SettingsApiKeysDialogFragment(sharedPreferences).show(parentFragmentManager, "")
     }
 
     enum class SessionStrategyPreferences(val displayName: String) {
