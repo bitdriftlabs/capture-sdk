@@ -7,9 +7,13 @@
 
 package io.bitdrift.capture.events.performance
 
+import android.app.Activity
+import android.app.Application
 import android.os.Build
+import android.os.Bundle
 import android.view.Window
 import androidx.annotation.UiThread
+import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -35,7 +39,6 @@ import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.threading.CaptureDispatchers
-import java.lang.ref.WeakReference
 
 /**
  * Reports Jank Frames and its duration in ms
@@ -44,6 +47,7 @@ import java.lang.ref.WeakReference
  *
  */
 internal class JankStatsMonitor(
+    private val application: Application,
     private val logger: LoggerImpl,
     private val processLifecycleOwner: LifecycleOwner,
     private val runtime: Runtime,
@@ -52,40 +56,26 @@ internal class JankStatsMonitor(
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
 ) : IEventListenerLogger,
+    Application.ActivityLifecycleCallbacks,
     LifecycleEventObserver,
     JankStats.OnFrameListener {
-    private var jankStatsWeakRef: WeakReference<JankStats>? = null
+    @VisibleForTesting
+    internal var jankStats: JankStats? = null
+    private var performanceMetricsStateHolder: PerformanceMetricsState.Holder? = null
 
     override fun start() {
         mainThreadHandler.run {
+            // TODO(FranAguilera): BIT-4785. To improve detection of Application/Activity lifecycles
             processLifecycleOwner.lifecycle.addObserver(this)
+            application.registerActivityLifecycleCallbacks(this)
         }
     }
 
     override fun stop() {
+        stopCollection()
         mainThreadHandler.run {
             processLifecycleOwner.lifecycle.removeObserver(this)
-        }
-    }
-
-    override fun onStateChanged(
-        source: LifecycleOwner,
-        event: Lifecycle.Event,
-    ) {
-        if (event == Lifecycle.Event.ON_RESUME) {
-            windowManager.getCurrentWindow()?.let {
-                setJankStatsForCurrentWindow(it)
-            }
-        } else if (event == Lifecycle.Event.ON_STOP) {
-            stopCollection()
-        }
-    }
-
-    fun trackScreenNameChanged(screenName: String) {
-        if (runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
-            windowManager.getFirstRootView()?.let { rootView ->
-                PerformanceMetricsState.getHolderForHierarchy(rootView).state?.putState(SCREEN_NAME_KEY, screenName)
-            }
+            application.unregisterActivityLifecycleCallbacks(this)
         }
     }
 
@@ -114,6 +104,62 @@ internal class JankStatsMonitor(
         }
     }
 
+    /**
+     * [LifecycleEventObserver] callback to determine when Application is first created
+     */
+    override fun onStateChanged(
+        source: LifecycleOwner,
+        event: Lifecycle.Event,
+    ) {
+        if (event == Lifecycle.Event.ON_CREATE) {
+            windowManager.getCurrentWindow()?.let {
+                setJankStatsForCurrentWindow(it)
+                // We are done detecting initial Application ON_CREATE, we don't need to listen anymore
+                processLifecycleOwner.lifecycle.removeObserver(this)
+            }
+        }
+    }
+
+    override fun onActivityResumed(activity: Activity) {
+        setJankStatsForCurrentWindow(activity.window)
+    }
+
+    override fun onActivityPaused(activity: Activity) {
+        stopCollection()
+    }
+
+    override fun onActivityCreated(
+        activity: Activity,
+        savedInstanceState: Bundle?,
+    ) {
+        // no-op
+    }
+
+    override fun onActivityStarted(activity: Activity) {
+        // no-op
+    }
+
+    override fun onActivityStopped(activity: Activity) {
+        // no-op
+    }
+
+    override fun onActivitySaveInstanceState(
+        activity: Activity,
+        outState: Bundle,
+    ) {
+        // no-op
+    }
+
+    override fun onActivityDestroyed(activity: Activity) {
+        // no-op
+    }
+
+    fun trackScreenNameChanged(screenName: String) {
+        if (runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
+            performanceMetricsStateHolder?.state?.putState(SCREEN_NAME_KEY, screenName)
+        }
+    }
+
     @UiThread
     private fun setJankStatsForCurrentWindow(window: Window) {
         try {
@@ -121,9 +167,9 @@ internal class JankStatsMonitor(
                 stopCollection()
                 return
             }
-
-            jankStatsWeakRef = WeakReference(JankStats.createAndTrack(window, this))
-            getJankStats()?.jankHeuristicMultiplier = runtime.getConfigValue(RuntimeConfig.JANK_FRAME_HEURISTICS_MULTIPLIER).toFloat()
+            jankStats = JankStats.createAndTrack(window, this)
+            performanceMetricsStateHolder = PerformanceMetricsState.getHolderForHierarchy(window.decorView.rootView)
+            jankStats?.jankHeuristicMultiplier = runtime.getConfigValue(RuntimeConfig.JANK_FRAME_HEURISTICS_MULTIPLIER).toFloat()
         } catch (illegalStateException: IllegalStateException) {
             errorHandler.handleError(
                 "Couldn't create JankStats instance",
@@ -132,11 +178,11 @@ internal class JankStatsMonitor(
         }
     }
 
-    private fun getJankStats(): JankStats? = jankStatsWeakRef?.get()
-
     private fun stopCollection() {
-        getJankStats()?.isTrackingEnabled = false
-        jankStatsWeakRef?.clear()
+        jankStats?.isTrackingEnabled = false
+        performanceMetricsStateHolder?.state?.removeState(SCREEN_NAME_KEY)
+        jankStats = null
+        performanceMetricsStateHolder = null
     }
 
     @WorkerThread
