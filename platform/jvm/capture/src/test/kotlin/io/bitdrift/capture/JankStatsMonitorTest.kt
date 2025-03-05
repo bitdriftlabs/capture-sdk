@@ -12,7 +12,9 @@ import android.view.Window
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.metrics.performance.FrameData
+import androidx.metrics.performance.StateInfo
 import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.argThat
 import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
@@ -59,6 +61,7 @@ class JankStatsMonitorTest {
 
         whenever(processLifecycleOwner.lifecycle).thenReturn(lifecycle)
         whenever(windowManager.getCurrentWindow()).thenReturn(window)
+        whenever(windowManager.getFirstRootView()).thenReturn(window.decorView)
 
         whenever(runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)).thenReturn(true)
         whenever(runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS)).thenReturn(16)
@@ -81,7 +84,7 @@ class JankStatsMonitorTest {
     fun onStateChanged_withOnResumeAndSlowFrame_shouldLogWithWarningAndDroppedFrameMessage() {
         val jankDurationInMilli = 690L
 
-        triggerLifecycleEvent(
+        triggerOnFrame(
             lifecycleEvent = Lifecycle.Event.ON_RESUME,
             isJankyFrame = true,
             durationInMilli = jankDurationInMilli,
@@ -94,7 +97,7 @@ class JankStatsMonitorTest {
     fun onStateChanged_withOnResumeAndSlowFrame_shouldLogWithErrorAndDroppedFrameMessage() {
         val jankDurationInMilli = 700L
 
-        triggerLifecycleEvent(
+        triggerOnFrame(
             lifecycleEvent = Lifecycle.Event.ON_RESUME,
             isJankyFrame = true,
             durationInMilli = jankDurationInMilli,
@@ -107,7 +110,7 @@ class JankStatsMonitorTest {
     fun onStateChanged_withOnResumeAndAnrFrame_shouldLogWithErrorAndAnrMessage() {
         val jankDurationInMilli = 5000L
 
-        triggerLifecycleEvent(
+        triggerOnFrame(
             lifecycleEvent = Lifecycle.Event.ON_RESUME,
             isJankyFrame = true,
             durationInMilli = jankDurationInMilli,
@@ -121,7 +124,7 @@ class JankStatsMonitorTest {
         whenever(runtime.getConfigValue(RuntimeConfig.ANR_FRAME_THRESHOLD_MS)).thenReturn(2000)
         val jankDurationInMilli = 2000L
 
-        triggerLifecycleEvent(
+        triggerOnFrame(
             lifecycleEvent = Lifecycle.Event.ON_RESUME,
             isJankyFrame = true,
             durationInMilli = jankDurationInMilli,
@@ -132,7 +135,7 @@ class JankStatsMonitorTest {
 
     @Test
     fun onStateChanged_withJankyFrameBelowMinThreshold_shouldNotLogAnyMessage() {
-        triggerLifecycleEvent(
+        triggerOnFrame(
             lifecycleEvent = Lifecycle.Event.ON_RESUME,
             isJankyFrame = true,
             durationInMilli = 4L,
@@ -145,7 +148,7 @@ class JankStatsMonitorTest {
     fun onStateChanged_withOnCreateAndAnrFrame_shouldNotLogAnyMessage() {
         val jankDurationInMilli = 5000L
 
-        triggerLifecycleEvent(
+        triggerOnFrame(
             lifecycleEvent = Lifecycle.Event.ON_CREATE,
             isJankyFrame = true,
             durationInMilli = jankDurationInMilli,
@@ -156,7 +159,7 @@ class JankStatsMonitorTest {
 
     @Test
     fun onStateChanged_withOnResumeAndWithoutJankyFrame_shouldNotLogJankFrameData() {
-        triggerLifecycleEvent(
+        triggerOnFrame(
             lifecycleEvent = Lifecycle.Event.ON_RESUME,
             isJankyFrame = false,
             durationInMilli = 1L,
@@ -169,7 +172,7 @@ class JankStatsMonitorTest {
     fun onStateChanged_withOnResumeJankyFrameAndKillSwitchEnabled_shouldNotLogJankFrameData() {
         whenever(runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)).thenReturn(false)
 
-        triggerLifecycleEvent(
+        triggerOnFrame(
             lifecycleEvent = Lifecycle.Event.ON_RESUME,
             isJankyFrame = true,
             durationInMilli = 5000,
@@ -196,10 +199,38 @@ class JankStatsMonitorTest {
         ).isEqualTo("window.peekDecorView() is null: JankStats can only be created with a Window that has a non-null DecorView")
     }
 
-    private fun triggerLifecycleEvent(
+    @Test
+    fun onStateChanged_withOnResumeJankyFrameAndScreenNameState_shouldLogScreeNameField() {
+        val jankDurationInMilli = 16L
+        val screenName = "test"
+        jankStatsMonitor.trackScreenNameChanged(screenName)
+        triggerOnFrame(
+            lifecycleEvent = Lifecycle.Event.ON_RESUME,
+            isJankyFrame = true,
+            durationInMilli = jankDurationInMilli,
+            states = listOf(StateInfo("_screen_name", screenName)),
+        )
+        verify(logger).log(
+            any(),
+            any(),
+            eq(
+                mapOf(
+                    "_duration_ms" to jankDurationInMilli.toString().toFieldValue(),
+                    "_screen_name" to screenName.toFieldValue(),
+                ),
+            ),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+            any(),
+        )
+    }
+
+    private fun triggerOnFrame(
         lifecycleEvent: Lifecycle.Event,
         isJankyFrame: Boolean,
         durationInMilli: Long,
+        states: List<StateInfo> = emptyList(),
     ) {
         jankStatsMonitor.onStateChanged(processLifecycleOwner, lifecycleEvent)
 
@@ -208,7 +239,7 @@ class JankStatsMonitorTest {
                 frameStartNanos = 0L,
                 frameDurationUiNanos = durationInMilli * 1000000,
                 isJank = isJankyFrame,
-                states = emptyList(),
+                states = states,
             )
         jankStatsMonitor.onFrame(frameData)
     }
