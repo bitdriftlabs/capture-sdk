@@ -44,11 +44,13 @@ import android.app.ApplicationStartInfo.START_TYPE_HOT
 import android.app.ApplicationStartInfo.START_TYPE_UNSET
 import android.app.ApplicationStartInfo.START_TYPE_WARM
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
+import com.bugsnag.android.Bugsnag
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.LogLevel
@@ -59,16 +61,17 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import papa.AppLaunchType
 import papa.PapaEvent
 import papa.PapaEventListener
-import papa.PapaEventLogger
-import papa.PreLaunchState
 import timber.log.Timber
 import kotlin.random.Random
-import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
-import io.bitdrift.gradletestapp.ConfigurationSettingsFragment
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED
+import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BITDRIFT_API_KEY
+import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BUG_SNAG_SDK_API_KEY
+import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.SENTRY_SDK_DSN_KEY
+import io.sentry.android.core.SentryAndroid
+import io.sentry.android.core.SentryAndroidOptions
 
 /**
  * A Java app entry point that initializes the Bitdrift Logger.
@@ -76,6 +79,7 @@ import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.SessionStrategyPr
 class GradleTestApp : Application() {
 
     private var activitySpan: Span? = null
+    private lateinit var sharedPreferences:SharedPreferences
 
     override fun onCreate() {
         super.onCreate()
@@ -83,11 +87,12 @@ class GradleTestApp : Application() {
         initLogging()
         trackAppLaunch()
         trackAppLifecycle()
+        setupCrashSdks()
     }
 
     private fun initLogging() {
-        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
-        val stringApiUrl = prefs.getString("apiUrl", null)
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val stringApiUrl = sharedPreferences.getString("apiUrl", null)
         val apiUrl = stringApiUrl?.toHttpUrlOrNull()
         if (apiUrl == null) {
             Log.e("GradleTestApp", "Failed to initialize bitdrift logger due to invalid API URL: $stringApiUrl")
@@ -95,8 +100,8 @@ class GradleTestApp : Application() {
         }
         BitdriftInit.initBitdriftCaptureInJava(
             apiUrl,
-            prefs.getString("apiKey", ""),
-            prefs.getString(SESSION_STRATEGY_PREFS_KEY, FIXED.displayName),
+            sharedPreferences.getString(BITDRIFT_API_KEY, ""),
+            sharedPreferences.getString(SESSION_STRATEGY_PREFS_KEY, FIXED.displayName),
         )
         // Timber
         if (BuildConfig.DEBUG) {
@@ -253,5 +258,18 @@ class GradleTestApp : Application() {
             override fun onActivityDestroyed(activity: Activity) {
             }
         })
+    }
+
+    private fun setupCrashSdks() {
+        val bugSnagApiKey = sharedPreferences.getString(BUG_SNAG_SDK_API_KEY, "")
+        if(!bugSnagApiKey.isNullOrEmpty()){
+            Bugsnag.start(this, bugSnagApiKey)
+        }
+
+        val sentryKey = sharedPreferences.getString(SENTRY_SDK_DSN_KEY, "")
+        SentryAndroid.init(this) { options: SentryAndroidOptions ->
+            options.dsn = sentryKey
+            options.isEnabled = !sentryKey.isNullOrEmpty();
+        }
     }
 }
