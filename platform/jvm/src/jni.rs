@@ -79,7 +79,6 @@ fn initialize_logging() {
       .parse::<LevelFilter>()
       .unwrap_or(LevelFilter::Info);
 
-
     // This can be called only once.
     android_logger::init_once(Config::default().with_max_level(level));
   });
@@ -370,28 +369,25 @@ impl bd_api::PlatformNetworkManager<bd_runtime::runtime::ConfigLoader> for Netwo
       active_streams: self.active_streams.clone(),
     }));
 
-    let res = self
-      .handle
-      .execute(|e, network| {
-        let headers = ffi::map_to_jmap(e, headers)?;
+    let res = self.handle.execute(|e, network| {
+      let headers = ffi::map_to_jmap(e, headers)?;
 
-        let handle = NETWORK_START_STREAM
-          .get()
-          .unwrap()
-          .call_method(
-            e,
-            network,
-            ReturnType::Object,
-            &[
-              JValueWrapper::I64(stream_event as i64).into(),
-              JValueWrapper::Object(headers).into(),
-            ],
-          )
-          .and_then(|v| JValueGen::l(v).map_err(|e| anyhow!(e)))?;
+      let handle = NETWORK_START_STREAM
+        .get()
+        .unwrap()
+        .call_method(
+          e,
+          network,
+          ReturnType::Object,
+          &[
+            JValueWrapper::I64(stream_event as i64).into(),
+            JValueWrapper::Object(headers).into(),
+          ],
+        )
+        .and_then(|v| JValueGen::l(v).map_err(|e| anyhow!(e)))?;
 
-        Ok(Box::new(new_global!(StreamHandle, e, handle)?) as Box<dyn PlatformNetworkStream>)
-      })
-      .map_err(Into::into);
+      Ok(Box::new(new_global!(StreamHandle, e, handle)?) as Box<dyn PlatformNetworkStream>)
+    });
 
     // At this point we should have allocated a new one but also deallocated the previous one. This
     // failing would indicate a leak.
@@ -1076,7 +1072,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeScreenVie
     "jni write screen view log",
   );
 }
-
 
 #[no_mangle]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_flush(

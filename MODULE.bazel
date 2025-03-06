@@ -4,7 +4,7 @@ module(name = "capture-sdk")
 # Constants
 ####################
 
-RUST_VERSION = "1.83.0"
+RUST_VERSION = "1.85.0"
 
 OKHTTP_VERSION = "4.12.0"
 
@@ -57,7 +57,7 @@ bazel_dep(name = "rules_detekt", version = "0.8.1.2")
 bazel_dep(name = "flatbuffers", version = "24.3.25")
 bazel_dep(name = "platforms", version = "0.0.11")
 bazel_dep(name = "rules_kotlin", version = "2.0.0")
-bazel_dep(name = "rules_rust", version = "0.56.0")
+bazel_dep(name = "rules_rust", version = "0.58.0")
 bazel_dep(name = "rules_shell", version = "0.4.0")
 
 # Requiered by android_artifacts for pom_file, it's not in bazel central registry
@@ -288,18 +288,18 @@ rust.toolchain(
     #
     # tl;dr; run e.g. $ ./tools/rust_std_checksum.sh 1.82.0
     sha256s = {
-        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios-sim.tar.gz": "93dfa00fb69caf9772853409d600b03bf274cea82f76be73920c9c9da0e326bf",
-        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios.tar.gz": "a3d44bc13377a49412aaa6a6b83c21f6b2e3ca7591c03748af08a307adc26793",
-        "rust-std-" + RUST_VERSION + "-x86_64-apple-ios.tar.gz": "ffa21586b4d414a6ddf43b27390a06463529d1c0c3217e20bfc7e9ad0c40bbf7",
-        "rust-std-" + RUST_VERSION + "-aarch64-linux-android.tar.gz": "1e402899fc714e1aa09d6930a4047a4dc0fd59607bd362538dfa27e13589517b",
-        "rust-std-" + RUST_VERSION + "-armv7-linux-androideabi.tar.gz": "48ec8b7a089dd5dec7e16a446ac1e4c5fa8c474bb5bce98df0a557640b319d37",
-        "rust-std-" + RUST_VERSION + "-i686-linux-android.tar.gz": "0d74f42a65641456c96c82c9dc27a5dec51ee178a3391c9c744370d64acf632f",
-        "rustc-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "feef342e824def809558cb2d4913fa31258a798a933c13018556bdc76dd2e3b7",
-        "cargo-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "368bcb0627eed5a235d06cce634904d01396e39ddce253e6fea9831eb711fda0",
-        "llvm-tools-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "c3fedc1e1e722bffb6df67992de9b7394b5b76d9ce4dee8d7de32dd0db296214",
-        "rust-std-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "7b9fa15213cf3fae3a4ae80bb2a0ebabdce29599aa381bbb7b12bb5043fe9a04",
-        "clippy-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "4ce4017695945041bdfd92f6d3f327a9665fb045774a56a451436092524ce38b",
-        "rustfmt-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "3362689cd250a6db2ad6192aac4550119543a5d7ca0a25453e77f86dbb3f2381",
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios-sim.tar.gz": "2b5ac05b89a9b90f62244e598cca00f3945b77326055d6eb19ac4add68288079",
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios.tar.gz": "9b4d07577be9db083a67d976b40438446291bf36c2e51d76dbb582beae4d3a0b",
+        "rust-std-" + RUST_VERSION + "-x86_64-apple-ios.tar.gz": "28eea9617806b99bca7ed4839ae3d92e49d4af6b194039ff97f726733460883b",
+        "rust-std-" + RUST_VERSION + "-aarch64-linux-android.tar.gz": "617630bd1f4819ea0a002ea78c588e3fd7fda0e3e4d2e6196a9a561882ef3cbf",
+        "rust-std-" + RUST_VERSION + "-armv7-linux-androideabi.tar.gz": "6b57c2dadecfab435d6ff9a097504c76b6981edd4e57d7563ef277b663bf095a",
+        "rust-std-" + RUST_VERSION + "-i686-linux-android.tar.gz": "0d359441c209336f4cfab29f6c923511406715732936d9d8b14f4cf1fb8f3644",
+        "rustc-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "458d9ccfab76f4d98ab363bd8575d6ba7cb2b2e4e88ec247334962d416657b31",
+        "cargo-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "b280ffddaefd6ce6979390ccdadfbb222eebcb85d070286bff56c8fb016ada30",
+        "llvm-tools-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "18818895811612dbc10a72f016257f99bbf9d1be77001de3d7aeaf090a1fa35a",
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "b7ff9bc2cabc6277e2ec6d73ca5b3e5ea5e2a0582e5e5302ef9e354f348dab68",
+        "clippy-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "668cb7689ac1b0f0b79d11c282e554e2706d9a4ba0455208064467ea956cbeec",
+        "rustfmt-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "c71125d920a37981a962671873a492ebe9d5b06dd681b66f050e58d059fd404f",
     },
     urls = [
         # NOTE: `urls` are technically mirrors so we want to make sure we always try our own first then the official ones.
