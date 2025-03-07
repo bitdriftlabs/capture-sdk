@@ -7,10 +7,9 @@
 
 use assert_matches::assert_matches;
 use bd_client_common::error::Reporter;
-use bd_client_common::fb::root_as_log;
-use bd_proto::flatbuffers::buffer_log::bitdrift_public::fbs::logging::v_1::Data;
+use bd_logger::StringOrBytes;
 use bd_test_helpers::runtime::ValueKind;
-use bd_test_helpers::test_api_server::{ExpectedStreamEvent, HandshakeMatcher};
+use bd_test_helpers::test_api_server::{ExpectedStreamEvent, HandshakeMatcher, StreamHandle};
 use capture::events::ListenerTargetHandler as EventsListenerTargetHandler;
 use capture::executor::ObjectHandle;
 use capture::jni::{ErrorReporterHandle, JValueWrapper};
@@ -32,6 +31,7 @@ use platform_test_helpers::{
   stop_test_api_server,
 };
 use std::collections::HashMap;
+use time::format_description::well_known::Rfc3339;
 use time::Duration;
 
 // See call site for explanation.
@@ -113,8 +113,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_awaitApiServerR
   };
 
   platform_test_helpers::with_expected_server(|h| {
-    h.await_event_with_timeout(
-      stream_id,
+    StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
       ExpectedStreamEvent::Handshake(
         HandshakeMatcher {
           attributes: expected_attributes,
@@ -155,27 +154,25 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
 ) -> JObject<'a> {
   platform_test_helpers::with_expected_server(|h| {
     let log_request = h.blocking_next_log_upload().expect("expected log upload");
-    let log = root_as_log(&log_request.logs[0]).expect("invalid flatbuffer");
+    let log = &log_request.logs()[0];
 
     #[allow(clippy::option_if_let_else)]
-    let message: JObject<'_> = if let Some(string_data) = log.message_as_string_data() {
-      env.new_string(string_data.data()).unwrap().into()
-    } else {
-      JObject::null()
+    let message: JObject<'_> = match log.typed_message() {
+      StringOrBytes::String(s) => env.new_string(&s).unwrap().into(),
+      StringOrBytes::SharedString(s) => env.new_string(&*s).unwrap().into(),
+      StringOrBytes::Bytes(_) => JObject::null(),
     };
 
     // TODO(Augustyniak): Extract the logic below into a helper function.
     let fields = env.new_object("java/util/HashMap", "()V", &[]).unwrap();
-    log.fields().unwrap().iter().fold(
+    log.typed_fields().iter().fold(
       JMap::from_env(&mut env, &fields).unwrap(),
-      |fields, field| {
-        let key = env.new_string(field.key()).unwrap();
+      |fields, (key, value)| {
+        let key = env.new_string(key).unwrap();
 
-        let value = match field.value_type() {
-          Data::string_data => {
-            let value = env
-              .new_string(field.value_as_string_data().unwrap().data())
-              .unwrap();
+        let value = match value {
+          StringOrBytes::String(s) => {
+            let value = env.new_string(s).unwrap();
 
             let class = env
               .find_class("io/bitdrift/capture/providers/FieldValue$StringField")
@@ -194,10 +191,28 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
             }
             .unwrap()
           },
-          Data::binary_data => {
-            let value = env
-              .byte_array_from_slice(field.value_as_binary_data().unwrap().data().bytes())
+          StringOrBytes::SharedString(s) => {
+            let value = env.new_string(&**s).unwrap();
+
+            let class = env
+              .find_class("io/bitdrift/capture/providers/FieldValue$StringField")
               .unwrap();
+
+            let constructor_id = env
+              .get_method_id(&class, "<init>", "(Ljava/lang/String;)V")
+              .unwrap();
+
+            unsafe {
+              env.new_object_unchecked(
+                class,
+                constructor_id,
+                &[JValueWrapper::Object(value.into()).into()],
+              )
+            }
+            .unwrap()
+          },
+          StringOrBytes::Bytes(b) => {
+            let value = env.byte_array_from_slice(b).unwrap();
 
             let class = env
               .find_class("io/bitdrift/capture/providers/FieldValue$BinaryField")
@@ -216,9 +231,6 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
             }
             .unwrap()
           },
-          _ => {
-            panic!("field with unexpected value_type")
-          },
         };
 
         _ = fields.put(&mut env, &key, &value);
@@ -227,19 +239,10 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
       },
     );
 
-    let session_id = log
-      .session_id()
-      .map(|s| env.new_string(s))
-      .unwrap()
-      .unwrap();
+    let session_id = env.new_string(log.session_id()).unwrap();
 
     let timestamp = {
-      let timestamp = log.timestamp().unwrap();
-      let timestamp = chrono::DateTime::from_timestamp_nanos(
-        timestamp.seconds() * 1_000_000_000 + <i32 as Into<i64>>::into(timestamp.nanos()),
-      );
-      let timestamp =
-        chrono::DateTime::to_rfc3339_opts(&timestamp, chrono::SecondsFormat::AutoSi, true);
+      let timestamp = &log.timestamp().format(&Rfc3339).unwrap();
       env.new_string(timestamp).unwrap()
     };
 
@@ -312,7 +315,10 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runExceptionHan
   let handle = ObjectHandle::new(&env, class.into()).unwrap();
   let result = handle.execute(|e, _| Ok(e.find_class("doesntexist").map(|_| ())?));
   assert_matches!(result,
-    Err(e) => assert_eq!(e.to_string(), "An unexpected error occurred: failed to execute Java method due to exception: java.lang.NoClassDefFoundError: doesntexist"));
+  Err(e) => {
+      assert_eq!(e.to_string(), "An unexpected error occurred: failed to execute Java \
+          method due to exception: java.lang.NoClassDefFoundError: doesntexist")
+  });
 }
 
 #[no_mangle]
@@ -373,8 +379,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_disableRuntimeF
   feature: JString<'_>,
 ) {
   platform_test_helpers::with_expected_server(|h| {
-    h.blocking_stream_action(
-      stream_id,
+    StreamHandle::from_stream_id(stream_id, h).blocking_stream_action(
       bd_test_helpers::test_api_server::StreamAction::SendRuntime(
         bd_test_helpers::runtime::make_update(
           vec![(
