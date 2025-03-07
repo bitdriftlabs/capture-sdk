@@ -47,7 +47,7 @@ pub extern "C" fn start_test_api_server(tls: bool, ping_interval: i32) -> i32 {
 
 #[no_mangle]
 pub extern "C" fn stop_test_api_server() {
-    Server::stop();
+  Server::stop();
 }
 
 #[no_mangle]
@@ -165,14 +165,14 @@ pub extern "C" fn await_configuration_ack(stream_id: i32) {
 #[no_mangle]
 pub extern "C" fn configure_aggressive_continuous_uploads(stream_id: i32) {
   Server::with(|mut s| {
-      s.configure_aggressive_continuous_uploads(&StreamHandle::from_stream_id(stream_id, &s));
+    s.configure_aggressive_continuous_uploads(&StreamHandle::from_stream_id(stream_id, &s));
   });
 }
 
 #[no_mangle]
 pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
-    Server::with(|mut s|{ 
-        let stream = s.blocking_next_stream().unwrap();
+  Server::with(|mut s| {
+    let stream = s.blocking_next_stream().unwrap();
 
     if !stream.await_event_with_timeout(
       ExpectedStreamEvent::Handshake(None),
@@ -181,15 +181,13 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
       return false;
     }
 
-    stream.blocking_stream_action(StreamAction::SendRuntime(
-      make_update(
-        vec![(
-          bd_runtime::runtime::log_upload::BatchSizeBytesFlag::path(),
-          ValueKind::Int(1024 * 1024 * 2), // 2 MiB, 2x the request buffer.
-        )],
-        "base".to_string(),
-      ),
-    ));
+    stream.blocking_stream_action(StreamAction::SendRuntime(make_update(
+      vec![(
+        bd_runtime::runtime::log_upload::BatchSizeBytesFlag::path(),
+        ValueKind::Int(1024 * 1024 * 2), // 2 MiB, 2x the request buffer.
+      )],
+      "base".to_string(),
+    )));
 
     s.blocking_next_runtime_ack();
 
@@ -212,24 +210,24 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
       },
     );
 
-    stream.blocking_stream_action(
-      StreamAction::SendConfiguration(extra_large_buffer_uploading_everything),
-    );
+    stream.blocking_stream_action(StreamAction::SendConfiguration(
+      extra_large_buffer_uploading_everything,
+    ));
 
     s.blocking_next_configuration_ack();
 
-  // This gets us to the batch size limit of ~2 MiB.
-  for _ in 0 .. 22 {
-    logger_id.log(
-      log_level::DEBUG,
-      LogType::Normal,
-      LogMessage::Bytes(vec![0; 100_000]),
-      vec![],
-      vec![],
-      None,
-      true,
-    );
-  }
+    // This gets us to the batch size limit of ~2 MiB.
+    for _ in 0 .. 22 {
+      logger_id.log(
+        log_level::DEBUG,
+        LogType::Normal,
+        LogMessage::Bytes(vec![0; 100_000]),
+        vec![],
+        vec![],
+        None,
+        true,
+      );
+    }
 
     assert_matches!(s.blocking_next_log_upload(), Some(log_upload) => {
         assert_eq!(log_upload.logs().len(), 21);
@@ -384,7 +382,7 @@ impl Server {
   }
 
   pub fn stop() {
-      *HANDLE.lock() = None;
+    *HANDLE.lock() = None;
   }
 
   pub fn with<O>(f: impl FnOnce(Self) -> O) -> O {

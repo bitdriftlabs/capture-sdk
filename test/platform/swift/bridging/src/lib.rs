@@ -102,7 +102,7 @@ impl EventCallback<()> for Continuation {
 #[no_mangle]
 unsafe extern "C" fn next_test_api_stream(continuation: *mut Object) {
   platform_test_helpers::Server::with(|s| {
-   s.enqueue_expected_event(
+    s.enqueue_expected_event(
       Event::StreamCreation(Box::new(Continuation::new(continuation))),
       Duration::seconds(5),
     );
