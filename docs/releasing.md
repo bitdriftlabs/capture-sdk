@@ -2,13 +2,15 @@
 
 This document explains the process of releasing new versions of Bitdrift SDK.
 
-## Pre-requisites for Including Recent Changes in [shared-code](https://github.com/bitdriftlabs/shared-core) 
+## Pre-requisites for Including Recent Changes in [shared-core](https://github.com/bitdriftlabs/shared-core)
 
-If you need to include recents changes added on [shared-code](https://github.com/bitdriftlabs/shared-core), please follow this process:
+If you need to include recents changes added on [shared-core](https://github.com/bitdriftlabs/shared-core), please follow this process:
 
 1. Find the related dep sha for the change and update it on `Cargo.toml`. (Sample [PR](https://github.com/bitdriftlabs/capture-sdk/pull/223) for reference)
-2. Run the repin command `CARGO_BAZEL_REPIN=true ./bazelw test --build_tests_only //platform/swift/...`. *(This will add changes to the Cargo.Bazel.lock/Cargo.lock files)*
+2. Run the repin command `CARGO_BAZEL_REPIN=true ./bazelw test --build_tests_only //platform/... *(This will add changes to the Cargo.Bazel.lock/Cargo.lock files)*
 3. Open PR and merge it.
+
+___NOTE: If you have build issues on the gradle test app after update, make sure to run locally `rustup update` before re-building___
 
 ## Release process
 
