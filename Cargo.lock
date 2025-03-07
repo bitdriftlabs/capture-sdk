@@ -2070,6 +2070,8 @@ dependencies = [
  "bd-proto",
  "bd-runtime",
  "bd-test-helpers",
+ "log",
+ "parking_lot",
  "platform-shared",
  "time",
 ]

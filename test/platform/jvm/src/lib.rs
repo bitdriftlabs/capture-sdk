@@ -112,8 +112,8 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_awaitApiServerR
     Some(rust_keys)
   };
 
-  platform_test_helpers::with_expected_server(|h| {
-    StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
+  platform_test_helpers::Server::with(move |s| {
+    StreamHandle::from_stream_id(stream_id, &s).await_event_with_timeout(
       ExpectedStreamEvent::Handshake(
         HandshakeMatcher {
           attributes: expected_attributes,
@@ -152,8 +152,8 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
   mut env: JNIEnv<'a>,
   _class: JClass<'_>,
 ) -> JObject<'a> {
-  platform_test_helpers::with_expected_server(|h| {
-    let log_request = h.blocking_next_log_upload().expect("expected log upload");
+  platform_test_helpers::Server::with(|mut s| {
+    let log_request = s.blocking_next_log_upload().expect("expected log upload");
     let log = &log_request.logs()[0];
 
     #[allow(clippy::option_if_let_else)]
@@ -378,8 +378,8 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_disableRuntimeF
   stream_id: jint,
   feature: JString<'_>,
 ) {
-  platform_test_helpers::with_expected_server(|h| {
-    StreamHandle::from_stream_id(stream_id, h).blocking_stream_action(
+  platform_test_helpers::Server::with(|mut s| {
+    StreamHandle::from_stream_id(stream_id, &s).blocking_stream_action(
       bd_test_helpers::test_api_server::StreamAction::SendRuntime(
         bd_test_helpers::runtime::make_update(
           vec![(
@@ -391,7 +391,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_disableRuntimeF
       ),
     );
 
-    let (_, ack) = h.blocking_next_runtime_ack();
+    let (_, ack) = s.blocking_next_runtime_ack();
 
     assert!(ack.nack.is_none());
   });
