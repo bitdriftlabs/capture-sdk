@@ -350,8 +350,7 @@ pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: Logger
   configure_aggressive_continuous_uploads(stream_id);
 
   with_expected_server(|h| {
-    let mut stream =
-      StreamHandle::from_stream_id(stream_id, expected_server_handle().as_mut().unwrap());
+    let mut stream = StreamHandle::from_stream_id(stream_id, h);
 
     // Write logs and turn around the API stream several times. This should tickle the cases
     // where the stream is being torn down while uploads are happening.
@@ -369,8 +368,10 @@ pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: Logger
       }
 
       stream.blocking_stream_action(StreamAction::CloseStream);
+
       stream = h.blocking_next_stream()?;
-      assert!(StreamHandle::from_stream_id(stream_id, h)
+
+      assert!(stream
         .await_event_with_timeout(ExpectedStreamEvent::Handshake(None), Duration::seconds(10),));
     }
 
