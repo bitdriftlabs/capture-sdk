@@ -317,7 +317,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runExceptionHan
   assert_matches!(result,
   Err(e) => {
       assert_eq!(e.to_string(), "An unexpected error occurred: failed to execute Java \
-          method due to exception: java.lang.NoClassDefFoundError: doesntexist")
+          method due to exception: java.lang.NoClassDefFoundError: doesntexist");
   });
 }
 
