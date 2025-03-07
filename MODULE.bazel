@@ -60,21 +60,13 @@ bazel_dep(name = "rules_kotlin", version = "2.0.0")
 bazel_dep(name = "rules_rust", version = "0.58.0")
 bazel_dep(name = "rules_shell", version = "0.4.0")
 
-# Requiered by android_artifacts for pom_file, it's not in bazel central registry
+# Required by android_artifacts for pom_file, it's not in bazel central registry
 bazel_dep(name = "google_bazel_common", version = "0.0.1")
 
 http_jar(
     name = "bazel_diff",
     sha256 = "0b9e32f9c20e570846b083743fe967ae54d13e2a1f7364983e0a7792979442be",
     url = "https://github.com/Tinder/bazel-diff/releases/download/7.0.0/bazel-diff_deploy.jar",
-)
-
-# We need the latest version of rules_rust before 0.57.0 is released (bzlmod integration changed)
-# TODO(fz): Remove this once 0.57.0 is released
-git_override(
-    module_name = "rules_rust",
-    commit = "5e426fa427f6ce197da281233525cc486dfdf07c",
-    remote = "https://github.com/bazelbuild/rules_rust",
 )
 
 new_git_repository(
