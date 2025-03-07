@@ -21,6 +21,7 @@ bd-api = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "60150
 bd-buffer = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "6015065c529faf9db1ade40f95fc7233c8e1b771" }
 bd-client-common = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "6015065c529faf9db1ade40f95fc7233c8e1b771" }
 bd-client-stats-store = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "6015065c529faf9db1ade40f95fc7233c8e1b771" }
+bd-crash-handler = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "6015065c529faf9db1ade40f95fc7233c8e1b771" }
 bd-device = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "6015065c529faf9db1ade40f95fc7233c8e1b771" }
 bd-grpc = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "6015065c529faf9db1ade40f95fc7233c8e1b771" }
 bd-hyper-network = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "6015065c529faf9db1ade40f95fc7233c8e1b771" }
