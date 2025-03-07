@@ -1,5 +1,5 @@
 {
-  "checksum": "fea190560f231f611f46ca3f50059e6786b2e279850c320c0994eadf332af605",
+  "checksum": "dd64afd505adad11f22e38f795bff1abe70a3a66c92ee7d2000540f5aa4d985d",
   "crates": {
     "addr2line 0.24.2": {
       "name": "addr2line",
@@ -4888,6 +4888,9 @@
           "selects": {
             "aarch64-apple-darwin": [
               "std"
+            ],
+            "x86_64-unknown-linux-gnu": [
+              "std"
             ]
           }
         },
@@ -6973,6 +6976,9 @@
           ],
           "selects": {
             "aarch64-apple-darwin": [
+              "default"
+            ],
+            "x86_64-unknown-linux-gnu": [
               "default"
             ]
           }
@@ -10328,9 +10334,11 @@
         ],
         "crate_features": {
           "common": [
+            "elf",
             "errno",
             "general",
             "ioctl",
+            "no_std",
             "std"
           ],
           "selects": {}
@@ -14489,20 +14497,22 @@
               "target": "bitflags"
             },
             {
-              "id": "errno 0.3.10",
-              "target": "errno",
-              "alias": "libc_errno"
-            },
-            {
-              "id": "libc 0.2.169",
-              "target": "libc"
-            },
-            {
               "id": "rustix 0.38.42",
               "target": "build_script_build"
             }
           ],
           "selects": {
+            "aarch64-apple-darwin": [
+              {
+                "id": "errno 0.3.10",
+                "target": "errno",
+                "alias": "libc_errno"
+              },
+              {
+                "id": "libc 0.2.169",
+                "target": "libc"
+              }
+            ],
             "cfg(all(any(target_os = \"android\", target_os = \"linux\"), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))": [
               {
                 "id": "linux-raw-sys 0.4.14",
@@ -14515,7 +14525,23 @@
                 "target": "linux_raw_sys"
               }
             ],
+            "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))": [
+              {
+                "id": "errno 0.3.10",
+                "target": "errno",
+                "alias": "libc_errno"
+              },
+              {
+                "id": "libc 0.2.169",
+                "target": "libc"
+              }
+            ],
             "cfg(windows)": [
+              {
+                "id": "errno 0.3.10",
+                "target": "errno",
+                "alias": "libc_errno"
+              },
               {
                 "id": "windows-sys 0.59.0",
                 "target": "windows_sys"
@@ -21760,9 +21786,22 @@
       "aarch64-linux-android",
       "armv7-linux-androideabi",
       "i686-linux-android",
+      "x86_64-linux-android",
+      "x86_64-unknown-linux-gnu"
+    ],
+    "cfg(all(not(rustix_use_libc), not(miri), target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\"))))": [
+      "x86_64-unknown-linux-gnu"
+    ],
+    "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))": [
+      "aarch64-apple-darwin",
+      "aarch64-apple-ios",
+      "aarch64-apple-ios-sim",
+      "aarch64-linux-android",
+      "armv7-linux-androideabi",
+      "i686-linux-android",
+      "x86_64-apple-ios",
       "x86_64-linux-android"
     ],
-    "cfg(all(not(rustix_use_libc), not(miri), target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\"))))": [],
     "cfg(all(target_arch = \"aarch64\", target_env = \"msvc\", not(windows_raw_dylib)))": [],
     "cfg(all(target_arch = \"aarch64\", target_os = \"linux\"))": [],
     "cfg(all(target_arch = \"aarch64\", target_os = \"windows\"))": [],
@@ -21777,7 +21816,9 @@
     "cfg(all(target_arch = \"wasm32\", target_os = \"wasi\", target_env = \"p2\"))": [],
     "cfg(all(target_arch = \"x86\", target_env = \"gnu\", not(target_abi = \"llvm\"), not(windows_raw_dylib)))": [],
     "cfg(all(target_arch = \"x86\", target_env = \"msvc\", not(windows_raw_dylib)))": [],
-    "cfg(all(target_arch = \"x86_64\", target_env = \"gnu\", not(target_abi = \"llvm\"), not(windows_raw_dylib)))": [],
+    "cfg(all(target_arch = \"x86_64\", target_env = \"gnu\", not(target_abi = \"llvm\"), not(windows_raw_dylib)))": [
+      "x86_64-unknown-linux-gnu"
+    ],
     "cfg(all(windows, not(target_vendor = \"win7\")))": [],
     "cfg(any())": [],
     "cfg(any(target_arch = \"aarch64\", target_arch = \"arm\", target_arch = \"x86\", target_arch = \"x86_64\"))": [
@@ -21788,7 +21829,8 @@
       "armv7-linux-androideabi",
       "i686-linux-android",
       "x86_64-apple-ios",
-      "x86_64-linux-android"
+      "x86_64-linux-android",
+      "x86_64-unknown-linux-gnu"
     ],
     "cfg(any(target_arch = \"aarch64\", target_arch = \"x86_64\", target_arch = \"x86\"))": [
       "aarch64-apple-darwin",
@@ -21797,7 +21839,8 @@
       "aarch64-linux-android",
       "i686-linux-android",
       "x86_64-apple-ios",
-      "x86_64-linux-android"
+      "x86_64-linux-android",
+      "x86_64-unknown-linux-gnu"
     ],
     "cfg(any(target_os = \"dragonfly\", target_os = \"freebsd\", target_os = \"hurd\", target_os = \"illumos\", all(target_os = \"horizon\", target_arch = \"arm\")))": [],
     "cfg(any(target_os = \"haiku\", target_os = \"redox\", target_os = \"nto\", target_os = \"aix\"))": [],
@@ -21823,7 +21866,8 @@
       "armv7-linux-androideabi",
       "i686-linux-android",
       "x86_64-apple-ios",
-      "x86_64-linux-android"
+      "x86_64-linux-android",
+      "x86_64-unknown-linux-gnu"
     ],
     "cfg(any(windows, unix, target_os = \"redox\"))": [
       "aarch64-apple-darwin",
@@ -21833,7 +21877,8 @@
       "armv7-linux-androideabi",
       "i686-linux-android",
       "x86_64-apple-ios",
-      "x86_64-linux-android"
+      "x86_64-linux-android",
+      "x86_64-unknown-linux-gnu"
     ],
     "cfg(not(all(windows, target_env = \"msvc\", not(target_vendor = \"uwp\"))))": [
       "aarch64-apple-darwin",
@@ -21843,7 +21888,8 @@
       "armv7-linux-androideabi",
       "i686-linux-android",
       "x86_64-apple-ios",
-      "x86_64-linux-android"
+      "x86_64-linux-android",
+      "x86_64-unknown-linux-gnu"
     ],
     "cfg(not(windows_raw_dylib))": [
       "aarch64-apple-darwin",
@@ -21853,7 +21899,8 @@
       "armv7-linux-androideabi",
       "i686-linux-android",
       "x86_64-apple-ios",
-      "x86_64-linux-android"
+      "x86_64-linux-android",
+      "x86_64-unknown-linux-gnu"
     ],
     "cfg(target_arch = \"spirv\")": [],
     "cfg(target_env = \"sgx\")": [],
@@ -21881,7 +21928,8 @@
       "armv7-linux-androideabi",
       "i686-linux-android",
       "x86_64-apple-ios",
-      "x86_64-linux-android"
+      "x86_64-linux-android",
+      "x86_64-unknown-linux-gnu"
     ],
     "cfg(windows)": [],
     "i686-linux-android": [
@@ -21901,6 +21949,9 @@
     "x86_64-pc-windows-gnu": [],
     "x86_64-pc-windows-gnullvm": [],
     "x86_64-pc-windows-msvc": [],
+    "x86_64-unknown-linux-gnu": [
+      "x86_64-unknown-linux-gnu"
+    ],
     "x86_64-uwp-windows-gnu": [],
     "x86_64-uwp-windows-msvc": []
   },
