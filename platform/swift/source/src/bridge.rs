@@ -192,7 +192,7 @@ impl<W: StreamWriter + Send> PlatformNetworkStream for SwiftNetworkStream<W> {
     // the idea that we want to let the system attempt to send for a period of time, and not
     // fire immediately if the process is suspended for >3m.
     let timeout_across_suspension =
-      std::time::Duration::from_secs(self.send_data_timeout.read().into());
+      std::time::Duration::from_secs((*self.send_data_timeout.read()).into());
 
     // Dividing the total timeout by the slice duration gets us the number of times we want to
     // retry this operation.
@@ -219,7 +219,7 @@ impl<W: StreamWriter + Send> PlatformNetworkStream for SwiftNetworkStream<W> {
             if timeout_slices == 0 {
               // Erroring out here if we hit the timeout to send an error report, but returning Ok.
               // Things will be pretty broken if we don't get the stream close timeout properly.
-              if self.emit_send_data_timeout_error.read() {
+              if *self.emit_send_data_timeout_error.read() {
                 handle_unexpected::<(), anyhow::Error>(Err(anyhow!("timed out!")), "send_data");
               }
 

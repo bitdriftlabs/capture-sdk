@@ -1,5 +1,5 @@
 {
-  "checksum": "e8669d7bc3ac530f0c1b67a0fad455b2d90a057914afd4c3d6c546efa5890564",
+  "checksum": "dd64afd505adad11f22e38f795bff1abe70a3a66c92ee7d2000540f5aa4d985d",
   "crates": {
     "addr2line 0.24.2": {
       "name": "addr2line",
@@ -1471,7 +1471,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-api"
         }
@@ -1608,7 +1608,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-buffer"
         }
@@ -1737,7 +1737,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-client-common"
         }
@@ -1788,7 +1788,7 @@
               "target": "bd_proto"
             },
             {
-              "id": "flatbuffers 25.1.24",
+              "id": "flatbuffers 25.2.10",
               "target": "flatbuffers"
             },
             {
@@ -1841,7 +1841,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-client-stats"
         }
@@ -1958,7 +1958,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-client-stats-store"
         }
@@ -2030,7 +2030,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-completion"
         }
@@ -2078,6 +2078,79 @@
       "license_ids": [],
       "license_file": "../LICENSE"
     },
+    "bd-crash-handler 1.0.0": {
+      "name": "bd-crash-handler",
+      "version": "1.0.0",
+      "package_url": null,
+      "repository": {
+        "Git": {
+          "remote": "https://github.com/bitdriftlabs/shared-core.git",
+          "commitish": {
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
+          },
+          "strip_prefix": "bd-crash-handler"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "bd_crash_handler",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "bd_crash_handler",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "anyhow 1.0.95",
+              "target": "anyhow"
+            },
+            {
+              "id": "bd-runtime 1.0.0",
+              "target": "bd_runtime"
+            },
+            {
+              "id": "bd-shutdown 1.0.0",
+              "target": "bd_shutdown"
+            },
+            {
+              "id": "log 0.4.25",
+              "target": "log"
+            },
+            {
+              "id": "tokio 1.43.0",
+              "target": "tokio"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "proc_macro_deps": {
+          "common": [
+            {
+              "id": "async-trait 0.1.86",
+              "target": "async_trait"
+            }
+          ],
+          "selects": {}
+        },
+        "version": "1.0.0"
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": "../LICENSE"
+    },
     "bd-device 1.0.0": {
       "name": "bd-device",
       "version": "1.0.0",
@@ -2086,7 +2159,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-device"
         }
@@ -2170,7 +2243,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-events"
         }
@@ -2205,6 +2278,10 @@
               "target": "bd_shutdown"
             },
             {
+              "id": "ctor 0.3.6",
+              "target": "ctor"
+            },
+            {
               "id": "log 0.4.25",
               "target": "log"
             },
@@ -2216,15 +2293,6 @@
           "selects": {}
         },
         "edition": "2021",
-        "proc_macro_deps": {
-          "common": [
-            {
-              "id": "ctor 0.2.9",
-              "target": "ctor"
-            }
-          ],
-          "selects": {}
-        },
         "version": "1.0.0"
       },
       "license": null,
@@ -2239,7 +2307,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-grpc"
         }
@@ -2459,7 +2527,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-grpc-codec"
         }
@@ -2542,7 +2610,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-hyper-network"
         }
@@ -2666,7 +2734,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-internal-logging"
         }
@@ -2730,7 +2798,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-key-value"
         }
@@ -2806,7 +2874,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-log"
         }
@@ -2890,7 +2958,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-log-filter"
         }
@@ -2970,7 +3038,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-log-matcher"
         }
@@ -3042,7 +3110,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-log-metadata"
         }
@@ -3098,7 +3166,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-log-primitives"
         }
@@ -3154,7 +3222,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-logger"
         }
@@ -3211,6 +3279,10 @@
             {
               "id": "bd-completion 1.0.0",
               "target": "bd_completion"
+            },
+            {
+              "id": "bd-crash-handler 1.0.0",
+              "target": "bd_crash_handler"
             },
             {
               "id": "bd-device 1.0.0",
@@ -3293,7 +3365,7 @@
               "target": "bd_workflows"
             },
             {
-              "id": "flatbuffers 25.1.24",
+              "id": "flatbuffers 25.2.10",
               "target": "flatbuffers"
             },
             {
@@ -3371,7 +3443,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-matcher"
         }
@@ -3439,7 +3511,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-metadata"
         }
@@ -3515,7 +3587,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-network-quality"
         }
@@ -3554,7 +3626,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-noop-network"
         }
@@ -3619,7 +3691,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-pgv"
         }
@@ -3714,7 +3786,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-proto"
         }
@@ -3765,7 +3837,7 @@
               "target": "bytes"
             },
             {
-              "id": "flatbuffers 25.1.24",
+              "id": "flatbuffers 25.2.10",
               "target": "flatbuffers"
             },
             {
@@ -3817,7 +3889,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-resource-utilization"
         }
@@ -3868,6 +3940,10 @@
               "target": "bd_time"
             },
             {
+              "id": "ctor 0.3.6",
+              "target": "ctor"
+            },
+            {
               "id": "log 0.4.25",
               "target": "log"
             },
@@ -3883,15 +3959,6 @@
           "selects": {}
         },
         "edition": "2021",
-        "proc_macro_deps": {
-          "common": [
-            {
-              "id": "ctor 0.2.9",
-              "target": "ctor"
-            }
-          ],
-          "selects": {}
-        },
         "version": "1.0.0"
       },
       "license": null,
@@ -3906,7 +3973,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-runtime"
         }
@@ -3978,7 +4045,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-server-stats"
         }
@@ -4070,7 +4137,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-session"
         }
@@ -4166,7 +4233,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-session-replay"
         }
@@ -4229,6 +4296,10 @@
               "target": "bd_time"
             },
             {
+              "id": "ctor 0.3.6",
+              "target": "ctor"
+            },
+            {
               "id": "log 0.4.25",
               "target": "log"
             },
@@ -4248,15 +4319,6 @@
           "selects": {}
         },
         "edition": "2021",
-        "proc_macro_deps": {
-          "common": [
-            {
-              "id": "ctor 0.2.9",
-              "target": "ctor"
-            }
-          ],
-          "selects": {}
-        },
         "version": "1.0.0"
       },
       "license": null,
@@ -4271,7 +4333,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-shutdown"
         }
@@ -4323,7 +4385,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-stats-common"
         }
@@ -4362,7 +4424,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-test-helpers"
         }
@@ -4531,7 +4593,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-time"
         }
@@ -4604,7 +4666,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6015065c529faf9db1ade40f95fc7233c8e1b771"
+            "Rev": "d8ac1b45a179804fdcaa8f19080c009cf84bb94b"
           },
           "strip_prefix": "bd-workflows"
         }
@@ -4792,51 +4854,6 @@
       ],
       "license_file": "LICENSE.md"
     },
-    "bitflags 1.3.2": {
-      "name": "bitflags",
-      "version": "1.3.2",
-      "package_url": "https://github.com/bitflags/bitflags",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/bitflags/1.3.2/download",
-          "sha256": "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "bitflags",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "bitflags",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "crate_features": {
-          "common": [
-            "default"
-          ],
-          "selects": {}
-        },
-        "edition": "2018",
-        "version": "1.3.2"
-      },
-      "license": "MIT/Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
     "bitflags 2.8.0": {
       "name": "bitflags",
       "version": "2.8.0",
@@ -4872,43 +4889,7 @@
             "aarch64-apple-darwin": [
               "std"
             ],
-            "aarch64-pc-windows-msvc": [
-              "std"
-            ],
-            "aarch64-unknown-linux-gnu": [
-              "std"
-            ],
-            "aarch64-unknown-nixos-gnu": [
-              "std"
-            ],
-            "arm-unknown-linux-gnueabi": [
-              "std"
-            ],
-            "i686-pc-windows-msvc": [
-              "std"
-            ],
-            "i686-unknown-linux-gnu": [
-              "std"
-            ],
-            "powerpc-unknown-linux-gnu": [
-              "std"
-            ],
-            "s390x-unknown-linux-gnu": [
-              "std"
-            ],
-            "x86_64-apple-darwin": [
-              "std"
-            ],
-            "x86_64-pc-windows-msvc": [
-              "std"
-            ],
-            "x86_64-unknown-freebsd": [
-              "std"
-            ],
             "x86_64-unknown-linux-gnu": [
-              "std"
-            ],
-            "x86_64-unknown-nixos-gnu": [
               "std"
             ]
           }
@@ -5462,197 +5443,37 @@
         "deps": {
           "common": [
             {
+              "id": "iana-time-zone 0.1.61",
+              "target": "iana_time_zone"
+            },
+            {
               "id": "num-traits 0.2.19",
               "target": "num_traits"
             }
           ],
           "selects": {
-            "aarch64-apple-darwin": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "aarch64-apple-ios": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "aarch64-apple-ios-sim": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
             "aarch64-linux-android": [
               {
                 "id": "android-tzdata 0.1.1",
                 "target": "android_tzdata"
-              },
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "aarch64-pc-windows-msvc": [
-              {
-                "id": "windows-targets 0.52.6",
-                "target": "windows_targets"
-              }
-            ],
-            "aarch64-unknown-fuchsia": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "aarch64-unknown-linux-gnu": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "aarch64-unknown-nixos-gnu": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "aarch64-unknown-nto-qnx710": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "arm-unknown-linux-gnueabi": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
               }
             ],
             "armv7-linux-androideabi": [
               {
                 "id": "android-tzdata 0.1.1",
                 "target": "android_tzdata"
-              },
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "armv7-unknown-linux-gnueabi": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "i686-apple-darwin": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
               }
             ],
             "i686-linux-android": [
               {
                 "id": "android-tzdata 0.1.1",
                 "target": "android_tzdata"
-              },
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "i686-pc-windows-msvc": [
-              {
-                "id": "windows-targets 0.52.6",
-                "target": "windows_targets"
-              }
-            ],
-            "i686-unknown-freebsd": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "i686-unknown-linux-gnu": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "powerpc-unknown-linux-gnu": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "s390x-unknown-linux-gnu": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "wasm32-unknown-unknown": [
-              {
-                "id": "js-sys 0.3.76",
-                "target": "js_sys"
-              },
-              {
-                "id": "wasm-bindgen 0.2.99",
-                "target": "wasm_bindgen"
-              }
-            ],
-            "x86_64-apple-darwin": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "x86_64-apple-ios": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
               }
             ],
             "x86_64-linux-android": [
               {
                 "id": "android-tzdata 0.1.1",
                 "target": "android_tzdata"
-              },
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "x86_64-pc-windows-msvc": [
-              {
-                "id": "windows-targets 0.52.6",
-                "target": "windows_targets"
-              }
-            ],
-            "x86_64-unknown-freebsd": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "x86_64-unknown-fuchsia": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "x86_64-unknown-linux-gnu": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
-              }
-            ],
-            "x86_64-unknown-nixos-gnu": [
-              {
-                "id": "iana-time-zone 0.1.61",
-                "target": "iana_time_zone"
               }
             ]
           }
@@ -6792,6 +6613,105 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
+    "ctor 0.3.6": {
+      "name": "ctor",
+      "version": "0.3.6",
+      "package_url": "https://github.com/mmastrac/rust-ctor",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/ctor/0.3.6/download",
+          "sha256": "21d960ecacd0a1bf55e73144b72de745e7bf275c7952c50e36e8af0a0cb7ab1f"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "ctor",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "ctor",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "default"
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "proc_macro_deps": {
+          "common": [
+            {
+              "id": "ctor-proc-macro 0.0.4",
+              "target": "ctor_proc_macro"
+            }
+          ],
+          "selects": {}
+        },
+        "version": "0.3.6"
+      },
+      "license": "Apache-2.0 OR MIT",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
+    "ctor-proc-macro 0.0.4": {
+      "name": "ctor-proc-macro",
+      "version": "0.0.4",
+      "package_url": "https://github.com/mmastrac/rust-ctor",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/ctor-proc-macro/0.0.4/download",
+          "sha256": "c426d2ba3e525b39c1f0a9ba41b9fe61878dee11fa4e4a76b6ab440f46c5db5d"
+        }
+      },
+      "targets": [
+        {
+          "ProcMacro": {
+            "crate_name": "ctor_proc_macro",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "ctor_proc_macro",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "default"
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.0.4"
+      },
+      "license": "Apache-2.0 OR MIT",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": null
+    },
     "dashmap 6.1.0": {
       "name": "dashmap",
       "version": "6.1.0",
@@ -7058,43 +6978,7 @@
             "aarch64-apple-darwin": [
               "default"
             ],
-            "aarch64-pc-windows-msvc": [
-              "default"
-            ],
-            "aarch64-unknown-linux-gnu": [
-              "default"
-            ],
-            "aarch64-unknown-nixos-gnu": [
-              "default"
-            ],
-            "arm-unknown-linux-gnueabi": [
-              "default"
-            ],
-            "i686-pc-windows-msvc": [
-              "default"
-            ],
-            "i686-unknown-linux-gnu": [
-              "default"
-            ],
-            "powerpc-unknown-linux-gnu": [
-              "default"
-            ],
-            "s390x-unknown-linux-gnu": [
-              "default"
-            ],
-            "x86_64-apple-darwin": [
-              "default"
-            ],
-            "x86_64-pc-windows-msvc": [
-              "default"
-            ],
-            "x86_64-unknown-freebsd": [
-              "default"
-            ],
             "x86_64-unknown-linux-gnu": [
-              "default"
-            ],
-            "x86_64-unknown-nixos-gnu": [
               "default"
             ]
           }
@@ -7317,14 +7201,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "flatbuffers 25.1.24": {
+    "flatbuffers 25.2.10": {
       "name": "flatbuffers",
-      "version": "25.1.24",
+      "version": "25.2.10",
       "package_url": "https://github.com/google/flatbuffers",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/flatbuffers/25.1.24/download",
-          "sha256": "c58d7edb5d62d268a095c72e59c8dcf2c456ad3e332a9df17bdc4bd029a9a870"
+          "url": "https://static.crates.io/crates/flatbuffers/25.2.10/download",
+          "sha256": "1045398c1bfd89168b5fd3f1fc11f6e70b34f6f66300c87d44d3de849463abf1"
         }
       },
       "targets": [
@@ -7368,18 +7252,18 @@
         "deps": {
           "common": [
             {
-              "id": "bitflags 1.3.2",
+              "id": "bitflags 2.8.0",
               "target": "bitflags"
             },
             {
-              "id": "flatbuffers 25.1.24",
+              "id": "flatbuffers 25.2.10",
               "target": "build_script_build"
             }
           ],
           "selects": {}
         },
         "edition": "2018",
-        "version": "25.1.24"
+        "version": "25.2.10"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -10192,13 +10076,6 @@
         "compile_data_glob": [
           "**"
         ],
-        "crate_features": {
-          "common": [
-            "default",
-            "std"
-          ],
-          "selects": {}
-        },
         "deps": {
           "common": [
             {
@@ -10309,18 +10186,6 @@
           ],
           "selects": {
             "aarch64-apple-darwin": [
-              "extra_traits"
-            ],
-            "powerpc-unknown-linux-gnu": [
-              "extra_traits"
-            ],
-            "s390x-unknown-linux-gnu": [
-              "extra_traits"
-            ],
-            "x86_64-apple-darwin": [
-              "extra_traits"
-            ],
-            "x86_64-unknown-freebsd": [
               "extra_traits"
             ]
           }
@@ -10469,32 +10334,14 @@
         ],
         "crate_features": {
           "common": [
+            "elf",
             "errno",
             "general",
             "ioctl",
             "no_std",
             "std"
           ],
-          "selects": {
-            "aarch64-unknown-linux-gnu": [
-              "elf"
-            ],
-            "aarch64-unknown-nixos-gnu": [
-              "elf"
-            ],
-            "arm-unknown-linux-gnueabi": [
-              "elf"
-            ],
-            "i686-unknown-linux-gnu": [
-              "elf"
-            ],
-            "x86_64-unknown-linux-gnu": [
-              "elf"
-            ],
-            "x86_64-unknown-nixos-gnu": [
-              "elf"
-            ]
-          }
+          "selects": {}
         },
         "edition": "2021",
         "version": "0.4.14"
@@ -13294,74 +13141,13 @@
           "selects": {}
         },
         "deps": {
-          "common": [],
+          "common": [
+            {
+              "id": "libc 0.2.169",
+              "target": "libc"
+            }
+          ],
           "selects": {
-            "aarch64-apple-darwin": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "aarch64-apple-ios": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "aarch64-apple-ios-sim": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "aarch64-linux-android": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "aarch64-unknown-fuchsia": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "aarch64-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "aarch64-unknown-nixos-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "aarch64-unknown-nto-qnx710": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "arm-unknown-linux-gnueabi": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "armv7-linux-androideabi": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "armv7-unknown-linux-gnueabi": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
             "cfg(target_env = \"sgx\")": [
               {
                 "id": "rand_core 0.3.1",
@@ -13382,84 +13168,6 @@
               {
                 "id": "winapi 0.3.9",
                 "target": "winapi"
-              }
-            ],
-            "i686-apple-darwin": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "i686-linux-android": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "i686-unknown-freebsd": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "i686-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "powerpc-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "s390x-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-apple-darwin": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-apple-ios": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-linux-android": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-unknown-freebsd": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-unknown-fuchsia": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-unknown-nixos-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
               }
             ]
           }
@@ -13518,6 +13226,10 @@
         "deps": {
           "common": [
             {
+              "id": "libc 0.2.169",
+              "target": "libc"
+            },
+            {
               "id": "rand_chacha 0.3.1",
               "target": "rand_chacha"
             },
@@ -13526,152 +13238,7 @@
               "target": "rand_core"
             }
           ],
-          "selects": {
-            "aarch64-apple-darwin": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "aarch64-apple-ios": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "aarch64-apple-ios-sim": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "aarch64-linux-android": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "aarch64-unknown-fuchsia": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "aarch64-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "aarch64-unknown-nixos-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "aarch64-unknown-nto-qnx710": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "arm-unknown-linux-gnueabi": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "armv7-linux-androideabi": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "armv7-unknown-linux-gnueabi": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "i686-apple-darwin": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "i686-linux-android": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "i686-unknown-freebsd": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "i686-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "powerpc-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "s390x-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-apple-darwin": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-apple-ios": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-linux-android": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-unknown-freebsd": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-unknown-fuchsia": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-unknown-nixos-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ]
-          }
+          "selects": {}
         },
         "edition": "2018",
         "version": "0.8.5"
@@ -14915,56 +14482,13 @@
         "crate_features": {
           "common": [
             "alloc",
+            "default",
             "fs",
             "libc-extra-traits",
-            "std"
+            "std",
+            "use-libc-auxv"
           ],
-          "selects": {
-            "aarch64-apple-darwin": [
-              "default",
-              "use-libc-auxv"
-            ],
-            "aarch64-unknown-linux-gnu": [
-              "default",
-              "use-libc-auxv"
-            ],
-            "aarch64-unknown-nixos-gnu": [
-              "default",
-              "use-libc-auxv"
-            ],
-            "arm-unknown-linux-gnueabi": [
-              "default",
-              "use-libc-auxv"
-            ],
-            "i686-unknown-linux-gnu": [
-              "default",
-              "use-libc-auxv"
-            ],
-            "powerpc-unknown-linux-gnu": [
-              "default",
-              "use-libc-auxv"
-            ],
-            "s390x-unknown-linux-gnu": [
-              "default",
-              "use-libc-auxv"
-            ],
-            "x86_64-apple-darwin": [
-              "default",
-              "use-libc-auxv"
-            ],
-            "x86_64-unknown-freebsd": [
-              "default",
-              "use-libc-auxv"
-            ],
-            "x86_64-unknown-linux-gnu": [
-              "default",
-              "use-libc-auxv"
-            ],
-            "x86_64-unknown-nixos-gnu": [
-              "default",
-              "use-libc-auxv"
-            ]
-          }
+          "selects": {}
         },
         "deps": {
           "common": [
@@ -14987,13 +14511,6 @@
               {
                 "id": "libc 0.2.169",
                 "target": "libc"
-              }
-            ],
-            "aarch64-pc-windows-msvc": [
-              {
-                "id": "errno 0.3.10",
-                "target": "errno",
-                "alias": "libc_errno"
               }
             ],
             "cfg(all(any(target_os = \"android\", target_os = \"linux\"), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))": [
@@ -15028,64 +14545,6 @@
               {
                 "id": "windows-sys 0.59.0",
                 "target": "windows_sys"
-              }
-            ],
-            "i686-pc-windows-msvc": [
-              {
-                "id": "errno 0.3.10",
-                "target": "errno",
-                "alias": "libc_errno"
-              }
-            ],
-            "powerpc-unknown-linux-gnu": [
-              {
-                "id": "errno 0.3.10",
-                "target": "errno",
-                "alias": "libc_errno"
-              },
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "s390x-unknown-linux-gnu": [
-              {
-                "id": "errno 0.3.10",
-                "target": "errno",
-                "alias": "libc_errno"
-              },
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-apple-darwin": [
-              {
-                "id": "errno 0.3.10",
-                "target": "errno",
-                "alias": "libc_errno"
-              },
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              }
-            ],
-            "x86_64-pc-windows-msvc": [
-              {
-                "id": "errno 0.3.10",
-                "target": "errno",
-                "alias": "libc_errno"
-              }
-            ],
-            "x86_64-unknown-freebsd": [
-              {
-                "id": "errno 0.3.10",
-                "target": "errno",
-                "alias": "libc_errno"
-              },
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
               }
             ]
           }
@@ -17902,23 +17361,17 @@
             "time",
             "tokio-macros"
           ],
-          "selects": {
-            "aarch64-pc-windows-msvc": [
-              "windows-sys"
-            ],
-            "i686-pc-windows-msvc": [
-              "windows-sys"
-            ],
-            "x86_64-pc-windows-msvc": [
-              "windows-sys"
-            ]
-          }
+          "selects": {}
         },
         "deps": {
           "common": [
             {
               "id": "bytes 1.10.0",
               "target": "bytes"
+            },
+            {
+              "id": "libc 0.2.169",
+              "target": "libc"
             },
             {
               "id": "mio 1.0.3",
@@ -17931,421 +17384,21 @@
             {
               "id": "pin-project-lite 0.2.16",
               "target": "pin_project_lite"
+            },
+            {
+              "id": "signal-hook-registry 1.4.2",
+              "target": "signal_hook_registry"
+            },
+            {
+              "id": "socket2 0.5.8",
+              "target": "socket2"
             }
           ],
           "selects": {
-            "aarch64-apple-darwin": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "aarch64-apple-ios": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "aarch64-apple-ios-sim": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "aarch64-linux-android": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "aarch64-pc-windows-msvc": [
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              },
-              {
-                "id": "windows-sys 0.52.0",
-                "target": "windows_sys"
-              }
-            ],
-            "aarch64-unknown-fuchsia": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "aarch64-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "aarch64-unknown-nixos-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "aarch64-unknown-nto-qnx710": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "aarch64-unknown-uefi": [
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "arm-unknown-linux-gnueabi": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "armv7-linux-androideabi": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "armv7-unknown-linux-gnueabi": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
             "cfg(tokio_taskdump)": [
               {
                 "id": "backtrace 0.3.74",
                 "target": "backtrace"
-              }
-            ],
-            "i686-apple-darwin": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "i686-linux-android": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "i686-pc-windows-msvc": [
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              },
-              {
-                "id": "windows-sys 0.52.0",
-                "target": "windows_sys"
-              }
-            ],
-            "i686-unknown-freebsd": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "i686-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "powerpc-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "riscv32imc-unknown-none-elf": [
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "riscv64gc-unknown-none-elf": [
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "s390x-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "thumbv7em-none-eabi": [
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "thumbv8m.main-none-eabi": [
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "x86_64-apple-darwin": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "x86_64-apple-ios": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "x86_64-linux-android": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "x86_64-pc-windows-msvc": [
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              },
-              {
-                "id": "windows-sys 0.52.0",
-                "target": "windows_sys"
-              }
-            ],
-            "x86_64-unknown-freebsd": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "x86_64-unknown-fuchsia": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "x86_64-unknown-linux-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "x86_64-unknown-nixos-gnu": [
-              {
-                "id": "libc 0.2.169",
-                "target": "libc"
-              },
-              {
-                "id": "signal-hook-registry 1.4.2",
-                "target": "signal_hook_registry"
-              },
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "x86_64-unknown-none": [
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
-              }
-            ],
-            "x86_64-unknown-uefi": [
-              {
-                "id": "socket2 0.5.8",
-                "target": "socket2"
               }
             ]
           }
@@ -19714,219 +18767,13 @@
           "selects": {}
         },
         "deps": {
-          "common": [],
-          "selects": {
-            "aarch64-apple-darwin": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "aarch64-apple-ios": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "aarch64-apple-ios-sim": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "aarch64-linux-android": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "aarch64-pc-windows-msvc": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "aarch64-unknown-fuchsia": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "aarch64-unknown-linux-gnu": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "aarch64-unknown-nixos-gnu": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "aarch64-unknown-nto-qnx710": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "aarch64-unknown-uefi": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "arm-unknown-linux-gnueabi": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "armv7-linux-androideabi": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "armv7-unknown-linux-gnueabi": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "i686-apple-darwin": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "i686-linux-android": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "i686-pc-windows-msvc": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "i686-unknown-freebsd": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "i686-unknown-linux-gnu": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "powerpc-unknown-linux-gnu": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "riscv32imc-unknown-none-elf": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "riscv64gc-unknown-none-elf": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "s390x-unknown-linux-gnu": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "thumbv7em-none-eabi": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "thumbv8m.main-none-eabi": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "wasm32-wasip1": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "x86_64-apple-darwin": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "x86_64-apple-ios": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "x86_64-linux-android": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "x86_64-pc-windows-msvc": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "x86_64-unknown-freebsd": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "x86_64-unknown-fuchsia": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "x86_64-unknown-linux-gnu": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "x86_64-unknown-nixos-gnu": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "x86_64-unknown-none": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ],
-            "x86_64-unknown-uefi": [
-              {
-                "id": "getrandom 0.3.1",
-                "target": "getrandom"
-              }
-            ]
-          }
+          "common": [
+            {
+              "id": "getrandom 0.3.1",
+              "target": "getrandom"
+            }
+          ],
+          "selects": {}
         },
         "edition": "2018",
         "version": "1.13.1"
@@ -20214,13 +19061,6 @@
         "compile_data_glob": [
           "**"
         ],
-        "crate_features": {
-          "common": [
-            "default",
-            "std"
-          ],
-          "selects": {}
-        },
         "edition": "2018",
         "version": "0.11.0+wasi-snapshot-preview1"
       },
@@ -20320,14 +19160,6 @@
         "compile_data_glob": [
           "**"
         ],
-        "crate_features": {
-          "common": [
-            "default",
-            "spans",
-            "std"
-          ],
-          "selects": {}
-        },
         "deps": {
           "common": [
             {
@@ -20401,13 +19233,6 @@
         "compile_data_glob": [
           "**"
         ],
-        "crate_features": {
-          "common": [
-            "spans",
-            "std"
-          ],
-          "selects": {}
-        },
         "deps": {
           "common": [
             {
@@ -20476,13 +19301,6 @@
         "compile_data_glob": [
           "**"
         ],
-        "crate_features": {
-          "common": [
-            "spans",
-            "std"
-          ],
-          "selects": {}
-        },
         "deps": {
           "common": [
             {
@@ -20535,13 +19353,6 @@
         "compile_data_glob": [
           "**"
         ],
-        "crate_features": {
-          "common": [
-            "spans",
-            "std"
-          ],
-          "selects": {}
-        },
         "deps": {
           "common": [
             {
@@ -20675,23 +19486,6 @@
         "compile_data_glob": [
           "**"
         ],
-        "crate_features": {
-          "common": [
-            "CanvasRenderingContext2d",
-            "Document",
-            "DomRect",
-            "DomRectReadOnly",
-            "Element",
-            "EventTarget",
-            "HtmlCanvasElement",
-            "HtmlElement",
-            "Node",
-            "Window",
-            "default",
-            "std"
-          ],
-          "selects": {}
-        },
         "deps": {
           "common": [
             {
@@ -20868,24 +19662,6 @@
         "compile_data_glob": [
           "**"
         ],
-        "crate_features": {
-          "common": [
-            "consoleapi",
-            "errhandlingapi",
-            "fileapi",
-            "handleapi",
-            "minwindef",
-            "ntsecapi",
-            "processenv",
-            "processthreadsapi",
-            "profileapi",
-            "std",
-            "winbase",
-            "winerror",
-            "winnt"
-          ],
-          "selects": {}
-        },
         "deps": {
           "common": [
             {
@@ -21189,14 +19965,6 @@
         "compile_data_glob": [
           "**"
         ],
-        "crate_features": {
-          "common": [
-            "Win32",
-            "Win32_Globalization",
-            "default"
-          ],
-          "selects": {}
-        },
         "deps": {
           "common": [],
           "selects": {
@@ -21247,32 +20015,6 @@
         "compile_data_glob": [
           "**"
         ],
-        "crate_features": {
-          "common": [
-            "Wdk",
-            "Wdk_Foundation",
-            "Wdk_Storage",
-            "Wdk_Storage_FileSystem",
-            "Wdk_System",
-            "Wdk_System_IO",
-            "Win32",
-            "Win32_Foundation",
-            "Win32_Networking",
-            "Win32_Networking_WinSock",
-            "Win32_Security",
-            "Win32_Storage",
-            "Win32_Storage_FileSystem",
-            "Win32_System",
-            "Win32_System_Console",
-            "Win32_System_IO",
-            "Win32_System_Pipes",
-            "Win32_System_SystemServices",
-            "Win32_System_Threading",
-            "Win32_System_WindowsProgramming",
-            "default"
-          ],
-          "selects": {}
-        },
         "deps": {
           "common": [
             {
@@ -21321,29 +20063,6 @@
         "compile_data_glob": [
           "**"
         ],
-        "crate_features": {
-          "common": [
-            "Win32",
-            "Win32_Foundation",
-            "Win32_NetworkManagement",
-            "Win32_NetworkManagement_IpHelper",
-            "Win32_Networking",
-            "Win32_Networking_WinSock",
-            "Win32_Storage",
-            "Win32_Storage_FileSystem",
-            "Win32_System",
-            "Win32_System_Com",
-            "Win32_System_Console",
-            "Win32_System_Diagnostics",
-            "Win32_System_Diagnostics_Debug",
-            "Win32_System_SystemInformation",
-            "Win32_System_Threading",
-            "Win32_UI",
-            "Win32_UI_Shell",
-            "default"
-          ],
-          "selects": {}
-        },
         "deps": {
           "common": [
             {
@@ -23047,211 +21766,84 @@
       "aarch64-linux-android"
     ],
     "aarch64-pc-windows-gnullvm": [],
-    "aarch64-pc-windows-msvc": [
-      "aarch64-pc-windows-msvc"
-    ],
-    "aarch64-unknown-fuchsia": [
-      "aarch64-unknown-fuchsia"
-    ],
-    "aarch64-unknown-linux-gnu": [
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu"
-    ],
-    "aarch64-unknown-nixos-gnu": [
-      "aarch64-unknown-nixos-gnu"
-    ],
-    "aarch64-unknown-nto-qnx710": [
-      "aarch64-unknown-nto-qnx710"
-    ],
-    "aarch64-unknown-uefi": [
-      "aarch64-unknown-uefi"
-    ],
+    "aarch64-pc-windows-msvc": [],
     "aarch64-uwp-windows-msvc": [],
-    "arm-unknown-linux-gnueabi": [
-      "arm-unknown-linux-gnueabi"
-    ],
     "armv7-linux-androideabi": [
       "armv7-linux-androideabi"
     ],
-    "armv7-unknown-linux-gnueabi": [
-      "armv7-unknown-linux-gnueabi"
-    ],
-    "cfg(all(any(target_arch = \"x86_64\", target_arch = \"arm64ec\"), target_env = \"msvc\", not(windows_raw_dylib)))": [
-      "x86_64-pc-windows-msvc"
-    ],
+    "cfg(all(any(target_arch = \"x86_64\", target_arch = \"arm64ec\"), target_env = \"msvc\", not(windows_raw_dylib)))": [],
     "cfg(all(any(target_os = \"android\", target_os = \"linux\"), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))": [
       "aarch64-linux-android",
       "armv7-linux-androideabi",
       "i686-linux-android",
-      "powerpc-unknown-linux-gnu",
-      "s390x-unknown-linux-gnu",
       "x86_64-linux-android"
     ],
     "cfg(all(any(target_os = \"android\", target_os = \"linux\"), any(target_arch = \"aarch64\", target_arch = \"arm\")))": [
       "aarch64-linux-android",
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu",
-      "arm-unknown-linux-gnueabi",
-      "armv7-linux-androideabi",
-      "armv7-unknown-linux-gnueabi"
+      "armv7-linux-androideabi"
     ],
     "cfg(all(any(target_os = \"linux\", target_os = \"android\"), not(any(getrandom_backend = \"custom\", getrandom_backend = \"rdrand\", getrandom_backend = \"rndr\"))))": [
       "aarch64-linux-android",
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu",
-      "arm-unknown-linux-gnueabi",
       "armv7-linux-androideabi",
-      "armv7-unknown-linux-gnueabi",
       "i686-linux-android",
-      "i686-unknown-linux-gnu",
-      "powerpc-unknown-linux-gnu",
-      "s390x-unknown-linux-gnu",
       "x86_64-linux-android",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
+      "x86_64-unknown-linux-gnu"
     ],
     "cfg(all(not(rustix_use_libc), not(miri), target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\"))))": [
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu",
-      "arm-unknown-linux-gnueabi",
-      "armv7-unknown-linux-gnueabi",
-      "i686-unknown-linux-gnu",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
+      "x86_64-unknown-linux-gnu"
     ],
     "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",
       "aarch64-apple-ios-sim",
       "aarch64-linux-android",
-      "aarch64-unknown-fuchsia",
-      "aarch64-unknown-nto-qnx710",
-      "aarch64-unknown-uefi",
       "armv7-linux-androideabi",
-      "i686-apple-darwin",
       "i686-linux-android",
-      "i686-unknown-freebsd",
-      "powerpc-unknown-linux-gnu",
-      "riscv32imc-unknown-none-elf",
-      "riscv64gc-unknown-none-elf",
-      "s390x-unknown-linux-gnu",
-      "thumbv7em-none-eabi",
-      "thumbv8m.main-none-eabi",
-      "wasm32-unknown-unknown",
-      "wasm32-wasip1",
-      "x86_64-apple-darwin",
       "x86_64-apple-ios",
-      "x86_64-linux-android",
-      "x86_64-unknown-freebsd",
-      "x86_64-unknown-fuchsia",
-      "x86_64-unknown-none",
-      "x86_64-unknown-uefi"
+      "x86_64-linux-android"
     ],
-    "cfg(all(target_arch = \"aarch64\", target_env = \"msvc\", not(windows_raw_dylib)))": [
-      "aarch64-pc-windows-msvc"
-    ],
-    "cfg(all(target_arch = \"aarch64\", target_os = \"linux\"))": [
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu"
-    ],
-    "cfg(all(target_arch = \"aarch64\", target_os = \"windows\"))": [
-      "aarch64-pc-windows-msvc"
-    ],
+    "cfg(all(target_arch = \"aarch64\", target_env = \"msvc\", not(windows_raw_dylib)))": [],
+    "cfg(all(target_arch = \"aarch64\", target_os = \"linux\"))": [],
+    "cfg(all(target_arch = \"aarch64\", target_os = \"windows\"))": [],
     "cfg(all(target_arch = \"aarch64\", target_vendor = \"apple\"))": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",
       "aarch64-apple-ios-sim"
     ],
     "cfg(all(target_arch = \"loongarch64\", target_os = \"linux\"))": [],
-    "cfg(all(target_arch = \"wasm32\", not(target_os = \"wasi\")))": [
-      "wasm32-unknown-unknown"
-    ],
-    "cfg(all(target_arch = \"wasm32\", target_os = \"unknown\"))": [
-      "wasm32-unknown-unknown"
-    ],
+    "cfg(all(target_arch = \"wasm32\", not(target_os = \"wasi\")))": [],
+    "cfg(all(target_arch = \"wasm32\", target_os = \"unknown\"))": [],
     "cfg(all(target_arch = \"wasm32\", target_os = \"wasi\", target_env = \"p2\"))": [],
-    "cfg(all(target_arch = \"x86\", target_env = \"gnu\", not(target_abi = \"llvm\"), not(windows_raw_dylib)))": [
-      "i686-unknown-linux-gnu"
-    ],
-    "cfg(all(target_arch = \"x86\", target_env = \"msvc\", not(windows_raw_dylib)))": [
-      "i686-pc-windows-msvc"
-    ],
+    "cfg(all(target_arch = \"x86\", target_env = \"gnu\", not(target_abi = \"llvm\"), not(windows_raw_dylib)))": [],
+    "cfg(all(target_arch = \"x86\", target_env = \"msvc\", not(windows_raw_dylib)))": [],
     "cfg(all(target_arch = \"x86_64\", target_env = \"gnu\", not(target_abi = \"llvm\"), not(windows_raw_dylib)))": [
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
+      "x86_64-unknown-linux-gnu"
     ],
-    "cfg(all(windows, not(target_vendor = \"win7\")))": [
-      "aarch64-pc-windows-msvc",
-      "i686-pc-windows-msvc",
-      "x86_64-pc-windows-msvc"
-    ],
+    "cfg(all(windows, not(target_vendor = \"win7\")))": [],
     "cfg(any())": [],
     "cfg(any(target_arch = \"aarch64\", target_arch = \"arm\", target_arch = \"x86\", target_arch = \"x86_64\"))": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",
       "aarch64-apple-ios-sim",
       "aarch64-linux-android",
-      "aarch64-pc-windows-msvc",
-      "aarch64-unknown-fuchsia",
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu",
-      "aarch64-unknown-nto-qnx710",
-      "aarch64-unknown-uefi",
-      "arm-unknown-linux-gnueabi",
       "armv7-linux-androideabi",
-      "armv7-unknown-linux-gnueabi",
-      "i686-apple-darwin",
       "i686-linux-android",
-      "i686-pc-windows-msvc",
-      "i686-unknown-freebsd",
-      "i686-unknown-linux-gnu",
-      "thumbv7em-none-eabi",
-      "thumbv8m.main-none-eabi",
-      "x86_64-apple-darwin",
       "x86_64-apple-ios",
       "x86_64-linux-android",
-      "x86_64-pc-windows-msvc",
-      "x86_64-unknown-freebsd",
-      "x86_64-unknown-fuchsia",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu",
-      "x86_64-unknown-none",
-      "x86_64-unknown-uefi"
+      "x86_64-unknown-linux-gnu"
     ],
     "cfg(any(target_arch = \"aarch64\", target_arch = \"x86_64\", target_arch = \"x86\"))": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",
       "aarch64-apple-ios-sim",
       "aarch64-linux-android",
-      "aarch64-pc-windows-msvc",
-      "aarch64-unknown-fuchsia",
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu",
-      "aarch64-unknown-nto-qnx710",
-      "aarch64-unknown-uefi",
-      "i686-apple-darwin",
       "i686-linux-android",
-      "i686-pc-windows-msvc",
-      "i686-unknown-freebsd",
-      "i686-unknown-linux-gnu",
-      "x86_64-apple-darwin",
       "x86_64-apple-ios",
       "x86_64-linux-android",
-      "x86_64-pc-windows-msvc",
-      "x86_64-unknown-freebsd",
-      "x86_64-unknown-fuchsia",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu",
-      "x86_64-unknown-none",
-      "x86_64-unknown-uefi"
+      "x86_64-unknown-linux-gnu"
     ],
-    "cfg(any(target_os = \"dragonfly\", target_os = \"freebsd\", target_os = \"hurd\", target_os = \"illumos\", all(target_os = \"horizon\", target_arch = \"arm\")))": [
-      "i686-unknown-freebsd",
-      "x86_64-unknown-freebsd"
-    ],
-    "cfg(any(target_os = \"haiku\", target_os = \"redox\", target_os = \"nto\", target_os = \"aix\"))": [
-      "aarch64-unknown-nto-qnx710"
-    ],
+    "cfg(any(target_os = \"dragonfly\", target_os = \"freebsd\", target_os = \"hurd\", target_os = \"illumos\", all(target_os = \"horizon\", target_arch = \"arm\")))": [],
+    "cfg(any(target_os = \"haiku\", target_os = \"redox\", target_os = \"nto\", target_os = \"aix\"))": [],
     "cfg(any(target_os = \"ios\", target_os = \"visionos\", target_os = \"watchos\", target_os = \"tvos\"))": [
       "aarch64-apple-ios",
       "aarch64-apple-ios-sim",
@@ -23261,143 +21853,54 @@
       "aarch64-apple-darwin",
       "aarch64-apple-ios",
       "aarch64-apple-ios-sim",
-      "i686-apple-darwin",
-      "x86_64-apple-darwin",
       "x86_64-apple-ios"
     ],
     "cfg(any(target_os = \"macos\", target_os = \"openbsd\", target_os = \"vita\", target_os = \"emscripten\"))": [
-      "aarch64-apple-darwin",
-      "i686-apple-darwin",
-      "x86_64-apple-darwin"
+      "aarch64-apple-darwin"
     ],
     "cfg(any(unix, target_os = \"wasi\"))": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",
       "aarch64-apple-ios-sim",
       "aarch64-linux-android",
-      "aarch64-unknown-fuchsia",
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu",
-      "aarch64-unknown-nto-qnx710",
-      "arm-unknown-linux-gnueabi",
       "armv7-linux-androideabi",
-      "armv7-unknown-linux-gnueabi",
-      "i686-apple-darwin",
       "i686-linux-android",
-      "i686-unknown-freebsd",
-      "i686-unknown-linux-gnu",
-      "powerpc-unknown-linux-gnu",
-      "s390x-unknown-linux-gnu",
-      "wasm32-wasip1",
-      "x86_64-apple-darwin",
       "x86_64-apple-ios",
       "x86_64-linux-android",
-      "x86_64-unknown-freebsd",
-      "x86_64-unknown-fuchsia",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
+      "x86_64-unknown-linux-gnu"
     ],
     "cfg(any(windows, unix, target_os = \"redox\"))": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",
       "aarch64-apple-ios-sim",
       "aarch64-linux-android",
-      "aarch64-pc-windows-msvc",
-      "aarch64-unknown-fuchsia",
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu",
-      "aarch64-unknown-nto-qnx710",
-      "arm-unknown-linux-gnueabi",
       "armv7-linux-androideabi",
-      "armv7-unknown-linux-gnueabi",
-      "i686-apple-darwin",
       "i686-linux-android",
-      "i686-pc-windows-msvc",
-      "i686-unknown-freebsd",
-      "i686-unknown-linux-gnu",
-      "powerpc-unknown-linux-gnu",
-      "s390x-unknown-linux-gnu",
-      "x86_64-apple-darwin",
       "x86_64-apple-ios",
       "x86_64-linux-android",
-      "x86_64-pc-windows-msvc",
-      "x86_64-unknown-freebsd",
-      "x86_64-unknown-fuchsia",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
+      "x86_64-unknown-linux-gnu"
     ],
     "cfg(not(all(windows, target_env = \"msvc\", not(target_vendor = \"uwp\"))))": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",
       "aarch64-apple-ios-sim",
       "aarch64-linux-android",
-      "aarch64-unknown-fuchsia",
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu",
-      "aarch64-unknown-nto-qnx710",
-      "aarch64-unknown-uefi",
-      "arm-unknown-linux-gnueabi",
       "armv7-linux-androideabi",
-      "armv7-unknown-linux-gnueabi",
-      "i686-apple-darwin",
       "i686-linux-android",
-      "i686-unknown-freebsd",
-      "i686-unknown-linux-gnu",
-      "powerpc-unknown-linux-gnu",
-      "riscv32imc-unknown-none-elf",
-      "riscv64gc-unknown-none-elf",
-      "s390x-unknown-linux-gnu",
-      "thumbv7em-none-eabi",
-      "thumbv8m.main-none-eabi",
-      "wasm32-unknown-unknown",
-      "wasm32-wasip1",
-      "x86_64-apple-darwin",
       "x86_64-apple-ios",
       "x86_64-linux-android",
-      "x86_64-unknown-freebsd",
-      "x86_64-unknown-fuchsia",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu",
-      "x86_64-unknown-none",
-      "x86_64-unknown-uefi"
+      "x86_64-unknown-linux-gnu"
     ],
     "cfg(not(windows_raw_dylib))": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",
       "aarch64-apple-ios-sim",
       "aarch64-linux-android",
-      "aarch64-pc-windows-msvc",
-      "aarch64-unknown-fuchsia",
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu",
-      "aarch64-unknown-nto-qnx710",
-      "aarch64-unknown-uefi",
-      "arm-unknown-linux-gnueabi",
       "armv7-linux-androideabi",
-      "armv7-unknown-linux-gnueabi",
-      "i686-apple-darwin",
       "i686-linux-android",
-      "i686-pc-windows-msvc",
-      "i686-unknown-freebsd",
-      "i686-unknown-linux-gnu",
-      "powerpc-unknown-linux-gnu",
-      "riscv32imc-unknown-none-elf",
-      "riscv64gc-unknown-none-elf",
-      "s390x-unknown-linux-gnu",
-      "thumbv7em-none-eabi",
-      "thumbv8m.main-none-eabi",
-      "wasm32-unknown-unknown",
-      "wasm32-wasip1",
-      "x86_64-apple-darwin",
       "x86_64-apple-ios",
       "x86_64-linux-android",
-      "x86_64-pc-windows-msvc",
-      "x86_64-unknown-freebsd",
-      "x86_64-unknown-fuchsia",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu",
-      "x86_64-unknown-none",
-      "x86_64-unknown-uefi"
+      "x86_64-unknown-linux-gnu"
     ],
     "cfg(target_arch = \"spirv\")": [],
     "cfg(target_env = \"sgx\")": [],
@@ -23407,102 +21910,36 @@
       "i686-linux-android",
       "x86_64-linux-android"
     ],
-    "cfg(target_os = \"fuchsia\")": [
-      "aarch64-unknown-fuchsia",
-      "x86_64-unknown-fuchsia"
-    ],
+    "cfg(target_os = \"fuchsia\")": [],
     "cfg(target_os = \"haiku\")": [],
     "cfg(target_os = \"hermit\")": [],
     "cfg(target_os = \"netbsd\")": [],
     "cfg(target_os = \"redox\")": [],
     "cfg(target_os = \"solaris\")": [],
     "cfg(target_os = \"vxworks\")": [],
-    "cfg(target_os = \"wasi\")": [
-      "wasm32-wasip1"
-    ],
-    "cfg(target_os = \"windows\")": [
-      "aarch64-pc-windows-msvc",
-      "i686-pc-windows-msvc",
-      "x86_64-pc-windows-msvc"
-    ],
+    "cfg(target_os = \"wasi\")": [],
+    "cfg(target_os = \"windows\")": [],
     "cfg(tokio_taskdump)": [],
     "cfg(unix)": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",
       "aarch64-apple-ios-sim",
       "aarch64-linux-android",
-      "aarch64-unknown-fuchsia",
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu",
-      "aarch64-unknown-nto-qnx710",
-      "arm-unknown-linux-gnueabi",
       "armv7-linux-androideabi",
-      "armv7-unknown-linux-gnueabi",
-      "i686-apple-darwin",
       "i686-linux-android",
-      "i686-unknown-freebsd",
-      "i686-unknown-linux-gnu",
-      "powerpc-unknown-linux-gnu",
-      "s390x-unknown-linux-gnu",
-      "x86_64-apple-darwin",
       "x86_64-apple-ios",
       "x86_64-linux-android",
-      "x86_64-unknown-freebsd",
-      "x86_64-unknown-fuchsia",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
+      "x86_64-unknown-linux-gnu"
     ],
-    "cfg(windows)": [
-      "aarch64-pc-windows-msvc",
-      "i686-pc-windows-msvc",
-      "x86_64-pc-windows-msvc"
-    ],
-    "i686-apple-darwin": [
-      "i686-apple-darwin"
-    ],
+    "cfg(windows)": [],
     "i686-linux-android": [
       "i686-linux-android"
     ],
     "i686-pc-windows-gnu": [],
     "i686-pc-windows-gnullvm": [],
-    "i686-pc-windows-msvc": [
-      "i686-pc-windows-msvc"
-    ],
-    "i686-unknown-freebsd": [
-      "i686-unknown-freebsd"
-    ],
-    "i686-unknown-linux-gnu": [
-      "i686-unknown-linux-gnu"
-    ],
+    "i686-pc-windows-msvc": [],
     "i686-uwp-windows-gnu": [],
     "i686-uwp-windows-msvc": [],
-    "powerpc-unknown-linux-gnu": [
-      "powerpc-unknown-linux-gnu"
-    ],
-    "riscv32imc-unknown-none-elf": [
-      "riscv32imc-unknown-none-elf"
-    ],
-    "riscv64gc-unknown-none-elf": [
-      "riscv64gc-unknown-none-elf"
-    ],
-    "s390x-unknown-linux-gnu": [
-      "s390x-unknown-linux-gnu"
-    ],
-    "thumbv7em-none-eabi": [
-      "thumbv7em-none-eabi"
-    ],
-    "thumbv8m.main-none-eabi": [
-      "thumbv8m.main-none-eabi"
-    ],
-    "wasm32-unknown-unknown": [
-      "wasm32-unknown-unknown"
-    ],
-    "wasm32-wasip1": [
-      "wasm32-wasip1"
-    ],
-    "x86_64-apple-darwin": [
-      "x86_64-apple-darwin"
-    ],
     "x86_64-apple-ios": [
       "x86_64-apple-ios"
     ],
@@ -23511,27 +21948,9 @@
     ],
     "x86_64-pc-windows-gnu": [],
     "x86_64-pc-windows-gnullvm": [],
-    "x86_64-pc-windows-msvc": [
-      "x86_64-pc-windows-msvc"
-    ],
-    "x86_64-unknown-freebsd": [
-      "x86_64-unknown-freebsd"
-    ],
-    "x86_64-unknown-fuchsia": [
-      "x86_64-unknown-fuchsia"
-    ],
+    "x86_64-pc-windows-msvc": [],
     "x86_64-unknown-linux-gnu": [
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu"
-    ],
-    "x86_64-unknown-nixos-gnu": [
-      "x86_64-unknown-nixos-gnu"
-    ],
-    "x86_64-unknown-none": [
-      "x86_64-unknown-none"
-    ],
-    "x86_64-unknown-uefi": [
-      "x86_64-unknown-uefi"
+      "x86_64-unknown-linux-gnu"
     ],
     "x86_64-uwp-windows-gnu": [],
     "x86_64-uwp-windows-msvc": []

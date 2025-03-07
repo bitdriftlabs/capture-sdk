@@ -9,8 +9,7 @@
 extern crate objc;
 
 use bd_client_common::error::Reporter;
-use bd_client_common::fb::root_as_log;
-use bd_proto::flatbuffers::buffer_log::bitdrift_public::fbs::logging::v_1::Data;
+use bd_logger::StringOrBytes;
 use bd_test_helpers::config_helper::make_benchmarking_configuration_with_workflows_update;
 use bd_test_helpers::test_api_server::{Event, ExpectedStreamEvent};
 use objc::runtime::Object;
@@ -169,43 +168,39 @@ unsafe extern "C" fn next_uploaded_log(uploaded_log: *mut Object) -> bool {
     // If we use this function without configuring a batch size of 1 we might end up missing log,
     // so fail here.
     assert_eq!(
-      log_request.logs.len(),
+      log_request.logs().len(),
       1,
       "batch size must be configured to 1"
     );
 
-    let received_log = root_as_log(&log_request.logs[0]).expect("invalid flatbuffer");
+    let received_log = &log_request.logs()[0];
 
     let () = msg_send![uploaded_log, setLogLevel:(received_log.log_level())];
     let () = msg_send![uploaded_log, setLogType:(received_log.log_type())];
 
-    set_string!(
-      uploaded_log,
-      setMessage,
-      received_log.message_as_string_data().unwrap().data()
-    );
+    set_string!(uploaded_log, setMessage, received_log.message());
 
-    set_string!(
-      uploaded_log,
-      setSessionID,
-      received_log.session_id().unwrap()
-    );
+    set_string!(uploaded_log, setSessionID, received_log.session_id());
 
-    for f in received_log.fields().unwrap() {
-      let key = make_nsstring(f.key());
+    for (key, value) in received_log.typed_fields() {
+      let key = make_nsstring(&key);
 
-      match f.value_type() {
-        Data::string_data => {
-          let value = make_nsstring(f.value_as_string_data().unwrap().data());
+      match value {
+        StringOrBytes::String(s) => {
+          let value = make_nsstring(&s);
 
           let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
         },
-        Data::binary_data => {
-          let value = make_nsdata(f.value_as_binary_data().unwrap().data().bytes());
+        StringOrBytes::SharedString(s) => {
+          let value = make_nsstring(&s);
+
+          let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
+        },
+        StringOrBytes::Bytes(s) => {
+          let value = make_nsdata(&s);
 
           let () = msg_send![uploaded_log, addBinaryFieldWithKey:key value:value];
         },
-        _ => panic!("unknown data type"),
       }
     }
 
