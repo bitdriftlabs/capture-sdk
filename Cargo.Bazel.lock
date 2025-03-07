@@ -1,5 +1,5 @@
 {
-  "checksum": "940b88a51f4b095a84b3e7645b0952c9876a19548cff33576d512de3c7c07478",
+  "checksum": "7be30963ea2588d78a1f4a98e46689fc7383483c28f0271f48a7ffa9e9410018",
   "crates": {
     "addr2line 0.24.2": {
       "name": "addr2line",
@@ -12187,6 +12187,10 @@
             {
               "id": "log 0.4.25",
               "target": "log"
+            },
+            {
+              "id": "parking_lot 0.12.3",
+              "target": "parking_lot"
             },
             {
               "id": "time 0.3.37",
