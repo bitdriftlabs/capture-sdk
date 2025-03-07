@@ -16,5 +16,7 @@ bd-logger.workspace        = true
 bd-proto.workspace         = true
 bd-runtime.workspace       = true
 bd-test-helpers.workspace  = true
+log.workspace              = true
+parking_lot.workspace      = true
 platform-shared            = { path = "../shared" }
 time.workspace             = true

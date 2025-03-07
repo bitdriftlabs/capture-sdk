@@ -26,8 +26,10 @@ use config_helper::{
   make_configuration_update_with_workflow_flushing_buffer,
   BufferConfigBuilder,
 };
+use parking_lot::{Mutex, MutexGuard};
 use platform_shared::LoggerId;
-use std::sync::{LazyLock, Mutex, MutexGuard};
+use std::ops::{Deref, DerefMut};
+use std::sync::LazyLock;
 use test_api_server::{
   default_configuration_update,
   start_server,
@@ -38,55 +40,28 @@ use test_api_server::{
 pub use test_api_server::{EventCallback, StreamEvent};
 use time::Duration;
 
-// A global handle for managing the test server. Alternatively we could return a
-// handle from start_test_api_server, but this seems a bit simpler for basic testing.
-static HANDLE: LazyLock<Mutex<Option<Box<ServerHandle>>>> = LazyLock::new(Mutex::default);
-
-fn expected_server_handle() -> MutexGuard<'static, Option<Box<ServerHandle>>> {
-  HANDLE.lock().expect("failed to lock mutex")
-}
-
-pub fn with_expected_server<F, T>(f: F) -> T
-where
-  F: FnOnce(&mut ServerHandle) -> T,
-{
-  let mut l = expected_server_handle();
-
-  f(&mut *l.as_mut().expect("test server not started"))
-}
-
 #[no_mangle]
 pub extern "C" fn start_test_api_server(tls: bool, ping_interval: i32) -> i32 {
-  let ping = if ping_interval < 0 {
-    None
-  } else {
-    Some(Duration::milliseconds(ping_interval.into()))
-  };
-  let server = start_server(tls, ping);
-  let port = server.port;
-  *expected_server_handle() = Some(server);
-
-  port.into()
+  Server::start(tls, ping_interval)
 }
 
 #[no_mangle]
 pub extern "C" fn stop_test_api_server() {
-  let mut l = expected_server_handle();
-  *l = None;
+    Server::stop();
 }
 
 #[no_mangle]
 pub extern "C" fn await_next_api_stream() -> i32 {
-  with_expected_server(|h| h.blocking_next_stream().map_or(-1, |s| s.id()))
+  Server::with(|s| s.blocking_next_stream().map_or(-1, |s| s.id()))
 }
 
 #[no_mangle]
 pub extern "C" fn wait_for_stream_with_test_api_key(stream_id: i32) {
-  with_expected_server(|h| {
+  Server::with(|s| {
     // TODO(snowp): Support passing the expected API key for test vs testing for a specific test
     // one.
     assert!(
-      StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
+      StreamHandle::from_stream_id(stream_id, &s).await_event_with_timeout(
         ExpectedStreamEvent::Created(Some("test!".to_string())),
         Duration::seconds(5)
       )
@@ -96,16 +71,16 @@ pub extern "C" fn wait_for_stream_with_test_api_key(stream_id: i32) {
 
 #[no_mangle]
 pub extern "C" fn await_api_server_received_handshake(stream_id: i32) {
-  with_expected_server(|h| {
-    assert!(StreamHandle::from_stream_id(stream_id, h)
+  Server::with(|s| {
+    assert!(StreamHandle::from_stream_id(stream_id, &s)
       .await_event_with_timeout(ExpectedStreamEvent::Handshake(None), Duration::seconds(15)));
   });
 }
 
 #[no_mangle]
 pub extern "C" fn await_api_server_stream_closed(stream_id: i32, wait_time_ms: i64) -> bool {
-  with_expected_server(|h| {
-    StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
+  Server::with(|s| {
+    StreamHandle::from_stream_id(stream_id, &s).await_event_with_timeout(
       ExpectedStreamEvent::Closed,
       Duration::milliseconds(wait_time_ms),
     )
@@ -114,8 +89,8 @@ pub extern "C" fn await_api_server_stream_closed(stream_id: i32, wait_time_ms: i
 
 #[no_mangle]
 pub extern "C" fn send_configuration_update(stream_id: i32) {
-  with_expected_server(|h| {
-    StreamHandle::from_stream_id(stream_id, h).blocking_stream_action(
+  Server::with(|s| {
+    StreamHandle::from_stream_id(stream_id, &s).blocking_stream_action(
       StreamAction::SendConfiguration(default_configuration_update()),
     );
   });
@@ -123,8 +98,8 @@ pub extern "C" fn send_configuration_update(stream_id: i32) {
 
 #[no_mangle]
 pub extern "C" fn configure_benchmarking_configuration(stream_id: i32) {
-  with_expected_server(|h| {
-    let stream = StreamHandle::from_stream_id(stream_id, h);
+  Server::with(|s| {
+    let stream = StreamHandle::from_stream_id(stream_id, &s);
     stream.blocking_stream_action(StreamAction::SendConfiguration(
       make_benchmarking_configuration_update(),
     ));
@@ -134,8 +109,8 @@ pub extern "C" fn configure_benchmarking_configuration(stream_id: i32) {
 
 #[no_mangle]
 pub extern "C" fn configure_benchmarking_configuration_with_workflows(stream_id: i32) {
-  with_expected_server(|h| {
-    let stream = StreamHandle::from_stream_id(stream_id, h);
+  Server::with(|s| {
+    let stream = StreamHandle::from_stream_id(stream_id, &s);
     stream.blocking_stream_action(StreamAction::SendConfiguration(
       make_benchmarking_configuration_with_workflows_update(),
     ));
@@ -181,100 +156,32 @@ fn perform_benchmarking_runtime_update(stream: &StreamHandle) {
 
 #[no_mangle]
 pub extern "C" fn await_configuration_ack(stream_id: i32) {
-  with_expected_server(|h| {
-    let (updated_stream_id, _) = h.blocking_next_configuration_ack();
+  Server::with(|mut s| {
+    let (updated_stream_id, _) = s.blocking_next_configuration_ack();
     assert_eq!(stream_id, updated_stream_id);
   });
 }
 
 #[no_mangle]
 pub extern "C" fn configure_aggressive_continuous_uploads(stream_id: i32) {
-  with_expected_server(|h| {
-    let stream = StreamHandle::from_stream_id(stream_id, h);
-    // Ensure that we've received the handshake.
-    assert!(stream.await_event_with_timeout(
-      ExpectedStreamEvent::Handshake(None),
-      Duration::milliseconds(2000),
-    ));
-
-    // Configure very aggressive runtime values: attempt to read the buffer every 1ms and attempt to
-    // upload logs in batches of one. This should ensure a steady state of uploads being sent.
-    StreamHandle::from_stream_id(stream_id, h).blocking_stream_action(StreamAction::SendRuntime(
-      make_update(
-        vec![
-          // Enabled platform events listener.
-          (
-            bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
-            ValueKind::Bool(true),
-          ),
-          // Log upload.
-          (
-            bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
-            ValueKind::Int(1),
-          ),
-          (
-            bd_runtime::runtime::log_upload::RetryBackoffMaxFlag::path(),
-            ValueKind::Int(1),
-          ),
-          (
-            bd_runtime::runtime::log_upload::RetryBackoffInitialFlag::path(),
-            ValueKind::Int(1),
-          ),
-          // For integration test purposes we don't want reconnects to take long, as it just slows
-          // down the tests.
-          (
-            bd_runtime::runtime::api::MaxBackoffInterval::path(),
-            ValueKind::Int(10),
-          ),
-          // By enabling internal logs here we get basic test coverage on both platforms.
-          (
-            bd_runtime::runtime::debugging::InternalLoggingFlag::path(),
-            ValueKind::Bool(true),
-          ),
-          // Enable resource utilization logs.
-          (
-            bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
-            ValueKind::Bool(true),
-          ),
-          // Enable session replay periodic screen collection.
-          (
-            bd_runtime::runtime::session_replay::PeriodicScreensEnabledFlag::path(),
-            ValueKind::Bool(true),
-          ),
-        ],
-        "base".to_string(),
-      ),
-    ));
-
-    h.blocking_next_runtime_ack();
-
-    let configuration_update = make_configuration_update_with_workflow_flushing_buffer(
-      "default",
-      Type::CONTINUOUS,
-      make_buffer_matcher_matching_everything_except_internal_logs(),
-      make_workflow_matcher_matching_everything_except_internal_logs(),
-    );
-
-    StreamHandle::from_stream_id(stream_id, h)
-      .blocking_stream_action(StreamAction::SendConfiguration(configuration_update));
-
-    h.blocking_next_configuration_ack();
+  Server::with(|mut s| {
+      s.configure_aggressive_continuous_uploads(&StreamHandle::from_stream_id(stream_id, &s));
   });
 }
 
 #[no_mangle]
 pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
-  let stream_id = await_next_api_stream();
+    Server::with(|mut s|{ 
+        let stream = s.blocking_next_stream().unwrap();
 
-  let is_succes = with_expected_server(|h| {
-    if !StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
+    if !stream.await_event_with_timeout(
       ExpectedStreamEvent::Handshake(None),
       Duration::milliseconds(800),
     ) {
       return false;
     }
 
-    StreamHandle::from_stream_id(stream_id, h).blocking_stream_action(StreamAction::SendRuntime(
+    stream.blocking_stream_action(StreamAction::SendRuntime(
       make_update(
         vec![(
           bd_runtime::runtime::log_upload::BatchSizeBytesFlag::path(),
@@ -284,7 +191,7 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
       ),
     ));
 
-    h.blocking_next_runtime_ack();
+    s.blocking_next_runtime_ack();
 
     let extra_large_buffer_uploading_everything = configuration_update(
       "version",
@@ -305,18 +212,11 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
       },
     );
 
-    StreamHandle::from_stream_id(stream_id, h).blocking_stream_action(
+    stream.blocking_stream_action(
       StreamAction::SendConfiguration(extra_large_buffer_uploading_everything),
     );
 
-    h.blocking_next_configuration_ack();
-
-    true
-  });
-
-  if !is_succes {
-    return false;
-  }
+    s.blocking_next_configuration_ack();
 
   // This gets us to the batch size limit of ~2 MiB.
   for _ in 0 .. 22 {
@@ -331,26 +231,20 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
     );
   }
 
-  with_expected_server(|s| {
     assert_matches!(s.blocking_next_log_upload(), Some(log_upload) => {
         assert_eq!(log_upload.logs().len(), 21);
     });
-  });
 
-  true
+    true
+  })
 }
 
 #[no_mangle]
 pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: LoggerId<'_>) -> bool {
-  let stream_id = await_next_api_stream();
-  if stream_id == -1 {
-    return false;
-  }
+  Server::with(|mut s| {
+    let mut stream = s.blocking_next_stream().unwrap();
 
-  configure_aggressive_continuous_uploads(stream_id);
-
-  with_expected_server(|h| {
-    let mut stream = StreamHandle::from_stream_id(stream_id, h);
+    s.configure_aggressive_continuous_uploads(&stream);
 
     // Write logs and turn around the API stream several times. This should tickle the cases
     // where the stream is being torn down while uploads are happening.
@@ -369,14 +263,14 @@ pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: Logger
 
       stream.blocking_stream_action(StreamAction::CloseStream);
 
-      stream = h.blocking_next_stream()?;
+      stream = s.blocking_next_stream()?;
 
       assert!(stream
         .await_event_with_timeout(ExpectedStreamEvent::Handshake(None), Duration::seconds(10),));
     }
 
     // Verify at least one upload to make sure that things are working as expected.
-    h.blocking_next_log_upload().unwrap();
+    s.blocking_next_log_upload().unwrap();
 
     Some(())
   })
@@ -388,29 +282,28 @@ pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: Logger
 // coverage to the case where the network is shut down while the logger is still processing uploads.
 #[no_mangle]
 pub extern "C" fn run_aggressive_upload_test(logger_id: LoggerId<'_>) {
-  let stream_id = await_next_api_stream();
-  assert_ne!(stream_id, -1);
+  Server::with(|mut s| {
+    let stream = s.blocking_next_stream().expect("stream should be created");
 
-  configure_aggressive_continuous_uploads(stream_id);
+    s.configure_aggressive_continuous_uploads(&stream);
 
-  // Write a bunch of logs, all of which should get uploaded to the server.
-  for _ in 0 .. 100 {
-    logger_id.log(
-      log_level::TRACE,
-      LogType::Normal,
-      "hello".into(),
-      vec![],
-      vec![],
-      None,
-      false,
-    );
-  }
+    // Write a bunch of logs, all of which should get uploaded to the server.
+    for _ in 0 .. 100 {
+      logger_id.log(
+        log_level::TRACE,
+        LogType::Normal,
+        "hello".into(),
+        vec![],
+        vec![],
+        None,
+        false,
+      );
+    }
 
-  // Verify that the first ten logs are uploaded successfully. We leave a few in the queue in
-  // order to test what happens when the test ends while there is still logs being uploaded.
-  with_expected_server(|h| {
+    // Verify that the first ten logs are uploaded successfully. We leave a few in the queue in
+    // order to test what happens when the test ends while there is still logs being uploaded.
     for _ in 0 .. 10 {
-      let upload = h
+      let upload = s
         .blocking_next_log_upload()
         .expect("logs should be uploaded");
 
@@ -454,4 +347,116 @@ pub fn run_session_replay_target_tests(target: &dyn bd_logger::SessionReplayTarg
 pub fn run_events_listener_target_tests(target: &dyn bd_logger::EventsListenerTarget) {
   target.start();
   target.stop();
+}
+
+// A global handle for managing the test server. Alternatively we could return a
+// handle from start_test_api_server, but this seems a bit simpler for basic testing.
+static HANDLE: LazyLock<Mutex<Option<Box<ServerHandle>>>> = LazyLock::new(Mutex::default);
+
+pub struct Server(MutexGuard<'static, Option<Box<ServerHandle>>>);
+
+impl Deref for Server {
+  type Target = ServerHandle;
+
+  fn deref(&self) -> &Self::Target {
+    self.0.as_ref().expect("test server not started")
+  }
+}
+
+impl DerefMut for Server {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    self.0.as_mut().expect("test server not started")
+  }
+}
+
+impl Server {
+  pub fn start(tls: bool, ping_interval: i32) -> i32 {
+    let ping = if ping_interval < 0 {
+      None
+    } else {
+      Some(Duration::milliseconds(ping_interval.into()))
+    };
+    let server = start_server(tls, ping);
+    let port = server.port;
+    *HANDLE.lock() = Some(server);
+
+    port.into()
+  }
+
+  pub fn stop() {
+      *HANDLE.lock() = None;
+  }
+
+  pub fn with<O>(f: impl FnOnce(Self) -> O) -> O {
+    f(Self(HANDLE.lock()))
+  }
+
+  pub fn configure_aggressive_continuous_uploads(&mut self, stream: &StreamHandle) {
+    // Ensure that we've received the handshake.
+    assert!(stream.await_event_with_timeout(
+      ExpectedStreamEvent::Handshake(None),
+      Duration::milliseconds(2000),
+    ));
+
+    // Configure very aggressive runtime values: attempt to read the buffer every 1ms and attempt
+    // to upload logs in batches of one. This should ensure a steady state of uploads being
+    // sent.
+    stream.blocking_stream_action(StreamAction::SendRuntime(make_update(
+      vec![
+        // Enabled platform events listener.
+        (
+          bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
+          ValueKind::Bool(true),
+        ),
+        // Log upload.
+        (
+          bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
+          ValueKind::Int(1),
+        ),
+        (
+          bd_runtime::runtime::log_upload::RetryBackoffMaxFlag::path(),
+          ValueKind::Int(1),
+        ),
+        (
+          bd_runtime::runtime::log_upload::RetryBackoffInitialFlag::path(),
+          ValueKind::Int(1),
+        ),
+        // For integration test purposes we don't want reconnects to take long, as it just
+        // slows down the tests.
+        (
+          bd_runtime::runtime::api::MaxBackoffInterval::path(),
+          ValueKind::Int(10),
+        ),
+        // By enabling internal logs here we get basic test coverage on both platforms.
+        (
+          bd_runtime::runtime::debugging::InternalLoggingFlag::path(),
+          ValueKind::Bool(true),
+        ),
+        // Enable resource utilization logs.
+        (
+          bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
+          ValueKind::Bool(true),
+        ),
+        // Enable session replay periodic screen collection.
+        (
+          bd_runtime::runtime::session_replay::PeriodicScreensEnabledFlag::path(),
+          ValueKind::Bool(true),
+        ),
+      ],
+      "base".to_string(),
+    )));
+
+    self.blocking_next_runtime_ack();
+
+    let configuration_update = make_configuration_update_with_workflow_flushing_buffer(
+      "default",
+      Type::CONTINUOUS,
+      make_buffer_matcher_matching_everything_except_internal_logs(),
+      make_workflow_matcher_matching_everything_except_internal_logs(),
+    );
+
+    stream.blocking_stream_action(StreamAction::SendConfiguration(configuration_update));
+
+    self.blocking_next_configuration_ack();
+  }
 }

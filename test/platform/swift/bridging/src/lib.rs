@@ -101,8 +101,8 @@ impl EventCallback<()> for Continuation {
 
 #[no_mangle]
 unsafe extern "C" fn next_test_api_stream(continuation: *mut Object) {
-  platform_test_helpers::with_expected_server(|h| {
-    h.enqueue_expected_event(
+  platform_test_helpers::Server::with(|s| {
+   s.enqueue_expected_event(
       Event::StreamCreation(Box::new(Continuation::new(continuation))),
       Duration::seconds(5),
     );
@@ -111,8 +111,8 @@ unsafe extern "C" fn next_test_api_stream(continuation: *mut Object) {
 
 #[no_mangle]
 unsafe extern "C" fn test_stream_received_handshake(stream_id: i32, continuation: *mut Object) {
-  platform_test_helpers::with_expected_server(|h| {
-    h.enqueue_expected_event(
+  platform_test_helpers::Server::with(|s| {
+    s.enqueue_expected_event(
       Event::StreamEvent(
         stream_id,
         ExpectedStreamEvent::Handshake(None),
@@ -129,8 +129,8 @@ unsafe extern "C" fn test_stream_closed(
   wait_time_ms: u64,
   continuation: *mut Object,
 ) {
-  platform_test_helpers::with_expected_server(|h| {
-    h.enqueue_expected_event(
+  platform_test_helpers::Server::with(|s| {
+    s.enqueue_expected_event(
       Event::StreamEvent(
         stream_id,
         ExpectedStreamEvent::Closed,
@@ -159,9 +159,9 @@ unsafe fn make_nsdata(s: &[u8]) -> *mut Object {
 #[no_mangle]
 #[allow(clippy::cast_possible_wrap)]
 unsafe extern "C" fn next_uploaded_log(uploaded_log: *mut Object) -> bool {
-  platform_test_helpers::with_expected_server(|h| {
+  platform_test_helpers::Server::with(|mut s| {
     // If we don't get a log within 5s, return false and end immediately.
-    let Some(log_request) = h.blocking_next_log_upload() else {
+    let Some(log_request) = s.blocking_next_log_upload() else {
       return false;
     };
 

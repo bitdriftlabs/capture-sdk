@@ -1,5 +1,5 @@
 {
-  "checksum": "dd64afd505adad11f22e38f795bff1abe70a3a66c92ee7d2000540f5aa4d985d",
+  "checksum": "940b88a51f4b095a84b3e7645b0952c9876a19548cff33576d512de3c7c07478",
   "crates": {
     "addr2line 0.24.2": {
       "name": "addr2line",
@@ -12183,6 +12183,10 @@
             {
               "id": "bd-test-helpers 1.0.0",
               "target": "bd_test_helpers"
+            },
+            {
+              "id": "log 0.4.25",
+              "target": "log"
             },
             {
               "id": "time 0.3.37",
