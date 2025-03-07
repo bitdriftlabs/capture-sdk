@@ -329,6 +329,16 @@ crate.from_cargo(
         "//test/platform/swift/bridging:Cargo.toml",
         "//test/benchmark:Cargo.toml",
     ],
+    supported_platform_triples = [
+        "aarch64-apple-ios-sim",
+        "aarch64-apple-ios",
+        "aarch64-linux-android",
+        "armv7-linux-androideabi",
+        "i686-linux-android",
+        "x86_64-apple-ios",
+        "x86_64-linux-android",
+        "aarch64-apple-darwin",
+    ],
 )
 crate.annotation(
     build_script_env = {"SKIP_PROTO_GEN": "1"},
