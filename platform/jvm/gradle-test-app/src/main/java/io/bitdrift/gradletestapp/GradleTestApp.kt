@@ -45,6 +45,7 @@ import android.app.ApplicationStartInfo.START_TYPE_UNSET
 import android.app.ApplicationStartInfo.START_TYPE_WARM
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Paint.Cap
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -56,6 +57,7 @@ import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.timber.CaptureTree
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import papa.AppLaunchType
@@ -84,6 +86,10 @@ class GradleTestApp : Application() {
     override fun onCreate() {
         super.onCreate()
         Timber.i("Hello World!")
+
+        @OptIn(ExperimentalBitdriftApi::class)
+        Capture.Logger.initCrashReporting()
+
         initLogging()
         trackAppLaunch()
         trackAppLifecycle()

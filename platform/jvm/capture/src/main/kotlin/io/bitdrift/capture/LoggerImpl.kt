@@ -49,6 +49,7 @@ import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.CrashReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import java.io.File
@@ -82,6 +83,7 @@ internal class LoggerImpl(
     private val bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
+    private val crashReporterState: CrashReporter.CrashReporterState,
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val memoryMetricsProvider = MemoryMetricsProvider(context)
@@ -264,6 +266,8 @@ internal class LoggerImpl(
                 appExitLogger.installAppExitLogger()
 
                 CaptureJniLibrary.startLogger(this.loggerId)
+
+                handleCrashReporterState()
             }
 
         CaptureJniLibrary.writeSDKStartLog(
@@ -527,6 +531,13 @@ internal class LoggerImpl(
             }
         } else {
             errorHandler.handleError("Couldn't start JankStatsMonitor", IllegalArgumentException("Invalid application provided"))
+        }
+    }
+
+    private fun handleCrashReporterState() {
+        if (crashReporterState is CrashReporter.CrashReporterState.Completed.ProcessingFailure) {
+            // TODO(FranAguilera): BIT-4830. Report status of initCrashReporting call (if any) and its duration
+            errorHandler.handleError(crashReporterState.message, crashReporterState.throwable)
         }
     }
 }
