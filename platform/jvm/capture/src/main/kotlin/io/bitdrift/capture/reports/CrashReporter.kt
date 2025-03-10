@@ -61,7 +61,7 @@ internal class CrashReporter(
                 ?: let {
                     return Completed.ProcessingFailure(
                         "Malformed content at $REPORTS_DIRECTORY",
-                        IllegalStateException(),
+                        IllegalStateException("Incorrect CSV format"),
                     )
                 }
 
