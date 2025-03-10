@@ -45,6 +45,7 @@ import android.app.ApplicationStartInfo.START_TYPE_UNSET
 import android.app.ApplicationStartInfo.START_TYPE_WARM
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Paint.Cap
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -84,6 +85,7 @@ class GradleTestApp : Application() {
     override fun onCreate() {
         super.onCreate()
         Timber.i("Hello World!")
+        Capture.Logger.initCrashReporting()
         initLogging()
         trackAppLaunch()
         trackAppLifecycle()

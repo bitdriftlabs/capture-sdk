@@ -18,6 +18,8 @@ import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.CrashReporter
+import io.bitdrift.capture.reports.CrashReporter.CrashReportingState
 import okhttp3.HttpUrl
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
@@ -51,6 +53,7 @@ internal sealed class LoggerState {
  */
 object Capture {
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
+    private val crashReporterState: AtomicReference<CrashReportingState> = AtomicReference(CrashReportingState.NotInitialized)
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -91,6 +94,20 @@ object Capture {
 
         // This is a lazy property to avoid the need to initialize the main thread handler unless needed here
         private val mainThreadHandler by lazy { MainThreadHandler() }
+
+        /**
+         * Initializes crash reporting mechanism. This should be the first call upon Application.onCreate()
+         */
+        @Synchronized
+        @JvmStatic
+        fun initCrashReporting() {
+            if (crashReporterState.compareAndSet(CrashReportingState.NotInitialized, CrashReportingState.Initializing)) {
+                val crashReporter = CrashReporter()
+                crashReporterState.set(crashReporter.processCrashReportFile())
+            } else {
+                Log.w("capture", "Multiple attempts to call initCrashReporting")
+            }
+        }
 
         /**
          * Initializes the Capture SDK with the specified API key, providers, and configuration.
@@ -165,6 +182,7 @@ object Capture {
                             configuration = configuration,
                             sessionStrategy = sessionStrategy,
                             bridge = bridge,
+                            crashReportingState = crashReporterState.get(),
                         )
                     default.set(LoggerState.Started(logger))
                 } catch (e: Throwable) {

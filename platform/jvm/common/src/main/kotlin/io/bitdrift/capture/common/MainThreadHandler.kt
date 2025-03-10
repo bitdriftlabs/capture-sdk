@@ -25,4 +25,14 @@ class MainThreadHandler {
     fun run(run: () -> Unit) {
         mainHandler.post { run() }
     }
+
+    /**
+     * Provides utility methods related to main thread
+     */
+    companion object {
+        /**
+         * Checks whether the current call is happening on the main thread
+         */
+        fun isOnMainThread(): Boolean = Looper.getMainLooper() == Looper.myLooper()
+    }
 }
