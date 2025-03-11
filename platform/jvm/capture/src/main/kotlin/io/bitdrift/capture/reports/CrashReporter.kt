@@ -56,18 +56,18 @@ internal class CrashReporter(
         val crashConfigFile = File("$filesDir$CONFIGURATION_FILE_PATH")
 
         if (!crashConfigFile.exists()) {
-            return Initialized.MissingConfigFile("$CONFIGURATION_FILE_PATH does not exist")
+            return Initialized.MissingConfigFile("Configuration file does not exits")
         }
 
         val crashConfigFileContents = crashConfigFile.readText()
         val crashConfigDetails =
             getConfigDetails(crashConfigFileContents) ?: let {
-                return Initialized.MalformedConfigFile("Malformed content at $CONFIGURATION_FILE_PATH. Contents: $crashConfigFileContents")
+                return Initialized.MalformedConfigFile("Malformed content at configuration file")
             }
 
         val sourceDirectory = File("${appContext.cacheDir.absolutePath}/${crashConfigDetails.rootPath}")
         if (!sourceDirectory.exists() || !sourceDirectory.isDirectory) {
-            return Initialized.WithoutPriorCrash("$sourceDirectory directory does not exist or is not a directory")
+            return Initialized.WithoutPriorCrash("Prior crash not found")
         }
 
         val destinationDirectory = File("$filesDir$DESTINATION_FILE_PATH").apply { if (!exists()) mkdirs() }
@@ -92,14 +92,14 @@ internal class CrashReporter(
         val crashFile =
             findCrashFile(sourceDirectory, fileExtension)
                 ?: let {
-                    return Initialized.WithoutPriorCrash("Crash file with .$fileExtension extension not found in the source directory")
+                    return Initialized.WithoutPriorCrash("Crash file not found in the source directory")
                 }
 
         val destinationFile = File(destinationDirectory, crashFile.toFilenameWithTimeStamp())
         crashFile.copyTo(destinationFile, overwrite = true)
 
         return if (destinationFile.exists()) {
-            Initialized.CrashReportSent("File ${destinationFile.absolutePath} copied successfully")
+            Initialized.CrashReportSent("Crash file copied successfully")
         } else {
             Initialized.WithoutPriorCrash("No prior crashes found")
         }

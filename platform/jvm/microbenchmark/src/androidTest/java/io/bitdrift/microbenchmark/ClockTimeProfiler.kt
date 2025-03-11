@@ -17,6 +17,8 @@ import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.NotInitialized
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterStatus
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.Rule
 import org.junit.Test
@@ -54,7 +56,8 @@ class ClockTimeProfiler {
                 dateProvider = SystemDateProvider(),
                 configuration = Configuration(),
                 sessionStrategy = SessionStrategy.Fixed(),
-            )
+                crashReporterStatus = CrashReporterStatus(NotInitialized),
+                )
         }
     }
 

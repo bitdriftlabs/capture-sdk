@@ -16,6 +16,7 @@ import io.bitdrift.capture.reports.CrashReporter.Companion.buildFieldsMap
 import io.bitdrift.capture.reports.CrashReporter.Companion.getDurationFieldValue
 import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Initialized.CrashReportSent
 import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Initialized.MalformedConfigFile
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Initialized.MissingConfigFile
 import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Initialized.WithoutPriorCrash
 import io.bitdrift.capture.reports.CrashReporter.CrashReporterStatus
 import org.assertj.core.api.Assertions.assertThat
@@ -45,8 +46,8 @@ class CrashReporterTest {
         val crashReporterStatus = crashReporter.processCrashReportFile()
 
         crashReporterStatus.assert(
-            CrashReporter.CrashReporterState.Initialized.MissingConfigFile::class.java,
-            "/bitdrift_capture/reports/directories does not exist",
+            MissingConfigFile::class.java,
+            "Configuration file does not exits",
         )
     }
 
@@ -62,7 +63,7 @@ class CrashReporterTest {
 
         crashReporterStatus.assert(
             WithoutPriorCrash::class.java,
-            "io.bitdrift.capture-dataDir/cache/acme directory does not exist or is not a directory",
+            "Prior crash not found",
         )
     }
 
@@ -78,7 +79,7 @@ class CrashReporterTest {
 
         crashReporterStatus.assert(
             CrashReportSent::class.java,
-            ".json copied successfully",
+            "Crash file copied successfully",
         )
     }
 
@@ -94,7 +95,7 @@ class CrashReporterTest {
 
         crashReporterStatus.assert(
             WithoutPriorCrash::class.java,
-            "Crash file with .yaml extension not found in the source directory",
+            "Crash file not found in the source directory",
         )
     }
 
@@ -110,7 +111,7 @@ class CrashReporterTest {
 
         crashReporterStatus.assert(
             MalformedConfigFile::class.java,
-            "Malformed content at /bitdrift_capture/reports/directories. Contents: /data/crashdemo/etc",
+            "Malformed content at configuration file",
         )
     }
 
@@ -119,7 +120,7 @@ class CrashReporterTest {
         expectedMessage: String,
     ) {
         assertThat(state).isInstanceOf(expectedType)
-        assertThat(state.message).contains(expectedMessage)
+        assertThat(state.message).isEqualTo(expectedMessage)
         assertThat(duration != null).isTrue()
         val expectedMap: Map<String, FieldValue> =
             buildMap {

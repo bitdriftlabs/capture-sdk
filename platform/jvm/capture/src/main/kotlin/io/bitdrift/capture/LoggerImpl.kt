@@ -50,7 +50,6 @@ import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.CrashReporter.Companion.buildFieldsMap
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.NotInitialized
 import io.bitdrift.capture.reports.CrashReporter.CrashReporterStatus
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
@@ -85,8 +84,7 @@ internal class LoggerImpl(
     private val bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    // TODO(FranAguilera): To remove default and update tests
-    private val crashReporterStatus: CrashReporterStatus = CrashReporterStatus(NotInitialized),
+    private val crashReporterStatus: CrashReporterStatus,
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val memoryMetricsProvider = MemoryMetricsProvider(context)
@@ -271,11 +269,7 @@ internal class LoggerImpl(
                 CaptureJniLibrary.startLogger(this.loggerId)
             }
 
-        CaptureJniLibrary.writeSDKStartLog(
-            this.loggerId,
-            sdkLogStartMap(),
-            duration.toDouble(DurationUnit.SECONDS),
-        )
+        duration.writeSDKStartLog()
     }
 
     override val sessionId: String
@@ -535,11 +529,18 @@ internal class LoggerImpl(
         }
     }
 
-    private fun sdkLogStartMap(): Map<String, FieldValue> {
-        if (!runtime.isEnabled(RuntimeFeature.APPEND_INIT_CRASH_REPORTING_INFO)) {
-            return mapOf()
-        }
-        return crashReporterStatus.buildFieldsMap()
+    private fun Duration.writeSDKStartLog() {
+        val fields =
+            if (runtime.isEnabled(RuntimeFeature.APPEND_INIT_CRASH_REPORTING_INFO)) {
+                crashReporterStatus.buildFieldsMap()
+            } else {
+                mapOf()
+            }
+        CaptureJniLibrary.writeSDKStartLog(
+            loggerId,
+            fields,
+            toDouble(DurationUnit.SECONDS),
+        )
     }
 }
 

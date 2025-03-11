@@ -31,6 +31,8 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.NotInitialized
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterStatus
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
@@ -71,16 +73,7 @@ class CaptureLoggerTest {
 
         testServerPort = CaptureTestJniLibrary.startTestApiServer(-1)
 
-        logger =
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServerUrl(),
-                fieldProviders = listOf(),
-                dateProvider = systemDateProvider,
-                sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-                configuration = Configuration(),
-                preferences = MockPreferences(),
-            )
+        logger = buildLogger(dateProvider = systemDateProvider)
     }
 
     @After
@@ -101,16 +94,7 @@ class CaptureLoggerTest {
     @Test
     fun typedLogging() {
         val logger =
-            spy(
-                LoggerImpl(
-                    apiKey = "test",
-                    apiUrl = testServerUrl(),
-                    fieldProviders = listOf(),
-                    dateProvider = SystemDateProvider(),
-                    sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-                    configuration = Configuration(),
-                ),
-            )
+            spy(buildLogger(dateProvider = SystemDateProvider()))
 
         val spanId = UUID.randomUUID()
 
@@ -214,16 +198,7 @@ class CaptureLoggerTest {
     @Test
     fun normalLogExtractsThrowableInfo() {
         val logger =
-            spy(
-                LoggerImpl(
-                    apiKey = "test",
-                    apiUrl = testServerUrl(),
-                    fieldProviders = listOf(),
-                    sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-                    dateProvider = SystemDateProvider(),
-                    configuration = Configuration(),
-                ),
-            )
+            spy(buildLogger(dateProvider = SystemDateProvider()))
 
         val msg = "my_message"
         logger.log(LogLevel.ERROR, throwable = IOException("my_error")) { msg }
@@ -358,16 +333,7 @@ class CaptureLoggerTest {
         val fieldProvider = mock<FieldProvider>()
         Mockito.`when`(fieldProvider.invoke()).thenReturn(mapOf("test_key" to "test_value"))
 
-        resetLogger(
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServerUrl(),
-                fieldProviders = listOf(fieldProvider),
-                sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-                dateProvider = dateProvider,
-                configuration = Configuration(),
-            ),
-        )
+        resetLogger(buildLogger(fieldProvider, dateProvider))
 
         // Log twice, then verify that the grouping provider is hit exactly twice. If we recursed,
         // we'd have hit a stack overflow or >2 calls to the grouping provider.
@@ -389,17 +355,13 @@ class CaptureLoggerTest {
         Mockito.`when`(fieldProvider.invoke()).thenReturn(emptyMap())
 
         resetLogger(
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServerUrl(),
-                fieldProviders = listOf(fieldProvider),
-                sessionStrategy =
-                    SessionStrategy.Fixed {
-                        providerLatch.countDown()
-                        throw RuntimeException()
-                    },
-                dateProvider = dateProvider,
-                configuration = Configuration(),
+            buildLogger(
+                fieldProvider,
+                dateProvider,
+                SessionStrategy.Fixed {
+                    providerLatch.countDown()
+                    throw RuntimeException()
+                },
             ),
         )
 
@@ -423,16 +385,7 @@ class CaptureLoggerTest {
         val fieldProvider = mock<FieldProvider>()
         Mockito.`when`(fieldProvider.invoke()).thenReturn(emptyMap())
 
-        resetLogger(
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServerUrl(),
-                fieldProviders = listOf(fieldProvider),
-                sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-                dateProvider = dateProvider,
-                configuration = Configuration(),
-            ),
-        )
+        resetLogger(buildLogger(fieldProvider, dateProvider))
 
         logger.log(LogLevel.DEBUG) { "logging..." }
         assert(providerLatch.await(1, TimeUnit.SECONDS))
@@ -453,16 +406,7 @@ class CaptureLoggerTest {
                 throw RuntimeException("test")
             }
 
-        resetLogger(
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServerUrl(),
-                fieldProviders = listOf(fieldProvider),
-                sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-                dateProvider = dateProvider,
-                configuration = Configuration(),
-            ),
-        )
+        resetLogger(buildLogger(fieldProvider, dateProvider))
 
         logger.log(LogLevel.DEBUG) { "logging..." }
         assert(providerLatch.await(1, TimeUnit.SECONDS))
@@ -501,6 +445,24 @@ class CaptureLoggerTest {
 
     private fun resetLogger(logger: LoggerImpl) {
         this.logger = logger
+    }
+
+    private fun buildLogger(
+        fieldProvider: FieldProvider? = null,
+        dateProvider: DateProvider = mock<DateProvider>(),
+        sessionStrategy: SessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
+        crashReporterStatus: CrashReporterStatus = CrashReporterStatus(NotInitialized),
+    ): LoggerImpl {
+        val fieldProviders = fieldProvider?.let { listOf(it) }.orEmpty()
+        return LoggerImpl(
+            apiKey = "test",
+            apiUrl = testServerUrl(),
+            fieldProviders = fieldProviders,
+            sessionStrategy = sessionStrategy,
+            dateProvider = dateProvider,
+            configuration = Configuration(),
+            crashReporterStatus = crashReporterStatus,
+        )
     }
 
     private fun getDefaultFields(): Map<String, FieldValue> =
