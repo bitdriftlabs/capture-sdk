@@ -124,9 +124,9 @@ class CrashReporterTest {
         assertThat(duration != null).isTrue()
         val expectedMap: Map<String, FieldValue> =
             buildMap {
-                put("crash_reporting_state", state.readableType.toFieldValue())
-                put("crash_reporting_details", state.message.toFieldValue())
-                put("crash_reporting_duration_nanos", getDurationFieldValue().toFieldValue())
+                put("_crash_reporting_state", state.readableType.toFieldValue())
+                put("_crash_reporting_details", state.message.toFieldValue())
+                put("_crash_reporting_duration_nanos", getDurationFieldValue().toFieldValue())
             }
         assertThat(buildFieldsMap()).isEqualTo(expectedMap)
     }

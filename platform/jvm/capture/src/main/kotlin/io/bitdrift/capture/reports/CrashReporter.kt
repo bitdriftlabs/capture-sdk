@@ -216,9 +216,9 @@ internal class CrashReporter(
         private const val CONFIGURATION_FILE_PATH = "/bitdrift_capture/reports/directories"
         private const val DESTINATION_FILE_PATH = "/bitdrift_capture/reports/new"
         private const val FILE_CREATION_TIME_ATTRIBUTE = "creationTime"
-        private const val CRASH_REPORTING_STATE_KEY = "crash_reporting_state"
-        private const val CRASH_REPORTING_DETAILS_KEY = "crash_reporting_details"
-        private const val CRASH_REPORTING_DURATION_NANO_KEY = "crash_reporting_duration_nanos"
+        private const val CRASH_REPORTING_STATE_KEY = "_crash_reporting_state"
+        private const val CRASH_REPORTING_DETAILS_KEY = "_crash_reporting_details"
+        private const val CRASH_REPORTING_DURATION_NANO_KEY = "_crash_reporting_duration_nanos"
 
         fun CrashReporterStatus.buildFieldsMap(): Map<String, FieldValue> =
             buildMap {
