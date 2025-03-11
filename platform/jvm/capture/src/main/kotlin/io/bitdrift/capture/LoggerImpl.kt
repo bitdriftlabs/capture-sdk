@@ -49,7 +49,9 @@ import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.reports.CrashReporter
+import io.bitdrift.capture.reports.CrashReporter.Companion.buildFieldsMap
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.NotInitialized
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterStatus
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import java.io.File
@@ -84,7 +86,7 @@ internal class LoggerImpl(
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
     // TODO(FranAguilera): To remove default and update tests
-    private val crashReporterState: CrashReporter.CrashReporterState = CrashReporter.CrashReporterState.NotInitialized,
+    private val crashReporterStatus: CrashReporterStatus = CrashReporterStatus(NotInitialized),
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val memoryMetricsProvider = MemoryMetricsProvider(context)
@@ -267,13 +269,11 @@ internal class LoggerImpl(
                 appExitLogger.installAppExitLogger()
 
                 CaptureJniLibrary.startLogger(this.loggerId)
-
-                handleCrashReporterState()
             }
 
         CaptureJniLibrary.writeSDKStartLog(
             this.loggerId,
-            mapOf(),
+            sdkLogStartMap(),
             duration.toDouble(DurationUnit.SECONDS),
         )
     }
@@ -535,11 +535,11 @@ internal class LoggerImpl(
         }
     }
 
-    private fun handleCrashReporterState() {
-        if (crashReporterState is CrashReporter.CrashReporterState.Completed.ProcessingFailure) {
-            // TODO(FranAguilera): BIT-4830. Report status of initCrashReporting call (if any) and its duration
-            errorHandler.handleError(crashReporterState.message, crashReporterState.throwable)
+    private fun sdkLogStartMap(): Map<String, FieldValue> {
+        if (!runtime.isEnabled(RuntimeFeature.APPEND_INIT_CRASH_REPORTING_INFO)) {
+            return mapOf()
         }
+        return crashReporterStatus.buildFieldsMap()
     }
 }
 

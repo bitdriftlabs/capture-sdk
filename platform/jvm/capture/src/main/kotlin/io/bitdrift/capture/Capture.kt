@@ -20,7 +20,8 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.CrashReporter
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterState
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.NotInitialized
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterStatus
 import okhttp3.HttpUrl
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
@@ -54,7 +55,7 @@ internal sealed class LoggerState {
  */
 object Capture {
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
-    private var crashReporterState: CrashReporterState = CrashReporterState.NotInitialized
+    private var crashReporterStatus: CrashReporterStatus = CrashReporterStatus(NotInitialized)
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -104,7 +105,7 @@ object Capture {
         @ExperimentalBitdriftApi
         fun initCrashReporting() {
             val crashReporter = CrashReporter()
-            crashReporterState = crashReporter.processCrashReportFile()
+            crashReporterStatus = crashReporter.processCrashReportFile()
         }
 
         /**
@@ -180,7 +181,7 @@ object Capture {
                             configuration = configuration,
                             sessionStrategy = sessionStrategy,
                             bridge = bridge,
-                            crashReporterState = crashReporterState,
+                            crashReporterStatus = crashReporterStatus,
                         )
                     default.set(LoggerState.Started(logger))
                 } catch (e: Throwable) {

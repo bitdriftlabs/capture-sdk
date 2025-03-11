@@ -9,9 +9,15 @@ package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
+import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.reports.CrashReporter
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterState
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Completed
+import io.bitdrift.capture.reports.CrashReporter.Companion.buildFieldsMap
+import io.bitdrift.capture.reports.CrashReporter.Companion.getDurationFieldValue
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Completed.CrashReportSent
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Completed.MalformedConfigFile
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Completed.WithoutPriorCrash
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterStatus
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -36,10 +42,10 @@ class CrashReporterTest {
     fun processCrashReportFile_withMissingConfigFile_shouldReportMissingConfigState() {
         prepareFileDirectories(doesReportsDirectoryExist = false)
 
-        val crashReporterState = crashReporter.processCrashReportFile()
+        val crashReporterStatus = crashReporter.processCrashReportFile()
 
-        crashReporterState.assertState(
-            Completed.MissingConfigFile::class.java,
+        crashReporterStatus.assert(
+            CrashReporter.CrashReporterState.Completed.MissingConfigFile::class.java,
             "/bitdrift_capture/reports/directories does not exist",
         )
     }
@@ -52,10 +58,10 @@ class CrashReporterTest {
             crashFilePresent = false,
         )
 
-        val crashReporterState = crashReporter.processCrashReportFile()
+        val crashReporterStatus = crashReporter.processCrashReportFile()
 
-        crashReporterState.assertState(
-            Completed.WithoutPriorCrash::class.java,
+        crashReporterStatus.assert(
+            WithoutPriorCrash::class.java,
             "io.bitdrift.capture-dataDir/cache/acme directory does not exist or is not a directory",
         )
     }
@@ -68,10 +74,10 @@ class CrashReporterTest {
             crashFilePresent = true,
         )
 
-        val crashReporterState = crashReporter.processCrashReportFile()
+        val crashReporterStatus = crashReporter.processCrashReportFile()
 
-        crashReporterState.assertState(
-            Completed.CrashReportSent::class.java,
+        crashReporterStatus.assert(
+            CrashReportSent::class.java,
             "File crash_info.json copied successfully",
         )
     }
@@ -84,11 +90,11 @@ class CrashReporterTest {
             crashFilePresent = true,
         )
 
-        val crashReporterState = crashReporter.processCrashReportFile()
+        val crashReporterStatus = crashReporter.processCrashReportFile()
 
-        crashReporterState.assertState(
-            Completed.WithoutPriorCrash::class.java,
-            "File with .yaml not found in the source directory",
+        crashReporterStatus.assert(
+            WithoutPriorCrash::class.java,
+            "Crash file with .yaml extension not found in the source directory",
         )
     }
 
@@ -100,22 +106,28 @@ class CrashReporterTest {
             crashFilePresent = true,
         )
 
-        val crashReporterState = crashReporter.processCrashReportFile()
+        val crashReporterStatus = crashReporter.processCrashReportFile()
 
-        crashReporterState.assertState(
-            Completed.MalformedConfigFile::class.java,
+        crashReporterStatus.assert(
+            MalformedConfigFile::class.java,
             "Malformed content at /bitdrift_capture/reports/directories",
         )
     }
 
-    private fun CrashReporterState.assertState(
+    private fun CrashReporterStatus.assert(
         expectedType: Class<*>,
         expectedMessage: String,
     ) {
-        assertThat(this).isInstanceOf(expectedType)
-        if (expectedType.isInstance(this)) {
-            assertThat((this as Completed).message).contains(expectedMessage)
-        }
+        assertThat(state).isInstanceOf(expectedType)
+        assertThat(state.message).contains(expectedMessage)
+        assertThat(duration != null).isTrue()
+        val expectedMap: Map<String, FieldValue> =
+            buildMap {
+                put("crash_reporting_state", state.readableType.toFieldValue())
+                put("crash_reporting_details", state.message.toFieldValue())
+                put("crash_reporting_duration_nanos", getDurationFieldValue().toFieldValue())
+            }
+        assertThat(buildFieldsMap()).isEqualTo(expectedMap)
     }
 
     private fun prepareFileDirectories(
