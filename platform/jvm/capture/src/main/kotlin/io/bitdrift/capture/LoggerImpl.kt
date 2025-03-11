@@ -50,7 +50,7 @@ import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.CrashReporter.Companion.buildFieldsMap
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterStatus
+import io.bitdrift.capture.reports.CrashReporterStatus
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import java.io.File
@@ -530,7 +530,7 @@ internal class LoggerImpl(
     }
 
     private fun writeSDKStartLog(duration: Duration) {
-        val fields =
+        val fields: Map<String, FieldValue> =
             if (runtime.isEnabled(RuntimeFeature.APPEND_INIT_CRASH_REPORTING_INFO)) {
                 crashReporterStatus.buildFieldsMap()
             } else {

@@ -14,11 +14,8 @@ import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.reports.CrashReporter
 import io.bitdrift.capture.reports.CrashReporter.Companion.buildFieldsMap
 import io.bitdrift.capture.reports.CrashReporter.Companion.getDuration
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Initialized.CrashReportSent
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Initialized.MalformedConfigFile
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Initialized.MissingConfigFile
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Initialized.WithoutPriorCrash
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterStatus
+import io.bitdrift.capture.reports.CrashReporterState
+import io.bitdrift.capture.reports.CrashReporterStatus
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -45,10 +42,7 @@ class CrashReporterTest {
 
         val crashReporterStatus = crashReporter.processCrashReportFile()
 
-        crashReporterStatus.assert(
-            MissingConfigFile::class.java,
-            "Configuration file does not exits",
-        )
+        crashReporterStatus.assert(CrashReporterState.Initialized.MissingConfigFile::class.java)
     }
 
     @Test
@@ -62,8 +56,7 @@ class CrashReporterTest {
         val crashReporterStatus = crashReporter.processCrashReportFile()
 
         crashReporterStatus.assert(
-            WithoutPriorCrash::class.java,
-            "Prior crash not found",
+            CrashReporterState.Initialized.WithoutPriorCrash::class.java,
         )
     }
 
@@ -78,8 +71,7 @@ class CrashReporterTest {
         val crashReporterStatus = crashReporter.processCrashReportFile()
 
         crashReporterStatus.assert(
-            CrashReportSent::class.java,
-            "Crash file copied successfully",
+            CrashReporterState.Initialized.CrashReportSent::class.java,
         )
     }
 
@@ -94,8 +86,7 @@ class CrashReporterTest {
         val crashReporterStatus = crashReporter.processCrashReportFile()
 
         crashReporterStatus.assert(
-            WithoutPriorCrash::class.java,
-            "Crash file not found in the source directory",
+            CrashReporterState.Initialized.WithoutPriorCrash::class.java,
         )
     }
 
@@ -110,22 +101,16 @@ class CrashReporterTest {
         val crashReporterStatus = crashReporter.processCrashReportFile()
 
         crashReporterStatus.assert(
-            MalformedConfigFile::class.java,
-            "Malformed content at configuration file",
+            CrashReporterState.Initialized.MalformedConfigFile::class.java,
         )
     }
 
-    private fun CrashReporterStatus.assert(
-        expectedType: Class<*>,
-        expectedMessage: String,
-    ) {
+    private fun CrashReporterStatus.assert(expectedType: Class<*>) {
         assertThat(state).isInstanceOf(expectedType)
-        assertThat(state.message).isEqualTo(expectedMessage)
         assertThat(duration != null).isTrue()
         val expectedMap: Map<String, FieldValue> =
             buildMap {
                 put("_crash_reporting_state", state.readableType.toFieldValue())
-                put("_crash_reporting_details", state.message.toFieldValue())
                 put("_crash_reporting_duration_nanos", getDuration().toFieldValue())
             }
         assertThat(buildFieldsMap()).isEqualTo(expectedMap)

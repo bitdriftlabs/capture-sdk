@@ -9,6 +9,7 @@ package io.bitdrift.capture.common
 
 import android.os.Handler
 import android.os.Looper
+import java.util.concurrent.CountDownLatch
 
 /**
  * Helper class to run code on the main thread
@@ -24,6 +25,27 @@ class MainThreadHandler {
      */
     fun run(run: () -> Unit) {
         mainHandler.post { run() }
+    }
+
+    /**
+     * Runs the specific action on main thread and return its results.
+     */
+    fun <T> runAndReturnResult(action: () -> T): T {
+        if (isOnMainThread()) {
+            return action()
+        }
+        var actionResult: T? = null
+        val countDownLatch = CountDownLatch(1)
+        mainHandler.post {
+            try {
+                actionResult = action()
+            } finally {
+                countDownLatch.countDown()
+            }
+        }
+        countDownLatch.await()
+        @Suppress("UNCHECKED_CAST")
+        return actionResult as T
     }
 
     /**

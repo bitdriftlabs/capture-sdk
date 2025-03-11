@@ -19,8 +19,8 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.NotInitialized
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterStatus
+import io.bitdrift.capture.reports.CrashReporterState
+import io.bitdrift.capture.reports.CrashReporterStatus
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
@@ -86,7 +86,7 @@ class CaptureLoggerSessionOverrideTest {
                 sessionStrategy = SessionStrategy.Fixed { "foo" },
                 configuration = Configuration(),
                 preferences = preferences,
-                crashReporterStatus = CrashReporterStatus(NotInitialized),
+                crashReporterStatus = CrashReporterStatus(CrashReporterState.NotInitialized),
             )
 
         CaptureTestJniLibrary.stopTestApiServer()
@@ -119,7 +119,7 @@ class CaptureLoggerSessionOverrideTest {
                 configuration = Configuration(),
                 preferences = preferences,
                 activityManager = activityManager,
-                crashReporterStatus = CrashReporterStatus(NotInitialized),
+                crashReporterStatus = CrashReporterStatus(CrashReporterState.NotInitialized),
             )
 
         val newStreamId = CaptureTestJniLibrary.awaitNextApiStream()

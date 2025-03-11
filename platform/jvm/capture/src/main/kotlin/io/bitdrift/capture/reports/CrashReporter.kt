@@ -14,11 +14,10 @@ import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Initialized
+import io.bitdrift.capture.reports.CrashReporterState.Initialized.ProcessingFailure
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
-import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
 
@@ -35,17 +34,25 @@ internal class CrashReporter(
      *
      * @return The status of the crash reporting processing
      */
-    fun processCrashReportFile(): CrashReporterStatus {
-        var crashReporterState: CrashReporterState = CrashReporterState.Initializing
+    fun processCrashReportFile(): CrashReporterStatus =
+        runCatching {
+            if (MainThreadHandler.isOnMainThread()) {
+                runVerifyDirectoriesAndCopyFiles()
+            } else {
+                mainThreadHandler.runAndReturnResult {
+                    runVerifyDirectoriesAndCopyFiles()
+                }
+            }
+        }.getOrElse {
+            CrashReporterStatus(ProcessingFailure("Error while processCrashReportFile. ${it.message}"))
+        }
+
+    @UiThread
+    private fun runVerifyDirectoriesAndCopyFiles(): CrashReporterStatus {
+        var crashReporterState: CrashReporterState
         val duration =
             measureTime {
-                if (MainThreadHandler.isOnMainThread()) {
-                    crashReporterState = verifyDirectoriesAndCopyFiles()
-                } else {
-                    mainThreadHandler.run {
-                        crashReporterState = verifyDirectoriesAndCopyFiles()
-                    }
-                }
+                crashReporterState = verifyDirectoriesAndCopyFiles()
             }
         return CrashReporterStatus(crashReporterState, duration)
     }
@@ -53,24 +60,26 @@ internal class CrashReporter(
     @UiThread
     private fun verifyDirectoriesAndCopyFiles(): CrashReporterState {
         val filesDir = appContext.filesDir.absolutePath
-        val crashConfigFile = File("$filesDir$CONFIGURATION_FILE_PATH")
+        val crashConfigFile = File(filesDir, CONFIGURATION_FILE_PATH)
 
         if (!crashConfigFile.exists()) {
-            return Initialized.MissingConfigFile("Configuration file does not exits")
+            return CrashReporterState.Initialized.MissingConfigFile
         }
 
         val crashConfigFileContents = crashConfigFile.readText()
         val crashConfigDetails =
             getConfigDetails(crashConfigFileContents) ?: let {
-                return Initialized.MalformedConfigFile("Malformed content at configuration file")
+                return CrashReporterState.Initialized.MalformedConfigFile
             }
 
-        val sourceDirectory = File("${appContext.cacheDir.absolutePath}/${crashConfigDetails.rootPath}")
+        val sourceDirectory =
+            File(appContext.cacheDir.absolutePath, crashConfigDetails.rootPath)
         if (!sourceDirectory.exists() || !sourceDirectory.isDirectory) {
-            return Initialized.WithoutPriorCrash("Prior crash not found")
+            return CrashReporterState.Initialized.WithoutPriorCrash
         }
 
-        val destinationDirectory = File("$filesDir$DESTINATION_FILE_PATH").apply { if (!exists()) mkdirs() }
+        val destinationDirectory =
+            File("$filesDir$DESTINATION_FILE_PATH").apply { if (!exists()) mkdirs() }
 
         return runCatching {
             findAndCopyCrashFile(
@@ -79,7 +88,7 @@ internal class CrashReporter(
                 crashConfigDetails.extensionFileName,
             )
         }.getOrElse {
-            return Initialized.ProcessingFailure("Couldn't process crash files. ${it.message}")
+            return ProcessingFailure("Couldn't process crash files. ${it.message}")
         }
     }
 
@@ -92,16 +101,16 @@ internal class CrashReporter(
         val crashFile =
             findCrashFile(sourceDirectory, fileExtension)
                 ?: let {
-                    return Initialized.WithoutPriorCrash("Crash file not found in the source directory")
+                    return CrashReporterState.Initialized.WithoutPriorCrash
                 }
 
         val destinationFile = File(destinationDirectory, crashFile.toFilenameWithTimeStamp())
         crashFile.copyTo(destinationFile, overwrite = true)
 
         return if (destinationFile.exists()) {
-            Initialized.CrashReportSent("Crash file copied successfully")
+            CrashReporterState.Initialized.CrashReportSent
         } else {
-            Initialized.WithoutPriorCrash("No prior crashes found")
+            CrashReporterState.Initialized.WithoutPriorCrash
         }
     }
 
@@ -121,90 +130,17 @@ internal class CrashReporter(
 
     private fun File.toFilenameWithTimeStamp(): String {
         val fileCreationEpochTime = getFileCreationTimeEpochInMillis(this)
-        return fileCreationEpochTime.toString() + "." + this.extension
+        return fileCreationEpochTime.toString() + "_" + this.name
     }
 
     private fun getFileCreationTimeEpochInMillis(file: File): Long =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val fileTime =
-                Files.getAttribute(file.toPath(), FILE_CREATION_TIME_ATTRIBUTE) as FileTime
+                Files.getAttribute(file.toPath(), LAST_MODIFIED_TIME_ATTRIBUTE) as FileTime
             fileTime.toMillis()
         } else {
             file.lastModified()
         }
-
-    internal sealed class CrashReporterState(
-        open val readableType: String,
-    ) {
-        /**
-         * Contains details of the state
-         */
-        abstract val message: String
-
-        /**
-         * Indicates that initial setup call is in progress
-         */
-        data object Initializing : CrashReporterState("INITIALIZING") {
-            override val message: String
-                get() = "Initializing Crash Reporting"
-        }
-
-        /**
-         * State indicating that crash reporting has not been initialized
-         */
-        data object NotInitialized : CrashReporterState("NOT_INITIALIZED") {
-            override val message: String
-                get() = "Crash reporting not initialized"
-        }
-
-        /**
-         * Sealed class representing all initialized states
-         */
-        sealed class Initialized(
-            override val readableType: String,
-            override val message: String,
-        ) : CrashReporterState(readableType) {
-            /**
-             * State indicating that prior crash report was sent
-             */
-            data class CrashReportSent(
-                override val message: String,
-            ) : Initialized("CRASH_REPORT_SENT", message)
-
-            /**
-             * State indicating that there are no prior crashes to report
-             */
-            data class WithoutPriorCrash(
-                override val message: String,
-            ) : Initialized("NO_PRIOR_CRASHES", message)
-
-            /**
-             * State indicating that the crash report configuration file is missing
-             */
-            data class MissingConfigFile(
-                override val message: String,
-            ) : Initialized("MISSING_CRASH_CONFIG_FILE", message)
-
-            /**
-             * State indicating that the crash report configuration file content is incorrect
-             */
-            data class MalformedConfigFile(
-                override val message: String,
-            ) : Initialized("MALFORMED_CRASH_CONFIG_FILE", message)
-
-            /**
-             * State indicating that processing crash reports failed
-             */
-            data class ProcessingFailure(
-                override val message: String,
-            ) : Initialized("CRASH_PROCESSING_FAILURE", message)
-        }
-    }
-
-    data class CrashReporterStatus(
-        val state: CrashReporterState,
-        val duration: Duration? = null,
-    )
 
     private data class ConfigDetails(
         val rootPath: String,
@@ -215,21 +151,20 @@ internal class CrashReporter(
         // TODO(FranAguilera): To rename to /bitdrift_capture/reports/config when shared-core is bumped
         private const val CONFIGURATION_FILE_PATH = "/bitdrift_capture/reports/directories"
         private const val DESTINATION_FILE_PATH = "/bitdrift_capture/reports/new"
-        private const val FILE_CREATION_TIME_ATTRIBUTE = "creationTime"
+        private const val LAST_MODIFIED_TIME_ATTRIBUTE = "lastModifiedTime"
         private const val CRASH_REPORTING_STATE_KEY = "_crash_reporting_state"
-        private const val CRASH_REPORTING_DETAILS_KEY = "_crash_reporting_details"
         private const val CRASH_REPORTING_DURATION_NANO_KEY = "_crash_reporting_duration_nanos"
 
-        fun CrashReporterStatus.buildFieldsMap(): Map<String, FieldValue> =
+        /**
+         * Returns the fields map with latest [CrashReporterStatus]
+         */
+        internal fun CrashReporterStatus.buildFieldsMap(): Map<String, FieldValue> =
             buildMap {
                 put(CRASH_REPORTING_STATE_KEY, state.readableType.toFieldValue())
-                put(CRASH_REPORTING_DETAILS_KEY, state.message.toFieldValue())
                 put(CRASH_REPORTING_DURATION_NANO_KEY, getDuration().toFieldValue())
             }
 
         @VisibleForTesting
-        fun CrashReporterStatus.getDuration(): String {
-            return duration?.toDouble(DurationUnit.MILLISECONDS)?.toString() ?: "n/a"
-        }
+        fun CrashReporterStatus.getDuration(): String = duration?.toDouble(DurationUnit.MILLISECONDS)?.toString() ?: "n/a"
     }
 }

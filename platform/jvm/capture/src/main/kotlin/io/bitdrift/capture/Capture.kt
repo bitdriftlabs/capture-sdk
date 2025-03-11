@@ -20,8 +20,8 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.CrashReporter
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.NotInitialized
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterStatus
+import io.bitdrift.capture.reports.CrashReporterState
+import io.bitdrift.capture.reports.CrashReporterStatus
 import okhttp3.HttpUrl
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
@@ -55,7 +55,7 @@ internal sealed class LoggerState {
  */
 object Capture {
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
-    private var crashReporterStatus: CrashReporterStatus = CrashReporterStatus(NotInitialized)
+    private var crashReporterStatus: CrashReporterStatus = CrashReporterStatus(CrashReporterState.NotInitialized)
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -106,7 +106,11 @@ object Capture {
         @JvmStatic
         fun initCrashReporting() {
             val crashReporter = CrashReporter()
-            crashReporterStatus = crashReporter.processCrashReportFile()
+            if (crashReporterStatus.state is CrashReporterState.NotInitialized) {
+                crashReporterStatus = crashReporter.processCrashReportFile()
+            } else {
+                Log.w("capture", "Crash reporting already being initialized")
+            }
         }
 
         /**

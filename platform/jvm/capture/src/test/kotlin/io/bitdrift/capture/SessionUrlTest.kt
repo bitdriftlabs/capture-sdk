@@ -10,8 +10,8 @@ package io.bitdrift.capture
 import androidx.test.core.app.ApplicationProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.NotInitialized
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterStatus
+import io.bitdrift.capture.reports.CrashReporterState
+import io.bitdrift.capture.reports.CrashReporterStatus
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -73,6 +73,6 @@ class SessionUrlTest {
             fieldProviders = listOf(),
             dateProvider = SystemDateProvider(),
             sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-            crashReporterStatus = CrashReporterStatus(NotInitialized),
+            crashReporterStatus = CrashReporterStatus(CrashReporterState.NotInitialized),
         )
 }
