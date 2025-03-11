@@ -98,11 +98,12 @@ object Capture {
         private val mainThreadHandler by lazy { MainThreadHandler() }
 
         /**
-         * Initializes crash reporting mechanism. This should be the first call upon Application.onCreate()
+         * Initializes crash reporting mechanism.
+         *
+         * This should be called priorly to Capture.Logger.start()
          */
-        @Synchronized
-        @JvmStatic
         @ExperimentalBitdriftApi
+        @JvmStatic
         fun initCrashReporting() {
             val crashReporter = CrashReporter()
             crashReporterStatus = crashReporter.processCrashReportFile()

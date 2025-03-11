@@ -14,9 +14,9 @@ import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.reports.CrashReporter
 import io.bitdrift.capture.reports.CrashReporter.Companion.buildFieldsMap
 import io.bitdrift.capture.reports.CrashReporter.Companion.getDurationFieldValue
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Completed.CrashReportSent
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Completed.MalformedConfigFile
-import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Completed.WithoutPriorCrash
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Initialized.CrashReportSent
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Initialized.MalformedConfigFile
+import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Initialized.WithoutPriorCrash
 import io.bitdrift.capture.reports.CrashReporter.CrashReporterStatus
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -45,7 +45,7 @@ class CrashReporterTest {
         val crashReporterStatus = crashReporter.processCrashReportFile()
 
         crashReporterStatus.assert(
-            CrashReporter.CrashReporterState.Completed.MissingConfigFile::class.java,
+            CrashReporter.CrashReporterState.Initialized.MissingConfigFile::class.java,
             "/bitdrift_capture/reports/directories does not exist",
         )
     }
@@ -54,7 +54,7 @@ class CrashReporterTest {
     fun processCrashReportFile_withValidConfigFileAndNotReports_shouldReportWithoutPriorCrashState() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
-            bitdriftConfig = "acme,json",
+            bitdriftConfigContent = "acme,json",
             crashFilePresent = false,
         )
 
@@ -70,7 +70,7 @@ class CrashReporterTest {
     fun processCrashReportFile_withValidConfigFileAndReports_shouldReportPriorCrash() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
-            bitdriftConfig = "acme,json",
+            bitdriftConfigContent = "acme,json",
             crashFilePresent = true,
         )
 
@@ -86,7 +86,7 @@ class CrashReporterTest {
     fun processCrashReportFile_withInValidExtensionConfigAndReports_shouldReportPriorCrash() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
-            bitdriftConfig = "acme,yaml",
+            bitdriftConfigContent = "acme,yaml",
             crashFilePresent = true,
         )
 
@@ -102,7 +102,7 @@ class CrashReporterTest {
     fun processCrashReportFile_withMalformedConfigFileAndPriorReport_shouldReportMalformedConfigFile() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
-            bitdriftConfig = "/data/crashdemo/etc",
+            bitdriftConfigContent = "/data/crashdemo/etc",
             crashFilePresent = true,
         )
 
@@ -110,7 +110,7 @@ class CrashReporterTest {
 
         crashReporterStatus.assert(
             MalformedConfigFile::class.java,
-            "Malformed content at /bitdrift_capture/reports/directories",
+            "Malformed content at /bitdrift_capture/reports/directories. Contents: /data/crashdemo/etc",
         )
     }
 
@@ -132,7 +132,7 @@ class CrashReporterTest {
 
     private fun prepareFileDirectories(
         doesReportsDirectoryExist: Boolean,
-        bitdriftConfig: String? = null,
+        bitdriftConfigContent: String? = null,
         crashFilePresent: Boolean = false,
     ) {
         if (doesReportsDirectoryExist) {
@@ -140,7 +140,7 @@ class CrashReporterTest {
             val reportsDir = File(filesDir, "bitdrift_capture/reports/")
             reportsDir.mkdirs()
             val reportFile = File(reportsDir, "directories")
-            bitdriftConfig?.let {
+            bitdriftConfigContent?.let {
                 reportFile.writeText(it)
             }
         }
