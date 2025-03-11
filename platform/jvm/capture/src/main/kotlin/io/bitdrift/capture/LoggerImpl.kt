@@ -269,7 +269,7 @@ internal class LoggerImpl(
                 CaptureJniLibrary.startLogger(this.loggerId)
             }
 
-        duration.writeSDKStartLog()
+        writeSDKStartLog(duration)
     }
 
     override val sessionId: String
@@ -529,7 +529,7 @@ internal class LoggerImpl(
         }
     }
 
-    private fun Duration.writeSDKStartLog() {
+    private fun writeSDKStartLog(duration: Duration) {
         val fields =
             if (runtime.isEnabled(RuntimeFeature.APPEND_INIT_CRASH_REPORTING_INFO)) {
                 crashReporterStatus.buildFieldsMap()
@@ -539,7 +539,7 @@ internal class LoggerImpl(
         CaptureJniLibrary.writeSDKStartLog(
             loggerId,
             fields,
-            toDouble(DurationUnit.SECONDS),
+            duration.toDouble(DurationUnit.SECONDS),
         )
     }
 }

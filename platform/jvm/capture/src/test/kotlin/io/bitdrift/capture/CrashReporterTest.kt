@@ -13,7 +13,7 @@ import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.reports.CrashReporter
 import io.bitdrift.capture.reports.CrashReporter.Companion.buildFieldsMap
-import io.bitdrift.capture.reports.CrashReporter.Companion.getDurationFieldValue
+import io.bitdrift.capture.reports.CrashReporter.Companion.getDuration
 import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Initialized.CrashReportSent
 import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Initialized.MalformedConfigFile
 import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Initialized.MissingConfigFile
@@ -126,7 +126,7 @@ class CrashReporterTest {
             buildMap {
                 put("_crash_reporting_state", state.readableType.toFieldValue())
                 put("_crash_reporting_details", state.message.toFieldValue())
-                put("_crash_reporting_duration_nanos", getDurationFieldValue().toFieldValue())
+                put("_crash_reporting_duration_nanos", getDuration().toFieldValue())
             }
         assertThat(buildFieldsMap()).isEqualTo(expectedMap)
     }

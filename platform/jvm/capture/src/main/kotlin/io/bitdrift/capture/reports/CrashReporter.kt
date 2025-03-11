@@ -28,7 +28,7 @@ import kotlin.time.measureTime
 internal class CrashReporter(
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) {
-    private val appContext by lazy { APP_CONTEXT }
+    private val appContext = APP_CONTEXT
 
     /**
      * Process existing crash report files.
@@ -224,10 +224,12 @@ internal class CrashReporter(
             buildMap {
                 put(CRASH_REPORTING_STATE_KEY, state.readableType.toFieldValue())
                 put(CRASH_REPORTING_DETAILS_KEY, state.message.toFieldValue())
-                put(CRASH_REPORTING_DURATION_NANO_KEY, getDurationFieldValue().toFieldValue())
+                put(CRASH_REPORTING_DURATION_NANO_KEY, getDuration().toFieldValue())
             }
 
         @VisibleForTesting
-        fun CrashReporterStatus.getDurationFieldValue(): String = duration?.toString(DurationUnit.NANOSECONDS) ?: "n/a"
+        fun CrashReporterStatus.getDuration(): String {
+            return duration?.toDouble(DurationUnit.MILLISECONDS)?.toString() ?: "n/a"
+        }
     }
 }
