@@ -7,12 +7,15 @@
 
 package io.bitdrift.capture.reports
 
+import android.os.Build
 import android.util.Log
 import androidx.annotation.UiThread
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Completed
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.attribute.FileTime
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
 
@@ -87,17 +90,17 @@ internal class CrashReporter(
         destinationDirectory: File,
         fileExtension: String,
     ): CrashReporterState {
-        val targetFile =
+        val crashFile =
             getCrashFile(sourceDirectory, fileExtension)
                 ?: let {
                     return Completed.WithoutPriorCrash("File with .$fileExtension not found in the source directory")
                 }
 
-        val destinationFile = File(destinationDirectory, targetFile.name)
-        targetFile.copyTo(destinationFile, overwrite = true)
+        val destinationFile = File(destinationDirectory, crashFile.toFilenameWithTimeStamp())
+        crashFile.copyTo(destinationFile, overwrite = true)
 
         return if (destinationFile.exists()) {
-            Completed.CrashReportSent("File ${targetFile.name} copied successfully")
+            Completed.CrashReportSent("File ${crashFile.name} copied successfully")
         } else {
             Completed.WithoutPriorCrash("No prior crashes found")
         }
@@ -115,6 +118,19 @@ internal class CrashReporter(
     ): File? =
         sourceFile.walk().firstOrNull {
             it.isFile && it.extension == fileExtension
+        }
+
+    private fun File.toFilenameWithTimeStamp(): String {
+        val fileCreationEpochTime = getFileCreationTimeEpochInMillis(this)
+        return fileCreationEpochTime.toString() + DESTINATION_FILE_SEPARATOR + this.name
+    }
+
+    private fun getFileCreationTimeEpochInMillis(file: File): Long =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val fileTime = Files.getAttribute(file.toPath(), FILE_CREATION_TIME_ATTRIBUTE) as FileTime
+            fileTime.toMillis()
+        } else {
+            file.lastModified()
         }
 
     internal sealed class CrashReporterState {
@@ -184,5 +200,7 @@ internal class CrashReporter(
         // TODO(FranAguilera): To rename to /bitdrift_capture/reports/config when shared-core is bumped
         private const val CONFIGURATION_FILE_PATH = "/bitdrift_capture/reports/directories"
         private const val DESTINATION_FILE_PATH = "/bitdrift_capture/reports/new"
+        private const val FILE_CREATION_TIME_ATTRIBUTE = "creationTime"
+        private const val DESTINATION_FILE_SEPARATOR = "_"
     }
 }
