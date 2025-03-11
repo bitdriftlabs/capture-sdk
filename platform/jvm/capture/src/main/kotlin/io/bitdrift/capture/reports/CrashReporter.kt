@@ -15,6 +15,7 @@ import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.reports.CrashReporterState.Initialized.ProcessingFailure
+import io.bitdrift.capture.utils.SdkDirectory
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
@@ -59,8 +60,8 @@ internal class CrashReporter(
 
     @UiThread
     private fun verifyDirectoriesAndCopyFiles(): CrashReporterState {
-        val filesDir = appContext.filesDir.absolutePath
-        val crashConfigFile = File(filesDir, CONFIGURATION_FILE_PATH)
+        val sdkDirectory = SdkDirectory.getPath(appContext)
+        val crashConfigFile = File(sdkDirectory, CONFIGURATION_FILE_PATH)
 
         if (!crashConfigFile.exists()) {
             return CrashReporterState.Initialized.MissingConfigFile
@@ -79,7 +80,7 @@ internal class CrashReporter(
         }
 
         val destinationDirectory =
-            File("$filesDir$DESTINATION_FILE_PATH").apply { if (!exists()) mkdirs() }
+            File(sdkDirectory, DESTINATION_FILE_PATH).apply { if (!exists()) mkdirs() }
 
         return runCatching {
             findAndCopyCrashFile(
@@ -104,6 +105,7 @@ internal class CrashReporter(
                     return CrashReporterState.Initialized.WithoutPriorCrash
                 }
 
+        verifyDirectoryIsEmpty(destinationDirectory)
         val destinationFile = File(destinationDirectory, crashFile.toFilenameWithTimeStamp())
         crashFile.copyTo(destinationFile, overwrite = true)
 
@@ -111,6 +113,16 @@ internal class CrashReporter(
             CrashReporterState.Initialized.CrashReportSent
         } else {
             CrashReporterState.Initialized.WithoutPriorCrash
+        }
+    }
+
+    private fun verifyDirectoryIsEmpty(directory: File) {
+        val files = directory.listFiles()
+        if (files.isNullOrEmpty()) {
+            return
+        }
+        files.forEach {
+            it.delete()
         }
     }
 
@@ -149,11 +161,11 @@ internal class CrashReporter(
 
     internal companion object {
         // TODO(FranAguilera): To rename to /bitdrift_capture/reports/config when shared-core is bumped
-        private const val CONFIGURATION_FILE_PATH = "/bitdrift_capture/reports/directories"
-        private const val DESTINATION_FILE_PATH = "/bitdrift_capture/reports/new"
+        private const val CONFIGURATION_FILE_PATH = "/reports/directories"
+        private const val DESTINATION_FILE_PATH = "/reports/new"
         private const val LAST_MODIFIED_TIME_ATTRIBUTE = "lastModifiedTime"
         private const val CRASH_REPORTING_STATE_KEY = "_crash_reporting_state"
-        private const val CRASH_REPORTING_DURATION_NANO_KEY = "_crash_reporting_duration_nanos"
+        private const val CRASH_REPORTING_DURATION_MILLI_KEY = "_crash_reporting_duration_ms"
 
         /**
          * Returns the fields map with latest [CrashReporterStatus]
@@ -161,7 +173,7 @@ internal class CrashReporter(
         internal fun CrashReporterStatus.buildFieldsMap(): Map<String, FieldValue> =
             buildMap {
                 put(CRASH_REPORTING_STATE_KEY, state.readableType.toFieldValue())
-                put(CRASH_REPORTING_DURATION_NANO_KEY, getDuration().toFieldValue())
+                put(CRASH_REPORTING_DURATION_MILLI_KEY, getDuration().toFieldValue())
             }
 
         @VisibleForTesting

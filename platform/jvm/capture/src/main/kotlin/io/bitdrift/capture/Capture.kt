@@ -100,7 +100,7 @@ object Capture {
         /**
          * Initializes crash reporting mechanism.
          *
-         * This should be called priorly to Capture.Logger.start()
+         * This should be called prior to Capture.Logger.start()
          */
         @ExperimentalBitdriftApi
         @JvmStatic

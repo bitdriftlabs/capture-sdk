@@ -24,6 +24,9 @@ class MainThreadHandler {
      * Schedule the given code to run on the main thread
      */
     fun run(run: () -> Unit) {
+        if (isOnMainThread()) {
+            return run()
+        }
         mainHandler.post { run() }
     }
 

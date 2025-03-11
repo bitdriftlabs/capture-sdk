@@ -52,8 +52,8 @@ import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.CrashReporter.Companion.buildFieldsMap
 import io.bitdrift.capture.reports.CrashReporterStatus
 import io.bitdrift.capture.threading.CaptureDispatchers
+import io.bitdrift.capture.utils.SdkDirectory
 import okhttp3.HttpUrl
-import java.io.File
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
@@ -144,7 +144,7 @@ internal class LoggerImpl(
                         apiBaseUrl = apiUrl,
                     )
 
-                val sdkDirectory = getSdkDirectoryPath(context)
+                val sdkDirectory = SdkDirectory.getPath(context)
 
                 val localErrorReporter =
                     errorReporter ?: ErrorReporterService(
@@ -269,7 +269,11 @@ internal class LoggerImpl(
                 CaptureJniLibrary.startLogger(this.loggerId)
             }
 
-        writeSDKStartLog(duration)
+        CaptureJniLibrary.writeSDKStartLog(
+            this.loggerId,
+            crashReporterStatus.buildFieldsMap(),
+            duration.toDouble(DurationUnit.SECONDS),
+        )
     }
 
     override val sessionId: String
@@ -466,12 +470,6 @@ internal class LoggerImpl(
         CaptureJniLibrary.flush(this.loggerId, blocking)
     }
 
-    private fun getSdkDirectoryPath(context: Context): String {
-        val directory = context.applicationContext.filesDir
-        val sdkDirectory = File(directory.absolutePath, "bitdrift_capture")
-        return sdkDirectory.absolutePath
-    }
-
     @Suppress("UnusedPrivateMember")
     private fun stopLoggingDefaultEvents() {
         appExitLogger.uninstallAppExitLogger()
@@ -530,15 +528,9 @@ internal class LoggerImpl(
     }
 
     private fun writeSDKStartLog(duration: Duration) {
-        val fields: Map<String, FieldValue> =
-            if (runtime.isEnabled(RuntimeFeature.APPEND_INIT_CRASH_REPORTING_INFO)) {
-                crashReporterStatus.buildFieldsMap()
-            } else {
-                mapOf()
-            }
         CaptureJniLibrary.writeSDKStartLog(
             loggerId,
-            fields,
+            crashReporterStatus.buildFieldsMap(),
             duration.toDouble(DurationUnit.SECONDS),
         )
     }

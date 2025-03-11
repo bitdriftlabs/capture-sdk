@@ -72,14 +72,6 @@ sealed class RuntimeFeature(
      * Whether we should send crash artifact data via AppExit
      */
     data object SEND_CRASH_ARTIFACT : RuntimeFeature("client_feature.android.send_crash_artifact")
-
-    /**
-     * If enabled will append init crash reporting metadata into 'SDKConfigured'
-     */
-    data object APPEND_INIT_CRASH_REPORTING_INFO : RuntimeFeature(
-        "client_feature.android.append_init_crash_reporting_to_sdk_start_log",
-        defaultValue = false,
-    )
 }
 
 /**
