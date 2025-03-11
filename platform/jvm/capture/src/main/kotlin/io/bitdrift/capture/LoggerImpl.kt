@@ -83,7 +83,8 @@ internal class LoggerImpl(
     private val bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    private val crashReporterState: CrashReporter.CrashReporterState,
+    // TODO(FranAguilera): To remove default and update tests
+    private val crashReporterState: CrashReporter.CrashReporterState = CrashReporter.CrashReporterState.NotInitialized,
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val memoryMetricsProvider = MemoryMetricsProvider(context)

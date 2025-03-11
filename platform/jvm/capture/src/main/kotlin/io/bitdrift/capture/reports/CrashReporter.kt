@@ -13,7 +13,8 @@ import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.reports.CrashReporter.CrashReporterState.Completed
 import java.io.File
-import kotlin.system.measureNanoTime
+import kotlin.time.DurationUnit
+import kotlin.time.measureTime
 
 /**
  * Handles internal reporting of crashes
@@ -30,38 +31,51 @@ internal class CrashReporter(
      */
     fun processCrashReportFile(): CrashReporterState {
         var crashReporterState: CrashReporterState = CrashReporterState.Initializing
-        mainThreadHandler.run {
-            val measuredTimeNano =
-                measureNanoTime {
+
+        val duration =
+            measureTime {
+                if (MainThreadHandler.isOnMainThread()) {
                     crashReporterState = verifyDirectoriesAndCopyFiles()
+                } else {
+                    mainThreadHandler.run {
+                        crashReporterState = verifyDirectoriesAndCopyFiles()
+                    }
                 }
-            Log.i(
-                "CAPTURE_SDK",
-                "verifyDirectoriesAndCopyFiles completed with $crashReporterState and duration of $measuredTimeNano ns",
-            )
-        }
+            }
+
+        Log.i(
+            "CAPTURE_SDK",
+            "verifyDirectoriesAndCopyFiles completed with $crashReporterState " +
+                "and a duration of ${duration.toDouble(DurationUnit.NANOSECONDS)} ns",
+        )
         return crashReporterState
     }
 
     @UiThread
     private fun verifyDirectoriesAndCopyFiles(): CrashReporterState {
         val filesDir = appContext.filesDir.absolutePath
-        val crashConfigFile = File("$filesDir$REPORTS_DIRECTORY")
+        val crashConfigFile = File("$filesDir$CONFIGURATION_FILE_PATH")
 
         if (!crashConfigFile.exists()) {
-            return Completed.MissingConfigFile("$REPORTS_DIRECTORY does not exist")
+            return Completed.MissingConfigFile("$CONFIGURATION_FILE_PATH does not exist")
         }
 
         val crashConfigDetails =
             getConfigDetails(crashConfigFile) ?: let {
-                return Completed.MalformedConfigFile("Malformed content at $REPORTS_DIRECTORY")
+                return Completed.MalformedConfigFile("Malformed content at $CONFIGURATION_FILE_PATH")
             }
 
         val sourcePath = "${appContext.cacheDir.absolutePath}/${crashConfigDetails.rootPath}"
-        val destinationPath = "$filesDir$REPORTS_TO_BE_UPLOADED"
+        val destinationPath = "$filesDir$DESTINATION_FILE_PATH"
+        val sourceDirectory = File(sourcePath)
+        val destinationDirectory = File(destinationPath).apply { if (!exists()) mkdirs() }
+
+        if (!sourceDirectory.exists() || !sourceDirectory.isDirectory) {
+            return Completed.WithoutPriorCrash("$sourceDirectory directory does not exist or is not a directory")
+        }
 
         return runCatching {
-            copyFile(sourcePath, destinationPath, crashConfigDetails.extensionFileName)
+            copyFile(sourceDirectory, destinationDirectory, crashConfigDetails.extensionFileName)
         }.getOrElse {
             return Completed.ProcessingFailure("Couldn't process crash files", it)
         }
@@ -69,27 +83,20 @@ internal class CrashReporter(
 
     @UiThread
     private fun copyFile(
-        sourceBaseDir: String,
-        destDir: String,
+        sourceDirectory: File,
+        destinationDirectory: File,
         fileExtension: String,
     ): CrashReporterState {
-        val source = File(sourceBaseDir)
-        val destination = File(destDir).apply { if (!exists()) mkdirs() }
-
-        if (!source.exists() || !source.isDirectory) {
-            return Completed.WithoutPriorCrash("$sourceBaseDir directory does not exist or is not a directory")
-        }
-
         val targetFile =
-            getCrashFile(source, fileExtension)
+            getCrashFile(sourceDirectory, fileExtension)
                 ?: let {
                     return Completed.WithoutPriorCrash("File with .$fileExtension not found in the source directory")
                 }
 
-        val destFile =
-            File(destination, targetFile.name).apply { targetFile.copyTo(this, overwrite = true) }
+        val destinationFile = File(destinationDirectory, targetFile.name)
+        targetFile.copyTo(destinationFile, overwrite = true)
 
-        return if (destFile.exists()) {
+        return if (destinationFile.exists()) {
             Completed.CrashReportSent("File ${targetFile.name} copied successfully")
         } else {
             Completed.WithoutPriorCrash("No prior crashes found")
@@ -111,6 +118,9 @@ internal class CrashReporter(
         }
 
     internal sealed class CrashReporterState {
+        /**
+         * Indicates that initial setup call is in progress
+         */
         data object Initializing : CrashReporterState()
 
         /**
@@ -122,6 +132,9 @@ internal class CrashReporter(
          * Sealed class representing all completed states
          */
         sealed class Completed : CrashReporterState() {
+            /**
+             * Contains details of the [Completed] state
+             */
             abstract val message: String
 
             /**
@@ -168,7 +181,8 @@ internal class CrashReporter(
     )
 
     private companion object {
-        private const val REPORTS_DIRECTORY = "/bitdrift_capture/reports/directories"
-        private const val REPORTS_TO_BE_UPLOADED = "/bitdrift_capture/reports/new"
+        // TODO(FranAguilera): To rename to /bitdrift_capture/reports/config when shared-core is bumped
+        private const val CONFIGURATION_FILE_PATH = "/bitdrift_capture/reports/directories"
+        private const val DESTINATION_FILE_PATH = "/bitdrift_capture/reports/new"
     }
 }
