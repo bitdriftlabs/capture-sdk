@@ -100,7 +100,7 @@ internal class CrashReporter(
         crashFile.copyTo(destinationFile, overwrite = true)
 
         return if (destinationFile.exists()) {
-            Completed.CrashReportSent("File ${crashFile.name} copied successfully")
+            Completed.CrashReportSent("File ${destinationFile.absolutePath} copied successfully")
         } else {
             Completed.WithoutPriorCrash("No prior crashes found")
         }
@@ -122,7 +122,7 @@ internal class CrashReporter(
 
     private fun File.toFilenameWithTimeStamp(): String {
         val fileCreationEpochTime = getFileCreationTimeEpochInMillis(this)
-        return fileCreationEpochTime.toString() + DESTINATION_FILE_SEPARATOR + this.name
+        return fileCreationEpochTime.toString() + "." + this.extension
     }
 
     private fun getFileCreationTimeEpochInMillis(file: File): Long =
@@ -218,7 +218,6 @@ internal class CrashReporter(
         private const val CONFIGURATION_FILE_PATH = "/bitdrift_capture/reports/directories"
         private const val DESTINATION_FILE_PATH = "/bitdrift_capture/reports/new"
         private const val FILE_CREATION_TIME_ATTRIBUTE = "creationTime"
-        private const val DESTINATION_FILE_SEPARATOR = "_"
         private const val CRASH_REPORTING_STATE_KEY = "crash_reporting_state"
         private const val CRASH_REPORTING_DETAILS_KEY = "crash_reporting_details"
         private const val CRASH_REPORTING_DURATION_NANO_KEY = "crash_reporting_duration_nanos"

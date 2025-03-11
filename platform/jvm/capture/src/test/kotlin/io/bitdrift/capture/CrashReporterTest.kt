@@ -78,7 +78,7 @@ class CrashReporterTest {
 
         crashReporterStatus.assert(
             CrashReportSent::class.java,
-            "File crash_info.json copied successfully",
+            ".json copied successfully",
         )
     }
 
