@@ -37,26 +37,17 @@ internal class CrashReporter(
      */
     fun processCrashReportFile(): CrashReporterStatus =
         runCatching {
-            if (MainThreadHandler.isOnMainThread()) {
-                runVerifyDirectoriesAndCopyFiles()
-            } else {
-                mainThreadHandler.runAndReturnResult {
-                    runVerifyDirectoriesAndCopyFiles()
-                }
+            mainThreadHandler.runAndReturnResult {
+                var crashReporterState: CrashReporterState
+                val duration =
+                    measureTime {
+                        crashReporterState = verifyDirectoriesAndCopyFiles()
+                    }
+                CrashReporterStatus(crashReporterState, duration)
             }
         }.getOrElse {
             CrashReporterStatus(ProcessingFailure("Error while processCrashReportFile. ${it.message}"))
         }
-
-    @UiThread
-    private fun runVerifyDirectoriesAndCopyFiles(): CrashReporterStatus {
-        var crashReporterState: CrashReporterState
-        val duration =
-            measureTime {
-                crashReporterState = verifyDirectoriesAndCopyFiles()
-            }
-        return CrashReporterStatus(crashReporterState, duration)
-    }
 
     @UiThread
     private fun verifyDirectoriesAndCopyFiles(): CrashReporterState {
