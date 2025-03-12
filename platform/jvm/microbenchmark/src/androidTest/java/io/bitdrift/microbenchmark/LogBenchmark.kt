@@ -33,7 +33,7 @@ private const val LOG_MESSAGE = "50 characters long test message - 0123456789012
  * In microbenchmarks the number of iterations to be executed is determined by the library itself
  */
 @RunWith(AndroidJUnit4::class)
-class ClockTimeProfiler {
+class LogBenchmark {
 
     @get:Rule
     val benchmarkRule = BenchmarkRule()
@@ -44,21 +44,6 @@ class ClockTimeProfiler {
             apiUrl = "https://api-tests.bitdrift.io".toHttpUrl(),
             sessionStrategy = SessionStrategy.Fixed(),
         )
-    }
-
-    @Test
-    fun loggerStart() {
-        benchmarkRule.measureRepeated {
-            LoggerImpl(
-                apiKey = "android-benchmark-test",
-                apiUrl = "https://api-tests.bitdrift.io".toHttpUrl(),
-                fieldProviders = listOf(),
-                dateProvider = SystemDateProvider(),
-                configuration = Configuration(),
-                sessionStrategy = SessionStrategy.Fixed(),
-                crashReporterStatus = CrashReporterStatus(CrashReporterState.NotInitialized),
-                )
-        }
     }
 
     @Test
