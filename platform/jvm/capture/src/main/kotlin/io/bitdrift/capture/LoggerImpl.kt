@@ -526,14 +526,6 @@ internal class LoggerImpl(
             errorHandler.handleError("Couldn't start JankStatsMonitor", IllegalArgumentException("Invalid application provided"))
         }
     }
-
-    private fun writeSDKStartLog(duration: Duration) {
-        CaptureJniLibrary.writeSDKStartLog(
-            loggerId,
-            crashReporterStatus.buildFieldsMap(),
-            duration.toDouble(DurationUnit.SECONDS),
-        )
-    }
 }
 
 internal data class LogAttributesOverrides(

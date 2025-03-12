@@ -160,7 +160,7 @@ internal class CrashReporter(
     )
 
     internal companion object {
-        // TODO(FranAguilera): To rename to /bitdrift_capture/reports/config when shared-core is bumped
+        // TODO(FranAguilera): BIT-4846. To rename to /bitdrift_capture/reports/config when shared-core is bumped
         private const val CONFIGURATION_FILE_PATH = "/reports/directories"
         private const val DESTINATION_FILE_PATH = "/reports/new"
         private const val LAST_MODIFIED_TIME_ATTRIBUTE = "lastModifiedTime"
