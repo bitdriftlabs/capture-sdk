@@ -21,6 +21,8 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import io.bitdrift.capture.reports.CrashReporterState
+import io.bitdrift.capture.reports.CrashReporterStatus
 
 private const val LOG_MESSAGE = "50 characters long test message - 0123456789012345"
 
@@ -54,7 +56,8 @@ class ClockTimeProfiler {
                 dateProvider = SystemDateProvider(),
                 configuration = Configuration(),
                 sessionStrategy = SessionStrategy.Fixed(),
-            )
+                crashReporterStatus = CrashReporterStatus(CrashReporterState.NotInitialized),
+                )
         }
     }
 

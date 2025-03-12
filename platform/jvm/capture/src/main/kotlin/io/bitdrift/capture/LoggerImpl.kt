@@ -49,9 +49,11 @@ import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.CrashReporter.Companion.buildFieldsMap
+import io.bitdrift.capture.reports.CrashReporterStatus
 import io.bitdrift.capture.threading.CaptureDispatchers
+import io.bitdrift.capture.utils.SdkDirectory
 import okhttp3.HttpUrl
-import java.io.File
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
@@ -82,6 +84,7 @@ internal class LoggerImpl(
     private val bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
+    private val crashReporterStatus: CrashReporterStatus,
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val memoryMetricsProvider = MemoryMetricsProvider(context)
@@ -141,7 +144,7 @@ internal class LoggerImpl(
                         apiBaseUrl = apiUrl,
                     )
 
-                val sdkDirectory = getSdkDirectoryPath(context)
+                val sdkDirectory = SdkDirectory.getPath(context)
 
                 val localErrorReporter =
                     errorReporter ?: ErrorReporterService(
@@ -268,7 +271,7 @@ internal class LoggerImpl(
 
         CaptureJniLibrary.writeSDKStartLog(
             this.loggerId,
-            mapOf(),
+            crashReporterStatus.buildFieldsMap(),
             duration.toDouble(DurationUnit.SECONDS),
         )
     }
@@ -465,12 +468,6 @@ internal class LoggerImpl(
 
     internal fun flush(blocking: Boolean) {
         CaptureJniLibrary.flush(this.loggerId, blocking)
-    }
-
-    private fun getSdkDirectoryPath(context: Context): String {
-        val directory = context.applicationContext.filesDir
-        val sdkDirectory = File(directory.absolutePath, "bitdrift_capture")
-        return sdkDirectory.absolutePath
     }
 
     @Suppress("UnusedPrivateMember")
