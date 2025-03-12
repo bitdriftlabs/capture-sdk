@@ -125,7 +125,7 @@ class CrashReporterTest {
             val filesDir = APP_CONTEXT.filesDir
             val reportsDir = File(filesDir, "bitdrift_capture/reports/")
             reportsDir.mkdirs()
-            val reportFile = File(reportsDir, "directories")
+            val reportFile = File(reportsDir, "config")
             bitdriftConfigContent?.let {
                 reportFile.writeText(it)
             }
