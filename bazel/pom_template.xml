@@ -6,7 +6,7 @@
     <groupId>io.bitdrift</groupId>
     <artifactId>capture</artifactId>
     <version>{pom_version}</version>
-    <packaging>aar</packaging>
+    <type>aar</type>
     <name>Capture</name>
     <description>A dynamic observability SDK for mobile developers.</description>
     <url>https://bitdrift.io</url>    
