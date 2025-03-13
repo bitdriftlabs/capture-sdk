@@ -11,7 +11,7 @@
     <description>A dynamic observability SDK for mobile developers.</description>
     <url>https://bitdrift.io</url>    
     <dependencies>
-        {generated_bzl_deps} /// Pending to do local fork
+        {generated_bzl_deps}
     </dependencies>
     <licenses>
         <license>
