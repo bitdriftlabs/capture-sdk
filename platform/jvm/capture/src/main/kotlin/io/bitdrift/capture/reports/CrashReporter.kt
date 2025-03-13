@@ -151,11 +151,11 @@ internal class CrashReporter(
     )
 
     internal companion object {
+        private const val CRASH_REPORTING_STATE_KEY = "_crash_reporting_state"
+        private const val CRASH_REPORTING_DURATION_MILLI_KEY = "_crash_reporting_duration_ms"
         private const val CONFIGURATION_FILE_PATH = "/reports/config"
         private const val DESTINATION_FILE_PATH = "/reports/new"
         private const val LAST_MODIFIED_TIME_ATTRIBUTE = "lastModifiedTime"
-        private const val CRASH_REPORTING_STATE_KEY = "_crash_reporting_state"
-        private const val CRASH_REPORTING_DURATION_MILLI_KEY = "_crash_reporting_duration_ms"
 
         /**
          * Returns the fields map with latest [CrashReporterStatus]
