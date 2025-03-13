@@ -6,12 +6,12 @@
     <groupId>io.bitdrift</groupId>
     <artifactId>capture</artifactId>
     <version>{pom_version}</version>
-    <type>aar</type>
+    <packaging>aar</packaging>
     <name>Capture</name>
     <description>A dynamic observability SDK for mobile developers.</description>
     <url>https://bitdrift.io</url>    
     <dependencies>
-        {generated_bzl_deps}
+        {generated_bzl_deps} /// Pending to do local fork
     </dependencies>
     <licenses>
         <license>
