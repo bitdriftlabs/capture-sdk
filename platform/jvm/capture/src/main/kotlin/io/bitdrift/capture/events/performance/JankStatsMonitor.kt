@@ -39,6 +39,7 @@ import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.threading.CaptureDispatchers
+import java.util.concurrent.TimeUnit
 
 /**
  * Reports Jank Frames and its duration in ms
@@ -86,8 +87,17 @@ internal class JankStatsMonitor(
                 return
             }
 
-            if (volatileFrameData.durationToMilli()
-                < runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS)
+            val durationNano = volatileFrameData.toDurationNano()
+            val durationMillis = volatileFrameData.toDurationMillis()
+            if (durationNano < 0 || durationMillis > ANR_DURATION_MAX_THRESHOLD_MS) {
+                val errorMessage =
+                    "Unexpected frame duration. durationInNano: $durationNano." +
+                        " durationMillis: $durationMillis"
+                errorHandler.handleError(errorMessage, IllegalStateException())
+                return
+            }
+
+            if (durationMillis < runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS)
             ) {
                 // The Frame is considered as Jank but it didn't reached the min
                 // threshold defined by MIN_JANK_FRAME_THRESHOLD_MS config
@@ -192,7 +202,7 @@ internal class JankStatsMonitor(
             LogType.UX,
             jankFrameLogDetails.logLevel,
             buildMap {
-                put(SpanField.Key.DURATION, this@sendJankFrameData.durationToMilli().toString().toFieldValue())
+                put(SpanField.Key.DURATION, toDurationMillis().toString().toFieldValue())
                 putAll(this@sendJankFrameData.states.toFields())
             },
         ) { jankFrameLogDetails.message }
@@ -231,26 +241,27 @@ internal class JankStatsMonitor(
             }
         }
 
-    private fun FrameData.toJankType(): JankFrameType =
-        if (this.durationToMilli() < runtime.getConfigValue(RuntimeConfig.FROZEN_FRAME_THRESHOLD_MS)) {
+    private fun FrameData.toJankType(): JankFrameType {
+        val durationMillis = this.toDurationMillis()
+        return if (durationMillis < runtime.getConfigValue(RuntimeConfig.FROZEN_FRAME_THRESHOLD_MS)) {
             JankFrameType.SLOW
-        } else if (this.durationToMilli() < runtime.getConfigValue(RuntimeConfig.ANR_FRAME_THRESHOLD_MS)) {
+        } else if (durationMillis < runtime.getConfigValue(RuntimeConfig.ANR_FRAME_THRESHOLD_MS)) {
             JankFrameType.FROZEN
         } else {
             JankFrameType.ANR
         }
-
-    private fun FrameData.durationToMilli(): Long {
-        val durationInNano =
-            when (this) {
-                is FrameDataApi31 -> frameDurationTotalNanos
-                is FrameDataApi24 -> frameDurationCpuNanos
-                else -> {
-                    frameDurationUiNanos
-                }
-            }
-        return durationInNano / TO_MILLI
     }
+
+    private fun FrameData.toDurationMillis(): Long = TimeUnit.NANOSECONDS.toMillis(this.toDurationNano())
+
+    private fun FrameData.toDurationNano(): Long =
+        when (this) {
+            is FrameDataApi31 -> frameDurationTotalNanos
+            is FrameDataApi24 -> frameDurationCpuNanos
+            else -> {
+                frameDurationUiNanos
+            }
+        }
 
     /**
      * The different type of Janks according to Play Vitals
@@ -278,7 +289,7 @@ internal class JankStatsMonitor(
     )
 
     private companion object {
-        private const val TO_MILLI = 1_000_000L
+        private const val ANR_DURATION_MAX_THRESHOLD_MS = 1_000_000L
         private const val DROPPED_FRAME_MESSAGE_ID = "DroppedFrame"
         private const val ANR_MESSAGE_ID = "ANR"
         private const val SCREEN_NAME_KEY = "_screen_name"

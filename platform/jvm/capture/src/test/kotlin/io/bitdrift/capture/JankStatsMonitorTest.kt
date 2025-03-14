@@ -166,6 +166,34 @@ class JankStatsMonitorTest {
     }
 
     @Test
+    fun onActivityResumed_withNegativeFrameDurations_shouldOnlyReportError() {
+        jankStatsMonitor.onActivityResumed(activity)
+
+        triggerOnFrame(
+            isJankyFrame = true,
+            durationInMilli = -1L,
+        )
+
+        assertWrongDuration(
+            expectedMessage = "Unexpected frame duration. durationInNano: -1000000. durationMillis: -1",
+        )
+    }
+
+    @Test
+    fun onActivityResumed_withOverflownFrameDurations_shouldOnlyReportError() {
+        jankStatsMonitor.onActivityResumed(activity)
+
+        triggerOnFrame(
+            isJankyFrame = true,
+            durationInMilli = 9223369584987L,
+        )
+
+        assertWrongDuration(
+            expectedMessage = "Unexpected frame duration. durationInNano: 9223369584987000000. durationMillis: 9223369584987",
+        )
+    }
+
+    @Test
     fun onActivityResumed_withJankyFrameBelowMinThreshold_shouldNotLogAnyMessage() {
         jankStatsMonitor.onActivityResumed(activity)
 
@@ -229,7 +257,6 @@ class JankStatsMonitorTest {
             errorMessageCaptor.capture(),
             illegalStateExceptionCaptor.capture(),
         )
-        assertThat(errorMessageCaptor.lastValue).isEqualTo("Couldn't create JankStats instance")
         assertThat(errorMessageCaptor.lastValue).isEqualTo("Couldn't create JankStats instance")
         assertThat(illegalStateExceptionCaptor.lastValue).isInstanceOf(IllegalStateException::class.java)
         assertThat(
@@ -304,5 +331,15 @@ class JankStatsMonitorTest {
             eq(false),
             argThat { message: () -> String -> message.invoke() == expectedMessage },
         )
+    }
+
+    private fun assertWrongDuration(expectedMessage: String) {
+        verify(logger, never()).log(any(), any(), any(), any())
+        verify(errorHandler).handleError(
+            errorMessageCaptor.capture(),
+            illegalStateExceptionCaptor.capture(),
+        )
+        assertThat(errorMessageCaptor.lastValue).isEqualTo(expectedMessage)
+        assertThat(illegalStateExceptionCaptor.lastValue).isInstanceOf(IllegalStateException::class.java)
     }
 }
