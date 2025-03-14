@@ -337,9 +337,8 @@ class JankStatsMonitorTest {
         verify(logger, never()).log(any(), any(), any(), any())
         verify(errorHandler).handleError(
             errorMessageCaptor.capture(),
-            illegalStateExceptionCaptor.capture(),
+            eq(null),
         )
         assertThat(errorMessageCaptor.lastValue).isEqualTo(expectedMessage)
-        assertThat(illegalStateExceptionCaptor.lastValue).isInstanceOf(IllegalStateException::class.java)
     }
 }
