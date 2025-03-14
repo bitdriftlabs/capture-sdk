@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import Capture
+@_spi(BitdriftExperimental) import Capture
 import Foundation
 import MetricKit
 
@@ -87,6 +87,7 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
             return
         }
 
+        Logger.initCrashReporting()
         Logger
             .start(
                 withAPIKey: Configuration.storedAPIKey ?? "",
