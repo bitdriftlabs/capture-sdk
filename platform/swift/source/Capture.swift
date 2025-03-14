@@ -88,6 +88,17 @@ extension Logger {
         }
     }
 
+    /// Initializes the crash reporting mechanism. Must be called prior to `Logger.start()`
+    ///  This API is experimental and subject to change
+    @_spi(BitdriftExperimental) public static func initCrashReporting() {
+        if crashReporterInitResult.0 == .notInitialized {
+            crashReporterInitResult = (.initializing, 0)
+            crashReporterInitResult = CrashReporter.processFiles()
+        } else {
+            log(level: .warning, message: "Crash reporting already being initialized")
+        }
+    }
+
     /// Retrieves the session ID. It is nil before the Capture SDK is started.
     public static var sessionID: String? {
         return Self.getShared()?.sessionID

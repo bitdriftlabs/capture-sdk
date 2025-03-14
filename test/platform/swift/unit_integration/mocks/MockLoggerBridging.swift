@@ -32,6 +32,8 @@ public final class MockLoggerBridging {
         return self.underlyingLogs.load()
     }
 
+    public private(set) var startLog: Atomic<([Field], TimeInterval)?> = Atomic(nil)
+
     public private(set) var errors: [HandledError] = []
 
     public var shouldLogAppUpdateEvent = false
@@ -83,7 +85,9 @@ extension MockLoggerBridging: LoggerBridging {
 
     public func logResourceUtilization(fields _: [Field], duration _: TimeInterval) {}
 
-    public func logSDKStart(fields _: [Field], duration _: TimeInterval) {}
+    public func logSDKStart(fields: [Field], duration: TimeInterval) {
+        startLog.update({ log in log = (fields, duration) })
+    }
 
     public func shouldLogAppUpdate(appVersion _: String, buildNumber _: String) -> Bool {
         self.shouldLogAppUpdateEvent
