@@ -89,7 +89,7 @@ internal class JankStatsMonitor(
 
             val durationNano = volatileFrameData.toDurationNano()
             val durationMillis = volatileFrameData.toDurationMillis()
-            if (durationNano < 0 || durationMillis > ANR_DURATION_MAX_THRESHOLD_MS) {
+            if (durationNano < 0 || durationMillis > ERROR_DURATION_THRESHOLD_MILLIS) {
                 val errorMessage =
                     "Unexpected frame duration. durationInNano: $durationNano." +
                         " durationMillis: $durationMillis"
@@ -289,7 +289,7 @@ internal class JankStatsMonitor(
     )
 
     private companion object {
-        private const val ANR_DURATION_MAX_THRESHOLD_MS = 1_000_000L
+        private const val ERROR_DURATION_THRESHOLD_MILLIS = 100_000_000L
         private const val DROPPED_FRAME_MESSAGE_ID = "DroppedFrame"
         private const val ANR_MESSAGE_ID = "ANR"
         private const val SCREEN_NAME_KEY = "_screen_name"
