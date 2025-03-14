@@ -78,7 +78,7 @@ new_git_repository(
 
 git_override(
     module_name = "google_bazel_common",
-    commit = "a348dcc487d9bea3d527be3b591a4170338257e6",
+    commit = "05f53f68ecec6aec44b54751306af0e7b6552682",
     remote = "https://github.com/google/bazel-common",
 )
 
