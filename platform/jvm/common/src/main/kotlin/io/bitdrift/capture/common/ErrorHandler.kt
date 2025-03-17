@@ -19,6 +19,6 @@ interface ErrorHandler {
      */
     fun handleError(
         detail: String,
-        e: Throwable?,
+        e: Throwable? = null,
     )
 }
