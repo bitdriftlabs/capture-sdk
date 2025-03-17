@@ -27,14 +27,7 @@ use bd_client_common::error::{
   MetadataErrorReporter,
   UnexpectedErrorHandler,
 };
-use bd_logger::{
-  AnnotatedLogField,
-  AnnotatedLogFields,
-  LogAttributesOverridesPreviousRunSessionID,
-  LogField,
-  LogFieldKind,
-  LogType,
-};
+use bd_logger::{LogAttributesOverridesPreviousRunSessionID, LogFieldKind, LogFields, LogType};
 use jni::descriptors::Desc;
 use jni::objects::{
   GlobalRef,
@@ -549,35 +542,23 @@ impl bd_logger::MetadataProvider for MetadataProvider {
     })
   }
 
-  fn fields(&self) -> anyhow::Result<AnnotatedLogFields> {
+  fn fields(&self) -> anyhow::Result<(LogFields, LogFields)> {
     self.execute(|e, provider| {
       let ootb_fields = METADATA_PROVIDER_OOTB_FIELDS
         .get()
         .unwrap()
         .call_method(e, provider, ReturnType::Object, &[])?
         .l()?;
-      let ootb_fields = ffi::jobject_list_to_vec(e, &ootb_fields)?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        });
+      let ootb_fields = ffi::jobject_list_to_fields(e, &ootb_fields)?;
 
       let custom_fields = METADATA_PROVIDER_CUSTOM_FIELDS
         .get()
         .unwrap()
         .call_method(e, provider, ReturnType::Object, &[])?
         .l()?;
-      let custom_fields = ffi::jobject_list_to_vec(e, &custom_fields)?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Custom,
-        });
+      let custom_fields = ffi::jobject_list_to_fields(e, &custom_fields)?;
 
-      // The SDK internally assumes that Out-of-the-Box (OOTB) fields are at the beginning of the
-      // list, followed by any custom logs (if present).
-      Ok(ootb_fields.chain(custom_fields).collect())
+      Ok((custom_fields, ootb_fields))
     })
   }
 }
@@ -686,7 +667,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       .with_client_stats(true)
       .with_internal_logger(true)
       .build()
-      .map(|(logger, _, future)| LoggerHolder::new(logger, future))?;
+      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future))?;
 
       Ok(logger.into_raw().into())
     },
@@ -767,10 +748,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_addLogField(
         .to_string();
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.add_log_field(LogField {
-        key,
-        value: value.into(),
-      });
+      logger.add_log_field(key, value.into());
 
       Ok(())
     },
@@ -819,20 +797,9 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   // This should only fail if the JVM is in a bad state.
   bd_client_common::error::with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = ffi::jobject_map_to_vec(&mut env, &fields)?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
-      let matching_fields = ffi::jobject_map_to_vec(&mut env, &matching_fields)?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = ffi::jobject_map_to_fields(&mut env, &fields, LogFieldKind::Ootb)?;
+      let matching_fields =
+        ffi::jobject_map_to_fields(&mut env, &matching_fields, LogFieldKind::Ootb)?;
 
       let attributes_overrides = if override_expected_previous_process_session_id.is_null() {
         None
@@ -878,13 +845,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
 ) {
   bd_client_common::error::with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = ffi::jobject_map_to_vec(&mut env, &fields)?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = ffi::jobject_map_to_fields(&mut env, &fields, LogFieldKind::Ootb)?;
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
       logger.log_session_replay_screen(fields, Duration::seconds_f64(duration_s));
@@ -905,13 +866,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
 ) {
   bd_client_common::error::with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = ffi::jobject_map_to_vec(&mut env, &fields)?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = ffi::jobject_map_to_fields(&mut env, &fields, LogFieldKind::Ootb)?;
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
       logger.log_session_replay_screenshot(fields, Duration::seconds_f64(duration_s));
@@ -932,13 +887,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeResourceU
 ) {
   bd_client_common::error::with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = ffi::jobject_map_to_vec(&mut env, &fields)?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = ffi::jobject_map_to_fields(&mut env, &fields, LogFieldKind::Ootb)?;
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
       logger.log_resource_utilization(fields, Duration::seconds_f64(duration_s));
@@ -959,13 +908,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSDKStartL
 ) {
   bd_client_common::error::with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = ffi::jobject_map_to_vec(&mut env, &fields)?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = ffi::jobject_map_to_fields(&mut env, &fields, LogFieldKind::Ootb)?;
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
       logger.log_sdk_start(fields, Duration::seconds_f64(duration_s));
@@ -1024,7 +967,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppUpdate
         app_version,
         bd_logger::AppVersionExtra::AppVersionCode(app_version_code),
         Some(app_install_size_bytes as u64),
-        vec![],
+        [].into(),
         Duration::seconds_f64(duration_s),
       );
 

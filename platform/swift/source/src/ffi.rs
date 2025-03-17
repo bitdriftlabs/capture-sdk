@@ -7,7 +7,14 @@
 
 // Helpers for safely interacting with Objective-C types.
 use crate::ffi;
-use bd_logger::{LogField, LogFields, StringOrBytes};
+use bd_logger::{
+  AnnotatedLogField,
+  AnnotatedLogFields,
+  LogField,
+  LogFieldKind,
+  LogFields,
+  StringOrBytes,
+};
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use std::collections::HashMap;
@@ -139,10 +146,24 @@ pub fn convert_map<S: ::std::hash::BuildHasher>(map: &HashMap<&str, &str, S>) ->
 const FIELD_TYPE_STRING: usize = 0;
 const FIELD_TYPE_DATA: usize = 1;
 
+unsafe fn convert_annotated_fields(
+  ptr: *const Object,
+  kind: LogFieldKind,
+) -> anyhow::Result<AnnotatedLogFields> {
+  convert_fields_helper(ptr, |value| AnnotatedLogField { value, kind })
+}
+
+unsafe fn convert_fields(ptr: *const Object) -> anyhow::Result<LogFields> {
+  convert_fields_helper(ptr, Into::into)
+}
+
 /// Converts a `NSArray` into a `Vec` of references to the underlying data.
 /// # Safety
-/// This assumes that the provided ptr refers to a `NSArray<Field>`.
-pub unsafe fn convert_fields(ptr: *const Object) -> anyhow::Result<LogFields> {
+unsafe fn convert_fields_helper<FieldValue>(
+  /// This assumes that the provided ptr refers to a `NSArray<Field>`.
+  ptr: *const Object,
+  converter: impl Fn(String) -> FieldValue,
+) -> anyhow::Result<AHashMap<LogFieldKind, FieldValue>> {
   debug_check_class!(ptr, NSArray);
 
   // Helps us to avoid having to call to make a `count` Objective-C call below.
@@ -152,7 +173,7 @@ pub unsafe fn convert_fields(ptr: *const Object) -> anyhow::Result<LogFields> {
 
   let count: usize = msg_send![ptr, count];
 
-  let mut fields = Vec::with_capacity(count);
+  let mut fields = AnnotatedLogFields::with_capacity(count);
   for i in 0 .. count {
     // TODO(snowp): Figure out how to use objc/2 to better model ths.
     let field: *const Object = msg_send![ptr, objectAtIndex: i];
@@ -174,10 +195,7 @@ pub unsafe fn convert_fields(ptr: *const Object) -> anyhow::Result<LogFields> {
       _ => panic!("unknown field value type: {field_type:?}"),
     };
 
-    fields.push(LogField {
-      key: field_key.to_string(),
-      value,
-    });
+    fields.insert(field_key.to_string(), converter(value));
   }
 
   Ok(fields)

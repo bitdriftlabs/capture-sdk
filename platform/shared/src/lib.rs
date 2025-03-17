@@ -9,7 +9,7 @@ pub mod error;
 pub mod metadata;
 
 use bd_client_common::error::handle_unexpected;
-use bd_logger::{log_level, AnnotatedLogField, LogField, LogFieldKind, LogType};
+use bd_logger::{log_level, AnnotatedLogField, LogFieldKind, LogType};
 use bd_runtime::runtime::Snapshot;
 use parking_lot::Once;
 use std::future::Future;
@@ -176,20 +176,19 @@ impl LoggerHolder {
         return;
       }
 
-      let fields = vec![AnnotatedLogField {
-        field: LogField {
-          key: "_duration_ms".into(),
+      let fields = [(
+          "_duration_ms".into(),
+          AnnotatedLogField {
           value: duration_ms.to_string().into(),
-        },
         kind: LogFieldKind::Ootb,
-      }];
+      })].into();
 
       self.log(
         log_level::INFO,
         LogType::Lifecycle,
         "AppLaunchTTI".into(),
         fields,
-        vec![],
+        [].into(),
         None,
         false,
       );
@@ -197,20 +196,18 @@ impl LoggerHolder {
   }
 
   pub fn log_screen_view(&self, screen_name: String) {
-    let fields = vec![AnnotatedLogField {
-      field: LogField {
-        key: "_screen_name".into(),
-        value: screen_name.into(),
-      },
-      kind: LogFieldKind::Ootb,
-    }];
+    let fields = [(
+         "_screen_name".into(),
+        AnnotatedLogField::new_ootb(
+        screen_name,
+    ))].into();
 
     self.log(
       log_level::INFO,
       LogType::UX,
       "ScreenView".into(),
       fields,
-      vec![],
+      [].into(),
       None,
       false,
     );

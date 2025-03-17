@@ -397,27 +397,15 @@ impl MetadataProvider for LogMetadataProvider {
     })
   }
 
-  fn fields(&self) -> anyhow::Result<AnnotatedLogFields> {
+  fn fields(&self) -> anyhow::Result<(AnnotatedLogFields, AnnotatedLogFields)> {
     // Safety: Since we receive MetadataProvider as a typed protocol, we know that it
     // responds to `ootbFields` and `customFields` selectors.
     objc::rc::autoreleasepool(|| unsafe {
-      let ootb_fields = ffi::convert_fields(msg_send![*self.ptr, ootbFields])?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        });
+      let ootb_fields = ffi::convert_fields(msg_send![*self.ptr, ootbFields])?;
 
-      let custom_fields = ffi::convert_fields(msg_send![*self.ptr, customFields])?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Custom,
-        });
+      let custom_fields = ffi::convert_fields(msg_send![*self.ptr, customFields])?;
 
-      // The SDK internally assumes that Out-of-the-Box (OOTB) fields are at the beginning of the
-      // list, followed by any custom logs (if present).
-      Ok(ootb_fields.into_iter().chain(custom_fields).collect())
+      Ok((custom_fields, ootb_fields))
     })
   }
 }
@@ -600,21 +588,9 @@ extern "C" fn capture_write_log(
       let log_str = unsafe { CStr::from_ptr(log) }.to_str()?.to_string();
 
       // TODO(Augustyniak): Differentiate between incoming OOTB and custom log fields.
-      let fields = unsafe { ffi::convert_fields(fields) }?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = unsafe { ffi::convert_fields(fields, LogFieldKind::Ootb) }?;
 
-      let matching_fields = unsafe { ffi::convert_fields(matching_fields) }?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let matching_fields = unsafe { ffi::convert_fields(matching_fields, LogFieldKind::Ootb) }?;
 
       logger_id.log(
         log_level,
@@ -640,13 +616,7 @@ extern "C" fn capture_write_session_replay_screen_log(
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = unsafe { convert_fields(fields) }?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = unsafe { convert_fields(fields, LogFieldKind::Ootb) }?;
 
       logger_id.log_session_replay_screen(fields, time::Duration::seconds_f64(duration_s));
       Ok(())
@@ -663,13 +633,7 @@ extern "C" fn capture_write_session_replay_screenshot_log(
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = unsafe { convert_fields(fields) }?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = unsafe { convert_fields(fields, LogFieldKind::Ootb) }?;
 
       logger_id.log_session_replay_screenshot(fields, time::Duration::seconds_f64(duration_s));
       Ok(())
@@ -686,13 +650,7 @@ extern "C" fn capture_write_resource_utilization_log(
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = unsafe { convert_fields(fields) }?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = unsafe { convert_fields(fields, LogFieldKind::Ootb) }?;
 
       logger_id.log_resource_utilization(fields, time::Duration::seconds_f64(duration_s));
       Ok(())
@@ -709,13 +667,7 @@ extern "C" fn capture_write_sdk_start_log(
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = unsafe { convert_fields(fields) }?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = unsafe { convert_fields(fields, LogFieldKind::Ootb) }?;
 
       logger_id.log_sdk_start(fields, time::Duration::seconds_f64(duration_s));
       Ok(())
@@ -820,10 +772,7 @@ extern "C" fn capture_add_log_field(
       let key = unsafe { CStr::from_ptr(key) }.to_str()?.to_string();
       let value = unsafe { CStr::from_ptr(value) }.to_str()?.to_string();
 
-      logger_id.add_log_field(LogField {
-        key,
-        value: value.into(),
-      });
+      logger_id.add_log_field(key, value.into());
 
       Ok(())
     },
