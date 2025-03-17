@@ -523,7 +523,7 @@ internal class LoggerImpl(
                 eventsListenerTarget.add(it)
             }
         } else {
-            errorHandler.handleError("Couldn't start JankStatsMonitor", IllegalArgumentException("Invalid application provided"))
+            errorHandler.handleError("Couldn't start JankStatsMonitor. Invalid application provided")
         }
     }
 }

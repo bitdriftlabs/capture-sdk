@@ -93,7 +93,7 @@ internal class JankStatsMonitor(
                 val errorMessage =
                     "Unexpected frame duration. durationInNano: $durationNano." +
                         " durationMillis: $durationMillis"
-                errorHandler.handleError(errorMessage, null)
+                errorHandler.handleError(errorMessage)
                 return
             }
 
