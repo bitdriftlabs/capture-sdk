@@ -2761,6 +2761,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 name = "swift_bridge"
 version = "1.0.0"
 dependencies = [
+ "ahash",
  "anyhow",
  "async-trait",
  "bd-api",
@@ -2768,6 +2769,7 @@ dependencies = [
  "bd-device",
  "bd-key-value",
  "bd-log",
+ "bd-log-primitives",
  "bd-logger",
  "bd-noop-network",
  "bd-runtime",

@@ -1,5 +1,5 @@
 {
-  "checksum": "63af841a51c5f1c47c024c120795702f8e6f0bd8df90e767d355c83f356d2d83",
+  "checksum": "caaf54f982f0df243acfdcb656906728413982a33d66825394bec2cf62babd34",
   "crates": {
     "addr2line 0.24.2": {
       "name": "addr2line",
@@ -16797,6 +16797,10 @@
         "deps": {
           "common": [
             {
+              "id": "ahash 0.8.11",
+              "target": "ahash"
+            },
+            {
               "id": "anyhow 1.0.97",
               "target": "anyhow"
             },
@@ -16819,6 +16823,10 @@
             {
               "id": "bd-log 1.0.0",
               "target": "bd_log"
+            },
+            {
+              "id": "bd-log-primitives 1.0.0",
+              "target": "bd_log_primitives"
             },
             {
               "id": "bd-logger 1.0.0",
@@ -22742,6 +22750,7 @@
     "x86_64-uwp-windows-msvc": []
   },
   "direct_deps": [
+    "ahash 0.8.11",
     "android_logger 0.14.1",
     "anyhow 1.0.97",
     "assert_matches 1.5.0",
