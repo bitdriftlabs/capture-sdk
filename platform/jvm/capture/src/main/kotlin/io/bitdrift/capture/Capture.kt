@@ -12,12 +12,16 @@ import com.github.michaelbull.result.Err
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.CrashReporter
+import io.bitdrift.capture.reports.CrashReporterState
+import io.bitdrift.capture.reports.CrashReporterStatus
 import okhttp3.HttpUrl
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
@@ -51,6 +55,7 @@ internal sealed class LoggerState {
  */
 object Capture {
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
+    private var crashReporterStatus: CrashReporterStatus = CrashReporterStatus(CrashReporterState.NotInitialized)
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -91,6 +96,22 @@ object Capture {
 
         // This is a lazy property to avoid the need to initialize the main thread handler unless needed here
         private val mainThreadHandler by lazy { MainThreadHandler() }
+
+        /**
+         * Initializes crash reporting mechanism.
+         *
+         * This should be called prior to Capture.Logger.start()
+         */
+        @ExperimentalBitdriftApi
+        @JvmStatic
+        fun initCrashReporting() {
+            val crashReporter = CrashReporter()
+            if (crashReporterStatus.state is CrashReporterState.NotInitialized) {
+                crashReporterStatus = crashReporter.processCrashReportFile()
+            } else {
+                Log.w("capture", "Crash reporting already being initialized")
+            }
+        }
 
         /**
          * Initializes the Capture SDK with the specified API key, providers, and configuration.
@@ -165,6 +186,7 @@ object Capture {
                             configuration = configuration,
                             sessionStrategy = sessionStrategy,
                             bridge = bridge,
+                            crashReporterStatus = crashReporterStatus,
                         )
                     default.set(LoggerState.Started(logger))
                 } catch (e: Throwable) {

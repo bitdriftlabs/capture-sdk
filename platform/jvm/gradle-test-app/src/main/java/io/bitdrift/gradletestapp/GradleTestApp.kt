@@ -10,7 +10,6 @@ package io.bitdrift.gradletestapp
 import android.app.Activity
 import android.app.ActivityManager
 import android.app.Application
-import android.app.ApplicationExitInfo
 import android.app.ApplicationStartInfo.LAUNCH_MODE_SINGLE_INSTANCE
 import android.app.ApplicationStartInfo.LAUNCH_MODE_SINGLE_INSTANCE_PER_TASK
 import android.app.ApplicationStartInfo.LAUNCH_MODE_SINGLE_TASK
@@ -56,7 +55,15 @@ import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.timber.CaptureTree
+import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
+import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED
+import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BITDRIFT_API_KEY
+import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BUG_SNAG_SDK_API_KEY
+import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.SENTRY_SDK_DSN_KEY
+import io.sentry.android.core.SentryAndroid
+import io.sentry.android.core.SentryAndroidOptions
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import papa.AppLaunchType
 import papa.PapaEvent
@@ -65,13 +72,6 @@ import timber.log.Timber
 import kotlin.random.Random
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
-import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
-import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED
-import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BITDRIFT_API_KEY
-import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BUG_SNAG_SDK_API_KEY
-import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.SENTRY_SDK_DSN_KEY
-import io.sentry.android.core.SentryAndroid
-import io.sentry.android.core.SentryAndroidOptions
 
 /**
  * A Java app entry point that initializes the Bitdrift Logger.
@@ -84,6 +84,10 @@ class GradleTestApp : Application() {
     override fun onCreate() {
         super.onCreate()
         Timber.i("Hello World!")
+
+        @OptIn(ExperimentalBitdriftApi::class)
+        Capture.Logger.initCrashReporting()
+
         initLogging()
         trackAppLaunch()
         trackAppLifecycle()
