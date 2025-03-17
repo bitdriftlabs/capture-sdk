@@ -177,11 +177,13 @@ impl LoggerHolder {
       }
 
       let fields = [(
-          "_duration_ms".into(),
-          AnnotatedLogField {
+        "_duration_ms".into(),
+        AnnotatedLogField {
           value: duration_ms.to_string().into(),
-        kind: LogFieldKind::Ootb,
-      })].into();
+          kind: LogFieldKind::Ootb,
+        },
+      )]
+      .into();
 
       self.log(
         log_level::INFO,
@@ -197,10 +199,10 @@ impl LoggerHolder {
 
   pub fn log_screen_view(&self, screen_name: String) {
     let fields = [(
-         "_screen_name".into(),
-        AnnotatedLogField::new_ootb(
-        screen_name,
-    ))].into();
+      "_screen_name".into(),
+      AnnotatedLogField::new_ootb(screen_name),
+    )]
+    .into();
 
     self.log(
       log_level::INFO,
