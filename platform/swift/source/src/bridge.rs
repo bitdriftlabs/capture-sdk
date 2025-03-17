@@ -27,6 +27,7 @@ use bd_logger::{
   AnnotatedLogFields,
   LogField,
   LogFieldKind,
+  LogFields,
   LogLevel,
   MetadataProvider,
 };
@@ -397,7 +398,7 @@ impl MetadataProvider for LogMetadataProvider {
     })
   }
 
-  fn fields(&self) -> anyhow::Result<(AnnotatedLogFields, AnnotatedLogFields)> {
+  fn fields(&self) -> anyhow::Result<(LogFields, LogFields)> {
     // Safety: Since we receive MetadataProvider as a typed protocol, we know that it
     // responds to `ootbFields` and `customFields` selectors.
     objc::rc::autoreleasepool(|| unsafe {
