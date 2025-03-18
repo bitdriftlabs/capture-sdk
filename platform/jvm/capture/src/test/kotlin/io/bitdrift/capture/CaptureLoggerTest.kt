@@ -31,8 +31,7 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.reports.FatalIssueReporterState
-import io.bitdrift.capture.reports.FatalIssueReporterStatus
+import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
@@ -451,7 +450,6 @@ class CaptureLoggerTest {
         fieldProvider: FieldProvider? = null,
         dateProvider: DateProvider = mock<DateProvider>(),
         sessionStrategy: SessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-        fatalIssueReporterStatus: FatalIssueReporterStatus = FatalIssueReporterStatus(FatalIssueReporterState.NotInitialized),
     ): LoggerImpl {
         val fieldProviders = fieldProvider?.let { listOf(it) }.orEmpty()
         return LoggerImpl(
@@ -461,7 +459,7 @@ class CaptureLoggerTest {
             sessionStrategy = sessionStrategy,
             dateProvider = dateProvider,
             configuration = Configuration(),
-            fatalIssueReporterStatus = fatalIssueReporterStatus,
+            fatalIssueReporter = FatalIssueReporter(),
         )
     }
 

@@ -45,6 +45,7 @@ android {
 dependencies {
     // the module containing code to benchmark
     androidTestImplementation(project(":capture"))
+    androidTestImplementation(project(":common"))
 
     androidTestImplementation("androidx.test:runner:1.5.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

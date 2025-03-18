@@ -16,8 +16,7 @@ import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueReporterState
-import io.bitdrift.capture.reports.FatalIssueReporterStatus
+import io.bitdrift.capture.reports.FatalIssueReporter
 import okhttp3.HttpUrl
 import okhttp3.mockwebserver.MockWebServer
 import org.assertj.core.api.Assertions.assertThat
@@ -108,7 +107,7 @@ class ErrorReporterTest {
                 sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
                 configuration = Configuration(),
                 errorReporter = reporter,
-                fatalIssueReporterStatus = FatalIssueReporterStatus(FatalIssueReporterState.NotInitialized),
+                fatalIssueReporter = FatalIssueReporter(),
             )
 
         val errorHandler = ErrorHandler()
