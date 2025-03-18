@@ -8,36 +8,36 @@
 package io.bitdrift.capture.reports
 
 /**
- * Represents all different states for [CrashReporter.processCrashReportFile]
+ * Represents all different states for [FatalIssueReporter.processPriorReportFiles]
  */
-internal sealed class CrashReporterState(
+internal sealed class FatalIssueReporterState(
     open val readableType: String,
 ) {
     /**
      * Indicates that initial setup call is in progress
      */
-    data object Initializing : CrashReporterState("INITIALIZING")
+    data object Initializing : FatalIssueReporterState("INITIALIZING")
 
     /**
      * State indicating that crash reporting has not been initialized
      */
-    data object NotInitialized : CrashReporterState("NOT_INITIALIZED")
+    data object NotInitialized : FatalIssueReporterState("NOT_INITIALIZED")
 
     /**
      * Sealed class representing all initialized states
      */
     sealed class Initialized(
         override val readableType: String,
-    ) : CrashReporterState(readableType) {
+    ) : FatalIssueReporterState(readableType) {
         /**
          * State indicating that prior crash report was sent
          */
-        data object CrashReportSent : Initialized("CRASH_REPORT_SENT")
+        data object FatalIssueReportSent : Initialized("CRASH_REPORT_SENT")
 
         /**
          * State indicating that there are no prior crashes to report
          */
-        data object WithoutPriorCrash : Initialized("NO_PRIOR_CRASHES")
+        data object WithoutPriorFatalIssue : Initialized("NO_PRIOR_CRASHES")
 
         /**
          * State indicating that the crash report configuration file is missing

@@ -14,7 +14,7 @@ import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
-import io.bitdrift.capture.reports.CrashReporterState.Initialized.ProcessingFailure
+import io.bitdrift.capture.reports.FatalIssueReporterState.Initialized.ProcessingFailure
 import io.bitdrift.capture.utils.SdkDirectory
 import java.io.File
 import java.nio.file.Files
@@ -25,7 +25,7 @@ import kotlin.time.measureTime
 /**
  * Handles internal reporting of crashes
  */
-internal class CrashReporter(
+internal class FatalIssueReporter(
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) {
     private val appContext = APP_CONTEXT
@@ -35,46 +35,46 @@ internal class CrashReporter(
      *
      * @return The status of the crash reporting processing
      */
-    fun processCrashReportFile(): CrashReporterStatus =
+    fun processPriorReportFiles(): FatalIssueReporterStatus =
         runCatching {
             mainThreadHandler.runAndReturnResult {
-                var crashReporterState: CrashReporterState
+                var fatalIssueReporterState: FatalIssueReporterState
                 val duration =
                     measureTime {
-                        crashReporterState = verifyDirectoriesAndCopyFiles()
+                        fatalIssueReporterState = verifyDirectoriesAndCopyFiles()
                     }
-                CrashReporterStatus(crashReporterState, duration)
+                FatalIssueReporterStatus(fatalIssueReporterState, duration)
             }
         }.getOrElse {
-            CrashReporterStatus(ProcessingFailure("Error while processCrashReportFile. ${it.message}"))
+            FatalIssueReporterStatus(ProcessingFailure("Error while processCrashReportFile. ${it.message}"))
         }
 
     @UiThread
-    private fun verifyDirectoriesAndCopyFiles(): CrashReporterState {
+    private fun verifyDirectoriesAndCopyFiles(): FatalIssueReporterState {
         val sdkDirectory = SdkDirectory.getPath(appContext)
         val crashConfigFile = File(sdkDirectory, CONFIGURATION_FILE_PATH)
 
         if (!crashConfigFile.exists()) {
-            return CrashReporterState.Initialized.MissingConfigFile
+            return FatalIssueReporterState.Initialized.MissingConfigFile
         }
 
         val crashConfigFileContents = crashConfigFile.readText()
         val crashConfigDetails =
             getConfigDetails(crashConfigFileContents) ?: let {
-                return CrashReporterState.Initialized.MalformedConfigFile
+                return FatalIssueReporterState.Initialized.MalformedConfigFile
             }
 
         val sourceDirectory =
             File(appContext.cacheDir.absolutePath, crashConfigDetails.rootPath)
         if (!sourceDirectory.exists() || !sourceDirectory.isDirectory) {
-            return CrashReporterState.Initialized.WithoutPriorCrash
+            return FatalIssueReporterState.Initialized.WithoutPriorFatalIssue
         }
 
         val destinationDirectory =
             File(sdkDirectory, DESTINATION_FILE_PATH).apply { if (!exists()) mkdirs() }
 
         return runCatching {
-            findAndCopyCrashFile(
+            findAndCopyPriorReportFile(
                 sourceDirectory,
                 destinationDirectory,
                 crashConfigDetails.extensionFileName,
@@ -85,15 +85,15 @@ internal class CrashReporter(
     }
 
     @UiThread
-    private fun findAndCopyCrashFile(
+    private fun findAndCopyPriorReportFile(
         sourceDirectory: File,
         destinationDirectory: File,
         fileExtension: String,
-    ): CrashReporterState {
+    ): FatalIssueReporterState {
         val crashFile =
             findCrashFile(sourceDirectory, fileExtension)
                 ?: let {
-                    return CrashReporterState.Initialized.WithoutPriorCrash
+                    return FatalIssueReporterState.Initialized.WithoutPriorFatalIssue
                 }
 
         verifyDirectoryIsEmpty(destinationDirectory)
@@ -101,9 +101,9 @@ internal class CrashReporter(
         crashFile.copyTo(destinationFile, overwrite = true)
 
         return if (destinationFile.exists()) {
-            CrashReporterState.Initialized.CrashReportSent
+            FatalIssueReporterState.Initialized.FatalIssueReportSent
         } else {
-            CrashReporterState.Initialized.WithoutPriorCrash
+            FatalIssueReporterState.Initialized.WithoutPriorFatalIssue
         }
     }
 
@@ -152,21 +152,21 @@ internal class CrashReporter(
 
     internal companion object {
         private const val CONFIGURATION_FILE_PATH = "/reports/config"
-        private const val CRASH_REPORTING_DURATION_MILLI_KEY = "_crash_reporting_duration_ms"
-        private const val CRASH_REPORTING_STATE_KEY = "_crash_reporting_state"
+        private const val FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY = "_fatal_issue_reporting_duration_ms"
+        private const val FATAL_ISSUE_REPORTING_STATE_KEY = "_fatal_issue_reporting_state"
         private const val DESTINATION_FILE_PATH = "/reports/new"
         private const val LAST_MODIFIED_TIME_ATTRIBUTE = "lastModifiedTime"
 
         /**
-         * Returns the fields map with latest [CrashReporterStatus]
+         * Returns the fields map with latest [FatalIssueReporterStatus]
          */
-        internal fun CrashReporterStatus.buildFieldsMap(): Map<String, FieldValue> =
+        internal fun FatalIssueReporterStatus.buildFieldsMap(): Map<String, FieldValue> =
             buildMap {
-                put(CRASH_REPORTING_STATE_KEY, state.readableType.toFieldValue())
-                put(CRASH_REPORTING_DURATION_MILLI_KEY, getDuration().toFieldValue())
+                put(FATAL_ISSUE_REPORTING_STATE_KEY, state.readableType.toFieldValue())
+                put(FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY, getDuration().toFieldValue())
             }
 
         @VisibleForTesting
-        fun CrashReporterStatus.getDuration(): String = duration?.toDouble(DurationUnit.MILLISECONDS)?.toString() ?: "n/a"
+        fun FatalIssueReporterStatus.getDuration(): String = duration?.toDouble(DurationUnit.MILLISECONDS)?.toString() ?: "n/a"
     }
 }

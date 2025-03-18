@@ -29,7 +29,7 @@ class HelloWorldApp : Application() {
         super.onCreate()
         
         @OptIn(ExperimentalBitdriftApi::class)
-        Logger.initCrashReporting()
+        Logger.initFatalIssueReporting()
         
         setupExampleCrashHandler()
 

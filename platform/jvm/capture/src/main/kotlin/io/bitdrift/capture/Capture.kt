@@ -19,9 +19,9 @@ import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.CrashReporter
-import io.bitdrift.capture.reports.CrashReporterState
-import io.bitdrift.capture.reports.CrashReporterStatus
+import io.bitdrift.capture.reports.FatalIssueReporter
+import io.bitdrift.capture.reports.FatalIssueReporterState
+import io.bitdrift.capture.reports.FatalIssueReporterStatus
 import okhttp3.HttpUrl
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
@@ -55,7 +55,7 @@ internal sealed class LoggerState {
  */
 object Capture {
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
-    private var crashReporterStatus: CrashReporterStatus = CrashReporterStatus(CrashReporterState.NotInitialized)
+    private var fatalIssueReporterStatus: FatalIssueReporterStatus = FatalIssueReporterStatus(FatalIssueReporterState.NotInitialized)
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -98,18 +98,18 @@ object Capture {
         private val mainThreadHandler by lazy { MainThreadHandler() }
 
         /**
-         * Initializes crash reporting mechanism.
+         * Initializes fatal issue (ANR, JVM Crash, Native crash) reporting mechanism.
          *
          * This should be called prior to Capture.Logger.start()
          */
         @ExperimentalBitdriftApi
         @JvmStatic
-        fun initCrashReporting() {
-            val crashReporter = CrashReporter()
-            if (crashReporterStatus.state is CrashReporterState.NotInitialized) {
-                crashReporterStatus = crashReporter.processCrashReportFile()
+        fun initFatalIssueReporting() {
+            val fatalIssueReporter = FatalIssueReporter()
+            if (fatalIssueReporterStatus.state is FatalIssueReporterState.NotInitialized) {
+                fatalIssueReporterStatus = fatalIssueReporter.processPriorReportFiles()
             } else {
-                Log.w("capture", "Crash reporting already being initialized")
+                Log.w("capture", "Fatal issue reporting already being initialized")
             }
         }
 
@@ -186,7 +186,7 @@ object Capture {
                             configuration = configuration,
                             sessionStrategy = sessionStrategy,
                             bridge = bridge,
-                            crashReporterStatus = crashReporterStatus,
+                            fatalIssueReporterStatus = fatalIssueReporterStatus,
                         )
                     default.set(LoggerState.Started(logger))
                 } catch (e: Throwable) {

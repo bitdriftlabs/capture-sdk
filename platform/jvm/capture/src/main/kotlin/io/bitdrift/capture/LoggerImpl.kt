@@ -49,8 +49,8 @@ import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.reports.CrashReporter.Companion.buildFieldsMap
-import io.bitdrift.capture.reports.CrashReporterStatus
+import io.bitdrift.capture.reports.FatalIssueReporter.Companion.buildFieldsMap
+import io.bitdrift.capture.reports.FatalIssueReporterStatus
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.SdkDirectory
 import okhttp3.HttpUrl
@@ -84,7 +84,7 @@ internal class LoggerImpl(
     private val bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    private val crashReporterStatus: CrashReporterStatus,
+    private val fatalIssueReporterStatus: FatalIssueReporterStatus,
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val memoryMetricsProvider = MemoryMetricsProvider(context)
@@ -271,7 +271,7 @@ internal class LoggerImpl(
 
         CaptureJniLibrary.writeSDKStartLog(
             this.loggerId,
-            crashReporterStatus.buildFieldsMap(),
+            fatalIssueReporterStatus.buildFieldsMap(),
             duration.toDouble(DurationUnit.SECONDS),
         )
     }

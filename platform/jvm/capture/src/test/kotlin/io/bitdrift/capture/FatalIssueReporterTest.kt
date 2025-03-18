@@ -11,11 +11,11 @@ import androidx.test.core.app.ApplicationProvider
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
-import io.bitdrift.capture.reports.CrashReporter
-import io.bitdrift.capture.reports.CrashReporter.Companion.buildFieldsMap
-import io.bitdrift.capture.reports.CrashReporter.Companion.getDuration
-import io.bitdrift.capture.reports.CrashReporterState
-import io.bitdrift.capture.reports.CrashReporterStatus
+import io.bitdrift.capture.reports.FatalIssueReporter
+import io.bitdrift.capture.reports.FatalIssueReporter.Companion.buildFieldsMap
+import io.bitdrift.capture.reports.FatalIssueReporter.Companion.getDuration
+import io.bitdrift.capture.reports.FatalIssueReporterState
+import io.bitdrift.capture.reports.FatalIssueReporterStatus
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -26,92 +26,92 @@ import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
-class CrashReporterTest {
-    private lateinit var crashReporter: CrashReporter
+class FatalIssueReporterTest {
+    private lateinit var fatalIssueReporter: FatalIssueReporter
 
     @Before
     fun setup() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
-        crashReporter = CrashReporter(Mocks.sameThreadHandler)
+        fatalIssueReporter = FatalIssueReporter(Mocks.sameThreadHandler)
     }
 
     @Test
-    fun processCrashReportFile_withMissingConfigFile_shouldReportMissingConfigState() {
+    fun processPriorReportFile_withMissingConfigFile_shouldReportMissingConfigState() {
         prepareFileDirectories(doesReportsDirectoryExist = false)
 
-        val crashReporterStatus = crashReporter.processCrashReportFile()
+        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
 
-        crashReporterStatus.assert(CrashReporterState.Initialized.MissingConfigFile::class.java)
+        crashReporterStatus.assert(FatalIssueReporterState.Initialized.MissingConfigFile::class.java)
     }
 
     @Test
-    fun processCrashReportFile_withValidConfigFileAndNotReports_shouldReportWithoutPriorCrashState() {
+    fun processCrashReportFile_withValidConfigFileAndNotReports_shouldReportWithoutPriorPriorState() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
             bitdriftConfigContent = "acme,json",
             crashFilePresent = false,
         )
 
-        val crashReporterStatus = crashReporter.processCrashReportFile()
+        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
 
         crashReporterStatus.assert(
-            CrashReporterState.Initialized.WithoutPriorCrash::class.java,
+            FatalIssueReporterState.Initialized.WithoutPriorFatalIssue::class.java,
         )
     }
 
     @Test
-    fun processCrashReportFile_withValidConfigFileAndReports_shouldReportPriorCrash() {
+    fun processCrashReportFile_withValidConfigFileAndReports_shouldReportPriorPrior() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
             bitdriftConfigContent = "acme,json",
             crashFilePresent = true,
         )
 
-        val crashReporterStatus = crashReporter.processCrashReportFile()
+        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
 
         crashReporterStatus.assert(
-            CrashReporterState.Initialized.CrashReportSent::class.java,
+            FatalIssueReporterState.Initialized.FatalIssueReportSent::class.java,
         )
     }
 
     @Test
-    fun processCrashReportFile_withInValidExtensionConfigAndReports_shouldReportPriorCrash() {
+    fun processCrashReportFile_withInValidExtensionConfigAndReports_shouldReportPriorPrior() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
             bitdriftConfigContent = "acme,yaml",
             crashFilePresent = true,
         )
 
-        val crashReporterStatus = crashReporter.processCrashReportFile()
+        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
 
         crashReporterStatus.assert(
-            CrashReporterState.Initialized.WithoutPriorCrash::class.java,
+            FatalIssueReporterState.Initialized.WithoutPriorFatalIssue::class.java,
         )
     }
 
     @Test
-    fun processCrashReportFile_withMalformedConfigFileAndPriorReport_shouldReportMalformedConfigFile() {
+    fun processPriorReportFile_withMalformedConfigFileAndPriorReport_shouldReportMalformedConfigFiles() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
             bitdriftConfigContent = "/data/crashdemo/etc",
             crashFilePresent = true,
         )
 
-        val crashReporterStatus = crashReporter.processCrashReportFile()
+        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
 
         crashReporterStatus.assert(
-            CrashReporterState.Initialized.MalformedConfigFile::class.java,
+            FatalIssueReporterState.Initialized.MalformedConfigFile::class.java,
         )
     }
 
-    private fun CrashReporterStatus.assert(expectedType: Class<*>) {
+    private fun FatalIssueReporterStatus.assert(expectedType: Class<*>) {
         assertThat(state).isInstanceOf(expectedType)
         assertThat(duration != null).isTrue()
         val expectedMap: Map<String, FieldValue> =
             buildMap {
-                put("_crash_reporting_state", state.readableType.toFieldValue())
-                put("_crash_reporting_duration_ms", getDuration().toFieldValue())
+                put("_fatal_issue_reporting_duration_ms", getDuration().toFieldValue())
+                put("_fatal_issue_reporting_state", state.readableType.toFieldValue())
             }
         assertThat(buildFieldsMap()).isEqualTo(expectedMap)
     }
