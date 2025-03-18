@@ -8,6 +8,7 @@
 // Helpers for safely interacting with Objective-C types.
 use crate::ffi;
 use ahash::AHashMap;
+use bd_log_primitives::LogFieldKey;
 use bd_logger::{
   AnnotatedLogField,
   AnnotatedLogFields,
@@ -15,9 +16,6 @@ use bd_logger::{
   LogFieldValue,
   LogFields,
   StringOrBytes,
-};
-use bd_log_primitives::{
-  LogFieldKey,
 };
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
