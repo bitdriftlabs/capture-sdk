@@ -10,9 +10,9 @@ package io.bitdrift.capture.reports
 import kotlin.time.Duration
 
 /**
- * Holds the latest [CrashReporter.processCrashReportFile] status
+ * Holds the latest [FatalIssueReporter.processPriorReportFiles] status
  */
-internal data class CrashReporterStatus(
-    val state: CrashReporterState,
+internal data class FatalIssueReporterStatus(
+    val state: FatalIssueReporterState,
     val duration: Duration? = null,
 )

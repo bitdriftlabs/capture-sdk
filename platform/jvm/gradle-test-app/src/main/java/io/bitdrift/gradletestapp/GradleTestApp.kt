@@ -86,7 +86,7 @@ class GradleTestApp : Application() {
         Timber.i("Hello World!")
 
         @OptIn(ExperimentalBitdriftApi::class)
-        Capture.Logger.initCrashReporting()
+        Capture.Logger.initFatalIssueReporting()
 
         initLogging()
         trackAppLaunch()
