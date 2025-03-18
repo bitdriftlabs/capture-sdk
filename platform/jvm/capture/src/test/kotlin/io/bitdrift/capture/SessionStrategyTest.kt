@@ -10,8 +10,7 @@ package io.bitdrift.capture
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueReporterState
-import io.bitdrift.capture.reports.FatalIssueReporterStatus
+import io.bitdrift.capture.reports.FatalIssueReporter
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -48,7 +47,7 @@ class SessionStrategyTest {
                         sessionId
                     },
                 configuration = Configuration(),
-                fatalIssueReporterStatus = FatalIssueReporterStatus(FatalIssueReporterState.NotInitialized),
+                fatalIssueReporter = FatalIssueReporter(),
             )
 
         val sessionId = logger.sessionId
@@ -82,7 +81,7 @@ class SessionStrategyTest {
                     },
                 configuration = Configuration(),
                 preferences = mock(),
-                fatalIssueReporterStatus = FatalIssueReporterStatus(FatalIssueReporterState.NotInitialized),
+                fatalIssueReporter = FatalIssueReporter(),
             )
 
         val sessionId = logger.sessionId

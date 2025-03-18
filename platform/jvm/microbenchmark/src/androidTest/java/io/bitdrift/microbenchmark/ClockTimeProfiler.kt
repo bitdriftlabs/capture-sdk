@@ -9,12 +9,15 @@
 
 package io.bitdrift.microbenchmark
 
+import android.app.ApplicationExitInfo
 import androidx.benchmark.junit4.BenchmarkRule
 import androidx.benchmark.junit4.measureRepeated
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -23,6 +26,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.FatalIssueReporterStatus
+import io.bitdrift.capture.reports.IFatalIssueReporter
 
 private const val LOG_MESSAGE = "50 characters long test message - 0123456789012345"
 
@@ -56,7 +60,7 @@ class ClockTimeProfiler {
                 dateProvider = SystemDateProvider(),
                 configuration = Configuration(),
                 sessionStrategy = SessionStrategy.Fixed(),
-                fatalIssueReporterStatus = FatalIssueReporterStatus(FatalIssueReporterState.NotInitialized),
+                fatalIssueReporter = FakeFatalIssueReporter(),
                 )
         }
     }
@@ -103,6 +107,21 @@ class ClockTimeProfiler {
                     "keykeykey10" to "valvalval10",
                 )
             ) { LOG_MESSAGE }
+        }
+    }
+
+    private class FakeFatalIssueReporter:IFatalIssueReporter{
+        override fun init() {
+            // no-op
+        }
+
+        override fun getFatalIssueFieldMap(): Map<String, FieldValue> = emptyMap()
+
+        override fun processAndStoreAppExitInfoTrace(
+            errorHandler: ErrorHandler,
+            applicationExitReason: ApplicationExitInfo
+        ) {
+            //no-op
         }
     }
 }

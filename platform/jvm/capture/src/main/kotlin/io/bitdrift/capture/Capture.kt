@@ -20,8 +20,6 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.FatalIssueReporter
-import io.bitdrift.capture.reports.FatalIssueReporterState
-import io.bitdrift.capture.reports.FatalIssueReporterStatus
 import okhttp3.HttpUrl
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
@@ -55,7 +53,7 @@ internal sealed class LoggerState {
  */
 object Capture {
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
-    private var fatalIssueReporterStatus: FatalIssueReporterStatus = FatalIssueReporterStatus(FatalIssueReporterState.NotInitialized)
+    private val fatalIssueReporter = FatalIssueReporter()
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -105,12 +103,7 @@ object Capture {
         @ExperimentalBitdriftApi
         @JvmStatic
         fun initFatalIssueReporting() {
-            val fatalIssueReporter = FatalIssueReporter()
-            if (fatalIssueReporterStatus.state is FatalIssueReporterState.NotInitialized) {
-                fatalIssueReporterStatus = fatalIssueReporter.processPriorReportFiles()
-            } else {
-                Log.w("capture", "Fatal issue reporting already being initialized")
-            }
+            fatalIssueReporter.init()
         }
 
         /**
@@ -186,7 +179,7 @@ object Capture {
                             configuration = configuration,
                             sessionStrategy = sessionStrategy,
                             bridge = bridge,
-                            fatalIssueReporterStatus = fatalIssueReporterStatus,
+                            fatalIssueReporter = fatalIssueReporter,
                         )
                     default.set(LoggerState.Started(logger))
                 } catch (e: Throwable) {

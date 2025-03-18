@@ -26,6 +26,7 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.lang.reflect.InvocationTargetException
@@ -40,6 +41,7 @@ internal class AppExitLogger(
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
+    private val fatalIssueReporter: IFatalIssueReporter,
 ) {
     companion object {
         private const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -121,6 +123,8 @@ internal class AppExitLogger(
             buildAppExitInternalFieldsMap(lastExitInfo),
             attributesOverrides = LogAttributesOverrides(sessionId, timestampMs),
         ) { APP_EXIT_EVENT_NAME }
+
+        processAppExitInfoTraceIfNeeded(lastExitInfo)
     }
 
     fun logCrash(
@@ -261,4 +265,12 @@ internal class AppExitLogger(
             -> LogLevel.ERROR
             else -> LogLevel.INFO
         }
+
+    @TargetApi(Build.VERSION_CODES.R)
+    private fun processAppExitInfoTraceIfNeeded(applicationExitInfo: ApplicationExitInfo) {
+        if (!runtime.isEnabled(RuntimeFeature.ENABLE_APP_EXIT_FATAL_ISSUE_REPORTING)) {
+            return
+        }
+        fatalIssueReporter.processAndStoreAppExitInfoTrace(errorHandler, applicationExitInfo)
+    }
 }

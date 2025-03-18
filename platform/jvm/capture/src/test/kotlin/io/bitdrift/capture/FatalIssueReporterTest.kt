@@ -12,8 +12,6 @@ import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.reports.FatalIssueReporter
-import io.bitdrift.capture.reports.FatalIssueReporter.Companion.buildFieldsMap
-import io.bitdrift.capture.reports.FatalIssueReporter.Companion.getDuration
 import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.FatalIssueReporterStatus
 import org.assertj.core.api.Assertions.assertThat
@@ -37,70 +35,70 @@ class FatalIssueReporterTest {
     }
 
     @Test
-    fun processPriorReportFile_withMissingConfigFile_shouldReportMissingConfigState() {
+    fun init_withMissingConfigFile_shouldReportMissingConfigState() {
         prepareFileDirectories(doesReportsDirectoryExist = false)
 
-        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
+        fatalIssueReporter.init()
 
-        crashReporterStatus.assert(FatalIssueReporterState.Initialized.MissingConfigFile::class.java)
+        fatalIssueReporter.status.assert(FatalIssueReporterState.Initialized.MissingConfigFile::class.java)
     }
 
     @Test
-    fun processCrashReportFile_withValidConfigFileAndNotReports_shouldReportWithoutPriorPriorState() {
+    fun init_withValidConfigFileAndNotReports_shouldReportWithoutPriorPriorState() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
             bitdriftConfigContent = "acme,json",
             crashFilePresent = false,
         )
 
-        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
+        fatalIssueReporter.init()
 
-        crashReporterStatus.assert(
+        fatalIssueReporter.status.assert(
             FatalIssueReporterState.Initialized.WithoutPriorFatalIssue::class.java,
         )
     }
 
     @Test
-    fun processCrashReportFile_withValidConfigFileAndReports_shouldReportPriorPrior() {
+    fun init_withValidConfigFileAndReports_shouldReportPriorPrior() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
             bitdriftConfigContent = "acme,json",
             crashFilePresent = true,
         )
 
-        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
+        fatalIssueReporter.init()
 
-        crashReporterStatus.assert(
+        fatalIssueReporter.status.assert(
             FatalIssueReporterState.Initialized.FatalIssueReportSent::class.java,
         )
     }
 
     @Test
-    fun processCrashReportFile_withInValidExtensionConfigAndReports_shouldReportPriorPrior() {
+    fun init_withInValidExtensionConfigAndReports_shouldReportPriorPrior() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
             bitdriftConfigContent = "acme,yaml",
             crashFilePresent = true,
         )
 
-        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
+        fatalIssueReporter.init()
 
-        crashReporterStatus.assert(
+        fatalIssueReporter.status.assert(
             FatalIssueReporterState.Initialized.WithoutPriorFatalIssue::class.java,
         )
     }
 
     @Test
-    fun processPriorReportFile_withMalformedConfigFileAndPriorReport_shouldReportMalformedConfigFiles() {
+    fun init_withMalformedConfigFileAndPriorReport_shouldReportMalformedConfigFiles() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
             bitdriftConfigContent = "/data/crashdemo/etc",
             crashFilePresent = true,
         )
 
-        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
+        fatalIssueReporter.init()
 
-        crashReporterStatus.assert(
+        fatalIssueReporter.status.assert(
             FatalIssueReporterState.Initialized.MalformedConfigFile::class.java,
         )
     }
@@ -110,10 +108,10 @@ class FatalIssueReporterTest {
         assertThat(duration != null).isTrue()
         val expectedMap: Map<String, FieldValue> =
             buildMap {
-                put("_fatal_issue_reporting_duration_ms", getDuration().toFieldValue())
+                put("_fatal_issue_reporting_duration_ms", fatalIssueReporter.getInitDurationMs().toFieldValue())
                 put("_fatal_issue_reporting_state", state.readableType.toFieldValue())
             }
-        assertThat(buildFieldsMap()).isEqualTo(expectedMap)
+        assertThat(fatalIssueReporter.getFatalIssueFieldMap()).isEqualTo(expectedMap)
     }
 
     private fun prepareFileDirectories(

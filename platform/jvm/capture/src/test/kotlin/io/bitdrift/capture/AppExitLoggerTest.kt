@@ -28,6 +28,7 @@ import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -44,6 +45,7 @@ class AppExitLoggerTest {
     private val logger: LoggerImpl = mock()
     private val activityManager: ActivityManager = mock()
     private val runtime: Runtime = mock()
+    private val fatalIssueReporter: IFatalIssueReporter = mock()
 
     private val errorHandler: ErrorHandler = mock()
     private val crashHandler: CaptureUncaughtExceptionHandler = mock()
@@ -66,6 +68,7 @@ class AppExitLoggerTest {
                 versionChecker,
                 memoryMetricsProvider,
                 backgroundThreadHandler,
+                fatalIssueReporter = fatalIssueReporter,
             )
     }
 
@@ -142,47 +145,13 @@ class AppExitLoggerTest {
     }
 
     @Test
-    fun testLogPreviousExitReasonIfAny() {
-        // ARRANGE
-        val sessionId = "test-session-id"
-        val timestamp = 123L
-        val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
-        whenever(mockExitInfo.processStateSummary).thenReturn(sessionId.toByteArray(StandardCharsets.UTF_8))
-        whenever(mockExitInfo.timestamp).thenReturn(timestamp)
-        whenever(mockExitInfo.processName).thenReturn("test-process-name")
-        whenever(mockExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_ANR)
-        whenever(mockExitInfo.importance).thenReturn(RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
-        whenever(mockExitInfo.status).thenReturn(0)
-        whenever(mockExitInfo.pss).thenReturn(1)
-        whenever(mockExitInfo.rss).thenReturn(2)
-        whenever(mockExitInfo.description).thenReturn("test-description")
-        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
+    fun logPreviousExitReasonIfAny_whenFatalIssueReportingEnabled_shouldInteractWithFatalReporter() {
+        assertLogPreviousExitReason(enableAppExitFatalIssueReporting = true)
+    }
 
-        // ACT
-        appExitLogger.logPreviousExitReasonIfAny()
-
-        // ASSERT
-        val expectedFields =
-            buildMap {
-                put("_app_exit_source", "ApplicationExitInfo")
-                put("_app_exit_process_name", "test-process-name")
-                put("_app_exit_reason", "ANR")
-                put("_app_exit_importance", "FOREGROUND")
-                put("_app_exit_status", "0")
-                put("_app_exit_pss", "1")
-                put("_app_exit_rss", "2")
-                put("_app_exit_description", "test-description")
-                putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
-            }.toFields()
-        verify(logger).log(
-            eq(LogType.LIFECYCLE),
-            eq(LogLevel.ERROR),
-            eq(expectedFields),
-            eq(null),
-            eq(LogAttributesOverrides(sessionId, timestamp)),
-            eq(false),
-            argThat { i: () -> String -> i.invoke() == "AppExit" },
-        )
+    @Test
+    fun logPreviousExitReasonIfAny_whenFatalIssueReportingDisabled_shouldNotInteractWithFatalReporter() {
+        assertLogPreviousExitReason(enableAppExitFatalIssueReporting = false)
     }
 
     @Test
@@ -297,6 +266,58 @@ class AppExitLoggerTest {
 
         // ASSERT
         assertCrashArtifactNotAdded()
+    }
+
+    private fun assertLogPreviousExitReason(enableAppExitFatalIssueReporting: Boolean) {
+        // ARRANGE
+        whenever(runtime.isEnabled(RuntimeFeature.ENABLE_APP_EXIT_FATAL_ISSUE_REPORTING))
+            .thenReturn(enableAppExitFatalIssueReporting)
+        val sessionId = "test-session-id"
+        val timestamp = 123L
+        val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
+        whenever(mockExitInfo.processStateSummary).thenReturn(sessionId.toByteArray(StandardCharsets.UTF_8))
+        whenever(mockExitInfo.timestamp).thenReturn(timestamp)
+        whenever(mockExitInfo.processName).thenReturn("test-process-name")
+        whenever(mockExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_ANR)
+        whenever(mockExitInfo.importance).thenReturn(RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
+        whenever(mockExitInfo.status).thenReturn(0)
+        whenever(mockExitInfo.pss).thenReturn(1)
+        whenever(mockExitInfo.rss).thenReturn(2)
+        whenever(mockExitInfo.description).thenReturn("test-description")
+        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        val expectedFields =
+            buildMap {
+                put("_app_exit_source", "ApplicationExitInfo")
+                put("_app_exit_process_name", "test-process-name")
+                put("_app_exit_reason", "ANR")
+                put("_app_exit_importance", "FOREGROUND")
+                put("_app_exit_status", "0")
+                put("_app_exit_pss", "1")
+                put("_app_exit_rss", "2")
+                put("_app_exit_description", "test-description")
+                putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
+            }.toFields()
+        verify(logger).log(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.ERROR),
+            eq(expectedFields),
+            eq(null),
+            eq(LogAttributesOverrides(sessionId, timestamp)),
+            eq(false),
+            argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+        if (enableAppExitFatalIssueReporting) {
+            verify(fatalIssueReporter)
+                .processAndStoreAppExitInfoTrace(errorHandler, mockExitInfo)
+        } else {
+            verify(fatalIssueReporter, never())
+                .processAndStoreAppExitInfoTrace(any(), any())
+        }
     }
 
     private fun mockAppExitData(
