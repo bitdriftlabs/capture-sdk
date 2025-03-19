@@ -23,9 +23,9 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
-import io.bitdrift.capture.fakes.FakeLastExitInfo
-import io.bitdrift.capture.fakes.FakeLastExitInfo.Companion.SESSION_ID
-import io.bitdrift.capture.fakes.FakeLastExitInfo.Companion.TIME_STAMP
+import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
+import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.SESSION_ID
+import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
 import io.bitdrift.capture.providers.toFieldValue
@@ -50,7 +50,7 @@ class AppExitLoggerTest {
     private val versionChecker: BuildVersionChecker = mock()
     private val memoryMetricsProvider = FakeMemoryMetricsProvider()
     private val backgroundThreadHandler = FakeBackgroundThreadHandler()
-    private val lastExitInfo = FakeLastExitInfo()
+    private val lastExitInfo = FakeLatestAppExitInfoProvider()
 
     private lateinit var appExitLogger: AppExitLogger
 

@@ -26,8 +26,8 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.reports.lastexitinfo.ILastExitInfo
-import io.bitdrift.capture.reports.lastexitinfo.LastExitInfo
+import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProviderProvider
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.lang.reflect.InvocationTargetException
@@ -42,7 +42,7 @@ internal class AppExitLogger(
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
-    private val lastExitInfo: ILastExitInfo = LastExitInfo(activityManager, errorHandler),
+    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProviderProvider(activityManager, errorHandler),
 ) {
     companion object {
         private const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -99,7 +99,7 @@ internal class AppExitLogger(
             return
         }
 
-        val lastExitInfo = lastExitInfo.get() ?: return
+        val lastExitInfo = latestAppExitInfoProvider.get() ?: return
         // extract stored id from previous session in order to override the log, bail if not present
         val sessionId = lastExitInfo.processStateSummary?.toString(StandardCharsets.UTF_8) ?: return
         val timestampMs = lastExitInfo.timestamp

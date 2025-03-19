@@ -4,7 +4,7 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-package io.bitdrift.capture.reports.lastexitinfo
+package io.bitdrift.capture.reports.exitinfo
 
 import android.annotation.TargetApi
 import android.app.ActivityManager
@@ -13,12 +13,12 @@ import android.os.Build
 import io.bitdrift.capture.common.ErrorHandler
 
 /**
- * Concrete impl of [ILastExitInfo]
+ * Concrete impl of [ILatestAppExitInfoProvider]
  */
-internal class LastExitInfo(
+internal class LatestAppExitInfoProviderProvider(
     private val activityManager: ActivityManager,
     private val errorHandler: ErrorHandler,
-) : ILastExitInfo {
+) : ILatestAppExitInfoProvider {
     @TargetApi(Build.VERSION_CODES.R)
     override fun get(): ApplicationExitInfo? {
         try {

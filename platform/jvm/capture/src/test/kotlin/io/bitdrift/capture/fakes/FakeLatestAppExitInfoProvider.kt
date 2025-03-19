@@ -11,7 +11,7 @@ import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
-import io.bitdrift.capture.reports.lastexitinfo.ILastExitInfo
+import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
@@ -19,7 +19,7 @@ import java.nio.charset.StandardCharsets
 /**
  * A lightweight fake to return different [ApplicationExitInfo]
  */
-class FakeLastExitInfo : ILastExitInfo {
+class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
     /**
      * The last known reason for app termination (e.g. REASON_USER_REQUESTED)
      */

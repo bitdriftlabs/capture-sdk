@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.reports.lastexitinfo
+package io.bitdrift.capture.reports.exitinfo
 
 import android.annotation.TargetApi
 import android.app.ApplicationExitInfo
@@ -14,7 +14,7 @@ import android.os.Build
 /**
  * Retrieves the latest [ApplicationExitInfo] if available
  */
-fun interface ILastExitInfo {
+fun interface ILatestAppExitInfoProvider {
     /**
      * Returns the latest [ApplicationExitInfo] when present
      */

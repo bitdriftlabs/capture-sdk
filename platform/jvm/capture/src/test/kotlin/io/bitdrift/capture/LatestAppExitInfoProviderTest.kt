@@ -16,22 +16,22 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import io.bitdrift.capture.reports.lastexitinfo.LastExitInfo
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProviderProvider
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
 
-class LastExitInfoTest {
+class LatestAppExitInfoProviderTest {
     private val activityManager: ActivityManager = mock()
 
     private val errorHandler: ErrorHandler = mock()
 
-    private lateinit var lastExitInfo: LastExitInfo
+    private lateinit var latestAppExitInfoProvider: LatestAppExitInfoProviderProvider
 
     @Before
     fun setUp() {
-        lastExitInfo =
-            LastExitInfo(
+        latestAppExitInfoProvider =
+            LatestAppExitInfoProviderProvider(
                 activityManager,
                 errorHandler,
             )
@@ -44,7 +44,7 @@ class LastExitInfoTest {
         whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenThrow(error)
 
         // ACT
-        val exitReason = lastExitInfo.get()
+        val exitReason = latestAppExitInfoProvider.get()
 
         // ASSERT
         verify(errorHandler).handleError(any(), eq(error))
@@ -58,7 +58,7 @@ class LastExitInfoTest {
         whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
 
         // ACT
-        val exitReason = lastExitInfo.get()
+        val exitReason = latestAppExitInfoProvider.get()
 
         // ASSERT
         assertThat(exitReason).isNotNull()
@@ -74,7 +74,7 @@ class LastExitInfoTest {
         ).thenReturn(emptyList())
 
         // ACT
-        val exitReason = lastExitInfo.get()
+        val exitReason = latestAppExitInfoProvider.get()
 
         // ASSERT
         assertThat(exitReason).isNull()
