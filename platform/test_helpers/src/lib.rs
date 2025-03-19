@@ -165,10 +165,6 @@ fn perform_benchmarking_runtime_update(stream: &StreamHandle) {
         bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
         ValueKind::Int(100),
       ),
-      (
-        bd_runtime::runtime::workflows::WorkflowsEnabledFlag::path(),
-        ValueKind::Bool(true),
-      ),
       // Enable resource utilization logs.
       (
         bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
@@ -324,8 +320,8 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
       log_level::DEBUG,
       LogType::Normal,
       LogMessage::Bytes(vec![0; 100_000]),
-      vec![],
-      vec![],
+      [].into(),
+      [].into(),
       None,
       true,
     );
@@ -360,8 +356,8 @@ pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: Logger
           log_level::TRACE,
           LogType::Normal,
           "hello".into(),
-          vec![],
-          vec![],
+          [].into(),
+          [].into(),
           None,
           false,
         );
@@ -399,8 +395,8 @@ pub extern "C" fn run_aggressive_upload_test(logger_id: LoggerId<'_>) {
       log_level::TRACE,
       LogType::Normal,
       "hello".into(),
-      vec![],
-      vec![],
+      [].into(),
+      [].into(),
       None,
       false,
     );

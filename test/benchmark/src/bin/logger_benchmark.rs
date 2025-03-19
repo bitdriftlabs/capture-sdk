@@ -32,8 +32,8 @@ fn do_log(logger: &LoggerHandle) {
     log_level::TRACE,
     LogType::Normal,
     "hello".into(),
-    vec![],
-    vec![],
+    [].into(),
+    [].into(),
     None,
     false,
   );
@@ -56,8 +56,8 @@ fn simple_log(c: &mut Criterion) {
       Arc::new(UUIDCallbacks),
     ))),
     metadata_provider: Arc::new(LogMetadata {
-      timestamp: time::OffsetDateTime::now_utc(),
-      fields: Vec::new(),
+      timestamp: time::OffsetDateTime::now_utc().into(),
+      ..Default::default()
     }),
     resource_utilization_target: Box::new(bd_test_helpers::resource_utilization::EmptyTarget),
     session_replay_target: Box::new(bd_test_helpers::session_replay::NoOpTarget),
@@ -100,8 +100,8 @@ fn with_matcher_and_buffer(c: &mut Criterion) {
       Arc::new(UUIDCallbacks),
     ))),
     metadata_provider: Arc::new(LogMetadata {
-      timestamp: time::OffsetDateTime::now_utc(),
-      fields: Vec::new(),
+      timestamp: time::OffsetDateTime::now_utc().into(),
+      ..Default::default()
     }),
     resource_utilization_target: Box::new(bd_test_helpers::resource_utilization::EmptyTarget),
     session_replay_target: Box::new(bd_test_helpers::session_replay::NoOpTarget),
