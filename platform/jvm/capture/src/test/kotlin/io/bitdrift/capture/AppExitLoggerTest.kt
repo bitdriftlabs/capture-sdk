@@ -8,7 +8,6 @@
 package io.bitdrift.capture
 
 import android.app.ActivityManager
-import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
@@ -24,6 +23,9 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
+import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
+import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.SESSION_ID
+import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
 import io.bitdrift.capture.providers.toFieldValue
@@ -33,8 +35,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
-import org.mockito.Mockito
-import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.InputStream
@@ -50,6 +50,8 @@ class AppExitLoggerTest {
     private val versionChecker: BuildVersionChecker = mock()
     private val memoryMetricsProvider = FakeMemoryMetricsProvider()
     private val backgroundThreadHandler = FakeBackgroundThreadHandler()
+    private val lastExitInfo = FakeLatestAppExitInfoProvider()
+
     private lateinit var appExitLogger: AppExitLogger
 
     @Before
@@ -66,7 +68,9 @@ class AppExitLoggerTest {
                 versionChecker,
                 memoryMetricsProvider,
                 backgroundThreadHandler,
+                lastExitInfo,
             )
+        lastExitInfo.reset()
     }
 
     @Test
@@ -91,7 +95,6 @@ class AppExitLoggerTest {
         // ASSERT
         verify(crashHandler).install(appExitLogger)
         verify(activityManager).setProcessStateSummary(any())
-        verify(activityManager).getHistoricalProcessExitReasons(anyOrNull(), any(), any())
     }
 
     @Test
@@ -144,19 +147,10 @@ class AppExitLoggerTest {
     @Test
     fun testLogPreviousExitReasonIfAny() {
         // ARRANGE
-        val sessionId = "test-session-id"
-        val timestamp = 123L
-        val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
-        whenever(mockExitInfo.processStateSummary).thenReturn(sessionId.toByteArray(StandardCharsets.UTF_8))
-        whenever(mockExitInfo.timestamp).thenReturn(timestamp)
-        whenever(mockExitInfo.processName).thenReturn("test-process-name")
-        whenever(mockExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_ANR)
-        whenever(mockExitInfo.importance).thenReturn(RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
-        whenever(mockExitInfo.status).thenReturn(0)
-        whenever(mockExitInfo.pss).thenReturn(1)
-        whenever(mockExitInfo.rss).thenReturn(2)
-        whenever(mockExitInfo.description).thenReturn("test-description")
-        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
+        lastExitInfo.set(
+            exitReasonType = ApplicationExitInfo.REASON_ANR,
+            description = "test-description",
+        )
 
         // ACT
         appExitLogger.logPreviousExitReasonIfAny()
@@ -179,24 +173,10 @@ class AppExitLoggerTest {
             eq(LogLevel.ERROR),
             eq(expectedFields),
             eq(null),
-            eq(LogAttributesOverrides(sessionId, timestamp)),
+            eq(LogAttributesOverrides(SESSION_ID, TIME_STAMP)),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppExit" },
         )
-    }
-
-    @Test
-    fun testLogPreviousExitReasonIfAnyReportsError() {
-        // ARRANGE
-        val error = RuntimeException("test exception")
-        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenThrow(error)
-
-        // ACT
-        appExitLogger.logPreviousExitReasonIfAny()
-
-        // ASSERT
-        verify(errorHandler).handleError(any(), eq(error))
-        Mockito.verifyNoInteractions(logger)
     }
 
     @Test
@@ -235,7 +215,7 @@ class AppExitLoggerTest {
     fun logPreviousExitReasonIfAny_whenCrashNativeAndEmptyTrace_shouldNotAddCrashArtifactMetadata() {
         // ARRANGE
         whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(true)
-        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = null)
+        lastExitInfo.set(exitReasonType = ApplicationExitInfo.REASON_CRASH_NATIVE)
 
         // ACT
         appExitLogger.logPreviousExitReasonIfAny()
@@ -248,7 +228,10 @@ class AppExitLoggerTest {
     fun logPreviousExitReasonIfAny_whenCrashNative_shouldAddCrashArtifactMetadata() {
         // ARRANGE
         whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(true)
-        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = createValidInputStream())
+        lastExitInfo.set(
+            exitReasonType = ApplicationExitInfo.REASON_CRASH_NATIVE,
+            traceInputStream = createValidInputStream(),
+        )
 
         // ACT
         appExitLogger.logPreviousExitReasonIfAny()
@@ -261,7 +244,10 @@ class AppExitLoggerTest {
     fun logPreviousExitReasonIfAny_whenCrashNativeValidTombstoneAndKillSwitch_shouldNotAddCrashArtifactMetadata() {
         // ARRANGE
         whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(false)
-        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = createValidInputStream())
+        lastExitInfo.set(
+            exitReasonType = ApplicationExitInfo.REASON_CRASH_NATIVE,
+            traceInputStream = createValidInputStream(),
+        )
 
         // ACT
         appExitLogger.logPreviousExitReasonIfAny()
@@ -274,9 +260,10 @@ class AppExitLoggerTest {
     fun logPreviousExitReasonIfAny_whenCrashNative_shouldNotAddCrashArtifactMetadataAndLogError() {
         // ARRANGE
         whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(true)
-        val invalidInputStream = createInvalidInputStream()
-
-        mockAppExitData(exitReason = ApplicationExitInfo.REASON_CRASH_NATIVE, traceInputStream = invalidInputStream)
+        lastExitInfo.set(
+            exitReasonType = ApplicationExitInfo.REASON_CRASH_NATIVE,
+            traceInputStream = createInvalidInputStream(),
+        )
 
         // ACT
         appExitLogger.logPreviousExitReasonIfAny()
@@ -290,31 +277,16 @@ class AppExitLoggerTest {
     fun logPreviousExitReasonIfAny_whenAnr_shouldNotAddCrashArtifactMetadata() {
         // ARRANGE
         whenever(runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)).thenReturn(true)
-        mockAppExitData(exitReason = ApplicationExitInfo.REASON_ANR, traceInputStream = createValidInputStream())
+        lastExitInfo.set(
+            exitReasonType = ApplicationExitInfo.REASON_ANR,
+            traceInputStream = createValidInputStream(),
+        )
 
         // ACT
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        assertCrashArtifactNotAdded()
-    }
-
-    private fun mockAppExitData(
-        exitReason: Int,
-        traceInputStream: InputStream? = null,
-    ) {
-        val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
-        whenever(mockExitInfo.processStateSummary).thenReturn(SESSION_ID.toByteArray(StandardCharsets.UTF_8))
-        whenever(mockExitInfo.timestamp).thenReturn(TIME_STAMP)
-        whenever(mockExitInfo.processName).thenReturn("test-process-name")
-        whenever(mockExitInfo.reason).thenReturn(exitReason)
-        whenever(mockExitInfo.importance).thenReturn(RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
-        whenever(mockExitInfo.status).thenReturn(0)
-        whenever(mockExitInfo.pss).thenReturn(1)
-        whenever(mockExitInfo.rss).thenReturn(2)
-        whenever(mockExitInfo.description).thenReturn("test-description")
-        whenever(mockExitInfo.traceInputStream).thenReturn(traceInputStream)
-        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
+        assertCrashArtifactNotAdded(exitReasonText = "ANR")
     }
 
     private fun assertCrashArtifactAdded() {
@@ -333,18 +305,28 @@ class AppExitLoggerTest {
         assertThat(fieldValues["_crash_artifact"]).isEqualTo(FAKE_CRASH_STACKTRACE.toByteArray().toFieldValue())
     }
 
-    private fun assertCrashArtifactNotAdded() {
-        val expectedFieldsCaptor = argumentCaptor<InternalFieldsMap>()
+    private fun assertCrashArtifactNotAdded(exitReasonText: String = "CRASH_NATIVE") {
+        val expectedFields =
+            buildMap {
+                put("_app_exit_source", "ApplicationExitInfo")
+                put("_app_exit_process_name", "test-process-name")
+                put("_app_exit_reason", exitReasonText)
+                put("_app_exit_importance", "FOREGROUND")
+                put("_app_exit_status", "0")
+                put("_app_exit_pss", "1")
+                put("_app_exit_rss", "2")
+                put("_app_exit_description", "test-description")
+                putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
+            }.toFields()
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
-            expectedFieldsCaptor.capture(),
+            eq(expectedFields),
             eq(null),
             eq(LogAttributesOverrides(SESSION_ID, TIME_STAMP)),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppExit" },
         )
-        assertThat(expectedFieldsCaptor.firstValue).doesNotContainKey("_crash_artifact")
     }
 
     private fun createValidInputStream(): InputStream = ByteArrayInputStream(FAKE_CRASH_STACKTRACE.toByteArray(Charsets.UTF_8))
@@ -355,9 +337,7 @@ class AppExitLoggerTest {
         }
 
     private companion object {
-        private const val SESSION_ID = "test-session-id"
         private const val FAKE_CRASH_STACKTRACE = "SIG crash"
-        private const val TIME_STAMP = 123L
         private val INPUT_STREAM_EXCEPTION = IllegalArgumentException("Invalid size")
     }
 }
