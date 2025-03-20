@@ -8,6 +8,7 @@
 package io.bitdrift.capture.reports.exitinfo
 
 import android.annotation.TargetApi
+import android.app.ActivityManager
 import android.app.ApplicationExitInfo
 import android.os.Build
 
@@ -19,5 +20,34 @@ fun interface ILatestAppExitInfoProvider {
      * Returns the latest [ApplicationExitInfo] when present
      */
     @TargetApi(Build.VERSION_CODES.R)
-    fun get(): ApplicationExitInfo?
+    fun get(activityManager: ActivityManager): LatestAppExitReasonResult
+}
+
+/**
+ * The [ApplicationExitInfo] result
+ */
+sealed class LatestAppExitReasonResult {
+    /**
+     * Returns the latest [ApplicationExitInfo] when available
+     *
+     * @param applicationExitInfo
+     */
+    data class Valid(
+        val applicationExitInfo: ApplicationExitInfo,
+    ) : LatestAppExitReasonResult()
+
+    /**
+     * Returns when there are no prior [ApplicationExitInfo]. i.e. initial app installation
+     */
+    data object Empty : LatestAppExitReasonResult()
+
+    /**
+     * Returns the detailed error while trying to determine prior reasons
+     * @param message
+     * @param throwable
+     */
+    data class Error(
+        val message: String,
+        val throwable: Throwable,
+    ) : LatestAppExitReasonResult()
 }
