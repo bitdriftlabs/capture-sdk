@@ -32,7 +32,6 @@ class HelloWorldApp : Application() {
         * @OptIn(ExperimentalBitdriftApi::class)
         * Capture.Logger.initFatalIssueReporting()
         */
-        initLogging()
         
         setupExampleCrashHandler()
 
