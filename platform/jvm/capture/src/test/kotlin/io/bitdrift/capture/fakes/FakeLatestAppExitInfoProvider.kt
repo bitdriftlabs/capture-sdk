@@ -7,11 +7,13 @@
 
 package io.bitdrift.capture.fakes
 
+import android.app.ActivityManager
 import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
@@ -65,8 +67,8 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         this.description = description
     }
 
-    override fun get(): ApplicationExitInfo? {
-        if (hasNoPriorReason) return null
+    override fun get(activityManager: ActivityManager): LatestAppExitReasonResult {
+        if (hasNoPriorReason) return LatestAppExitReasonResult.Empty
 
         val appExitReason = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
         whenever(appExitReason.processStateSummary).thenReturn(
@@ -83,7 +85,7 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         whenever(appExitReason.rss).thenReturn(2)
         whenever(appExitReason.description).thenReturn(description)
         whenever(appExitReason.traceInputStream).thenReturn(traceInputStream)
-        return appExitReason
+        return LatestAppExitReasonResult.Valid(appExitReason)
     }
 
     companion object {

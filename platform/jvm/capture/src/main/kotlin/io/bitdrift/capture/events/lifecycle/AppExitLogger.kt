@@ -28,6 +28,7 @@ import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProviderProvider
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.lang.reflect.InvocationTargetException
@@ -42,7 +43,7 @@ internal class AppExitLogger(
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
-    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProviderProvider(activityManager, errorHandler),
+    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProviderProvider(),
 ) {
     companion object {
         private const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -99,17 +100,30 @@ internal class AppExitLogger(
             return
         }
 
-        val lastExitInfo = latestAppExitInfoProvider.get() ?: return
-        // extract stored id from previous session in order to override the log, bail if not present
-        val sessionId = lastExitInfo.processStateSummary?.toString(StandardCharsets.UTF_8) ?: return
-        val timestampMs = lastExitInfo.timestamp
+        when (val lastExitInfoResult = latestAppExitInfoProvider.get(activityManager)) {
+            is LatestAppExitReasonResult.Empty -> {
+                return
+            }
 
-        logger.log(
-            LogType.LIFECYCLE,
-            lastExitInfo.reason.toLogLevel(),
-            buildAppExitInternalFieldsMap(lastExitInfo),
-            attributesOverrides = LogAttributesOverrides(sessionId, timestampMs),
-        ) { APP_EXIT_EVENT_NAME }
+            is LatestAppExitReasonResult.Error -> {
+                errorHandler.handleError(lastExitInfoResult.message, lastExitInfoResult.throwable)
+            }
+
+            is LatestAppExitReasonResult.Valid -> {
+                val lastExitInfo = lastExitInfoResult.applicationExitInfo
+                // extract stored id from previous session in order to override the log, bail if not present
+                val sessionId =
+                    lastExitInfo.processStateSummary?.toString(StandardCharsets.UTF_8) ?: return
+                val timestampMs = lastExitInfo.timestamp
+
+                logger.log(
+                    LogType.LIFECYCLE,
+                    lastExitInfo.reason.toLogLevel(),
+                    buildAppExitInternalFieldsMap(lastExitInfo),
+                    attributesOverrides = LogAttributesOverrides(sessionId, timestampMs),
+                ) { APP_EXIT_EVENT_NAME }
+            }
+        }
     }
 
     fun logCrash(
@@ -248,6 +262,7 @@ internal class AppExitLogger(
                 ApplicationExitInfo.REASON_LOW_MEMORY,
             ),
             -> LogLevel.ERROR
+
             else -> LogLevel.INFO
         }
 }
