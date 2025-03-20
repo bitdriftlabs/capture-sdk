@@ -102,6 +102,7 @@ object Capture {
          *
          * This should be called prior to Capture.Logger.start()
          */
+        @Suppress("UnusedPrivateMember")
         @ExperimentalBitdriftApi
         @JvmStatic
         private fun initFatalIssueReporting() {
