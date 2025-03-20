@@ -13,7 +13,7 @@ import android.os.Build
 /**
  * Concrete impl of [ILatestAppExitInfoProvider]
  */
-internal class LatestAppExitInfoProviderProvider : ILatestAppExitInfoProvider {
+internal class LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
     @TargetApi(Build.VERSION_CODES.R)
     override fun get(activityManager: ActivityManager): LatestAppExitReasonResult {
         try {

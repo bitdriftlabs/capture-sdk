@@ -27,7 +27,7 @@ import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProviderProvider
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildVersionChecker
@@ -43,7 +43,7 @@ internal class AppExitLogger(
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
-    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProviderProvider(),
+    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider(),
 ) {
     companion object {
         private const val APP_EXIT_EVENT_NAME = "AppExit"

@@ -13,7 +13,7 @@ import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProviderProvider
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -21,12 +21,12 @@ import org.junit.Test
 
 class LatestAppExitInfoProviderTest {
     private val activityManager: ActivityManager = mock()
-    private lateinit var latestAppExitInfoProvider: LatestAppExitInfoProviderProvider
+    private lateinit var latestAppExitInfoProvider: LatestAppExitInfoProvider
 
     @Before
     fun setUp() {
         latestAppExitInfoProvider =
-            LatestAppExitInfoProviderProvider()
+            LatestAppExitInfoProvider()
     }
 
     @Test
