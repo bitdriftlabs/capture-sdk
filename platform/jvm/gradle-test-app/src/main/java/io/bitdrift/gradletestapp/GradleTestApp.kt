@@ -55,7 +55,6 @@ import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
-import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED
@@ -85,9 +84,11 @@ class GradleTestApp : Application() {
         super.onCreate()
         Timber.i("Hello World!")
 
-        @OptIn(ExperimentalBitdriftApi::class)
-        Capture.Logger.initFatalIssueReporting()
-
+        /**
+        * This API still not ready to users
+        * @OptIn(ExperimentalBitdriftApi::class)
+        * Capture.Logger.initFatalIssueReporting()
+        */
         initLogging()
         trackAppLaunch()
         trackAppLifecycle()

@@ -17,7 +17,6 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl
 import java.util.UUID
-import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 
 private const val bitdriftAPIKey = "<YOUR API KEY GOES HERE>"
 private val BITDRIFT_URL = HttpUrl.Builder().scheme("https").host("api.bitdrift.io").build()
@@ -28,8 +27,12 @@ class HelloWorldApp : Application() {
     override fun onCreate() {
         super.onCreate()
         
-        @OptIn(ExperimentalBitdriftApi::class)
-        Logger.initFatalIssueReporting()
+        /**
+        * This API still not ready to users
+        * @OptIn(ExperimentalBitdriftApi::class)
+        * Capture.Logger.initFatalIssueReporting()
+        */
+        initLogging()
         
         setupExampleCrashHandler()
 
