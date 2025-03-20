@@ -27,12 +27,6 @@ class HelloWorldApp : Application() {
     override fun onCreate() {
         super.onCreate()
         
-        /**
-        * This API still not ready to users
-        * @OptIn(ExperimentalBitdriftApi::class)
-        * Capture.Logger.initFatalIssueReporting()
-        */
-        
         setupExampleCrashHandler()
 
         val userID = UUID.randomUUID().toString();

@@ -83,12 +83,6 @@ class GradleTestApp : Application() {
     override fun onCreate() {
         super.onCreate()
         Timber.i("Hello World!")
-
-        /**
-        * This API still not ready to users
-        * @OptIn(ExperimentalBitdriftApi::class)
-        * Capture.Logger.initFatalIssueReporting()
-        */
         initLogging()
         trackAppLaunch()
         trackAppLifecycle()
