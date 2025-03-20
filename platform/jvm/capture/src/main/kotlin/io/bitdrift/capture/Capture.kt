@@ -102,9 +102,10 @@ object Capture {
          *
          * This should be called prior to Capture.Logger.start()
          */
+        @Suppress("UnusedPrivateMember")
         @ExperimentalBitdriftApi
         @JvmStatic
-        fun initFatalIssueReporting() {
+        private fun initFatalIssueReporting() {
             val fatalIssueReporter = FatalIssueReporter()
             if (fatalIssueReporterStatus.state is FatalIssueReporterState.NotInitialized) {
                 fatalIssueReporterStatus = fatalIssueReporter.processPriorReportFiles()
