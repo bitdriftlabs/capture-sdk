@@ -28,7 +28,7 @@ class ProxyURLSessionDelegate: NSObject {
     }
 
     override func responds(to aSelector: Selector!) -> Bool {
-        return self.target?.responds(to: aSelector) ?? super.responds(to: aSelector)
+        return self.target?.responds(to: aSelector) == true || super.responds(to: aSelector)
     }
 }
 

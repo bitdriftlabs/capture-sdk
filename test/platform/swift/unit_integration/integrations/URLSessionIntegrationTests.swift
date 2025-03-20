@@ -12,6 +12,13 @@ import Foundation
 import XCTest
 
 // swiftlint:disable file_length
+private final class URLSessionIncompleteDelegate: NSObject, URLSessionTaskDelegate {
+    var didCompleteExpectation: XCTestExpectation?
+
+    func urlSession(_: URLSession, task _: URLSessionTask, didCompleteWithError _: Error?) {
+        self.didCompleteExpectation?.fulfill()
+    }
+}
 
 private final class URLSessionDelegate: NSObject, URLSessionTaskDelegate {
     var didCreateTaskExpectation: XCTestExpectation?
@@ -213,6 +220,28 @@ final class URLSessionIntegrationTests: XCTestCase {
             try self.runCompletedRequestTest(with: task, completionExpectation: taskCompletionExpectation)
 
             XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 0.1))
+
+            session.invalidateAndCancel()
+            self.customTearDown()
+        }
+    }
+
+    func testCustomDelegateWithoutAllMethods() throws {
+        for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
+            self.customSetUp(swizzle: false)
+
+            let taskCompletionExpectation = self.expectation(description: "task completed")
+
+            let delegate = URLSessionIncompleteDelegate()
+            delegate.didCompleteExpectation = taskCompletionExpectation
+
+            let session = URLSession(
+                instrumentedSessionWithConfiguration: .default,
+                delegate: delegate
+            )
+            let task = try taskTestCase(session)
+
+            try self.runCompletedRequestTest(with: task, completionExpectation: taskCompletionExpectation)
 
             session.invalidateAndCancel()
             self.customTearDown()
