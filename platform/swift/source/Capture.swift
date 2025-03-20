@@ -341,12 +341,17 @@ extension Logger {
     /// while the corresponding end event is emitted when the `end(...)` method is called on the `Span`
     /// returned from the method. Refer to `Span` for more details.
     ///
-    /// - parameter name:     The name of the operation.
-    /// - parameter level:    The severity of the log to use when emitting logs for the operation.
-    /// - parameter file:     The unique file identifier that has the form module/file.
-    /// - parameter line:     The line number where the log is emitted.
-    /// - parameter function: The name of the function from which the log is emitted.
-    /// - parameter fields:   The extra fields to send as part of start and end logs for the operation.
+    /// - parameter name:              The name of the operation.
+    /// - parameter level:             The severity of the log to use when emitting logs for the operation.
+    /// - parameter file:              The unique file identifier that has the form module/file.
+    /// - parameter line:              The line number where the log is emitted.
+    /// - parameter function:          The name of the function from which the log is emitted.
+    /// - parameter fields:            The extra fields to send as part of start and end logs for the operation.
+    /// - parameter startTimeInterval: An optional custom start time to use in combination with an `endTimeInterval`
+    ///                                at span end to calculate duration. Providing one and not the other is considered an
+    ///                                error and in that scenario, the default time provider will be used instead.
+    /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hirearchies. A span without a
+    ///                                parentSpanID is considered a root span.
     ///
     /// - returns: A span that can be used to signal the end of the operation if the Capture SDK has been
     ///            started. Returns `nil` if the `start(...)` method has not been called.
@@ -356,11 +361,51 @@ extension Logger {
         file: String? = #file,
         line: Int? = #line,
         function: String? = #function,
-        fields: Fields? = nil
+        fields: Fields? = nil,
+        startTimeInterval: TimeInterval? = nil,
+        parentSpanID: UUID? = nil
     ) -> Span? {
         Self.getShared()?.startSpan(
-            name: name, level: level, file: file, line: line, function: function, fields: fields
+            name: name, level: level, file: file, line: line, function: function, fields: fields,
+            startTimeInterval: startTimeInterval, parentSpanID: parentSpanID, emitStartEvent: true
         )
+    }
+
+    /// Similar to `startSpan` but uses a known start and end intervals. It's worth noting that calling this function is not the same as
+    /// calling `startSpan` and `end` one after the other since in this case we'll only send one `end` log with the duration
+    /// derived from the given times. Also worth noting the timestamp of the log itself emitted will not be based on the provided intervals.
+    ///
+    /// - parameter name:              The name of the operation.
+    /// - parameter level:             The severity of the log to use when emitting logs for the operation.
+    /// - parameter result:            The result of the operation.
+    /// - parameter startTimeInterval: An optional custom start time to use in combination with an `endTimeInterval`
+    ///                                at span end to calculate duration. Providing one and not the other is considered an
+    ///                                error and in that scenario, the default time provider will be used instead.
+    /// - parameter endTimeInterval:   An optional custom end time to use in combination with the `startTimeInterval`
+    ///                                provided when creating the span. Setting one and not the other is considered an error
+    ///                                and in that scenario, Capture's time provider will be used instead.
+    /// - parameter file:              The unique file identifier that has the form module/file.
+    /// - parameter line:              The line number where the log is emitted.
+    /// - parameter function:          The name of the function from which the log is emitted.
+    /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hierarchies. A span without a
+    ///                                parentSpanID is considered a root span.
+    /// - parameter fields:            The extra fields to send as part of start and end logs for the operation.
+    public static func logSpan(
+        name: String,
+        level: LogLevel,
+        result: SpanResult,
+        startTimeInterval: TimeInterval,
+        endTimeInterval: TimeInterval,
+        file: String? = #file,
+        line: Int? = #line,
+        function: String? = #function,
+        parentSpanID: UUID? = nil,
+        fields: Fields? = nil
+    ) {
+        Self.getShared()?.logSpan(name: name, level: level, result: result, file: file, line: line,
+                                  function: function, startTimeInterval: startTimeInterval,
+                                  endTimeInterval: endTimeInterval, parentSpanID: parentSpanID,
+                                  fields: fields)
     }
 
     // MARK: - Extra

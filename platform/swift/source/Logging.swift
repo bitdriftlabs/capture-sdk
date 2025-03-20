@@ -116,18 +116,50 @@ public protocol Logging {
     /// while the corresponding end event is emitted when the `end(...)` method is called on the `Span`
     /// returned from the method. Refer to `Span` for more details.
     ///
-    /// - parameter name:     The name of the operation.
-    /// - parameter level:    The severity of the log to use when emitting logs for the operation.
-    /// - parameter file:     The unique file identifier that has the form module/file.
-    /// - parameter line:     The line number where the log is emitted.
-    /// - parameter function: The name of the function from which the log is emitted.
-    /// - parameter fields:   The extra fields to send as part of start and end logs for the operation.
+    /// - parameter name:              The name of the operation.
+    /// - parameter level:             The severity of the log to use when emitting logs for the operation.
+    /// - parameter file:              The unique file identifier that has the form module/file.
+    /// - parameter line:              The line number where the log is emitted.
+    /// - parameter function:          The name of the function from which the log is emitted.
+    /// - parameter fields:            The extra fields to send as part of start and end logs for the operation.
+    /// - parameter startTimeInterval: An optional custom start time to use in combination with an `endTimeInterval`
+    ///                                at span end to calculate duration. Providing one and not the other is considered an
+    ///                                error and in that scenario, the default time provider will be used instead.
+    /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hierarchies. A span without a
+    ///                                parentSpanID is considered a root span.
+    /// - parameter emitStartEvent:    A boolean indicating if the span start log needs to be sent or not.
     ///
     /// - returns: A span that can be used to signal the end of the operation if the Capture SDK has been
     ///            configured.
     func startSpan(
-        name: String, level: LogLevel, file: String?, line: Int?, function: String?, fields: Fields?
+        name: String, level: LogLevel, file: String?, line: Int?, function: String?,
+        fields: Fields?, startTimeInterval: TimeInterval?, parentSpanID: UUID?, emitStartEvent: Bool
     ) -> Span
+
+    /// Similar to `startSpan` but uses a known start and end intervals. It's worth noting that calling this function is not the same as
+    /// calling `startSpan` and `end` one after the other since in this case we'll only send one `end` log with the duration
+    /// derived from the given times. Also worth noting the timestamp of the log itself emitted will not be based on the provided intervals.
+    ///
+    /// - parameter name:              The name of the operation.
+    /// - parameter level:             The severity of the log to use when emitting logs for the operation.
+    /// - parameter result:            The result of the operation.
+    /// - parameter file:              The unique file identifier that has the form module/file.
+    /// - parameter line:              The line number where the log is emitted.
+    /// - parameter function:          The name of the function from which the log is emitted.
+    /// - parameter startTimeInterval: An optional custom start time to use in combination with an `endTimeInterval`
+    ///                                at span end to calculate duration. Providing one and not the other is considered an
+    ///                                error and in that scenario, the default time provider will be used instead.
+    /// - parameter endTimeInterval:   An optional custom end time to use in combination with the `startTimeInterval`
+    ///                                provided when creating the span. Setting one and not the other is considered an error
+    ///                                and in that scenario, Capture's time provider will be used instead.
+    /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hierarchies. A span without a
+    ///                                parentSpanID is considered a root span.
+    /// - parameter fields:            The extra fields to send as part of start and end logs for the operation.
+    func logSpan(
+        name: String, level: LogLevel, result: SpanResult, file: String?, line: Int?,
+        function: String?, startTimeInterval: TimeInterval, endTimeInterval: TimeInterval,
+        parentSpanID: UUID?, fields: Fields?
+    )
 }
 
 extension Logging {
@@ -326,30 +358,5 @@ extension Logging {
         function: String? = #function
     ) {
         self.log(response, file: file, line: line, function: function)
-    }
-
-    /// Signals that an operation has started at this point in time. Each operation consists of start and
-    /// end event logs. The start event is emitted immediately upon calling the `startSpan(...)` method,
-    /// while the corresponding end event is emitted when the `end(...)` method is called on the Span
-    /// returned from the method. Refer to `Span` for more details.
-    ///
-    /// - parameter name:     The name of the operation.
-    /// - parameter level:    The severity of the log to use when emitting logs for the operation.
-    /// - parameter file:     The unique file identifier that has the form module/file.
-    /// - parameter line:     The line number where the log is emitted.
-    /// - parameter function: The name of the function from which the log is emitted.
-    /// - parameter fields:   The extra fields to include with the log.
-    ///
-    /// - returns: A span that can be used to signal the end of the operation if the Capture SDK has been
-    ///            configured.
-    func startSpan(
-        name: String,
-        level: LogLevel,
-        file: String? = nil,
-        line: Int? = nil,
-        function: String? = nil,
-        fields: Fields? = nil
-    ) -> Span {
-        self.startSpan(name: name, level: level, file: file, line: line, function: function, fields: fields)
     }
 }
