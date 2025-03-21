@@ -22,6 +22,8 @@ final class FatalIssueReporterTests: XCTestCase {
         )
         .appendingPathComponent("bitdrift_capture")
         .appendingPathComponent("reports")
+    private let bundleID = Bundle.main.bundleIdentifier!
+    private let bundleName = Bundle.main.infoDictionary![kCFBundleNameKey as String]!
 
     override func setUp() {
         if FileManager.default.fileExists(atPath: reportDir.path) {
@@ -72,8 +74,11 @@ final class FatalIssueReporterTests: XCTestCase {
     }
 
     func testNoMatchingFiles() {
-        createConfig("the-files/special,yaml")
-        createInCache(directory: "the-files/special", filename: "something.yam", contents: "<stuff>")
+        createConfig("{cache_dir}/the-files/special,yaml")
+        createInDir(.cachesDirectory,
+                    directory: "the-files/special",
+                    filename: "something.yam",
+                    contents: "<stuff>")
         Logger.initFatalIssueReporting()
         let result = Logger.issueReporterInitResult
         XCTAssertEqual(IssueReporterInitState.initialized(.withoutPriorCrash), result.0)
@@ -83,13 +88,14 @@ final class FatalIssueReporterTests: XCTestCase {
         XCTAssertGreaterThan(reporterDuration, 0)
     }
 
-    func testMatchingFile() {
-        createConfig("the-files/more-special,json")
+    func testMatchingFileInAppSupport() {
+        createConfig("{support_dir}/the-files/{bundle_name}/more-special,json")
         let modDate = Date() - TimeInterval(150)
-        createInCache(directory: "the-files/more-special",
-                      filename: "something.json",
-                      contents: "<stuff>",
-                      attributes: [.modificationDate: modDate])
+        createInDir(.applicationSupportDirectory,
+                    directory: "the-files/\(bundleName)/more-special",
+                    filename: "something.json",
+                    contents: "<stuff>",
+                    attributes: [.modificationDate: modDate])
         Logger.initFatalIssueReporting()
         let result = Logger.issueReporterInitResult
         XCTAssertEqual(IssueReporterInitState.initialized(.sent), result.0)
@@ -106,6 +112,41 @@ final class FatalIssueReporterTests: XCTestCase {
 
         let contents = FileManager.default.contents(atPath: destination.appendingPathComponent(files[0]).path)!
         XCTAssertEqual("<stuff>", String(data: contents, encoding: .utf8))
+
+        let (reporterState, reporterDuration) = startAndExpectLog()
+        XCTAssertEqual("CRASH_REPORT_SENT", reporterState)
+        XCTAssertGreaterThan(reporterDuration, 0)
+    }
+
+    func testMatchingFileInCaches() {
+        createConfig("{cache_dir}/the-files/{bundle_id}/most-special,json")
+        let modDate = Date() - TimeInterval(150)
+        createInDir(.cachesDirectory,
+                    directory: "the-files/\(bundleID)/most-special",
+                    filename: "expected.json",
+                    contents: "<good stuff>",
+                    attributes: [.modificationDate: modDate])
+        createInDir(.cachesDirectory,
+                    directory: "the-files/\(bundleID)/most-special",
+                    filename: "old-and-ignore.json",
+                    contents: "<bad stuff>",
+                    attributes: [.modificationDate: modDate - TimeInterval(200)])
+        Logger.initFatalIssueReporting()
+        let result = Logger.issueReporterInitResult
+        XCTAssertEqual(IssueReporterInitState.initialized(.sent), result.0)
+        XCTAssertLessThan(result.1, 50)
+
+        let destination = reportDir.appendingPathComponent("new", isDirectory: true)
+        let files = try! FileManager.default.contentsOfDirectory(atPath: destination.path)
+        XCTAssertEqual(1, files.count)
+
+        let nameinfo = files[0].split(separator: "_")
+        let timestamp = UInt64(nameinfo[0])!
+        XCTAssertEqual(UInt64(modDate.timeIntervalSince1970 * 1_000), timestamp)
+        XCTAssertEqual("expected.json", nameinfo[1])
+
+        let contents = FileManager.default.contents(atPath: destination.appendingPathComponent(files[0]).path)!
+        XCTAssertEqual("<good stuff>", String(data: contents, encoding: .utf8))
 
         let (reporterState, reporterDuration) = startAndExpectLog()
         XCTAssertEqual("CRASH_REPORT_SENT", reporterState)
@@ -140,11 +181,10 @@ final class FatalIssueReporterTests: XCTestCase {
 
     // MARK: - File utilities
 
-    private func createInCache(directory: String, filename: String, contents: String,
-                               attributes: [FileAttributeKey: Any]? = nil) {
-        let cacheDir = try! FileManager.default.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask, appropriateFor: nil, create: false)
+    private func createInDir(_ area: FileManager.SearchPathDirectory, directory: String,
+                             filename: String, contents: String,
+                             attributes: [FileAttributeKey: Any]? = nil) {
+        let cacheDir = try! FileManager.default.url(for: area, in: .userDomainMask, appropriateFor: nil, create: false)
         let destDir = cacheDir.appendingPathComponent(directory)
         try! FileManager.default.createDirectory(
             at: destDir,

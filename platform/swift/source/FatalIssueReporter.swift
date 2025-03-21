@@ -45,18 +45,6 @@ struct FatalIssueReporter {
         }
     }
 
-    private static func getCacheDir() -> URL? {
-        #if os(tvOS)
-        let dirType: FileManager.SearchPathDirectory = .cachesDirectory // only caches is writeable on tvOS
-        #else
-        let dirType: FileManager.SearchPathDirectory = .applicationSupportDirectory
-        #endif
-        if let cacheDir = try? FileManager.default.url(for: dirType, in: .userDomainMask, appropriateFor: nil, create: false) {
-            return cacheDir
-        }
-        return nil
-    }
-
     /// Read the upload destrination and contents of the report configuration, returning both
     ///
     /// - returns: the configuration fields and destination URL or an initialized state indicating the config
@@ -107,7 +95,7 @@ struct FatalIssueReporter {
     /// - returns: initialization resolution indicating whether a file was copied or not
     private static func copyFiles(config: IssueReporterConfig, destDir: URL) -> IssueReporterInitState {
         let resourceNames: [URLResourceKey] = [.nameKey, .isRegularFileKey, .contentModificationDateKey]
-        guard let sourceDir = getCacheDir()?.appendingPathComponent(config.rootDir),
+        guard let sourceDir = URL(string: config.rootDir),
               let files = try? FileManager.default.contentsOfDirectory(at: sourceDir, includingPropertiesForKeys: resourceNames),
               let entry = files.sorted(by: { entry1, entry2 in
                 if let props1 = try? entry1.resourceValues(forKeys: [.contentModificationDateKey]),
@@ -157,9 +145,36 @@ struct IssueReporterConfig {
         else {
             return nil
         }
-        return IssueReporterConfig(
-            rootDir: String(components[0]),
-            fileExtension: String(components[1]))
+        var (rootDir, fileExtension) = (String(components[0]), String(components[1]))
+        if let bundleID = appBundleID() {
+            rootDir = rootDir.replacingOccurrences(of: "{bundle_id}", with: bundleID)
+        }
+        if let bundleName = appBundleName() {
+            rootDir = rootDir.replacingOccurrences(of: "{bundle_name}", with: bundleName)
+        }
+        if let cacheDir = getCacheDir() {
+            rootDir = rootDir.replacingOccurrences(of: "{cache_dir}", with: cacheDir.path)
+        }
+        if let appSupportDir = getAppSupportDir() {
+            rootDir = rootDir.replacingOccurrences(of: "{support_dir}", with: appSupportDir.path)
+        }
+        return IssueReporterConfig(rootDir: rootDir, fileExtension: fileExtension)
+    }
+
+    private static func getCacheDir() -> URL? {
+        return try? FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+    }
+
+    private static func getAppSupportDir() -> URL? {
+        return try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+    }
+
+    private static func appBundleID() -> String? {
+        return Bundle.main.bundleIdentifier
+    }
+
+    private static func appBundleName() -> String? {
+        return Bundle.main.object(forInfoDictionaryKey: kCFBundleNameKey as String) as? String
     }
 }
 
