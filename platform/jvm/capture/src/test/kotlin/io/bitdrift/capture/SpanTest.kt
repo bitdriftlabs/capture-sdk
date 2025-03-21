@@ -56,7 +56,7 @@ class SpanTest {
 
     @Test
     fun spansWithStartAndEnd() {
-        val span = Span(logger, "name", LogLevel.INFO, clock = clock, startTimeMs = 1L)
+        val span = Span(logger, "name", LogLevel.INFO, clock = clock, customStartTimeMs = 1L)
 
         val fields = argumentCaptor<InternalFieldsMap>()
         span.end(SpanResult.SUCCESS, endTimeMs = 1000L)
@@ -83,7 +83,7 @@ class SpanTest {
     @Test
     fun spansWithStartAndNoEnd() {
         whenever(clock.elapsedRealtime()).thenReturn(0L)
-        val spanWithNoEnd = Span(logger, "name", LogLevel.INFO, clock = clock, startTimeMs = 1L)
+        val spanWithNoEnd = Span(logger, "name", LogLevel.INFO, clock = clock, customStartTimeMs = 1L)
         val fieldsWithNoEnd = argumentCaptor<InternalFieldsMap>()
         whenever(clock.elapsedRealtime()).thenReturn(1337L)
         spanWithNoEnd.end(SpanResult.SUCCESS)
@@ -126,7 +126,7 @@ class SpanTest {
 
     @Test
     fun spansNoEmit() {
-        val span = Span(logger, "name", LogLevel.INFO, clock = clock, startTimeMs = 0, emitStartLog = false)
+        val span = Span(logger, "name", LogLevel.INFO, clock = clock, customStartTimeMs = 0, emitStartLog = false)
         val fields = argumentCaptor<InternalFieldsMap>()
         span.end(SpanResult.SUCCESS, endTimeMs = 1337)
         verify(logger, times(1)).log(
