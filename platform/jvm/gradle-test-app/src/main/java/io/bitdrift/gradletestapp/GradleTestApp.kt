@@ -55,6 +55,7 @@ import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED
@@ -90,6 +91,9 @@ class GradleTestApp : Application() {
     }
 
     private fun initLogging() {
+        @OptIn(ExperimentalBitdriftApi::class)
+        Capture.Logger.initFatalIssueReporting()
+
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         val stringApiUrl = sharedPreferences.getString("apiUrl", null)
         val apiUrl = stringApiUrl?.toHttpUrlOrNull()

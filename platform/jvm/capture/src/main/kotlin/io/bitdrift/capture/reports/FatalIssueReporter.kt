@@ -127,9 +127,10 @@ internal class FatalIssueReporter(
         sourceFile: File,
         fileExtension: String,
     ): File? =
-        sourceFile.walk().firstOrNull {
-            it.isFile && it.extension == fileExtension
-        }
+        sourceFile
+            .walk()
+            .filter { it.isFile && it.extension == fileExtension }
+            .maxByOrNull { it.lastModified() }
 
     private fun File.toFilenameWithTimeStamp(): String {
         val fileCreationEpochTime = getFileCreationTimeEpochInMillis(this)
