@@ -347,9 +347,10 @@ extension Logger {
     /// - parameter line:              The line number where the log is emitted.
     /// - parameter function:          The name of the function from which the log is emitted.
     /// - parameter fields:            The extra fields to send as part of start and end logs for the operation.
-    /// - parameter startTimeInterval: An optional custom start time to use in combination with an `endTimeInterval`
-    ///                                at span end to calculate duration. Providing one and not the other is considered an
-    ///                                error and in that scenario, the default time provider will be used instead.
+    /// - parameter startTimeInterval: An optional custom start time in milliseconds since the Unix epoch. This can be
+    ///                                used to override the default start time of the span. If provided, it needs
+    ///                                to be used in combination with an `endTimeMs`. Providing one and not the other is
+    ///                                considered an error and in that scenario, the default clock will be used instead.
     /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hierarchies. A span without a
     ///                                parentSpanID is considered a root span.
     ///

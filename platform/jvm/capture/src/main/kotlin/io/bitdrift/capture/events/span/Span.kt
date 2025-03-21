@@ -89,9 +89,11 @@ class Span internal constructor(
      *
      * @param result the result of the operation.
      * @param fields additional fields to include in the log.
-     * @param endTimeMs the end time to use in combination with the `startTimeInterval` given to
-     *                  the constructor. If not provided, the current time will be used to calculate
-     *                  the span duration.
+     * @param endTimeMs an optional custom end time in milliseconds since the Unix epoch. This can be
+     *                  used to override the default end time of the span. If provided, it needs
+     *                  to be used in combination with `startTimeMs` at span creation. Providing one and
+     *                  not the other is considered an error and in that scenario, the default clock will
+     *                  be used instead.
      */
     fun end(
         result: SpanResult,

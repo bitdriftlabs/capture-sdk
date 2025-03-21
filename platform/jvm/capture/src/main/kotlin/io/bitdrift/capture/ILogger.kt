@@ -117,8 +117,9 @@ interface ILogger {
      * @param name the name of the operation.
      * @param level the severity of the log.
      * @param fields additional fields to include in the log.
-     * @param startTimeMs An optional custom start time to use in combination with an `endTimeMs`
-     *                    at span end to calculate duration. Providing one and not the other is
+     * @param startTimeMs an optional custom start time in milliseconds since the Unix epoch. This can be
+     *                    used to override the default start time of the span. If provided, it needs
+     *                    to be used in combination with an `endTimeMs`. Providing one and not the other is
      *                    considered an error and in that scenario, the default clock will be used instead.
      * @param parentSpanId: An optional ID of the parent span, used to build span hierarchies. A span
      *                      without a parentSpanId is considered a root span.
