@@ -421,9 +421,9 @@ object Capture {
          * @param name the name of the operation.
          * @param level the severity of the log.
          * @param fields additional fields to include in the log.
-         * @param startTimeInMs an optional custom start time to use in combination with an `endTimeInMs`
-         *                      at span end to calculate duration. Providing one and not the other is
-         *                      considered an error and in that scenario, the default clock will be used instead.
+         * @param startTimeMs an optional custom start time to use in combination with an `endTimeMs`
+         *                    at span end to calculate duration. Providing one and not the other is
+         *                    considered an error and in that scenario, the default clock will be used instead.
          * @param parentSpanId: an optional ID of the parent span, used to build span hierarchies. A span
          *                      without a parentSpanId is considered a root span.
          * @return a [Span] object that can be used to signal the end of the operation if Capture has been started.
@@ -433,9 +433,9 @@ object Capture {
             name: String,
             level: LogLevel,
             fields: Map<String, String>? = null,
-            startTimeInMs: Long? = null,
+            startTimeMs: Long? = null,
             parentSpanId: UUID? = null,
-        ): Span? = logger()?.startSpan(name, level, fields, startTimeInMs, parentSpanId)
+        ): Span? = logger()?.startSpan(name, level, fields, startTimeMs, parentSpanId)
 
         /**
          * Similar to `startSpan` but uses a known start and end intervals. It's worth noting that calling
@@ -447,10 +447,10 @@ object Capture {
          * @param level the severity of the log.
          * @param fields additional fields to include in the log.
          * @param result the result of the operation.
-         * @param startTimeInMs the start time interval to use in combination with `endTimeInterval`
-         *                      to calculate duration.
-         * @param endTimeInMs the end time to use in combination with the `startTimeInterval` to calculate
-         *                    the span duration.
+         * @param startTimeMs the start time interval to use in combination with `endTimeInterval`
+         *                    to calculate duration.
+         * @param endTimeMs the end time to use in combination with the `startTimeInterval` to calculate
+         *                  the span duration.
          * @param parentSpanId an optional ID of the parent span, used to build span hierarchies. A span
          *                     without a parentSpanID is considered a root span.
          */
@@ -460,10 +460,10 @@ object Capture {
             level: LogLevel,
             fields: Map<String, String>? = null,
             result: SpanResult,
-            startTimeInMs: Long,
-            endTimeInMs: Long,
+            startTimeMs: Long,
+            endTimeMs: Long,
             parentSpanId: UUID? = null,
-        ) = logger()?.logSpan(name, level, fields, result, startTimeInMs, endTimeInMs, parentSpanId)
+        ) = logger()?.logSpan(name, level, fields, result, startTimeMs, endTimeMs, parentSpanId)
 
         /**
          * Wrap the specified [block] in calls to [startSpan] (with the supplied params)

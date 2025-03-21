@@ -328,22 +328,22 @@ internal class LoggerImpl(
         name: String,
         level: LogLevel,
         fields: Map<String, String>?,
-        startTimeInMs: Long?,
+        startTimeMs: Long?,
         parentSpanId: UUID?,
         emitStartLog: Boolean,
-    ): Span = Span(this, name, level, fields, startTimeInMs, parentSpanId)
+    ): Span = Span(this, name, level, fields, startTimeMs, parentSpanId)
 
     override fun logSpan(
         name: String,
         level: LogLevel,
         fields: Map<String, String>?,
         result: SpanResult,
-        startTimeInMs: Long,
-        endTimeInMs: Long,
+        startTimeMs: Long,
+        endTimeMs: Long,
         parentSpanId: UUID?,
     ) {
-        val span = this.startSpan(name, level, fields, startTimeInMs, parentSpanId, false)
-        span.end(result, fields, endTimeInMs)
+        val span = this.startSpan(name, level, fields, startTimeMs, parentSpanId, false)
+        span.end(result, fields, endTimeMs)
     }
 
     override fun log(httpRequestInfo: HttpRequestInfo) {

@@ -40,7 +40,7 @@ class Span internal constructor(
     private val name: String,
     private val level: LogLevel,
     fields: Map<String, String>? = null,
-    private val startTimeInMs: Long? = null,
+    private val startTimeMs: Long? = null,
     private val parentSpanId: UUID? = null,
     emitStartLog: Boolean = true,
     private val clock: IClock = DefaultClock.getInstance(),
@@ -80,16 +80,19 @@ class Span internal constructor(
      *
      * @param result the result of the operation.
      * @param fields additional fields to include in the log.
+     * @param endTimeMs the end time to use in combination with the `startTimeInterval` given to
+     *                  the constructor. If not provided, the current time will be used to calculate
+     *                  the span duration.
      */
     fun end(
         result: SpanResult,
         fields: Map<String, String>? = null,
-        endTimeInMs: Long? = null,
+        endTimeMs: Long? = null,
     ) {
         logger?.apply {
             val durationMs: Long =
-                if (endTimeInMs != null && startTimeInMs != null) {
-                    endTimeInMs - startTimeInMs
+                if (endTimeMs != null && startTimeMs != null) {
+                    endTimeMs - startTimeMs
                 } else {
                     clock.elapsedRealtime() - startTimeMs
                 }

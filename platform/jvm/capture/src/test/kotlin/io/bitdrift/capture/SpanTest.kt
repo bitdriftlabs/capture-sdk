@@ -56,10 +56,10 @@ class SpanTest {
 
     @Test
     fun spansWithStartAndEnd() {
-        val span = Span(logger, "name", LogLevel.INFO, clock = clock, startTimeInMs = 1L)
+        val span = Span(logger, "name", LogLevel.INFO, clock = clock, startTimeMs = 1L)
 
         val fields = argumentCaptor<InternalFieldsMap>()
-        span.end(SpanResult.SUCCESS, endTimeInMs = 1000L)
+        span.end(SpanResult.SUCCESS, endTimeMs = 1000L)
 
         verify(logger, times(2)).log(
             eq(LogType.SPAN),
@@ -83,7 +83,7 @@ class SpanTest {
     @Test
     fun spansWithStartAndNoEnd() {
         whenever(clock.elapsedRealtime()).thenReturn(0L)
-        val spanWithNoEnd = Span(logger, "name", LogLevel.INFO, clock = clock, startTimeInMs = 1L)
+        val spanWithNoEnd = Span(logger, "name", LogLevel.INFO, clock = clock, startTimeMs = 1L)
         val fieldsWithNoEnd = argumentCaptor<InternalFieldsMap>()
         whenever(clock.elapsedRealtime()).thenReturn(1337L)
         spanWithNoEnd.end(SpanResult.SUCCESS)
@@ -108,7 +108,7 @@ class SpanTest {
         val spanWithNoStart = Span(logger, "name", LogLevel.INFO, clock = clock)
         val fieldsWithNoStart = argumentCaptor<InternalFieldsMap>()
         whenever(clock.elapsedRealtime()).thenReturn(1338L)
-        spanWithNoStart.end(SpanResult.SUCCESS, endTimeInMs = 1337)
+        spanWithNoStart.end(SpanResult.SUCCESS, endTimeMs = 1337)
 
         verify(logger, times(2)).log(
             eq(LogType.SPAN),
@@ -126,9 +126,9 @@ class SpanTest {
 
     @Test
     fun spansNoEmit() {
-        val span = Span(logger, "name", LogLevel.INFO, clock = clock, startTimeInMs = 0, emitStartLog = false)
+        val span = Span(logger, "name", LogLevel.INFO, clock = clock, startTimeMs = 0, emitStartLog = false)
         val fields = argumentCaptor<InternalFieldsMap>()
-        span.end(SpanResult.SUCCESS, endTimeInMs = 1337)
+        span.end(SpanResult.SUCCESS, endTimeMs = 1337)
         verify(logger, times(1)).log(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),

@@ -117,9 +117,9 @@ interface ILogger {
      * @param name the name of the operation.
      * @param level the severity of the log.
      * @param fields additional fields to include in the log.
-     * @param startTimeInMs An optional custom start time to use in combination with an `endTimeInMs`
-     *                      at span end to calculate duration. Providing one and not the other is
-     *                      considered an error and in that scenario, the default clock will be used instead.
+     * @param startTimeMs An optional custom start time to use in combination with an `endTimeMs`
+     *                    at span end to calculate duration. Providing one and not the other is
+     *                    considered an error and in that scenario, the default clock will be used instead.
      * @param parentSpanId: An optional ID of the parent span, used to build span hierarchies. A span
      *                      without a parentSpanId is considered a root span.
      * @param emitStartLog a boolean indicating if the span start log needs to be sent or not.
@@ -130,7 +130,7 @@ interface ILogger {
         name: String,
         level: LogLevel,
         fields: Map<String, String>? = null,
-        startTimeInMs: Long? = null,
+        startTimeMs: Long? = null,
         parentSpanId: UUID? = null,
         emitStartLog: Boolean = true,
     ): Span
@@ -145,10 +145,10 @@ interface ILogger {
      * @param level the severity of the log.
      * @param fields additional fields to include in the log.
      * @param result the result of the operation.
-     * @param startTimeInMs the start time interval to use in combination with `endTimeInterval`
-     *                      to calculate duration.
-     * @param endTimeInMs the end time to use in combination with the `startTimeInterval` to calculate
-     *                    the span duration.
+     * @param startTimeMs the start time interval to use in combination with `endTimeInterval`
+     *                    to calculate duration.
+     * @param endTimeMs the end time to use in combination with the `startTimeInterval` to calculate
+     *                  the span duration.
      * @param parentSpanId an optional ID of the parent span, used to build span hierarchies. A span
      *                     without a parentSpanID is considered a root span.
      */
@@ -157,8 +157,8 @@ interface ILogger {
         level: LogLevel,
         fields: Map<String, String>? = null,
         result: SpanResult,
-        startTimeInMs: Long,
-        endTimeInMs: Long,
+        startTimeMs: Long,
+        endTimeMs: Long,
         parentSpanId: UUID? = null,
     )
 
