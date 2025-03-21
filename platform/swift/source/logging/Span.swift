@@ -75,7 +75,8 @@ public final class Span {
             line: line,
             function: function,
             fields: self.makeStartEventFields().mergedOmittingConflictingKeys(fields),
-            type: .span
+            type: .span,
+            occurredAtOverride: customStartTimeInterval.map(Date.init(timeIntervalSince1970:))
         )
     }
 
@@ -122,7 +123,8 @@ public final class Span {
                 line: line,
                 function: function,
                 fields: fields,
-                type: .span
+                type: .span,
+                occurredAtOverride: endTimeInterval.map(Date.init(timeIntervalSince1970:))
             )
         }
     }

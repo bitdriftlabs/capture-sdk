@@ -23,6 +23,7 @@ public final class MockLoggerBridging {
         public let matchingFields: InternalFields?
         public let type: Logger.LogType
         public let blocking: Bool
+        public let occurredAtOverride: Date?
     }
 
     public private(set) var mockedRuntimeVariables = [String: Any]()
@@ -63,7 +64,8 @@ extension MockLoggerBridging: LoggerBridging {
         fields: InternalFields?,
         matchingFields: InternalFields?,
         type: Logger.LogType,
-        blocking: Bool
+        blocking: Bool,
+        occurredAtOverride: Date?
     ) {
         self.underlyingLogs.update {
             $0.append(
@@ -73,7 +75,8 @@ extension MockLoggerBridging: LoggerBridging {
                     fields: fields,
                     matchingFields: matchingFields,
                     type: type,
-                    blocking: blocking
+                    blocking: blocking,
+                    occurredAtOverride: occurredAtOverride
                 )
             )
         }

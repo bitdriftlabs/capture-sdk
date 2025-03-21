@@ -27,7 +27,7 @@ use bd_client_common::error::{
   MetadataErrorReporter,
   UnexpectedErrorHandler,
 };
-use bd_logger::{LogAttributesOverridesPreviousRunSessionID, LogFieldKind, LogFields, LogType};
+use bd_logger::{LogAttributesOverrides, LogFieldKind, LogFields, LogType};
 use jni::descriptors::Desc;
 use jni::objects::{
   GlobalRef,
@@ -801,18 +801,26 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
       let matching_fields =
         ffi::jobject_map_to_fields(&mut env, &matching_fields, LogFieldKind::Ootb)?;
 
-      let attributes_overrides = if override_expected_previous_process_session_id.is_null() {
+      let attributes_overrides = if override_expected_previous_process_session_id.is_null()
+        && override_occurred_at_unix_milliseconds <= 0
+      {
         None
+      } else if override_expected_previous_process_session_id.is_null()
+        && override_occurred_at_unix_milliseconds > 0
+      {
+        Some(LogAttributesOverrides::OccurredAt(
+          unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
+        ))
       } else {
         let expected_previous_process_session_id =
           unsafe { env.get_string_unchecked(&override_expected_previous_process_session_id) }?
             .to_string_lossy()
             .to_string();
 
-        Some(LogAttributesOverridesPreviousRunSessionID {
+        Some(LogAttributesOverrides::PreviousRunSessionID(
           expected_previous_process_session_id,
-          occurred_at: unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
-        })
+          unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
+        ))
       };
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
