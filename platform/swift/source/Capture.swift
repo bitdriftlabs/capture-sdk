@@ -350,7 +350,7 @@ extension Logger {
     /// - parameter startTimeInterval: An optional custom start time to use in combination with an `endTimeInterval`
     ///                                at span end to calculate duration. Providing one and not the other is considered an
     ///                                error and in that scenario, the default time provider will be used instead.
-    /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hirearchies. A span without a
+    /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hierarchies. A span without a
     ///                                parentSpanID is considered a root span.
     ///
     /// - returns: A span that can be used to signal the end of the operation if the Capture SDK has been
@@ -367,7 +367,7 @@ extension Logger {
     ) -> Span? {
         Self.getShared()?.startSpan(
             name: name, level: level, file: file, line: line, function: function, fields: fields,
-            startTimeInterval: startTimeInterval, parentSpanID: parentSpanID, emitStartEvent: true
+            startTimeInterval: startTimeInterval, parentSpanID: parentSpanID, emitStartLog: true
         )
     }
 
@@ -378,12 +378,10 @@ extension Logger {
     /// - parameter name:              The name of the operation.
     /// - parameter level:             The severity of the log to use when emitting logs for the operation.
     /// - parameter result:            The result of the operation.
-    /// - parameter startTimeInterval: An optional custom start time to use in combination with an `endTimeInterval`
-    ///                                at span end to calculate duration. Providing one and not the other is considered an
-    ///                                error and in that scenario, the default time provider will be used instead.
-    /// - parameter endTimeInterval:   An optional custom end time to use in combination with the `startTimeInterval`
-    ///                                provided when creating the span. Setting one and not the other is considered an error
-    ///                                and in that scenario, Capture's time provider will be used instead.
+    /// - parameter startTimeInterval: The start time interval to use in combination with `endTimeInterval` to calculate
+    ///                                the span duration.
+    /// - parameter endTimeInterval:   The end time to use in combination with the `startTimeInterval` to calculate
+    ///                                the span duration.
     /// - parameter file:              The unique file identifier that has the form module/file.
     /// - parameter line:              The line number where the log is emitted.
     /// - parameter function:          The name of the function from which the log is emitted.

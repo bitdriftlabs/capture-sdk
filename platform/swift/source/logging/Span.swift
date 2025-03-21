@@ -52,7 +52,7 @@ public final class Span {
     init(
         logger: CoreLogging, name: String, level: LogLevel, file: String?, line: Int?,
         function: String?, fields: Fields?, timeProvider: TimeProvider,
-        customStartTimeInterval: TimeInterval?, parentSpanID: UUID?, emitStartEvent: Bool
+        customStartTimeInterval: TimeInterval?, parentSpanID: UUID?, emitStartLog: Bool
     ) {
         self.timeProvider = timeProvider
         self.startedAt = timeProvider.uptime()
@@ -68,7 +68,7 @@ public final class Span {
         self.line = line
         self.function = function
 
-        if emitStartEvent {
+        if emitStartLog {
             self.logger.load()?.underlyingLogger?.log(
                 level: level,
                 message: "",

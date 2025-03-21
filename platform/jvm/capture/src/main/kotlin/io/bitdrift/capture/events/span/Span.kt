@@ -22,6 +22,7 @@ internal object SpanField {
         const val TYPE = "_span_type"
         const val DURATION = "_duration_ms"
         const val RESULT = "_result"
+        const val PARENT = "_parent_span_id"
     }
 
     object Value {
@@ -39,6 +40,9 @@ class Span internal constructor(
     private val name: String,
     private val level: LogLevel,
     fields: Map<String, String>? = null,
+    private val startTimeInMs: Long? = null,
+    private val parentSpanId: UUID? = null,
+    emitStartLog: Boolean = true,
     private val clock: IClock = DefaultClock.getInstance(),
 ) {
     private val id: UUID = UUID.randomUUID()
@@ -55,14 +59,17 @@ class Span internal constructor(
             put(SpanField.Key.ID, id.toString())
             put(SpanField.Key.NAME, name)
             put(SpanField.Key.TYPE, SpanField.Value.TYPE_START)
+            put(SpanField.Key.PARENT, parentSpanId.toString())
         }
 
     init {
-        logger?.log(
-            LogType.SPAN,
-            level,
-            startFields.toFields(),
-        ) { "" }
+        if (emitStartLog) {
+            logger?.log(
+                LogType.SPAN,
+                level,
+                startFields.toFields(),
+            ) { "" }
+        }
     }
 
     /**
@@ -77,8 +84,16 @@ class Span internal constructor(
     fun end(
         result: SpanResult,
         fields: Map<String, String>? = null,
+        endTimeInMs: Long? = null,
     ) {
         logger?.apply {
+            val durationMs: Long =
+                if (endTimeInMs != null && startTimeInMs != null) {
+                    endTimeInMs - startTimeInMs
+                } else {
+                    clock.elapsedRealtime() - startTimeMs
+                }
+
             val endFields =
                 buildMap {
                     putAll(startFields)
@@ -86,7 +101,7 @@ class Span internal constructor(
                         putAll(it)
                     }
                     put(SpanField.Key.TYPE, SpanField.Value.TYPE_END)
-                    put(SpanField.Key.DURATION, (clock.elapsedRealtime() - startTimeMs).toString())
+                    put(SpanField.Key.DURATION, durationMs.toString())
                     put(SpanField.Key.RESULT, result.toString().lowercase())
                 }
 

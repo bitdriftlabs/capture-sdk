@@ -8,8 +8,10 @@
 package io.bitdrift.capture
 
 import io.bitdrift.capture.events.span.Span
+import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
+import java.util.UUID
 import kotlin.time.Duration
 
 /**
@@ -115,13 +117,52 @@ interface ILogger {
      * @param name the name of the operation.
      * @param level the severity of the log.
      * @param fields additional fields to include in the log.
+     * @param startTimeInMs An optional custom start time to use in combination with an `endTimeInMs`
+     *                      at span end to calculate duration. Providing one and not the other is
+     *                      considered an error and in that scenario, the default clock will be used instead.
+     * @param parentSpanId: An optional ID of the parent span, used to build span hierarchies. A span
+     *                      without a parentSpanId is considered a root span.
+     * @param emitStartLog a boolean indicating if the span start log needs to be sent or not.
+     *
      * @return a [Span] object that can be used to signal the end of the operation.
      */
     fun startSpan(
         name: String,
         level: LogLevel,
         fields: Map<String, String>? = null,
+        startTimeInMs: Long? = null,
+        parentSpanId: UUID? = null,
+        emitStartLog: Boolean = true,
     ): Span
+
+    /**
+     * Similar to `startSpan` but uses a known start and end intervals. It's worth noting that calling
+     * this function is not the same as calling `startSpan` and `end` one after the other since in
+     * this case we'll only send one `end` log with the duration derived from the given times.
+     * Also worth noting the timestamp of the log itself emitted will not be based on the provided intervals.
+     *
+     * @param name the name of the operation.
+     * @param level the severity of the log.
+     * @param fields additional fields to include in the log.
+     * @param result the result of the operation.
+     * @param startTimeInMs the start time interval to use in combination with `endTimeInterval`
+     *                      to calculate duration.
+     * @param endTimeInMs the end time to use in combination with the `startTimeInterval` to calculate
+     *                    the span duration.
+     * @param parentSpanId an optional ID of the parent span, used to build span hierarchies. A span
+     *                     without a parentSpanID is considered a root span.
+     *
+     * @return a [Span] object that can be used to signal the end of the operation if Capture has been started.
+     */
+    fun logSpan(
+        name: String,
+        level: LogLevel,
+        fields: Map<String, String>? = null,
+        result: SpanResult,
+        startTimeInMs: Long,
+        endTimeInMs: Long,
+        parentSpanId: UUID? = null,
+    )
 
     /**
      * Records information about an HTTP network request

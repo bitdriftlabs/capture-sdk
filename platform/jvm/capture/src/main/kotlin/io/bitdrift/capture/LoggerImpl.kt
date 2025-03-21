@@ -38,6 +38,7 @@ import io.bitdrift.capture.events.performance.JankStatsMonitor
 import io.bitdrift.capture.events.performance.MemoryMetricsProvider
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
 import io.bitdrift.capture.events.span.Span
+import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
@@ -54,6 +55,7 @@ import io.bitdrift.capture.reports.FatalIssueReporterStatus
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.SdkDirectory
 import okhttp3.HttpUrl
+import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
@@ -326,7 +328,23 @@ internal class LoggerImpl(
         name: String,
         level: LogLevel,
         fields: Map<String, String>?,
-    ): Span = Span(this, name, level, fields)
+        startTimeInMs: Long?,
+        parentSpanId: UUID?,
+        emitStartLog: Boolean,
+    ): Span = Span(this, name, level, fields, startTimeInMs, parentSpanId)
+
+    override fun logSpan(
+        name: String,
+        level: LogLevel,
+        fields: Map<String, String>?,
+        result: SpanResult,
+        startTimeInMs: Long,
+        endTimeInMs: Long,
+        parentSpanId: UUID?,
+    ) {
+        val span = this.startSpan(name, level, fields, startTimeInMs, parentSpanId, false)
+        span.end(result, fields, endTimeInMs)
+    }
 
     override fun log(httpRequestInfo: HttpRequestInfo) {
         log(

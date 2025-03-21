@@ -127,13 +127,13 @@ public protocol Logging {
     ///                                error and in that scenario, the default time provider will be used instead.
     /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hierarchies. A span without a
     ///                                parentSpanID is considered a root span.
-    /// - parameter emitStartEvent:    A boolean indicating if the span start log needs to be sent or not.
+    /// - parameter emitStartLog:      A boolean indicating if the span start log needs to be sent or not.
     ///
     /// - returns: A span that can be used to signal the end of the operation if the Capture SDK has been
     ///            configured.
     func startSpan(
         name: String, level: LogLevel, file: String?, line: Int?, function: String?,
-        fields: Fields?, startTimeInterval: TimeInterval?, parentSpanID: UUID?, emitStartEvent: Bool
+        fields: Fields?, startTimeInterval: TimeInterval?, parentSpanID: UUID?, emitStartLog: Bool
     ) -> Span
 
     /// Similar to `startSpan` but uses a known start and end intervals. It's worth noting that calling this function is not the same as
@@ -146,12 +146,10 @@ public protocol Logging {
     /// - parameter file:              The unique file identifier that has the form module/file.
     /// - parameter line:              The line number where the log is emitted.
     /// - parameter function:          The name of the function from which the log is emitted.
-    /// - parameter startTimeInterval: An optional custom start time to use in combination with an `endTimeInterval`
-    ///                                at span end to calculate duration. Providing one and not the other is considered an
-    ///                                error and in that scenario, the default time provider will be used instead.
-    /// - parameter endTimeInterval:   An optional custom end time to use in combination with the `startTimeInterval`
-    ///                                provided when creating the span. Setting one and not the other is considered an error
-    ///                                and in that scenario, Capture's time provider will be used instead.
+    /// - parameter startTimeInterval: The start time interval to use in combination with `endTimeInterval` to calculate
+    ///                                duration.
+    /// - parameter endTimeInterval:   The end time to use in combination with the `startTimeInterval` to calculate
+    ///                                the span duration.
     /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hierarchies. A span without a
     ///                                parentSpanID is considered a root span.
     /// - parameter fields:            The extra fields to send as part of start and end logs for the operation.

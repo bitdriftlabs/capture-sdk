@@ -23,6 +23,7 @@ import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.FatalIssueReporterStatus
 import okhttp3.HttpUrl
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
 
@@ -419,7 +420,12 @@ object Capture {
          *
          * @param name the name of the operation.
          * @param level the severity of the log.
-         * @fields additional fields to include in the log.
+         * @param fields additional fields to include in the log.
+         * @param startTimeInMs an optional custom start time to use in combination with an `endTimeInMs`
+         *                      at span end to calculate duration. Providing one and not the other is
+         *                      considered an error and in that scenario, the default clock will be used instead.
+         * @param parentSpanId: an optional ID of the parent span, used to build span hierarchies. A span
+         *                      without a parentSpanId is considered a root span.
          * @return a [Span] object that can be used to signal the end of the operation if Capture has been started.
          */
         @JvmStatic
@@ -427,7 +433,39 @@ object Capture {
             name: String,
             level: LogLevel,
             fields: Map<String, String>? = null,
-        ): Span? = logger()?.startSpan(name, level, fields)
+            startTimeInMs: Long? = null,
+            parentSpanId: UUID? = null,
+        ): Span? = logger()?.startSpan(name, level, fields, startTimeInMs, parentSpanId)
+
+        /**
+         * Similar to `startSpan` but uses a known start and end intervals. It's worth noting that calling
+         * this function is not the same as calling `startSpan` and `end` one after the other since in
+         * this case we'll only send one `end` log with the duration derived from the given times.
+         * Also worth noting the timestamp of the log itself emitted will not be based on the provided intervals.
+         *
+         * @param name the name of the operation.
+         * @param level the severity of the log.
+         * @param fields additional fields to include in the log.
+         * @param result the result of the operation.
+         * @param startTimeInMs the start time interval to use in combination with `endTimeInterval`
+         *                      to calculate duration.
+         * @param endTimeInMs the end time to use in combination with the `startTimeInterval` to calculate
+         *                    the span duration.
+         * @param parentSpanId an optional ID of the parent span, used to build span hierarchies. A span
+         *                     without a parentSpanID is considered a root span.
+         *
+         * @return a [Span] object that can be used to signal the end of the operation if Capture has been started.
+         */
+        @JvmStatic
+        fun logSpan(
+            name: String,
+            level: LogLevel,
+            fields: Map<String, String>? = null,
+            result: SpanResult,
+            startTimeInMs: Long,
+            endTimeInMs: Long,
+            parentSpanId: UUID? = null,
+        ) = logger()?.logSpan(name, level, fields, result, startTimeInMs, endTimeInMs, parentSpanId)
 
         /**
          * Wrap the specified [block] in calls to [startSpan] (with the supplied params)
