@@ -45,7 +45,7 @@ class Span internal constructor(
     emitStartLog: Boolean = true,
     private val clock: IClock = DefaultClock.getInstance(),
 ) {
-    private val id: UUID = UUID.randomUUID()
+    public val id: UUID = UUID.randomUUID()
 
     // Using this API since this clock is guaranteed to be monotonic,
     // and continues to tick even when the CPU is in power saving modes,
