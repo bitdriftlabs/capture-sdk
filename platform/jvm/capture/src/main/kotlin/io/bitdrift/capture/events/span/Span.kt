@@ -59,7 +59,9 @@ class Span internal constructor(
             put(SpanField.Key.ID, id.toString())
             put(SpanField.Key.NAME, name)
             put(SpanField.Key.TYPE, SpanField.Value.TYPE_START)
-            put(SpanField.Key.PARENT, parentSpanId.toString())
+            parentSpanId?.let {
+                put(SpanField.Key.PARENT, it.toString())
+            }
         }
 
     init {
