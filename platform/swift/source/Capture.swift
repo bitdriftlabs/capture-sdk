@@ -341,12 +341,18 @@ extension Logger {
     /// while the corresponding end event is emitted when the `end(...)` method is called on the `Span`
     /// returned from the method. Refer to `Span` for more details.
     ///
-    /// - parameter name:     The name of the operation.
-    /// - parameter level:    The severity of the log to use when emitting logs for the operation.
-    /// - parameter file:     The unique file identifier that has the form module/file.
-    /// - parameter line:     The line number where the log is emitted.
-    /// - parameter function: The name of the function from which the log is emitted.
-    /// - parameter fields:   The extra fields to send as part of start and end logs for the operation.
+    /// - parameter name:              The name of the operation.
+    /// - parameter level:             The severity of the log to use when emitting logs for the operation.
+    /// - parameter file:              The unique file identifier that has the form module/file.
+    /// - parameter line:              The line number where the log is emitted.
+    /// - parameter function:          The name of the function from which the log is emitted.
+    /// - parameter fields:            The extra fields to send as part of start and end logs for the operation.
+    /// - parameter startTimeInterval: An optional custom start time in milliseconds since the Unix epoch. This can be
+    ///                                used to override the default start time of the span. If provided, it needs
+    ///                                to be used in combination with an `endTimeMs`. Providing one and not the other is
+    ///                                considered an error and in that scenario, the default clock will be used instead.
+    /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hierarchies. A span without a
+    ///                                parentSpanID is considered a root span.
     ///
     /// - returns: A span that can be used to signal the end of the operation if the Capture SDK has been
     ///            started. Returns `nil` if the `start(...)` method has not been called.
@@ -356,10 +362,13 @@ extension Logger {
         file: String? = #file,
         line: Int? = #line,
         function: String? = #function,
-        fields: Fields? = nil
+        fields: Fields? = nil,
+        startTimeInterval: TimeInterval? = nil,
+        parentSpanID: UUID? = nil
     ) -> Span? {
         Self.getShared()?.startSpan(
-            name: name, level: level, file: file, line: line, function: function, fields: fields
+            name: name, level: level, file: file, line: line, function: function, fields: fields,
+            startTimeInterval: startTimeInterval, parentSpanID: parentSpanID
         )
     }
 

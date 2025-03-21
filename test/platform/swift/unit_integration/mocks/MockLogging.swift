@@ -19,7 +19,7 @@ public final class MockLogging {
 
         let level: LogLevel
         let object: Object
-        let fields: Fields?
+        public let fields: Fields?
 
         public func message() -> String? {
             if case let .message(message) = self.object {
@@ -120,4 +120,23 @@ extension MockLogging: Logging {
     public func removeField(withKey _: String) {}
 
     public func createTemporaryDeviceCode(completion _: @escaping (Result<String, Error>) -> Void) {}
+
+    public func startSpan(name: String, level: LogLevel, file: String? = nil, line: Int? = nil,
+                          function: String? = nil, fields: Fields? = nil,
+                          startTimeInterval: TimeInterval? = nil,
+                          parentSpanID: UUID? = nil) -> Span
+    {
+        Span(
+            logger: MockCoreLogging(),
+            name: name,
+            level: level,
+            file: file,
+            line: line,
+            function: function,
+            fields: fields,
+            timeProvider: MockTimeProvider(),
+            customStartTimeInterval: startTimeInterval,
+            parentSpanID: parentSpanID
+        )
+    }
 }

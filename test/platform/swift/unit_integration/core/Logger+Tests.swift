@@ -13,7 +13,7 @@ import XCTest
 extension Logger {
     static func testLogger(
         withAPIKey apiKey: String = "",
-        bufferDirectory: URL?,
+        bufferDirectory: URL? = Logger.tempBufferDirectory(),
         sessionStrategy: SessionStrategy = .fixed(),
         dateProvider: DateProvider? = nil,
         fieldProviders: [FieldProvider] = [],

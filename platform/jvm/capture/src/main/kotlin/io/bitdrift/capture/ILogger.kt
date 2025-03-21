@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
+import java.util.UUID
 import kotlin.time.Duration
 
 /**
@@ -115,12 +116,21 @@ interface ILogger {
      * @param name the name of the operation.
      * @param level the severity of the log.
      * @param fields additional fields to include in the log.
+     * @param startTimeMs an optional custom start time in milliseconds since the Unix epoch. This can be
+     *                    used to override the default start time of the span. If provided, it needs
+     *                    to be used in combination with an `endTimeMs`. Providing one and not the other is
+     *                    considered an error and in that scenario, the default clock will be used instead.
+     * @param parentSpanId: An optional ID of the parent span, used to build span hierarchies. A span
+     *                      without a parentSpanId is considered a root span.
+     *
      * @return a [Span] object that can be used to signal the end of the operation.
      */
     fun startSpan(
         name: String,
         level: LogLevel,
         fields: Map<String, String>? = null,
+        startTimeMs: Long? = null,
+        parentSpanId: UUID? = null,
     ): Span
 
     /**

@@ -54,6 +54,7 @@ import io.bitdrift.capture.reports.FatalIssueReporterStatus
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.SdkDirectory
 import okhttp3.HttpUrl
+import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
@@ -326,7 +327,9 @@ internal class LoggerImpl(
         name: String,
         level: LogLevel,
         fields: Map<String, String>?,
-    ): Span = Span(this, name, level, fields)
+        startTimeMs: Long?,
+        parentSpanId: UUID?,
+    ): Span = Span(this, name, level, fields, startTimeMs, parentSpanId)
 
     override fun log(httpRequestInfo: HttpRequestInfo) {
         log(

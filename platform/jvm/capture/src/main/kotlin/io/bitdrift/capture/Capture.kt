@@ -23,6 +23,7 @@ import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.FatalIssueReporterStatus
 import okhttp3.HttpUrl
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
 
@@ -419,7 +420,13 @@ object Capture {
          *
          * @param name the name of the operation.
          * @param level the severity of the log.
-         * @fields additional fields to include in the log.
+         * @param fields additional fields to include in the log.
+         * @param startTimeMs an optional custom start time in milliseconds since the Unix epoch. This can be
+         *                    used to override the default start time of the span. If provided, it needs
+         *                    to be used in combination with an `endTimeMs`. Providing one and not the other is
+         *                    considered an error and in that scenario, the default clock will be used instead.
+         * @param parentSpanId: an optional ID of the parent span, used to build span hierarchies. A span
+         *                      without a parentSpanId is considered a root span.
          * @return a [Span] object that can be used to signal the end of the operation if Capture has been started.
          */
         @JvmStatic
@@ -427,7 +434,9 @@ object Capture {
             name: String,
             level: LogLevel,
             fields: Map<String, String>? = null,
-        ): Span? = logger()?.startSpan(name, level, fields)
+            startTimeMs: Long? = null,
+            parentSpanId: UUID? = null,
+        ): Span? = logger()?.startSpan(name, level, fields, startTimeMs, parentSpanId)
 
         /**
          * Wrap the specified [block] in calls to [startSpan] (with the supplied params)

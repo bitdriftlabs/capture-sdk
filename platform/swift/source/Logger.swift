@@ -474,10 +474,12 @@ extension Logger: Logging {
     public func startSpan(
         name: String,
         level: LogLevel,
-        file: String? = #file,
-        line: Int? = #line,
-        function: String? = #function,
-        fields: Fields?
+        file: String?,
+        line: Int?,
+        function: String?,
+        fields: Fields?,
+        startTimeInterval: TimeInterval?,
+        parentSpanID: UUID?
     ) -> Span
     {
         Span(
@@ -488,7 +490,9 @@ extension Logger: Logging {
             line: line,
             function: function,
             fields: fields,
-            timeProvider: self.timeProvider
+            timeProvider: self.timeProvider,
+            customStartTimeInterval: startTimeInterval,
+            parentSpanID: parentSpanID
         )
     }
 }
