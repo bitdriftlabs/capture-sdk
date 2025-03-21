@@ -144,28 +144,6 @@ final class SpanTests: XCTestCase {
         XCTAssertEqual("1338000.0", try XCTUnwrap(logger.logs[5].fields?["_duration_ms"] as? String))
     }
 
-    func testStartEndSpanInOneShoot() throws {
-        let bridge = MockLoggerBridging()
-        let logger = try Logger.testLogger(
-            withAPIKey: "test_api_key",
-            loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
-        )
-
-        Logger.resetShared(logger: logger)
-        Logger.logSpan(name: "test", level: LogLevel.debug, result: SpanResult.success,
-                       startTimeInterval: 0, endTimeInterval: 0.000133)
-
-        XCTAssertEqual(2, bridge.logs.count)
-        let endLog = bridge.logs[1]
-
-        let fieldPairs = endLog.fields?.map { ($0.key, $0.data as! String) }
-        let fields = Dictionary(uniqueKeysWithValues: fieldPairs ?? [])
-        XCTAssertEqual(try XCTUnwrap(fields["_duration_ms"]), "0.133")
-        XCTAssertEqual(try XCTUnwrap(fields["_span_type"]), "end")
-        XCTAssertEqual(try XCTUnwrap(fields["_span_name"]), "test")
-        XCTAssertEqual(try XCTUnwrap(fields["_result"]), "success")
-    }
-
     func testSpanWithParents() throws {
         let logger = MockCoreLogging()
         let span = self.createSpan(logger: logger, parent: UUID())

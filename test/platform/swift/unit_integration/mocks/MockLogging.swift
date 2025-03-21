@@ -139,11 +139,4 @@ extension MockLogging: Logging {
             parentSpanID: parentSpanID,
         )
     }
-
-    public func logSpan(name: String, level: Capture.LogLevel, result: Capture.SpanResult,
-                        file: String?, line: Int?, function: String?,
-                        startTimeInterval: TimeInterval, endTimeInterval: TimeInterval,
-                        parentSpanID: UUID?, fields: Capture.Fields?)
-    {
-    }
 }

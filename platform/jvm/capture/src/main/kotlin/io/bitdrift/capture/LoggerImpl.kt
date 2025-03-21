@@ -332,19 +332,6 @@ internal class LoggerImpl(
         parentSpanId: UUID?,
     ): Span = Span(this, name, level, fields, startTimeMs, parentSpanId)
 
-    override fun logSpan(
-        name: String,
-        level: LogLevel,
-        fields: Map<String, String>?,
-        result: SpanResult,
-        startTimeMs: Long,
-        endTimeMs: Long,
-        parentSpanId: UUID?,
-    ) {
-        val span = this.startSpan(name, level, fields, startTimeMs, parentSpanId, false)
-        span.end(result, fields, endTimeMs)
-    }
-
     override fun log(httpRequestInfo: HttpRequestInfo) {
         log(
             LogType.SPAN,

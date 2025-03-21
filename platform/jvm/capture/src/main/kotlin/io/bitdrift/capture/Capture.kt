@@ -438,34 +438,6 @@ object Capture {
         ): Span? = logger()?.startSpan(name, level, fields, startTimeMs, parentSpanId)
 
         /**
-         * Similar to `startSpan` but uses a known start and end intervals. It's worth noting that calling
-         * this function is not the same as calling `startSpan` and `end` one after the other since in
-         * this case we'll only send one `end` log with the duration derived from the given times.
-         * Also worth noting the timestamp of the log itself emitted will not be based on the provided intervals.
-         *
-         * @param name the name of the operation.
-         * @param level the severity of the log.
-         * @param fields additional fields to include in the log.
-         * @param result the result of the operation.
-         * @param startTimeMs the start time interval to use in combination with `endTimeInterval`
-         *                    to calculate duration.
-         * @param endTimeMs the end time to use in combination with the `startTimeInterval` to calculate
-         *                  the span duration.
-         * @param parentSpanId an optional ID of the parent span, used to build span hierarchies. A span
-         *                     without a parentSpanID is considered a root span.
-         */
-        @JvmStatic
-        fun logSpan(
-            name: String,
-            level: LogLevel,
-            fields: Map<String, String>? = null,
-            result: SpanResult,
-            startTimeMs: Long,
-            endTimeMs: Long,
-            parentSpanId: UUID? = null,
-        ) = logger()?.logSpan(name, level, fields, result, startTimeMs, endTimeMs, parentSpanId)
-
-        /**
          * Wrap the specified [block] in calls to [startSpan] (with the supplied params)
          * and [Span.end]. The result will be based on whether [block] threw an exception or not.
          *

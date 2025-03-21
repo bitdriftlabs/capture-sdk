@@ -371,41 +371,6 @@ extension Logger {
         )
     }
 
-    /// Similar to `startSpan` but uses a known start and end intervals. It's worth noting that calling this function is not the same as
-    /// calling `startSpan` and `end` one after the other since in this case we'll only send one `end` log with the duration
-    /// derived from the given times. Also worth noting the timestamp of the log itself emitted will not be based on the provided intervals.
-    ///
-    /// - parameter name:              The name of the operation.
-    /// - parameter level:             The severity of the log to use when emitting logs for the operation.
-    /// - parameter result:            The result of the operation.
-    /// - parameter startTimeInterval: The start time interval to use in combination with `endTimeInterval` to calculate
-    ///                                the span duration.
-    /// - parameter endTimeInterval:   The end time to use in combination with the `startTimeInterval` to calculate
-    ///                                the span duration.
-    /// - parameter file:              The unique file identifier that has the form module/file.
-    /// - parameter line:              The line number where the log is emitted.
-    /// - parameter function:          The name of the function from which the log is emitted.
-    /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hierarchies. A span without a
-    ///                                parentSpanID is considered a root span.
-    /// - parameter fields:            The extra fields to send as part of start and end logs for the operation.
-    public static func logSpan(
-        name: String,
-        level: LogLevel,
-        result: SpanResult,
-        startTimeInterval: TimeInterval,
-        endTimeInterval: TimeInterval,
-        file: String? = #file,
-        line: Int? = #line,
-        function: String? = #function,
-        parentSpanID: UUID? = nil,
-        fields: Fields? = nil
-    ) {
-        Self.getShared()?.logSpan(name: name, level: level, result: result, file: file, line: line,
-                                  function: function, startTimeInterval: startTimeInterval,
-                                  endTimeInterval: endTimeInterval, parentSpanID: parentSpanID,
-                                  fields: fields)
-    }
-
     // MARK: - Extra
 
     /// Adds a field to all logs emitted by the logger from this point forward.

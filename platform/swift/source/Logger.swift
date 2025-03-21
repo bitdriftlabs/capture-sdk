@@ -495,28 +495,6 @@ extension Logger: Logging {
             parentSpanID: parentSpanID
         )
     }
-
-    public func logSpan(
-        name: String,
-        level: LogLevel,
-        result: SpanResult,
-        file: String?,
-        line: Int?,
-        function: String?,
-        startTimeInterval: TimeInterval,
-        endTimeInterval: TimeInterval,
-        parentSpanID: UUID?,
-        fields: Fields?
-    )
-    {
-        let span = self.startSpan(
-            name: name, level: level, file: file, line: line, function: function, fields: fields,
-            startTimeInterval: startTimeInterval, parentSpanID: parentSpanID
-        )
-
-        span.end(result, file: file, line: line, function: function, fields: fields,
-                 endTimeInterval: endTimeInterval)
-    }
 }
 
 // MARK: - Features
