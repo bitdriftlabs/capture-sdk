@@ -151,8 +151,6 @@ interface ILogger {
      *                    the span duration.
      * @param parentSpanId an optional ID of the parent span, used to build span hierarchies. A span
      *                     without a parentSpanID is considered a root span.
-     *
-     * @return a [Span] object that can be used to signal the end of the operation if Capture has been started.
      */
     fun logSpan(
         name: String,
