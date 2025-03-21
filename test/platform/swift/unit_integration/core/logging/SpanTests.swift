@@ -27,7 +27,7 @@ final class SpanTests: XCTestCase {
             ],
             timeProvider: timeProvider,
             customStartTimeInterval: start,
-            parentSpanID: parent,
+            parentSpanID: parent
         )
     }
 

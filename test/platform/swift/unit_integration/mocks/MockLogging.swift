@@ -136,7 +136,7 @@ extension MockLogging: Logging {
             fields: fields,
             timeProvider: MockTimeProvider(),
             customStartTimeInterval: startTimeInterval,
-            parentSpanID: parentSpanID,
+            parentSpanID: parentSpanID
         )
     }
 }

@@ -8,7 +8,6 @@
 package io.bitdrift.capture
 
 import io.bitdrift.capture.events.span.Span
-import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import java.util.UUID
