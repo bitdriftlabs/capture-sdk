@@ -78,7 +78,7 @@ final class FatalIssueReporterTests: XCTestCase {
         createInDir(.cachesDirectory,
                     directory: "the-files/special",
                     filename: "something.yam",
-                    contents: "<stuff>")
+                    contents: String(repeating: "<stuff>", count: 100))
         Logger.initFatalIssueReporting()
         let result = Logger.issueReporterInitResult
         XCTAssertEqual(IssueReporterInitState.initialized(.withoutPriorCrash), result.0)
@@ -91,10 +91,11 @@ final class FatalIssueReporterTests: XCTestCase {
     func testMatchingFileInAppSupport() {
         createConfig("{support_dir}/the-files/{bundle_name}/more-special,json")
         let modDate = Date() - TimeInterval(150)
+        let initContents = String(repeating: "<good stuff>", count: 100)
         createInDir(.applicationSupportDirectory,
                     directory: "the-files/\(bundleName)/more-special",
                     filename: "something.json",
-                    contents: "<stuff>",
+                    contents: initContents,
                     attributes: [.modificationDate: modDate])
         Logger.initFatalIssueReporting()
         let result = Logger.issueReporterInitResult
@@ -111,7 +112,7 @@ final class FatalIssueReporterTests: XCTestCase {
         XCTAssertEqual("something.json", nameinfo[1])
 
         let contents = FileManager.default.contents(atPath: destination.appendingPathComponent(files[0]).path)!
-        XCTAssertEqual("<stuff>", String(data: contents, encoding: .utf8))
+        XCTAssertEqual(initContents, String(data: contents, encoding: .utf8))
 
         let (reporterState, reporterDuration) = startAndExpectLog()
         XCTAssertEqual("CRASH_REPORT_SENT", reporterState)
@@ -121,15 +122,23 @@ final class FatalIssueReporterTests: XCTestCase {
     func testMatchingFileInCaches() {
         createConfig("{cache_dir}/the-files/{bundle_id}/most-special,json")
         let modDate = Date() - TimeInterval(150)
+        let initContents = String(repeating: "<good stuff>", count: 100)
         createInDir(.cachesDirectory,
                     directory: "the-files/\(bundleID)/most-special",
                     filename: "expected.json",
-                    contents: "<good stuff>",
+                    contents: initContents,
                     attributes: [.modificationDate: modDate])
+        // newer but disqualifyingly smaller file
+        createInDir(.cachesDirectory,
+                    directory: "the-files/\(bundleID)/most-special",
+                    filename: "tiny.json",
+                    contents: "<sus stuff>",
+                    attributes: [.modificationDate: modDate + TimeInterval(10)])
+        // older file which should be ignored
         createInDir(.cachesDirectory,
                     directory: "the-files/\(bundleID)/most-special",
                     filename: "old-and-ignore.json",
-                    contents: "<bad stuff>",
+                    contents: String(repeating: "<bad stuff>", count: 100),
                     attributes: [.modificationDate: modDate - TimeInterval(200)])
         Logger.initFatalIssueReporting()
         let result = Logger.issueReporterInitResult
@@ -146,7 +155,7 @@ final class FatalIssueReporterTests: XCTestCase {
         XCTAssertEqual("expected.json", nameinfo[1])
 
         let contents = FileManager.default.contents(atPath: destination.appendingPathComponent(files[0]).path)!
-        XCTAssertEqual("<good stuff>", String(data: contents, encoding: .utf8))
+        XCTAssertEqual(initContents, String(data: contents, encoding: .utf8))
 
         let (reporterState, reporterDuration) = startAndExpectLog()
         XCTAssertEqual("CRASH_REPORT_SENT", reporterState)

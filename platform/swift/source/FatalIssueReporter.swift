@@ -34,6 +34,11 @@ func measureTime<T>(operation: () -> T) -> (T, TimeInterval) {
 }
 
 struct FatalIssueReporter {
+    enum FileSizeLimit: Int {
+        case min = 800
+        case max = 10_000_000
+    }
+
     static func processFiles() -> IssueReporterInitResult {
         return measureTime {
             switch readAndVerifyConfig() {
@@ -79,10 +84,11 @@ struct FatalIssueReporter {
     ///
     /// - returns: true if a given entry is a regular file and ends with `fileExtension`
     private static func isReportURL(_ entry: URL, fileExtension: String) -> Bool {
-        if let properties = try? entry.resourceValues(forKeys: [.nameKey, .isRegularFileKey]),
+        if let properties = try? entry.resourceValues(forKeys: [.nameKey, .isRegularFileKey, .fileSizeKey]),
            let name = properties.name,
+           let size = properties.fileSize,
            let isFile = properties.isRegularFile {
-            return isFile && name.hasSuffix(".\(fileExtension)")
+            return isFile && name.hasSuffix(".\(fileExtension)") && size > FileSizeLimit.min.rawValue && size < FileSizeLimit.max.rawValue
         }
         return false
     }
@@ -94,7 +100,7 @@ struct FatalIssueReporter {
     ///
     /// - returns: initialization resolution indicating whether a file was copied or not
     private static func copyFiles(config: IssueReporterConfig, destDir: URL) -> IssueReporterInitState {
-        let resourceNames: [URLResourceKey] = [.nameKey, .isRegularFileKey, .contentModificationDateKey]
+        let resourceNames: [URLResourceKey] = [.nameKey, .isRegularFileKey, .contentModificationDateKey, .fileSizeKey]
         guard let sourceDir = URL(string: config.rootDir),
               let files = try? FileManager.default.contentsOfDirectory(at: sourceDir, includingPropertiesForKeys: resourceNames),
               let entry = files.sorted(by: { entry1, entry2 in
