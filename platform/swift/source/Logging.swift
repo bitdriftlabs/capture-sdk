@@ -127,13 +127,12 @@ public protocol Logging {
     ///                                error and in that scenario, the default time provider will be used instead.
     /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hierarchies. A span without a
     ///                                parentSpanID is considered a root span.
-    /// - parameter emitStartLog:      A boolean indicating if the span start log needs to be sent or not.
     ///
     /// - returns: A span that can be used to signal the end of the operation if the Capture SDK has been
     ///            configured.
     func startSpan(
         name: String, level: LogLevel, file: String?, line: Int?, function: String?,
-        fields: Fields?, startTimeInterval: TimeInterval?, parentSpanID: UUID?, emitStartLog: Bool
+        fields: Fields?, startTimeInterval: TimeInterval?, parentSpanID: UUID?
     ) -> Span
 
     /// Similar to `startSpan` but uses a known start and end intervals. It's worth noting that calling this function is not the same as

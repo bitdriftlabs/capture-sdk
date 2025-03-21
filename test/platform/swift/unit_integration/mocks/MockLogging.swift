@@ -124,7 +124,7 @@ extension MockLogging: Logging {
     public func startSpan(name: String, level: LogLevel, file: String? = nil, line: Int? = nil,
                           function: String? = nil, fields: Fields? = nil,
                           startTimeInterval: TimeInterval? = nil,
-                          parentSpanID: UUID? = nil, emitStartEvent: Bool) -> Span
+                          parentSpanID: UUID? = nil) -> Span
     {
         Span(
             logger: MockCoreLogging(),
@@ -137,7 +137,6 @@ extension MockLogging: Logging {
             timeProvider: MockTimeProvider(),
             customStartTimeInterval: startTimeInterval,
             parentSpanID: parentSpanID,
-            emitStartEvent: emitStartEvent
         )
     }
 

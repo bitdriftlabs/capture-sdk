@@ -52,7 +52,7 @@ public final class Span {
     init(
         logger: CoreLogging, name: String, level: LogLevel, file: String?, line: Int?,
         function: String?, fields: Fields?, timeProvider: TimeProvider,
-        customStartTimeInterval: TimeInterval?, parentSpanID: UUID?, emitStartLog: Bool
+        customStartTimeInterval: TimeInterval?, parentSpanID: UUID?
     ) {
         self.timeProvider = timeProvider
         self.startedAt = timeProvider.uptime()
@@ -68,17 +68,15 @@ public final class Span {
         self.line = line
         self.function = function
 
-        if emitStartLog {
-            self.logger.load()?.underlyingLogger?.log(
-                level: level,
-                message: "",
-                file: file,
-                line: line,
-                function: function,
-                fields: self.makeStartEventFields().mergedOmittingConflictingKeys(fields),
-                type: .span
-            )
-        }
+        self.logger.load()?.underlyingLogger?.log(
+            level: level,
+            message: "",
+            file: file,
+            line: line,
+            function: function,
+            fields: self.makeStartEventFields().mergedOmittingConflictingKeys(fields),
+            type: .span
+        )
     }
 
     /// Signals that the operation described by this span has now ended. It automatically records its

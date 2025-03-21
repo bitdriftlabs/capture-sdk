@@ -367,7 +367,7 @@ extension Logger {
     ) -> Span? {
         Self.getShared()?.startSpan(
             name: name, level: level, file: file, line: line, function: function, fields: fields,
-            startTimeInterval: startTimeInterval, parentSpanID: parentSpanID, emitStartLog: true
+            startTimeInterval: startTimeInterval, parentSpanID: parentSpanID
         )
     }
 

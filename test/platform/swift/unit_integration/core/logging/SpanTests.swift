@@ -28,7 +28,6 @@ final class SpanTests: XCTestCase {
             timeProvider: timeProvider,
             customStartTimeInterval: start,
             parentSpanID: parent,
-            emitStartEvent: true
         )
     }
 
@@ -156,8 +155,8 @@ final class SpanTests: XCTestCase {
         Logger.logSpan(name: "test", level: LogLevel.debug, result: SpanResult.success,
                        startTimeInterval: 0, endTimeInterval: 0.000133)
 
-        XCTAssertEqual(1, bridge.logs.count)
-        let endLog = bridge.logs[0]
+        XCTAssertEqual(2, bridge.logs.count)
+        let endLog = bridge.logs[1]
 
         let fieldPairs = endLog.fields?.map { ($0.key, $0.data as! String) }
         let fields = Dictionary(uniqueKeysWithValues: fieldPairs ?? [])

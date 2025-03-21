@@ -122,7 +122,6 @@ interface ILogger {
      *                    considered an error and in that scenario, the default clock will be used instead.
      * @param parentSpanId: An optional ID of the parent span, used to build span hierarchies. A span
      *                      without a parentSpanId is considered a root span.
-     * @param emitStartLog a boolean indicating if the span start log needs to be sent or not.
      *
      * @return a [Span] object that can be used to signal the end of the operation.
      */
@@ -132,7 +131,6 @@ interface ILogger {
         fields: Map<String, String>? = null,
         startTimeMs: Long? = null,
         parentSpanId: UUID? = null,
-        emitStartLog: Boolean = true,
     ): Span
 
     /**

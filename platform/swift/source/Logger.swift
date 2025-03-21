@@ -479,8 +479,7 @@ extension Logger: Logging {
         function: String?,
         fields: Fields?,
         startTimeInterval: TimeInterval?,
-        parentSpanID: UUID?,
-        emitStartLog: Bool
+        parentSpanID: UUID?
     ) -> Span
     {
         Span(
@@ -493,8 +492,7 @@ extension Logger: Logging {
             fields: fields,
             timeProvider: self.timeProvider,
             customStartTimeInterval: startTimeInterval,
-            parentSpanID: parentSpanID,
-            emitStartLog: emitStartLog
+            parentSpanID: parentSpanID
         )
     }
 
@@ -513,7 +511,7 @@ extension Logger: Logging {
     {
         let span = self.startSpan(
             name: name, level: level, file: file, line: line, function: function, fields: fields,
-            startTimeInterval: startTimeInterval, parentSpanID: parentSpanID, emitStartLog: false
+            startTimeInterval: startTimeInterval, parentSpanID: parentSpanID
         )
 
         span.end(result, file: file, line: line, function: function, fields: fields,

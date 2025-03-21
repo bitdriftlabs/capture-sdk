@@ -123,23 +123,4 @@ class SpanTest {
         assertThat(fieldsWithNoStart.secondValue).containsKey("_span_id")
         assertThat(fieldsWithNoStart.secondValue).containsEntry("_duration_ms", "1".toFieldValue())
     }
-
-    @Test
-    fun spansNoEmit() {
-        val span = Span(logger, "name", LogLevel.INFO, clock = clock, customStartTimeMs = 0, emitStartLog = false)
-        val fields = argumentCaptor<InternalFieldsMap>()
-        span.end(SpanResult.SUCCESS, endTimeMs = 1337)
-        verify(logger, times(1)).log(
-            eq(LogType.SPAN),
-            eq(LogLevel.INFO),
-            fields.capture(),
-            eq(null),
-            eq(null),
-            eq(false),
-            any(),
-        )
-
-        assertThat(fields.firstValue).containsKey("_span_id")
-        assertThat(fields.firstValue).containsEntry("_duration_ms", "1337".toFieldValue())
-    }
 }

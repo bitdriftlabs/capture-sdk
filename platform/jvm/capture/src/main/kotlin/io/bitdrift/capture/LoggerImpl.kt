@@ -330,7 +330,6 @@ internal class LoggerImpl(
         fields: Map<String, String>?,
         startTimeMs: Long?,
         parentSpanId: UUID?,
-        emitStartLog: Boolean,
     ): Span = Span(this, name, level, fields, startTimeMs, parentSpanId)
 
     override fun logSpan(
