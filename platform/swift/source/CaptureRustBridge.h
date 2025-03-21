@@ -79,7 +79,8 @@ void capture_write_log(
     const char *message,
     const NSArray<const Field *> *_Nullable fields,
     const NSArray<const Field *> *_Nullable matching_fields,
-    bool blocking
+    bool blocking,
+    int64_t occurred_at_override
 );
 
 /*
@@ -177,7 +178,7 @@ void capture_write_app_launch_tti_log(
     double duration_s
 );
 
-/* 
+/*
 * Writes a screen view log.
 *
 * @param loggerId the ID of the logger to write to.
