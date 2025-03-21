@@ -28,11 +28,15 @@ import java.io.File
 @Config(sdk = [21])
 class FatalIssueReporterTest {
     private lateinit var fatalIssueReporter: FatalIssueReporter
+    private lateinit var reportsDir: File
+    private lateinit var sourceCrashDirectory: File
 
     @Before
     fun setup() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
+        reportsDir = File(APP_CONTEXT.filesDir, "bitdrift_capture/reports/")
+        sourceCrashDirectory = File(APP_CONTEXT.cacheDir, "acme")
         fatalIssueReporter = FatalIssueReporter(Mocks.sameThreadHandler)
     }
 
@@ -105,7 +109,10 @@ class FatalIssueReporterTest {
         )
     }
 
-    private fun FatalIssueReporterStatus.assert(expectedType: Class<*>) {
+    private fun FatalIssueReporterStatus.assert(
+        expectedType: Class<*>,
+        crashFileExist: Boolean = false,
+    ) {
         assertThat(state).isInstanceOf(expectedType)
         assertThat(duration != null).isTrue()
         val expectedMap: Map<String, FieldValue> =
@@ -114,6 +121,7 @@ class FatalIssueReporterTest {
                 put("_fatal_issue_reporting_state", state.readableType.toFieldValue())
             }
         assertThat(buildFieldsMap()).isEqualTo(expectedMap)
+        assertCrashFile(crashFileExist)
     }
 
     private fun prepareFileDirectories(
@@ -122,9 +130,9 @@ class FatalIssueReporterTest {
         crashFilePresent: Boolean = false,
     ) {
         if (doesReportsDirectoryExist) {
-            val filesDir = APP_CONTEXT.filesDir
-            val reportsDir = File(filesDir, "bitdrift_capture/reports/")
-            reportsDir.mkdirs()
+            if (!reportsDir.exists()) {
+                reportsDir.mkdirs()
+            }
             val reportFile = File(reportsDir, "config")
             bitdriftConfigContent?.let {
                 reportFile.writeText(it)
@@ -132,11 +140,24 @@ class FatalIssueReporterTest {
         }
 
         if (crashFilePresent) {
-            val cacheDir = APP_CONTEXT.cacheDir
-            val sourceFileDir = File(cacheDir, "acme")
-            sourceFileDir.mkdirs()
-            val sourceFile = File(sourceFileDir, "crash_info.json")
-            sourceFile.createNewFile()
+            if (!sourceCrashDirectory.exists()) {
+                sourceCrashDirectory.mkdirs()
+            }
+            createCrashFile(sourceCrashDirectory, "first_crash_info.json")
+            createCrashFile(sourceCrashDirectory, "latest_crash_info.json")
         }
+    }
+
+    private fun createCrashFile(
+        sourceFileDir: File,
+        fileName: String,
+    ) {
+        val sourceFile = File(sourceFileDir, fileName)
+        sourceFile.createNewFile()
+    }
+
+    private fun assertCrashFile(crashFileExist: Boolean) {
+        val crashFile = File(reportsDir, "/new/latest_crash_info.json")
+        assertThat(crashFile.exists()).isEqualTo(crashFileExist)
     }
 }
