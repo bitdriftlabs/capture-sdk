@@ -17,12 +17,9 @@ import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
-import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.toFieldValue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import org.mockito.Mockito.spy
-import org.mockito.Mockito.verifyNoInteractions
 
 class SpanTest {
     private val logger: LoggerImpl = mock()
