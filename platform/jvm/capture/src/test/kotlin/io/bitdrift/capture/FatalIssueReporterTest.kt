@@ -157,7 +157,7 @@ class FatalIssueReporterTest {
     }
 
     private companion object {
-        private const val SOURCE_PATH = "fake/acme"
+        private const val SOURCE_PATH = "my fake path/acme"
     }
 
     private fun assertFileSent(bitdriftConfigContent: String) {
