@@ -119,7 +119,9 @@ internal class FatalIssueReporter(
 
     private fun getConfigDetails(crashConfigFileContent: String): ConfigDetails? =
         runCatching {
-            val crashConfigDetails = crashConfigFileContent.split(",")
+            val crashConfigDetails = crashConfigFileContent
+                .replace("\\s".toRegex(), "")
+                .split(",")
             ConfigDetails(crashConfigDetails[0], crashConfigDetails[1])
         }.getOrNull()
 
