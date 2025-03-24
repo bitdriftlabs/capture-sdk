@@ -392,16 +392,18 @@ internal class LoggerImpl(
             return
         }
         try {
-            val expectedPreviousProcessSessionId = when (attributesOverrides) {
-                is LogAttributesOverrides.SessionID -> attributesOverrides.expectedPreviousProcessSessionId
-                is LogAttributesOverrides.OccurredAt -> null
-                else -> null
-            }
-            val occurredAtTimestampMs: Long = when (attributesOverrides) {
-                is LogAttributesOverrides.SessionID -> attributesOverrides.occurredAtTimestampMs
-                is LogAttributesOverrides.OccurredAt -> attributesOverrides.occurredAtTimestampMs
-                else -> 0
-            }
+            val expectedPreviousProcessSessionId =
+                when (attributesOverrides) {
+                    is LogAttributesOverrides.SessionID -> attributesOverrides.expectedPreviousProcessSessionId
+                    is LogAttributesOverrides.OccurredAt -> null
+                    else -> null
+                }
+            val occurredAtTimestampMs: Long =
+                when (attributesOverrides) {
+                    is LogAttributesOverrides.SessionID -> attributesOverrides.occurredAtTimestampMs
+                    is LogAttributesOverrides.OccurredAt -> attributesOverrides.occurredAtTimestampMs
+                    else -> 0
+                }
 
             CaptureJniLibrary.writeLog(
                 this.loggerId,
@@ -543,6 +545,12 @@ internal class LoggerImpl(
 }
 
 sealed class LogAttributesOverrides {
-    data class SessionID(val expectedPreviousProcessSessionId: String, val occurredAtTimestampMs: Long) : LogAttributesOverrides()
-    data class OccurredAt(val occurredAtTimestampMs: Long) : LogAttributesOverrides()
+    data class SessionID(
+        val expectedPreviousProcessSessionId: String,
+        val occurredAtTimestampMs: Long,
+    ) : LogAttributesOverrides()
+
+    data class OccurredAt(
+        val occurredAtTimestampMs: Long,
+    ) : LogAttributesOverrides()
 }
