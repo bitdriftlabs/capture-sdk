@@ -119,10 +119,10 @@ internal class FatalIssueReporter(
 
     private fun getConfigDetails(crashConfigFileContent: String): ConfigDetails? =
         runCatching {
-            val crashConfigDetails = crashConfigFileContent
-                .replace("\\s".toRegex(), "")
-                .split(",")
-            ConfigDetails(crashConfigDetails[0], crashConfigDetails[1])
+            val crashConfigDetails = crashConfigFileContent.split(",")
+            val source = crashConfigDetails[0].trim()
+            val fileExtension = crashConfigDetails[1].trim()
+            ConfigDetails(source, fileExtension)
         }.getOrNull()
 
     private fun findCrashFile(
