@@ -120,16 +120,19 @@ internal class FatalIssueReporter(
     private fun getConfigDetails(crashConfigFileContent: String): ConfigDetails? =
         runCatching {
             val crashConfigDetails = crashConfigFileContent.split(",")
-            ConfigDetails(crashConfigDetails[0], crashConfigDetails[1])
+            val source = crashConfigDetails[0].trim()
+            val fileExtension = crashConfigDetails[1].trim()
+            ConfigDetails(source, fileExtension)
         }.getOrNull()
 
     private fun findCrashFile(
         sourceFile: File,
         fileExtension: String,
     ): File? =
-        sourceFile.walk().firstOrNull {
-            it.isFile && it.extension == fileExtension
-        }
+        sourceFile
+            .walk()
+            .filter { it.isFile && it.extension == fileExtension }
+            .maxByOrNull { it.lastModified() }
 
     private fun File.toFilenameWithTimeStamp(): String {
         val fileCreationEpochTime = getFileCreationTimeEpochInMillis(this)

@@ -88,6 +88,17 @@ extension Logger {
         }
     }
 
+    /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
+    /// This API is experimental and subject to change
+    public static func initFatalIssueReporting() {
+        if issueReporterInitResult.0 == .notInitialized {
+            issueReporterInitResult = (.initializing, 0)
+            issueReporterInitResult = FatalIssueReporter.processFiles()
+        } else {
+            log(level: .warning, message: "Fatal issue reporting already being initialized")
+        }
+    }
+
     /// Retrieves the session ID. It is nil before the Capture SDK is started.
     public static var sessionID: String? {
         return Self.getShared()?.sessionID
