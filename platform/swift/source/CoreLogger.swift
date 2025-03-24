@@ -39,7 +39,8 @@ extension CoreLogger: CoreLogging {
         matchingFields: Fields? = nil,
         error: Error? = nil,
         type: Logger.LogType,
-        blocking: Bool = false
+        blocking: Bool = false,
+        occurredAtOverride: Date? = nil
     )
     {
         if type == .internalsdk && !self.runtimeValue(.internalLogs) {
@@ -76,7 +77,8 @@ extension CoreLogger: CoreLogging {
             fields: fieldsOrNil,
             matchingFields: matchingFields.flatMap(self.convertFields),
             type: type,
-            blocking: blocking
+            blocking: blocking,
+            occurredAtOverride: occurredAtOverride
         )
     }
 

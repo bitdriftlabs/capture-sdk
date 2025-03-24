@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.events.span
 
+import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
@@ -78,6 +79,7 @@ class Span internal constructor(
             LogType.SPAN,
             level,
             startFields.toFields(),
+            attributesOverrides = customStartTimeMs?.let { LogAttributesOverrides.OccurredAt(it) },
         ) { "" }
     }
 
@@ -123,6 +125,7 @@ class Span internal constructor(
                 LogType.SPAN,
                 level,
                 endFields.toFields(),
+                attributesOverrides = endTimeMs?.let { LogAttributesOverrides.OccurredAt(it) },
             ) { "" }
         }
         logger = null

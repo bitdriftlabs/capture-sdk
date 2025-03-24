@@ -106,19 +106,21 @@ final class SpanTests: XCTestCase {
 
     func testStartEndSpanWithCustomInterval() throws {
         let logger = MockCoreLogging()
-        let span = self.createSpan(logger: logger, start: 0)
 
+        // Test start and end
+        let span = self.createSpan(logger: logger, start: 0)
         span.end(
             .success,
             fields: ["_span_id": "should be ignored"],
-            endTimeInterval: 0.000133
+            endTimeInterval: 1
         )
         XCTAssertEqual(2, logger.logs.count)
+        let startLog = logger.logs[0]
         let endLog = logger.logs[1]
 
         let emittedEndFields = endLog.fields
         XCTAssertEqual([
-            "_duration_ms": "0.133",
+            "_duration_ms": "1000.0",
             "_span_id": span.id.uuidString,
             "test_key": "test_value",
             "_span_type": "end",
@@ -127,7 +129,10 @@ final class SpanTests: XCTestCase {
         ], emittedEndFields as? [String: String])
 
         XCTAssertEqual(2, logger.logs.count)
+        XCTAssertEqual(Date(timeIntervalSince1970: 0), startLog.occurredAtOverride)
+        XCTAssertEqual(Date(timeIntervalSince1970: 1), endLog.occurredAtOverride)
 
+        // Test start with no end
         let timeProvider = MockTimeProvider()
         let spanOnlyStart = self.createSpan(logger: logger, timeProvider: timeProvider, start: 0)
         timeProvider.advanceBy(timeInterval: 1337)
@@ -135,13 +140,18 @@ final class SpanTests: XCTestCase {
 
         XCTAssertEqual(4, logger.logs.count)
         XCTAssertEqual("1337000.0", try XCTUnwrap(logger.logs[3].fields?["_duration_ms"] as? String))
+        XCTAssertEqual(Date(timeIntervalSince1970: 0), logger.logs[2].occurredAtOverride)
+        XCTAssertEqual(nil, logger.logs[3].occurredAtOverride)
 
+        // Test end with no start
         let spanOnlyEnd = self.createSpan(logger: logger, timeProvider: timeProvider)
         timeProvider.advanceBy(timeInterval: 1338)
         spanOnlyEnd.end(.success, endTimeInterval: 666)
 
         XCTAssertEqual(6, logger.logs.count)
         XCTAssertEqual("1338000.0", try XCTUnwrap(logger.logs[5].fields?["_duration_ms"] as? String))
+        XCTAssertEqual(nil, logger.logs[4].occurredAtOverride)
+        XCTAssertEqual(Date(timeIntervalSince1970: 666), logger.logs[5].occurredAtOverride)
     }
 
     func testSpanWithParents() throws {

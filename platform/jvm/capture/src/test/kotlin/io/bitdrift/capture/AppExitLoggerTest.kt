@@ -173,7 +173,7 @@ class AppExitLoggerTest {
             eq(LogLevel.ERROR),
             eq(expectedFields),
             eq(null),
-            eq(LogAttributesOverrides(SESSION_ID, TIME_STAMP)),
+            eq(LogAttributesOverrides.SessionID(SESSION_ID, TIME_STAMP)),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppExit" },
         )
@@ -296,7 +296,7 @@ class AppExitLoggerTest {
             eq(LogLevel.ERROR),
             expectedFieldsCaptor.capture(),
             eq(null),
-            eq(LogAttributesOverrides(SESSION_ID, TIME_STAMP)),
+            eq(LogAttributesOverrides.SessionID(SESSION_ID, TIME_STAMP)),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppExit" },
         )
@@ -323,7 +323,7 @@ class AppExitLoggerTest {
             eq(LogLevel.ERROR),
             eq(expectedFields),
             eq(null),
-            eq(LogAttributesOverrides(SESSION_ID, TIME_STAMP)),
+            eq(LogAttributesOverrides.SessionID(SESSION_ID, TIME_STAMP)),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppExit" },
         )

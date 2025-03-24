@@ -61,12 +61,21 @@ class SpanTest {
         val fields = argumentCaptor<InternalFieldsMap>()
         span.end(SpanResult.SUCCESS, endTimeMs = 1000L)
 
-        verify(logger, times(2)).log(
+        verify(logger).log(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
             fields.capture(),
             eq(null),
+            eq(LogAttributesOverrides.OccurredAt(1)),
+            eq(false),
+            any(),
+        )
+        verify(logger).log(
+            eq(LogType.SPAN),
+            eq(LogLevel.INFO),
+            fields.capture(),
             eq(null),
+            eq(LogAttributesOverrides.OccurredAt(1000)),
             eq(false),
             any(),
         )
@@ -88,7 +97,17 @@ class SpanTest {
         whenever(clock.elapsedRealtime()).thenReturn(1337L)
         spanWithNoEnd.end(SpanResult.SUCCESS)
 
-        verify(logger, times(2)).log(
+        verify(logger).log(
+            eq(LogType.SPAN),
+            eq(LogLevel.INFO),
+            fieldsWithNoEnd.capture(),
+            eq(null),
+            eq(null),
+            eq(false),
+            any(),
+        )
+
+        verify(logger).log(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
             fieldsWithNoEnd.capture(),
@@ -110,12 +129,22 @@ class SpanTest {
         whenever(clock.elapsedRealtime()).thenReturn(1338L)
         spanWithNoStart.end(SpanResult.SUCCESS, endTimeMs = 1337)
 
-        verify(logger, times(2)).log(
+        verify(logger).log(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
             fieldsWithNoStart.capture(),
             eq(null),
             eq(null),
+            eq(false),
+            any(),
+        )
+
+        verify(logger).log(
+            eq(LogType.SPAN),
+            eq(LogLevel.INFO),
+            fieldsWithNoStart.capture(),
+            eq(null),
+            eq(LogAttributesOverrides.OccurredAt(1337)),
             eq(false),
             any(),
         )

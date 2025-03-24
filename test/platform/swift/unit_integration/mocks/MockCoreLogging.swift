@@ -22,6 +22,7 @@ public final class MockCoreLogging {
         public let error: Error?
         public let type: Logger.LogType
         public let blocking: Bool
+        public let occurredAtOverride: Date?
     }
 
     public struct ResourceUtilizationLog {
@@ -92,7 +93,8 @@ extension MockCoreLogging: CoreLogging {
         matchingFields: Fields?,
         error: Error?,
         type: Logger.LogType,
-        blocking: Bool
+        blocking: Bool,
+        occurredAtOverride: Date?
     ) {
         self.logs.append(
             Log(
@@ -105,7 +107,8 @@ extension MockCoreLogging: CoreLogging {
                 matchingFields: matchingFields,
                 error: error,
                 type: type,
-                blocking: blocking
+                blocking: blocking,
+                occurredAtOverride: occurredAtOverride
             )
         )
         self.logExpectation?.fulfill()

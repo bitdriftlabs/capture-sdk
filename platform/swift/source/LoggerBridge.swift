@@ -128,7 +128,8 @@ final class LoggerBridge: LoggerBridging {
         fields: [CapturePassable.Field]?,
         matchingFields: [CapturePassable.Field]?,
         type: Logger.LogType,
-        blocking: Bool
+        blocking: Bool,
+        occurredAtOverride: Date?
     ) {
         capture_write_log(
             self.loggerID,
@@ -137,7 +138,8 @@ final class LoggerBridge: LoggerBridging {
             message(),
             fields,
             matchingFields,
-            blocking
+            blocking,
+            occurredAtOverride.map { Int64($0.timeIntervalSince1970 * 1_000) } ?? 0
         )
     }
 

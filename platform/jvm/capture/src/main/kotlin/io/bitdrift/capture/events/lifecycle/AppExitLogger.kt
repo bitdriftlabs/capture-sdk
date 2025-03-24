@@ -120,7 +120,7 @@ internal class AppExitLogger(
                     LogType.LIFECYCLE,
                     lastExitInfo.reason.toLogLevel(),
                     buildAppExitInternalFieldsMap(lastExitInfo),
-                    attributesOverrides = LogAttributesOverrides(sessionId, timestampMs),
+                    attributesOverrides = LogAttributesOverrides.SessionID(sessionId, timestampMs),
                 ) { APP_EXIT_EVENT_NAME }
             }
         }

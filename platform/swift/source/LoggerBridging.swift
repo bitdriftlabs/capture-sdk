@@ -20,7 +20,8 @@ protocol LoggerBridging {
         fields: InternalFields?,
         matchingFields: InternalFields?,
         type: Logger.LogType,
-        blocking: Bool
+        blocking: Bool,
+        occurredAtOverride: Date?
     )
 
     func logSessionReplayScreen(fields: InternalFields, duration: TimeInterval)

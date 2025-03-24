@@ -22,7 +22,7 @@ use bd_client_common::error::{
   MetadataErrorReporter,
   UnexpectedErrorHandler,
 };
-use bd_logger::{LogFieldKind, LogFields, LogLevel, MetadataProvider};
+use bd_logger::{LogAttributesOverrides, LogFieldKind, LogFields, LogLevel, MetadataProvider};
 use bd_noop_network::NoopNetwork;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
@@ -35,7 +35,7 @@ use std::convert::From;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::sync::{Arc, Once};
-use time::Duration;
+use time::{Duration, OffsetDateTime};
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -575,6 +575,7 @@ extern "C" fn capture_write_log(
   fields: *const Object,
   matching_fields: *const Object,
   blocking: bool,
+  override_occurred_at_unix_milliseconds: i64,
 ) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
@@ -586,13 +587,21 @@ extern "C" fn capture_write_log(
       let matching_fields =
         unsafe { ffi::convert_annotated_fields(matching_fields, LogFieldKind::Ootb) }?;
 
+      let attributes_overrides = if override_occurred_at_unix_milliseconds <= 0 {
+        None
+      } else {
+        Some(LogAttributesOverrides::OccurredAt(
+          unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
+        ))
+      };
+
       logger_id.log(
         log_level,
         bd_logger::LogType(log_type),
         log_str.into(),
         fields,
         matching_fields,
-        None,
+        attributes_overrides,
         blocking,
       );
 
@@ -809,4 +818,11 @@ mod flags {
   );
 
   int_feature_flag!(SendDataTimeout, "ios.report_send_data_timeout_s", 60 * 3);
+}
+
+fn unix_milliseconds_to_date(millis_since_utc_epoch: i64) -> anyhow::Result<OffsetDateTime> {
+  let seconds = millis_since_utc_epoch / 1000;
+  let nano = (millis_since_utc_epoch % 1000) * 10_i64.pow(6);
+
+  Ok(time::OffsetDateTime::from_unix_timestamp(seconds)? + Duration::nanoseconds(nano))
 }
