@@ -179,6 +179,47 @@ final class LoggerTests: XCTestCase {
         )
     }
 
+    func testErrorLoggingStringConvertibleField() throws {
+        struct BonusContext: CustomStringConvertible {
+            var description: String = "bonus!"
+        }
+
+        let bridge = MockLoggerBridging()
+
+        let logger = try Logger.testLogger(
+            bufferDirectory: Logger.tempBufferDirectory(),
+            configuration: .init(),
+            loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
+        )
+
+        let error = NSError(domain: "com.example.err", code: 4099, userInfo: [
+            "ctx": BonusContext(),
+            "more": "extra stuff",
+        ])
+        logger.logError("something went wrong", error: error)
+
+        XCTAssertEqual(bridge.errors.count, 0)
+        XCTAssertEqual(bridge.logs.count, 1)
+
+        let log = bridge.logs[0]
+        var logFields = try XCTUnwrap(log.fields?.toDictionary())
+        XCTAssertNotNil(logFields.removeValue(forKey: "_file"))
+        XCTAssertNotNil(logFields.removeValue(forKey: "_line"))
+        XCTAssertNotNil(logFields.removeValue(forKey: "_function"))
+
+        XCTAssertEqual(log.level, .error)
+        XCTAssertEqual(log.message, "something went wrong")
+        self.assertEqual(
+            [
+                "_error": error.localizedDescription,
+                "_error_details": String(describing: error),
+                "_error_info_more": "extra stuff",
+                "_error_info_ctx": "bonus!",
+            ],
+            logFields
+        )
+    }
+
     func testLogRequest() throws {
         let requestInfo = HTTPRequestInfo(
             method: "POST",
