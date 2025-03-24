@@ -544,7 +544,7 @@ internal class LoggerImpl(
     }
 }
 
-sealed class LogAttributesOverrides {
+internal sealed class LogAttributesOverrides {
     data class SessionID(
         val expectedPreviousProcessSessionId: String,
         val occurredAtTimestampMs: Long,
