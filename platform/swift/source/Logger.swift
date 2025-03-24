@@ -35,8 +35,6 @@ public final class Logger {
 
     private let sessionURLBase: URL
 
-    static var issueReporterInitResult: IssueReporterInitResult = (.notInitialized, 0)
-
     private static let syncedShared = Atomic<State>(.notStarted)
 
     private let network: URLSessionNetworkClient?
@@ -196,11 +194,7 @@ public final class Logger {
 
         defer {
             let duration = timeProvider.timeIntervalSince(start)
-            let fields: Fields = [
-                "_fatal_issue_reporting_state": "\(Logger.issueReporterInitResult.0)",
-                "_fatal_issue_reporting_duration_ms": Logger.issueReporterInitResult.1 * Double(MSEC_PER_SEC),
-            ]
-            self.underlyingLogger.logSDKStart(fields: fields, duration: duration)
+            self.underlyingLogger.logSDKStart(fields: [:], duration: duration)
         }
 
         self.eventsListenerTarget.setUp(
@@ -331,16 +325,6 @@ public final class Logger {
                 create: false
             )
             .appendingPathComponent("bitdrift_capture")
-    }
-
-    static func reportConfigPath() -> URL? {
-        return captureSDKDirectory()?
-            .appendingPathComponent("reports/config", isDirectory: false)
-    }
-
-    static func reportCollectionDirectory() -> URL? {
-        return captureSDKDirectory()?
-            .appendingPathComponent("reports/new", isDirectory: true)
     }
 
     // MARK: - Private

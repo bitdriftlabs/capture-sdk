@@ -28,15 +28,11 @@ import java.io.File
 @Config(sdk = [21])
 class FatalIssueReporterTest {
     private lateinit var fatalIssueReporter: FatalIssueReporter
-    private lateinit var reportsDir: File
-    private lateinit var sourceCrashDirectory: File
 
     @Before
     fun setup() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
-        reportsDir = File(APP_CONTEXT.filesDir, "bitdrift_capture/reports/")
-        sourceCrashDirectory = File(APP_CONTEXT.cacheDir, SOURCE_PATH)
         fatalIssueReporter = FatalIssueReporter(Mocks.sameThreadHandler)
     }
 
@@ -53,7 +49,7 @@ class FatalIssueReporterTest {
     fun processCrashReportFile_withValidConfigFileAndNotReports_shouldReportWithoutPriorPriorState() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
-            bitdriftConfigContent = "$SOURCE_PATH,json",
+            bitdriftConfigContent = "acme,json",
             crashFilePresent = false,
         )
 
@@ -66,19 +62,24 @@ class FatalIssueReporterTest {
 
     @Test
     fun processCrashReportFile_withValidConfigFileAndReports_shouldReportPriorPrior() {
-        assertFileSent("$SOURCE_PATH,json")
-    }
+        prepareFileDirectories(
+            doesReportsDirectoryExist = true,
+            bitdriftConfigContent = "acme,json",
+            crashFilePresent = true,
+        )
 
-    @Test
-    fun processCrashReportFile_withConfigWithSpacesAndReports_shouldReportPriorPrior() {
-        assertFileSent(" $SOURCE_PATH , json       ")
+        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
+
+        crashReporterStatus.assert(
+            FatalIssueReporterState.Initialized.FatalIssueReportSent::class.java,
+        )
     }
 
     @Test
     fun processCrashReportFile_withInValidExtensionConfigAndReports_shouldReportPriorPrior() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
-            bitdriftConfigContent = "$SOURCE_PATH,yaml",
+            bitdriftConfigContent = "acme,yaml",
             crashFilePresent = true,
         )
 
@@ -104,10 +105,7 @@ class FatalIssueReporterTest {
         )
     }
 
-    private fun FatalIssueReporterStatus.assert(
-        expectedType: Class<*>,
-        crashFileExist: Boolean = false,
-    ) {
+    private fun FatalIssueReporterStatus.assert(expectedType: Class<*>) {
         assertThat(state).isInstanceOf(expectedType)
         assertThat(duration != null).isTrue()
         val expectedMap: Map<String, FieldValue> =
@@ -116,7 +114,6 @@ class FatalIssueReporterTest {
                 put("_fatal_issue_reporting_state", state.readableType.toFieldValue())
             }
         assertThat(buildFieldsMap()).isEqualTo(expectedMap)
-        assertCrashFile(crashFileExist)
     }
 
     private fun prepareFileDirectories(
@@ -125,9 +122,9 @@ class FatalIssueReporterTest {
         crashFilePresent: Boolean = false,
     ) {
         if (doesReportsDirectoryExist) {
-            if (!reportsDir.exists()) {
-                reportsDir.mkdirs()
-            }
+            val filesDir = APP_CONTEXT.filesDir
+            val reportsDir = File(filesDir, "bitdrift_capture/reports/")
+            reportsDir.mkdirs()
             val reportFile = File(reportsDir, "config")
             bitdriftConfigContent?.let {
                 reportFile.writeText(it)
@@ -135,42 +132,11 @@ class FatalIssueReporterTest {
         }
 
         if (crashFilePresent) {
-            if (!sourceCrashDirectory.exists()) {
-                sourceCrashDirectory.mkdirs()
-            }
-            createCrashFile(sourceCrashDirectory, "first_crash_info.json")
-            createCrashFile(sourceCrashDirectory, "latest_crash_info.json")
+            val cacheDir = APP_CONTEXT.cacheDir
+            val sourceFileDir = File(cacheDir, "acme")
+            sourceFileDir.mkdirs()
+            val sourceFile = File(sourceFileDir, "crash_info.json")
+            sourceFile.createNewFile()
         }
-    }
-
-    private fun createCrashFile(
-        sourceFileDir: File,
-        fileName: String,
-    ) {
-        val sourceFile = File(sourceFileDir, fileName)
-        sourceFile.createNewFile()
-    }
-
-    private fun assertCrashFile(crashFileExist: Boolean) {
-        val crashFile = File(reportsDir, "/new/latest_crash_info.json")
-        assertThat(crashFile.exists()).isEqualTo(crashFileExist)
-    }
-
-    private companion object {
-        private const val SOURCE_PATH = "my fake path/acme"
-    }
-
-    private fun assertFileSent(bitdriftConfigContent: String) {
-        prepareFileDirectories(
-            doesReportsDirectoryExist = true,
-            bitdriftConfigContent = bitdriftConfigContent,
-            crashFilePresent = true,
-        )
-
-        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
-
-        crashReporterStatus.assert(
-            FatalIssueReporterState.Initialized.FatalIssueReportSent::class.java,
-        )
     }
 }
