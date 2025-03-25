@@ -213,50 +213,42 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: ./ci/verify_android.sh
 
-apk_size_check:
-  name: APK Size Comparison
-  needs: build_apk
-  runs-on: ubuntu-latest
-  steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Install apktool
-      run: |
-        sudo apt update
-        sudo apt install -y apktool
-
-    - uses: actions/download-artifact@v4
-      with:
-        name: android_app.apk
-        path: ./new.apk
-
-    - name: Fetch previous APK
-      run: |
-        git fetch origin main
-        git checkout origin/main
-        ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
-        cp ./bazel-bin/examples/android/android_app.apk ./old.apk
-
-    - name: Decompile old APK
-      run: |
-        apktool d ./old.apk -o ./old_decompiled
-
-    - name: Decompile new APK
-      run: |
-        apktool d ./new.apk -o ./new_decompiled
-
-    - name: Compare APK contents
-      run: |
-        diff -qr ./old_decompiled ./new_decompiled > apk_diff_report.txt || true
-
-    - uses: actions/upload-artifact@v4
-      with:
-        name: apk_diff_report
-        path: apk_diff_report.txt
-
+  apk_size_check:
+    name: APK Size Comparison
+    needs: build_apk
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install apktool
+        run: |
+          sudo apt update
+          sudo apt install -y apktool
+      - uses: actions/download-artifact@v4
+        with:
+          name: android_app.apk
+          path: ./new.apk
+      - name: Fetch previous APK
+        run: |
+          git fetch origin main
+          git checkout origin/main
+          ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
+          cp ./bazel-bin/examples/android/android_app.apk ./old.apk
+      - name: Decompile old APK
+        run: |
+          apktool d ./old.apk -o ./old_decompiled
+      - name: Decompile new APK
+        run: |
+          apktool d ./new.apk -o ./new_decompiled
+      - name: Compare APK contents
+        run: |
+          diff -qr ./old_decompiled ./new_decompiled > apk_diff_report.txt || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk_diff_report
+          path: apk_diff_report.txt
 
   # This is a noop job that completes once all the jobs spawned by the previous step completes. By blocking PR merges on this
   # job completing, we are able to gate it on all the previous jobs without explicitly enumerating them.
