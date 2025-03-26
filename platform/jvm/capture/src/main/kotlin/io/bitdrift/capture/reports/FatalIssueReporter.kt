@@ -53,18 +53,18 @@ internal class FatalIssueReporter(
     @UiThread
     private fun verifyDirectoriesAndCopyFiles(): FatalIssueReporterState {
         val sdkDirectory = SdkDirectory.getPath(appContext)
-        val crashConfigFile = File(sdkDirectory, CONFIGURATION_FILE_PATH)
+        val fatalIssueConfigFile = File(sdkDirectory, CONFIGURATION_FILE_PATH)
 
-        if (!crashConfigFile.exists()) {
+        if (!fatalIssueConfigFile.exists()) {
             return FatalIssueReporterState.Initialized.MissingConfigFile
         }
 
-        val crashConfigFileContents = crashConfigFile.readText()
-        val crashConfigDetails =
-            getFatalIssueConfigDetails(appContext, crashConfigFileContents) ?: let {
+        val fatalIssueConfigFileContents = fatalIssueConfigFile.readText()
+        val fatalIssueConfigDetails =
+            getFatalIssueConfigDetails(appContext, fatalIssueConfigFileContents) ?: let {
                 return FatalIssueReporterState.Initialized.MalformedConfigFile
             }
-        if (crashConfigDetails.sourceDirectory.isInvalidDirectory()) {
+        if (fatalIssueConfigDetails.sourceDirectory.isInvalidDirectory()) {
             return FatalIssueReporterState.Initialized.InvalidCrashConfigDirectory
         }
 
@@ -73,9 +73,9 @@ internal class FatalIssueReporter(
 
         return runCatching {
             findAndCopyPriorReportFile(
-                crashConfigDetails.sourceDirectory,
+                fatalIssueConfigDetails.sourceDirectory,
                 destinationDirectory,
-                crashConfigDetails.extensionFileName,
+                fatalIssueConfigDetails.extensionFileName,
             )
         }.getOrElse {
             return ProcessingFailure("Couldn't process crash files. ${it.message}")
