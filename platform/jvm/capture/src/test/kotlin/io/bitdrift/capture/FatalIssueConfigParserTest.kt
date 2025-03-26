@@ -28,7 +28,7 @@ class FatalIssueConfigParserTest {
 
     @Test
     fun getFatalIssueConfigDetails_withCachedDirPlaceHolder_shouldReturnExpectedPath() {
-        val configurationPath = "{cached_dir}/acme,json"
+        val configurationPath = "{cache_dir}/acme,json"
 
         val details = getFatalIssueConfigDetails(APP_CONTEXT, configurationPath)
 

@@ -15,7 +15,7 @@ import java.io.File
  * Parse the runtime config into valid path/extension
  */
 internal object FatalIssueConfigParser {
-    private const val CACHE_DIR_PLACE_HOLDER = "{cached_dir}"
+    private const val CACHE_DIR_PLACE_HOLDER = "{cache_dir}"
     private const val FILES_DIR_PLACE_HOLDER = "{files_dir}"
     private const val DATA_DIR_PLACE_HOLDER = "{data_dir}"
 

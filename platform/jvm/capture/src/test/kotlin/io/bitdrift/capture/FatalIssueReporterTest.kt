@@ -155,7 +155,7 @@ class FatalIssueReporterTest {
             bitdriftConfigContent?.let {
                 if (!it.contains(",")) return
                 val sourcePath = it.split(",")[0].trim()
-                sourceCrashDirectory = File(sourcePath.replace("{cached_dir}", APP_CONTEXT.cacheDir.absolutePath))
+                sourceCrashDirectory = File(sourcePath.replace("{cache_dir}", APP_CONTEXT.cacheDir.absolutePath))
                 if (sourceCrashDirectory?.exists() == false) {
                     sourceCrashDirectory?.mkdirs()
                 }
@@ -184,7 +184,7 @@ class FatalIssueReporterTest {
     }
 
     private companion object {
-        private const val SOURCE_PATH = "{cached_dir}/my fake path/acme"
+        private const val SOURCE_PATH = "{cache_dir}/my fake path/acme"
     }
 
     private fun assertFileSent(bitdriftConfigContent: String) {
