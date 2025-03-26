@@ -29,14 +29,12 @@ import java.io.File
 class FatalIssueReporterTest {
     private lateinit var fatalIssueReporter: FatalIssueReporter
     private lateinit var reportsDir: File
-    private lateinit var sourceCrashDirectory: File
 
     @Before
     fun setup() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
         reportsDir = File(APP_CONTEXT.filesDir, "bitdrift_capture/reports/")
-        sourceCrashDirectory = File(APP_CONTEXT.cacheDir, SOURCE_PATH)
         fatalIssueReporter = FatalIssueReporter(Mocks.sameThreadHandler)
     }
 
@@ -54,6 +52,7 @@ class FatalIssueReporterTest {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
             bitdriftConfigContent = "$SOURCE_PATH,json",
+            crashDirectoryPresent = true,
             crashFilePresent = false,
         )
 
@@ -65,12 +64,28 @@ class FatalIssueReporterTest {
     }
 
     @Test
-    fun processCrashReportFile_withValidConfigFileAndReports_shouldReportPriorPrior() {
+    fun processCrashReportFile_withoutSdkCrashDirectory_shouldReportInvalidCrashConfigDirectory() {
+        prepareFileDirectories(
+            doesReportsDirectoryExist = true,
+            bitdriftConfigContent = "$SOURCE_PATH,json",
+            crashDirectoryPresent = false,
+            crashFilePresent = false,
+        )
+
+        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
+
+        crashReporterStatus.assert(
+            FatalIssueReporterState.Initialized.InvalidCrashConfigDirectory::class.java,
+        )
+    }
+
+    @Test
+    fun processCrashReportFile_withValidConfigFileAndReports_shouldReportSentPriorReport() {
         assertFileSent("$SOURCE_PATH,json")
     }
 
     @Test
-    fun processCrashReportFile_withConfigWithSpacesAndReports_shouldReportPriorPrior() {
+    fun processCrashReportFile_withConfigWithSpacesAndReports_shouldReportSentPriorReport() {
         assertFileSent(" $SOURCE_PATH , json       ")
     }
 
@@ -122,6 +137,7 @@ class FatalIssueReporterTest {
     private fun prepareFileDirectories(
         doesReportsDirectoryExist: Boolean,
         bitdriftConfigContent: String? = null,
+        crashDirectoryPresent: Boolean = true,
         crashFilePresent: Boolean = false,
     ) {
         if (doesReportsDirectoryExist) {
@@ -134,12 +150,23 @@ class FatalIssueReporterTest {
             }
         }
 
-        if (crashFilePresent) {
-            if (!sourceCrashDirectory.exists()) {
-                sourceCrashDirectory.mkdirs()
+        var sourceCrashDirectory: File? = null
+        if (crashDirectoryPresent) {
+            bitdriftConfigContent?.let {
+                if (!it.contains(",")) return
+                val sourcePath = it.split(",")[0].trim()
+                sourceCrashDirectory = File(sourcePath.replace("{cached_dir}", APP_CONTEXT.cacheDir.absolutePath))
+                if (sourceCrashDirectory?.exists() == false) {
+                    sourceCrashDirectory?.mkdirs()
+                }
             }
-            createCrashFile(sourceCrashDirectory, "first_crash_info.json")
-            createCrashFile(sourceCrashDirectory, "latest_crash_info.json")
+
+            if (crashFilePresent) {
+                sourceCrashDirectory?.let {
+                    createCrashFile(it, "first_crash_info.json")
+                    createCrashFile(it, "latest_crash_info.json")
+                }
+            }
         }
     }
 
@@ -157,7 +184,7 @@ class FatalIssueReporterTest {
     }
 
     private companion object {
-        private const val SOURCE_PATH = "my fake path/acme"
+        private const val SOURCE_PATH = "{cached_dir}/my fake path/acme"
     }
 
     private fun assertFileSent(bitdriftConfigContent: String) {
