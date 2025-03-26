@@ -14,6 +14,7 @@ import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
+import io.bitdrift.capture.reports.FatalIssueConfigParser.getFatalIssueConfigDetails
 import io.bitdrift.capture.reports.FatalIssueReporterState.Initialized.ProcessingFailure
 import io.bitdrift.capture.utils.SdkDirectory
 import java.io.File
@@ -52,22 +53,19 @@ internal class FatalIssueReporter(
     @UiThread
     private fun verifyDirectoriesAndCopyFiles(): FatalIssueReporterState {
         val sdkDirectory = SdkDirectory.getPath(appContext)
-        val crashConfigFile = File(sdkDirectory, CONFIGURATION_FILE_PATH)
+        val fatalIssueConfigFile = File(sdkDirectory, CONFIGURATION_FILE_PATH)
 
-        if (!crashConfigFile.exists()) {
+        if (!fatalIssueConfigFile.exists()) {
             return FatalIssueReporterState.Initialized.MissingConfigFile
         }
 
-        val crashConfigFileContents = crashConfigFile.readText()
-        val crashConfigDetails =
-            getConfigDetails(crashConfigFileContents) ?: let {
+        val fatalIssueConfigFileContents = fatalIssueConfigFile.readText()
+        val fatalIssueConfigDetails =
+            getFatalIssueConfigDetails(appContext, fatalIssueConfigFileContents) ?: let {
                 return FatalIssueReporterState.Initialized.MalformedConfigFile
             }
-
-        val sourceDirectory =
-            File(appContext.cacheDir.absolutePath, crashConfigDetails.rootPath)
-        if (!sourceDirectory.exists() || !sourceDirectory.isDirectory) {
-            return FatalIssueReporterState.Initialized.WithoutPriorFatalIssue
+        if (fatalIssueConfigDetails.sourceDirectory.isInvalidDirectory()) {
+            return FatalIssueReporterState.Initialized.InvalidCrashConfigDirectory
         }
 
         val destinationDirectory =
@@ -75,9 +73,9 @@ internal class FatalIssueReporter(
 
         return runCatching {
             findAndCopyPriorReportFile(
-                sourceDirectory,
+                fatalIssueConfigDetails.sourceDirectory,
                 destinationDirectory,
-                crashConfigDetails.extensionFileName,
+                fatalIssueConfigDetails.extensionFileName,
             )
         }.getOrElse {
             return ProcessingFailure("Couldn't process crash files. ${it.message}")
@@ -117,14 +115,6 @@ internal class FatalIssueReporter(
         }
     }
 
-    private fun getConfigDetails(crashConfigFileContent: String): ConfigDetails? =
-        runCatching {
-            val crashConfigDetails = crashConfigFileContent.split(",")
-            val source = crashConfigDetails[0].trim()
-            val fileExtension = crashConfigDetails[1].trim()
-            ConfigDetails(source, fileExtension)
-        }.getOrNull()
-
     private fun findCrashFile(
         sourceFile: File,
         fileExtension: String,
@@ -148,10 +138,7 @@ internal class FatalIssueReporter(
             file.lastModified()
         }
 
-    private data class ConfigDetails(
-        val rootPath: String,
-        val extensionFileName: String,
-    )
+    private fun File.isInvalidDirectory(): Boolean = !exists() || !isDirectory
 
     internal companion object {
         private const val CONFIGURATION_FILE_PATH = "/reports/config"
