@@ -40,7 +40,7 @@ internal sealed class FatalIssueReporterState(
         data object WithoutPriorFatalIssue : Initialized("NO_PRIOR_CRASHES")
 
         /**
-         * State indicating that the configured crash directory does not exits
+         * State indicating that the configured crash directory does not exist
          */
         data object InvalidCrashConfigDirectory : Initialized("INVALID_CRASH_CONFIG_DIRECTORY")
 
