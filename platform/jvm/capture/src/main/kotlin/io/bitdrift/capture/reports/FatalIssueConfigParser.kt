@@ -28,7 +28,7 @@ internal object FatalIssueConfigParser {
     ): FatalIssueConfigDetails? =
         runCatching {
             val crashConfigDetails = crashConfigFileContent.split(",")
-            val sdkDirectoryPath = appContext.sanitizeConfigPath(crashConfigDetails[0])
+            val sdkDirectoryPath = sanitizeConfigPath(appContext, crashConfigDetails[0])
             val fileExtension = crashConfigDetails[1].trim()
             FatalIssueConfigDetails(File(sdkDirectoryPath), fileExtension)
         }.getOrNull()
@@ -37,24 +37,27 @@ internal object FatalIssueConfigParser {
      * Sanitizes config path. If the config path doesn't contain placeholders it will fallback to
      * the default path provided
      */
-    private fun Context.sanitizeConfigPath(originalConfigPath: String): String {
+    private fun sanitizeConfigPath(
+        appContext: Context,
+        originalConfigPath: String,
+    ): String {
         val sanitizedPath = originalConfigPath.trim()
         return if (sanitizedPath.contains(CACHE_DIR_PLACE_HOLDER)) {
-            sanitizedPath.replace(CACHE_DIR_PLACE_HOLDER, cacheDir.absolutePath)
+            sanitizedPath.replace(CACHE_DIR_PLACE_HOLDER, appContext.cacheDir.absolutePath)
         } else if (sanitizedPath.contains(FILES_DIR_PLACE_HOLDER)) {
-            sanitizedPath.replace(FILES_DIR_PLACE_HOLDER, filesDir.absolutePath)
+            sanitizedPath.replace(FILES_DIR_PLACE_HOLDER, appContext.filesDir.absolutePath)
         } else if (sanitizedPath.contains(DATA_DIR_PLACE_HOLDER)) {
-            sanitizedPath.replace(DATA_DIR_PLACE_HOLDER, getDataDirectoryPath())
+            sanitizedPath.replace(DATA_DIR_PLACE_HOLDER, getDataDirectoryPath(appContext))
         } else {
             sanitizedPath
         }
     }
 
-    private fun Context.getDataDirectoryPath(): String =
+    private fun getDataDirectoryPath(appContext: Context): String =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            this.dataDir.absolutePath
+            appContext.dataDir.absolutePath
         } else {
-            this.applicationInfo.dataDir
+            appContext.applicationInfo.dataDir
         }
 }
 
