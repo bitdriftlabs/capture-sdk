@@ -30,8 +30,8 @@ internal class MetadataProvider(
             for (fieldProvider in fieldProviders) {
                 try {
                     this.addAll(
-                        fieldProvider().map {
-                            Field(key = it.key, value = it.value.toFieldValue())
+                        fieldProvider().mapNotNull {
+                            Field(it.key, it.value.toFieldValue())
                         },
                     )
                 } catch (e: Throwable) {
