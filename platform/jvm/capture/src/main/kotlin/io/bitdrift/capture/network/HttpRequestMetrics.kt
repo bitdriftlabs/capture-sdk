@@ -57,4 +57,8 @@ data class HttpRequestMetrics
          * request/responses.
          */
         internal var responseLatencyMs: Long? = null,
+        /**
+         * The protocol used on the request, e.g. (http/1.0, http/1.1, etc)
+         */
+        internal var protocolName: String? = null,
     )

@@ -38,6 +38,9 @@ public struct HTTPRequestMetrics {
     /// The cumulative duration of all responses from the time the request is sent to the time we get the first byte from the server
     let responseLatency: TimeInterval?
 
+    /// The protocol used on the request, e.g. (http/1.0, http/1.1, etc).
+    let protocolName: String?
+
     /// Initializes a new instance of the receiver.
     ///
     /// - parameter requestBodyBytesSentCount:      The number of request body bytes sent over-the-wire.
@@ -54,6 +57,7 @@ public struct HTTPRequestMetrics {
     ///                                             performed during the execution of a given HTTP request.
     /// - parameter responseLatency:                The cumulative duration of all responses from the time the
     ///                                             request is sent to the time we get the first byte from the server.
+    /// - parameter protocolName:                   The protocol used on the request, e.g. (http/1.0, http/1.1, etc).                                       
     public init(
         requestBodyBytesSentCount: Int64? = nil,
         responseBodyBytesReceivedCount: Int64? = nil,
@@ -63,7 +67,8 @@ public struct HTTPRequestMetrics {
         tlsDuration: TimeInterval? = nil,
         tcpDuration: TimeInterval? = nil,
         fetchInitializationDuration: TimeInterval? = nil,
-        responseLatency: TimeInterval? = nil
+        responseLatency: TimeInterval? = nil,
+        protocolName: String? = nil
     ) {
         self.requestBodyBytesSentCount = requestBodyBytesSentCount
         self.responseBodyBytesReceivedCount = responseBodyBytesReceivedCount
@@ -74,6 +79,7 @@ public struct HTTPRequestMetrics {
         self.tcpDuration = tcpDuration
         self.fetchInitializationDuration = fetchInitializationDuration
         self.responseLatency = responseLatency
+        self.protocolName = protocolName
     }
 }
 
@@ -97,7 +103,8 @@ extension HTTPRequestMetrics {
                 tlsDuration: Self.getTLSDuration(metrics: metrics),
                 tcpDuration: Self.getTCPDuration(metrics: metrics),
                 fetchInitializationDuration: Self.getInitializationDuration(metrics: metrics),
-                responseLatency: Self.getResponseLatency(metrics: metrics)
+                responseLatency: Self.getResponseLatency(metrics: metrics),
+                protocolName: Self.getProtocolName(metrics: metrics)
             )
         } else {
             self.init(
@@ -159,5 +166,11 @@ extension HTTPRequestMetrics {
     private static func getDNSResolutionDuration(metrics: URLSessionTaskMetrics) -> TimeInterval? {
         Self.reduce(metrics: metrics, startPath: \.domainLookupStartDate,
                     endPath: \.domainLookupEndDate)
+    }
+
+    private static func getProtocolName(metrics: URLSessionTaskMetrics) -> String? {
+        metrics.transactionMetrics
+                .compactMap(\.networkProtocolName) 
+                .last 
     }
 }

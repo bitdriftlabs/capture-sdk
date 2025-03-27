@@ -87,6 +87,7 @@ class CaptureOkHttpEventListenerFactoryTest {
                 .code(200)
                 .message("message")
                 .header("response_header", "response_header_value")
+                .protocol(Protocol.HTTP_1_1)
                 .build()
 
         // ACT
@@ -152,6 +153,7 @@ class CaptureOkHttpEventListenerFactoryTest {
         assertThat(httpResponseInfo.fields["_tcp_duration_ms"].toString()).isEqualTo(tcpDurationMs.toString())
         assertThat(httpResponseInfo.fields["_fetch_init_duration_ms"].toString()).isEqualTo(fetchInitDurationMs.toString())
         assertThat(httpResponseInfo.fields["_response_latency_ms"].toString()).isEqualTo(responseLatencyMs.toString())
+        assertThat(httpResponseInfo.fields["_protocol"].toString()).isEqualTo("http/1.1")
 
         assertThat(httpResponseInfo.fields["_request_body_bytes_sent_count"].toString()).isEqualTo("4")
         assertThat(httpResponseInfo.fields["_response_body_bytes_received_count"].toString()).isEqualTo("234")

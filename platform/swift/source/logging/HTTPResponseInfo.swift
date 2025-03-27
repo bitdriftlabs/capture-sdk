@@ -139,6 +139,7 @@ public struct HTTPResponseInfo {
                 .flatMap { "\($0.toMilliseconds())" }
             fields["_response_latency_ms"] = metrics.responseLatency
                 .flatMap { "\($0.toMilliseconds())" }
+            fields["_protocol"] = metrics.protocolName
         }
 
         return fields
