@@ -851,6 +851,7 @@ final class URLSessionIntegrationTests: XCTestCase {
             "_tcp_duration_ms",
             "_fetch_init_duration_ms",
             "_response_latency_ms",
+            "_protocol",
         ]
 
         for field in expectedOptionalFields {
