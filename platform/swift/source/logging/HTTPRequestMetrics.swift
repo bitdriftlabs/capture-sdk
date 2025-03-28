@@ -104,7 +104,7 @@ extension HTTPRequestMetrics {
                 tcpDuration: Self.getTCPDuration(metrics: metrics),
                 fetchInitializationDuration: Self.getInitializationDuration(metrics: metrics),
                 responseLatency: Self.getResponseLatency(metrics: metrics),
-                protocolName: Self.getProtocolName(metrics: metrics)
+                protocolName: metrics.transactionMetrics.last?.networkProtocolName
             )
         } else {
             self.init(
@@ -166,11 +166,5 @@ extension HTTPRequestMetrics {
     private static func getDNSResolutionDuration(metrics: URLSessionTaskMetrics) -> TimeInterval? {
         Self.reduce(metrics: metrics, startPath: \.domainLookupStartDate,
                     endPath: \.domainLookupEndDate)
-    }
-
-    private static func getProtocolName(metrics: URLSessionTaskMetrics) -> String? {
-        metrics.transactionMetrics
-            .compactMap(\.networkProtocolName)
-            .last
     }
 }
