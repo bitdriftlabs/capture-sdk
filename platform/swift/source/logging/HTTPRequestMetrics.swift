@@ -57,7 +57,7 @@ public struct HTTPRequestMetrics {
     ///                                             performed during the execution of a given HTTP request.
     /// - parameter responseLatency:                The cumulative duration of all responses from the time the
     ///                                             request is sent to the time we get the first byte from the server.
-    /// - parameter protocolName:                   The protocol used on the request, e.g. (http/1.0, http/1.1, etc).                                       
+    /// - parameter protocolName:                   The protocol used on the request, e.g. (http/1.0, http/1.1, etc).
     public init(
         requestBodyBytesSentCount: Int64? = nil,
         responseBodyBytesReceivedCount: Int64? = nil,
@@ -170,7 +170,7 @@ extension HTTPRequestMetrics {
 
     private static func getProtocolName(metrics: URLSessionTaskMetrics) -> String? {
         metrics.transactionMetrics
-                .compactMap(\.networkProtocolName) 
-                .last 
+            .compactMap(\.networkProtocolName)
+            .last
     }
 }
