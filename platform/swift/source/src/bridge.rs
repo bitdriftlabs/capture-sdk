@@ -199,9 +199,7 @@ impl<W: StreamWriter + Send> PlatformNetworkStream for SwiftNetworkStream<W> {
       let written = self.stream_writer.write_to_stream(slice);
 
       if written < 0 {
-        log::trace!(
-          "failed to send data (rval {written}), trying again in 100ms"
-        );
+        log::trace!("failed to send data (rval {written}), trying again in 100ms");
         // Error. Retry after a wait.
         tokio::select! {
           () = tokio::time::sleep(std::time::Duration::from_millis(PER_SLICE_SLEEP_MS)) => {
