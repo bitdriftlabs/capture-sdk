@@ -200,8 +200,7 @@ impl<W: StreamWriter + Send> PlatformNetworkStream for SwiftNetworkStream<W> {
 
       if written < 0 {
         log::trace!(
-          "failed to send data (rval {}), trying again in 100ms",
-          written
+          "failed to send data (rval {written}), trying again in 100ms"
         );
         // Error. Retry after a wait.
         tokio::select! {
