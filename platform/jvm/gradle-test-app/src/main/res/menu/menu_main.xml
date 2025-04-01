@@ -3,6 +3,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="io.bitdrift.gradletestapp.MainActivity">
     <item
+        android:id="@+id/switch_app_theme"
+        android:title="@string/switch_app_theme"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_settings"
         android:orderInCategory="100"
         android:title="@string/action_settings"

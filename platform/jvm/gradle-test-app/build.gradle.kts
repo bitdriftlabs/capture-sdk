@@ -26,6 +26,8 @@ dependencies {
     implementation("com.squareup.papa:papa:0.26")
     implementation("androidx.metrics:metrics-performance:1.0.0-beta01")
     implementation("com.bugsnag:bugsnag-android:6.12.0")
+    implementation ("io.reactivex.rxjava3:rxandroid:3.0.0")
+    implementation ("io.reactivex.rxjava3:rxjava:3.0.0")
     implementation("io.sentry:sentry-android:8.2.0")
 
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.4.0")

@@ -5,8 +5,6 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
-
 package io.bitdrift.gradletestapp
 
 import android.annotation.SuppressLint
@@ -34,11 +32,8 @@ import com.example.rocketreserver.LoginMutation
 import com.github.michaelbull.result.onFailure
 import com.github.michaelbull.result.onSuccess
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
-import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger
-import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.LogLevel
-import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.apollo.CaptureApolloInterceptor
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.gradletestapp.databinding.FragmentFirstBinding
@@ -259,27 +254,23 @@ class FirstFragment : Fragment() {
     private fun forceAppExit(view: View) {
         val selectedAppExitReason = binding.spnAppExitOptions.selectedItem.toString()
         when (AppExitReason.valueOf(selectedAppExitReason)) {
-            AppExitReason.APP_CRASH_EXCEPTION -> {
-                throw RuntimeException("Forced unhandled exception")
-            }
-            AppExitReason.ANR -> {
-                Thread.sleep(15000)
-            }
-            AppExitReason.SYSTEM_EXIT -> {
-                exitProcess(0)
-            }
-            AppExitReason.APP_CRASH_NATIVE -> {
-                val logger = Capture.logger()
-                CaptureJniLibrary.destroyLogger((logger as LoggerImpl).loggerId)
-                Logger.logInfo { "Forced native crash" }
-            }
+            AppExitReason.ANR_BLOCKING_GET -> FatalIssueSimulator.forceBlockingGetAnr()
+            AppExitReason.ANR_DEADLOCK -> FatalIssueSimulator.forceDeadlockAnr()
+            AppExitReason.ANR_SLEEP_MAIN_THREAD -> FatalIssueSimulator.forceThreadSleepAnr()
+            AppExitReason.APP_CRASH_EXCEPTION -> FatalIssueSimulator.forceUnhandledException()
+            AppExitReason.APP_CRASH_NATIVE -> FatalIssueSimulator.forceNativeCrash()
+            AppExitReason.APP_CRASH_OUT_OF_MEMORY -> FatalIssueSimulator.forceOutOfMemoryCrash()
+            AppExitReason.SYSTEM_EXIT -> exitProcess(0)
         }
     }
 
     enum class AppExitReason {
+        ANR_BLOCKING_GET,
+        ANR_DEADLOCK,
+        ANR_SLEEP_MAIN_THREAD,
         APP_CRASH_EXCEPTION,
+        APP_CRASH_OUT_OF_MEMORY,
         APP_CRASH_NATIVE,
         SYSTEM_EXIT,
-        ANR
     }
 }

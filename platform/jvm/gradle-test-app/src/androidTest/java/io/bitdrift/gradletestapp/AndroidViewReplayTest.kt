@@ -60,9 +60,10 @@ class AndroidViewReplayTest {
 
             assertThat(metrics.errorViewCount).isEqualTo(0)
             assertThat(metrics.exceptionCausingViewCount).isEqualTo(0)
+
             // AppCompatTextView multiline label
-            assertThat(screen).contains(ReplayRect(type = ReplayType.Label, x = 36, y = 421, width = 758, height = 47))
-            assertThat(screen).contains(ReplayRect(type = ReplayType.Label, x = 36, y = 463, width = 698, height = 38))
+            assertThat(screen).contains(ReplayRect(type = ReplayType.Label, x = 35, y = 387, width = 539, height = 84))
+            assertThat(screen).contains(ReplayRect(type = ReplayType.Label, x = 36, y = 499, width = 758, height = 47))
         }
     }
 }

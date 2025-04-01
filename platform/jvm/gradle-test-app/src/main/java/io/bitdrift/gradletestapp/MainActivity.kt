@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
@@ -57,6 +58,16 @@ class MainActivity : AppCompatActivity() {
             R.id.action_settings -> {
                 navController.navigate(R.id.action_FirstFragment_to_ConfigFragment)
                 true
+            }
+
+            R.id.switch_app_theme -> {
+                val appNightMode = if (AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES) {
+                    AppCompatDelegate.MODE_NIGHT_NO
+                } else {
+                    AppCompatDelegate.MODE_NIGHT_YES
+                }
+                AppCompatDelegate.setDefaultNightMode(appNightMode)
+                return true
             }
             else -> super.onOptionsItemSelected(item)
         }
