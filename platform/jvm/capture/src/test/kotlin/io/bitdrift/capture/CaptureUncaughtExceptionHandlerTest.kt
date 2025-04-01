@@ -11,21 +11,20 @@ import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import io.bitdrift.capture.events.lifecycle.AppExitLogger
-import io.bitdrift.capture.events.lifecycle.CaptureUncaughtExceptionHandler
+import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
+import io.bitdrift.capture.reports.jvmcrash.JvmCrashListener
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
 class CaptureUncaughtExceptionHandlerTest {
-    private val crashReporter: AppExitLogger = mock()
+    private val jvmCrashListener: JvmCrashListener = mock()
     private val prevExceptionHandler: Thread.UncaughtExceptionHandler = mock()
-    private lateinit var handler: CaptureUncaughtExceptionHandler
+    private val handler = CaptureUncaughtExceptionHandler
 
     @Before
     fun setUp() {
-        handler = CaptureUncaughtExceptionHandler(prevExceptionHandler)
-        handler.install(crashReporter)
+        handler.install(jvmCrashListener)
     }
 
     @After
@@ -43,14 +42,14 @@ class CaptureUncaughtExceptionHandlerTest {
         handler.uncaughtException(currentThread, appException)
 
         // ASSERT
-        verify(crashReporter).logCrash(currentThread, appException)
+        verify(jvmCrashListener).onJvmCrash(currentThread, appException)
         verify(prevExceptionHandler).uncaughtException(currentThread, appException)
     }
 
     @Test
     fun testErrorsAreForwardedToOtherHandlerOnBitdriftFailure() {
         // ARRANGE
-        whenever(crashReporter.logCrash(any(), any())).thenThrow(RuntimeException("capture logger crash"))
+        whenever(jvmCrashListener.onJvmCrash(any(), any())).thenThrow(RuntimeException("capture logger crash"))
 
         val currentThread = Thread.currentThread()
         val appException = RuntimeException("app crash")
