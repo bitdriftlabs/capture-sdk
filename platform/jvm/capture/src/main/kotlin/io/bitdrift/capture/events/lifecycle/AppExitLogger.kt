@@ -26,11 +26,14 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.FatalIssueMechanism
+import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildVersionChecker
+import java.io.InputStream
 import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
 
@@ -39,7 +42,9 @@ internal class AppExitLogger(
     private val activityManager: ActivityManager,
     private val runtime: Runtime,
     private val errorHandler: ErrorHandler,
-    private val crashHandler: CaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler(),
+    private val fatalIssueReporter: IFatalIssueReporter,
+    private val crashHandler: CaptureUncaughtExceptionHandler =
+        CaptureUncaughtExceptionHandler(errorHandler, fatalIssueReporter),
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
@@ -116,12 +121,24 @@ internal class AppExitLogger(
                     lastExitInfo.processStateSummary?.toString(StandardCharsets.UTF_8) ?: return
                 val timestampMs = lastExitInfo.timestamp
 
-                logger.log(
-                    LogType.LIFECYCLE,
-                    lastExitInfo.reason.toLogLevel(),
-                    buildAppExitInternalFieldsMap(lastExitInfo),
-                    attributesOverrides = LogAttributesOverrides.SessionID(sessionId, timestampMs),
-                ) { APP_EXIT_EVENT_NAME }
+                if (FatalIssueMechanism.BUILT_IN == fatalIssueReporter.fetchStatus().mechanism) {
+                    val traceInputStream = lastExitInfo.traceInputStream ?: return
+                    fatalIssueReporter.persistAppExitReport(
+                        errorHandler,
+                        timestamp = lastExitInfo.timestamp,
+                        exitReasonType = lastExitInfo.reason,
+                        traceInputStream = traceInputStream,)
+                } else {
+                    logger.log(
+                        LogType.LIFECYCLE,
+                        lastExitInfo.reason.toLogLevel(),
+                        buildAppExitInternalFieldsMap(lastExitInfo),
+                        attributesOverrides = LogAttributesOverrides.SessionID(
+                            sessionId,
+                            timestampMs
+                        ),
+                    ) { APP_EXIT_EVENT_NAME }
+                }
             }
         }
     }
@@ -191,15 +208,19 @@ internal class AppExitLogger(
             traceInputStream != null &&
             runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)
         ) {
-            try {
-                traceInputStream?.use {
-                    return it.readBytes()
-                }
-            } catch (error: Throwable) {
-                errorHandler.handleError("Couldn't convert TraceInputStream to ByteArray", error)
-            }
+            return traceInputStream?.toByteArray()
         }
         return null
+    }
+
+    private fun InputStream?.toByteArray(): ByteArray? {
+        val traceInputStream = this ?: return null
+        try {
+            traceInputStream.use { return it.readBytes() }
+        } catch (error: Throwable) {
+            errorHandler.handleError("Couldn't convert TraceInputStream to ByteArray", error)
+            return null
+        }
     }
 
     @TargetApi(Build.VERSION_CODES.R)
@@ -261,7 +282,7 @@ internal class AppExitLogger(
                 ApplicationExitInfo.REASON_ANR,
                 ApplicationExitInfo.REASON_LOW_MEMORY,
             ),
-            -> LogLevel.ERROR
+                -> LogLevel.ERROR
 
             else -> LogLevel.INFO
         }

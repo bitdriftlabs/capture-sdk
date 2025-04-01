@@ -42,7 +42,7 @@ class FatalIssueReporterTest {
     fun processPriorReportFile_withMissingConfigFile_shouldReportMissingConfigState() {
         prepareFileDirectories(doesReportsDirectoryExist = false)
 
-        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
+        val crashReporterStatus = fatalIssueReporter.fetchFromCustomConfig()
 
         crashReporterStatus.assert(FatalIssueReporterState.Initialized.MissingConfigFile::class.java)
     }
@@ -56,7 +56,7 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
+        val crashReporterStatus = fatalIssueReporter.fetchFromCustomConfig()
 
         crashReporterStatus.assert(
             FatalIssueReporterState.Initialized.WithoutPriorFatalIssue::class.java,
@@ -72,7 +72,7 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
+        val crashReporterStatus = fatalIssueReporter.fetchFromCustomConfig()
 
         crashReporterStatus.assert(
             FatalIssueReporterState.Initialized.InvalidCrashConfigDirectory::class.java,
@@ -97,7 +97,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
+        val crashReporterStatus = fatalIssueReporter.fetchFromCustomConfig()
 
         crashReporterStatus.assert(
             FatalIssueReporterState.Initialized.WithoutPriorFatalIssue::class.java,
@@ -112,7 +112,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
+        val crashReporterStatus = fatalIssueReporter.fetchFromCustomConfig()
 
         crashReporterStatus.assert(
             FatalIssueReporterState.Initialized.MalformedConfigFile::class.java,
@@ -194,7 +194,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
+        val crashReporterStatus = fatalIssueReporter.fetchFromCustomConfig()
 
         crashReporterStatus.assert(
             FatalIssueReporterState.Initialized.FatalIssueReportSent::class.java,

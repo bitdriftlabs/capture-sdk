@@ -10,7 +10,10 @@ package io.bitdrift.capture.reports
 /**
  * Represents all different states for [FatalIssueReporter.processPriorReportFiles]
  */
-internal sealed class FatalIssueReporterState(
+sealed class FatalIssueReporterState(
+    /**
+     * The readable type that won't be obfuscated for logs
+     */
     open val readableType: String,
 ) {
     /**
@@ -24,7 +27,12 @@ internal sealed class FatalIssueReporterState(
     data object NotInitialized : FatalIssueReporterState("NOT_INITIALIZED")
 
     /**
-     * Sealed class representing all initialized states
+     * Represents the initialized state when [FatalIssueMechanism.BUILT_IN] is configured
+     */
+    data object BuildInInitialized : FatalIssueReporterState("BUILD_IN_MODE_INITIALIZED")
+
+    /**
+     * Sealed class representing all initialized states for [FatalIssueMechanism.CUSTOM_CONFIG] (this will be renamed in separate PR)
      */
     sealed class Initialized(
         override val readableType: String,
@@ -58,6 +66,9 @@ internal sealed class FatalIssueReporterState(
          * State indicating that processing crash reports failed
          */
         data class ProcessingFailure(
+            /**
+             * Detailed error message of the processing failure
+             */
             val errorMessage: String,
         ) : Initialized("CRASH_PROCESSING_FAILURE")
     }

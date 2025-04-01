@@ -7,16 +7,21 @@
 
 package io.bitdrift.capture.events.lifecycle
 
+import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.reports.FatalIssueMechanism
+import io.bitdrift.capture.reports.IFatalIssueReporter
 import java.lang.Thread.UncaughtExceptionHandler
 
 internal class CaptureUncaughtExceptionHandler(
+    private val errorHandler: ErrorHandler,
+    private val fatalIssueReporter: IFatalIssueReporter,
     private val prevExceptionHandler: UncaughtExceptionHandler? = Thread.getDefaultUncaughtExceptionHandler(),
 ) : UncaughtExceptionHandler {
-    private lateinit var crashReporter: AppExitLogger
+    private lateinit var appExitLogger: AppExitLogger
     private var crashing = false
 
-    fun install(crashReporter: AppExitLogger) {
-        this.crashReporter = crashReporter
+    fun install(appExitLogger: AppExitLogger) {
+        this.appExitLogger = appExitLogger
         Thread.setDefaultUncaughtExceptionHandler(this)
     }
 
@@ -35,7 +40,16 @@ internal class CaptureUncaughtExceptionHandler(
 
         try {
             crashing = true
-            crashReporter.logCrash(thread, throwable)
+            if (FatalIssueMechanism.BUILT_IN == fatalIssueReporter.fetchStatus().mechanism) {
+                fatalIssueReporter.persistJvmCrash(
+                    errorHandler = errorHandler,
+                    timestamp = System.currentTimeMillis(),
+                    thread,
+                    throwable,
+                )
+                return
+            }
+            appExitLogger.logCrash(thread, throwable)
         } catch (_: Throwable) {
             // explicitly ignore any errors caused by us
         } finally {
