@@ -27,6 +27,8 @@ import androidx.compose.material.AlertDialog
 //noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.Button
 //noinspection UsingMaterialAndMaterial3Libraries
+import androidx.compose.material.ButtonDefaults
+//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.Text
 //noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.TextField
@@ -36,8 +38,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.input.ImeAction
 
 import androidx.compose.ui.text.input.TextFieldValue
@@ -127,7 +131,10 @@ class SettingsApiKeysDialogFragment(private val sharedPreferences: SharedPrefere
             },
             confirmButton = {
                 Button(
-                    onClick = { persistApiKeysAndDismiss() }) {
+                    onClick = { persistApiKeysAndDismiss() },
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = colorResource(id = R.color.green)
+                    )) {
                     Text("OK")
                 }
             }

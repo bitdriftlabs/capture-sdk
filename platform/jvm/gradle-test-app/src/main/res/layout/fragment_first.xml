@@ -22,6 +22,8 @@
             android:layout_height="wrap_content"
             android:text="@string/navigate_config" />
 
+        <include layout="@layout/divider" />
+
         <androidx.compose.ui.platform.ComposeView
             android:id="@+id/compose_view"
             android:layout_width="wrap_content"
@@ -37,6 +39,8 @@
             android:id="@+id/textview_first"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
+
+        <include layout="@layout/divider" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -78,6 +82,8 @@
             android:layout_margin="2dp"
             android:text="No Code Generated" />
 
+        <include layout="@layout/divider" />
+
         <Button
             android:id="@+id/btnOkHttpRequest"
             android:layout_width="wrap_content"
@@ -97,7 +103,9 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="vertical">
+
+            <include layout="@layout/divider" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/menu"
@@ -121,6 +129,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:gravity="center"
+                android:layout_marginTop="4dp"
                 android:text="@string/log_msg"
                 app:icon="@android:drawable/ic_menu_upload" />
         </LinearLayout>
@@ -128,7 +137,9 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="vertical">
+
+            <include layout="@layout/divider" />
 
             <Spinner
                 android:id="@+id/spnAppExitOptions"
@@ -142,6 +153,8 @@
                 android:text="@string/app_exit"
                 app:icon="@android:drawable/ic_delete" />
         </LinearLayout>
+
+        <include layout="@layout/divider" />
 
         <Button
             android:id="@+id/btnNavigateCompose"

@@ -16,4 +16,5 @@
     <string name="log_level_label">Log Level</string>
 
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
+    <string name="switch_app_theme">Switch App Theme</string>
 </resources>
