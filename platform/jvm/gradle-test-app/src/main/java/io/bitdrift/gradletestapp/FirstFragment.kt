@@ -254,12 +254,12 @@ class FirstFragment : Fragment() {
     private fun forceAppExit(view: View) {
         val selectedAppExitReason = binding.spnAppExitOptions.selectedItem.toString()
         when (AppExitReason.valueOf(selectedAppExitReason)) {
-            AppExitReason.ANR_BLOCKING_GET -> FatalIssueSimulator.forceBlockingGetAnr()
-            AppExitReason.ANR_DEADLOCK -> FatalIssueSimulator.forceDeadlockAnr()
-            AppExitReason.ANR_SLEEP_MAIN_THREAD -> FatalIssueSimulator.forceThreadSleepAnr()
-            AppExitReason.APP_CRASH_EXCEPTION -> FatalIssueSimulator.forceUnhandledException()
-            AppExitReason.APP_CRASH_NATIVE -> FatalIssueSimulator.forceNativeCrash()
-            AppExitReason.APP_CRASH_OUT_OF_MEMORY -> FatalIssueSimulator.forceOutOfMemoryCrash()
+            AppExitReason.ANR_BLOCKING_GET -> FatalIssueGenerator.forceBlockingGetAnr()
+            AppExitReason.ANR_DEADLOCK -> FatalIssueGenerator.forceDeadlockAnr()
+            AppExitReason.ANR_SLEEP_MAIN_THREAD -> FatalIssueGenerator.forceThreadSleepAnr()
+            AppExitReason.APP_CRASH_EXCEPTION -> FatalIssueGenerator.forceUnhandledException()
+            AppExitReason.APP_CRASH_NATIVE -> FatalIssueGenerator.forceNativeCrash()
+            AppExitReason.APP_CRASH_OUT_OF_MEMORY -> FatalIssueGenerator.forceOutOfMemoryCrash()
             AppExitReason.SYSTEM_EXIT -> exitProcess(0)
         }
     }

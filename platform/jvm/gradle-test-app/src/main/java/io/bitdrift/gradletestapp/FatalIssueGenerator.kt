@@ -21,25 +21,30 @@ import io.reactivex.rxjava3.subjects.BehaviorSubject
 /**
  * Artificially creates different types of Fatal issues (ANR, JVM Crash, Native Crash,etc)
  */
-internal object FatalIssueSimulator {
+internal object FatalIssueGenerator {
 
     private val uuidSubject: BehaviorSubject<String> = BehaviorSubject.create();
     private val oomList = mutableListOf<ByteArray>()
+    private val mainThreadHandler = Handler(Looper.getMainLooper())
 
     fun forceDeadlockAnr() {
-        initializeInBackground()
-        startProcessing()
+        callOnMainThread {
+            initializeInBackground()
+            startProcessing()
+        }
     }
 
     fun forceThreadSleepAnr() {
-        Handler(Looper.getMainLooper()).post {
+        callOnMainThread {
             Thread.sleep(15000)
         }
     }
 
     fun forceBlockingGetAnr() {
-        val aResultWillNeverGet = uuidSubject.blockingFirst()
-        Log.e("FatalIssueSimulator", aResultWillNeverGet)
+        callOnMainThread {
+            val aResultWillNeverGet = uuidSubject.blockingFirst()
+            Log.e("FatalIssueSimulator", aResultWillNeverGet)
+        }
     }
 
     fun forceUnhandledException() {
@@ -90,6 +95,10 @@ internal object FatalIssueSimulator {
             }
             synchronized(SECOND_LOCK_RESOURCE) { logThreadStatus("waiting on second lock") }
         }
+    }
+
+    private fun callOnMainThread(action: () -> Unit) {
+        mainThreadHandler.post(action)
     }
 
     private val FIRST_LOCK_RESOURCE: Any = "first_lock"
