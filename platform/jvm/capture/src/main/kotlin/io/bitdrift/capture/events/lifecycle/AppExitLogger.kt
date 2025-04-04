@@ -24,7 +24,6 @@ import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
-import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
@@ -58,7 +57,6 @@ internal class AppExitLogger(
         private const val APP_EXIT_PSS_KEY = "_app_exit_pss"
         private const val APP_EXIT_RSS_KEY = "_app_exit_rss"
         private const val APP_EXIT_DESCRIPTION_KEY = "_app_exit_description"
-        private const val APP_EXIT_CRASH_ARTIFACT_KEY = "_crash_artifact"
     }
 
     @WorkerThread
@@ -180,27 +178,7 @@ internal class AppExitLogger(
         buildMap {
             putAll(applicationExitInfo.toMap().toFields())
             putAll(memoryMetricsProvider.getMemoryAttributes().toFields())
-            applicationExitInfo.getNativeCrashByteArray()?.let {
-                put(APP_EXIT_CRASH_ARTIFACT_KEY, it.toFieldValue())
-            }
         }
-
-    @TargetApi(Build.VERSION_CODES.R)
-    private fun ApplicationExitInfo.getNativeCrashByteArray(): ByteArray? {
-        if (reason == ApplicationExitInfo.REASON_CRASH_NATIVE &&
-            traceInputStream != null &&
-            runtime.isEnabled(RuntimeFeature.SEND_CRASH_ARTIFACT)
-        ) {
-            try {
-                traceInputStream?.use {
-                    return it.readBytes()
-                }
-            } catch (error: Throwable) {
-                errorHandler.handleError("Couldn't convert TraceInputStream to ByteArray", error)
-            }
-        }
-        return null
-    }
 
     @TargetApi(Build.VERSION_CODES.R)
     private fun ApplicationExitInfo.toMap(): Map<String, String> {
