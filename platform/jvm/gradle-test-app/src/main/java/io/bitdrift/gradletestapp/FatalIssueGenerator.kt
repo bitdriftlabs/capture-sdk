@@ -9,6 +9,7 @@
 
 package io.bitdrift.gradletestapp
 
+import android.annotation.SuppressLint
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -16,6 +17,7 @@ import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.LoggerImpl
+import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 
 /**
@@ -43,12 +45,20 @@ internal object FatalIssueGenerator {
     fun forceBlockingGetAnr() {
         callOnMainThread {
             val aResultWillNeverGet = uuidSubject.blockingFirst()
-            Log.e("FatalIssueSimulator", aResultWillNeverGet)
+            Log.e(TAG_NAME, aResultWillNeverGet)
         }
     }
 
     fun forceUnhandledException() {
         throw RuntimeException("Forced unhandled exception")
+    }
+
+    @SuppressLint("CheckResult")
+    fun forceRxJavaException() {
+        Observable.error<String>(Throwable("Artificial exception"))
+            .subscribe { item -> Log.i(TAG_NAME, "Item received: $item") }
+            // Missing error explicitly in order to crash
+
     }
 
     fun forceNativeCrash() {
@@ -103,6 +113,7 @@ internal object FatalIssueGenerator {
 
     private val FIRST_LOCK_RESOURCE: Any = "first_lock"
     private val SECOND_LOCK_RESOURCE: Any = "second_lock"
+    private val TAG_NAME = "FatalIssueGenerator"
     private const val THREAD_DELAY_IN_MILLI: Long = 10
     private fun logThreadStatus(lockInfo: String) {
         Log.d("DEADLOCK_TAG", "Thread [" + Thread.currentThread().name + "] " + lockInfo)

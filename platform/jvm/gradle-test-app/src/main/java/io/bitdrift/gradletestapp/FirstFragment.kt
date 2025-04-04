@@ -257,7 +257,8 @@ class FirstFragment : Fragment() {
             AppExitReason.ANR_BLOCKING_GET -> FatalIssueGenerator.forceBlockingGetAnr()
             AppExitReason.ANR_DEADLOCK -> FatalIssueGenerator.forceDeadlockAnr()
             AppExitReason.ANR_SLEEP_MAIN_THREAD -> FatalIssueGenerator.forceThreadSleepAnr()
-            AppExitReason.APP_CRASH_EXCEPTION -> FatalIssueGenerator.forceUnhandledException()
+            AppExitReason.APP_CRASH_REGULAR_JVM_EXCEPTION -> FatalIssueGenerator.forceUnhandledException()
+            AppExitReason.APP_CRASH_RX_JAVA_EXCEPTION -> FatalIssueGenerator.forceRxJavaException()
             AppExitReason.APP_CRASH_NATIVE -> FatalIssueGenerator.forceNativeCrash()
             AppExitReason.APP_CRASH_OUT_OF_MEMORY -> FatalIssueGenerator.forceOutOfMemoryCrash()
             AppExitReason.SYSTEM_EXIT -> exitProcess(0)
@@ -268,7 +269,8 @@ class FirstFragment : Fragment() {
         ANR_BLOCKING_GET,
         ANR_DEADLOCK,
         ANR_SLEEP_MAIN_THREAD,
-        APP_CRASH_EXCEPTION,
+        APP_CRASH_REGULAR_JVM_EXCEPTION,
+        APP_CRASH_RX_JAVA_EXCEPTION,
         APP_CRASH_OUT_OF_MEMORY,
         APP_CRASH_NATIVE,
         SYSTEM_EXIT,
