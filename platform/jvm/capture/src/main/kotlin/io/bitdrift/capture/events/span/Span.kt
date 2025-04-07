@@ -23,7 +23,7 @@ internal object SpanField {
         const val TYPE = "_span_type"
         const val DURATION = "_duration_ms"
         const val RESULT = "_result"
-        const val PARENT = "_parent_span_id"
+        const val PARENT = "_span_parent_id"
     }
 
     object Value {
