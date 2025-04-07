@@ -9,7 +9,7 @@
 
 compile_commands.json
 .DS_Store
-/dist
+dist
 !/dist/*.py
 !/dist/BUILD
 !/dist/file/BUILD
