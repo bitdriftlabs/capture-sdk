@@ -12,7 +12,8 @@ This document explains the process of releasing new versions within capture-es r
 4. Keep `main` branch selection, enter version that follows formatting rules from [Version Formatting](#version-formatting).
 5. The CI job should open a PR named 'Update SDK version to 0.12.1-rc.4' ([example](https://github.com/bitdriftlabs/capture-sdk/pull/1637)).
 6. Approve and merge the PR.
-7. Update [release docs](https://docs.bitdrift.io/sdk/releases-react-native) to include latest version. 
+7. Verify that the release with expected version is published at https://www.npmjs.com/package/@bitdrift/react-native
+8. Update [release docs](https://docs.bitdrift.io/sdk/releases-react-native) to include latest version. 
 
 ![](images/react_native_github_action.png)
 
