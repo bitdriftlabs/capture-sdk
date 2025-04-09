@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture
 
-import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.doAnswer
@@ -43,7 +42,6 @@ class FatalIssueReporterTest {
     private lateinit var reportsDir: File
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = mock()
-    private val appContext = ApplicationProvider.getApplicationContext<Context>()
 
     @Before
     fun setup() {
@@ -57,7 +55,7 @@ class FatalIssueReporterTest {
     fun initialize_whenIntegrationMechanismAndMissingConfigFile_shouldReportMissingConfigState() {
         prepareFileDirectories(doesReportsDirectoryExist = false)
 
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.Integration)
+        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.INTEGRATION)
 
         fatalIssueReporter
             .fatalIssueReporterStatus
@@ -73,7 +71,7 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.Integration)
+        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.INTEGRATION)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Initialized.WithoutPriorFatalIssue::class.java,
@@ -89,7 +87,7 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.Integration)
+        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.INTEGRATION)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Initialized.InvalidCrashConfigDirectory::class.java,
@@ -114,7 +112,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.Integration)
+        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.INTEGRATION)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Initialized.WithoutPriorFatalIssue::class.java,
@@ -129,7 +127,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.Integration)
+        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.INTEGRATION)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Initialized.MalformedConfigFile::class.java,
@@ -138,7 +136,7 @@ class FatalIssueReporterTest {
 
     @Test
     fun initialize_whenBuiltInMechanism_shouldInitCrashHandlerAndFetchAppExitReason() {
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.BuiltIn)
+        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.BUILT_IN)
 
         verify(captureUncaughtExceptionHandler).install(eq(fatalIssueReporter))
         verify(latestAppExitInfoProvider).get(any())
@@ -156,7 +154,7 @@ class FatalIssueReporterTest {
             }
         val fatalIssueReporter = buildReporter(mainThreadHandlerWithException)
 
-        fatalIssueReporter.initialize(appContext, FatalIssueMechanism.BuiltIn)
+        fatalIssueReporter.initialize(FatalIssueMechanism.BUILT_IN)
 
         verify(captureUncaughtExceptionHandler, never()).install(any())
         verify(captureUncaughtExceptionHandler).uninstall()
@@ -249,7 +247,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.Integration)
+        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.INTEGRATION)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Initialized.FatalIssueReportSent::class.java,

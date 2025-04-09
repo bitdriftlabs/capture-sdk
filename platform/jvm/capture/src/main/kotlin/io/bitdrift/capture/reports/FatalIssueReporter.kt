@@ -13,7 +13,7 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
-import io.bitdrift.capture.Capture.LOG_TAG
+import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
@@ -45,48 +45,50 @@ internal class FatalIssueReporter(
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
 ) : IFatalIssueReporter,
     JvmCrashListener {
+    private val appContext by lazy { APP_CONTEXT }
+    private val sdkDirectory by lazy { SdkDirectory.getPath(appContext) }
+    private val destinationDirectory: File by lazy {
+        File(sdkDirectory, DESTINATION_FILE_PATH).apply { if (!exists()) mkdirs() }
+    }
+    private val fatalIssueReporterProcessor: FatalIssueReporterProcessor by lazy {
+        FatalIssueReporterProcessor(FatalIssueReporterStorage(destinationDirectory))
+    }
+    private val activityManager: ActivityManager by lazy {
+        appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    }
+
     @VisibleForTesting
     internal var fatalIssueReporterStatus: FatalIssueReporterStatus = buildDefaultReporterStatus()
         private set
 
-    private lateinit var fatalIssueReporterProcessor: FatalIssueReporterProcessor
-
     /**
      * Initializes the fatal issue reporting with the specified [io.bitdrift.capture.reports.FatalIssueMechanism]
      */
-    override fun initialize(
-        appContext: Context,
-        fatalIssueMechanism: FatalIssueMechanism,
-    ) {
+    override fun initialize(fatalIssueMechanism: FatalIssueMechanism) {
         if (fatalIssueReporterStatus.state is FatalIssueReporterState.NotInitialized) {
-            if (fatalIssueMechanism == FatalIssueMechanism.Integration) {
-                fatalIssueReporterStatus = setupIntegrationReporting(appContext)
-            } else if (fatalIssueMechanism == FatalIssueMechanism.BuiltIn) {
-                fatalIssueReporterStatus = setupBuiltInReporting(appContext)
+            if (fatalIssueMechanism == FatalIssueMechanism.INTEGRATION) {
+                fatalIssueReporterStatus = setupIntegrationReporting()
+            } else if (fatalIssueMechanism == FatalIssueMechanism.BUILT_IN) {
+                fatalIssueReporterStatus = setupBuiltInReporting()
             }
         } else {
-            Log.e(LOG_TAG, "Fatal issue reporting already being initialized")
+            Log.w("capture", "Fatal issue reporting already being initialized")
         }
     }
 
     /**
-     * Applicable when [FatalIssueMechanism.BuiltIn] is available, given that registration
+     * Applicable when [FatalIssueMechanism.BUILT_IN] is available, given that registration
      * only occurs for calls like initialize(FatalIssueMechanism.BUILT_IN)
      */
     override fun onJvmCrash(
         thread: Thread,
         throwable: Throwable,
     ) {
-        runCatching {
-            fatalIssueReporterProcessor.persistJvmCrash(
-                timestamp = System.currentTimeMillis(),
-                callerThread = thread,
-                throwable = throwable,
-            )
-        }.getOrElse {
-            val errorMessage = "Error while initializing reporter for ${FatalIssueMechanism.BuiltIn}. $it"
-            Log.e(LOG_TAG, errorMessage)
-        }
+        fatalIssueReporterProcessor.persistJvmCrash(
+            timestamp = System.currentTimeMillis(),
+            callerThread = thread,
+            throwable = throwable,
+        )
     }
 
     override fun getLogStatusFieldsMap(): Map<String, FieldValue> =
@@ -113,43 +115,34 @@ internal class FatalIssueReporter(
             )
         }.getOrElse {
             cleanup()
-            val errorMessage = "Error while initializing reporter for $mechanism. ${it.message}"
-            Log.e(LOG_TAG, errorMessage)
             FatalIssueReporterStatus(
-                ProcessingFailure(errorMessage),
+                ProcessingFailure("Error while initializing reporter for $mechanism. ${it.message}"),
                 mechanism = mechanism,
             )
         }
 
-    private fun setupIntegrationReporting(appContext: Context): FatalIssueReporterStatus =
+    private fun setupIntegrationReporting(): FatalIssueReporterStatus =
         performReportingSetup(
-            FatalIssueMechanism.Integration,
+            FatalIssueMechanism.INTEGRATION,
             setupAction = {
                 var fatalIssueReporterState: FatalIssueReporterState
                 val duration =
                     measureTime {
-                        val fatalIssueDirectories = getFatalIssueDirectories(appContext)
-                        fatalIssueReporterState = verifyDirectoriesAndCopyFiles(appContext, fatalIssueDirectories)
+                        fatalIssueReporterState = verifyDirectoriesAndCopyFiles()
                     }
                 fatalIssueReporterState to duration
             },
         )
 
-    private fun setupBuiltInReporting(appContext: Context): FatalIssueReporterStatus =
+    private fun setupBuiltInReporting(): FatalIssueReporterStatus =
         performReportingSetup(
-            FatalIssueMechanism.BuiltIn,
+            FatalIssueMechanism.BUILT_IN,
             setupAction = {
                 var fatalIssueReporterState: FatalIssueReporterState
                 val duration =
                     measureTime {
-                        val destinationDirectory = getFatalIssueDirectories(appContext)
-                        fatalIssueReporterProcessor =
-                            FatalIssueReporterProcessor(
-                                appContext,
-                                FatalIssueReporterStorage(destinationDirectory.destinationDirectory),
-                            )
                         captureUncaughtExceptionHandler.install(this)
-                        persistLastExitReasonIfNeeded(appContext)
+                        persistLastExitReasonIfNeeded()
                         fatalIssueReporterState = FatalIssueReporterState.BuiltInModeInitialized
                     }
                 fatalIssueReporterState to duration
@@ -157,9 +150,7 @@ internal class FatalIssueReporter(
             cleanup = { captureUncaughtExceptionHandler.uninstall() },
         )
 
-    private fun persistLastExitReasonIfNeeded(appContext: Context) {
-        val activityManager: ActivityManager =
-            appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    private fun persistLastExitReasonIfNeeded() {
         val lastReasonResult = latestAppExitInfoProvider.get(activityManager)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
             lastReasonResult is LatestAppExitReasonResult.Valid
@@ -179,11 +170,8 @@ internal class FatalIssueReporter(
     }
 
     @UiThread
-    private fun verifyDirectoriesAndCopyFiles(
-        appContext: Context,
-        fatalIssueDirectories: FatalIssueDirectories,
-    ): FatalIssueReporterState {
-        val fatalIssueConfigFile = File(fatalIssueDirectories.sdkDirectoryPath, CONFIGURATION_FILE_PATH)
+    private fun verifyDirectoriesAndCopyFiles(): FatalIssueReporterState {
+        val fatalIssueConfigFile = File(sdkDirectory, CONFIGURATION_FILE_PATH)
 
         if (!fatalIssueConfigFile.exists()) {
             return FatalIssueReporterState.Initialized.MissingConfigFile
@@ -201,7 +189,7 @@ internal class FatalIssueReporter(
         return runCatching {
             findAndCopyPriorReportFile(
                 fatalIssueConfigDetails.sourceDirectory,
-                fatalIssueDirectories.destinationDirectory,
+                destinationDirectory,
                 fatalIssueConfigDetails.extensionFileName,
             )
         }.getOrElse {
@@ -270,19 +258,8 @@ internal class FatalIssueReporter(
     private fun buildDefaultReporterStatus(): FatalIssueReporterStatus =
         FatalIssueReporterStatus(
             FatalIssueReporterState.NotInitialized,
-            mechanism = FatalIssueMechanism.None,
+            mechanism = FatalIssueMechanism.NONE,
         )
-
-    private fun getFatalIssueDirectories(appContext: Context): FatalIssueDirectories {
-        val sdkDirectory: String = SdkDirectory.getPath(appContext)
-        val destinationDirectory = File(sdkDirectory, DESTINATION_FILE_PATH).apply { if (!exists()) mkdirs() }
-        return FatalIssueDirectories(sdkDirectory, destinationDirectory)
-    }
-
-    private data class FatalIssueDirectories(
-        val sdkDirectoryPath: String,
-        val destinationDirectory: File,
-    )
 
     internal companion object {
         private const val CONFIGURATION_FILE_PATH = "/reports/config"

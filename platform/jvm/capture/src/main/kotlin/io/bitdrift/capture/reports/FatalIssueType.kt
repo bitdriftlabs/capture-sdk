@@ -12,27 +12,27 @@ package io.bitdrift.capture.reports
  *
  * Each type represents a specific kind of fatal issue that may trigger the reporting mechanism.
  *
- * @param value The binary representation value for the type
+ * @param displayName The readable name of the fatal issue type used for logging or reporting purposes.
  */
 enum class FatalIssueType(
     /**
-     * The serialized value for the type
+     * The readable name of the fatal issue type.
      */
-    val value: Int,
+    val displayName: String,
 ) {
     /**
      * Represents a JVM crash, typically caused by unhandled exceptions or fatal errors within the JVM.
      */
-    JVM_CRASH(3),
+    JVM_CRASH("jvm_crash"),
 
     /**
      * Represents a native crash, which could be caused by an issue in native code (e.g., C, C++, rust).
      */
-    NATIVE_CRASH(5),
+    NATIVE_CRASH("native_crash"),
 
     /**
      * Represents an ANR (Application Not Responding) error, which occurs when the application is
      * unresponsive for a specific period (usually 5 seconds).
      */
-    ANR(1),
+    ANR("anr"),
 }

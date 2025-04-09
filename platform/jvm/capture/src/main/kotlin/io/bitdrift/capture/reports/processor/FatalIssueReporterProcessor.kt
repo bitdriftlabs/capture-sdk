@@ -7,16 +7,9 @@
 
 package io.bitdrift.capture.reports.processor
 
-import android.content.Context
-import androidx.lifecycle.ProcessLifecycleOwner
-import io.bitdrift.capture.attributes.ClientAttributes
-import io.bitdrift.capture.reports.AppMetrics
-import io.bitdrift.capture.reports.BuildNumber
-import io.bitdrift.capture.reports.DeviceMetrics
+import io.bitdrift.capture.reports.Exception
 import io.bitdrift.capture.reports.FatalIssueReport
 import io.bitdrift.capture.reports.FatalIssueType
-import io.bitdrift.capture.reports.Sdk
-import io.bitdrift.capture.reports.ThreadDetails
 import io.bitdrift.capture.reports.persistence.IFatalIssueReporterStorage
 import java.io.InputStream
 
@@ -24,27 +17,8 @@ import java.io.InputStream
  * Process reports from [BUILT_IN] mechanism into a [FatalIssueReport] format
  */
 internal class FatalIssueReporterProcessor(
-    appContext: Context,
     private val fatalIssueReporterStorage: IFatalIssueReporterStorage,
 ) {
-    private val clientAttributes by lazy {
-        // TODO(FranAguilera): BIT-5148 Refactor to avoid recreating ClientAttributes
-        ClientAttributes(appContext, ProcessLifecycleOwner.get())
-    }
-    private val appMetrics: AppMetrics by lazy {
-        AppMetrics(
-            appId = clientAttributes.appId,
-            version = clientAttributes.appVersion,
-            buildNumber = BuildNumber(clientAttributes.appVersionCode),
-        )
-    }
-    private val sdk by lazy {
-        Sdk(
-            id = ClientAttributes.SDK_LIBRARY_ID,
-        )
-    }
-    private val deviceMetrics by lazy { DeviceMetrics() }
-
     /**
      * Process AppTerminations due to [REASON_ANR] or [REASON_CRASH_NATIVE] into [FatalIssueReport] format
      */
@@ -57,29 +31,15 @@ internal class FatalIssueReporterProcessor(
         val report: FatalIssueReport? =
             when (fatalIssueType) {
                 FatalIssueType.ANR -> {
-                    AppExitAnrTraceProcessor.process(
-                        sdk,
-                        appMetrics,
-                        deviceMetrics,
-                        description,
-                        traceInputStream,
-                    )
+                    getAnrReport(description, traceInputStream)
                 }
 
                 FatalIssueType.NATIVE_CRASH -> {
-                    // TODO(FranAguilera): BIT-5144 Handle model for native crash
-                    FatalIssueReport(
-                        sdk,
-                        appMetrics,
-                        deviceMetrics,
-                        errors = emptyList(),
-                        threadsDetails = ThreadDetails(),
-                    )
+                    getNativeCrashReport(description, traceInputStream)
                 }
 
                 else -> null
             }
-
         report?.let {
             fatalIssueReporterStorage
                 .persistFatalIssue(
@@ -95,27 +55,63 @@ internal class FatalIssueReporterProcessor(
      *
      * NOTE: This will need to run by default on the caller thread
      */
-    @Suppress("UNUSED_PARAMETER")
     fun persistJvmCrash(
         timestamp: Long,
         callerThread: Thread,
         throwable: Throwable,
     ) {
-        val fatalIssueReport =
-            JvmCrashProcessor.getJvmCrashReport(
-                sdk = sdk,
-                appMetrics = appMetrics,
-                deviceMetrics = deviceMetrics,
-                throwable = throwable,
+        val fatalIssueReport = getJvmCrashReport(timestamp, callerThread, throwable)
+        fatalIssueReporterStorage
+            .persistFatalIssue(
+                timestamp,
+                FatalIssueType.JVM_CRASH,
+                fatalIssueReport,
             )
-        fatalIssueReporterStorage.persistFatalIssue(
-            timestamp,
-            FatalIssueType.JVM_CRASH,
-            fatalIssueReport,
-        )
     }
 
-    internal companion object {
-        internal const val UNKNOWN_FIELD_VALUE = "Unknown"
+    /**
+     * TODO(FranAguilera): BIT-5070 Update to include full FatalIssueReport
+     */
+    @Suppress("UNUSED_PARAMETER")
+    private fun getJvmCrashReport(
+        timestamp: Long,
+        thread: Thread,
+        throwable: Throwable,
+    ): FatalIssueReport {
+        val errors =
+            listOf(
+                Exception(
+                    name = throwable.javaClass.name,
+                    reason = throwable.message ?: "n/a",
+                ),
+            )
+        return FatalIssueReport(FatalIssueType.JVM_CRASH.displayName, errors)
+    }
+
+    /**
+     * TODO(FranAguilera): BIT-5070 Update to include full FatalIssueReport
+     */
+    @Suppress("UNUSED_PARAMETER")
+    private fun getNativeCrashReport(
+        description: String?,
+        traceInputStream: InputStream,
+    ): FatalIssueReport = FatalIssueReport(FatalIssueType.NATIVE_CRASH.displayName, emptyList())
+
+    /**
+     * TODO(FranAguilera): BIT-5070 Update to include full FatalIssueReport
+     */
+    @Suppress("UNUSED_PARAMETER")
+    private fun getAnrReport(
+        description: String?,
+        traceInputStream: InputStream,
+    ): FatalIssueReport {
+        val errors =
+            listOf(
+                Exception(
+                    name = description ?: "n/a",
+                    reason = "ANR reason wip",
+                ),
+            )
+        return FatalIssueReport(FatalIssueType.ANR.displayName, errors)
     }
 }

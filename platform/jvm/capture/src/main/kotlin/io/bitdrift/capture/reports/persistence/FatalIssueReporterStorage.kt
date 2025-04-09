@@ -27,7 +27,7 @@ internal class FatalIssueReporterStorage(
         fatalIssueReport: FatalIssueReport,
     ) {
         // TODO(FranAguilera): BIT-5083 Replace storing via Gson with native call
-        val fileName = "${terminationTimeStampInMilli}_${fatalIssueType.name}.json"
+        val fileName = "${terminationTimeStampInMilli}_${fatalIssueType.displayName}.json"
         val outputFile = File(destinationDirectory, fileName)
         outputFile.writeText(gson.toJson(fatalIssueReport))
     }

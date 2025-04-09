@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.reports
 
-import android.content.Context
 import io.bitdrift.capture.providers.FieldValue
 
 /**
@@ -17,10 +16,7 @@ interface IFatalIssueReporter {
     /**
      * Initializes the reporter
      */
-    fun initialize(
-        appContext: Context,
-        fatalIssueMechanism: FatalIssueMechanism,
-    )
+    fun initialize(fatalIssueMechanism: FatalIssueMechanism)
 
     /**
      * Generates the [InternalFieldsMap] to be reported upon Capture.Logger.start with
