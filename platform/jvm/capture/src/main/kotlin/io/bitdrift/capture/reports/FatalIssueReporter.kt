@@ -1,3 +1,10 @@
+// capture-sdk - bitdrift's client SDK
+// Copyright Bitdrift, Inc. All rights reserved.
+//
+// Use of this source code is governed by a source available license that can be found in the
+// LICENSE file or at:
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+
 package io.bitdrift.capture.reports
 
 import android.app.ActivityManager
@@ -25,6 +32,7 @@ import io.bitdrift.capture.utils.SdkDirectory
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
+import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
 
@@ -37,27 +45,31 @@ internal class FatalIssueReporter(
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
 ) : IFatalIssueReporter,
     JvmCrashListener {
-    private val appContext = APP_CONTEXT
-    private val sdkDirectory = SdkDirectory.getPath(appContext)
+    private val appContext by lazy { APP_CONTEXT }
+    private val sdkDirectory by lazy { SdkDirectory.getPath(appContext) }
     private val destinationDirectory: File by lazy {
         File(sdkDirectory, DESTINATION_FILE_PATH).apply { if (!exists()) mkdirs() }
     }
     private val fatalIssueReporterProcessor: FatalIssueReporterProcessor by lazy {
         FatalIssueReporterProcessor(FatalIssueReporterStorage(destinationDirectory))
     }
-    private val activityManager: ActivityManager =
+    private val activityManager: ActivityManager by lazy {
         appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    }
 
     @VisibleForTesting
-    var fatalIssueReporterStatus: FatalIssueReporterStatus = buildDefaultReporterStatus()
+    internal var fatalIssueReporterStatus: FatalIssueReporterStatus = buildDefaultReporterStatus()
         private set
 
+    /**
+     * Initializes the fatal issue reporting with the specified [io.bitdrift.capture.reports.FatalIssueMechanism]
+     */
     override fun initialize(fatalIssueMechanism: FatalIssueMechanism) {
         if (fatalIssueReporterStatus.state is FatalIssueReporterState.NotInitialized) {
             if (fatalIssueMechanism == FatalIssueMechanism.INTEGRATION) {
-                fatalIssueReporterStatus = initializeIntegrationReporting()
+                fatalIssueReporterStatus = setupIntegrationReporting()
             } else if (fatalIssueMechanism == FatalIssueMechanism.BUILT_IN) {
-                fatalIssueReporterStatus = initializeBuiltInReporting()
+                fatalIssueReporterStatus = setupBuiltInReporting()
             }
         } else {
             Log.w("capture", "Fatal issue reporting already being initialized")
@@ -88,41 +100,55 @@ internal class FatalIssueReporter(
                     .toFieldValue(),
         )
 
-    private fun initializeIntegrationReporting(): FatalIssueReporterStatus =
+    private fun performReportingSetup(
+        mechanism: FatalIssueMechanism,
+        setupAction: () -> Pair<FatalIssueReporterState, Duration?>,
+        cleanup: () -> Unit = {},
+    ): FatalIssueReporterStatus =
         runCatching {
-            val duration =
-                measureTime {
-                    verifyDirectoriesAndCopyFiles()
-                }
+            val (fatalIssueReporterState, duration) =
+                mainThreadHandler.runAndReturnResult { setupAction() }
             FatalIssueReporterStatus(
-                FatalIssueReporterState.Initialized.MissingConfigFile,
-                duration,
-                FatalIssueMechanism.INTEGRATION,
+                state = fatalIssueReporterState,
+                duration = duration,
+                mechanism = mechanism,
             )
         }.getOrElse {
+            cleanup()
             FatalIssueReporterStatus(
-                ProcessingFailure("Error while initializeIntegrationReporting. ${it.message}"),
-                mechanism = FatalIssueMechanism.INTEGRATION,
+                ProcessingFailure("Error while initializing reporter for $mechanism. ${it.message}"),
+                mechanism = mechanism,
             )
         }
 
-    private fun initializeBuiltInReporting(): FatalIssueReporterStatus =
-        runCatching {
-            mainThreadHandler.runAndReturnResult {
-                captureUncaughtExceptionHandler.install(this)
-                persistLastExitReasonIfNeeded()
-                FatalIssueReporterStatus(
-                    FatalIssueReporterState.BuiltInModeInitialized,
-                    mechanism = FatalIssueMechanism.INTEGRATION,
-                )
-            }
-        }.getOrElse {
-            captureUncaughtExceptionHandler.uninstall()
-            FatalIssueReporterStatus(
-                ProcessingFailure("Error while initializeBuiltInReporting. ${it.message}"),
-                mechanism = FatalIssueMechanism.INTEGRATION,
-            )
-        }
+    private fun setupIntegrationReporting(): FatalIssueReporterStatus =
+        performReportingSetup(
+            FatalIssueMechanism.INTEGRATION,
+            setupAction = {
+                var fatalIssueReporterState: FatalIssueReporterState
+                val duration =
+                    measureTime {
+                        fatalIssueReporterState = verifyDirectoriesAndCopyFiles()
+                    }
+                fatalIssueReporterState to duration
+            },
+        )
+
+    private fun setupBuiltInReporting(): FatalIssueReporterStatus =
+        performReportingSetup(
+            FatalIssueMechanism.BUILT_IN,
+            setupAction = {
+                var fatalIssueReporterState: FatalIssueReporterState
+                val duration =
+                    measureTime {
+                        captureUncaughtExceptionHandler.install(this)
+                        persistLastExitReasonIfNeeded()
+                        fatalIssueReporterState = FatalIssueReporterState.BuiltInModeInitialized
+                    }
+                fatalIssueReporterState to duration
+            },
+            cleanup = { captureUncaughtExceptionHandler.uninstall() },
+        )
 
     private fun persistLastExitReasonIfNeeded() {
         val lastReasonResult = latestAppExitInfoProvider.get(activityManager)

@@ -13,13 +13,13 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.JvmCrashListener
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
 class CaptureUncaughtExceptionHandlerTest {
     private val jvmCrashListener: JvmCrashListener = mock()
-    private val prevExceptionHandler: Thread.UncaughtExceptionHandler = mock()
     private val handler = CaptureUncaughtExceptionHandler
 
     @Before
@@ -43,7 +43,7 @@ class CaptureUncaughtExceptionHandlerTest {
 
         // ASSERT
         verify(jvmCrashListener).onJvmCrash(currentThread, appException)
-        verify(prevExceptionHandler).uncaughtException(currentThread, appException)
+        assertThat(handler.wasExceptionForward).isTrue()
     }
 
     @Test
@@ -58,6 +58,6 @@ class CaptureUncaughtExceptionHandlerTest {
         handler.uncaughtException(currentThread, appException)
 
         // ASSERT
-        verify(prevExceptionHandler).uncaughtException(currentThread, appException)
+        assertThat(handler.wasExceptionForward).isTrue()
     }
 }

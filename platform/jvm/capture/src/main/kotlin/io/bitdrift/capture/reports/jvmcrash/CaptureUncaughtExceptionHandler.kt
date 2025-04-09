@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.reports.jvmcrash
 
+import androidx.annotation.VisibleForTesting
 import java.lang.Thread.UncaughtExceptionHandler
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -20,6 +21,9 @@ internal object CaptureUncaughtExceptionHandler : ICaptureUncaughtExceptionHandl
     private val prevExceptionHandler: UncaughtExceptionHandler? =
         Thread.getDefaultUncaughtExceptionHandler()
     private val crashListeners = CopyOnWriteArrayList<JvmCrashListener>()
+
+    @VisibleForTesting
+    internal var wasExceptionForward: Boolean = false
 
     override fun uncaughtException(
         thread: Thread,
@@ -40,6 +44,7 @@ internal object CaptureUncaughtExceptionHandler : ICaptureUncaughtExceptionHandl
         } finally {
             // forward exception to other handlers even if we fail
             prevExceptionHandler?.uncaughtException(thread, throwable)
+            wasExceptionForward = true
         }
     }
 
