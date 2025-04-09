@@ -9,6 +9,7 @@ package io.bitdrift.gradletestapp
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
@@ -16,6 +17,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
+import io.bitdrift.capture.reports.FatalIssueMechanism
 import kotlin.system.exitProcess
 
 class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
@@ -59,24 +61,44 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
             exitProcess(0)
         }
 
-        val sessionStrategyPref = buildSessionStrategyOption(context)
+        val sessionStrategyPref = buildListPreference(
+            SESSION_STRATEGY_PREFS_KEY,
+            SESSION_STRATEGY_TITLE,
+            SESSION_STRATEGY_ENTRIES,
+            SessionStrategyPreferences.FIXED.displayName,
+            context
+        )
+        val fatalIssueReportingSource = buildListPreference(
+            FATAL_ISSUE_SOURCE_PREFS_KEY,
+            FATAL_ISSUE_TYPE_TITLE,
+            FATAL_ISSUE_REPORTING_TYPES,
+            FatalIssueMechanism.INTEGRATION.displayName,
+            context
+        )
         backendCategory.addPreference(sessionStrategyPref)
+        backendCategory.addPreference(fatalIssueReportingSource)
 
         screen.addPreference(restartPreference)
 
         preferenceScreen = screen
     }
 
-    private fun buildSessionStrategyOption(context: Context): ListPreference {
-        val sessionStrategyPref = ListPreference(context)
-        sessionStrategyPref.key = SESSION_STRATEGY_PREFS_KEY
-        sessionStrategyPref.title = SESSION_STRATEGY_TITLE
-        sessionStrategyPref.entries = SESSION_STRATEGY_ENTRIES
-        sessionStrategyPref.entryValues = SESSION_STRATEGY_ENTRIES
-        sessionStrategyPref.summary = SELECTION_SUMMARY
-        sessionStrategyPref.setDefaultValue(SessionStrategyPreferences.FIXED.displayName)
-        return sessionStrategyPref
+    private fun buildListPreference(
+        keyName:String,
+        title:String,
+        entries: Array<String>,
+        defaultValue: String,
+        context: Context): ListPreference {
+        val listPreference = ListPreference(context)
+        listPreference.key = keyName
+        listPreference.title = title
+        listPreference.entries = entries
+        listPreference.entryValues = entries
+        listPreference.summary = SELECTION_SUMMARY
+        listPreference.setDefaultValue(defaultValue)
+        return listPreference
     }
+
 
     private fun showApiKeysDialog(context: Context) {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -90,9 +112,25 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
 
     companion object {
         const val SESSION_STRATEGY_PREFS_KEY = "sessionStrategy"
+        const val FATAL_ISSUE_SOURCE_PREFS_KEY = "fatalIssueSource"
         private const val SELECTION_SUMMARY = "App needs to be restarted for changes to take effect"
         private const val SESSION_STRATEGY_TITLE = "Session Strategy"
+        private const val FATAL_ISSUE_TYPE_TITLE = "Fatal Issue Reporting Source Type"
+        private val FATAL_ISSUE_REPORTING_TYPES =
+            arrayOf(
+                FatalIssueMechanism.BUILT_IN.displayName,
+                FatalIssueMechanism.INTEGRATION.displayName)
+
         private val SESSION_STRATEGY_ENTRIES =
             arrayOf(SessionStrategyPreferences.FIXED.displayName, SessionStrategyPreferences.ACTIVITY_BASED.displayName)
+
+        fun getFatalIssueSourceConfig(sharedPreferences: SharedPreferences):FatalIssueMechanism{
+            val displayName = sharedPreferences.getString(FATAL_ISSUE_SOURCE_PREFS_KEY, null)
+            return if(displayName == FatalIssueMechanism.BUILT_IN.displayName){
+                FatalIssueMechanism.BUILT_IN
+            }else {
+                FatalIssueMechanism.INTEGRATION
+            }
+        }
     }
 }

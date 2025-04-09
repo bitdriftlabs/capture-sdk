@@ -18,6 +18,7 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl
 import java.util.UUID
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import io.bitdrift.capture.reports.FatalIssueMechanism
 
 private const val bitdriftAPIKey = "<YOUR API KEY GOES HERE>"
 private val BITDRIFT_URL = HttpUrl.Builder().scheme("https").host("api.bitdrift.io").build()
@@ -29,7 +30,7 @@ class HelloWorldApp : Application() {
         super.onCreate()
         
         @OptIn(ExperimentalBitdriftApi::class)
-        Logger.initFatalIssueReporting()
+        Logger.initFatalIssueReporting(FatalIssueMechanism.BUILT_IN)
 
         setupExampleCrashHandler()
 
