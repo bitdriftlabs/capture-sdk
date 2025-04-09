@@ -9,7 +9,7 @@ package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
-import io.bitdrift.capture.reports.FatalIssueConfigParser.getFatalIssueConfigDetails
+import io.bitdrift.capture.reports.parser.FatalIssueConfigParser.getFatalIssueConfigDetails
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
