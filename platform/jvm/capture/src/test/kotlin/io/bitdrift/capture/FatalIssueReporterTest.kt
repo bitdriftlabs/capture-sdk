@@ -58,7 +58,7 @@ class FatalIssueReporterTest {
     fun initialize_whenCustomConfigMechanismAndMissingConfigFile_shouldReportMissingConfigState() {
         prepareFileDirectories(doesReportsDirectoryExist = false)
 
-        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.CUSTOM_CONFIG)
+        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.INTEGRATION)
 
         fatalIssueReporter
             .fatalIssueReporterStatus
@@ -74,7 +74,7 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.CUSTOM_CONFIG)
+        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.INTEGRATION)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Initialized.WithoutPriorFatalIssue::class.java,
@@ -90,7 +90,7 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.CUSTOM_CONFIG)
+        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.INTEGRATION)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Initialized.InvalidCrashConfigDirectory::class.java,
@@ -115,7 +115,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.CUSTOM_CONFIG)
+        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.INTEGRATION)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Initialized.WithoutPriorFatalIssue::class.java,
@@ -130,7 +130,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.CUSTOM_CONFIG)
+        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.INTEGRATION)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Initialized.MalformedConfigFile::class.java,
@@ -245,7 +245,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.CUSTOM_CONFIG)
+        fatalIssueReporter.initialize(fatalIssueMechanism = FatalIssueMechanism.INTEGRATION)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Initialized.FatalIssueReportSent::class.java,

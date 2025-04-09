@@ -72,7 +72,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
             FATAL_ISSUE_SOURCE_PREFS_KEY,
             FATAL_ISSUE_TYPE_TITLE,
             FATAL_ISSUE_REPORTING_TYPES,
-            FatalIssueMechanism.CUSTOM_CONFIG.displayName,
+            FatalIssueMechanism.INTEGRATION.displayName,
             context
         )
         backendCategory.addPreference(sessionStrategyPref)
@@ -119,7 +119,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         private val FATAL_ISSUE_REPORTING_TYPES =
             arrayOf(
                 FatalIssueMechanism.BUILT_IN.displayName,
-                FatalIssueMechanism.CUSTOM_CONFIG.displayName)
+                FatalIssueMechanism.INTEGRATION.displayName)
 
         private val SESSION_STRATEGY_ENTRIES =
             arrayOf(SessionStrategyPreferences.FIXED.displayName, SessionStrategyPreferences.ACTIVITY_BASED.displayName)
@@ -129,7 +129,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
             return if(displayName == FatalIssueMechanism.BUILT_IN.displayName){
                 FatalIssueMechanism.BUILT_IN
             }else {
-                FatalIssueMechanism.CUSTOM_CONFIG
+                FatalIssueMechanism.INTEGRATION
             }
         }
     }

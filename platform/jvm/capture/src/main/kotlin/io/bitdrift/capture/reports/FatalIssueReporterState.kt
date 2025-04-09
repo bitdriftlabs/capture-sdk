@@ -27,7 +27,7 @@ sealed class FatalIssueReporterState(
     data object BuiltInModeInitialized : FatalIssueReporterState("BUILT_IN_MODE_INITIALIZED")
 
     /**
-     * Sealed class representing all initialized states for [FatalIssueMechanism.CUSTOM_CONFIG]
+     * Sealed class representing all initialized states for [FatalIssueMechanism.INTEGRATION]
      * TODO(FranAguilera): BIT-5073 This will be renamed in separate PR
      */
     sealed class Initialized(

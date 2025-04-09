@@ -54,8 +54,8 @@ internal class FatalIssueReporter(
 
     override fun initialize(fatalIssueMechanism: FatalIssueMechanism) {
         if (fatalIssueReporterStatus.state is FatalIssueReporterState.NotInitialized) {
-            if (fatalIssueMechanism == FatalIssueMechanism.CUSTOM_CONFIG) {
-                fatalIssueReporterStatus = processReportFilesFromCustomConfig()
+            if (fatalIssueMechanism == FatalIssueMechanism.INTEGRATION) {
+                fatalIssueReporterStatus = initializeIntegrationReporting()
             } else if (fatalIssueMechanism == FatalIssueMechanism.BUILT_IN) {
                 fatalIssueReporterStatus = initializeBuiltInReporting()
             }
@@ -88,21 +88,21 @@ internal class FatalIssueReporter(
                     .toFieldValue(),
         )
 
-    private fun processReportFilesFromCustomConfig(): FatalIssueReporterStatus =
+    private fun initializeIntegrationReporting(): FatalIssueReporterStatus =
         runCatching {
             val duration =
                 measureTime {
                     verifyDirectoriesAndCopyFiles()
                 }
             FatalIssueReporterStatus(
-                FatalIssueReporterState.Initialized.MissingConfigFile, // default state on success
+                FatalIssueReporterState.Initialized.MissingConfigFile,
                 duration,
-                FatalIssueMechanism.CUSTOM_CONFIG,
+                FatalIssueMechanism.INTEGRATION,
             )
         }.getOrElse {
             FatalIssueReporterStatus(
-                ProcessingFailure("Error processing report files. ${it.message}"),
-                mechanism = FatalIssueMechanism.CUSTOM_CONFIG,
+                ProcessingFailure("Error while initializeIntegrationReporting. ${it.message}"),
+                mechanism = FatalIssueMechanism.INTEGRATION,
             )
         }
 
@@ -113,14 +113,14 @@ internal class FatalIssueReporter(
                 persistLastExitReasonIfNeeded()
                 FatalIssueReporterStatus(
                     FatalIssueReporterState.BuiltInModeInitialized,
-                    mechanism = FatalIssueMechanism.CUSTOM_CONFIG,
+                    mechanism = FatalIssueMechanism.INTEGRATION,
                 )
             }
         }.getOrElse {
             captureUncaughtExceptionHandler.uninstall()
             FatalIssueReporterStatus(
-                ProcessingFailure("Error initializing built-in reporting. ${it.message}"),
-                mechanism = FatalIssueMechanism.CUSTOM_CONFIG,
+                ProcessingFailure("Error while initializeBuiltInReporting. ${it.message}"),
+                mechanism = FatalIssueMechanism.INTEGRATION,
             )
         }
 
@@ -237,8 +237,7 @@ internal class FatalIssueReporter(
 
     internal companion object {
         private const val CONFIGURATION_FILE_PATH = "/reports/config"
-        private const val FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY =
-            "_fatal_issue_reporting_duration_ms"
+        private const val FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY = "_fatal_issue_reporting_duration_ms"
         private const val FATAL_ISSUE_REPORTING_STATE_KEY = "_fatal_issue_reporting_state"
         private const val DESTINATION_FILE_PATH = "/reports/new"
         private const val LAST_MODIFIED_TIME_ATTRIBUTE = "lastModifiedTime"

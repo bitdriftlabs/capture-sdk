@@ -21,7 +21,7 @@ enum class FatalIssueMechanism(
      * Use this option, to integrate with existing fatal issue reporting mechanism. This will scan for specific
      * fatal issues on the configured directory
      */
-    CUSTOM_CONFIG("CUSTOM_CONFIG"),
+    INTEGRATION("INTEGRATION"),
 
     /**
      * Built in implementation that doesn't rely on any 3rd party integration
