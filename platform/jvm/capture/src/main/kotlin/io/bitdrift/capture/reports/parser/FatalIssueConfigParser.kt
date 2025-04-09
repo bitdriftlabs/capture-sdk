@@ -5,14 +5,16 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.reports
+package io.bitdrift.capture.reports.parser
 
 import android.content.Context
 import android.os.Build
 import java.io.File
 
 /**
- * Parse the runtime config into valid path/extension
+ * Parse the runtime config into valid path/extension.
+ *
+ * NOTE: This is only applicable for [FatalIssueMechanism.CUSTOM_CONFIG]
  */
 internal object FatalIssueConfigParser {
     private const val CACHE_DIR_PLACE_HOLDER = "{cache_dir}"
