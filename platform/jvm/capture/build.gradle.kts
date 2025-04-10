@@ -28,6 +28,7 @@ dependencies {
     implementation(libs.jsr305)
     implementation(libs.gson)
     implementation(libs.performance)
+    implementation(libs.flatbuffers)
 
     testImplementation(libs.junit)
     testImplementation(libs.assertj.core)

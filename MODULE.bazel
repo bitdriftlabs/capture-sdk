@@ -173,6 +173,7 @@ maven.install(
         "androidx.emoji2:emoji2:1.5.0",
         "androidx.collection:collection:1.4.5",
         "androidx.metrics:metrics-performance:1.0.0-beta01",
+        "com.google.flatbuffers:flatbuffers-java:25.2.10",
 
         # Compose
         "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:{}".format(KOTLIN_COMPILE_VERSION),
