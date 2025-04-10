@@ -48,7 +48,7 @@ class FatalIssueReporterProcessorTest {
             eq(FatalIssueType.JVM_CRASH),
             fatalIssueReportCaptor.capture(),
         )
-        assertThat(fatalIssueReportCaptor.firstValue.issueType).isEqualTo("jvm_crash")
+        assertThat(fatalIssueReportCaptor.firstValue.type).isEqualTo(FatalIssueType.JVM_CRASH)
         assertThat(fatalIssueReportCaptor.firstValue.errors[0].reason).isEqualTo("Fake JVM exception")
         assertThat(fatalIssueReportCaptor.firstValue.errors[0].name).isEqualTo("io.bitdrift.capture.fakes.FakeJvmException")
     }
@@ -73,7 +73,7 @@ class FatalIssueReporterProcessorTest {
             eq(FatalIssueType.ANR),
             fatalIssueReportCaptor.capture(),
         )
-        assertThat(fatalIssueReportCaptor.firstValue.issueType).isEqualTo("anr")
+        assertThat(fatalIssueReportCaptor.firstValue.type).isEqualTo(FatalIssueType.ANR)
         assertThat(fatalIssueReportCaptor.firstValue.errors[0].reason).isEqualTo("ANR reason wip")
         assertThat(fatalIssueReportCaptor.firstValue.errors[0].name).isEqualTo(description)
     }
@@ -95,7 +95,7 @@ class FatalIssueReporterProcessorTest {
             eq(FatalIssueType.NATIVE_CRASH),
             fatalIssueReportCaptor.capture(),
         )
-        assertThat(fatalIssueReportCaptor.firstValue.issueType).isEqualTo("native_crash")
+        assertThat(fatalIssueReportCaptor.firstValue.type).isEqualTo(FatalIssueType.NATIVE_CRASH)
         assertThat(fatalIssueReportCaptor.firstValue.errors.isEmpty()).isTrue()
     }
 
