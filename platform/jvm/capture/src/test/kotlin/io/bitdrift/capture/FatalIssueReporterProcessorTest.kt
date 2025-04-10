@@ -45,7 +45,6 @@ class FatalIssueReporterProcessorTest {
 
         verify(fatalIssueReporterStorage).persistFatalIssue(
             eq(FAKE_TIME_STAMP),
-            eq(FatalIssueType.JVM_CRASH),
             fatalIssueReportCaptor.capture(),
         )
         assertThat(fatalIssueReportCaptor.firstValue.type).isEqualTo(FatalIssueType.JVM_CRASH)
@@ -70,7 +69,6 @@ class FatalIssueReporterProcessorTest {
 
         verify(fatalIssueReporterStorage).persistFatalIssue(
             eq(FAKE_TIME_STAMP),
-            eq(FatalIssueType.ANR),
             fatalIssueReportCaptor.capture(),
         )
         assertThat(fatalIssueReportCaptor.firstValue.type).isEqualTo(FatalIssueType.ANR)
@@ -92,7 +90,6 @@ class FatalIssueReporterProcessorTest {
 
         verify(fatalIssueReporterStorage).persistFatalIssue(
             eq(FAKE_TIME_STAMP),
-            eq(FatalIssueType.NATIVE_CRASH),
             fatalIssueReportCaptor.capture(),
         )
         assertThat(fatalIssueReportCaptor.firstValue.type).isEqualTo(FatalIssueType.NATIVE_CRASH)
@@ -112,7 +109,7 @@ class FatalIssueReporterProcessorTest {
         )
 
         verify(fatalIssueReporterStorage, never())
-            .persistFatalIssue(any(), any(), any())
+            .persistFatalIssue(any(), any())
     }
 
     private companion object {
