@@ -29,6 +29,8 @@ dependencies {
     implementation ("io.reactivex.rxjava3:rxandroid:3.0.0")
     implementation ("io.reactivex.rxjava3:rxjava:3.0.0")
     implementation("io.sentry:sentry-android:8.2.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.0")
 
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.4.0")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")
