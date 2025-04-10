@@ -7,16 +7,13 @@
 
 package io.bitdrift.capture.reports
 
-import com.google.gson.annotations.SerializedName
-
 /**
  * Represents the model where will store Crash/ANR/etc
  *
  * TODO(FranAguilera): BIT-5070 Update to include full FatalIssueReport
  */
 internal data class FatalIssueReport(
-    @SerializedName("issue_type")
-    val issueType: String,
+    val type: FatalIssueType,
     val errors: List<Exception>,
 )
 
