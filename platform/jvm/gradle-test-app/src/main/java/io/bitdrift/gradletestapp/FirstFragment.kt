@@ -255,8 +255,11 @@ class FirstFragment : Fragment() {
         val selectedAppExitReason = binding.spnAppExitOptions.selectedItem.toString()
         when (AppExitReason.valueOf(selectedAppExitReason)) {
             AppExitReason.ANR_BLOCKING_GET -> FatalIssueGenerator.forceBlockingGetAnr()
+            AppExitReason.ANR_BROADCAST_RECEIVER -> FatalIssueGenerator.forceBroadcastReceiverAnr(view.context)
+            AppExitReason.ANR_COROUTINES -> FatalIssueGenerator.forceCoroutinesAnr()
             AppExitReason.ANR_DEADLOCK -> FatalIssueGenerator.forceDeadlockAnr()
             AppExitReason.ANR_SLEEP_MAIN_THREAD -> FatalIssueGenerator.forceThreadSleepAnr()
+            AppExitReason.APP_CRASH_COROUTINE_EXCEPTION -> FatalIssueGenerator.forceCoroutinesCrash()
             AppExitReason.APP_CRASH_REGULAR_JVM_EXCEPTION -> FatalIssueGenerator.forceUnhandledException()
             AppExitReason.APP_CRASH_RX_JAVA_EXCEPTION -> FatalIssueGenerator.forceRxJavaException()
             AppExitReason.APP_CRASH_NATIVE -> FatalIssueGenerator.forceNativeCrash()
@@ -267,8 +270,11 @@ class FirstFragment : Fragment() {
 
     enum class AppExitReason {
         ANR_BLOCKING_GET,
+        ANR_BROADCAST_RECEIVER,
+        ANR_COROUTINES,
         ANR_DEADLOCK,
         ANR_SLEEP_MAIN_THREAD,
+        APP_CRASH_COROUTINE_EXCEPTION,
         APP_CRASH_REGULAR_JVM_EXCEPTION,
         APP_CRASH_RX_JAVA_EXCEPTION,
         APP_CRASH_OUT_OF_MEMORY,

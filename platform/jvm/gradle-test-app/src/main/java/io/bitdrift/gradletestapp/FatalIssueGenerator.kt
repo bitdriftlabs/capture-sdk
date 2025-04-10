@@ -10,15 +10,31 @@
 package io.bitdrift.gradletestapp
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.core.content.ContextCompat
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.LoggerImpl
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.subjects.BehaviorSubject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+
 
 /**
  * Artificially creates different types of Fatal issues (ANR, JVM Crash, Native Crash,etc)
@@ -38,7 +54,7 @@ internal object FatalIssueGenerator {
 
     fun forceThreadSleepAnr() {
         callOnMainThread {
-            Thread.sleep(15000)
+            Thread.sleep(SLEEP_DURATION_MILLI)
         }
     }
 
@@ -46,6 +62,20 @@ internal object FatalIssueGenerator {
         callOnMainThread {
             val aResultWillNeverGet = uuidSubject.blockingFirst()
             Log.e(TAG_NAME, aResultWillNeverGet)
+        }
+    }
+
+    fun forceBroadcastReceiverAnr(context: Context) {
+        callOnMainThread {
+            val filter = IntentFilter(TRIGGER_BROADCAST_RECEIVER_ANR)
+            ContextCompat.registerReceiver(
+                context,
+                AnrBroadcastReceiver(),
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+            val intent = Intent(TRIGGER_BROADCAST_RECEIVER_ANR).setPackage(context.packageName)
+            context.sendBroadcast(intent)
         }
     }
 
@@ -59,6 +89,25 @@ internal object FatalIssueGenerator {
             .subscribe { item -> Log.i(TAG_NAME, "Item received: $item") }
             // Missing error explicitly in order to crash
 
+    }
+
+    fun forceCoroutinesAnr() {
+        CoroutineScope(Dispatchers.Main).launch {
+            (1..Int.MAX_VALUE).asFlow()
+                .onEach {
+                    Thread.sleep(1)
+                }
+                .collect {
+                    Log.i(TAG_NAME, "Item received: $it")
+                }
+        }
+    }
+
+
+    fun forceCoroutinesCrash(){
+        CoroutineScope(Dispatchers.IO).launch {
+            throw RuntimeException("Coroutine background thread crash")
+        }
     }
 
     fun forceNativeCrash() {
@@ -115,7 +164,35 @@ internal object FatalIssueGenerator {
     private val SECOND_LOCK_RESOURCE: Any = "second_lock"
     private val TAG_NAME = "FatalIssueGenerator"
     private const val THREAD_DELAY_IN_MILLI: Long = 10
+    private const val SLEEP_DURATION_MILLI = 15000L
+    private const val TRIGGER_BROADCAST_RECEIVER_ANR =
+        "io.bitdrift.gradletestapp.broadcastreceiver.ANR_TRIGGER"
     private fun logThreadStatus(lockInfo: String) {
         Log.d("DEADLOCK_TAG", "Thread [" + Thread.currentThread().name + "] " + lockInfo)
+    }
+
+    private class AnrBroadcastReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (TRIGGER_BROADCAST_RECEIVER_ANR == intent?.action) {
+                repeat(1000) {
+                    val result = fetchResult(it)
+                    Log.i("AnrBroadcastReceiver", result)
+                }
+            }
+        }
+
+        /**
+         * "Simulates" an expensive IO operation
+         */
+        private fun fetchResult(id: Int): String {
+            val startTime = System.currentTimeMillis()
+            var result = 0L
+            for (i in 1..1_000_000_000) {
+                result += i
+            }
+            val endTime = System.currentTimeMillis()
+            val duration = (endTime - startTime)
+            return "Task ID [$id] completed with a $duration of milliseconds"
+        }
     }
 }
