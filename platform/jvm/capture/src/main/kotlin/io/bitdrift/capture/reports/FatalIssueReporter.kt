@@ -30,6 +30,7 @@ import io.bitdrift.capture.reports.persistence.FatalIssueReporterStorage
 import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor
 import io.bitdrift.capture.utils.SdkDirectory
 import java.io.File
+import java.lang.Thread
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
 import kotlin.time.Duration
@@ -51,7 +52,7 @@ internal class FatalIssueReporter(
         File(sdkDirectory, DESTINATION_FILE_PATH).apply { if (!exists()) mkdirs() }
     }
     private val fatalIssueReporterProcessor: FatalIssueReporterProcessor by lazy {
-        FatalIssueReporterProcessor(FatalIssueReporterStorage(destinationDirectory))
+        FatalIssueReporterProcessor(appContext, FatalIssueReporterStorage(destinationDirectory))
     }
     private val activityManager: ActivityManager by lazy {
         appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
