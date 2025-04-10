@@ -16,37 +16,37 @@ package io.bitdrift.capture.common
  */
 sealed class RuntimeFeature(
     val featureName: String,
-    val defaultValue: Boolean = true,
+    val defaultValue: Boolean,
 ) {
     /**
      * Whether the session replay feature is enabled for Compose views.
      */
-    data object SESSION_REPLAY_COMPOSE : RuntimeFeature("client_feature.android.session_replay_compose")
+    data object SESSION_REPLAY_COMPOSE : RuntimeFeature("client_feature.android.session_replay_compose", defaultValue = true)
 
     /**
      * Whether an app update event emission is enabled or not.
      */
-    data object APP_UPDATE_EVENTS : RuntimeFeature("client_feature.android.application_update_reporting")
+    data object APP_UPDATE_EVENTS : RuntimeFeature("client_feature.android.application_update_reporting", defaultValue = true)
 
     /**
      * Whether memory pressure monitoring is enabled.
      */
-    data object APP_MEMORY_PRESSURE : RuntimeFeature("client_feature.android.memory_pressure_reporting")
+    data object APP_MEMORY_PRESSURE : RuntimeFeature("client_feature.android.memory_pressure_reporting", defaultValue = true)
 
     /**
      * Whether device state monitoring is enabled.
      */
-    data object DEVICE_STATE_EVENTS : RuntimeFeature("client_features.android.device_lifecycle_reporting")
+    data object DEVICE_STATE_EVENTS : RuntimeFeature("client_features.android.device_lifecycle_reporting", defaultValue = true)
 
     /**
      * Whether application lifecycle monitoring is enabled.
      */
-    data object APP_LIFECYCLE_EVENTS : RuntimeFeature("client_feature.android.application_lifecycle_reporting")
+    data object APP_LIFECYCLE_EVENTS : RuntimeFeature("client_feature.android.application_lifecycle_reporting", defaultValue = true)
 
     /**
      * Whether application exit monitoring is enabled.
      */
-    data object APP_EXIT_EVENTS : RuntimeFeature("client_feature.android.application_exit_reporting")
+    data object APP_EXIT_EVENTS : RuntimeFeature("client_feature.android.application_exit_reporting", defaultValue = true)
 
     /**
      * Whether data disk usage should be reported as part of resource utilization logs.
@@ -66,7 +66,7 @@ sealed class RuntimeFeature(
     /**
      * Whether Dropped Frames reporting is enabled
      */
-    data object DROPPED_EVENTS_MONITORING : RuntimeFeature("client_feature.android.dropped_frames_reporting")
+    data object DROPPED_EVENTS_MONITORING : RuntimeFeature("client_feature.android.dropped_frames_reporting", defaultValue = true)
 }
 
 /**
