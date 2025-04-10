@@ -85,7 +85,7 @@ internal class FatalIssueReporterProcessor(
                     reason = throwable.message ?: "n/a",
                 ),
             )
-        return FatalIssueReport(FatalIssueType.JVM_CRASH.displayName, errors)
+        return FatalIssueReport(FatalIssueType.JVM_CRASH, errors)
     }
 
     /**
@@ -95,7 +95,7 @@ internal class FatalIssueReporterProcessor(
     private fun getNativeCrashReport(
         description: String?,
         traceInputStream: InputStream,
-    ): FatalIssueReport = FatalIssueReport(FatalIssueType.NATIVE_CRASH.displayName, emptyList())
+    ): FatalIssueReport = FatalIssueReport(FatalIssueType.NATIVE_CRASH, emptyList())
 
     /**
      * TODO(FranAguilera): BIT-5070 Update to include full FatalIssueReport
@@ -112,6 +112,6 @@ internal class FatalIssueReporterProcessor(
                     reason = "ANR reason wip",
                 ),
             )
-        return FatalIssueReport(FatalIssueType.ANR.displayName, errors)
+        return FatalIssueReport(FatalIssueType.ANR, errors)
     }
 }
