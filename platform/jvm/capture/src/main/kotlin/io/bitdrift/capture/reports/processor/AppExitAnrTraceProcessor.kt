@@ -7,15 +7,14 @@
 
 package io.bitdrift.capture.reports.processor
 
-import io.bitdrift.capture.reports.AppMetrics
-import io.bitdrift.capture.reports.DeviceMetrics
-import io.bitdrift.capture.reports.ErrorDetails
-import io.bitdrift.capture.reports.FatalIssueReport
-import io.bitdrift.capture.reports.FrameDetails
-import io.bitdrift.capture.reports.FrameType
-import io.bitdrift.capture.reports.Sdk
-import io.bitdrift.capture.reports.SourceFile
-import io.bitdrift.capture.reports.ThreadDetails
+import com.google.flatbuffers.FlatBufferBuilder
+import io.bitdrift.capture.reports.binformat.v1.Error
+import io.bitdrift.capture.reports.binformat.v1.ErrorRelation
+import io.bitdrift.capture.reports.binformat.v1.Frame
+import io.bitdrift.capture.reports.binformat.v1.FrameType
+import io.bitdrift.capture.reports.binformat.v1.Report
+import io.bitdrift.capture.reports.binformat.v1.ReportType
+import io.bitdrift.capture.reports.binformat.v1.SourceFile
 import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor.Companion.UNKNOWN_FIELD_VALUE
 import java.io.BufferedReader
 import java.io.InputStream
@@ -23,49 +22,52 @@ import java.io.InputStreamReader
 
 /**
  * Process an converts an ANR report from [android.app.ApplicationExitInfo]
- * into a io.bitdrift.capture.reports.FatalIssueReport
+ * into a binary flatbuffer Report
  */
 internal object AppExitAnrTraceProcessor {
     private const val ANR_MAIN_THREAD_IDENTIFIED = "\"main\""
     private const val ANR_STACKTRACE_PREFIX = "at "
     private val ANR_STACK_TRACE_REGEX = Regex("^\\s+at\\s+(.*)\\.(.*)\\((.*):(\\d+)\\)$")
-    private val mainStackTraceFrames = mutableListOf<FrameDetails>()
+    private val mainStackTraceFrames = mutableListOf<Int>()
     private var isProcessingMainThreadTrace = false
     private var mainThreadReason = UNKNOWN_FIELD_VALUE
 
     /**
      * Process valid traceInputStream
+     *
+     * @return byte offset for the Report instance in the builder buffer
      */
     fun process(
-        sdk: Sdk,
-        appMetrics: AppMetrics,
-        deviceMetrics: DeviceMetrics,
+        builder: FlatBufferBuilder,
+        appId: String,
+        sdk: Int,
+        appMetrics: Int,
+        deviceMetrics: Int,
         description: String?,
         traceInputStream: InputStream,
-    ): FatalIssueReport {
+    ): Int {
         val inputStreamReader = InputStreamReader(traceInputStream)
         BufferedReader(inputStreamReader)
             .useLines { lines ->
                 lines.forEach { currentLine ->
-                    appendMainFramesIfNeeded(currentLine, appMetrics.appId)
+                    appendMainFramesIfNeeded(builder, currentLine, appId)
                 }
             }
-        val errors =
-            listOf(
-                ErrorDetails(
-                    name = mainThreadReason,
-                    // TODO(Fran): BIT-5143 To polish reason
-                    reason = description ?: UNKNOWN_FIELD_VALUE,
-                    stackTrace = mainStackTraceFrames,
-                ),
-            )
-        return FatalIssueReport(
+        val name = if (mainThreadReason != UNKNOWN_FIELD_VALUE) builder.createString(mainThreadReason) else 0
+        val reason = if (description != null) builder.createString(description) else 0
+        val trace = Error.createStackTraceVector(builder, mainStackTraceFrames.toIntArray())
+        val error = Error.createError(builder, name, reason, trace, ErrorRelation.CausedBy)
+
+        return Report.createReport(
+            builder,
             sdk,
+            ReportType.AppNotResponding,
             appMetrics,
             deviceMetrics,
-            errors,
+            Report.createErrorsVector(builder, intArrayOf(error)),
             // TODO(FranAguilera): BIT-5142. Append thread info
-            ThreadDetails(),
+            0,
+            0,
         )
     }
 
@@ -81,6 +83,7 @@ internal object AppExitAnrTraceProcessor {
 
     @Suppress("DestructuringDeclarationWithTooManyEntries")
     private fun appendMainFramesIfNeeded(
+        builder: FlatBufferBuilder,
         currentLine: String,
         applicationId: String,
     ) {
@@ -88,17 +91,33 @@ internal object AppExitAnrTraceProcessor {
         if (!isStackTraceLine(currentLine)) return
 
         ANR_STACK_TRACE_REGEX.find(currentLine)?.destructured?.let { (className, symbolName, fileName, lineNumber) ->
+            if (!isProcessingMainThreadTrace) {
+                return
+            }
+            val path = builder.createString(fileName)
             val sourceFile =
-                SourceFile(
-                    path = fileName,
-                    lineNumber = lineNumber.toIntOrNull() ?: -1,
+                SourceFile.createSourceFile(
+                    builder,
+                    path,
+                    lineNumber.toLongOrNull() ?: 0,
+                    0,
                 )
             val frame =
-                FrameDetails(
-                    type = FrameType.JVM.ordinal,
-                    className = className,
-                    symbolName = "$className.$symbolName",
-                    sourceFile = sourceFile,
+                Frame.createFrame(
+                    builder,
+                    FrameType.JVM,
+                    builder.createString(className),
+                    builder.createString(symbolName),
+                    sourceFile,
+                    0,
+                    0u,
+                    0u,
+                    0,
+                    0,
+                    0,
+                    0u,
+                    false,
+                    0,
                 )
             if (isProcessingMainThreadTrace) {
                 mainStackTraceFrames.add(frame)
