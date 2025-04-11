@@ -8,6 +8,7 @@
 package io.bitdrift.capture.reports
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
@@ -29,7 +30,7 @@ import kotlin.time.measureTime
 internal class FatalIssueReporter(
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) {
-    private val appContext = APP_CONTEXT
+    private val appContext by lazy { APP_CONTEXT }
 
     /**
      * Process existing crash report files.
@@ -47,7 +48,9 @@ internal class FatalIssueReporter(
                 FatalIssueReporterStatus(fatalIssueReporterState, duration)
             }
         }.getOrElse {
-            FatalIssueReporterStatus(ProcessingFailure("Error while processCrashReportFile. ${it.message}"))
+            val errorMessage = "Error while initializing fatal issue reporting. $it"
+            Log.e("Bitdrift Capture", errorMessage)
+            FatalIssueReporterStatus(ProcessingFailure(errorMessage))
         }
 
     @UiThread
