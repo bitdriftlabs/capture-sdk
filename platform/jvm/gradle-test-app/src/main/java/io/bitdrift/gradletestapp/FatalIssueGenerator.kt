@@ -103,7 +103,6 @@ internal object FatalIssueGenerator {
         }
     }
 
-
     fun forceCoroutinesCrash(){
         CoroutineScope(Dispatchers.IO).launch {
             throw RuntimeException("Coroutine background thread crash")
