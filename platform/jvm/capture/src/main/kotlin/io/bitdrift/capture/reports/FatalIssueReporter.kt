@@ -66,9 +66,9 @@ internal class FatalIssueReporter(
      */
     override fun initialize(fatalIssueMechanism: FatalIssueMechanism) {
         if (fatalIssueReporterStatus.state is FatalIssueReporterState.NotInitialized) {
-            if (fatalIssueMechanism == FatalIssueMechanism.INTEGRATION) {
+            if (fatalIssueMechanism == FatalIssueMechanism.Integration) {
                 fatalIssueReporterStatus = setupIntegrationReporting()
-            } else if (fatalIssueMechanism == FatalIssueMechanism.BUILT_IN) {
+            } else if (fatalIssueMechanism == FatalIssueMechanism.BuiltIn) {
                 fatalIssueReporterStatus = setupBuiltInReporting()
             }
         } else {
@@ -77,7 +77,7 @@ internal class FatalIssueReporter(
     }
 
     /**
-     * Applicable when [FatalIssueMechanism.BUILT_IN] is available, given that registration
+     * Applicable when [FatalIssueMechanism.BuiltIn] is available, given that registration
      * only occurs for calls like initialize(FatalIssueMechanism.BUILT_IN)
      */
     override fun onJvmCrash(
@@ -115,15 +115,17 @@ internal class FatalIssueReporter(
             )
         }.getOrElse {
             cleanup()
+            val errorMessage = "Error while initializing reporter for $mechanism. $it"
+            Log.e("Bitdrift Capture", errorMessage)
             FatalIssueReporterStatus(
-                ProcessingFailure("Error while initializing reporter for $mechanism. ${it.message}"),
+                ProcessingFailure(errorMessage),
                 mechanism = mechanism,
             )
         }
 
     private fun setupIntegrationReporting(): FatalIssueReporterStatus =
         performReportingSetup(
-            FatalIssueMechanism.INTEGRATION,
+            FatalIssueMechanism.Integration,
             setupAction = {
                 var fatalIssueReporterState: FatalIssueReporterState
                 val duration =
@@ -136,7 +138,7 @@ internal class FatalIssueReporter(
 
     private fun setupBuiltInReporting(): FatalIssueReporterStatus =
         performReportingSetup(
-            FatalIssueMechanism.BUILT_IN,
+            FatalIssueMechanism.BuiltIn,
             setupAction = {
                 var fatalIssueReporterState: FatalIssueReporterState
                 val duration =
@@ -258,7 +260,7 @@ internal class FatalIssueReporter(
     private fun buildDefaultReporterStatus(): FatalIssueReporterStatus =
         FatalIssueReporterStatus(
             FatalIssueReporterState.NotInitialized,
-            mechanism = FatalIssueMechanism.NONE,
+            mechanism = FatalIssueMechanism.None,
         )
 
     internal companion object {
