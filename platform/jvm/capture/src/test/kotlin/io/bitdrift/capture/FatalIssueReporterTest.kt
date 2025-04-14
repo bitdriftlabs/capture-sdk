@@ -9,25 +9,13 @@ package io.bitdrift.capture
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.doAnswer
-import com.nhaarman.mockitokotlin2.eq
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.never
-import com.nhaarman.mockitokotlin2.verify
-import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
-import io.bitdrift.capture.common.MainThreadHandler
-import io.bitdrift.capture.fakes.FakeJvmException
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
-import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.FatalIssueReporter.Companion.buildFieldsMap
 import io.bitdrift.capture.reports.FatalIssueReporter.Companion.getDuration
 import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.FatalIssueReporterStatus
-import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
-import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -41,34 +29,25 @@ import java.io.File
 class FatalIssueReporterTest {
     private lateinit var fatalIssueReporter: FatalIssueReporter
     private lateinit var reportsDir: File
-    private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
-    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = mock()
-    private val appContext = ApplicationProvider.getApplicationContext<Context>()
+    val appContext = ApplicationProvider.getApplicationContext<Context>()
 
     @Before
     fun setup() {
-        val initializer = ContextHolder()
-        initializer.create(ApplicationProvider.getApplicationContext())
-        reportsDir = File(APP_CONTEXT.filesDir, "bitdrift_capture/reports/")
-        fatalIssueReporter = buildReporter(Mocks.sameThreadHandler)
+        reportsDir = File(appContext.filesDir, "bitdrift_capture/reports/")
+        fatalIssueReporter = FatalIssueReporter(ApplicationProvider.getApplicationContext(), Mocks.sameThreadHandler)
     }
 
     @Test
-    fun initialize_whenIntegrationMechanismAndMissingConfigFile_shouldReportMissingConfigState() {
+    fun processPriorReportFile_withMissingConfigFile_shouldReportMissingConfigState() {
         prepareFileDirectories(doesReportsDirectoryExist = false)
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
 
-        fatalIssueReporter
-            .fatalIssueReporterStatus
-            .assert(FatalIssueReporterState.Integration.MissingConfigFile::class.java)
+        crashReporterStatus.assert(FatalIssueReporterState.Initialized.MissingConfigFile::class.java)
     }
 
     @Test
-    fun initialize_whenIntegrationMechanismAndValidConfigFileAndNotReports_shouldReportWithoutPriorPriorState() {
+    fun processCrashReportFile_withValidConfigFileAndNotReports_shouldReportWithoutPriorPriorState() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
             bitdriftConfigContent = "$SOURCE_PATH,json",
@@ -76,18 +55,15 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
 
-        fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.Integration.WithoutPriorFatalIssue::class.java,
+        crashReporterStatus.assert(
+            FatalIssueReporterState.Initialized.WithoutPriorFatalIssue::class.java,
         )
     }
 
     @Test
-    fun initialize_whenIntegrationMechanismAndWithoutSdkCrashDirectory_shouldReportInvalidCrashConfigDirectory() {
+    fun processCrashReportFile_withoutSdkCrashDirectory_shouldReportInvalidCrashConfigDirectory() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
             bitdriftConfigContent = "$SOURCE_PATH,json",
@@ -95,96 +71,51 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
 
-        fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.Integration.InvalidConfigDirectory::class.java,
+        crashReporterStatus.assert(
+            FatalIssueReporterState.Initialized.InvalidCrashConfigDirectory::class.java,
         )
     }
 
     @Test
-    fun initialize_whenIntegrationMechanismAndValidConfigFileAndReports_shouldReportSentPriorReport() {
+    fun processCrashReportFile_withValidConfigFileAndReports_shouldReportSentPriorReport() {
         assertFileSent("$SOURCE_PATH,json")
     }
 
     @Test
-    fun initialize_whenIntegrationMechanismAndConfigWithSpacesAndReports_shouldReportSentPriorReport() {
+    fun processCrashReportFile_withConfigWithSpacesAndReports_shouldReportSentPriorReport() {
         assertFileSent(" $SOURCE_PATH , json       ")
     }
 
     @Test
-    fun initialize_whenCustomConfigAndInValidExtensionConfigAndReports_shouldReportPriorPrior() {
+    fun processCrashReportFile_withInValidExtensionConfigAndReports_shouldReportPriorPrior() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
             bitdriftConfigContent = "$SOURCE_PATH,yaml",
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
 
-        fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.Integration.WithoutPriorFatalIssue::class.java,
+        crashReporterStatus.assert(
+            FatalIssueReporterState.Initialized.WithoutPriorFatalIssue::class.java,
         )
     }
 
     @Test
-    fun initialize_whenIntegrationMechanismAndMalformedConfigFileAndPriorReport_shouldReportMalformedConfigFiles() {
+    fun processPriorReportFile_withMalformedConfigFileAndPriorReport_shouldReportMalformedConfigFiles() {
         prepareFileDirectories(
             doesReportsDirectoryExist = true,
             bitdriftConfigContent = "/data/crashdemo/etc",
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
+        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
+
+        crashReporterStatus.assert(
+            FatalIssueReporterState.Initialized.MalformedConfigFile::class.java,
         )
-
-        fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.Integration.MalformedConfigFile::class.java,
-        )
-    }
-
-    @Test
-    fun initialize_whenBuiltInMechanism_shouldInitCrashHandlerAndFetchAppExitReason() {
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.BuiltIn)
-
-        verify(captureUncaughtExceptionHandler).install(eq(fatalIssueReporter))
-        verify(latestAppExitInfoProvider).get(any())
-        fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.BuiltIn::class.java,
-        )
-    }
-
-    @Test
-    fun initialize_whenBuiltInMechanismAndArtificialError_shouldReportFailedInitState() {
-        val mainThreadHandlerWithException: MainThreadHandler =
-            mock {
-                on { run(any()) } doAnswer { throw FakeJvmException() }
-                on { runAndReturnResult<Any>(any()) } doAnswer { throw FakeJvmException() }
-            }
-        val fatalIssueReporter = buildReporter(mainThreadHandlerWithException)
-
-        fatalIssueReporter.initialize(appContext, FatalIssueMechanism.BuiltIn)
-
-        verify(captureUncaughtExceptionHandler, never()).install(any())
-        verify(captureUncaughtExceptionHandler).uninstall()
-        verify(latestAppExitInfoProvider, never()).get(any())
-        fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.ProcessingFailure::class.java,
-        )
-        val state =
-            fatalIssueReporter.fatalIssueReporterStatus.state
-                    as FatalIssueReporterState.ProcessingFailure
-        assertThat(state.fatalIssueMechanism).isEqualTo(FatalIssueMechanism.BuiltIn)
-        assertThat(state.errorMessage)
-            .isEqualTo("Error while initializing reporter for BuiltIn mode. Fake JVM exception")
     }
 
     private fun FatalIssueReporterStatus.assert(
@@ -192,16 +123,12 @@ class FatalIssueReporterTest {
         crashFileExist: Boolean = false,
     ) {
         assertThat(state).isInstanceOf(expectedType)
+        assertThat(duration != null).isTrue()
         val expectedMap: Map<String, FieldValue> =
             buildMap {
                 put("_fatal_issue_reporting_duration_ms", getDuration().toFieldValue())
                 put("_fatal_issue_reporting_state", state.readableType.toFieldValue())
             }
-        if (expectedType == FatalIssueReporterState.ProcessingFailure::class.java) {
-            assertThat(duration).isNull()
-        } else {
-            assertThat(duration).isNotNull()
-        }
         assertThat(buildFieldsMap()).isEqualTo(expectedMap)
         assertCrashFile(crashFileExist)
     }
@@ -227,8 +154,7 @@ class FatalIssueReporterTest {
             bitdriftConfigContent?.let {
                 if (!it.contains(",")) return
                 val sourcePath = it.split(",")[0].trim()
-                sourceCrashDirectory =
-                    File(sourcePath.replace("{cache_dir}", APP_CONTEXT.cacheDir.absolutePath))
+                sourceCrashDirectory = File(sourcePath.replace("{cache_dir}", appContext.cacheDir.absolutePath))
                 if (sourceCrashDirectory?.exists() == false) {
                     sourceCrashDirectory?.mkdirs()
                 }
@@ -256,12 +182,9 @@ class FatalIssueReporterTest {
         assertThat(crashFile.exists()).isEqualTo(crashFileExist)
     }
 
-    private fun buildReporter(mainThreadHandler: MainThreadHandler): FatalIssueReporter =
-        FatalIssueReporter(
-            mainThreadHandler,
-            latestAppExitInfoProvider,
-            captureUncaughtExceptionHandler,
-        )
+    private companion object {
+        private const val SOURCE_PATH = "{cache_dir}/my fake path/acme"
+    }
 
     private fun assertFileSent(bitdriftConfigContent: String) {
         prepareFileDirectories(
@@ -270,17 +193,10 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
 
-        fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.Integration.FatalIssueReportSent::class.java,
+        crashReporterStatus.assert(
+            FatalIssueReporterState.Initialized.FatalIssueReportSent::class.java,
         )
-    }
-
-    private companion object {
-        private const val SOURCE_PATH = "{cache_dir}/my fake path/acme"
     }
 }
