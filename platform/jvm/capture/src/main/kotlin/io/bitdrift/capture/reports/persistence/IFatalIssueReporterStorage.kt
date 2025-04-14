@@ -19,7 +19,6 @@ internal interface IFatalIssueReporterStorage {
      */
     fun persistFatalIssue(
         terminationTimeStampInMilli: Long,
-        fatalIssueType: FatalIssueType,
         fatalIssueReport: FatalIssueReport,
     )
 }

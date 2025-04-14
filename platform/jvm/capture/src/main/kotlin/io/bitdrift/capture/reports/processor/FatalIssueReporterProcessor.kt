@@ -44,7 +44,6 @@ internal class FatalIssueReporterProcessor(
             fatalIssueReporterStorage
                 .persistFatalIssue(
                     timestamp,
-                    fatalIssueType,
                     report,
                 )
         }
@@ -64,7 +63,6 @@ internal class FatalIssueReporterProcessor(
         fatalIssueReporterStorage
             .persistFatalIssue(
                 timestamp,
-                FatalIssueType.JVM_CRASH,
                 fatalIssueReport,
             )
     }

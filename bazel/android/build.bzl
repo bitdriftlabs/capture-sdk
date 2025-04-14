@@ -15,7 +15,11 @@ def bitdrift_kt_android_library(name, srcs, require_javadocs = True, **args):
         **args
     )
 
-    _jvm_lint_support(name, srcs, require_javadocs)
+    _jvm_lint_support(
+        name,
+        native.glob(srcs, exclude = ["**/binformat/**"]),
+        require_javadocs,
+    )
 
 def bitdrift_kt_jvm_library(name, srcs, require_javadocs = True, **args):
     kt_jvm_library(
