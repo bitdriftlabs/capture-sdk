@@ -72,7 +72,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
             FATAL_ISSUE_SOURCE_PREFS_KEY,
             FATAL_ISSUE_TYPE_TITLE,
             FATAL_ISSUE_REPORTING_TYPES,
-            FatalIssueMechanism.INTEGRATION.displayName,
+            FatalIssueMechanism.Integration.displayName,
             context
         )
         backendCategory.addPreference(sessionStrategyPref)
@@ -118,18 +118,18 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         private const val FATAL_ISSUE_TYPE_TITLE = "Fatal Issue Reporting Source Type"
         private val FATAL_ISSUE_REPORTING_TYPES =
             arrayOf(
-                FatalIssueMechanism.BUILT_IN.displayName,
-                FatalIssueMechanism.INTEGRATION.displayName)
+                FatalIssueMechanism.BuiltIn.displayName,
+                FatalIssueMechanism.Integration.displayName)
 
         private val SESSION_STRATEGY_ENTRIES =
             arrayOf(SessionStrategyPreferences.FIXED.displayName, SessionStrategyPreferences.ACTIVITY_BASED.displayName)
 
         fun getFatalIssueSourceConfig(sharedPreferences: SharedPreferences):FatalIssueMechanism{
             val displayName = sharedPreferences.getString(FATAL_ISSUE_SOURCE_PREFS_KEY, null)
-            return if(displayName == FatalIssueMechanism.BUILT_IN.displayName){
-                FatalIssueMechanism.BUILT_IN
+            return if(displayName == FatalIssueMechanism.BuiltIn.displayName){
+                FatalIssueMechanism.BuiltIn
             }else {
-                FatalIssueMechanism.INTEGRATION
+                FatalIssueMechanism.Integration
             }
         }
     }

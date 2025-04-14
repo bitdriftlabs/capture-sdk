@@ -11,25 +11,25 @@ package io.bitdrift.capture.reports
  * Specifies the fatal issue reporting mechanism. mechanism.
  *
  */
-enum class FatalIssueMechanism(
+sealed class FatalIssueMechanism(
     /**
-     * The readable name that can be send via [InternalFieldsLog]
+     * The deobfuscated name used for logging
      */
     val displayName: String,
 ) {
     /**
-     * Use this option, to integrate with existing fatal issue reporting mechanism. This will scan for specific
-     * fatal issues on the configured directory
+     * Use this option to integrate with an existing fatal issue reporting mechanism.
+     * This will scan for specific fatal issues on the configured directory.
      */
-    INTEGRATION("INTEGRATION"),
+    data object Integration : FatalIssueMechanism("INTEGRATION")
 
     /**
-     * Built in implementation that doesn't rely on any 3rd party integration
+     * Built-in fatal issue reporter implementation that doesn't rely on any 3rd party integration
      */
-    BUILT_IN("BUILT_IN"),
+    data object BuiltIn : FatalIssueMechanism("BUILT_IN")
 
     /**
-     * This is the default if [Capture.Logger.initFatalIssueReporting] never called
+     * Internal fallback mechanism when FatalIssueReporting is never set
      */
-    NONE("NONE"),
+    internal data object None : FatalIssueMechanism("NONE")
 }
