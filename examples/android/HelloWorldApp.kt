@@ -30,7 +30,7 @@ class HelloWorldApp : Application() {
         super.onCreate()
         
         @OptIn(ExperimentalBitdriftApi::class)
-        Logger.initFatalIssueReporting(FatalIssueMechanism.BUILT_IN)
+        Logger.initFatalIssueReporting(FatalIssueMechanism.BuiltIn)
 
         setupExampleCrashHandler()
 
