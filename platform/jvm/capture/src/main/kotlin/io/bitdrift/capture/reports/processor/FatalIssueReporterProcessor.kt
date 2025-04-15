@@ -28,6 +28,7 @@ internal class FatalIssueReporterProcessor(
     private val fatalIssueReporterStorage: IFatalIssueReporterStorage,
 ) {
     private val clientAttributes by lazy {
+        // TODO(FranAguilera): BIT-5148 Refactor to avoid recreating ClientAttributes
         ClientAttributes(appContext, ProcessLifecycleOwner.get())
     }
     private val appMetrics: AppMetrics by lazy {
@@ -56,18 +57,12 @@ internal class FatalIssueReporterProcessor(
         val report: FatalIssueReport? =
             when (fatalIssueType) {
                 FatalIssueType.ANR -> {
-                    val processedData =
-                        AppExitAnrTraceProcessor.process(
-                            appMetrics.appId,
-                            description,
-                            traceInputStream,
-                        )
-                    FatalIssueReport(
+                    AppExitAnrTraceProcessor.process(
                         sdk,
                         appMetrics,
                         deviceMetrics,
-                        processedData.errors,
-                        processedData.threadDetails,
+                        description,
+                        traceInputStream,
                     )
                 }
 
@@ -106,14 +101,12 @@ internal class FatalIssueReporterProcessor(
         callerThread: Thread,
         throwable: Throwable,
     ) {
-        val jvmData = JvmCrashProcessor.getJvmCrashReport(throwable)
         val fatalIssueReport =
-            FatalIssueReport(
+            JvmCrashProcessor.getJvmCrashReport(
                 sdk = sdk,
                 appMetrics = appMetrics,
                 deviceMetrics = deviceMetrics,
-                errors = jvmData.errors,
-                threadsDetails = jvmData.threadDetails,
+                throwable = throwable,
             )
         fatalIssueReporterStorage.persistFatalIssue(
             timestamp,

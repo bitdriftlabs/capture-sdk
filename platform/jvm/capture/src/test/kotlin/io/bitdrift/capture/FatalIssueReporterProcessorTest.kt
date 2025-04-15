@@ -200,6 +200,8 @@ class FatalIssueReporterProcessorTest {
             "Input dispatching timed out (219180 " +
                 "io.bitdrift.capture/io.bitdrift.capture.MainActivity (server) " +
                 "is not responding. Waited 5004ms for MotionEvent"
+
+        // TODO(FranAguilera): BIT-5142 use raw files
         const val APP_EXIT_VALID_ANR_TRACE =
             "\"main\" prio=5 tid=1 Blocked\n" +
                 "  | group=\"main\" sCount=1 ucsCount=0 flags=1 obj=0x721b0f98 self=0xb400007d136a27b0\n" +

@@ -7,9 +7,13 @@
 
 package io.bitdrift.capture.reports.processor
 
+import io.bitdrift.capture.reports.AppMetrics
+import io.bitdrift.capture.reports.DeviceMetrics
 import io.bitdrift.capture.reports.ErrorDetails
+import io.bitdrift.capture.reports.FatalIssueReport
 import io.bitdrift.capture.reports.FrameDetails
 import io.bitdrift.capture.reports.FrameType
+import io.bitdrift.capture.reports.Sdk
 import io.bitdrift.capture.reports.SourceFile
 import io.bitdrift.capture.reports.ThreadDetails
 import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor.Companion.UNKNOWN_FIELD_VALUE
@@ -22,7 +26,12 @@ internal object JvmCrashProcessor {
     private const val CLASS_NAME_SEPARATOR = "."
     private const val INVALID_LINE_NUMBER_ID = -1
 
-    fun getJvmCrashReport(throwable: Throwable): ProcessedData {
+    fun getJvmCrashReport(
+        sdk: Sdk,
+        appMetrics: AppMetrics,
+        deviceMetrics: DeviceMetrics,
+        throwable: Throwable,
+    ): FatalIssueReport {
         val frameDetails: List<FrameDetails> =
             throwable.stackTrace.map { element ->
                 val sourceFile =
@@ -47,8 +56,14 @@ internal object JvmCrashProcessor {
                     stackTrace = frameDetails,
                 ),
             )
-        // TODO(FranAguilera): BIT-5142. Append thread info
-        return ProcessedData(errors = errors, threadDetails = ThreadDetails())
+        return FatalIssueReport(
+            sdk,
+            appMetrics,
+            deviceMetrics,
+            errors,
+            // TODO(FranAguilera): BIT-5142. Append thread info
+            ThreadDetails(),
+        )
     }
 
     private fun getMethodName(stackTraceElement: StackTraceElement): String {

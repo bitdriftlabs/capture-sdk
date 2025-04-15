@@ -7,9 +7,13 @@
 
 package io.bitdrift.capture.reports.processor
 
+import io.bitdrift.capture.reports.AppMetrics
+import io.bitdrift.capture.reports.DeviceMetrics
 import io.bitdrift.capture.reports.ErrorDetails
+import io.bitdrift.capture.reports.FatalIssueReport
 import io.bitdrift.capture.reports.FrameDetails
 import io.bitdrift.capture.reports.FrameType
+import io.bitdrift.capture.reports.Sdk
 import io.bitdrift.capture.reports.SourceFile
 import io.bitdrift.capture.reports.ThreadDetails
 import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor.Companion.UNKNOWN_FIELD_VALUE
@@ -33,15 +37,17 @@ internal object AppExitAnrTraceProcessor {
      * Process valid traceInputStream
      */
     fun process(
-        applicationId: String,
+        sdk: Sdk,
+        appMetrics: AppMetrics,
+        deviceMetrics: DeviceMetrics,
         description: String?,
         traceInputStream: InputStream,
-    ): ProcessedData {
+    ): FatalIssueReport {
         val inputStreamReader = InputStreamReader(traceInputStream)
         BufferedReader(inputStreamReader)
             .useLines { lines ->
                 lines.forEach { currentLine ->
-                    appendMainFramesIfNeeded(currentLine, applicationId)
+                    appendMainFramesIfNeeded(currentLine, appMetrics.appId)
                 }
             }
         val errors =
@@ -53,8 +59,14 @@ internal object AppExitAnrTraceProcessor {
                     stackTrace = mainStackTraceFrames,
                 ),
             )
-        // TODO(FranAguilera): BIT-5142. Append thread info
-        return ProcessedData(errors = errors, threadDetails = ThreadDetails())
+        return FatalIssueReport(
+            sdk,
+            appMetrics,
+            deviceMetrics,
+            errors,
+            // TODO(FranAguilera): BIT-5142. Append thread info
+            ThreadDetails(),
+        )
     }
 
     private fun isStackTraceLine(currentLine: String) = currentLine.trim().startsWith(ANR_STACKTRACE_PREFIX)
