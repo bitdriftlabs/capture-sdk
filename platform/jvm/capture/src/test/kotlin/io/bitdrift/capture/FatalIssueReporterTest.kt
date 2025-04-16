@@ -7,8 +7,11 @@
 
 package io.bitdrift.capture
 
+import android.app.Activity
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.reports.FatalIssueReporter
@@ -20,6 +23,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
@@ -116,6 +120,19 @@ class FatalIssueReporterTest {
         crashReporterStatus.assert(
             FatalIssueReporterState.Initialized.MalformedConfigFile::class.java,
         )
+    }
+
+    @Test
+    fun processPriorReportFiles_withActivityContext_shouldReportProcessingFailure() {
+        val activityContext = Robolectric.buildActivity(Activity::class.java).create().get()
+        val fatalIssueReporter = FatalIssueReporter(activityContext, Mocks.sameThreadHandler)
+
+        val crashReporterStatus = fatalIssueReporter.processPriorReportFiles()
+
+        assertThat(crashReporterStatus.state is FatalIssueReporterState.Initialized.ProcessingFailure).isTrue()
+        if(crashReporterStatus.state is FatalIssueReporterState.Initialized.ProcessingFailure){
+            assertThat(crashReporterStatus.state.errorMessage).isEqualTo("Non-Application context passed into initFatalIssueReporting")
+        }
     }
 
     private fun FatalIssueReporterStatus.assert(
