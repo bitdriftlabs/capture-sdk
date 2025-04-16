@@ -7,8 +7,8 @@
 
 package io.bitdrift.capture
 
+import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.reports.FatalIssueReporter
@@ -29,13 +29,12 @@ import java.io.File
 class FatalIssueReporterTest {
     private lateinit var fatalIssueReporter: FatalIssueReporter
     private lateinit var reportsDir: File
+    val appContext = ApplicationProvider.getApplicationContext<Context>()
 
     @Before
     fun setup() {
-        val initializer = ContextHolder()
-        initializer.create(ApplicationProvider.getApplicationContext())
-        reportsDir = File(APP_CONTEXT.filesDir, "bitdrift_capture/reports/")
-        fatalIssueReporter = FatalIssueReporter(Mocks.sameThreadHandler)
+        reportsDir = File(appContext.filesDir, "bitdrift_capture/reports/")
+        fatalIssueReporter = FatalIssueReporter(ApplicationProvider.getApplicationContext(), Mocks.sameThreadHandler)
     }
 
     @Test
@@ -155,7 +154,7 @@ class FatalIssueReporterTest {
             bitdriftConfigContent?.let {
                 if (!it.contains(",")) return
                 val sourcePath = it.split(",")[0].trim()
-                sourceCrashDirectory = File(sourcePath.replace("{cache_dir}", APP_CONTEXT.cacheDir.absolutePath))
+                sourceCrashDirectory = File(sourcePath.replace("{cache_dir}", appContext.cacheDir.absolutePath))
                 if (sourceCrashDirectory?.exists() == false) {
                     sourceCrashDirectory?.mkdirs()
                 }

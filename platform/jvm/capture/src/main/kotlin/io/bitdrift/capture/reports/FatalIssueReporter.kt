@@ -7,11 +7,11 @@
 
 package io.bitdrift.capture.reports
 
+import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
-import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
@@ -28,10 +28,9 @@ import kotlin.time.measureTime
  * Handles internal reporting of crashes
  */
 internal class FatalIssueReporter(
+    private val appContext: Context,
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) {
-    private val appContext by lazy { APP_CONTEXT }
-
     /**
      * Process existing crash report files.
      *
