@@ -56,7 +56,7 @@ internal sealed class LoggerState {
  * Top level namespace Capture SDK.
  */
 object Capture {
-    private const val LOG_TAG = "bitdrift capture"
+    private const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
     private var fatalIssueReporterStatus: FatalIssueReporterStatus = FatalIssueReporterStatus(FatalIssueReporterState.NotInitialized)
 
