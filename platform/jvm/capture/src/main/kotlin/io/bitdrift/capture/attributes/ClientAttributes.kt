@@ -84,4 +84,13 @@ internal class ClientAttributes(
         } else {
             getPackageInfo(packageName, flags)
         }
+
+    /**
+     * Holds constants for Client attributes
+     */
+    companion object {
+        // The unique sdk library that can be used for custom reports
+        // TODO(FranAguilera): BIT-5149 Finalize model
+        const val SDK_LIBRARY_ID = "io.bitdrift.capture-android"
+    }
 }
