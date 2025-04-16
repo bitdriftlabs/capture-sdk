@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture
 
+import android.content.Context
 import android.util.Log
 import com.github.michaelbull.result.Err
 import io.bitdrift.capture.common.MainThreadHandler
@@ -106,8 +107,8 @@ object Capture {
         @Suppress("UnusedPrivateMember")
         @ExperimentalBitdriftApi
         @JvmStatic
-        fun initFatalIssueReporting() {
-            val fatalIssueReporter = FatalIssueReporter()
+        fun initFatalIssueReporting(applicationContext: Context) {
+            val fatalIssueReporter = FatalIssueReporter(applicationContext)
             if (fatalIssueReporterStatus.state is FatalIssueReporterState.NotInitialized) {
                 fatalIssueReporterStatus = fatalIssueReporter.processPriorReportFiles()
             } else {
