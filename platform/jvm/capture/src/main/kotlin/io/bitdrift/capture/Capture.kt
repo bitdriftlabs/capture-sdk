@@ -110,6 +110,7 @@ object Capture {
         @Suppress("UnusedPrivateMember")
         @ExperimentalBitdriftApi
         @JvmStatic
+        @JvmOverloads
         fun initFatalIssueReporting(context: Context? = null) {
             if (context == null && !ContextHolder.isInitialized) {
                 Log.w(LOG_TAG, "Attempted to initialize Fatal Issue Reporting with a null context. Skipping enabling crash tracking.")
