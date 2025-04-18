@@ -34,10 +34,10 @@ internal class ResourceUtilizationTarget(
         executor.execute {
             try {
                 val start = clock.elapsedRealtime()
-                val memorySnapshot = memoryMetricsProvider.getMemorySnapshot()
+                val memorySnapshot = memoryMetricsProvider.getMemoryAttributes()
                 val fields =
                     buildMap {
-                        putAll(memorySnapshot.attributes)
+                        putAll(memorySnapshot)
                         putAll(diskUsageMonitor.getDiskUsage())
                         putPair(batteryMonitor.batteryPercentageAttribute())
                         putPair(batteryMonitor.isBatteryChargingAttribute())
@@ -45,10 +45,11 @@ internal class ResourceUtilizationTarget(
                     }
 
                 val duration = clock.elapsedRealtime() - start
-                logger.logResourceUtilization(fields, duration.toDuration(DurationUnit.MILLISECONDS))
-                if (memorySnapshot.isMemoryLow) {
-                    logMemoryPressure(memorySnapshot.attributes)
+                if (memoryMetricsProvider.isMemoryLow()) {
+                    // we give precedence to memory pressure log in case since we might be low on mem
+                    logMemoryPressure(memorySnapshot)
                 }
+                logger.logResourceUtilization(fields, duration.toDuration(DurationUnit.MILLISECONDS))
             } catch (e: Throwable) {
                 errorHandler.handleError("resource utilization tick", e)
             }

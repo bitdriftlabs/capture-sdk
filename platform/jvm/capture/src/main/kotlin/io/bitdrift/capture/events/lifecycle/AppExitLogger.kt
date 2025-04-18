@@ -169,7 +169,7 @@ internal class AppExitLogger(
             put(APP_EXIT_INFO_KEY, rootCause.javaClass.name)
             put(APP_EXIT_DETAILS_KEY, rootCause.message.orEmpty())
             put(APP_EXIT_THREAD_KEY, thread.name)
-            putAll(memoryMetricsProvider.getMemorySnapshot().attributes)
+            putAll(memoryMetricsProvider.getMemoryAttributes())
         }.toFields()
     }
 
@@ -177,7 +177,7 @@ internal class AppExitLogger(
     private fun buildAppExitInternalFieldsMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap =
         buildMap {
             putAll(applicationExitInfo.toMap().toFields())
-            putAll(memoryMetricsProvider.getMemorySnapshot().attributes.toFields())
+            putAll(memoryMetricsProvider.getMemoryAttributes().toFields())
         }
 
     @TargetApi(Build.VERSION_CODES.R)

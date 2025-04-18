@@ -91,7 +91,7 @@ internal class LoggerImpl(
     private val apiLevelChecker: ApiLevelChecker = ApiLevelChecker(),
 ) : ILogger {
     private val metadataProvider: MetadataProvider
-    private val memoryMetricsProvider = MemoryMetricsProvider(context)
+    private val memoryMetricsProvider = MemoryMetricsProvider(activityManager)
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
     private val diskUsageMonitor: DiskUsageMonitor

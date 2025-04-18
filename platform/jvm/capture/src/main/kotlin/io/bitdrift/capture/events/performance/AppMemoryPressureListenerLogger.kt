@@ -49,7 +49,7 @@ internal class AppMemoryPressureListenerLogger(
                 "_trim_level" to getTrimLevelAsString(level),
             )
 
-        fields.putAll(memoryMetricsProvider.getMemorySnapshot().attributes)
+        fields.putAll(memoryMetricsProvider.getMemoryAttributes())
 
         return fields
     }

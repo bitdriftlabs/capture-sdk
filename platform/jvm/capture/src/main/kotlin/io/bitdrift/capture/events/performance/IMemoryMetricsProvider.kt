@@ -10,23 +10,12 @@ package io.bitdrift.capture.events.performance
 /**
  * Provides Memory related attributes such as Memory class, Total JVM memory, used JVM memory, etc
  */
-fun interface IMemoryMetricsProvider {
+interface IMemoryMetricsProvider {
     /**
      * Reports current memory attributes
      */
-    fun getMemorySnapshot(): MemorySnapshot
-}
+    fun getMemoryAttributes(): Map<String, String>
 
-/**
- * Represents a snapshot of the device's memory state.
- *
- * @property attributes A map of key-value pairs representing various memory-related attributes.
- *                     These attributes are already formatted in the "bitdrift-standard" with values that
- *                     might include things like "_memory_class", "_is_memory_low", etc.
- * @property isMemoryLow A boolean flag indicating whether the device is currently experiencing
- *                       a low memory condition.
- */
-data class MemorySnapshot(
-    val attributes: Map<String, String>,
-    val isMemoryLow: Boolean,
-)
+    /** Reports whether the device is currently experiencing a low memory condition */
+    fun isMemoryLow(): Boolean
+}
