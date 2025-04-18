@@ -29,7 +29,7 @@ import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.threading.CaptureDispatchers
-import io.bitdrift.capture.utils.BuildVersionChecker
+import io.bitdrift.capture.utils.ApiLevelChecker
 import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
 
@@ -39,7 +39,7 @@ internal class AppExitLogger(
     private val runtime: Runtime,
     private val errorHandler: ErrorHandler,
     private val crashHandler: CaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler(),
-    private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
+    private val versionChecker: ApiLevelChecker = ApiLevelChecker(),
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider(),
@@ -169,7 +169,7 @@ internal class AppExitLogger(
             put(APP_EXIT_INFO_KEY, rootCause.javaClass.name)
             put(APP_EXIT_DETAILS_KEY, rootCause.message.orEmpty())
             put(APP_EXIT_THREAD_KEY, thread.name)
-            putAll(memoryMetricsProvider.getMemoryAttributes())
+            putAll(memoryMetricsProvider.getMemorySnapshot().attributes)
         }.toFields()
     }
 
@@ -177,7 +177,7 @@ internal class AppExitLogger(
     private fun buildAppExitInternalFieldsMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap =
         buildMap {
             putAll(applicationExitInfo.toMap().toFields())
-            putAll(memoryMetricsProvider.getMemoryAttributes().toFields())
+            putAll(memoryMetricsProvider.getMemorySnapshot().attributes.toFields())
         }
 
     @TargetApi(Build.VERSION_CODES.R)

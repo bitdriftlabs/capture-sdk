@@ -23,7 +23,7 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.lifecycle.AppLifecycleListenerLogger
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.utils.BuildVersionChecker
+import io.bitdrift.capture.utils.ApiLevelChecker
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
@@ -37,7 +37,7 @@ class AppLifecycleListenerLoggerTest {
     private val runtime: Runtime = mock()
     private val executor: ExecutorService = MoreExecutors.newDirectExecutorService()
     private val handler = Mocks.sameThreadHandler
-    private val versionChecker: BuildVersionChecker = mock()
+    private val versionChecker: ApiLevelChecker = mock()
 
     private lateinit var appLifecycleLogger: AppLifecycleListenerLogger
 

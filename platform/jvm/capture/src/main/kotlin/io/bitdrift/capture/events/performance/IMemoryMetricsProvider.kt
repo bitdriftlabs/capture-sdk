@@ -14,5 +14,19 @@ fun interface IMemoryMetricsProvider {
     /**
      * Reports current memory attributes
      */
-    fun getMemoryAttributes(): Map<String, String>
+    fun getMemorySnapshot(): MemorySnapshot
 }
+
+/**
+ * Represents a snapshot of the device's memory state.
+ *
+ * @property attributes A map of key-value pairs representing various memory-related attributes.
+ *                     These attributes are already formatted in the "bitdrift-standard" with values that
+ *                     might include things like "_memory_class", "_is_memory_low", etc.
+ * @property isMemoryLow A boolean flag indicating whether the device is currently experiencing
+ *                       a low memory condition.
+ */
+data class MemorySnapshot(
+    val attributes: Map<String, String>,
+    val isMemoryLow: Boolean,
+)

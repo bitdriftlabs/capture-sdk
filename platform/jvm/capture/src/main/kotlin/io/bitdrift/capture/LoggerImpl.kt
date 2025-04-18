@@ -12,6 +12,7 @@ import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
 import android.content.pm.ApplicationInfo
+import android.os.Build
 import android.system.Os
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -52,6 +53,7 @@ import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.FatalIssueReporter.Companion.buildFieldsMap
 import io.bitdrift.capture.reports.FatalIssueReporterStatus
 import io.bitdrift.capture.threading.CaptureDispatchers
+import io.bitdrift.capture.utils.ApiLevelChecker
 import io.bitdrift.capture.utils.SdkDirectory
 import okhttp3.HttpUrl
 import java.util.UUID
@@ -86,6 +88,7 @@ internal class LoggerImpl(
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
     private val fatalIssueReporterStatus: FatalIssueReporterStatus,
+    private val apiLevelChecker: ApiLevelChecker = ApiLevelChecker(),
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val memoryMetricsProvider = MemoryMetricsProvider(context)
@@ -231,15 +234,18 @@ internal class LoggerImpl(
                     ),
                 )
 
-                eventsListenerTarget.add(
-                    AppMemoryPressureListenerLogger(
-                        this,
-                        context,
-                        memoryMetricsProvider,
-                        runtime,
-                        eventListenerDispatcher.executorService,
-                    ),
-                )
+                // ComponentCallbacks2.TRIM levels have been deprecated as of API level 34
+                if (apiLevelChecker.isAtMost(Build.VERSION_CODES.TIRAMISU)) {
+                    eventsListenerTarget.add(
+                        AppMemoryPressureListenerLogger(
+                            this,
+                            context,
+                            memoryMetricsProvider,
+                            runtime,
+                            eventListenerDispatcher.executorService,
+                        ),
+                    )
+                }
 
                 eventsListenerTarget.add(
                     AppUpdateListenerLogger(

@@ -7,9 +7,11 @@
 
 package io.bitdrift.capture.events.performance
 
+import android.annotation.TargetApi
 import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.res.Configuration
+import android.os.Build
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
@@ -19,6 +21,7 @@ import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.providers.toFields
 import java.util.concurrent.ExecutorService
 
+@TargetApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 internal class AppMemoryPressureListenerLogger(
     private val logger: LoggerImpl,
     private val context: Context,
@@ -27,7 +30,7 @@ internal class AppMemoryPressureListenerLogger(
     private val executor: ExecutorService,
 ) : IEventListenerLogger,
     ComponentCallbacks2 {
-    // TODO(murki): Remove the usage of these fields altogether
+
     @Suppress("DEPRECATION")
     private fun getTrimLevelAsString(level: Int): String =
         when (level) {
@@ -47,7 +50,7 @@ internal class AppMemoryPressureListenerLogger(
                 "_trim_level" to getTrimLevelAsString(level),
             )
 
-        fields.putAll(memoryMetricsProvider.getMemoryAttributes())
+        fields.putAll(memoryMetricsProvider.getMemorySnapshot().attributes)
 
         return fields
     }
