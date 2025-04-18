@@ -15,7 +15,7 @@ private const val KB = 1024L
 internal class MemoryMetricsProvider(
     private val activityManager: ActivityManager,
 ) : IMemoryMetricsProvider {
-    // We only save the threshold on first access since it's a constant value obtained via an expensive operation
+    // We only save the threshold on first access since it's a constant value obtained via a rather expensive Binder call
     private val memoryThresholdBytes: Long by lazy {
         ActivityManager
             .MemoryInfo()
