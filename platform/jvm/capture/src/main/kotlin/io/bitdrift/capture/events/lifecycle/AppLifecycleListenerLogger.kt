@@ -22,7 +22,7 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.utils.ApiLevelChecker
+import io.bitdrift.capture.utils.BuildVersionChecker
 import java.util.concurrent.ExecutorService
 
 internal class AppLifecycleListenerLogger(
@@ -32,7 +32,7 @@ internal class AppLifecycleListenerLogger(
     private val runtime: Runtime,
     private val executor: ExecutorService,
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
-    private val versionChecker: ApiLevelChecker = ApiLevelChecker(),
+    private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
 ) : IEventListenerLogger,
     LifecycleEventObserver {
     private val lifecycleEventNames =

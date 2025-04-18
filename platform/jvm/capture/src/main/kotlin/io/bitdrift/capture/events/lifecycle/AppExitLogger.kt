@@ -29,7 +29,7 @@ import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.threading.CaptureDispatchers
-import io.bitdrift.capture.utils.ApiLevelChecker
+import io.bitdrift.capture.utils.BuildVersionChecker
 import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
 
@@ -39,7 +39,7 @@ internal class AppExitLogger(
     private val runtime: Runtime,
     private val errorHandler: ErrorHandler,
     private val crashHandler: CaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler(),
-    private val versionChecker: ApiLevelChecker = ApiLevelChecker(),
+    private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider(),

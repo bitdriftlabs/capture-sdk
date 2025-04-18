@@ -10,7 +10,7 @@ package io.bitdrift.capture.utils
 import android.os.Build
 import androidx.annotation.ChecksSdkIntAtLeast
 
-internal class ApiLevelChecker {
+internal class BuildVersionChecker {
     @ChecksSdkIntAtLeast(parameter = 0)
     fun isAtLeast(min: Int): Boolean = Build.VERSION.SDK_INT >= min
 

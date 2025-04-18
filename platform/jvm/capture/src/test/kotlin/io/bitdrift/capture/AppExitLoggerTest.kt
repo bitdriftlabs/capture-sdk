@@ -28,7 +28,7 @@ import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_ST
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.utils.ApiLevelChecker
+import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
@@ -42,7 +42,7 @@ class AppExitLoggerTest {
 
     private val errorHandler: ErrorHandler = mock()
     private val crashHandler: CaptureUncaughtExceptionHandler = mock()
-    private val versionChecker: ApiLevelChecker = mock()
+    private val versionChecker: BuildVersionChecker = mock()
     private val memoryMetricsProvider = FakeMemoryMetricsProvider()
     private val backgroundThreadHandler = FakeBackgroundThreadHandler()
     private val lastExitInfo = FakeLatestAppExitInfoProvider()
