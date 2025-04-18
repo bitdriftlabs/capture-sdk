@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.events
 
-import android.util.Log
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -21,7 +20,6 @@ internal class SafeEventListenerLogger(
     @Synchronized
     override fun start() {
         if (!isListening.getAndSet(true)) {
-            Log.i("miguel-EventListener", "Starting event listener logger=$this")
             listenerLogger.start()
         }
     }

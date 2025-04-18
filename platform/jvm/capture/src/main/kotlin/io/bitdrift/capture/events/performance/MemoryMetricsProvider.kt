@@ -22,17 +22,20 @@ internal class MemoryMetricsProvider(
         // we fetch the mem snapshot only once instead of doing it for each property
         val memoryInfo = memoryInfo()
         val isLowMemory = memoryInfo.lowMemory
-        return MemorySnapshot(mapOf(
-            "_jvm_used_kb" to usedJvmMemory(),
-            "_jvm_total_kb" to totalJvmMemory(),
-            "_native_used_kb" to allocatedNativeHeapSize(),
-            "_native_total_kb" to totalNativeHeapSize(),
-            "_memory_class" to memoryClass(),
-            "_is_memory_low" to isLowMemory.toString(),
-            "_avail_mem_kb" to memoryInfo.availMem.bToKb(),
-            "_total_mem_kb" to memoryInfo.totalMem.bToKb(),
-            "_threshold_mem_kb" to memoryInfo.threshold.bToKb(),
-        ), isLowMemory)
+        return MemorySnapshot(
+            mapOf(
+                "_jvm_used_kb" to usedJvmMemory(),
+                "_jvm_total_kb" to totalJvmMemory(),
+                "_native_used_kb" to allocatedNativeHeapSize(),
+                "_native_total_kb" to totalNativeHeapSize(),
+                "_memory_class" to memoryClass(),
+                "_is_memory_low" to isLowMemory.toString(),
+                "_avail_mem_kb" to memoryInfo.availMem.bToKb(),
+                "_total_mem_kb" to memoryInfo.totalMem.bToKb(),
+                "_threshold_mem_kb" to memoryInfo.threshold.bToKb(),
+            ),
+            isLowMemory,
+        )
     }
 
     private fun totalJvmMemory(): String = Runtime.getRuntime().totalMemory().bToKb()
@@ -45,9 +48,10 @@ internal class MemoryMetricsProvider(
 
     private fun memoryClass(): String = (activityManager.memoryClass).toString()
 
-    private fun memoryInfo(): ActivityManager.MemoryInfo = ActivityManager.MemoryInfo().also { memoryInfo ->
-        activityManager.getMemoryInfo(memoryInfo)
-    }
+    private fun memoryInfo(): ActivityManager.MemoryInfo =
+        ActivityManager.MemoryInfo().also { memoryInfo ->
+            activityManager.getMemoryInfo(memoryInfo)
+        }
 
     private fun Long.bToKb(): String = (this / KB).toString()
 }

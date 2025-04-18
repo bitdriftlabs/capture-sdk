@@ -30,7 +30,6 @@ internal class AppMemoryPressureListenerLogger(
     private val executor: ExecutorService,
 ) : IEventListenerLogger,
     ComponentCallbacks2 {
-
     @Suppress("DEPRECATION")
     private fun getTrimLevelAsString(level: Int): String =
         when (level) {
