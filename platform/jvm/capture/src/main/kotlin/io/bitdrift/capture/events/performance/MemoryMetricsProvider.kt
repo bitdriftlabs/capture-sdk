@@ -28,6 +28,7 @@ internal class MemoryMetricsProvider(
         mapOf(
             "_jvm_used_kb" to usedJvmMemoryBytes().bToKb(),
             "_jvm_total_kb" to totalJvmMemoryBytes().bToKb(),
+            "_jvm_max_kb" to maxJvmMemoryBytes().bToKb(),
             "_native_used_kb" to allocatedNativeHeapSizeBytes().bToKb(),
             "_native_total_kb" to totalNativeHeapSizeBytes().bToKb(),
             "_threshold_mem_kb" to memoryThresholdBytes.bToKb(),
@@ -42,6 +43,8 @@ internal class MemoryMetricsProvider(
     private fun totalJvmMemoryBytes(): Long = Runtime.getRuntime().totalMemory()
 
     private fun usedJvmMemoryBytes(): Long = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
+
+    private fun maxJvmMemoryBytes(): Long = Runtime.getRuntime().maxMemory()
 
     private fun allocatedNativeHeapSizeBytes(): Long = Debug.getNativeHeapAllocatedSize()
 
