@@ -275,7 +275,9 @@ class GradleTestApp : Application() {
             StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder()
                 .detectAll()
                 .penaltyLog()
-                .penaltyListener(strictModeReportingThread) { strictModeReporter.onThreadViolation(it)}
+                .penaltyListener(strictModeReportingThread) {
+                    strictModeReporter.onViolation(StrictModeReporter.ViolationType.THREAD, it)
+                }
                 .build()
             )
             StrictMode.setVmPolicy(
@@ -283,7 +285,7 @@ class GradleTestApp : Application() {
                     .detectAll()
                     .penaltyLog()
                     .penaltyListener(strictModeReportingThread){
-                        strictModeReporter.onVmViolation(it)
+                        strictModeReporter.onViolation(StrictModeReporter.ViolationType.VM, it)
                     }
                     .build()
             )
