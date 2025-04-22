@@ -51,17 +51,6 @@ internal class FatalIssueReporter(
         private set
 
     private lateinit var fatalIssueReporterProcessor: FatalIssueReporterProcessor
-    private val appContext by lazy { APP_CONTEXT }
-    private val sdkDirectory by lazy { SdkDirectory.getPath(appContext) }
-    private val destinationDirectory: File by lazy {
-        File(sdkDirectory, DESTINATION_FILE_PATH).apply { if (!exists()) mkdirs() }
-    }
-    private val fatalIssueReporterProcessor: FatalIssueReporterProcessor by lazy {
-        FatalIssueReporterProcessor(appContext, FatalIssueReporterStorage(destinationDirectory))
-    }
-    private val activityManager: ActivityManager by lazy {
-        appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-    }
 
     /**
      * Initializes the fatal issue reporting with the specified [io.bitdrift.capture.reports.FatalIssueMechanism]

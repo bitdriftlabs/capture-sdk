@@ -21,7 +21,7 @@ interface IFatalIssueReporter {
         appContext: Context,
         fatalIssueMechanism: FatalIssueMechanism,
     )
-    
+
     /**
      * Generates the [InternalFieldsMap] to be reported upon Capture.Logger.start with
      * details of FatalIssueReporter state
