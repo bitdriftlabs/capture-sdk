@@ -55,9 +55,9 @@ internal sealed class LoggerState {
  * Top level namespace Capture SDK.
  */
 object Capture {
-    private const val LOG_TAG = "BitdriftCapture"
+    internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
-    private val fatalIssueReporter by lazy {FatalIssueReporter()}
+    private val fatalIssueReporter = FatalIssueReporter()
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -110,18 +110,15 @@ object Capture {
         @ExperimentalBitdriftApi
         @JvmStatic
         @JvmOverloads
-        fun initFatalIssueReporting(context: Context? = null, fatalIssueMechanism: FatalIssueMechanism) {
+        fun initFatalIssueReporting(
+            context: Context? = null,
+            fatalIssueMechanism: FatalIssueMechanism,
+        ) {
             if (context == null && !ContextHolder.isInitialized) {
                 Log.w(LOG_TAG, "Attempted to initialize Fatal Issue Reporting with a null context. Skipping enabling crash tracking.")
                 return
             }
-
-            val fatalIssueReporter = FatalIssueReporter(context?.applicationContext ?: ContextHolder.APP_CONTEXT, fatalIssueMechanism)
-            if (fatalIssueReporterStatus.state is FatalIssueReporterState.Initialized) {
-                Log.w(LOG_TAG, "Fatal issue reporting already being initialized")
-                return
-            }
-            fatalIssueReporter.initialize(fatalIssueMechanism)
+            fatalIssueReporter.initialize(context?.applicationContext ?: ContextHolder.APP_CONTEXT, fatalIssueMechanism)
         }
 
         /**
