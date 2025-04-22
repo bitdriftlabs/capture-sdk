@@ -27,7 +27,7 @@ internal class StrictModeReporter {
             "strict_mode_stack_trace" to stackTrace
         )
         val details = "StrictMode ${violationType.name} violation. " + cause
-        Capture.Logger.logError(strictModeFields) { details }
+        Capture.Logger.logWarning (strictModeFields) { details }
     }
 
     internal enum class ViolationType {
