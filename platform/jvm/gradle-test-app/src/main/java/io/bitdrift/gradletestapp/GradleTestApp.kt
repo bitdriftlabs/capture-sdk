@@ -98,7 +98,7 @@ class GradleTestApp : Application() {
     private fun initLogging() {
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         @OptIn(ExperimentalBitdriftApi::class)
-        Capture.Logger.initFatalIssueReporting(getFatalIssueSourceConfig(sharedPreferences))
+        Capture.Logger.initFatalIssueReporting(fatalIssueMechanism = getFatalIssueSourceConfig(sharedPreferences))
 
         val stringApiUrl = sharedPreferences.getString("apiUrl", null)
         val apiUrl = stringApiUrl?.toHttpUrlOrNull()
