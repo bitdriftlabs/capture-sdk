@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture
 
+import android.content.Context
 import android.util.Log
 import com.github.michaelbull.result.Err
 import io.bitdrift.capture.common.MainThreadHandler
@@ -54,6 +55,7 @@ internal sealed class LoggerState {
  * Top level namespace Capture SDK.
  */
 object Capture {
+    internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
     private val fatalIssueReporter = FatalIssueReporter()
 
@@ -100,13 +102,23 @@ object Capture {
         /**
          * Initializes fatal issue (ANR, JVM Crash, Native crash) reporting mechanism.
          *
+         * @param context an optional context reference. You should provide the context if called from a [android.content.ContentProvider]
+         *
          * This should be called prior to Capture.Logger.start()
          */
         @Suppress("UnusedPrivateMember")
         @ExperimentalBitdriftApi
         @JvmStatic
-        fun initFatalIssueReporting(fatalIssueMechanism: FatalIssueMechanism) {
-            fatalIssueReporter.initialize(fatalIssueMechanism)
+        @JvmOverloads
+        fun initFatalIssueReporting(
+            context: Context? = null,
+            fatalIssueMechanism: FatalIssueMechanism,
+        ) {
+            if (context == null && !ContextHolder.isInitialized) {
+                Log.w(LOG_TAG, "Attempted to initialize Fatal Issue Reporting with a null context. Skipping enabling crash tracking.")
+                return
+            }
+            fatalIssueReporter.initialize(context?.applicationContext ?: ContextHolder.APP_CONTEXT, fatalIssueMechanism)
         }
 
         /**
@@ -163,7 +175,7 @@ object Capture {
             // There's nothing we can do if we don't have yet access to the application context.
             if (!ContextHolder.isInitialized) {
                 Log.w(
-                    "capture",
+                    LOG_TAG,
                     "Attempted to initialize Capture before androidx.startup.Initializers " +
                         "are run. Aborting logger initialization.",
                 )
@@ -186,11 +198,11 @@ object Capture {
                         )
                     default.set(LoggerState.Started(logger))
                 } catch (e: Throwable) {
-                    Log.w("capture", "Failed to start Capture", e)
+                    Log.w(LOG_TAG, "Failed to start Capture", e)
                     default.set(LoggerState.StartFailure)
                 }
             } else {
-                Log.w("capture", "Multiple attempts to start Capture")
+                Log.w(LOG_TAG, "Multiple attempts to start Capture")
             }
         }
 
@@ -278,9 +290,7 @@ object Capture {
          */
         @JvmStatic
         fun removeField(key: String) {
-            logger()?.let {
-                it.removeField(key)
-            }
+            logger()?.removeField(key)
         }
 
         /**
