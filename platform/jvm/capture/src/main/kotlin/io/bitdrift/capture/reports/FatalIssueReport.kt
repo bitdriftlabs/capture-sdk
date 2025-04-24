@@ -72,6 +72,7 @@ internal data class ThreadDetails(
 
 internal data class SourceFile(
     val path: String,
+    @SerializedName("line_number")
     val lineNumber: Int,
     val column: Int = 0,
 )
