@@ -3,11 +3,10 @@ load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_binary")
 
 flatbuffer_library_public(
     name = "descriptor",
-    srcs = [
-        "@bitdrift_api//:all_fbs",
-    ],
+    srcs = ["@bitdrift_api//:all_fbs"],
     outs = [
         "buffer_log.schema.json",
+        "reports.schema.json", 
     ],
     language_flag = "--jsonschema",
 )
