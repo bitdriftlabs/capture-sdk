@@ -23,7 +23,6 @@ on:
 jobs:
   release-ios:
     name: Upload iOS artifacts to dl.bitdrift.io
-    environment: public
     permissions:
       id-token: write # required to use OIDC authentication
       contents: read
@@ -60,7 +59,6 @@ jobs:
         VERSION: ${{ inputs.version }}
   release-android:
     name: Upload Android artifacts to dl.bitdrift.io
-    environment: public
     permissions:
       id-token: write # required to use OIDC authentication (set up aws credentials)
       contents: read
