@@ -14,7 +14,6 @@ on:
         type: string
 jobs:
   release-capture-ios:
-    environment: public-capture-ios
     runs-on: ubuntu-latest
     steps:
       - name: org-read-write-install token
