@@ -33,8 +33,8 @@ bazel_path=$(pwd)/bazelw
 
 # If the only file that changed was .sdk_version, we don't need to run bazel-diff and just mark it as no changes detected
 files_changed=$(git diff --name-only "$previous_revision" "$final_revision")
-if echo "$files_changed" | grep -q ".sdk_version" && [ "$(echo "$files_changed" | wc -l)" -eq 1 ]; then
-  echo "Only change was .sdk_version, no Bazel changes detected."
+if echo "$files_changed" | grep -q "platform/shared/.sdk-version" && [ "$(echo "$files_changed" | wc -l)" -eq 1 ]; then
+  echo "Only change was platform/shared/.sdk-version, no Bazel changes detected."
   echo "check_result=2" >> "$GITHUB_OUTPUT"
   exit 0
 fi
