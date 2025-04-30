@@ -27,9 +27,11 @@ jobs:
       - name: test
         run: |
           ulimit -c unlimited
-          CC=$(which clang) CXX=$(which clang++) ./bazelw test //core/... //platform/... //test/... --config ci --config nomacos --config libunwind --test_output=errors --test_env=RUST_LOG=debug
+          if ! ./ci/version_only_change.sh; then 
+            CC=$(which clang) CXX=$(which clang++) ./bazelw test //core/... //platform/... //test/... --config ci --config nomacos --config libunwind --test_output=errors --test_env=RUST_LOG=debug
+          fi
       - uses: actions/upload-artifact@v4
-        if: ${{ failure() }}  # Run only if something went wrong
+        if: ${{ failure() }} # Run only if something went wrong
         with:
           name: cores
           path: /cores
