@@ -16,14 +16,11 @@ import java.util.concurrent.CopyOnWriteArrayList
  * that will notify the specified listener when a JVM crash has occurred
  */
 internal object CaptureUncaughtExceptionHandler : ICaptureUncaughtExceptionHandler {
-    private var crashing = false
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    var crashing = false
     private var installed: Boolean = false
-    private val prevExceptionHandler: UncaughtExceptionHandler? =
-        Thread.getDefaultUncaughtExceptionHandler()
+    private var prevExceptionHandler: UncaughtExceptionHandler? = null
     private val crashListeners = CopyOnWriteArrayList<JvmCrashListener>()
-
-    @VisibleForTesting
-    internal var wasExceptionForward: Boolean = false
 
     override fun uncaughtException(
         thread: Thread,
@@ -44,7 +41,6 @@ internal object CaptureUncaughtExceptionHandler : ICaptureUncaughtExceptionHandl
         } finally {
             // forward exception to other handlers even if we fail
             prevExceptionHandler?.uncaughtException(thread, throwable)
-            wasExceptionForward = true
         }
     }
 
@@ -54,6 +50,7 @@ internal object CaptureUncaughtExceptionHandler : ICaptureUncaughtExceptionHandl
     override fun install(jvmCrashListener: JvmCrashListener) {
         crashListeners.add(jvmCrashListener)
         if (!installed) {
+            prevExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
             Thread.setDefaultUncaughtExceptionHandler(this)
             installed = true
         }

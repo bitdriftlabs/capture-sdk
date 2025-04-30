@@ -8,6 +8,7 @@
 package io.bitdrift.capture
 
 import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
@@ -21,15 +22,20 @@ import org.junit.Test
 class CaptureUncaughtExceptionHandlerTest {
     private val jvmCrashListener: JvmCrashListener = mock()
     private val handler = CaptureUncaughtExceptionHandler
+    private lateinit var otherHandler: OtherCrashHandler
 
     @Before
     fun setUp() {
+        otherHandler = OtherCrashHandler()
+        Thread.setDefaultUncaughtExceptionHandler(otherHandler)
         handler.install(jvmCrashListener)
     }
 
     @After
     fun cleanUp() {
         handler.uninstall()
+        handler.crashing = false
+        Thread.setDefaultUncaughtExceptionHandler(null)
     }
 
     @Test
@@ -42,8 +48,10 @@ class CaptureUncaughtExceptionHandlerTest {
         handler.uncaughtException(currentThread, appException)
 
         // ASSERT
-        verify(jvmCrashListener).onJvmCrash(currentThread, appException)
-        assertThat(handler.wasExceptionForward).isTrue()
+        verify(jvmCrashListener).onJvmCrash(eq(currentThread), eq(appException))
+        assertThat(otherHandler.callArgs.size).isEqualTo(1)
+        assertThat(otherHandler.callArgs[0]["thread"]).isEqualTo(currentThread)
+        assertThat(otherHandler.callArgs[0]["throwable"]).isEqualTo(appException)
     }
 
     @Test
@@ -58,6 +66,19 @@ class CaptureUncaughtExceptionHandlerTest {
         handler.uncaughtException(currentThread, appException)
 
         // ASSERT
-        assertThat(handler.wasExceptionForward).isTrue()
+        assertThat(otherHandler.callArgs.size).isEqualTo(1)
+        assertThat(otherHandler.callArgs[0]["thread"]).isEqualTo(currentThread)
+        assertThat(otherHandler.callArgs[0]["throwable"]).isEqualTo(appException)
+    }
+}
+
+class OtherCrashHandler : Thread.UncaughtExceptionHandler {
+    val callArgs = mutableListOf<Map<String, Any>>()
+
+    override fun uncaughtException(
+        thread: Thread,
+        throwable: Throwable,
+    ) {
+        callArgs += mapOf("thread" to thread, "throwable" to throwable)
     }
 }
