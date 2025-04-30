@@ -18,7 +18,7 @@ previous_revision=$(git merge-base "$base_sha" "$final_revision")
 # If the only file that changed was .sdk_version, we don't need to run bazel-diff and just mark it as no changes detected.
 files_changed=$(git log --name-only "$previous_revision" "$final_revision")
 # Line is 2 for the name file + a newline.
-if echo "$files_changed" | grep -q "platform/shared/.sdk-version" && [ "$(echo "$files_changed" | wc -l)" -eq 2 ]; then
+if echo "$files_changed" | grep -q "platform/shared/.sdk_version" && [ "$(echo "$files_changed" | wc -l)" -eq 2 ]; then
   exit 0
 fi
 
