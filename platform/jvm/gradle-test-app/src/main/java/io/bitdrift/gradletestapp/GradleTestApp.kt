@@ -46,6 +46,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
+import android.os.StrictMode
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
@@ -70,6 +71,8 @@ import papa.AppLaunchType
 import papa.PapaEvent
 import papa.PapaEventListener
 import timber.log.Timber
+import java.io.File
+import java.util.concurrent.Executors
 import kotlin.random.Random
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -85,6 +88,7 @@ class GradleTestApp : Application() {
     override fun onCreate() {
         super.onCreate()
         Timber.i("Hello World!")
+        setupStrictMode()
         initLogging()
         trackAppLaunch()
         trackAppLifecycle()
@@ -263,6 +267,30 @@ class GradleTestApp : Application() {
             override fun onActivityDestroyed(activity: Activity) {
             }
         })
+    }
+
+    private fun setupStrictMode(){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val strictModeReportingThread = Executors.newSingleThreadExecutor()
+            val strictModeReporter = StrictModeReporter()
+            StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder()
+                .detectAll()
+                .penaltyLog()
+                .penaltyListener(strictModeReportingThread) {
+                    strictModeReporter.onViolation(StrictModeReporter.ViolationType.THREAD, it)
+                }
+                .build()
+            )
+            StrictMode.setVmPolicy(
+                StrictMode.VmPolicy.Builder()
+                    .detectAll()
+                    .penaltyLog()
+                    .penaltyListener(strictModeReportingThread){
+                        strictModeReporter.onViolation(StrictModeReporter.ViolationType.VM, it)
+                    }
+                    .build()
+            )
+        }
     }
 
     private fun setupCrashSdks() {
