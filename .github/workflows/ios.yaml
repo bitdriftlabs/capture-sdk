@@ -37,6 +37,9 @@ jobs:
           bazel_status="${{ steps.bazel_check.outputs.check_result }}"
           workflow_status="${{ steps.workflow_check.outputs.check_result }}"
 
+          # Log the values of bazel_status and workflow_status for diagnostics
+          echo "bazel_status: $bazel_status"
+          echo "workflow_status: $workflow_status"
           # Check if any status indicates a relevant change or error
           if [[ "$bazel_status" == "1" || "$workflow_status" == "1" ]]; then
             echo "An unexpected issue occurred during checks."
