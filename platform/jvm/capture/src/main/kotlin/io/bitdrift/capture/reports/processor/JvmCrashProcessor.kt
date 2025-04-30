@@ -52,7 +52,7 @@ internal object JvmCrashProcessor {
             listOf(
                 ErrorDetails(
                     name = throwable.javaClass.name,
-                    reason = throwable.message ?: UNKNOWN_FIELD_VALUE,
+                    reason = throwable.message,
                     stackTrace = frameDetails,
                 ),
             )
