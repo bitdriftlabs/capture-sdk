@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eo pipefail
+
 # Check if GITHUB_BASE_REF is set (i.e., you're in a pull request)
 if [ -n "$GITHUB_BASE_REF" ]; then
   git fetch origin "$GITHUB_BASE_REF":"$GITHUB_BASE_REF"
@@ -16,9 +18,8 @@ final_revision=$GITHUB_SHA
 previous_revision=$(git merge-base "$base_sha" "$final_revision")
 
 # If the only file that changed was .sdk_version, we don't need to run bazel-diff and just mark it as no changes detected.
-files_changed=$(git log --name-only "$previous_revision" "$final_revision")
-# Line is 2 for the name file + a newline.
-if echo "$files_changed" | grep -q "platform/shared/.sdk_version" && [ "$(echo "$files_changed" | wc -l)" -eq 2 ]; then
+files_changed=$(git diff --name-only "$previous_revision".."$final_revision")
+if echo "$files_changed" | grep -q "platform/shared/.sdk_version" && [ "$(echo "$files_changed" | wc -l)" -eq 1 ]; then
   exit 0
 fi
 
