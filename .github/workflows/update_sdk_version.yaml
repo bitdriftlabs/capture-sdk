@@ -43,8 +43,7 @@ jobs:
     name: Update SDK version
     needs: "verify-version"
     permissions:
-      contents: write
-      pull-requests: write
+      write-all
     runs-on: ubuntu-latest
     steps:
       # Checkout repo to Github Actions runner
