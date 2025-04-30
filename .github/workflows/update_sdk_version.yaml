@@ -86,6 +86,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.org-pr-create-token.outputs.token }}
         run: |
-            gh pr create --fill --head update-sdk-version-${{ inputs.version }}
-            gh pr review --request --reviewer "${{ github.actor }}" --pr "$(gh pr view --json number --jq '.number')"
-            gh pr merge --auto --merge "$(gh pr view --json number --jq '.number')"
+          gh pr create --fill --head update-sdk-version-${{ inputs.version }}
+          gh pr review-request --add --repo ${{ github.repository }} --pull-request $(gh pr view --json number -q ".number") --reviewer ${{ github.actor }}
+          gh pr merge --auto --repo ${{ github.repository }} --pull-request $(gh pr view --json number -q ".number")
