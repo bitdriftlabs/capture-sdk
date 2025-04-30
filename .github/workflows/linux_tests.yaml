@@ -17,6 +17,8 @@ jobs:
       # Checkout repo to Github Actions runner
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set cores to get stored in /cores
         run: |
@@ -26,10 +28,19 @@ jobs:
           sudo bash -c 'echo "/cores/%e.%p.%t" > /proc/sys/kernel/core_pattern'
       - name: test
         run: |
-          ulimit -c unlimited
-          CC=$(which clang) CXX=$(which clang++) ./bazelw test //core/... //platform/... //test/... --config ci --config nomacos --config libunwind --test_output=errors --test_env=RUST_LOG=debug
+          # ulimit -c unlimited
+          set +e
+          ./ci/version_only_change.sh
+          res="$?"
+          echo "Script completed with exit code: $res"
+          if [[ $res -ne 0 ]]; then
+            set -e
+            CC=$(which clang) CXX=$(which clang++) ./bazelw test //core/... //platform/... //test/... --config ci --config nomacos --config libunwind --test_output=errors --test_env=RUST_LOG=debug
+          else
+              echo "No changes detected in the version-only change script. Skipping tests."
+          fi
       - uses: actions/upload-artifact@v4
-        if: ${{ failure() }}  # Run only if something went wrong
+        if: ${{ failure() }} # Run only if something went wrong
         with:
           name: cores
           path: /cores
