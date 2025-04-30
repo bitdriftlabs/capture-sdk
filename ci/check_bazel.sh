@@ -35,7 +35,7 @@ bazel_path=$(pwd)/bazelw
 if ./ci/version_only_change.sh; then
   echo "Only change was platform/shared/.sdk-version, no Bazel changes detected."
   echo "check_result=2" >> "$GITHUB_OUTPUT"
-  exit 0
+  exit 1
 fi
 
 starting_hashes_json="/tmp/starting_hashes.json"
@@ -91,4 +91,5 @@ if [ "$changes_detected" = true ]; then
 else
   echo "No changes detected."
   echo "check_result=2" >> "$GITHUB_OUTPUT"
+  exit 1
 fi
