@@ -20,6 +20,7 @@ jobs:
       version: ${{ inputs.version }}
 
   release:
+    needs: "verify-version"
     permissions:
       id-token: write # required to use OIDC authentication
       contents: write
