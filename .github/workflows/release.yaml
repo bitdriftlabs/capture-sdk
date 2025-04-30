@@ -1,7 +1,7 @@
 name: Release
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       version:
         description: 'The new version to release, ex: 0.12.0'

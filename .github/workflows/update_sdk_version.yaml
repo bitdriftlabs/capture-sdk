@@ -7,6 +7,14 @@ on:
         description: 'The new version to release, ex: 0.12.0'
         required: true
         type: string
+      sha:
+        description: '[Optional] Commit SHA1, branch or tag to build. The latest SHA1 on a given branch is used if no value is provided.'
+        required: false
+        type: string
+      emergency:
+        type: boolean
+        description: Ignore main branch requirement (SOC2 compliance)
+        required: true
 jobs:
   verify-version:
     name: Verify arguments
@@ -27,7 +35,8 @@ jobs:
     uses: ./.github/workflows/release.yaml
     with:
       version: ${{ inputs.version }}
-      emergency: false
+      sha: ${{ inputs.sha }}
+      emergency: ${{ inputs.emergency }}
     secrets: inherit
 
   update-sdk-version:
