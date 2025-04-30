@@ -1,4 +1,4 @@
-name: Update SDK Version
+name: Release and Update SDK Version
 
 on:
   workflow_dispatch:
@@ -18,6 +18,16 @@ jobs:
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+(\.[0-9]+)?)?$ ]]; then exit 1; fi
     env:
       version: ${{ inputs.version }}
+
+  release:
+    permissions:
+      id-token: write # required to use OIDC authentication
+      contents: write
+    uses: ./.github/workflows/release.yaml
+    with:
+      version: ${{ inputs.version }}
+      emergency: false
+    secrets: inherit
 
   update-sdk-version:
     name: Update SDK version
