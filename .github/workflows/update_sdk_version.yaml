@@ -86,6 +86,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.org-pr-create-token.outputs.token }}
         run: |
-          gh pr create --fill --head update-sdk-version-${{ inputs.version }}
-          gh pr review-request --add --repo ${{ github.repository }} --pull-request $(gh pr view --json number -q ".number") --reviewer ${{ github.actor }}
-          gh pr merge --auto --repo ${{ github.repository }} --pull-request $(gh pr view --json number -q ".number")
+          # Create PR and capture the URL
+          PR_URL=$(gh pr create --fill --head update-sdk-version-${{ inputs.version }})
+          echo "PR created at $PR_URL"
+
+          # Get current GitHub username
+          GH_USER=$(gh api user --jq .login)
+
+          # Request review from the current user
+          gh pr review-request --add "$GH_USER" --repo "$GITHUB_REPOSITORY" --pr "$PR_URL"
+
+          # Enable auto-merge
+          gh pr merge "$PR_URL" --auto --merge
