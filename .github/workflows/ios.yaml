@@ -21,11 +21,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: check for relevant changes
+      - name: Check for Bazel build file changes
         id: check_changes
         run: |
-          ./ci/check_bazel.sh //examples/swift:ios_app //platform/swift //test/platform/swift || ./ci/files_changed.sh .github/workflows/ios.yaml && ./ci/run_tests.sh
-          true
+          ./ci/check_bazel.sh //examples/swift:ios_app //platform/swift //test/platform/swift
+      - name: Check for workflow file changes
+        id: check_changes
+        run: |
+          ./ci/files_changed.sh .github/workflows/ios.yaml
   swift_hello_world:
     name: swift_hello_world
     timeout-minutes: 40
@@ -37,13 +40,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 'Install dependencies'
+      - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
       - run: ./bazelw build --config ci //examples/swift/hello_world:ios_app
-        name: 'Build app'
+        name: "Build app"
       # TODO(snowp): Add some kind of assertion that the app does that it's supposed to
       - run: ./bazelw run --config ci //examples/swift/hello_world:ios_app &> /tmp/envoy.log &
-        name: 'Run app'
+        name: "Run app"
   macos_tsan:
     runs-on: macos-14
     needs: "pre_check"
@@ -53,7 +56,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 'Install dependencies'
+      - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
       - name: Run iOS tests (tsan)
         run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/core/...)') --test_tag_filters=macos_only --test_output=errors --config ci --config ios-tsan
