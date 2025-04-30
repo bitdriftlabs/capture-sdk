@@ -83,6 +83,7 @@ internal class FatalIssueReporter(
                 timestamp = System.currentTimeMillis(),
                 callerThread = thread,
                 throwable = throwable,
+                allThreads = Thread.getAllStackTraces(),
             )
         }.getOrElse {
             val errorMessage = "Error while initializing reporter for ${FatalIssueMechanism.BuiltIn}. $it"

@@ -51,6 +51,7 @@ class FatalIssueReporterProcessorTest {
             FAKE_TIME_STAMP,
             callerThread,
             fakeException,
+            null,
         )
 
         verify(fatalIssueReporterStorage).persistFatalIssue(
