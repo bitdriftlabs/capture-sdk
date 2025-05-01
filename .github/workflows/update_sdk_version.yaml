@@ -89,9 +89,3 @@ jobs:
           # Create PR and capture the URL
           PR_URL=$(gh pr create --fill --head update-sdk-version-${{ inputs.version }})
           echo "PR created at $PR_URL"
-
-          # Request review from the current user
-          #gh pr review-request --add "${{ github.actor }}" --repo "$GITHUB_REPOSITORY" --pr "$PR_URL"
-
-          # Enable auto-merge
-          gh pr merge "$PR_URL" --auto --merge
