@@ -43,7 +43,8 @@ jobs:
     name: Update SDK version
     needs: "verify-version"
     permissions:
-      write-all
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       # Checkout repo to Github Actions runner
@@ -89,11 +90,8 @@ jobs:
           PR_URL=$(gh pr create --fill --head update-sdk-version-${{ inputs.version }})
           echo "PR created at $PR_URL"
 
-          # Get current GitHub username
-          GH_USER=$(gh api user --jq .login)
-
           # Request review from the current user
-          gh pr review-request --add "$GH_USER" --repo "$GITHUB_REPOSITORY" --pr "$PR_URL"
+          gh pr review-request --add "${{ github.actor }}" --repo "$GITHUB_REPOSITORY" --pr "$PR_URL"
 
           # Enable auto-merge
           gh pr merge "$PR_URL" --auto --merge
