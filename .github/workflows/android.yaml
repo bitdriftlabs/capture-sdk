@@ -8,6 +8,13 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: write
+  statuses: write
+
 jobs:
   pre_check:
     name: pre_check
