@@ -16,7 +16,7 @@ import io.bitdrift.capture.reports.FrameType
 import io.bitdrift.capture.reports.Sdk
 import io.bitdrift.capture.reports.SourceFile
 import io.bitdrift.capture.reports.ThreadDetails
-import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor.Companion.UNKNOWN_FIELD_VALUE
+import io.bitdrift.capture.reports.ThreadEntry
 
 /**
  * Process crash into a List<io.bitdrift.capture.reports.ErrorDetails> and
@@ -24,45 +24,42 @@ import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor.Compani
  */
 internal object JvmCrashProcessor {
     private const val CLASS_NAME_SEPARATOR = "."
-    private const val INVALID_LINE_NUMBER_ID = -1
 
     fun getJvmCrashReport(
         sdk: Sdk,
         appMetrics: AppMetrics,
         deviceMetrics: DeviceMetrics,
         throwable: Throwable,
+        callerThread: Thread,
+        allThreads: Map<Thread, Array<StackTraceElement>>?,
     ): FatalIssueReport {
         val frameDetails: List<FrameDetails> =
-            throwable.stackTrace.map { element ->
-                val sourceFile =
-                    SourceFile(
-                        path = element.fileName ?: UNKNOWN_FIELD_VALUE,
-                        lineNumber =
-                            element.lineNumber.takeIf { it >= 0 }
-                                ?: INVALID_LINE_NUMBER_ID,
-                    )
-                FrameDetails(
-                    type = FrameType.JVM.ordinal,
-                    className = element.className ?: UNKNOWN_FIELD_VALUE,
-                    symbolName = getMethodName(element),
-                    sourceFile = sourceFile,
-                )
-            }
+            throwable.stackTrace.map { e -> getFrameDetails(e) }
         val errors =
             listOf(
                 ErrorDetails(
                     name = throwable.javaClass.name,
-                    reason = throwable.message ?: UNKNOWN_FIELD_VALUE,
+                    reason = throwable.message,
                     stackTrace = frameDetails,
                 ),
             )
+
+        val threadList =
+            allThreads?.map { (thread, frames) ->
+                ThreadEntry(
+                    name = thread.name,
+                    active = (thread == callerThread),
+                    index = thread.id,
+                    state = thread.state.name,
+                    stackTrace = frames.map { e -> getFrameDetails(e) },
+                )
+            } ?: listOf()
         return FatalIssueReport(
             sdk,
             appMetrics,
             deviceMetrics,
             errors,
-            // TODO(FranAguilera): BIT-5142. Append thread info
-            ThreadDetails(),
+            ThreadDetails(threadList.size, threadList),
         )
     }
 
@@ -73,4 +70,16 @@ internal object JvmCrashProcessor {
             else -> stackTraceElement.methodName
         }
     }
+
+    private fun getFrameDetails(element: StackTraceElement): FrameDetails =
+        FrameDetails(
+            type = FrameType.JVM.ordinal,
+            className = element.className,
+            symbolName = getMethodName(element),
+            sourceFile =
+                SourceFile(
+                    path = element.fileName,
+                    lineNumber = element.lineNumber,
+                ),
+        )
 }

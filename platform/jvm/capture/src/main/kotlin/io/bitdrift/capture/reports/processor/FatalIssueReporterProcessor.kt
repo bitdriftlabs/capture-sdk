@@ -100,13 +100,16 @@ internal class FatalIssueReporterProcessor(
         timestamp: Long,
         callerThread: Thread,
         throwable: Throwable,
+        allThreads: Map<Thread, Array<StackTraceElement>>?,
     ) {
         val fatalIssueReport =
             JvmCrashProcessor.getJvmCrashReport(
-                sdk = sdk,
-                appMetrics = appMetrics,
-                deviceMetrics = deviceMetrics,
-                throwable = throwable,
+                sdk,
+                appMetrics,
+                deviceMetrics,
+                throwable,
+                callerThread,
+                allThreads,
             )
         fatalIssueReporterStorage.persistFatalIssue(
             timestamp,

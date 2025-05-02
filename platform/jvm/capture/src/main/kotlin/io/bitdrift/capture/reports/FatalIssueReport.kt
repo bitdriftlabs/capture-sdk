@@ -49,7 +49,7 @@ internal data class BuildNumber(
 
 internal data class ErrorDetails(
     val name: String,
-    val reason: String,
+    val reason: String?,
     @SerializedName("stack_trace")
     val stackTrace: List<FrameDetails>,
 )
@@ -58,7 +58,7 @@ internal data class ThreadEntry(
     // e.g. "main"
     val name: String,
     val active: Boolean,
-    val index: Int,
+    val index: Long,
     // e.g. RUNNABLE/WAITING/etc
     val state: String,
     @SerializedName("stack_trace")
@@ -71,7 +71,7 @@ internal data class ThreadDetails(
 )
 
 internal data class SourceFile(
-    val path: String,
+    val path: String?,
     @SerializedName("line_number")
     val lineNumber: Int,
     val column: Int = 0,
