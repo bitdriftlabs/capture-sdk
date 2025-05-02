@@ -44,7 +44,7 @@ jobs:
         with:
           ref: ${{ inputs.sha }}
       - name: 'Update the content of platform/shared/.sdk_version'
-        run:  echo "$VERSION" > platform/shared/.sdk_version
+        run: echo "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: 'Install dependencies'
         run: ./ci/mac_ci_setup.sh
       - name: Build xcframework + artifacts
@@ -75,7 +75,7 @@ jobs:
         with:
           ref: ${{ inputs.sha }}
       - name: 'Update the content of platform/shared/.sdk_version'
-        run:  echo "$VERSION" > platform/shared/.sdk_version
+        run: echo "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: Install Clang
         run: sudo apt-get install -y clang
       - name: Build AAR + artifacts
@@ -117,7 +117,7 @@ jobs:
         with:
           ref: ${{ inputs.sha }}
       - name: 'Update the content of platform/shared/.sdk_version'
-        run:  echo "$VERSION" > platform/shared/.sdk_version
+        run: echo "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: 'Install dependencies'
         run: ./ci/mac_ci_setup.sh
       - name: build
@@ -137,7 +137,7 @@ jobs:
         with:
           ref: ${{ inputs.sha }}
       - name: 'Update the content of platform/shared/.sdk_version'
-        run:  echo "$VERSION" > platform/shared/.sdk_version
+        run: echo "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: 'Install dependencies'
         run: ./ci/mac_ci_setup.sh
       - name: build
