@@ -137,6 +137,7 @@ internal class LoggerImpl(
                                 networkAttributes,
                                 deviceAttributes,
                             ),
+                        errorHandler = errorHandler,
                         customFieldProviders = fieldProviders,
                     )
 
