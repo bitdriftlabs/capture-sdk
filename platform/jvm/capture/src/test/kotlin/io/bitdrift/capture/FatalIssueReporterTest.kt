@@ -57,11 +57,14 @@ class FatalIssueReporterTest {
     fun initialize_whenIntegrationMechanismAndMissingConfigFile_shouldReportMissingConfigState() {
         prepareFileDirectories(doesReportsDirectoryExist = false)
 
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.Integration)
+        fatalIssueReporter.initialize(
+            appContext,
+            fatalIssueMechanism = FatalIssueMechanism.Integration,
+        )
 
         fatalIssueReporter
             .fatalIssueReporterStatus
-            .assert(FatalIssueReporterState.Initialized.MissingConfigFile::class.java)
+            .assert(FatalIssueReporterState.Integration.MissingConfigFile::class.java)
     }
 
     @Test
@@ -73,10 +76,13 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.Integration)
+        fatalIssueReporter.initialize(
+            appContext,
+            fatalIssueMechanism = FatalIssueMechanism.Integration,
+        )
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.Initialized.WithoutPriorFatalIssue::class.java,
+            FatalIssueReporterState.Integration.WithoutPriorFatalIssue::class.java,
         )
     }
 
@@ -89,10 +95,13 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.Integration)
+        fatalIssueReporter.initialize(
+            appContext,
+            fatalIssueMechanism = FatalIssueMechanism.Integration,
+        )
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.Initialized.InvalidCrashConfigDirectory::class.java,
+            FatalIssueReporterState.Integration.InvalidConfigDirectory::class.java,
         )
     }
 
@@ -114,10 +123,13 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.Integration)
+        fatalIssueReporter.initialize(
+            appContext,
+            fatalIssueMechanism = FatalIssueMechanism.Integration,
+        )
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.Initialized.WithoutPriorFatalIssue::class.java,
+            FatalIssueReporterState.Integration.WithoutPriorFatalIssue::class.java,
         )
     }
 
@@ -129,10 +141,13 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.Integration)
+        fatalIssueReporter.initialize(
+            appContext,
+            fatalIssueMechanism = FatalIssueMechanism.Integration,
+        )
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.Initialized.MalformedConfigFile::class.java,
+            FatalIssueReporterState.Integration.MalformedConfigFile::class.java,
         )
     }
 
@@ -143,7 +158,7 @@ class FatalIssueReporterTest {
         verify(captureUncaughtExceptionHandler).install(eq(fatalIssueReporter))
         verify(latestAppExitInfoProvider).get(any())
         fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.BuiltInModeInitialized::class.java,
+            FatalIssueReporterState.BuiltIn::class.java,
         )
     }
 
@@ -162,8 +177,14 @@ class FatalIssueReporterTest {
         verify(captureUncaughtExceptionHandler).uninstall()
         verify(latestAppExitInfoProvider, never()).get(any())
         fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.Initialized.ProcessingFailure::class.java,
+            FatalIssueReporterState.ProcessingFailure::class.java,
         )
+        val state =
+            fatalIssueReporter.fatalIssueReporterStatus.state
+                as FatalIssueReporterState.ProcessingFailure
+        assertThat(state.fatalIssueMechanism).isEqualTo(FatalIssueMechanism.BuiltIn)
+        assertThat(state.errorMessage)
+            .isEqualTo("Error while initializing reporter for BuiltIn mode. Fake JVM exception")
     }
 
     private fun FatalIssueReporterStatus.assert(
@@ -176,7 +197,7 @@ class FatalIssueReporterTest {
                 put("_fatal_issue_reporting_duration_ms", getDuration().toFieldValue())
                 put("_fatal_issue_reporting_state", state.readableType.toFieldValue())
             }
-        if (expectedType == FatalIssueReporterState.Initialized.ProcessingFailure::class.java) {
+        if (expectedType == FatalIssueReporterState.ProcessingFailure::class.java) {
             assertThat(duration).isNull()
         } else {
             assertThat(duration).isNotNull()
@@ -249,10 +270,13 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.Integration)
+        fatalIssueReporter.initialize(
+            appContext,
+            fatalIssueMechanism = FatalIssueMechanism.Integration,
+        )
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.Initialized.FatalIssueReportSent::class.java,
+            FatalIssueReporterState.Integration.FatalIssueReportSent::class.java,
         )
     }
 

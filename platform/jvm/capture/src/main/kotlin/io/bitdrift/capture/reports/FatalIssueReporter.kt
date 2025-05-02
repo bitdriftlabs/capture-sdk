@@ -17,7 +17,6 @@ import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
-import io.bitdrift.capture.reports.FatalIssueReporterState.Initialized.ProcessingFailure
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.mapToFatalIssueType
@@ -114,10 +113,10 @@ internal class FatalIssueReporter(
             )
         }.getOrElse {
             cleanup()
-            val errorMessage = "Error while initializing reporter for $mechanism. ${it.message}"
+            val errorMessage = "Error while initializing reporter for $mechanism mode. ${it.message}"
             Log.e(LOG_TAG, errorMessage)
             FatalIssueReporterStatus(
-                ProcessingFailure(errorMessage),
+                FatalIssueReporterState.ProcessingFailure(mechanism, errorMessage),
                 mechanism = mechanism,
             )
         }
@@ -151,7 +150,7 @@ internal class FatalIssueReporter(
                             )
                         captureUncaughtExceptionHandler.install(this)
                         persistLastExitReasonIfNeeded(appContext)
-                        fatalIssueReporterState = FatalIssueReporterState.BuiltInModeInitialized
+                        fatalIssueReporterState = FatalIssueReporterState.BuiltIn.Initialized
                     }
                 fatalIssueReporterState to duration
             },
@@ -186,16 +185,16 @@ internal class FatalIssueReporter(
     ): FatalIssueReporterState {
         val fatalIssueConfigFile = File(fatalIssueDirectories.sdkDirectoryPath, CONFIGURATION_FILE_PATH)
         if (!fatalIssueConfigFile.exists()) {
-            return FatalIssueReporterState.Initialized.MissingConfigFile
+            return FatalIssueReporterState.Integration.MissingConfigFile
         }
 
         val fatalIssueConfigFileContents = fatalIssueConfigFile.readText()
         val fatalIssueConfigDetails =
             getFatalIssueConfigDetails(appContext, fatalIssueConfigFileContents) ?: let {
-                return FatalIssueReporterState.Initialized.MalformedConfigFile
+                return FatalIssueReporterState.Integration.MalformedConfigFile
             }
         if (fatalIssueConfigDetails.sourceDirectory.isInvalidDirectory()) {
-            return FatalIssueReporterState.Initialized.InvalidCrashConfigDirectory
+            return FatalIssueReporterState.Integration.InvalidConfigDirectory
         }
 
         return runCatching {
@@ -205,7 +204,10 @@ internal class FatalIssueReporter(
                 fatalIssueConfigDetails.extensionFileName,
             )
         }.getOrElse {
-            return ProcessingFailure("Couldn't process crash files. ${it.message}")
+            return FatalIssueReporterState.ProcessingFailure(
+                FatalIssueMechanism.Integration,
+                "Couldn't process crash files. ${it.message}",
+            )
         }
     }
 
@@ -218,7 +220,7 @@ internal class FatalIssueReporter(
         val crashFile =
             findCrashFile(sourceDirectory, fileExtension)
                 ?: let {
-                    return FatalIssueReporterState.Initialized.WithoutPriorFatalIssue
+                    return FatalIssueReporterState.Integration.WithoutPriorFatalIssue
                 }
 
         verifyDirectoryIsEmpty(destinationDirectory)
@@ -226,9 +228,9 @@ internal class FatalIssueReporter(
         crashFile.copyTo(destinationFile, overwrite = true)
 
         return if (destinationFile.exists()) {
-            FatalIssueReporterState.Initialized.FatalIssueReportSent
+            FatalIssueReporterState.Integration.FatalIssueReportSent
         } else {
-            FatalIssueReporterState.Initialized.WithoutPriorFatalIssue
+            FatalIssueReporterState.Integration.WithoutPriorFatalIssue
         }
     }
 
