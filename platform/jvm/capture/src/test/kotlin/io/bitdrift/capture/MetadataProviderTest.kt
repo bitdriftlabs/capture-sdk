@@ -51,7 +51,7 @@ class MetadataProviderTest {
                 dateProvider = dateProvider,
                 ootbFieldProviders = listOf(throwingFieldProvider1, workingFieldProviders1),
                 customFieldProviders = listOf(throwingFieldProvider2, workingFieldProviders2),
-                errorHandle = mock { },
+                errorHandler = mock { },
                 errorLog = { _, _ -> },
             )
 
