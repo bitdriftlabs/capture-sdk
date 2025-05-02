@@ -1,7 +1,7 @@
 name: Release
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       version:
         description: 'The new version to release, ex: 0.12.0'
@@ -15,31 +15,7 @@ on:
         type: boolean
         description: Ignore main branch requirement (SOC2 compliance)
         required: true
-  workflow_call:
-    inputs:
-      version:
-        description: 'The new version to release, ex: 0.12.0'
-        required: true
-        type: string
-      emergency:
-        type: boolean
-        description: Ignore main branch requirement (SOC2 compliance)
-        required: true
 jobs:
-  verify-sdk-version:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.sha }}
-      - name: Verify SDK version
-        run: |
-          sdk_version="$(cat platform/shared/.sdk_version)"
-          if [[ "$sdk_version" != "${{ inputs.version }}" ]]; then
-            echo "The specified SDK version (${{ inputs.version }}) doesn't match SDK version defined in 'platform/shared/.sdk_version' ($sdk_version)"
-            echo "Consider running 'Update SDK Version' CI job instead."
-            exit 1
-          fi
   gh-release:
     permissions:
       contents: write
@@ -48,7 +24,6 @@ jobs:
       version: ${{ inputs.version }}
       sha: ${{ inputs.sha }}
     secrets: inherit
-    needs: verify-sdk-version
   public-release:
     permissions:
       id-token: write # required to use OIDC authentication
