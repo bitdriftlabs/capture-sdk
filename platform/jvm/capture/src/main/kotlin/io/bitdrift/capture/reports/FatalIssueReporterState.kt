@@ -8,7 +8,7 @@
 package io.bitdrift.capture.reports
 
 /**
- * Represents all different states for [FatalIssueReporter.processPriorReportFiles]
+ * Represents all different states for [io.bitdrift.capture.reports.FatalIssueReporter.processPriorReportFiles]
  */
 sealed class FatalIssueReporterState(
     /**
@@ -22,19 +22,19 @@ sealed class FatalIssueReporterState(
     data object NotInitialized : FatalIssueReporterState("NOT_INITIALIZED")
 
     /**
-     * Represents states for built-in initialization
+     * Represents initialization states for [io.bitdrift.capture.reports.FatalIssueMechanism.BuiltIn]
      */
     sealed class BuiltIn(
         override val readableType: String,
     ) : FatalIssueReporterState(readableType) {
         /**
-         * Represents the initialized state when [FatalIssueMechanism.BuiltIn] is configured
+         * Represents the initialized state when [io.bitdrift.capture.reports.FatalIssueMechanism.BuiltIn] is configured
          */
         data object Initialized : BuiltIn("BUILT_IN_MODE_INITIALIZED")
     }
 
     /**
-     * Represents states for integration initialization
+     * Represents initialization states for [io.bitdrift.capture.reports.FatalIssueMechanism.Integration]
      */
     sealed class Integration(
         override val readableType: String,
