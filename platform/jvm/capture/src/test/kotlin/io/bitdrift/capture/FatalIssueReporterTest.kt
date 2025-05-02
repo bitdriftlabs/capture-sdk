@@ -181,7 +181,7 @@ class FatalIssueReporterTest {
         )
         val state =
             fatalIssueReporter.fatalIssueReporterStatus.state
-                    as FatalIssueReporterState.ProcessingFailure
+                as FatalIssueReporterState.ProcessingFailure
         assertThat(state.fatalIssueMechanism).isEqualTo(FatalIssueMechanism.BuiltIn)
         assertThat(state.errorMessage)
             .isEqualTo("Error while initializing reporter for BuiltIn mode. Fake JVM exception")
