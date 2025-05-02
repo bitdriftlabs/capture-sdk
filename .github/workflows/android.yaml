@@ -72,74 +72,80 @@ jobs:
         if: env.run_tests == 'true'
         run: ./ci/run_tests.sh
 
-  build_apk:
+  build_and_compare_apk:
     runs-on: ubuntu-latest
     if: needs.pre_check.outputs.should_run == 'true'
     needs: pre_check
     steps:
-      # Checkout repo to Github Actions runner
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: build apk
+      - name: Build Bazel APK 
         timeout-minutes: 30
         run: ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload PR APK
+        uses: actions/upload-artifact@v4
         with:
           name: android_app.apk
           path: ./bazel-bin/examples/android/android_app.apk
 
-      # APK size check
-      - name: Restore APK baseline cache
-        id: restore_cache
-        uses: actions/cache@v3
+      - name: Prepare baseline folder (main only)
+        if: github.ref == 'refs/heads/main'
+        run: mkdir -p baseline_apk && cp ./bazel-bin/examples/android/android_app.apk baseline_apk/
+
+      - name: Cache baseline APK (main only)
+        if: github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v3
         with:
-          path: baseline_apk_size.txt
-          key: apk-baseline
+          path: baseline_apk
+          key: apk-main-baseline
+
+      - name: Restore baseline APK from main (PR only)
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v3
+        with:
+          path: baseline_apk
+          key: apk-main-baseline
 
       - name: Compute and compare APK size
+        if: github.event_name == 'pull_request'
         id: apk_size
         run: |
           APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
+          BASELINE_APK_PATH=$(find baseline_apk -name "android_app.apk" | head -n 1)
+
           if [ -z "$APK_PATH" ]; then
-            echo "APK not found!" >&2
+            echo "❌ Current APK file not found!"
             exit 1
           fi
-          echo "Found APK at: $APK_PATH"
-          
-          APK_SIZE_BYTES=$(stat -c%s "$APK_PATH")
-          APK_SIZE_KB=$((APK_SIZE_BYTES / 1024))
-          
-          if [ -f baseline_apk_size.txt ]; then
-            PREV_SIZE_BYTES=$(cat baseline_apk_size.txt)
-            PREV_SIZE_KB=$((PREV_SIZE_BYTES / 1024))
-            DIFF=$((APK_SIZE_KB - PREV_SIZE_KB))
-            if [ $DIFF -gt 0 ]; then
-              MESSAGE="APK size increased by ${DIFF} KB (baseline: ${PREV_SIZE_KB} KB, current: ${APK_SIZE_KB} KB)."
-            elif [ $DIFF -lt 0 ]; then
-              DIFF_POS=$(( -DIFF ))
-              MESSAGE="APK size decreased by ${DIFF_POS} KB (baseline: ${PREV_SIZE_KB} KB, current: ${APK_SIZE_KB} KB)."
-            else
-              MESSAGE="APK size is unchanged at ${APK_SIZE_KB} KB."
-            fi
+
+          CURRENT_SIZE=$(stat -c%s "$APK_PATH")
+
+          if [ -z "$BASELINE_APK_PATH" ]; then
+            echo "⚠️ Baseline APK not found. Reporting only current size."
+            MESSAGE="📌 Current APK size: $((CURRENT_SIZE / 1024)) KB (No baseline available for comparison)."
           else
-            MESSAGE="No baseline found. Setting current APK size (${APK_SIZE_KB} KB) as baseline."
+            BASELINE_SIZE=$(stat -c%s "$BASELINE_APK_PATH")
+            DIFF=$(( (CURRENT_SIZE - BASELINE_SIZE) / 1024 ))
+
+            if [ $DIFF -gt 0 ]; then
+              MESSAGE="⚠️⚠️⚠️ 📈 APK size increased by ${DIFF} KB (baseline: $((BASELINE_SIZE / 1024)) KB, current: $((CURRENT_SIZE / 1024)) KB). ⚠️⚠️⚠️"
+            elif [ $DIFF -lt 0 ]; then
+              MESSAGE="📉 APK size decreased by $((-DIFF)) KB (baseline: $((BASELINE_SIZE / 1024)) KB, current: $((CURRENT_SIZE / 1024)) KB)."
+            else
+              MESSAGE="✅ APK size is unchanged at $((CURRENT_SIZE / 1024)) KB."
+            fi
           fi
-          
+
           echo "$MESSAGE"
           echo "message=$MESSAGE" >> "$GITHUB_OUTPUT"
-          echo "APK_MESSAGE=$MESSAGE" >> "$GITHUB_ENV" 
+          echo "APK_MESSAGE=$MESSAGE" >> "$GITHUB_ENV"
 
-      - name: Save APK baseline cache
-        uses: actions/cache@v3
-        with:
-          path: baseline_apk_size.txt
-          key: apk-baseline
-
-      - name: Report APK size difference on PR
-        if: ${{ github.event_name == 'pull_request' }}
+      - name: Report APK size on PR
+        if: github.event_name == 'pull_request' && steps.pr_lock_status.outputs.locked == 'false'
         uses: actions/github-script@v6
         with:
           script: |
@@ -150,7 +156,7 @@ jobs:
               body: process.env.APK_MESSAGE
             })
         env:
-          APK_MESSAGE: ${{ steps.apk_size.outputs.message }}    
+          APK_MESSAGE: ${{ steps.apk_size.outputs.message }}
 
   gradle_tests:
     # Requires a "larger runner", for nested virtualization support
@@ -223,7 +229,7 @@ jobs:
         script: cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test; adb uninstall io.bitdrift.gradletestapp; cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -p platform/jvm gradle-test-app:check gradle-test-app:connectedCheck --stacktrace
 
   verify_android_hello_world_per_version:
-    needs: build_apk
+    needs: build_and_compare_apk
     runs-on: ubuntu-latest-8-cores
     strategy:
       matrix:
@@ -286,7 +292,7 @@ jobs:
   # job completing, we are able to gate it on all the previous jobs without explicitly enumerating them.
   verify_android:
     runs-on: ubuntu-latest
-    needs: ["pre_check", "build_apk", "verify_android_hello_world_per_version", "gradle_tests"]
+    needs: ["pre_check", "build_and_compare_apk", "verify_android_hello_world_per_version", "gradle_tests"]
     if: always()
     steps:
     # Checkout repo to Github Actions runner
@@ -295,4 +301,4 @@ jobs:
       with:
         fetch-depth: 1
     - name: check result
-      run: ./ci/check_result.sh ${{ needs.pre_check.result }} && ./ci/check_result.sh ${{ needs.build_apk.result }} && ./ci/check_result.sh ${{ needs.verify_android_hello_world_per_version.result }} && ./ci/check_result.sh ${{ needs.gradle_tests.result }}
+      run: ./ci/check_result.sh ${{ needs.pre_check.result }} && ./ci/check_result.sh ${{ needs.build_and_compare_apk.result }} && ./ci/check_result.sh ${{ needs.verify_android_hello_world_per_version.result }} && ./ci/check_result.sh ${{ needs.gradle_tests.result }}
