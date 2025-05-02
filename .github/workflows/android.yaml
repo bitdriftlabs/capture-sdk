@@ -83,6 +83,68 @@ jobs:
         with:
           name: android_app.apk
           path: ./bazel-bin/examples/android/android_app.apk
+
+      # APK size check
+      - name: Restore APK baseline cache
+        id: restore_cache
+        uses: actions/cache@v3
+        with:
+          path: baseline_apk_size.txt
+          key: apk-baseline
+
+      - name: Compute and compare APK size
+        id: apk_size
+        run: |
+          APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "APK not found!" >&2
+            exit 1
+          fi
+          echo "Found APK at: $APK_PATH"
+          
+          APK_SIZE_BYTES=$(stat -c%s "$APK_PATH")
+          APK_SIZE_KB=$((APK_SIZE_BYTES / 1024))
+          
+          if [ -f baseline_apk_size.txt ]; then
+            PREV_SIZE_BYTES=$(cat baseline_apk_size.txt)
+            PREV_SIZE_KB=$((PREV_SIZE_BYTES / 1024))
+            DIFF=$((APK_SIZE_KB - PREV_SIZE_KB))
+            if [ $DIFF -gt 0 ]; then
+              MESSAGE="APK size increased by ${DIFF} KB (baseline: ${PREV_SIZE_KB} KB, current: ${APK_SIZE_KB} KB)."
+            elif [ $DIFF -lt 0 ]; then
+              DIFF_POS=$(( -DIFF ))
+              MESSAGE="APK size decreased by ${DIFF_POS} KB (baseline: ${PREV_SIZE_KB} KB, current: ${APK_SIZE_KB} KB)."
+            else
+              MESSAGE="APK size is unchanged at ${APK_SIZE_KB} KB."
+            fi
+          else
+            MESSAGE="No baseline found. Setting current APK size (${APK_SIZE_KB} KB) as baseline."
+          fi
+          
+          echo "$MESSAGE"
+          echo "message=$MESSAGE" >> "$GITHUB_OUTPUT"
+          echo "APK_MESSAGE=$MESSAGE" >> "$GITHUB_ENV" 
+
+      - name: Save APK baseline cache
+        uses: actions/cache@v3
+        with:
+          path: baseline_apk_size.txt
+          key: apk-baseline
+
+      - name: Report APK size difference on PR
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: process.env.APK_MESSAGE
+            })
+        env:
+          APK_MESSAGE: ${{ steps.apk_size.outputs.message }}    
+
   gradle_tests:
     # Requires a "larger runner", for nested virtualization support
     runs-on: ubuntu-latest-8-cores
