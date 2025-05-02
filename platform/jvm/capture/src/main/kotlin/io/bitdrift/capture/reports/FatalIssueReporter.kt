@@ -14,6 +14,7 @@ import android.util.Log
 import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.Capture.LOG_TAG
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
@@ -28,6 +29,7 @@ import io.bitdrift.capture.reports.jvmcrash.JvmCrashListener
 import io.bitdrift.capture.reports.parser.FatalIssueConfigParser.getFatalIssueConfigDetails
 import io.bitdrift.capture.reports.persistence.FatalIssueReporterStorage
 import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor
+import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.SdkDirectory
 import java.io.File
 import java.lang.Thread
@@ -42,7 +44,9 @@ import kotlin.time.measureTime
  */
 internal class FatalIssueReporter(
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
+    private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
+
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
 ) : IFatalIssueReporter,
     JvmCrashListener {
@@ -150,7 +154,9 @@ internal class FatalIssueReporter(
                                 FatalIssueReporterStorage(destinationDirectory.destinationDirectory),
                             )
                         captureUncaughtExceptionHandler.install(this)
-                        persistLastExitReasonIfNeeded(appContext)
+                        backgroundThreadHandler.runAsync {
+                            persistLastExitReasonIfNeeded(appContext)
+                        }
                         fatalIssueReporterState = FatalIssueReporterState.BuiltInModeInitialized
                     }
                 fatalIssueReporterState to duration

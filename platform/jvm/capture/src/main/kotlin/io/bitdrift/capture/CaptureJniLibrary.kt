@@ -304,4 +304,9 @@ internal object CaptureJniLibrary : IBridge {
         message: String,
         stackTraceProvider: StackTraceProvider,
     )
+
+    /**
+     * Called to signal shared code that fatal issue should be processed now
+     */
+    external fun processFatalIssue()
 }

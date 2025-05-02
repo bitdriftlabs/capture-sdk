@@ -8,6 +8,7 @@
 package io.bitdrift.capture.reports.persistence
 
 import com.google.gson.Gson
+import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.reports.FatalIssueReport
 import io.bitdrift.capture.reports.FatalIssueType
 import java.io.File
@@ -30,5 +31,6 @@ internal class FatalIssueReporterStorage(
         val fileName = "${terminationTimeStampInMilli}_${fatalIssueType.name}.json"
         val outputFile = File(destinationDirectory, fileName)
         outputFile.writeText(gson.toJson(fatalIssueReport))
+        CaptureJniLibrary.processFatalIssue()
     }
 }

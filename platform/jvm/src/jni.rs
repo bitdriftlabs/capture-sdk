@@ -1086,6 +1086,16 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_reportError(
   }
 }
 
+#[no_mangle]
+#[allow(unused_variables)]
+#[allow(unused_mut)]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processFatalIssue(
+  mut env: JNIEnv<'_>,
+  _class: JClass<'_>,
+) {
+   // to be added
+}
+
 fn exception_stacktrace(
   env: &mut JNIEnv<'_>,
   stack_trace_provider: &JObject<'_>,
