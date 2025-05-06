@@ -145,7 +145,7 @@ jobs:
           echo "APK_MESSAGE=$MESSAGE" >> "$GITHUB_ENV"
 
       - name: Report APK size on PR
-        if: github.event_name == 'pull_request' && steps.pr_lock_status.outputs.locked == 'false'
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
         with:
           script: |
