@@ -42,7 +42,7 @@ kt_android_library(
     custom_package = "io.bitdrift.capture.helloworld",
     manifest = "AndroidManifest.xml",
     plugins = ["//:jetpack_compose_compiler_plugin"],
-    resource_files = ["res/layout/android_main.xml"],
+    resource_files = glob(["res/**"]),
     deps = [":imported_capture_aar"] + _maven_deps,
 )
 
