@@ -124,65 +124,63 @@ jobs:
 
           CURRENT_SIZE=$(stat -c%s "$APK_PATH")
           CURRENT_KB=$((CURRENT_SIZE / 1024))
+          echo "current_kb=$CURRENT_KB" >> $GITHUB_OUTPUT
 
           if [ -z "$BASELINE_APK_PATH" ]; then
-            echo "⚠️ Baseline APK not found. Reporting only current size."
-            echo "current_kb=$CURRENT_KB" >> "$GITHUB_OUTPUT"
-            echo "baseline_kb=" >> "$GITHUB_OUTPUT"
-            echo "diff_kb=" >> "$GITHUB_OUTPUT"
+            echo "baseline_kb=" >> $GITHUB_OUTPUT
+            echo "diff_kb=" >> $GITHUB_OUTPUT
           else
             BASELINE_SIZE=$(stat -c%s "$BASELINE_APK_PATH")
             BASELINE_KB=$((BASELINE_SIZE / 1024))
             DIFF_KB=$((CURRENT_KB - BASELINE_KB))
-
-            echo "current_kb=$CURRENT_KB" >> "$GITHUB_OUTPUT"
-            echo "baseline_kb=$BASELINE_KB" >> "$GITHUB_OUTPUT"
-            echo "diff_kb=$DIFF_KB" >> "$GITHUB_OUTPUT"
+            echo "baseline_kb=$BASELINE_KB" >> $GITHUB_OUTPUT
+            echo "diff_kb=$DIFF_KB" >> $GITHUB_OUTPUT
           fi
-
 
       - name: Report APK size on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
+        env:
+          CURRENT_KB: ${{ steps.apk_size.outputs.current_kb }}
+          BASELINE_KB: ${{ steps.apk_size.outputs.baseline_kb }}
+          DIFF_KB: ${{ steps.apk_size.outputs.diff_kb }}
         with:
-         script: |
-          const current = context.steps.apk_size.outputs.current_kb;
-          const baseline = context.steps.apk_size.outputs.baseline_kb;
-          const diff = context.steps.apk_size.outputs.diff_kb;
+          script: |
+            const current = process.env.CURRENT_KB;
+            const baseline = process.env.BASELINE_KB;
+            const diff = process.env.DIFF_KB;
 
-          let table = '';
+            let table = '';
 
-          if (baseline && baseline !== '0') {
-            table = `
-    
-            ### 📦 APK Size Report
+            if (baseline && baseline !== '') {
+              table = `
+              ### 📦 APK Size Report
 
-            | Metric     | Size (KB) |
-            |------------|-----------|
-            | Baseline   | ${baseline} |
-            | Current    | ${current} |
-            | Difference | ${diff} |
+              | Metric     | Size (KB) |
+              |------------|-----------|
+              | Baseline   | ${baseline} |
+              | Current    | ${current} |
+              | Difference | ${diff} |
 
-            `;
-            
-            if (parseInt(diff, 10) > 0) {
-              table += `> ⚠️ APK size increased by ${diff} KB.`;
-            } else if (parseInt(diff, 10) < 0) {
-              table += `> ✅ APK size decreased by ${Math.abs(diff)} KB.`;
+              `;
+
+              if (parseInt(diff, 10) > 0) {
+                table += `> ❌ APK size increased by ${diff} KB.`;
+              } else if (parseInt(diff, 10) < 0) {
+                table += `> ✅ APK size decreased by ${Math.abs(diff)} KB.`;
+              } else {
+                table += `> ✅ APK size unchanged.`;
+              }
             } else {
-              table += `> ✅ APK size unchanged.`;
+              table = `📌 Current APK size: ${current} KB (No baseline available for comparison).`;
             }
-          } else {
-            table = `📌 Current APK size: ${current} KB (No baseline available for comparison).`;
-          }
 
-          github.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.payload.pull_request.number,
-            body: table
-          });
-
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: table
+            });
 
   gradle_tests:
     # Requires a "larger runner", for nested virtualization support
