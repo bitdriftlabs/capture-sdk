@@ -94,9 +94,9 @@ internal class FatalIssueReporter(
         mapOf(
             FATAL_ISSUE_REPORTING_STATE_KEY to fatalIssueReporterStatus.state.readableType.toFieldValue(),
             FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY to
-                    fatalIssueReporterStatus
-                        .getDuration()
-                        .toFieldValue(),
+                fatalIssueReporterStatus
+                    .getDuration()
+                    .toFieldValue(),
         )
 
     private fun performReportingSetup(

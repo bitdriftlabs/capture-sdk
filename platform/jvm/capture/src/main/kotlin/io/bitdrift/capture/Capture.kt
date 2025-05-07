@@ -177,7 +177,7 @@ object Capture {
                 Log.w(
                     LOG_TAG,
                     "Attempted to initialize Capture before androidx.startup.Initializers " +
-                            "are run. Aborting logger initialization.",
+                        "are run. Aborting logger initialization.",
                 )
                 return
             }
