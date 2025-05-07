@@ -63,6 +63,7 @@ fn initialize_logging() {
 
   static LOGGING_INIT: Once = Once::new();
 
+
   LOGGING_INIT.call_once(|| {
     // TODO(snowp): Ideally we use a tracing subscriber which embeds the span information like we
     // do everywhere else, as that would let us use trace spans to provide context for the logs.
