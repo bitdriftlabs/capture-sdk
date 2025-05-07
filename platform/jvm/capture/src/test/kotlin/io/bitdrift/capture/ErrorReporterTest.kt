@@ -8,8 +8,6 @@
 package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import io.bitdrift.capture.error.ErrorReportRequest
 import io.bitdrift.capture.error.ErrorReporterService
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
@@ -18,6 +16,8 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.FatalIssueReporterStatus
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl
 import okhttp3.mockwebserver.MockWebServer
 import org.assertj.core.api.Assertions.assertThat
@@ -119,7 +119,7 @@ class ErrorReporterTest {
         assertThat(r).isNotNull
 
         val jsonPayload = r?.body?.readString(Charset.defaultCharset())!!
-        val typedRequest = Gson().fromJson<ErrorReportRequest>(jsonPayload, object : TypeToken<ErrorReportRequest>() {}.type)
+        val typedRequest = Json.decodeFromString<ErrorReportRequest>(jsonPayload)
         assertThat(typedRequest.message).isEqualTo(
             "jni reported: 'something' failed: java.lang.Throwable: some exception",
         )

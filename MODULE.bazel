@@ -162,7 +162,7 @@ maven.install(
 
         # Library dependencies
         "com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.18",
-        "com.google.code.gson:gson:2.10.1",
+        "org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1",
         "com.squareup.okhttp3:okhttp:{}".format(OKHTTP_VERSION),
         "androidx.startup:startup-runtime:1.2.0",
         "androidx.core:core:1.13.1",

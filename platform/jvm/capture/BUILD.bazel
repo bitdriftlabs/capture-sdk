@@ -41,7 +41,7 @@ bitdrift_kt_android_library(
         artifact("com.michael-bull.kotlin-result:kotlin-result-jvm"),
         artifact("com.squareup.okhttp3:okhttp"),
         artifact("com.google.code.findbugs:jsr305"),
-        artifact("com.google.code.gson:gson"),
+        artifact("org.jetbrains.kotlinx:kotlinx-serialization-json"),
         artifact("androidx.metrics:metrics-performance"),
     ],
 )

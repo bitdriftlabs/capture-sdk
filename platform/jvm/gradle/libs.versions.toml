@@ -8,13 +8,13 @@ androidxCore = "1.13.1"
 androidxTestCore = "1.6.1"
 detektPlugin = "1.23.7"
 dokkaPlugin = "1.9.20"
-gson = "2.10.1"
 jsr305 = "3.0.2"
 junit = "4.13.2"
 kotlinResultJvm = "1.1.18"
 lifecycleCommon = "2.8.7"
 mavenPublishPlugin = "0.28.0"
 kotlin = "2.0.0"
+kotlin-serialization = "1.8.1"
 mockitoCore = "4.9.0"
 mockitoKotlin = "2.2.0"
 mockitoKotlinVersion = "4.1.0"
@@ -39,7 +39,7 @@ androidx-test-core = { module = "androidx.test:core", version.ref = "androidxTes
 androidx-ui = { module = "androidx.compose.ui:ui", version.ref = "ui" }
 apollo-runtime = { module = "com.apollographql.apollo:apollo-runtime", version.ref = "apollo" }
 assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertjCore" }
-gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+kotlin-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlin-serialization" }
 jsr305 = { module = "com.google.code.findbugs:jsr305", version.ref = "jsr305" }
 junit = { module = "junit:junit", version.ref = "junit" }
 kotlin-mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockitoKotlinVersion" }

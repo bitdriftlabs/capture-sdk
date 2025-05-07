@@ -10,10 +10,10 @@ package io.bitdrift.capture.network.okhttp
 import android.util.Log
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import io.bitdrift.capture.ApiError
 import io.bitdrift.capture.CaptureResult
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Headers.Companion.toHeaders
@@ -37,12 +37,12 @@ internal sealed class HttpApiEndpoint(
 internal class OkHttpApiClient(
     private val apiBaseUrl: HttpUrl,
     private val apiKey: String,
-    private val gson: Gson = Gson(),
 ) {
     private val client: OkHttpClient = OkHttpClient()
     private val jsonContentType: MediaType = "application/json".toMediaType()
+    private val json = Json { ignoreUnknownKeys = true }
 
-    inline fun <Rq, reified Rp> perform(
+    inline fun <reified Rq, reified Rp> perform(
         endpoint: HttpApiEndpoint,
         body: Rq,
         headers: Map<String, String>? = null,
@@ -50,7 +50,7 @@ internal class OkHttpApiClient(
     ) {
         val jsonBody =
             try {
-                gson.toJson(body)
+                json.encodeToString(body)
             } catch (e: Exception) {
                 completion(Err(e.toSerializationError()))
                 return
@@ -74,8 +74,7 @@ internal class OkHttpApiClient(
                     response.use {
                         if (response.isSuccessful) {
                             try {
-                                val typedResponse =
-                                    gson.fromTypedJson<Rp>(response.body?.string().orEmpty())
+                                val typedResponse = json.decodeFromString<Rp>(response.body?.string().orEmpty())
                                 completion(Ok(typedResponse))
                             } catch (e: Exception) {
                                 completion(Err(e.toSerializationError()))
@@ -97,8 +96,6 @@ internal class OkHttpApiClient(
             },
         )
     }
-
-    private inline fun <reified Rp> Gson.fromTypedJson(json: String) = fromJson<Rp>(json, object : TypeToken<Rp>() {}.type)
 
     private fun IOException.toNetworkError(): ApiError = ApiError.NetworkError(message = this.toString())
 

@@ -10,11 +10,11 @@ package io.bitdrift.capture.error
 import android.util.Log
 import com.github.michaelbull.result.onFailure
 import com.github.michaelbull.result.onSuccess
-import com.google.gson.annotations.SerializedName
 import io.bitdrift.capture.ApiError
 import io.bitdrift.capture.network.okhttp.HttpApiEndpoint
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.providers.FieldProvider
+import kotlinx.serialization.Serializable
 
 internal class ErrorReporterService(
     private val fieldProviders: List<FieldProvider>,
@@ -64,7 +64,8 @@ internal class ErrorReporterService(
     }
 }
 
+@Serializable
 internal data class ErrorReportRequest(
-    @SerializedName("message") val message: String,
-    @SerializedName("details") val details: String?,
+    val message: String,
+    val details: String?,
 )

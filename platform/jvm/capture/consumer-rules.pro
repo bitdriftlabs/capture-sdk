@@ -1,32 +1,20 @@
 # keep exception names
 -keepnames class * extends java.lang.Throwable
 
-##---------------Begin: proguard configuration for Gson  ----------
-# Gson uses generic type information stored in a class file when working with fields. Proguard
-# removes such information by default, so configure it to keep all of it.
--keepattributes Signature
-# Keep class TypeToken (respectively its generic signature) if present
--if class com.google.gson.reflect.TypeToken
--keep,allowobfuscation class com.google.gson.reflect.TypeToken
-# Keep any (anonymous) classes extending TypeToken
--keep,allowobfuscation class * extends com.google.gson.reflect.TypeToken
-# Keep fields annotated with @SerializedName for classes which are referenced.
-# If classes with fields annotated with @SerializedName have a no-args
-# constructor keep that as well. Based on
-# https://issuetracker.google.com/issues/150189783#comment11.
-# See also https://github.com/google/gson/pull/2420#discussion_r1241813541
-# for a more detailed explanation.
--if class *
--keepclasseswithmembers,allowobfuscation class <1> {
-  @com.google.gson.annotations.SerializedName <fields>;
-}
--if class * {
-  @com.google.gson.annotations.SerializedName <fields>;
-}
--keepclassmembers,allowobfuscation,allowoptimization class <1> {
-  <init>();
-}
-##---------------End: proguard configuration for Gson  ----------
+##---------------Begin: proguard configuration for Kotlin Serialization ----------
+-keepattributes *Annotation*
+
+# Keep Kotlinx Serialization library internals
+-keep class kotlinx.serialization.** { *; }
+-keep class kotlinx.serialization.modules.SerializersModule { *; }
+-keep class kotlinx.serialization.json.** { *; }
+
+# Keep generated serializers
+-keep class **$$serializer { *; }
+
+# Keep classes annotated with @Serializable
+-keep @kotlinx.serialization.Serializable class * { *; }
+##---------------End: proguard configuration for Kotlin Serialization ----------
 
 -keep, includedescriptorclasses class io.bitdrift.capture.IPreferences {
    public <methods>;

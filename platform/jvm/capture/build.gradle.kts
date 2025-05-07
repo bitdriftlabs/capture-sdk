@@ -26,7 +26,7 @@ dependencies {
     implementation(libs.androidx.core)
     implementation(libs.androidx.startup.runtime)
     implementation(libs.jsr305)
-    implementation(libs.gson)
+    implementation(libs.kotlin.serialization)
     implementation(libs.performance)
 
     testImplementation(libs.junit)

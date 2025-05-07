@@ -30,7 +30,7 @@ mod test {
       "androidx.lifecycle:lifecycle-common",
       "androidx.lifecycle:lifecycle-process",
       "androidx.startup:startup-runtime",
-      "com.google.code.gson:gson",
+      "org.jetbrains.kotlinx:kotlinx-serialization-json",
       "com.google.guava:listenablefuture",
       "com.michael-bull.kotlin-result:kotlin-result-jvm",
       "com.squareup.okhttp3:okhttp",

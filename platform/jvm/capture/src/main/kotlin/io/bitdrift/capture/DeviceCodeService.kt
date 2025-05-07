@@ -8,9 +8,9 @@
 package io.bitdrift.capture
 
 import com.github.michaelbull.result.map
-import com.google.gson.annotations.SerializedName
 import io.bitdrift.capture.network.okhttp.HttpApiEndpoint
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
+import kotlinx.serialization.Serializable
 
 internal class DeviceCodeService(
     private val apiClient: OkHttpApiClient,
@@ -27,10 +27,12 @@ internal class DeviceCodeService(
     }
 }
 
+@Serializable
 internal data class DeviceCodeRequest(
-    @SerializedName("device_id") val deviceId: String,
+    val deviceId: String,
 )
 
+@Serializable
 internal data class DeviceCodeResponse(
-    @SerializedName("code") val code: String,
+    val code: String,
 )
