@@ -7,8 +7,6 @@
 
 package io.bitdrift.capture
 
-import com.github.michaelbull.result.unwrap
-import com.github.michaelbull.result.unwrapError
 import io.bitdrift.capture.network.okhttp.HttpApiEndpoint
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import okhttp3.mockwebserver.MockResponse
@@ -67,13 +65,12 @@ class OkHttpApiClientTest {
         val jsonPayload = request?.body?.readString(Charset.defaultCharset()).orEmpty()
         assertThat(jsonPayload).isEqualTo("{\"device_id\":\"device-id\"}")
 
-        assertThat(apiResult?.unwrap()?.code).isEqualTo("123456")
+        assertThat(apiResult?.getOrThrow()?.code).isEqualTo("123456")
     }
 
     @Test
     fun verifyOkHttpFailure() {
         // ARRANGE
-        // configure mock webserver to call onFailure
         server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
         val okHttpClientLatch = CountDownLatch(1)
 
@@ -87,7 +84,7 @@ class OkHttpApiClientTest {
 
         // ASSERT
         assert(okHttpClientLatch.await(1, TimeUnit.SECONDS))
-        assertThat(apiResult?.unwrapError() is ApiError.NetworkError).isTrue
+        assertThat(apiResult?.exceptionOrNull() is ApiError.NetworkError).isTrue
     }
 
     @Test
@@ -106,7 +103,7 @@ class OkHttpApiClientTest {
 
         // ASSERT
         assert(okHttpClientLatch.await(1, TimeUnit.SECONDS))
-        val serverError = apiResult?.unwrapError() as ApiError.ServerError
+        val serverError = apiResult?.exceptionOrNull() as ApiError.ServerError
         assertThat(serverError.statusCode).isEqualTo(500)
     }
 
@@ -126,6 +123,6 @@ class OkHttpApiClientTest {
 
         // ASSERT
         assert(okHttpClientLatch.await(1, TimeUnit.SECONDS))
-        assertThat(apiResult?.unwrapError() is ApiError.SerializationError).isTrue
+        assertThat(apiResult?.exceptionOrNull() is ApiError.SerializationError).isTrue
     }
 }

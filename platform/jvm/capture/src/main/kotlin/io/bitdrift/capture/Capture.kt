@@ -9,7 +9,6 @@ package io.bitdrift.capture
 
 import android.content.Context
 import android.util.Log
-import com.github.michaelbull.result.Err
 import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
@@ -284,11 +283,16 @@ object Capture {
         @JvmStatic
         fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {
             logger()?.also {
-                it.createTemporaryDeviceCode {
-                    mainThreadHandler.run { completion(it) }
+                it.createTemporaryDeviceCode { result ->
+                    mainThreadHandler.run {
+                        result.fold(
+                            onSuccess = { completion(Result.success(it)) },
+                            onFailure = { completion(Result.failure(it)) },
+                        )
+                    }
                 }
             } ?: run {
-                mainThreadHandler.run { completion(Err(SdkNotStartedError)) }
+                mainThreadHandler.run { completion(Result.failure(SdkNotStartedError)) }
             }
         }
 

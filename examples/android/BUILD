@@ -13,7 +13,6 @@ _maven_deps = [
     artifact("androidx.appcompat:appcompat"),
     artifact("androidx.activity:activity-compose"),
     artifact("androidx.compose.material:material"),
-    artifact("com.michael-bull.kotlin-result:kotlin-result-jvm"),
     artifact("com.google.code.gson:gson"),
     artifact("com.google.flatbuffers:flatbuffers-java"),
     artifact("androidx.annotation:annotation-jvm"),

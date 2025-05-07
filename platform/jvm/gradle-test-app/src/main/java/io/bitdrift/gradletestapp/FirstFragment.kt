@@ -30,8 +30,6 @@ import com.apollographql.apollo.network.okHttpClient
 import com.example.rocketreserver.BookTripsMutation
 import com.example.rocketreserver.LaunchListQuery
 import com.example.rocketreserver.LoginMutation
-import com.github.michaelbull.result.onFailure
-import com.github.michaelbull.result.onSuccess
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.Error
 import io.bitdrift.capture.LogLevel

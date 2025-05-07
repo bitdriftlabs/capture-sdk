@@ -10,15 +10,15 @@ package io.bitdrift.capture
 /**
  * A monad for modeling success or failure operations in the Capture SDK.
  */
-typealias CaptureResult<V> = com.github.michaelbull.result.Result<V, Error>
+typealias CaptureResult<V> = Result<V>
 
 /**
  * Represents a failed operation in the Capture SDK.
  * @param message A message describing the error.
  */
 sealed class Error(
-    open val message: String,
-)
+    override val message: String,
+) : Throwable()
 
 /**
  * Represents a failed operation due to an API error.

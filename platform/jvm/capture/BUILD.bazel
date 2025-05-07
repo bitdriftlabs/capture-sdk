@@ -32,7 +32,6 @@ bitdrift_kt_android_library(
         artifact("androidx.core:core"),
         artifact("com.google.guava:listenablefuture"),
         artifact("com.google.flatbuffers:flatbuffers-java"),
-        artifact("com.michael-bull.kotlin-result:kotlin-result-jvm"),
         artifact("com.squareup.okhttp3:okhttp"),
     ],
     deps = [
@@ -44,7 +43,6 @@ bitdrift_kt_android_library(
         artifact("androidx.startup:startup-runtime"),
         artifact("androidx.core:core"),
         artifact("com.google.guava:listenablefuture"),
-        artifact("com.michael-bull.kotlin-result:kotlin-result-jvm"),
         artifact("com.squareup.okhttp3:okhttp"),
         artifact("com.google.code.findbugs:jsr305"),
         artifact("com.google.code.gson:gson"),
