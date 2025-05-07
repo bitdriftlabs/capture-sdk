@@ -32,7 +32,6 @@ mod test {
       "androidx.startup:startup-runtime",
       "com.google.code.gson:gson",
       "com.google.guava:listenablefuture",
-      "com.michael-bull.kotlin-result:kotlin-result-jvm",
       "com.squareup.okhttp3:okhttp",
       "org.jetbrains.kotlin:kotlin-stdlib",
       "androidx.metrics:metrics-performance",

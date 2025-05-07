@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture
 
-import com.github.michaelbull.result.map
 import com.google.gson.annotations.SerializedName
 import io.bitdrift.capture.network.okhttp.HttpApiEndpoint
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient

@@ -26,8 +26,6 @@ import androidx.compose.material.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.testTag
-import com.github.michaelbull.result.onFailure
-import com.github.michaelbull.result.onSuccess
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.common.ErrorHandler
@@ -179,14 +177,12 @@ class MainActivity : ComponentActivity() {
 
     fun generateTmpDeviceCode(view: View) {
         Logger.createTemporaryDeviceCode(completion = { result ->
-            result.onSuccess {
-                updateDeviceCodeValue(it)
-            }
-            result.onFailure {
-                updateDeviceCodeValue(it.message)
-            }
+            result.fold(
+                onSuccess = { updateDeviceCodeValue(it) },
+                onFailure = { updateDeviceCodeValue(it.message ?: "Unknown error") }
+            )
         })
-    }
+    }    
 
     private fun updateDeviceCodeValue(deviceCode: String) {
         deviceCodeTextView.text = deviceCode

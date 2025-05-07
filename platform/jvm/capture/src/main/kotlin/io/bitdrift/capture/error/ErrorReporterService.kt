@@ -8,8 +8,6 @@
 package io.bitdrift.capture.error
 
 import android.util.Log
-import com.github.michaelbull.result.onFailure
-import com.github.michaelbull.result.onSuccess
 import com.google.gson.annotations.SerializedName
 import io.bitdrift.capture.ApiError
 import io.bitdrift.capture.network.okhttp.HttpApiEndpoint

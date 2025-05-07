@@ -161,7 +161,6 @@ maven.install(
         "org.jetbrains.dokka:dokka-cli:1.9.10",
 
         # Library dependencies
-        "com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.18",
         "com.google.code.gson:gson:2.10.1",
         "com.squareup.okhttp3:okhttp:{}".format(OKHTTP_VERSION),
         "androidx.startup:startup-runtime:1.2.0",
