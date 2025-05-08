@@ -120,7 +120,7 @@ class FatalIssueReporterProcessorTest {
 
     @Test
     fun persistAppExitReport_whenUserPerceivedAnr_shouldMatchAnrReason() {
-        assertAnrReason(
+        assertAnrContents(
             descriptionFromAppExit = "Input Dispatching Timed Out",
             expectedMessage = "User Perceived ANR",
         )
@@ -128,7 +128,7 @@ class FatalIssueReporterProcessorTest {
 
     @Test
     fun persistAppExitReport_whenBroadcastReceiverAnr_shouldMatchAnrReason() {
-        assertAnrReason(
+        assertAnrContents(
             descriptionFromAppExit =
                 "Broadcast of Intent { act=android.intent.action.MAIN " +
                     "cmp=com.example.app/.MainActivity}",
@@ -138,7 +138,7 @@ class FatalIssueReporterProcessorTest {
 
     @Test
     fun persistAppExitReport_whenExecutingServiceAnr_shouldMatchAnrReason() {
-        assertAnrReason(
+        assertAnrContents(
             descriptionFromAppExit =
                 "Executing service. { act=android.intent.action.MAIN \" +\n" +
                     "                    \"cmp=com.example.app/.MainActivity}",
@@ -148,7 +148,7 @@ class FatalIssueReporterProcessorTest {
 
     @Test
     fun persistAppExitReport_whenStartServiceForegroundAnr_shouldMatchAnrReason() {
-        assertAnrReason(
+        assertAnrContents(
             descriptionFromAppExit = "Service.StartForeground() not called.{ act=android.intent.action.MAIN}",
             expectedMessage = "Service.startForeground() Not Called ANR",
         )
@@ -156,7 +156,7 @@ class FatalIssueReporterProcessorTest {
 
     @Test
     fun persistAppExitReport_whenContentProviderTimeoutAnr_shouldMatchAnrReason() {
-        assertAnrReason(
+        assertAnrContents(
             descriptionFromAppExit = "My Application. Content Provider Timeout",
             expectedMessage = "Content Provider ANR",
         )
@@ -164,7 +164,7 @@ class FatalIssueReporterProcessorTest {
 
     @Test
     fun persistAppExitReport_whenAppRegisteredTimeoutAnr_shouldMatchAnrReason() {
-        assertAnrReason(
+        assertAnrContents(
             descriptionFromAppExit = "My Application. App Registered Timeout",
             expectedMessage = "App Registered ANR",
         )
@@ -172,7 +172,7 @@ class FatalIssueReporterProcessorTest {
 
     @Test
     fun persistAppExitReport_whenShortFgsTimeoutAnr_shouldMatchAnrReason() {
-        assertAnrReason(
+        assertAnrContents(
             descriptionFromAppExit = "Foreground service ANR. Short FGS Timeout. Duration=5000ms",
             expectedMessage = "Short Foreground Service Timeout ANR",
         )
@@ -180,7 +180,7 @@ class FatalIssueReporterProcessorTest {
 
     @Test
     fun persistAppExitReport_whenSystemJobServiceTimeoutAnr_shouldMatchAnrReason() {
-        assertAnrReason(
+        assertAnrContents(
             descriptionFromAppExit = "SystemJobService. Job Service Timeout",
             expectedMessage = "Job Service ANR",
         )
@@ -188,7 +188,7 @@ class FatalIssueReporterProcessorTest {
 
     @Test
     fun persistAppExitReport_whenAppStartupTimeOut_shouldMatchAnrReason() {
-        assertAnrReason(
+        assertAnrContents(
             descriptionFromAppExit = "App start timeout. Timeout=5000ms",
             expectedMessage = "App Start ANR",
         )
@@ -196,7 +196,7 @@ class FatalIssueReporterProcessorTest {
 
     @Test
     fun persistAppExitReport_whenServiceStartTimeout_shouldMatchAnrReason() {
-        assertAnrReason(
+        assertAnrContents(
             descriptionFromAppExit = "Service start timeout. Timeout=5000ms",
             expectedMessage = "Service Start ANR",
         )
@@ -204,7 +204,7 @@ class FatalIssueReporterProcessorTest {
 
     @Test
     fun persistAppExitReport_whenBackgroundAnr_shouldMatchAnrReason() {
-        assertAnrReason(
+        assertAnrContents(
             descriptionFromAppExit = "It's full moon ANR",
             expectedMessage = "Undetermined ANR",
         )
@@ -212,7 +212,7 @@ class FatalIssueReporterProcessorTest {
 
     @Test
     fun persistAppExitReport_whenGenericAnrTimeout_shouldMatchAnrReason() {
-        assertAnrReason(
+        assertAnrContents(
             descriptionFromAppExit =
                 "bg anr: Process " +
                     "ProcessRecord{9707291 4609:io.bitdrift.gradletestapp/u0a207} " +
@@ -259,7 +259,7 @@ class FatalIssueReporterProcessorTest {
             .persistFatalIssue(any(), any(), any())
     }
 
-    private fun assertAnrReason(
+    private fun assertAnrContents(
         descriptionFromAppExit: String,
         expectedMessage: String,
     ) {
@@ -279,6 +279,12 @@ class FatalIssueReporterProcessorTest {
         assertThat(report.errors(0)).isNotNull
         report.errors(0)?.let { error ->
             assertThat(error.name).isEqualTo(expectedMessage)
+            val frame = error.stackTrace(0)
+            assertThat(frame).isNotNull
+            assertThat(frame!!.sourceFile!!.line).isEqualTo(106)
+            assertThat(frame.sourceFile!!.path).isEqualTo("FatalIssueGenerator.kt")
+            assertThat(frame.symbolName).isEqualTo("startProcessing")
+            assertThat(frame.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")
         }
     }
 
