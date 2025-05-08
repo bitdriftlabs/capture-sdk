@@ -25,6 +25,7 @@ _maven_deps = [
     artifact("org.jetbrains.kotlin:kotlin-stdlib"),
     artifact("org.jetbrains:annotations"),
     artifact("androidx.metrics:metrics-performance"),
+    artifact("androidx.work:work-runtime-ktx"),
 ]
 
 aar_import(

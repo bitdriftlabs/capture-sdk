@@ -36,6 +36,7 @@ mod test {
       "com.squareup.okhttp3:okhttp",
       "org.jetbrains.kotlin:kotlin-stdlib",
       "androidx.metrics:metrics-performance",
+      "androidx.work:work-runtime-ktx",
     ];
 
     let root = simple_xml::from_file(runfiles_path("capture_aar_pom_xml.xml")).unwrap();
