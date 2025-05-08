@@ -99,9 +99,7 @@ class FatalIssueReporterProcessorTest {
         val buffer = ByteBuffer.wrap(fatalIssueReportCaptor.firstValue)
         val report = Report.getRootAsReport(buffer)
         val error = report.errors(0)!!
-        assertThat(error.reason).isEqualTo(APP_EXIT_DESCRIPTION_ANR)
-        // assertThat(error.name)
-        //     .isEqualTo("at io.bitdrift.capture.FatalIssueGenerator.startProcessing(FatalIssueGenerator.kt:106)")
+        assertThat(error.name).isEqualTo(APP_EXIT_DESCRIPTION_ANR)
         assertThat(error.stackTrace(0)!!.type).isEqualTo(1)
         assertThat(error.stackTrace(0)!!.stateLength).isEqualTo(0)
         assertThat(error.stackTrace(0)!!.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")

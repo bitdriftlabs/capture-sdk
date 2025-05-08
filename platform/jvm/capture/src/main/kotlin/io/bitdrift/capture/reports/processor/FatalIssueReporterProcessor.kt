@@ -52,7 +52,6 @@ internal class FatalIssueReporterProcessor(
                 ReportType.AppNotResponding -> {
                     AppExitAnrTraceProcessor.process(
                         builder,
-                        clientAttributes.appId,
                         sdk,
                         appMetrics,
                         deviceMetrics,

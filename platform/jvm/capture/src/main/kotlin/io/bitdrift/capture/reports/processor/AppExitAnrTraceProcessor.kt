@@ -15,7 +15,6 @@ import io.bitdrift.capture.reports.binformat.v1.FrameType
 import io.bitdrift.capture.reports.binformat.v1.Report
 import io.bitdrift.capture.reports.binformat.v1.ReportType
 import io.bitdrift.capture.reports.binformat.v1.SourceFile
-import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor.Companion.UNKNOWN_FIELD_VALUE
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -30,7 +29,6 @@ internal object AppExitAnrTraceProcessor {
     private val ANR_STACK_TRACE_REGEX = Regex("^\\s+at\\s+(.*)\\.(.*)\\((.*):(\\d+)\\)$")
     private val mainStackTraceFrames = mutableListOf<Int>()
     private var isProcessingMainThreadTrace = false
-    private var mainThreadReason = UNKNOWN_FIELD_VALUE
 
     /**
      * Process valid traceInputStream
@@ -39,7 +37,6 @@ internal object AppExitAnrTraceProcessor {
      */
     fun process(
         builder: FlatBufferBuilder,
-        appId: String,
         sdk: Int,
         appMetrics: Int,
         deviceMetrics: Int,
@@ -50,13 +47,13 @@ internal object AppExitAnrTraceProcessor {
         BufferedReader(inputStreamReader)
             .useLines { lines ->
                 lines.forEach { currentLine ->
-                    appendMainFramesIfNeeded(builder, currentLine, appId)
+                    appendMainFramesIfNeeded(builder, currentLine)
                 }
             }
-        val name = if (mainThreadReason != UNKNOWN_FIELD_VALUE) builder.createString(mainThreadReason) else 0
-        val reason = if (description != null) builder.createString(description) else 0
+
+        val name = if (description != null) builder.createString(description) else 0
         val trace = Error.createStackTraceVector(builder, mainStackTraceFrames.toIntArray())
-        val error = Error.createError(builder, name, reason, trace, ErrorRelation.CausedBy)
+        val error = Error.createError(builder, name, 0, trace, ErrorRelation.CausedBy)
 
         return Report.createReport(
             builder,
@@ -85,7 +82,6 @@ internal object AppExitAnrTraceProcessor {
     private fun appendMainFramesIfNeeded(
         builder: FlatBufferBuilder,
         currentLine: String,
-        applicationId: String,
     ) {
         setIsMainThreadStackTrace(currentLine)
         if (!isStackTraceLine(currentLine)) return
@@ -119,22 +115,7 @@ internal object AppExitAnrTraceProcessor {
                     false,
                     0,
                 )
-            if (isProcessingMainThreadTrace) {
-                mainStackTraceFrames.add(frame)
-            }
-        }
-        setAnrReason(currentLine, applicationId)
-    }
-
-    private fun setAnrReason(
-        currentLine: String,
-        applicationId: String,
-    ) {
-        if (!isProcessingMainThreadTrace) return
-
-        val matchesAppId = currentLine.trim().contains(applicationId.trim())
-        if (mainThreadReason == UNKNOWN_FIELD_VALUE && matchesAppId) {
-            mainThreadReason = currentLine.trim()
+            mainStackTraceFrames.add(frame)
         }
     }
 }
