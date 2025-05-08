@@ -7,19 +7,12 @@
 
 package io.bitdrift.capture.reports.persistence
 
-import io.bitdrift.capture.reports.FatalIssueReport
-import io.bitdrift.capture.reports.FatalIssueType
-
 /**
- * Persists a [FatalIssueReport] into disk
+ * Persists a fatal issue report to disk
  */
 internal interface IFatalIssueReporterStorage {
-    /**
-     * Persist the [FatalIssueType] into disk
-     */
     fun persistFatalIssue(
         terminationTimeStampInMilli: Long,
-        fatalIssueType: FatalIssueType,
-        fatalIssueReport: FatalIssueReport,
+        data: ByteArray,
     )
 }

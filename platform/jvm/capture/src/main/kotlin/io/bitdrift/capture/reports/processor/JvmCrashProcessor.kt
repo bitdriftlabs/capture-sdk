@@ -7,59 +7,72 @@
 
 package io.bitdrift.capture.reports.processor
 
-import io.bitdrift.capture.reports.AppMetrics
-import io.bitdrift.capture.reports.DeviceMetrics
-import io.bitdrift.capture.reports.ErrorDetails
-import io.bitdrift.capture.reports.FatalIssueReport
-import io.bitdrift.capture.reports.FrameDetails
-import io.bitdrift.capture.reports.FrameType
-import io.bitdrift.capture.reports.Sdk
-import io.bitdrift.capture.reports.SourceFile
-import io.bitdrift.capture.reports.ThreadDetails
-import io.bitdrift.capture.reports.ThreadEntry
+import com.google.flatbuffers.FlatBufferBuilder
+import io.bitdrift.capture.reports.binformat.v1.Error
+import io.bitdrift.capture.reports.binformat.v1.ErrorRelation
+import io.bitdrift.capture.reports.binformat.v1.Frame
+import io.bitdrift.capture.reports.binformat.v1.FrameType
+import io.bitdrift.capture.reports.binformat.v1.Report
+import io.bitdrift.capture.reports.binformat.v1.ReportType
+import io.bitdrift.capture.reports.binformat.v1.SourceFile
+import io.bitdrift.capture.reports.binformat.v1.ThreadDetails
 
 /**
- * Process crash into a List<io.bitdrift.capture.reports.ErrorDetails> and
- *  io.bitdrift.capture.reports.ThreadDetails
+ * Process crash into a binary flatbuffer Report
  */
 internal object JvmCrashProcessor {
     private const val CLASS_NAME_SEPARATOR = "."
 
+    /**
+     * @return byte offset for the Report instance in the builder buffer
+     */
     fun getJvmCrashReport(
-        sdk: Sdk,
-        appMetrics: AppMetrics,
-        deviceMetrics: DeviceMetrics,
+        builder: FlatBufferBuilder,
+        sdk: Int,
+        appMetrics: Int,
+        deviceMetrics: Int,
         throwable: Throwable,
         callerThread: Thread,
         allThreads: Map<Thread, Array<StackTraceElement>>?,
-    ): FatalIssueReport {
-        val frameDetails: List<FrameDetails> =
-            throwable.stackTrace.map { e -> getFrameDetails(e) }
-        val errors =
-            listOf(
-                ErrorDetails(
-                    name = throwable.javaClass.name,
-                    reason = throwable.message,
-                    stackTrace = frameDetails,
-                ),
+    ): Int {
+        val trace = throwable.stackTrace.map { e -> getFrameDetails(builder, e) }.toIntArray()
+        val message = throwable.message?.let { builder.createString(it) } ?: 0
+        val error =
+            Error.createError(
+                builder,
+                builder.createString(throwable.javaClass.name),
+                message,
+                Error.createStackTraceVector(builder, trace),
+                ErrorRelation.CausedBy,
             )
-
         val threadList =
             allThreads?.map { (thread, frames) ->
-                ThreadEntry(
-                    name = thread.name,
-                    active = (thread == callerThread),
-                    index = thread.id,
-                    state = thread.state.name,
-                    stackTrace = frames.map { e -> getFrameDetails(e) },
+                val threadStack = frames.map { e -> getFrameDetails(builder, e) }.toIntArray()
+                io.bitdrift.capture.reports.binformat.v1.Thread.createThread(
+                    builder,
+                    builder.createString(thread.name),
+                    thread == callerThread,
+                    thread.id.toUInt(),
+                    builder.createString(thread.state.name),
+                    thread.priority.toFloat(),
+                    -1, // default value for quality of service (unused on Android)
+                    io.bitdrift.capture.reports.binformat.v1.Thread
+                        .createStackTraceVector(builder, threadStack),
                 )
             } ?: listOf()
-        return FatalIssueReport(
+        return Report.createReport(
+            builder,
             sdk,
+            ReportType.JVMCrash,
             appMetrics,
             deviceMetrics,
-            errors,
-            ThreadDetails(threadList.size, threadList),
+            Report.createErrorsVector(builder, intArrayOf(error)),
+            ThreadDetails.createThreadDetails(
+                builder,
+                threadList.size.toUShort(),
+                ThreadDetails.createThreadsVector(builder, threadList.toIntArray()),
+            ),
+            0,
         )
     }
 
@@ -71,15 +84,36 @@ internal object JvmCrashProcessor {
         }
     }
 
-    private fun getFrameDetails(element: StackTraceElement): FrameDetails =
-        FrameDetails(
-            type = FrameType.JVM.ordinal,
-            className = element.className,
-            symbolName = getMethodName(element),
-            sourceFile =
-                SourceFile(
-                    path = element.fileName,
-                    lineNumber = element.lineNumber,
-                ),
+    private fun getFrameDetails(
+        builder: FlatBufferBuilder,
+        element: StackTraceElement,
+    ): Int {
+        val sourceFile =
+            if (element.fileName != null) {
+                SourceFile.createSourceFile(
+                    builder,
+                    builder.createString(element.fileName),
+                    element.lineNumber.toLong(),
+                    0,
+                )
+            } else {
+                0
+            }
+        return Frame.createFrame(
+            builder,
+            FrameType.JVM,
+            builder.createString(element.className),
+            builder.createString(getMethodName(element)),
+            sourceFile,
+            0,
+            0u,
+            0u,
+            0,
+            0,
+            0,
+            0u,
+            false,
+            0,
         )
+    }
 }

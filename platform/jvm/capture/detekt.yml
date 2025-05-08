@@ -1,4 +1,5 @@
 comments:
+  excludes: '**/binformat/**'
   UndocumentedPublicProperty:
     active: true
   UndocumentedPublicFunction:

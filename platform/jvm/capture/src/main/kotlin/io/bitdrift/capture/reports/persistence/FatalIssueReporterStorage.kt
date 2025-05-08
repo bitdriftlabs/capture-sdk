@@ -7,28 +7,18 @@
 
 package io.bitdrift.capture.reports.persistence
 
-import com.google.gson.Gson
-import io.bitdrift.capture.reports.FatalIssueReport
-import io.bitdrift.capture.reports.FatalIssueType
 import java.io.File
+import java.util.UUID
 
-/**
- * Persists a [FatalIssueReport] into disk
- */
 internal class FatalIssueReporterStorage(
     private val destinationDirectory: File,
 ) : IFatalIssueReporterStorage {
-    // TODO(FranAguilera): BIT-5083 Replace storing via Gson with native call
-    private val gson by lazy { Gson() }
-
     override fun persistFatalIssue(
         terminationTimeStampInMilli: Long,
-        fatalIssueType: FatalIssueType,
-        fatalIssueReport: FatalIssueReport,
+        data: ByteArray,
     ) {
-        // TODO(FranAguilera): BIT-5083 Replace storing via Gson with native call
-        val fileName = "${terminationTimeStampInMilli}_${fatalIssueType.name}.json"
+        val fileName = "${terminationTimeStampInMilli}_${UUID.randomUUID()}.cap"
         val outputFile = File(destinationDirectory, fileName)
-        outputFile.writeText(gson.toJson(fatalIssueReport))
+        outputFile.writeBytes(data)
     }
 }

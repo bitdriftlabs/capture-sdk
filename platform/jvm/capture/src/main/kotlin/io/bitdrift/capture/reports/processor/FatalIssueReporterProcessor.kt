@@ -9,55 +9,53 @@ package io.bitdrift.capture.reports.processor
 
 import android.content.Context
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.attributes.ClientAttributes
-import io.bitdrift.capture.reports.AppMetrics
-import io.bitdrift.capture.reports.BuildNumber
-import io.bitdrift.capture.reports.DeviceMetrics
-import io.bitdrift.capture.reports.FatalIssueReport
-import io.bitdrift.capture.reports.FatalIssueType
-import io.bitdrift.capture.reports.Sdk
-import io.bitdrift.capture.reports.ThreadDetails
+import io.bitdrift.capture.reports.binformat.v1.AppBuildNumber
+import io.bitdrift.capture.reports.binformat.v1.DeviceMetrics
+import io.bitdrift.capture.reports.binformat.v1.Platform
+import io.bitdrift.capture.reports.binformat.v1.Report
+import io.bitdrift.capture.reports.binformat.v1.ReportType
+import io.bitdrift.capture.reports.binformat.v1.SDKInfo
+import io.bitdrift.capture.reports.binformat.v1.Timestamp
 import io.bitdrift.capture.reports.persistence.IFatalIssueReporterStorage
 import java.io.InputStream
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 /**
- * Process reports from [BUILT_IN] mechanism into a [FatalIssueReport] format
+ * Process reports into a packed format
  */
 internal class FatalIssueReporterProcessor(
     appContext: Context,
     private val fatalIssueReporterStorage: IFatalIssueReporterStorage,
 ) {
+    // Initial size for file builder buffer
+    private val builderDefaultSize = 1024
     private val clientAttributes by lazy {
         // TODO(FranAguilera): BIT-5148 Refactor to avoid recreating ClientAttributes
         ClientAttributes(appContext, ProcessLifecycleOwner.get())
     }
-    private val appMetrics: AppMetrics by lazy {
-        AppMetrics(
-            appId = clientAttributes.appId,
-            version = clientAttributes.appVersion,
-            buildNumber = BuildNumber(clientAttributes.appVersionCode),
-        )
-    }
-    private val sdk by lazy {
-        Sdk(
-            id = ClientAttributes.SDK_LIBRARY_ID,
-        )
-    }
-    private val deviceMetrics by lazy { DeviceMetrics() }
 
     /**
-     * Process AppTerminations due to [REASON_ANR] or [REASON_CRASH_NATIVE] into [FatalIssueReport] format
+     * Process AppTerminations due to ANRs and native crashes into packed format
      */
     fun persistAppExitReport(
-        fatalIssueType: FatalIssueType,
+        fatalIssueType: Byte,
         timestamp: Long,
         description: String? = null,
         traceInputStream: InputStream,
     ) {
-        val report: FatalIssueReport? =
+        val builder = FlatBufferBuilder(builderDefaultSize)
+        val sdk = createSDKInfo(builder)
+        val appMetrics = createAppMetrics(builder)
+        val deviceMetrics = createDeviceMetrics(builder, timestamp)
+
+        val report: Int? =
             when (fatalIssueType) {
-                FatalIssueType.ANR -> {
+                ReportType.AppNotResponding -> {
                     AppExitAnrTraceProcessor.process(
+                        builder,
                         sdk,
                         appMetrics,
                         deviceMetrics,
@@ -66,14 +64,17 @@ internal class FatalIssueReporterProcessor(
                     )
                 }
 
-                FatalIssueType.NATIVE_CRASH -> {
+                ReportType.NativeCrash -> {
                     // TODO(FranAguilera): BIT-5144 Handle model for native crash
-                    FatalIssueReport(
+                    Report.createReport(
+                        builder,
                         sdk,
+                        ReportType.NativeCrash,
                         appMetrics,
                         deviceMetrics,
-                        errors = emptyList(),
-                        threadsDetails = ThreadDetails(),
+                        0,
+                        0,
+                        0,
                     )
                 }
 
@@ -81,29 +82,28 @@ internal class FatalIssueReporterProcessor(
             }
 
         report?.let {
-            fatalIssueReporterStorage
-                .persistFatalIssue(
-                    timestamp,
-                    fatalIssueType,
-                    report,
-                )
+            persistReport(timestamp, builder, report)
         }
     }
 
     /**
-     * Process JVM crashes into a [FatalIssueReport] format
+     * Process JVM crashes into a packed format
      *
      * NOTE: This will need to run by default on the caller thread
      */
-    @Suppress("UNUSED_PARAMETER")
     fun persistJvmCrash(
         timestamp: Long,
         callerThread: Thread,
         throwable: Throwable,
         allThreads: Map<Thread, Array<StackTraceElement>>?,
     ) {
-        val fatalIssueReport =
+        val builder = FlatBufferBuilder(builderDefaultSize)
+        val sdk = createSDKInfo(builder)
+        val appMetrics = createAppMetrics(builder)
+        val deviceMetrics = createDeviceMetrics(builder, timestamp)
+        val report =
             JvmCrashProcessor.getJvmCrashReport(
+                builder,
                 sdk,
                 appMetrics,
                 deviceMetrics,
@@ -111,14 +111,57 @@ internal class FatalIssueReporterProcessor(
                 callerThread,
                 allThreads,
             )
-        fatalIssueReporterStorage.persistFatalIssue(
-            timestamp,
-            FatalIssueType.JVM_CRASH,
-            fatalIssueReport,
-        )
+
+        persistReport(timestamp, builder, report)
     }
 
-    internal companion object {
-        internal const val UNKNOWN_FIELD_VALUE = "Unknown"
+    private fun persistReport(
+        timestamp: Long,
+        builder: FlatBufferBuilder,
+        reportOffset: Int,
+    ) {
+        builder.finish(reportOffset)
+        fatalIssueReporterStorage.persistFatalIssue(timestamp, builder.sizedByteArray())
+    }
+
+    private fun createSDKInfo(builder: FlatBufferBuilder): Int =
+        SDKInfo.createSDKInfo(
+            builder,
+            builder.createString(ClientAttributes.SDK_LIBRARY_ID),
+            // e.g. 0.17.2 TODO(FranAguilera): BIT-5141. Extract sdk version
+            builder.createString(""),
+        )
+
+    private fun createAppMetrics(builder: FlatBufferBuilder): Int {
+        val buildNumber = AppBuildNumber.createAppBuildNumber(builder, clientAttributes.appVersionCode, 0)
+        val appId = builder.createString(clientAttributes.appId)
+        val appVersion = builder.createString(clientAttributes.appVersion)
+        io.bitdrift.capture.reports.binformat.v1.AppMetrics
+            .startAppMetrics(builder)
+        io.bitdrift.capture.reports.binformat.v1.AppMetrics
+            .addAppId(builder, appId)
+        io.bitdrift.capture.reports.binformat.v1.AppMetrics
+            .addVersion(builder, appVersion)
+        io.bitdrift.capture.reports.binformat.v1.AppMetrics
+            .addBuildNumber(builder, buildNumber)
+        return io.bitdrift.capture.reports.binformat.v1.AppMetrics
+            .endAppMetrics(builder)
+    }
+
+    private fun createDeviceMetrics(
+        builder: FlatBufferBuilder,
+        timestampMillis: Long,
+    ): Int {
+        val duration = timestampMillis.toDuration(DurationUnit.MILLISECONDS)
+        // TODO: BIT-5246 Add device info
+        DeviceMetrics.startDeviceMetrics(builder)
+        DeviceMetrics.addPlatform(builder, Platform.Android)
+        DeviceMetrics.addTime(
+            builder,
+            duration.toComponents { seconds, nanoseconds ->
+                Timestamp.createTimestamp(builder, seconds.toULong(), nanoseconds.toUInt())
+            },
+        )
+        return DeviceMetrics.endDeviceMetrics(builder)
     }
 }
