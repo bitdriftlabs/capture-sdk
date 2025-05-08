@@ -27,8 +27,14 @@ import java.io.InputStreamReader
  */
 internal object AppExitAnrTraceProcessor {
     private const val ANR_MAIN_THREAD_IDENTIFIED = "\"main\""
-    private const val ANR_STACKTRACE_PREFIX = "at "
-    private val ANR_STACK_TRACE_REGEX = Regex("^\\s+at\\s+(.*)\\.(.*)\\((.*):(\\d+)\\)$")
+    // matcher for lines like `    at some.pkg.ClassName.doSomething(ClassName.kt:732)`
+    // * class  - fully-qualified class
+    // * method - method within class
+    // * file   - class source file
+    // * line   - line number
+    private val ANR_STACK_TRACE_REGEX = Regex(
+        "^\\s+at\\s+(?<class>.+)\\.(?<method>[^.]+)\\((?<file>[^:]+):(?<line>\\d+)\\)\$"
+    )
     private val mainStackTraceFrames = mutableListOf<FrameDetails>()
     private var isProcessingMainThreadTrace = false
     private var mainThreadReason = UNKNOWN_FIELD_VALUE
@@ -69,8 +75,6 @@ internal object AppExitAnrTraceProcessor {
         )
     }
 
-    private fun isStackTraceLine(currentLine: String) = currentLine.trim().startsWith(ANR_STACKTRACE_PREFIX)
-
     private fun setIsMainThreadStackTrace(line: String) {
         if (line.startsWith(ANR_MAIN_THREAD_IDENTIFIED)) {
             isProcessingMainThreadTrace = true
@@ -85,7 +89,6 @@ internal object AppExitAnrTraceProcessor {
         applicationId: String,
     ) {
         setIsMainThreadStackTrace(currentLine)
-        if (!isStackTraceLine(currentLine)) return
 
         ANR_STACK_TRACE_REGEX.find(currentLine)?.destructured?.let { (className, symbolName, fileName, lineNumber) ->
             val sourceFile =
