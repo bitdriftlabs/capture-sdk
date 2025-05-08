@@ -25,6 +25,7 @@ dependencies {
     implementation("com.google.android.material:material:1.8.0")
     implementation("com.squareup.papa:papa:0.26")
     implementation("androidx.metrics:metrics-performance:1.0.0-beta01")
+    implementation("androidx.work:work-runtime-ktx:2.10.1")
     implementation("com.bugsnag:bugsnag-android:6.12.0")
     implementation ("io.reactivex.rxjava3:rxandroid:3.0.0")
     implementation ("io.reactivex.rxjava3:rxjava:3.0.0")

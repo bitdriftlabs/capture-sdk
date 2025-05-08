@@ -27,6 +27,7 @@ timber = "5.0.1"
 truth = "1.1.4"
 ui = "1.7.6"
 performance = "1.0.0-beta01"
+workRuntimeKtx = "2.10.1"
 
 [libraries]
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
@@ -53,6 +54,7 @@ robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectr
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
 performance = { module = "androidx.metrics:metrics-performance", version.ref = "performance" }
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

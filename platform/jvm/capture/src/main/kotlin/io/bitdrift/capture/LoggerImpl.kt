@@ -15,6 +15,8 @@ import android.content.pm.ApplicationInfo
 import android.system.Os
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.github.michaelbull.result.Err
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
@@ -53,6 +55,7 @@ import io.bitdrift.capture.reports.FatalIssueReporter.Companion.buildFieldsMap
 import io.bitdrift.capture.reports.FatalIssueReporterStatus
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.SdkDirectory
+import io.bitdrift.capture.workmanager.FakeWorker
 import okhttp3.HttpUrl
 import java.util.UUID
 import kotlin.time.Duration
@@ -276,6 +279,10 @@ internal class LoggerImpl(
             fatalIssueReporterStatus.buildFieldsMap(),
             duration.toDouble(DurationUnit.SECONDS),
         )
+
+        // Won't land, just to test binary changes
+        val workRequest = OneTimeWorkRequestBuilder<FakeWorker>().build()
+        WorkManager.getInstance(context).enqueue(workRequest)
     }
 
     override val sessionId: String
