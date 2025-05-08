@@ -44,21 +44,27 @@ jobs:
         run: ./ci/files_changed.sh "^platform/jvm/gradle-test-app/.*\.(gradle|kts|kt|xml)$"
         continue-on-error: true
 
+      - name: Check for Cargo.toml changes
+        id: cargo_check
+        run: ./ci/files_changed.sh "Cargo.toml"
+        continue-on-error: true
+
       - name: Determine if tests should run
         id: check_changes_separate
         run: |
           bazel_status="${{ steps.bazel_check.outputs.check_result }}"
           workflow_status="${{ steps.workflow_check.outputs.check_result }}"
           gradle_status="${{ steps.gradle_check.outputs.check_result }}"
+          cargo_status="${{ steps.cargo_check.outputs.check_result }}"
 
           # Check if any status indicates a relevant change or error
-          if [[ "$bazel_status" == "1" || "$workflow_status" == "1" || "$gradle_status" == "1" ]]; then
+          if [[ "$bazel_status" == "1" || "$workflow_status" == "1" || "$gradle_status" == "1" || "$cargo_status" == "1" ]]; then
             echo "An unexpected issue occurred during checks."
             exit 1
-          elif [[ "$bazel_status" == "0" || "$workflow_status" == "0" || "$gradle_status" == "0" ]]; then
+          elif [[ "$bazel_status" == "0" || "$workflow_status" == "0" || "$gradle_status" == "0" || "$cargo_status" == "0" ]]; then
             echo "Changes detected in one or more checks. Running tests."
             echo "run_tests=true" >> $GITHUB_ENV
-          elif [[ "$bazel_status" == "2" && "$workflow_status" == "2" && "$gradle_status" == "2" ]]; then
+          elif [[ "$bazel_status" == "2" && "$workflow_status" == "2" && "$gradle_status" == "2" && "$cargo_status" == "2" ]]; then
             echo "No relevant changes found."
             echo "run_tests=false" >> $GITHUB_ENV
           else
