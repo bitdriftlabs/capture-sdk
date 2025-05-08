@@ -12,12 +12,16 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.reports.binformat.v1.AppBuildNumber
+import io.bitdrift.capture.reports.binformat.v1.DeviceMetrics
 import io.bitdrift.capture.reports.binformat.v1.Platform
 import io.bitdrift.capture.reports.binformat.v1.Report
 import io.bitdrift.capture.reports.binformat.v1.ReportType
 import io.bitdrift.capture.reports.binformat.v1.SDKInfo
+import io.bitdrift.capture.reports.binformat.v1.Timestamp
 import io.bitdrift.capture.reports.persistence.IFatalIssueReporterStorage
 import java.io.InputStream
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 /**
  * Process reports into a packed format
@@ -45,7 +49,7 @@ internal class FatalIssueReporterProcessor(
         val builder = FlatBufferBuilder(builderDefaultSize)
         val sdk = createSDKInfo(builder)
         val appMetrics = createAppMetrics(builder)
-        val deviceMetrics = createDeviceMetrics(builder)
+        val deviceMetrics = createDeviceMetrics(builder, timestamp)
 
         val report: Int? =
             when (fatalIssueType) {
@@ -96,7 +100,7 @@ internal class FatalIssueReporterProcessor(
         val builder = FlatBufferBuilder(builderDefaultSize)
         val sdk = createSDKInfo(builder)
         val appMetrics = createAppMetrics(builder)
-        val deviceMetrics = createDeviceMetrics(builder)
+        val deviceMetrics = createDeviceMetrics(builder, timestamp)
         val report =
             JvmCrashProcessor.getJvmCrashReport(
                 builder,
@@ -144,17 +148,20 @@ internal class FatalIssueReporterProcessor(
             .endAppMetrics(builder)
     }
 
-    private fun createDeviceMetrics(builder: FlatBufferBuilder): Int {
+    private fun createDeviceMetrics(
+        builder: FlatBufferBuilder,
+        timestampMillis: Long,
+    ): Int {
+        val duration = timestampMillis.toDuration(DurationUnit.MILLISECONDS)
         // TODO: BIT-5246 Add device info
-        io.bitdrift.capture.reports.binformat.v1.DeviceMetrics
-            .startDeviceMetrics(builder)
-        io.bitdrift.capture.reports.binformat.v1.DeviceMetrics
-            .addPlatform(builder, Platform.Android)
-        return io.bitdrift.capture.reports.binformat.v1.DeviceMetrics
-            .endDeviceMetrics(builder)
-    }
-
-    internal companion object {
-        internal const val UNKNOWN_FIELD_VALUE = "Unknown"
+        DeviceMetrics.startDeviceMetrics(builder)
+        DeviceMetrics.addPlatform(builder, Platform.Android)
+        DeviceMetrics.addTime(
+            builder,
+            duration.toComponents { seconds, nanoseconds ->
+                Timestamp.createTimestamp(builder, seconds.toULong(), nanoseconds.toUInt())
+            },
+        )
+        return DeviceMetrics.endDeviceMetrics(builder)
     }
 }
