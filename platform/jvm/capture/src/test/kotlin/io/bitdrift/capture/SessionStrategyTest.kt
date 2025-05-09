@@ -10,8 +10,7 @@ package io.bitdrift.capture
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueReporterState
-import io.bitdrift.capture.reports.FatalIssueReporterStatus
+import io.bitdrift.capture.reports.IFatalIssueReporter
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -25,6 +24,8 @@ import java.util.concurrent.CountDownLatch
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class SessionStrategyTest {
+    private val fatalIssueReporter: IFatalIssueReporter = mock()
+
     @Before
     fun setUp() {
         val initializer = ContextHolder()
@@ -48,7 +49,7 @@ class SessionStrategyTest {
                         sessionId
                     },
                 configuration = Configuration(),
-                fatalIssueReporterStatus = FatalIssueReporterStatus(FatalIssueReporterState.NotInitialized),
+                fatalIssueReporter = fatalIssueReporter,
             )
 
         val sessionId = logger.sessionId
@@ -82,7 +83,7 @@ class SessionStrategyTest {
                     },
                 configuration = Configuration(),
                 preferences = mock(),
-                fatalIssueReporterStatus = FatalIssueReporterStatus(FatalIssueReporterState.NotInitialized),
+                fatalIssueReporter = fatalIssueReporter,
             )
 
         val sessionId = logger.sessionId

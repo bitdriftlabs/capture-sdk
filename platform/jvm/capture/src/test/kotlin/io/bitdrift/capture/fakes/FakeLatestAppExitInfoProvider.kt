@@ -15,6 +15,7 @@ import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
+import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 
@@ -42,6 +43,11 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
      */
     private var description: String = DEFAULT_DESCRIPTION
 
+    /**
+     * Specifies any prior process state summary
+     */
+    private var processStateSummary: ByteArray? = null
+
     /*
      * Sets to default state
      */
@@ -50,6 +56,7 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         traceInputStream = null
         hasNoPriorReason = false
         description = DEFAULT_DESCRIPTION
+        processStateSummary = null
     }
 
     /**
@@ -60,11 +67,13 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         traceInputStream: InputStream? = null,
         hasNoPriorReason: Boolean = false,
         description: String = DEFAULT_DESCRIPTION,
+        processStateSummary: ByteArray? = null,
     ) {
         this.exitReasonType = exitReasonType
         this.traceInputStream = traceInputStream
         this.hasNoPriorReason = hasNoPriorReason
         this.description = description
+        this.processStateSummary = processStateSummary
     }
 
     override fun get(activityManager: ActivityManager): LatestAppExitReasonResult {
@@ -92,5 +101,7 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         const val SESSION_ID = "uuid-test-sample"
         const val TIME_STAMP = 1742376168992
         const val DEFAULT_DESCRIPTION = "test-description"
+
+        fun createTraceInputStream(rawText: String): InputStream = ByteArrayInputStream(rawText.toByteArray(Charsets.UTF_8))
     }
 }

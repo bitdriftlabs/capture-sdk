@@ -19,8 +19,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueReporterState
-import io.bitdrift.capture.reports.FatalIssueReporterStatus
+import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
@@ -50,6 +49,7 @@ class CaptureLoggerSessionOverrideTest {
 
     private lateinit var logger: LoggerImpl
     private var testServerPort: Int? = null
+    private val fatalIssueReporter = FatalIssueReporter()
 
     @Before
     fun setUp() {
@@ -58,7 +58,6 @@ class CaptureLoggerSessionOverrideTest {
 
         CaptureDispatchers.setTestExecutorService(MoreExecutors.newDirectExecutorService())
         CaptureJniLibrary.load()
-
         testServerPort = CaptureTestJniLibrary.startTestApiServer(-1)
     }
 
@@ -86,7 +85,7 @@ class CaptureLoggerSessionOverrideTest {
                 sessionStrategy = SessionStrategy.Fixed { "foo" },
                 configuration = Configuration(),
                 preferences = preferences,
-                fatalIssueReporterStatus = FatalIssueReporterStatus(FatalIssueReporterState.NotInitialized),
+                fatalIssueReporter = fatalIssueReporter,
             )
 
         CaptureTestJniLibrary.stopTestApiServer()
@@ -119,7 +118,7 @@ class CaptureLoggerSessionOverrideTest {
                 configuration = Configuration(),
                 preferences = preferences,
                 activityManager = activityManager,
-                fatalIssueReporterStatus = FatalIssueReporterStatus(FatalIssueReporterState.NotInitialized),
+                fatalIssueReporter = fatalIssueReporter,
             )
 
         val newStreamId = CaptureTestJniLibrary.awaitNextApiStream()

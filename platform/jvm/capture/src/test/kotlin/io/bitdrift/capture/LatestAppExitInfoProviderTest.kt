@@ -16,18 +16,11 @@ import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.Before
 import org.junit.Test
 
 class LatestAppExitInfoProviderTest {
     private val activityManager: ActivityManager = mock()
-    private lateinit var latestAppExitInfoProvider: LatestAppExitInfoProvider
-
-    @Before
-    fun setUp() {
-        latestAppExitInfoProvider =
-            LatestAppExitInfoProvider()
-    }
+    private val latestAppExitInfoProvider = LatestAppExitInfoProvider
 
     @Test
     fun get_withExceptionThrow_shouldReturnNullAndSendError() {

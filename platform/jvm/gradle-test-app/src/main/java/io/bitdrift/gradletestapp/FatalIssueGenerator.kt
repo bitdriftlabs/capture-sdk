@@ -87,7 +87,7 @@ internal object FatalIssueGenerator {
     fun forceRxJavaException() {
         Observable.error<String>(Throwable("Artificial exception"))
             .subscribe { item -> Log.i(TAG_NAME, "Item received: $item") }
-            // Missing error explicitly in order to crash
+        // Missing error explicitly in order to crash
 
     }
 

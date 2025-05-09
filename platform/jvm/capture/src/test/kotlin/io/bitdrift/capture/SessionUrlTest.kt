@@ -8,10 +8,10 @@
 package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
+import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueReporterState
-import io.bitdrift.capture.reports.FatalIssueReporterStatus
+import io.bitdrift.capture.reports.IFatalIssueReporter
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -23,6 +23,8 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class SessionUrlTest {
+    private val fatalIssueReporter: IFatalIssueReporter = mock()
+
     @Before
     fun setUp() {
         val initializer = ContextHolder()
@@ -73,6 +75,6 @@ class SessionUrlTest {
             fieldProviders = listOf(),
             dateProvider = SystemDateProvider(),
             sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-            fatalIssueReporterStatus = FatalIssueReporterStatus(FatalIssueReporterState.NotInitialized),
+            fatalIssueReporter = fatalIssueReporter,
         )
 }

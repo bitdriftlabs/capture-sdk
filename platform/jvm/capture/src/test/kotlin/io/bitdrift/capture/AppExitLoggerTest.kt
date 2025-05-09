@@ -20,14 +20,15 @@ import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
-import io.bitdrift.capture.events.lifecycle.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.SESSION_ID
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
 import org.junit.Test
@@ -41,12 +42,11 @@ class AppExitLoggerTest {
     private val runtime: Runtime = mock()
 
     private val errorHandler: ErrorHandler = mock()
-    private val crashHandler: CaptureUncaughtExceptionHandler = mock()
     private val versionChecker: BuildVersionChecker = mock()
+    private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
     private val memoryMetricsProvider = FakeMemoryMetricsProvider()
     private val backgroundThreadHandler = FakeBackgroundThreadHandler()
     private val lastExitInfo = FakeLatestAppExitInfoProvider()
-
     private lateinit var appExitLogger: AppExitLogger
 
     @Before
@@ -59,11 +59,11 @@ class AppExitLoggerTest {
                 activityManager,
                 runtime,
                 errorHandler,
-                crashHandler,
                 versionChecker,
                 memoryMetricsProvider,
                 backgroundThreadHandler,
                 lastExitInfo,
+                captureUncaughtExceptionHandler,
             )
         lastExitInfo.reset()
     }
@@ -75,7 +75,7 @@ class AppExitLoggerTest {
         // ACT
         appExitLogger.installAppExitLogger()
         // ASSERT
-        verify(crashHandler, never()).install(any())
+        verify(captureUncaughtExceptionHandler, never()).install(any())
         verify(activityManager, never()).setProcessStateSummary(any())
         verify(activityManager, never()).getHistoricalProcessExitReasons(anyOrNull(), any(), any())
     }
@@ -88,7 +88,7 @@ class AppExitLoggerTest {
         // ACT
         appExitLogger.installAppExitLogger()
         // ASSERT
-        verify(crashHandler).install(appExitLogger)
+        verify(captureUncaughtExceptionHandler).install(appExitLogger)
         verify(activityManager).setProcessStateSummary(any())
     }
 
@@ -100,7 +100,7 @@ class AppExitLoggerTest {
         appExitLogger.uninstallAppExitLogger()
 
         // ASSERT
-        verify(crashHandler).uninstall()
+        verify(captureUncaughtExceptionHandler).uninstall()
     }
 
     @Test
@@ -151,22 +151,10 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        val expectedFields =
-            buildMap {
-                put("_app_exit_source", "ApplicationExitInfo")
-                put("_app_exit_process_name", "test-process-name")
-                put("_app_exit_reason", "ANR")
-                put("_app_exit_importance", "FOREGROUND")
-                put("_app_exit_status", "0")
-                put("_app_exit_pss", "1")
-                put("_app_exit_rss", "2")
-                put("_app_exit_description", "test-description")
-                putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
-            }.toFields()
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
-            eq(expectedFields),
+            eq(buildExpectedAnrFields()),
             eq(null),
             eq(LogAttributesOverrides.SessionID(SESSION_ID, TIME_STAMP)),
             eq(false),
@@ -182,7 +170,7 @@ class AppExitLoggerTest {
         val appException = IOException("real app crash")
 
         // ACT
-        appExitLogger.logCrash(currentThread, RuntimeException("wrapper crash", appException))
+        appExitLogger.onJvmCrash(currentThread, RuntimeException("wrapper crash", appException))
 
         // ASSERT
         val expectedFields =
@@ -205,4 +193,17 @@ class AppExitLoggerTest {
         )
         verify(logger).flush(true)
     }
+
+    private fun buildExpectedAnrFields(): Map<String, FieldValue> =
+        buildMap {
+            put("_app_exit_source", "ApplicationExitInfo")
+            put("_app_exit_process_name", "test-process-name")
+            put("_app_exit_reason", "ANR")
+            put("_app_exit_importance", "FOREGROUND")
+            put("_app_exit_status", "0")
+            put("_app_exit_pss", "1")
+            put("_app_exit_rss", "2")
+            put("_app_exit_description", "test-description")
+            putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
+        }.toFields()
 }
