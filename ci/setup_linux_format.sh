@@ -21,12 +21,12 @@ download_with_timing() {
 download_with_timing "buildifier" "https://github.com/bazelbuild/buildtools/releases/download/v8.2.0/buildifier-linux-arm64" "bin/buildifier"
 chmod +x bin/buildifier
 
-download_with_timing "https://github.com/tamasfe/taplo/releases/latest/download/taplo-linux-aarch64.gz" "taplo-linux-aarch64.gz"
+download_with_timing "taplo" "https://github.com/tamasfe/taplo/releases/latest/download/taplo-linux-aarch64.gz" "taplo-linux-aarch64.gz"
 gzip -d "taplo-linux-aarch64.gz"
 mv "taplo-linux-aarch64" taplo
 chmod +x ./taplo
 
-download_with_timing https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.aarch64.tar.xz "shellcheck-v0.10.0.linux.aarch64.tar.xz"
+download_with_timing "shellcheck" "https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.aarch64.tar.xz ""shellcheck-v0.10.0.linux.aarch64.tar.xz"
 tar -xf shellcheck-v0.10.0.linux.aarch64.tar.xz
 mv shellcheck-v0.10.0/shellcheck .
 chmod +x ./shellcheck
