@@ -33,11 +33,15 @@ fix-swift:
 # any doc string violations are left next (by running tools/lint:lint-docstrings).
 	swiftlint --quiet --fix --format && ./bazelw run tools/lint:lint-docstrings
 
+.PHONY: docstrings
+docstrings
+	./bazelw run tools/lint:lint-docstrings
+
 .PHONY: format
-format: lint-shell ktlint rustfmt buildifier lint-yaml
+format: lint-shell ktlint rustfmt buildifier lint-yaml fix-swift
 
 .PHONY: format-ci
-format-ci: ktlint rustfmt buildifier fix-swift lint-yaml
+format-ci: lint-shell ktlint rustfmt buildifier fix-swift lint-yaml docstrings
 
 .PHONY: repin
 repin:

@@ -24,8 +24,6 @@ jobs:
         uses: norio-nomura/action-swiftlint@3.2.1
         env:
           DIFF_BASE: ${{ github.base_ref }}
-      - name: Run ShellCheck
-        uses: ludeeus/action-shellcheck@master
       - name: test
         run: PATH=./bin:./bin:$PATH make format-ci
       - name: check diff
