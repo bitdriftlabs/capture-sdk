@@ -36,6 +36,9 @@ fix-swift:
 .PHONY: format
 format: lint-shell ktlint rustfmt buildifier fix-swift lint-yaml
 
+.PHONY: format-ci
+format: ktlint rustfmt buildifier fix-swift lint-yaml
+
 .PHONY: repin
 repin:
 	CARGO_BAZEL_REPIN=true ./bazelw sync --only=crate_index
