@@ -8,32 +8,47 @@
 package io.bitdrift.capture.events.performance
 
 import android.app.ActivityManager
-import android.content.Context
 import android.os.Debug
 
 private const val KB = 1024L
 
 internal class MemoryMetricsProvider(
-    context: Context,
+    private val activityManager: ActivityManager,
 ) : IMemoryMetricsProvider {
-    private val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    // We only save the threshold on first access since it's a constant value obtained via a rather expensive Binder call
+    private val memoryThresholdBytes: Long by lazy {
+        ActivityManager
+            .MemoryInfo()
+            .also { memoryInfo ->
+                activityManager.getMemoryInfo(memoryInfo)
+            }.threshold
+    }
 
     override fun getMemoryAttributes(): Map<String, String> =
         mapOf(
-            "_jvm_used_kb" to usedJvmMemory(),
-            "_jvm_total_kb" to totalJvmMemory(),
-            "_native_used_kb" to allocatedNativeHeapSize(),
-            "_native_total_kb" to totalNativeHeapSize(),
-            "_memory_class" to memoryClass(),
+            "_jvm_used_kb" to usedJvmMemoryBytes().bToKb(),
+            "_jvm_total_kb" to totalJvmMemoryBytes().bToKb(),
+            "_jvm_max_kb" to maxJvmMemoryBytes().bToKb(),
+            "_native_used_kb" to allocatedNativeHeapSizeBytes().bToKb(),
+            "_native_total_kb" to totalNativeHeapSizeBytes().bToKb(),
+            "_threshold_mem_kb" to memoryThresholdBytes.bToKb(),
+            "_is_memory_low" to isMemoryLow().toString(),
+            "_memory_class" to memoryClassMB().toString(),
         )
 
-    private fun totalJvmMemory(): String = (Runtime.getRuntime().totalMemory() / KB).toString()
+    override fun isMemoryLow(): Boolean = usedJvmMemoryBytes() > memoryThresholdBytes
 
-    private fun usedJvmMemory(): String = ((Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / KB).toString()
+    private fun Long.bToKb(): String = (this / KB).toString()
 
-    private fun allocatedNativeHeapSize(): String = (Debug.getNativeHeapAllocatedSize() / KB).toString()
+    private fun totalJvmMemoryBytes(): Long = Runtime.getRuntime().totalMemory()
 
-    private fun totalNativeHeapSize(): String = (Debug.getNativeHeapSize() / KB).toString()
+    private fun usedJvmMemoryBytes(): Long = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
 
-    private fun memoryClass(): String = (activityManager.memoryClass).toString()
+    private fun maxJvmMemoryBytes(): Long = Runtime.getRuntime().maxMemory()
+
+    private fun allocatedNativeHeapSizeBytes(): Long = Debug.getNativeHeapAllocatedSize()
+
+    private fun totalNativeHeapSizeBytes(): Long = Debug.getNativeHeapSize()
+
+    private fun memoryClassMB(): Int = activityManager.memoryClass
 }
