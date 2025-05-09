@@ -10,10 +10,8 @@ concurrency:
   cancel-in-progress: true
 jobs:
   format_check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-arm
     steps:
-      # --- Build the project for release
-
       # Checkout repo to Github Actions runner
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,6 +20,12 @@ jobs:
         run: ./ci/setup_linux_format.sh
       - name: configure bazelrc
         run: mkdir tmp/ && echo "build --config=ci" > tmp/ci-bazelrc
+      - name: Run SwiftLint
+        uses: norio-nomura/action-swiftlint@3.2.1
+        env:
+          WORKING_DIRECTORY: platform/swift
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
       - name: test
         run: PATH=./bin:./bin:$PATH make format
       - name: check diff
