@@ -291,7 +291,7 @@ class JankStatsMonitorTest {
             any(),
             eq(
                 mapOf(
-                    "_duration_ms" to jankDurationInMilli.toString().toFieldValue(),
+                    "_frame_duration_ms" to jankDurationInMilli.toString().toFieldValue(),
                     "_screen_name" to screenName.toFieldValue(),
                 ),
             ),
@@ -325,7 +325,7 @@ class JankStatsMonitorTest {
         verify(logger).log(
             eq(LogType.UX),
             eq(expectedLogLevel),
-            eq(mapOf("_duration_ms" to jankDurationInMilli.toString().toFieldValue())),
+            eq(mapOf("_frame_duration_ms" to jankDurationInMilli.toString().toFieldValue())),
             eq(null),
             eq(null),
             eq(false),
