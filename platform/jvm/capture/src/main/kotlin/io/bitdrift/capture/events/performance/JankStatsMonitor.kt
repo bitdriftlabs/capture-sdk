@@ -35,6 +35,7 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
+import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.threading.CaptureDispatchers
@@ -201,7 +202,7 @@ internal class JankStatsMonitor(
             LogType.UX,
             jankFrameLogDetails.logLevel,
             buildMap {
-                put(DURATION_NAME_KEY, toDurationMillis().toString().toFieldValue())
+                put(SpanField.Key.DURATION, toDurationMillis().toString().toFieldValue())
                 putAll(this@sendJankFrameData.states.toFields())
             },
         ) { jankFrameLogDetails.message }
@@ -292,6 +293,5 @@ internal class JankStatsMonitor(
         private const val DROPPED_FRAME_MESSAGE_ID = "DroppedFrame"
         private const val ANR_MESSAGE_ID = "ANR"
         private const val SCREEN_NAME_KEY = "_screen_name"
-        private const val DURATION_NAME_KEY = "_frame_duration_ms"
     }
 }
