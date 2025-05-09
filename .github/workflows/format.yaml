@@ -22,8 +22,8 @@ jobs:
         id: cache-formatters
         with:
           path: ./formatters/
-          key: ${{ runner.os }}-formatters-${{ hashFiles('**/ci/setups/linux_format.sh') }}
-      - run: ./ci/setup/linux_format.sh
+          key: ${{ runner.os }}-formatters-${{ hashFiles('./ci/setup_linux_format.sh') }}
+      - run: ./ci/setup_linux_format.sh
         if: steps.cache-formatters.outputs.cache-hit != 'true'
       - run: |
           sudo apt-get install -y clang
