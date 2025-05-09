@@ -26,7 +26,7 @@ gzip -d "taplo-linux-aarch64.gz"
 mv "taplo-linux-aarch64" taplo
 chmod +x ./taplo
 
-download_with_timing "shellcheck" "https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.aarch64.tar.xz ""shellcheck-v0.10.0.linux.aarch64.tar.xz"
+download_with_timing "shellcheck" "https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.aarch64.tar.xz" "shellcheck-v0.10.0.linux.aarch64.tar.xz"
 tar -xf shellcheck-v0.10.0.linux.aarch64.tar.xz
 mv shellcheck-v0.10.0/shellcheck .
 chmod +x ./shellcheck
