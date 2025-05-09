@@ -22,8 +22,6 @@ jobs:
         run: mkdir tmp/ && echo "build --config=ci" > tmp/ci-bazelrc
       - name: Run SwiftLint
         uses: norio-nomura/action-swiftlint@3.2.1
-        env:
-          WORKING_DIRECTORY: platform/swift
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master
       - name: test
