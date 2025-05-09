@@ -34,7 +34,10 @@ fix-swift:
 	swiftlint --quiet --fix --format && ./bazelw run tools/lint:lint-docstrings
 
 .PHONY: format
-format: lint-shell ktlint rustfmt buildifier fix-swift lint-yaml
+format: lint-shell ktlint rustfmt buildifier lint-yaml
+
+.PHONY: format-ci
+format-ci: ktlint rustfmt buildifier fix-swift lint-yaml
 
 .PHONY: repin
 repin:

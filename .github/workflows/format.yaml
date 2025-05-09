@@ -27,7 +27,7 @@ jobs:
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master
       - name: test
-        run: PATH=./bin:./bin:$PATH make format
+        run: PATH=./bin:./bin:$PATH make format-ci
       - name: check diff
         run: git --no-pager diff && git diff --quiet
       - name: Check license headers
