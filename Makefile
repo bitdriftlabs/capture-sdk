@@ -34,7 +34,7 @@ fix-swift:
 	swiftlint --quiet --fix --format && ./bazelw run tools/lint:lint-docstrings
 
 .PHONY: docstrings
-docstrings
+docstrings:
 	./bazelw run tools/lint:lint-docstrings
 
 .PHONY: format
