@@ -18,12 +18,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: install formatters
-        run: ./ci/setup_linux_format.sh
+      - uses: actions/cache@v2
+        id: cache-formatters
+        with:
+          path: ./formatters/
+          key: ${{ runner.os }}-packages-${{ hashFiles('**/ci/setups/linux_format.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-packages-
+      - run: ./ci/setup/linux_format.sh
+        if: steps.cache-formatters.outputs.cache-hit != 'true'
+      - run: |
+        sudo apt-get install -y clang
+        echo "CC=$(which clang)" >> $GITHUB_ENV
+        echo "CXX=$(which clang++)" >> $GITHUB_ENV
+        name: "Install Clang"
       - name: configure bazelrc
         run: mkdir tmp/ && echo "build --config=ci" > tmp/ci-bazelrc
       - name: test
-        run: PATH=./bin:./bin:$PATH make format-ci
+        run: PATH=./formatters:$PATH make format-ci
+        env:
+          LD_LIBRARY_PATH: ./formatters/swift/usr/lib
       - name: check diff
         run: git --no-pager diff && git diff --quiet
       - name: Check license headers
@@ -46,7 +60,5 @@ jobs:
         run: PATH=.:$PATH make lint-shell
       - name: check diff
         run: git --no-pager diff && git diff --quiet
-      - name: Check license headers
-        run: ci/check_license.sh
 
 
