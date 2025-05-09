@@ -28,7 +28,7 @@ popd
 curl -OL "https://github.com/tamasfe/taplo/releases/download/0.8.1/taplo-linux-x86_64.gz"
 gzip -d "taplo-linux-x86_64.gz"
 mv "taplo-linux-x86_64" "$formatter_dir/taplo"
-chmod +x ./taplo
+chmod +x "$formatter_dir/taplo"
 
 pushd "$(mktemp -d)"
 scversion="stable"
