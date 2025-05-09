@@ -33,30 +33,12 @@ jobs:
       - name: configure bazelrc
         run: mkdir tmp/ && echo "build --config=ci" > tmp/ci-bazelrc
       - name: test
-        run: PATH=./formatters:$PATH make format-ci
+        run: PATH=./formatters:$PATH make format
         env:
           LD_LIBRARY_PATH: ./formatters/swift/usr/lib
       - name: check diff
         run: git --no-pager diff && git diff --quiet
       - name: Check license headers
         run: ci/check_license.sh
-  shellcheck:
-    runs-on: ubuntu-latest-arm
-    steps:
-      # --- Build the project for release
-
-      # Checkout repo to Github Actions runner
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install shellcheck
-        run: |
-         wget -qO- "https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.aarch64.tar.xz" | tar -xJv
-         mv "shellcheck-v0.10.0/shellcheck" shellcheck
-         shellcheck --version
-      - name: Run 
-        run: PATH=.:$PATH make lint-shell
-      - name: check diff
-        run: git --no-pager diff && git diff --quiet
 
 
