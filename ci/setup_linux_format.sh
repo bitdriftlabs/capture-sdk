@@ -2,11 +2,11 @@
 
 set -euxo pipefail
 
-# buildifier is used for format .bzl / BUILD / WORKSPACE files.
 mkdir -p formatters/
-readonly formatter_dir
 formatter_dir="$(pwd)/formatters"
+readonly formatter_dir
 
+# buildifier is used for format .bzl / BUILD / WORKSPACE files.
 curl -LSs https://github.com/bazelbuild/buildtools/releases/download/6.0.1/buildifier-linux-amd64 --output "$formatter_dir/buildifier"
 chmod +x "$formatter_dir/buildifier"
 
