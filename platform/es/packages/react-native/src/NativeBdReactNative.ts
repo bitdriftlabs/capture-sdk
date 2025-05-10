@@ -38,6 +38,8 @@ export interface Spec extends TurboModule {
   getSessionURL(): Promise<string>;
 
   logScreenView(screenName: string): void;
+
+  logAppLaunchTTI(tti_ms: number): void;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('BdReactNative');
