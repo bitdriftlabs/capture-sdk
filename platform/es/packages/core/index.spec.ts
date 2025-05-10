@@ -29,8 +29,13 @@ describe('bitdrift native logger', () => {
   });
 
   afterAll(() => {
-    if (fs.existsSync('./store')) {
-      fs.rmSync('./store', { recursive: true, force: true });
+    try {
+      if (fs.existsSync('./store')) {
+        fs.rmSync('./store', { recursive: true, force: true });
+      }
+    } catch (error) {
+      console.warn('Failed to clean up store directory:', error);
+      // Continue test teardown even if cleanup fails
     }
   });
 
