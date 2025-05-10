@@ -40,6 +40,11 @@ RCT_EXPORT_METHOD(logScreenView:(NSString *)screenName)
     [CAPRNLogger logScreenViewWithScreenName:screenName];
 }
 
+RCT_EXPORT_METHOD(logAppLaunchTTI:(double)ttiMs)
+{
+    [CAPRNLogger logAppLaunchTTIWithTTI:ttiMs / 1000];
+}
+
 #ifndef RCT_NEW_ARCH_ENABLED
 
 RCT_EXPORT_METHOD(init:(NSString*)apiKey

@@ -1,9 +1,10 @@
 import { NativeModules, Platform } from 'react-native';
 import {
-  log,
+  logInternal,
   serialize,
   type SerializableLogFields,
   Serializable,
+  LogLevel,
 } from './log';
 import { InitOptions, SessionStrategy } from './NativeBdReactNative';
 import NativeBdReactNative from './NativeBdReactNative';
@@ -50,23 +51,31 @@ export function init(
 }
 
 export function trace(message: string, fields?: SerializableLogFields): void {
-  return log(0, message, fields);
+  return logInternal('trace', message, fields);
 }
 
 export function debug(message: string, fields?: SerializableLogFields): void {
-  return log(1, message, fields);
+  return logInternal('debug', message, fields);
 }
 
 export function info(message: string, fields?: SerializableLogFields): void {
-  return log(2, message, fields);
+  return logInternal('info', message, fields);
 }
 
 export function warn(message: string, fields?: SerializableLogFields): void {
-  return log(3, message, fields);
+  return logInternal('warn', message, fields);
 }
 
 export function error(message: string, fields?: SerializableLogFields): void {
-  return log(4, message, fields);
+  return logInternal('error', message, fields);
+}
+
+export function log(
+  log_level: LogLevel,
+  message: string,
+  fields?: SerializableLogFields,
+): void {
+  return logInternal(log_level, message, fields);
 }
 
 /**
@@ -105,11 +114,22 @@ export async function getSessionURL(): Promise<string> {
 }
 
 /**
-  * Logs a screen view event. This can be called to record that a screen was viewed.
-  * @param screenName The name of the screen that was viewed.
-  */
+ * Logs a screen view event. This can be called to record that a screen was viewed.
+ * @param screenName The name of the screen that was viewed.
+ */
 export function logScreenView(screenName: string): void {
   return NativeBdReactNative.logScreenView(screenName);
+}
+
+/**
+ * Writes an app launch TTI log event. This event should be logged only once per Logger configuration.
+ * Consecutive calls have no effect.
+ *
+ * @param {number} tti_ms - The time between a user's intent to launch the app and when the app becomes
+ *                       interactive. Calls with a negative duration are ignored.
+ */
+export function logAppLaunchTTI(tti_ms: number): void {
+  return NativeBdReactNative.logAppLaunchTTI(tti_ms);
 }
 
 /**

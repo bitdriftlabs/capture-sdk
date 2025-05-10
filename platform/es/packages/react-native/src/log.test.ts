@@ -7,7 +7,7 @@
 
 /* eslint-disable no-useless-escape */
 
-import { log } from './log';
+import { logInternal } from './log';
 import Native from './NativeBdReactNative';
 
 jest.mock('react-native', () => ({
@@ -36,7 +36,7 @@ describe('log', () => {
     ${{ key: { nested: { nested: { nested: 'value' } } } }} | ${{ key: '{"nested":{"nested":{"nested":"value"}}}' }}
     ${{ key: [1, true, 'foobar'] }}                         | ${{ key: '[1,true,\"foobar\"]' }}
   `('calls Native.log with the correct fields', ({ fields, expected }) => {
-    log(0, 'message', fields);
+    logInternal('trace', 'message', fields);
 
     expect(Native.log).toHaveBeenCalledWith(0, 'message', expected);
   });

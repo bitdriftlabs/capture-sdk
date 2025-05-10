@@ -30,4 +30,6 @@ abstract class BdReactNativeSpec internal constructor(context: ReactApplicationC
   abstract fun removeField(key: String)
 
   abstract fun logScreenView(screenView: String)
+
+  abstract fun logAppLaunchTTI(ttiMs: Double)
 }

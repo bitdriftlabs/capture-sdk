@@ -14,6 +14,9 @@ import io.bitdrift.capture.Capture
 import io.bitdrift.capture.providers.session.SessionStrategy
 import com.facebook.react.bridge.Promise
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 class BdReactNativeModule internal constructor(context: ReactApplicationContext) :
   BdReactNativeSpec(context) {
@@ -93,6 +96,10 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
   @ReactMethod
   override fun logScreenView(screenView: String) {
     Capture.Logger.logScreenView(screenView)
+  }
+
+  override fun logAppLaunchTTI(ttiMs: Double) {
+    Capture.Logger.logAppLaunchTTI(ttiMs.toDuration(DurationUnit.MILLISECONDS))
   }
 
   companion object {

@@ -5,6 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+const esModules = ['uuid', '@react-native/[^/]+', 'react-native'].join('|');
+
 module.exports = {
   displayName: 'react-native',
   preset: 'react-native',
@@ -22,8 +24,10 @@ module.exports = {
       },
     ],
     '^.+.(bmp|gif|jpg|jpeg|mp4|png|psd|svg|webp)$': require.resolve(
-      'react-native/jest/assetFileTransformer.js'
+      'react-native/jest/assetFileTransformer.js',
     ),
   },
+  transformIgnorePatterns: [`/node_modules/(?!(${esModules})/)`],
   coverageDirectory: '../../coverage/packages/react-native',
+  testPathIgnorePatterns: ['<rootDir>/dist'],
 };

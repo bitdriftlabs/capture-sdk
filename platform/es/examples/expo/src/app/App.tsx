@@ -18,6 +18,7 @@ import {
   error,
   warn,
   logScreenView,
+  logAppLaunchTTI,
 } from '@bitdrift/react-native';
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
@@ -34,7 +35,7 @@ const LOG_LEVELS = new Map([
 
 const hasAPIKeyConfigured = Boolean(
   process.env.EXPO_PUBLIC_BITDRIFT_API_KEY &&
-  process.env.EXPO_PUBLIC_BITDRIFT_API_URL,
+    process.env.EXPO_PUBLIC_BITDRIFT_API_URL,
 );
 
 const sendRandomRequest = async () => {
@@ -68,6 +69,7 @@ const HomeScreen = () => {
       });
 
       logScreenView('HomeScreen');
+      logAppLaunchTTI(1.0);
       showToast(`Logged: [${selectedLogLevel.toUpperCase()}]: Log emitted`);
     }
   };

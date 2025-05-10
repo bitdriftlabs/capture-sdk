@@ -20,13 +20,23 @@ export type Serializable =
 
 export type SerializableLogFields = { [key: string]: Serializable };
 
-export const log = (
-  level: number,
+const LogLevels = Object.freeze({
+  trace: 0,
+  debug: 1,
+  info: 2,
+  warn: 3,
+  error: 4,
+});
+
+export type LogLevel = keyof typeof LogLevels;
+
+export const logInternal = (
+  level: LogLevel,
   message: string,
   fields?: SerializableLogFields,
 ): void =>
   NativeBdReactNative.log(
-    level,
+    LogLevels[level],
     message,
     fields
       ? Object.entries(fields).reduce<LogFields>(
