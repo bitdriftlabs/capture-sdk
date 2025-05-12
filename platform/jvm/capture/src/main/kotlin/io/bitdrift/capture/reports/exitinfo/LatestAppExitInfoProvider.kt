@@ -10,7 +10,7 @@ import android.annotation.TargetApi
 import android.app.ActivityManager
 import android.app.ApplicationExitInfo
 import android.os.Build
-import io.bitdrift.capture.reports.FatalIssueType
+import io.bitdrift.capture.reports.binformat.v1.ReportType
 
 /**
  * Concrete impl of [ILatestAppExitInfoProvider]
@@ -36,10 +36,10 @@ internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         }
     }
 
-    fun mapToFatalIssueType(exitReasonType: Int): FatalIssueType? =
+    fun mapToFatalIssueType(exitReasonType: Int): Byte? =
         when (exitReasonType) {
-            ApplicationExitInfo.REASON_ANR -> FatalIssueType.ANR
-            ApplicationExitInfo.REASON_CRASH_NATIVE -> FatalIssueType.NATIVE_CRASH
+            ApplicationExitInfo.REASON_ANR -> ReportType.AppNotResponding
+            ApplicationExitInfo.REASON_CRASH_NATIVE -> ReportType.NativeCrash
             else -> null
         }
 }

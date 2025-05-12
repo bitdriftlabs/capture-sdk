@@ -15,6 +15,7 @@ _maven_deps = [
     artifact("androidx.compose.material:material"),
     artifact("com.michael-bull.kotlin-result:kotlin-result-jvm"),
     artifact("com.google.code.gson:gson"),
+    artifact("com.google.flatbuffers:flatbuffers-java"),
     artifact("androidx.annotation:annotation-jvm"),
     artifact("androidx.compose.runtime:runtime_android"),
     artifact("androidx.compose.ui:ui_android"),
