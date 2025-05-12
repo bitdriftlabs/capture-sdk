@@ -71,16 +71,17 @@ internal class ScreenshotCaptureEngine(
                 .ofWindow(topView)
                 .build()
         PixelCopy.request(screenshotRequest, executor) { screenshotResult ->
-            val resultBitmap = screenshotResult.bitmap
+            var resultBitmap: Bitmap? = null
             try {
                 if (screenshotResult.status != PixelCopy.SUCCESS) {
-                    resultBitmap.recycle()
                     finishOnError(
                         expected = false,
                         "Screenshot triggered: PixelCopy operation failed. Result.status=${screenshotResult.status}",
                     )
                     return@request
                 }
+                // bitmap is only available if the status is SUCCESS
+                resultBitmap = screenshotResult.bitmap
                 metrics.screenshot(resultBitmap.allocationByteCount, resultBitmap.byteCount)
                 val screenshotBytes = compressScreenshot(resultBitmap)
                 metrics.compression(screenshotBytes.size)
@@ -92,7 +93,7 @@ internal class ScreenshotCaptureEngine(
                     e,
                 )
             } finally {
-                resultBitmap.recycle()
+                resultBitmap?.recycle()
             }
         }
     }
