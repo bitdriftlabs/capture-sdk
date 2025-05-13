@@ -38,10 +38,8 @@ bd-session = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1
 bd-shutdown = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1863926e441e2eaf3a30ce21ea3b0ae2d96583b1" }
 bd-test-helpers = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1863926e441e2eaf3a30ce21ea3b0ae2d96583b1", default-features = false }
 bd-time = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1863926e441e2eaf3a30ce21ea3b0ae2d96583b1" }
-chrono = "0.4.41"
 clap = { version = "4.5.38", features = ["derive", "env"] }
 ctor = "0.4.2"
-env_logger = { version = "0.11.8", default-features = false }
 jni = "0.21.1"
 log = { version = "0.4.27", features = ["max_level_trace", "release_max_level_info"] }
 objc = "0.2.7"
