@@ -14,6 +14,11 @@ public typealias Fields = [String: FieldValue]
 /// The value of a log field.
 public typealias FieldValue = Encodable & Sendable
 
+public enum IssueReporterType {
+    case builtIn
+    case customConfig
+}
+
 extension Logger {
     struct SDKNotStartedfError: Swift.Error {}
 
@@ -90,12 +95,29 @@ extension Logger {
 
     /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
     /// This API is experimental and subject to change
-    public static func initFatalIssueReporting() {
-        if issueReporterInitResult.0 == .notInitialized {
-            issueReporterInitResult = (.initializing, 0)
-            issueReporterInitResult = FatalIssueReporter.processFiles()
-        } else {
-            log(level: .warning, message: "Fatal issue reporting already being initialized")
+    ///
+    /// - parameter type: mechanism for crash detection
+    public static func initFatalIssueReporting(_ type: IssueReporterType = .customConfig) {
+        switch type {
+        case .builtIn:
+            if let outputDir = Logger.reportCollectionDirectory() {
+                if #available(iOS 14, *) {
+                    let reporter = DiagnosticEventReporter(outputDir: outputDir, sdkVersion: capture_get_sdk_version())
+                    diagnosticReporter.update { val in
+                        val = reporter
+                    }
+                    MXMetricManager.shared.add(reporter)
+                }
+            } else {
+                log(level: .warning, message: "Fatal issue reporting output directory not defined, cannot enable reporting")
+            }
+        case .customConfig:
+            if issueReporterInitResult.0 == .notInitialized {
+                issueReporterInitResult = (.initializing, 0)
+                issueReporterInitResult = CustomConfigIssueReporter.processFiles()
+            } else {
+                log(level: .warning, message: "Fatal issue reporting already being initialized")
+            }
         }
     }
 

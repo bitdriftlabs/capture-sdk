@@ -33,7 +33,8 @@ func measureTime<T>(operation: () -> T) -> (T, TimeInterval) {
     return (result, duration)
 }
 
-struct FatalIssueReporter {
+/// Issue reporters for custom configuration mode
+struct CustomConfigIssueReporter {
     enum FileSizeLimit: Int {
         case min = 800
         case max = 10_000_000
