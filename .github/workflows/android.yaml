@@ -99,11 +99,14 @@ jobs:
           path: ./bazel-bin/examples/android/android_app.apk
 
       - name: Prepare baseline folder (main only)
-        if: github.ref == 'refs/heads/main'
-        run: mkdir -p baseline_apk && cp ./bazel-bin/examples/android/android_app.apk baseline_apk/
+        if: github.ref == 'refs/heads/main' && success()
+        run: |
+          rm -rf baseline_apk  # Remove if it exists
+          mkdir -p baseline_apk
+          cp ./bazel-bin/examples/android/android_app.apk baseline_apk/
 
       - name: Cache baseline APK (main only)
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && success()
         uses: actions/cache/save@v3
         with:
           path: baseline_apk
