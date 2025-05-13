@@ -15,7 +15,6 @@ bd-logger                = { workspace = true }
 bd-proto                 = { workspace = true }
 bd-test-helpers          = { workspace = true }
 capture                  = { path = "../../../platform/jvm" }
-chrono.workspace         = true
 ctor                     = { workspace = true }
 jni.workspace            = true
 platform-shared          = { path = "../../../platform/shared" }
