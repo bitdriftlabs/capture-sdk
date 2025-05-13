@@ -33,6 +33,7 @@ bd-log-primitives = { git = "https://github.com/bitdriftlabs/shared-core.git", r
 bd-logger = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "6e0ca2497ddb5de910121a7cbd7e26285f518598" }
 bd-noop-network = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "6e0ca2497ddb5de910121a7cbd7e26285f518598" }
 bd-proto = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "6e0ca2497ddb5de910121a7cbd7e26285f518598" }
+bd-report-writer = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "6e0ca2497ddb5de910121a7cbd7e26285f518598" }
 bd-runtime = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "6e0ca2497ddb5de910121a7cbd7e26285f518598" }
 bd-session = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "6e0ca2497ddb5de910121a7cbd7e26285f518598" }
 bd-shutdown = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "6e0ca2497ddb5de910121a7cbd7e26285f518598" }

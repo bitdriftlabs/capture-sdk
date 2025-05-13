@@ -19,6 +19,7 @@ bd-log-primitives.workspace  = true
 bd-logger.workspace          = true
 bd-noop-network.workspace    = true
 bd-runtime.workspace         = true
+bd-report-writer.workspace   = true
 bd-session.workspace         = true
 bd-time.workspace            = true
 log.workspace                = true
