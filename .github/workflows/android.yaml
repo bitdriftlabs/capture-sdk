@@ -3,8 +3,6 @@ on:
   push:
     branches:
       - main
-    types:
-      - closed # Ensure this only triggers for PR that are merged into main
   pull_request:
 # Cancel in-progress CI jobs when a new commit is pushed to a PR.
 concurrency:
@@ -48,7 +46,7 @@ jobs:
 
       - name: Check for Cargo.toml changes
         id: cargo_check
-        run: ./ci/files_changed.sh "Cargo.toml"
+        run: ./ci/files_changed.sh Cargo.toml
         continue-on-error: true
 
       - name: Determine if tests should run
@@ -89,6 +87,23 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: (Temporary step) Inspect baseline_apk contents
+        run: |
+          echo "🗂️ Listing all files in baseline_apk:"
+          find baseline_apk -type f -exec ls -lh {} \;
+
+          echo "📁 Total size of baseline_apk:"
+          du -sh baseline_apk || true
+
+          echo "📦 File types:"
+          find baseline_apk -type f -exec file {} \;
+
+          echo "📅 Last modified dates:"
+          find baseline_apk -type f -exec stat --format='%n -> %y' {} \;
+
+          echo "🔐 SHA256 checksums of all files:"
+          find baseline_apk -type f -exec shasum -a 256 {} \;
 
       - name: Build Bazel APK 
         timeout-minutes: 30
