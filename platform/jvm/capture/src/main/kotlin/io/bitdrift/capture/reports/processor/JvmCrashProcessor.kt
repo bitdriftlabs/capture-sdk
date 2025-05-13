@@ -21,8 +21,6 @@ import io.bitdrift.capture.reports.binformat.v1.ThreadDetails
  * Process crash into a binary flatbuffer Report
  */
 internal object JvmCrashProcessor {
-    private const val CLASS_NAME_SEPARATOR = "."
-
     /**
      * @return byte offset for the Report instance in the builder buffer
      */
@@ -76,14 +74,6 @@ internal object JvmCrashProcessor {
         )
     }
 
-    private fun getMethodName(stackTraceElement: StackTraceElement): String {
-        val className = stackTraceElement.className
-        return when {
-            stackTraceElement.className.isNotEmpty() -> className + CLASS_NAME_SEPARATOR + stackTraceElement.methodName
-            else -> stackTraceElement.methodName
-        }
-    }
-
     private fun getFrameDetails(
         builder: FlatBufferBuilder,
         element: StackTraceElement,
@@ -103,7 +93,7 @@ internal object JvmCrashProcessor {
             builder,
             FrameType.JVM,
             builder.createString(element.className),
-            builder.createString(getMethodName(element)),
+            builder.createString(element.methodName),
             sourceFile,
             0,
             0u,

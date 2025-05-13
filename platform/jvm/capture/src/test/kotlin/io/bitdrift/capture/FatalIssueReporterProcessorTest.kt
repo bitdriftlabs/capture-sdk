@@ -72,8 +72,7 @@ class FatalIssueReporterProcessorTest {
         assertThat(
             error.stackTrace(0)!!.symbolName,
         ).isEqualTo(
-            "io.bitdrift.capture.FatalIssueReporterProcessorTest" +
-                ".persistJvmCrash_withFakeException_shouldCreateNonEmptyErrorModel",
+            "persistJvmCrash_withFakeException_shouldCreateNonEmptyErrorModel",
         )
         assertThat(error.stackTrace(0)!!.sourceFile!!.path).isEqualTo("FatalIssueReporterProcessorTest.kt")
         assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(49)
