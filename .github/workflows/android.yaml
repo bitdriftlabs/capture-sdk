@@ -3,8 +3,6 @@ on:
   push:
     branches:
       - main
-    types:
-      - closed # Ensure this only triggers for PR that are merged into main
   pull_request:
 # Cancel in-progress CI jobs when a new commit is pushed to a PR.
 concurrency:
@@ -48,7 +46,7 @@ jobs:
 
       - name: Check for Cargo.toml changes
         id: cargo_check
-        run: ./ci/files_changed.sh "Cargo.toml"
+        run: ./ci/files_changed.sh Cargo.toml
         continue-on-error: true
 
       - name: Determine if tests should run
@@ -101,11 +99,14 @@ jobs:
           path: ./bazel-bin/examples/android/android_app.apk
 
       - name: Prepare baseline folder (main only)
-        if: github.ref == 'refs/heads/main'
-        run: mkdir -p baseline_apk && cp ./bazel-bin/examples/android/android_app.apk baseline_apk/
+        if: github.ref == 'refs/heads/main' && success()
+        run: |
+          rm -rf baseline_apk  # Remove if it exists
+          mkdir -p baseline_apk
+          cp ./bazel-bin/examples/android/android_app.apk baseline_apk/
 
       - name: Cache baseline APK (main only)
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && success()
         uses: actions/cache/save@v3
         with:
           path: baseline_apk
@@ -143,6 +144,8 @@ jobs:
             DIFF_KB=$((CURRENT_KB - BASELINE_KB))
             echo "baseline_kb=$BASELINE_KB" >> $GITHUB_OUTPUT
             echo "diff_kb=$DIFF_KB" >> $GITHUB_OUTPUT
+            MODIFIED_DATE=$(stat -c %y "$BASELINE_APK_PATH")
+            echo "Baseline APK last modified date: $MODIFIED_DATE"
           fi
 
       - name: Report APK size on PR
