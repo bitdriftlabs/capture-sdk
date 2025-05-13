@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - main
+    types:
+      - closed # Ensure this only triggers for PR that are merged into main
   pull_request:
 # Cancel in-progress CI jobs when a new commit is pushed to a PR.
 concurrency:
