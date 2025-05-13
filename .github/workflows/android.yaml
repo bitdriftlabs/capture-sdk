@@ -88,23 +88,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: (Temporary step) Inspect baseline_apk contents
-        run: |
-          echo "🗂️ Listing all files in baseline_apk:"
-          find baseline_apk -type f -exec ls -lh {} \;
-
-          echo "📁 Total size of baseline_apk:"
-          du -sh baseline_apk || true
-
-          echo "📦 File types:"
-          find baseline_apk -type f -exec file {} \;
-
-          echo "📅 Last modified dates:"
-          find baseline_apk -type f -exec stat --format='%n -> %y' {} \;
-
-          echo "🔐 SHA256 checksums of all files:"
-          find baseline_apk -type f -exec shasum -a 256 {} \;
-
       - name: Build Bazel APK 
         timeout-minutes: 30
         run: ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
@@ -158,6 +141,8 @@ jobs:
             DIFF_KB=$((CURRENT_KB - BASELINE_KB))
             echo "baseline_kb=$BASELINE_KB" >> $GITHUB_OUTPUT
             echo "diff_kb=$DIFF_KB" >> $GITHUB_OUTPUT
+            MODIFIED_DATE=$(stat -c %y "$BASELINE_APK_PATH")
+            echo "Baseline APK last modified date: $MODIFIED_DATE"
           fi
 
       - name: Report APK size on PR
