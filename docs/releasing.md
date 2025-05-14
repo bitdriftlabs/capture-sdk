@@ -14,24 +14,18 @@ ___NOTE: If you have build issues on the gradle test app after update, make sure
 
 ## Release process
 
-1. Go to `Actions` tab in GitHub Interface.
-2. Select `Update SDK Version` action from the side menu on the left.
-3. Hit `Run Workflow` button on the right.
-4. Keep `main` branch selection, enter version that follows formatting rules from [Version Formatting](#version-formatting).
-5. The CI job should open a PR named 'Update SDK version to 0.12.1-rc.4' ([example](https://github.com/bitdriftlabs/capture-sdk/pull/1637)).
-6. Approve and merge the PR.
-7. Look for `Release on SDK version change / Check for version change (push)` CI job started for the merge commit ([example](https://github.com/bitdriftlabs/capture-sdk/actions/runs/10206791724/job/28240351848)). Click `Details` to see how it progresses and approve public releases as needed.
-8. When approving a release in capture-ios, watch for a [PR being created in capture-ios](https://github.com/bitdriftlabs/capture-ios/pulls) with the new version number and approve it. In order for it to be merged you'll have to manually close it and re-open it.
-9. Once the PR merges, follow [the `Release` workflow](https://github.com/bitdriftlabs/capture-ios/actions/workflows/release.yaml) and approve public releases as needed. Note that this step can take a long time to complete.
+1. Run `Release and Update SDK Version` workflow action: https://github.com/bitdriftlabs/capture-sdk/actions/workflows/update_sdk_version.yaml
+2. Keep `main` branch selection, enter version that follows formatting rules from [Version Formatting](#version-formatting).
+3. The entire process should create both a release in github: https://github.com/bitdriftlabs/capture-sdk/releases as well as the s3 directories that power our docs ([android](https://docs.bitdrift.io/sdk/releases-android), [ios](https://docs.bitdrift.io/sdk/releases-ios))
+4. The CI job should open a PR named 'Update SDK version to x.y.z' ([example](https://github.com/bitdriftlabs/capture-sdk/pull/1637)) you need to approve and auto-merge it.
+5. At the end of the job another PR will be atuomatically opened in https://github.com/bitdriftlabs/capture-ios (see [below](#capture-ios))
 
-![](images/releasing_bitdriftsdk_creating_release.png)
+### capture-ios
+1. When approving a release in capture-ios, watch for a [PR being created in capture-ios](https://github.com/bitdriftlabs/capture-ios/pulls) with the new version number and approve it. In order for it to be merged you'll have to manually close it and re-open it.
+2. Once the PR merges, follow [the `Release` workflow](https://github.com/bitdriftlabs/capture-ios/actions/workflows/release.yaml) and approve public releases as needed. Note that this step can take a long time to complete.
 
-An example release can be found [here](https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.12.1-rc.5).
-
-### Release process flow
-
-In both the capture-sdk and capture-ios repositories, the `Release` workflow triggers on a change in the version being merged to main. The above flow uses the `Update SDK Version` workflow to update the version in the `capture-sdk` repository. The `Release` workflow then triggers on the version change initiates the release pipeline,
-which includes a step which will trigger a version update in the capture-ios repository to trigger a similar release pipeline in the capture-ios repository.
+### bitdrift-docs
+This process is not automated yet so you'll need to manually open a PR in https://github.com/bitdriftlabs/bitdrift-docs for the public release notes.
 
 ## Version Formatting
 

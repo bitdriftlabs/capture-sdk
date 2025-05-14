@@ -16,7 +16,7 @@ internal class MetadataProvider(
     private val dateProvider: DateProvider,
     private val ootbFieldProviders: List<FieldProvider>,
     private val customFieldProviders: List<FieldProvider>,
-    private val errorHandle: ErrorHandler = ErrorHandler(),
+    private val errorHandler: ErrorHandler,
     private val errorLog: ((String, Throwable) -> Unit) = { message, throwable -> Log.w("capture", message, throwable) },
 ) : IMetadataProvider {
     override fun timestamp(): Long = dateProvider.invoke().time
@@ -40,7 +40,7 @@ internal class MetadataProvider(
                     // The issue is not with our code but customer's provider.
                     val message = "Field Provider \"${fieldProvider.javaClass.name}\" threw an exception"
                     errorLog(message, e)
-                    errorHandle.handleError(message, e)
+                    errorHandler.handleError(message, e)
                 }
             }
         }

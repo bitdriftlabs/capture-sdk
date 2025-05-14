@@ -20,9 +20,8 @@ import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.reports.FatalIssueReporter
-import io.bitdrift.capture.reports.FatalIssueReporterState
-import io.bitdrift.capture.reports.FatalIssueReporterStatus
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -56,9 +55,9 @@ internal sealed class LoggerState {
  * Top level namespace Capture SDK.
  */
 object Capture {
-    private const val LOG_TAG = "BitdriftCapture"
+    internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
-    private var fatalIssueReporterStatus: FatalIssueReporterStatus = FatalIssueReporterStatus(FatalIssueReporterState.NotInitialized)
+    private val fatalIssueReporter = FatalIssueReporter()
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -111,19 +110,15 @@ object Capture {
         @ExperimentalBitdriftApi
         @JvmStatic
         @JvmOverloads
-        fun initFatalIssueReporting(context: Context? = null) {
+        fun initFatalIssueReporting(
+            context: Context? = null,
+            fatalIssueMechanism: FatalIssueMechanism,
+        ) {
             if (context == null && !ContextHolder.isInitialized) {
                 Log.w(LOG_TAG, "Attempted to initialize Fatal Issue Reporting with a null context. Skipping enabling crash tracking.")
                 return
             }
-
-            val fatalIssueReporter = FatalIssueReporter(context?.applicationContext ?: ContextHolder.APP_CONTEXT)
-            if (fatalIssueReporterStatus.state is FatalIssueReporterState.Initialized) {
-                Log.w(LOG_TAG, "Fatal issue reporting already being initialized")
-                return
-            }
-
-            fatalIssueReporterStatus = fatalIssueReporter.processPriorReportFiles()
+            fatalIssueReporter.initialize(context?.applicationContext ?: ContextHolder.APP_CONTEXT, fatalIssueMechanism)
         }
 
         /**
@@ -199,7 +194,7 @@ object Capture {
                             configuration = configuration,
                             sessionStrategy = sessionStrategy,
                             bridge = bridge,
-                            fatalIssueReporterStatus = fatalIssueReporterStatus,
+                            fatalIssueReporter = fatalIssueReporter,
                         )
                     default.set(LoggerState.Started(logger))
                 } catch (e: Throwable) {

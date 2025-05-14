@@ -8,12 +8,14 @@ package io.bitdrift.capture.reports.exitinfo
 
 import android.annotation.TargetApi
 import android.app.ActivityManager
+import android.app.ApplicationExitInfo
 import android.os.Build
+import io.bitdrift.capture.reports.binformat.v1.ReportType
 
 /**
  * Concrete impl of [ILatestAppExitInfoProvider]
  */
-internal class LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
+internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
     @TargetApi(Build.VERSION_CODES.R)
     override fun get(activityManager: ActivityManager): LatestAppExitReasonResult {
         try {
@@ -33,4 +35,11 @@ internal class LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
             )
         }
     }
+
+    fun mapToFatalIssueType(exitReasonType: Int): Byte? =
+        when (exitReasonType) {
+            ApplicationExitInfo.REASON_ANR -> ReportType.AppNotResponding
+            ApplicationExitInfo.REASON_CRASH_NATIVE -> ReportType.NativeCrash
+            else -> null
+        }
 }

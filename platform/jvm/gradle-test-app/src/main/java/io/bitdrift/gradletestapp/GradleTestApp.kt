@@ -46,6 +46,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
+import android.os.StrictMode
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
@@ -58,6 +59,7 @@ import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
+import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.getFatalIssueSourceConfig
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED
 import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BITDRIFT_API_KEY
 import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BUG_SNAG_SDK_API_KEY
@@ -69,6 +71,8 @@ import papa.AppLaunchType
 import papa.PapaEvent
 import papa.PapaEventListener
 import timber.log.Timber
+import java.io.File
+import java.util.concurrent.Executors
 import kotlin.random.Random
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -84,6 +88,7 @@ class GradleTestApp : Application() {
     override fun onCreate() {
         super.onCreate()
         Timber.i("Hello World!")
+        setupStrictMode()
         initLogging()
         trackAppLaunch()
         trackAppLifecycle()
@@ -91,16 +96,17 @@ class GradleTestApp : Application() {
     }
 
     private fun initLogging() {
-        @OptIn(ExperimentalBitdriftApi::class)
-        Capture.Logger.initFatalIssueReporting()
-
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        @OptIn(ExperimentalBitdriftApi::class)
+        Capture.Logger.initFatalIssueReporting(fatalIssueMechanism = getFatalIssueSourceConfig(sharedPreferences))
+
         val stringApiUrl = sharedPreferences.getString("apiUrl", null)
         val apiUrl = stringApiUrl?.toHttpUrlOrNull()
         if (apiUrl == null) {
             Log.e("GradleTestApp", "Failed to initialize bitdrift logger due to invalid API URL: $stringApiUrl")
             return
         }
+
         BitdriftInit.initBitdriftCaptureInJava(
             apiUrl,
             sharedPreferences.getString(BITDRIFT_API_KEY, ""),
@@ -261,6 +267,30 @@ class GradleTestApp : Application() {
             override fun onActivityDestroyed(activity: Activity) {
             }
         })
+    }
+
+    private fun setupStrictMode(){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val strictModeReportingThread = Executors.newSingleThreadExecutor()
+            val strictModeReporter = StrictModeReporter()
+            StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder()
+                .detectAll()
+                .penaltyLog()
+                .penaltyListener(strictModeReportingThread) {
+                    strictModeReporter.onViolation(StrictModeReporter.ViolationType.THREAD, it)
+                }
+                .build()
+            )
+            StrictMode.setVmPolicy(
+                StrictMode.VmPolicy.Builder()
+                    .detectAll()
+                    .penaltyLog()
+                    .penaltyListener(strictModeReportingThread){
+                        strictModeReporter.onViolation(StrictModeReporter.ViolationType.VM, it)
+                    }
+                    .build()
+            )
+        }
     }
 
     private fun setupCrashSdks() {
