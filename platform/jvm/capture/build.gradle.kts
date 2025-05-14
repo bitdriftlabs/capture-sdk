@@ -21,6 +21,7 @@ dependencies {
     api(libs.androidx.lifecycle.process)
     api(libs.kotlin.result.jvm)
     api(libs.okhttp)
+    api(libs.flatbuffers)
 
     implementation(project(":common"))
     implementation(libs.androidx.core)

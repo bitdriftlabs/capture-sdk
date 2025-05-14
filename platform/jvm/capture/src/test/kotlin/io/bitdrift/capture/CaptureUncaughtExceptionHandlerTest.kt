@@ -8,29 +8,34 @@
 package io.bitdrift.capture
 
 import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import io.bitdrift.capture.events.lifecycle.AppExitLogger
-import io.bitdrift.capture.events.lifecycle.CaptureUncaughtExceptionHandler
+import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
+import io.bitdrift.capture.reports.jvmcrash.JvmCrashListener
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
 class CaptureUncaughtExceptionHandlerTest {
-    private val crashReporter: AppExitLogger = mock()
-    private val prevExceptionHandler: Thread.UncaughtExceptionHandler = mock()
-    private lateinit var handler: CaptureUncaughtExceptionHandler
+    private val jvmCrashListener: JvmCrashListener = mock()
+    private val handler = CaptureUncaughtExceptionHandler
+    private lateinit var otherHandler: OtherCrashHandler
 
     @Before
     fun setUp() {
-        handler = CaptureUncaughtExceptionHandler(prevExceptionHandler)
-        handler.install(crashReporter)
+        otherHandler = OtherCrashHandler()
+        Thread.setDefaultUncaughtExceptionHandler(otherHandler)
+        handler.install(jvmCrashListener)
     }
 
     @After
     fun cleanUp() {
         handler.uninstall()
+        handler.crashing = false
+        Thread.setDefaultUncaughtExceptionHandler(null)
     }
 
     @Test
@@ -43,14 +48,16 @@ class CaptureUncaughtExceptionHandlerTest {
         handler.uncaughtException(currentThread, appException)
 
         // ASSERT
-        verify(crashReporter).logCrash(currentThread, appException)
-        verify(prevExceptionHandler).uncaughtException(currentThread, appException)
+        verify(jvmCrashListener).onJvmCrash(eq(currentThread), eq(appException))
+        assertThat(otherHandler.callArgs.size).isEqualTo(1)
+        assertThat(otherHandler.callArgs[0]["thread"]).isEqualTo(currentThread)
+        assertThat(otherHandler.callArgs[0]["throwable"]).isEqualTo(appException)
     }
 
     @Test
     fun testErrorsAreForwardedToOtherHandlerOnBitdriftFailure() {
         // ARRANGE
-        whenever(crashReporter.logCrash(any(), any())).thenThrow(RuntimeException("capture logger crash"))
+        whenever(jvmCrashListener.onJvmCrash(any(), any())).thenThrow(RuntimeException("capture logger crash"))
 
         val currentThread = Thread.currentThread()
         val appException = RuntimeException("app crash")
@@ -59,6 +66,19 @@ class CaptureUncaughtExceptionHandlerTest {
         handler.uncaughtException(currentThread, appException)
 
         // ASSERT
-        verify(prevExceptionHandler).uncaughtException(currentThread, appException)
+        assertThat(otherHandler.callArgs.size).isEqualTo(1)
+        assertThat(otherHandler.callArgs[0]["thread"]).isEqualTo(currentThread)
+        assertThat(otherHandler.callArgs[0]["throwable"]).isEqualTo(appException)
+    }
+}
+
+class OtherCrashHandler : Thread.UncaughtExceptionHandler {
+    val callArgs = mutableListOf<Map<String, Any>>()
+
+    override fun uncaughtException(
+        thread: Thread,
+        throwable: Throwable,
+    ) {
+        callArgs += mapOf("thread" to thread, "throwable" to throwable)
     }
 }

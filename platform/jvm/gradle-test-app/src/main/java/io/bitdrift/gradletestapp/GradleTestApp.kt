@@ -48,7 +48,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
 import android.util.Log
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import com.bugsnag.android.Bugsnag
@@ -60,6 +59,7 @@ import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
+import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.getFatalIssueSourceConfig
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED
 import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BITDRIFT_API_KEY
 import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BUG_SNAG_SDK_API_KEY
@@ -96,16 +96,17 @@ class GradleTestApp : Application() {
     }
 
     private fun initLogging() {
-        @OptIn(ExperimentalBitdriftApi::class)
-        Capture.Logger.initFatalIssueReporting()
-
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        @OptIn(ExperimentalBitdriftApi::class)
+        Capture.Logger.initFatalIssueReporting(fatalIssueMechanism = getFatalIssueSourceConfig(sharedPreferences))
+
         val stringApiUrl = sharedPreferences.getString("apiUrl", null)
         val apiUrl = stringApiUrl?.toHttpUrlOrNull()
         if (apiUrl == null) {
             Log.e("GradleTestApp", "Failed to initialize bitdrift logger due to invalid API URL: $stringApiUrl")
             return
         }
+
         BitdriftInit.initBitdriftCaptureInJava(
             apiUrl,
             sharedPreferences.getString(BITDRIFT_API_KEY, ""),
