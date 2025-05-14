@@ -36,7 +36,7 @@ func makeDirectoryAndDisableProtection(at path: String) throws {
     // TODO(Fz): Having the `buffers` hardcoded here is not ideal and can come and bite us in the
     // future, we should remove this once newer sdk versions are widespread.
     guard let buffers = url.appendingPathComponent("buffers", isDirectory: true),
-        manager.fileExists(atPath: buffers.path)
+          manager.fileExists(atPath: buffers.path)
     else {
         return
     }
