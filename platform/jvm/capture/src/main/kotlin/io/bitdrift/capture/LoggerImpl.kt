@@ -12,7 +12,6 @@ import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
 import android.content.pm.ApplicationInfo
-import android.os.Build
 import android.system.Os
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -32,7 +31,6 @@ import io.bitdrift.capture.events.device.DeviceStateListenerLogger
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.AppLifecycleListenerLogger
 import io.bitdrift.capture.events.lifecycle.EventsListenerTarget
-import io.bitdrift.capture.events.performance.AppMemoryPressureListenerLogger
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
 import io.bitdrift.capture.events.performance.JankStatsMonitor
@@ -52,7 +50,6 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
-import io.bitdrift.capture.utils.BuildVersionChecker
 import io.bitdrift.capture.utils.SdkDirectory
 import okhttp3.HttpUrl
 import java.util.UUID
@@ -86,7 +83,6 @@ internal class LoggerImpl(
     private val bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    private val buildVersionChecker: BuildVersionChecker = BuildVersionChecker(),
     private val fatalIssueReporter: IFatalIssueReporter,
 ) : ILogger {
     private val metadataProvider: MetadataProvider
@@ -233,19 +229,6 @@ internal class LoggerImpl(
                         eventListenerDispatcher.executorService,
                     ),
                 )
-
-                // ComponentCallbacks2.TRIM levels have been deprecated as of API level 34
-                if (buildVersionChecker.isAtMost(Build.VERSION_CODES.TIRAMISU)) {
-                    eventsListenerTarget.add(
-                        AppMemoryPressureListenerLogger(
-                            this,
-                            context,
-                            memoryMetricsProvider,
-                            runtime,
-                            eventListenerDispatcher.executorService,
-                        ),
-                    )
-                }
 
                 eventsListenerTarget.add(
                     AppUpdateListenerLogger(
