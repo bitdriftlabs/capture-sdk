@@ -280,6 +280,9 @@ class CaptureLoggerTest {
         val resourceLog = CaptureTestJniLibrary.nextUploadedLog()
         assertThat(resourceLog.message).isEqualTo("")
 
+        val memPressureLog = CaptureTestJniLibrary.nextUploadedLog()
+        assertThat(memPressureLog.message).isEqualTo("AppMemPressure")
+
         val log = CaptureTestJniLibrary.nextUploadedLog()
         assertThat(log.level).isEqualTo(LogLevel.DEBUG.value)
         assertThat(log.message).isEqualTo("test log")
@@ -311,6 +314,10 @@ class CaptureLoggerTest {
         // Sometimes a resource log is sent before the actual log, so skip it to make the tests more
         // stable.
         if (log.fields.containsKey("_battery_val")) {
+            log = CaptureTestJniLibrary.nextUploadedLog()
+        }
+        // skip "AppMemPressure" log
+        if(log.fields.containsKey("_is_memory_low")) {
             log = CaptureTestJniLibrary.nextUploadedLog()
         }
         assertThat(log.level).isEqualTo(LogLevel.DEBUG.value)

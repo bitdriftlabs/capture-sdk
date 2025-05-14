@@ -45,11 +45,10 @@ internal class ResourceUtilizationTarget(
                     }
 
                 val duration = clock.elapsedRealtime() - start
+                logger.logResourceUtilization(fields, duration.toDuration(DurationUnit.MILLISECONDS))
                 if (memoryMetricsProvider.isMemoryLow()) {
-                    // we give precedence to memory pressure log since we might be low on mem
                     logMemoryPressure(memorySnapshot)
                 }
-                logger.logResourceUtilization(fields, duration.toDuration(DurationUnit.MILLISECONDS))
             } catch (e: Throwable) {
                 errorHandler.handleError("resource utilization tick", e)
             }
