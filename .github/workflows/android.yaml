@@ -78,7 +78,7 @@ jobs:
         if: env.run_tests == 'true'
         run: ./ci/run_tests.sh
 
-  build_and_compare_apk:
+  build_and_compare_aar:
     runs-on: ubuntu-latest
     if: needs.pre_check.outputs.should_run == 'true'
     needs: pre_check
@@ -88,103 +88,129 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Build Bazel APK 
-        timeout-minutes: 30
-        run: ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
+      - name: Cache LLVM Installation
+        uses: actions/cache@v3
+        id: llvm-cache
+        with:
+          path: /usr/lib/llvm-*
+          key: llvm-cache-${{ runner.os }}
 
-      - name: Upload PR APK
+      - name: Install llvm-strip if needed
+        if: steps.llvm-cache.outputs.cache-hit != 'true'
+        run: |
+          if command -v llvm-strip &> /dev/null; then
+            echo "✅ llvm-strip is already installed."
+          else
+            echo "⚠️ llvm-strip not found. Installing now..."
+            sudo apt update && sudo apt install -y llvm
+          fi
+
+      - name: Verify llvm-strip version
+        run: llvm-strip --version
+
+      - name: Build Bazel arm64-v8a AAR 
+        timeout-minutes: 30
+        run: |
+          ./bazelw build :capture_aar --config release-android --android_platforms=@rules_android//:arm64-v8a
+          echo "🔍 Checking AAR file location..."
+          ls -lh bazel-bin/**/*.aar || echo "❌ No AAR file found!"
+
+      - name: Upload arm64-v8a AAR
         uses: actions/upload-artifact@v4
         with:
-          name: android_app.apk
-          path: ./bazel-bin/examples/android/android_app.apk
+          name: capture_aar_local.aar
+          path: ./bazel-bin/capture_aar_local.aar
 
-      - name: Prepare baseline folder (main only)
-        if: github.ref == 'refs/heads/main' && success()
-        run: |
-          rm -rf baseline_apk  # Remove if it exists
-          mkdir -p baseline_apk
-          cp ./bazel-bin/examples/android/android_app.apk baseline_apk/
+      - name: Extract and Store AAR Sizes (Main)
+        # will uncomment before mergingif: github.ref == 'refs/heads/main' && success()
+        run: ./ci/android-aar-compare-size.sh main  # Runs for main
 
-      - name: Cache baseline APK (main only)
-        if: github.ref == 'refs/heads/main' && success()
+      - name: Cache baseline CSV (main only)
+        # will uncomment before merging if: github.ref == 'refs/heads/main' && success()
         uses: actions/cache/save@v3
         with:
-          path: baseline_apk
-          key: apk-main-baseline
+          path: baseline_sizes.csv
+          key: aar-main-baseline-size
 
-      - name: Restore baseline APK from main (PR only)
+      - name: Restore baseline CSV (PR only)
         if: github.event_name == 'pull_request'
         uses: actions/cache/restore@v3
         with:
-          path: baseline_apk
-          key: apk-main-baseline
+          path: baseline_sizes.csv
 
-      - name: Compute and compare APK size
+      - name: Extract and Compare AAR Sizes (PR)
         if: github.event_name == 'pull_request'
-        id: apk_size
+        run: ./ci/android-aar-compare-size.sh pr  # Runs for main
+
+      - name: Extract AAR & SO Sizes for PR and Store in CSV
+        id: aar_size
         run: |
-          APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
-          BASELINE_APK_PATH=$(find baseline_apk -name "android_app.apk" | head -n 1)
+          OUTPUT_DIR="./size_reports"
+          OUTPUT_FILE="$OUTPUT_DIR/sizes.csv"
+          mkdir -p "$OUTPUT_DIR"
 
-          if [ -z "$APK_PATH" ]; then
-            echo "❌ Current APK file not found!"
-            exit 1
+          AAR_PATH="./bazel-bin/capture_aar_local.aar"
+
+          if [ ! -f "$AAR_PATH" ]; then
+              echo "❌ AAR file not found!"
+              exit 1
           fi
 
-          CURRENT_SIZE=$(stat -c%s "$APK_PATH")
-          CURRENT_KB=$((CURRENT_SIZE / 1024))
-          echo "current_kb=$CURRENT_KB" >> $GITHUB_OUTPUT
+          TMP_DIR=$(mktemp -d)
+          pushd "$TMP_DIR"
 
-          if [ -z "$BASELINE_APK_PATH" ]; then
-            echo "baseline_kb=" >> $GITHUB_OUTPUT
-            echo "diff_kb=" >> $GITHUB_OUTPUT
-          else
-            BASELINE_SIZE=$(stat -c%s "$BASELINE_APK_PATH")
-            BASELINE_KB=$((BASELINE_SIZE / 1024))
-            DIFF_KB=$((CURRENT_KB - BASELINE_KB))
-            echo "baseline_kb=$BASELINE_KB" >> $GITHUB_OUTPUT
-            echo "diff_kb=$DIFF_KB" >> $GITHUB_OUTPUT
-            MODIFIED_DATE=$(stat -c %y "$BASELINE_APK_PATH")
-            echo "Baseline APK last modified date: $MODIFIED_DATE"
+          unzip "$AAR_PATH"
+          SO_FILE="jni/arm64-v8a/libcapture.so"
+
+          if [ ! -f "$SO_FILE" ]; then
+              echo "❌ Shared library file not found!"
+              exit 1
           fi
 
-      - name: Report APK size on PR
+          llvm-strip "$SO_FILE"
+          zip -r stripped_so.zip "$SO_FILE"
+
+          CURRENT_AAR_SIZE=$(stat -c%s "$AAR_PATH")
+          CURRENT_STRIPPED_SO_SIZE=$(stat -c%s "$SO_FILE")
+          CURRENT_COMPRESSED_SO_SIZE=$(stat -c%s stripped_so.zip)
+
+          CURRENT_AAR_KB=$((CURRENT_AAR_SIZE / 1024))
+          CURRENT_STRIPPED_SO_KB=$((CURRENT_STRIPPED_SO_SIZE / 1024))
+          CURRENT_COMPRESSED_SO_KB=$((CURRENT_COMPRESSED_SO_SIZE / 1024))
+
+          BASELINE_AAR_KB=$(awk -F',' '/AAR/ {print $2}' ../baseline_sizes.csv)
+          BASELINE_STRIPPED_SO_KB=$(awk -F',' '/Stripped SO/ {print $2}' ../baseline_sizes.csv)
+          BASELINE_COMPRESSED_SO_KB=$(awk -F',' '/Compressed SO/ {print $2}' ../baseline_sizes.csv)
+
+          DIFF_AAR_KB=$((CURRENT_AAR_KB - BASELINE_AAR_KB))
+          DIFF_STRIPPED_SO_KB=$((CURRENT_STRIPPED_SO_KB - BASELINE_STRIPPED_SO_KB))
+          DIFF_COMPRESSED_SO_KB=$((CURRENT_COMPRESSED_SO_KB - BASELINE_COMPRESSED_SO_KB))
+
+          echo "Metric,Size on Main,Size on PR,Difference" > "$OUTPUT_FILE"
+          echo "AAR,$BASELINE_AAR_KB,$CURRENT_AAR_KB,$DIFF_AAR_KB" >> "$OUTPUT_FILE"
+          echo "Stripped SO,$BASELINE_STRIPPED_SO_KB,$CURRENT_STRIPPED_SO_KB,$DIFF_STRIPPED_SO_KB" >> "$OUTPUT_FILE"
+          echo "Compressed SO,$BASELINE_COMPRESSED_SO_KB,$CURRENT_COMPRESSED_SO_KB,$DIFF_COMPRESSED_SO_KB" >> "$OUTPUT_FILE"
+
+          popd
+          rm -rf "$TMP_DIR"
+
+      - name: Report AAR size on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
         env:
-          CURRENT_KB: ${{ steps.apk_size.outputs.current_kb }}
-          BASELINE_KB: ${{ steps.apk_size.outputs.baseline_kb }}
-          DIFF_KB: ${{ steps.apk_size.outputs.diff_kb }}
+          CSV_FILE: size_reports/sizes.csv
         with:
           script: |
-            const current = process.env.CURRENT_KB;
-            const baseline = process.env.BASELINE_KB;
-            const diff = process.env.DIFF_KB;
+            const fs = require('fs');
+            const csvData = fs.readFileSync(process.env.CSV_FILE, 'utf8');
 
-            let table = '';
-
-            if (baseline && baseline !== '') {
-              table = `
-              ### 📦 APK Size Report
-
-              | Metric     | Size (KB) |
-              |------------|-----------|
-              | Baseline   | ${baseline} |
-              | Current    | ${current} |
-              | Difference | ${diff} |
-
-              `;
-
-              if (parseInt(diff, 10) > 0) {
-                table += `> ❌ APK size increased by ${diff} KB.`;
-              } else if (parseInt(diff, 10) < 0) {
-                table += `> ✅ APK size decreased by ${Math.abs(diff)} KB.`;
-              } else {
-                table += `> ✅ APK size unchanged.`;
+            let table = "### 📦 AAR Size Report\n\n| Metric | Size on Main | Size on PR | Difference |\n|--------|-------------|------------|------------|\n";
+            csvData.split("\n").slice(1).forEach(row => {
+              if (row.trim() !== "") {
+                const [metric, mainSize, prSize, diff] = row.split(",");
+                table += `| ${metric} | ${mainSize} KB | ${prSize} KB | ${diff} KB |\n`;
               }
-            } else {
-              table = `📌 Current APK size: ${current} KB (No baseline available for comparison).`;
-            }
+            });
 
             github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -264,7 +290,7 @@ jobs:
         script: cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test; adb uninstall io.bitdrift.gradletestapp; cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -p platform/jvm gradle-test-app:check gradle-test-app:connectedCheck --stacktrace
 
   verify_android_hello_world_per_version:
-    needs: build_and_compare_apk
+    needs: build_and_compare_aar
     runs-on: ubuntu-latest-8-cores
     strategy:
       matrix:
@@ -284,7 +310,7 @@ jobs:
             sudo udevadm trigger --name-match=kvm
       - uses: actions/download-artifact@v4
         with:
-          name: android_app.apk
+          name: capture_aar_local.aar
           path: .
       - name: AVD cache
         uses: actions/cache@v3
@@ -327,7 +353,7 @@ jobs:
   # job completing, we are able to gate it on all the previous jobs without explicitly enumerating them.
   verify_android:
     runs-on: ubuntu-latest
-    needs: ["pre_check", "build_and_compare_apk", "verify_android_hello_world_per_version", "gradle_tests"]
+    needs: ["pre_check", "build_and_compare_aar", "verify_android_hello_world_per_version", "gradle_tests"]
     if: always()
     steps:
     # Checkout repo to Github Actions runner
@@ -336,4 +362,4 @@ jobs:
       with:
         fetch-depth: 1
     - name: check result
-      run: ./ci/check_result.sh ${{ needs.pre_check.result }} && ./ci/check_result.sh ${{ needs.build_and_compare_apk.result }} && ./ci/check_result.sh ${{ needs.verify_android_hello_world_per_version.result }} && ./ci/check_result.sh ${{ needs.gradle_tests.result }}
+      run: ./ci/check_result.sh ${{ needs.pre_check.result }} && ./ci/check_result.sh ${{ needs.build_and_compare_aar.result }} && ./ci/check_result.sh ${{ needs.verify_android_hello_world_per_version.result }} && ./ci/check_result.sh ${{ needs.gradle_tests.result }}
