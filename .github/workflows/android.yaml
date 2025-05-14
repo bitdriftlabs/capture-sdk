@@ -78,7 +78,7 @@ jobs:
         if: env.run_tests == 'true'
         run: ./ci/run_tests.sh
 
-  build_and_compare_apk:
+  build_and_compare_aar:
     runs-on: ubuntu-latest
     if: needs.pre_check.outputs.should_run == 'true'
     needs: pre_check
@@ -88,39 +88,42 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache apktool Installation
+      - name: Cache LLVM Installation
         uses: actions/cache@v3
-        id: apktool-cache
+        id: llvm-cache
         with:
-          path: /usr/bin/apktool
-          key: apktool-cache-${{ runner.os }}
-          
-      - name: Install apktool if needed
-        if: steps.apktool-cache.outputs.cache-hit != 'true'
+          path: /usr/lib/llvm-*
+          key: llvm-cache-${{ runner.os }}
+
+      - name: Install llvm-strip if needed
+        if: steps.llvm-cache.outputs.cache-hit != 'true'
         run: |
-          if command -v apktool &> /dev/null; then
-            echo "✅ apktool is already installed."
+          if command -v llvm-strip &> /dev/null; then
+            echo "✅ llvm-strip is already installed."
           else
-            echo "⚠️ apktool not found. Installing now..."
-            sudo apt update && sudo apt install apktool -y
+            echo "⚠️ llvm-strip not found. Installing now..."
+            sudo apt update && sudo apt install -y llvm
           fi
 
-      - name: Verify apktool version
-        run: apktool --version
+      - name: Verify llvm-strip version
+        run: llvm-strip --version
 
-      - name: Build Bazel x86_64 apk
+      - name: Build Bazel arm64-v8a AAR 
         timeout-minutes: 30
-        run: ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
+        run: |
+          ./bazelw build :capture_aar --config release-android --android_platforms=@rules_android//:arm64-v8a
+          echo "🔍 Checking AAR file location..."
+          ls -lh bazel-bin/**/*.aar || echo "❌ No AAR file found!"
 
-      - name: Upload Bazel x86_64 apk
+      - name: Upload arm64-v8a AAR
         uses: actions/upload-artifact@v4
         with:
-          name: android_app.apk
-          path: ./bazel-bin/examples/android/android_app.apk
+          name: capture_aar_local.aar
+          path: ./bazel-bin/capture_aar_local.aar
 
       - name: Extract and Store AAR Sizes (Main)
         # will uncomment before mergingif: github.ref == 'refs/heads/main' && success()
-        run: ./ci/android-compare-size.sh main 
+        run: ./ci/android-aar-compare-size.sh main  # Runs for main
 
       - name: Cache baseline CSV (main only)
         # will uncomment before merging if: github.ref == 'refs/heads/main' && success()
@@ -137,7 +140,59 @@ jobs:
 
       - name: Extract and Compare AAR Sizes (PR)
         if: github.event_name == 'pull_request'
-        run: ./ci/android-compare-size.sh pr  
+        run: ./ci/android-aar-compare-size.sh pr  # Runs for main
+
+      - name: Extract AAR & SO Sizes for PR and Store in CSV
+        id: aar_size
+        run: |
+          OUTPUT_DIR="./size_reports"
+          OUTPUT_FILE="$OUTPUT_DIR/sizes.csv"
+          mkdir -p "$OUTPUT_DIR"
+
+          AAR_PATH="./bazel-bin/capture_aar_local.aar"
+
+          if [ ! -f "$AAR_PATH" ]; then
+              echo "❌ AAR file not found!"
+              exit 1
+          fi
+
+          TMP_DIR=$(mktemp -d)
+          pushd "$TMP_DIR"
+
+          unzip "$AAR_PATH"
+          SO_FILE="jni/arm64-v8a/libcapture.so"
+
+          if [ ! -f "$SO_FILE" ]; then
+              echo "❌ Shared library file not found!"
+              exit 1
+          fi
+
+          llvm-strip "$SO_FILE"
+          zip -r stripped_so.zip "$SO_FILE"
+
+          CURRENT_AAR_SIZE=$(stat -c%s "$AAR_PATH")
+          CURRENT_STRIPPED_SO_SIZE=$(stat -c%s "$SO_FILE")
+          CURRENT_COMPRESSED_SO_SIZE=$(stat -c%s stripped_so.zip)
+
+          CURRENT_AAR_KB=$((CURRENT_AAR_SIZE / 1024))
+          CURRENT_STRIPPED_SO_KB=$((CURRENT_STRIPPED_SO_SIZE / 1024))
+          CURRENT_COMPRESSED_SO_KB=$((CURRENT_COMPRESSED_SO_SIZE / 1024))
+
+          BASELINE_AAR_KB=$(awk -F',' '/AAR/ {print $2}' ../baseline_sizes.csv)
+          BASELINE_STRIPPED_SO_KB=$(awk -F',' '/Stripped SO/ {print $2}' ../baseline_sizes.csv)
+          BASELINE_COMPRESSED_SO_KB=$(awk -F',' '/Compressed SO/ {print $2}' ../baseline_sizes.csv)
+
+          DIFF_AAR_KB=$((CURRENT_AAR_KB - BASELINE_AAR_KB))
+          DIFF_STRIPPED_SO_KB=$((CURRENT_STRIPPED_SO_KB - BASELINE_STRIPPED_SO_KB))
+          DIFF_COMPRESSED_SO_KB=$((CURRENT_COMPRESSED_SO_KB - BASELINE_COMPRESSED_SO_KB))
+
+          echo "Metric,Size on Main,Size on PR,Difference" > "$OUTPUT_FILE"
+          echo "AAR,$BASELINE_AAR_KB,$CURRENT_AAR_KB,$DIFF_AAR_KB" >> "$OUTPUT_FILE"
+          echo "Stripped SO,$BASELINE_STRIPPED_SO_KB,$CURRENT_STRIPPED_SO_KB,$DIFF_STRIPPED_SO_KB" >> "$OUTPUT_FILE"
+          echo "Compressed SO,$BASELINE_COMPRESSED_SO_KB,$CURRENT_COMPRESSED_SO_KB,$DIFF_COMPRESSED_SO_KB" >> "$OUTPUT_FILE"
+
+          popd
+          rm -rf "$TMP_DIR"
 
       - name: Report AAR size on PR
         if: github.event_name == 'pull_request'
@@ -235,7 +290,7 @@ jobs:
         script: cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test; adb uninstall io.bitdrift.gradletestapp; cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -p platform/jvm gradle-test-app:check gradle-test-app:connectedCheck --stacktrace
 
   verify_android_hello_world_per_version:
-    needs: build_and_compare_apk
+    needs: build_and_compare_aar
     runs-on: ubuntu-latest-8-cores
     strategy:
       matrix:
@@ -255,7 +310,7 @@ jobs:
             sudo udevadm trigger --name-match=kvm
       - uses: actions/download-artifact@v4
         with:
-          name: android_app.apk
+          name: capture_aar_local.aar
           path: .
       - name: AVD cache
         uses: actions/cache@v3
@@ -298,7 +353,7 @@ jobs:
   # job completing, we are able to gate it on all the previous jobs without explicitly enumerating them.
   verify_android:
     runs-on: ubuntu-latest
-    needs: ["pre_check", "build_and_compare_apk", "verify_android_hello_world_per_version", "gradle_tests"]
+    needs: ["pre_check", "build_and_compare_aar", "verify_android_hello_world_per_version", "gradle_tests"]
     if: always()
     steps:
     # Checkout repo to Github Actions runner
@@ -307,4 +362,4 @@ jobs:
       with:
         fetch-depth: 1
     - name: check result
-      run: ./ci/check_result.sh ${{ needs.pre_check.result }} && ./ci/check_result.sh ${{ needs.build_and_compare_apk.result }} && ./ci/check_result.sh ${{ needs.verify_android_hello_world_per_version.result }} && ./ci/check_result.sh ${{ needs.gradle_tests.result }}
+      run: ./ci/check_result.sh ${{ needs.pre_check.result }} && ./ci/check_result.sh ${{ needs.build_and_compare_aar.result }} && ./ci/check_result.sh ${{ needs.verify_android_hello_world_per_version.result }} && ./ci/check_result.sh ${{ needs.gradle_tests.result }}
