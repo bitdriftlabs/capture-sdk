@@ -21,14 +21,11 @@ import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
-import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.SESSION_ID
-import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.providers.toFields
 import org.junit.After
 import org.junit.Test
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 
@@ -109,13 +106,15 @@ class ResourceUtilizationTargetTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.WARNING),
-            eq(mapOf(
-                "_jvm_used_kb" to "50",
-                "_jvm_total_kb" to "100",
-                "_native_used_kb" to "200",
-                "_native_total_kb" to "500",
-                "_memory_class" to "1",
-            ).toFields()),
+            eq(
+                mapOf(
+                    "_jvm_used_kb" to "50",
+                    "_jvm_total_kb" to "100",
+                    "_native_used_kb" to "200",
+                    "_native_total_kb" to "500",
+                    "_memory_class" to "1",
+                ).toFields(),
+            ),
             eq(null),
             eq(null),
             eq(false),

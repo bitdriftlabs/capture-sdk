@@ -317,7 +317,7 @@ class CaptureLoggerTest {
             log = CaptureTestJniLibrary.nextUploadedLog()
         }
         // skip "AppMemPressure" log
-        if(log.fields.containsKey("_is_memory_low")) {
+        if (log.fields.containsKey("_is_memory_low")) {
             log = CaptureTestJniLibrary.nextUploadedLog()
         }
         assertThat(log.level).isEqualTo(LogLevel.DEBUG.value)
