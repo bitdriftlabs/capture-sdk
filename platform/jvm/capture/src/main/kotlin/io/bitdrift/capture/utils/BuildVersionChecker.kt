@@ -13,7 +13,4 @@ import androidx.annotation.ChecksSdkIntAtLeast
 internal class BuildVersionChecker {
     @ChecksSdkIntAtLeast(parameter = 0)
     fun isAtLeast(min: Int): Boolean = Build.VERSION.SDK_INT >= min
-
-    @ChecksSdkIntAtLeast(parameter = 0)
-    fun isAtMost(max: Int): Boolean = Build.VERSION.SDK_INT <= max
 }
