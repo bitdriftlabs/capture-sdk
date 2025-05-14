@@ -127,7 +127,7 @@ final class LoggerBridge: LoggerBridging {
         message: @autoclosure () -> String,
         fields: [CapturePassable.Field]?,
         matchingFields: [CapturePassable.Field]?,
-        type: Logger.LogType,
+        type: Capture.Logger.LogType,
         blocking: Bool,
         occurredAtOverride: Date?
     ) {
