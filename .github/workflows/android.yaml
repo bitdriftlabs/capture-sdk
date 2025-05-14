@@ -94,7 +94,7 @@ jobs:
         with:
           path: /usr/bin/apktool
           key: apktool-cache-${{ runner.os }}
-
+          
       - name: Install apktool if needed
         if: steps.apktool-cache.outputs.cache-hit != 'true'
         run: |
