@@ -110,10 +110,7 @@ jobs:
 
       - name: Build Bazel x86_64 apk
         timeout-minutes: 30
-        run: |
-          run: ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
-          echo "🔍 Checking apk file location..."
-          ls -lh bazel-bin/**/*.apk || echo "❌ No apk file found!"
+        run: ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
 
       - name: Upload Bazel x86_64 apk
         uses: actions/upload-artifact@v4
