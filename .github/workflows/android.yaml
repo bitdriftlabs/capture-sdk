@@ -78,7 +78,7 @@ jobs:
         if: env.run_tests == 'true'
         run: ./ci/run_tests.sh
 
-  build_and_compare_aar:
+  build_and_compare_apk:
     runs-on: ubuntu-latest
     if: needs.pre_check.outputs.should_run == 'true'
     needs: pre_check
@@ -108,22 +108,22 @@ jobs:
       - name: Verify apktool version
         run: apktool --version
 
-      - name: Build Bazel arm64-v8a AAR 
+      - name: Build Bazel x86_64 apk
         timeout-minutes: 30
         run: |
-          ./bazelw build :capture_aar --config release-android --android_platforms=@rules_android//:arm64-v8a
-          echo "🔍 Checking AAR file location..."
-          ls -lh bazel-bin/**/*.aar || echo "❌ No AAR file found!"
+          run: ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
+          echo "🔍 Checking apk file location..."
+          ls -lh bazel-bin/**/*.apk || echo "❌ No apk file found!"
 
-      - name: Upload arm64-v8a AAR
+      - name: Upload Bazel x86_64 apk
         uses: actions/upload-artifact@v4
         with:
-          name: capture_aar_local.aar
-          path: ./bazel-bin/capture_aar_local.aar
+          name: android_app.apk
+          path: ./bazel-bin/examples/android/android_app.apk
 
       - name: Extract and Store AAR Sizes (Main)
         # will uncomment before mergingif: github.ref == 'refs/heads/main' && success()
-        run: ./ci/android-aar-compare-size.sh main 
+        run: ./ci/android-compare-size.sh main 
 
       - name: Cache baseline CSV (main only)
         # will uncomment before merging if: github.ref == 'refs/heads/main' && success()
@@ -140,7 +140,7 @@ jobs:
 
       - name: Extract and Compare AAR Sizes (PR)
         if: github.event_name == 'pull_request'
-        run: ./ci/android-aar-compare-size.sh pr  
+        run: ./ci/android-compare-size.sh pr  
 
       - name: Report AAR size on PR
         if: github.event_name == 'pull_request'
@@ -238,7 +238,7 @@ jobs:
         script: cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test; adb uninstall io.bitdrift.gradletestapp; cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -p platform/jvm gradle-test-app:check gradle-test-app:connectedCheck --stacktrace
 
   verify_android_hello_world_per_version:
-    needs: build_and_compare_aar
+    needs: build_and_compare_apk
     runs-on: ubuntu-latest-8-cores
     strategy:
       matrix:
@@ -258,7 +258,7 @@ jobs:
             sudo udevadm trigger --name-match=kvm
       - uses: actions/download-artifact@v4
         with:
-          name: capture_aar_local.aar
+          name: android_app.apk
           path: .
       - name: AVD cache
         uses: actions/cache@v3
@@ -301,7 +301,7 @@ jobs:
   # job completing, we are able to gate it on all the previous jobs without explicitly enumerating them.
   verify_android:
     runs-on: ubuntu-latest
-    needs: ["pre_check", "build_and_compare_aar", "verify_android_hello_world_per_version", "gradle_tests"]
+    needs: ["pre_check", "build_and_compare_apk", "verify_android_hello_world_per_version", "gradle_tests"]
     if: always()
     steps:
     # Checkout repo to Github Actions runner
@@ -310,4 +310,4 @@ jobs:
       with:
         fetch-depth: 1
     - name: check result
-      run: ./ci/check_result.sh ${{ needs.pre_check.result }} && ./ci/check_result.sh ${{ needs.build_and_compare_aar.result }} && ./ci/check_result.sh ${{ needs.verify_android_hello_world_per_version.result }} && ./ci/check_result.sh ${{ needs.gradle_tests.result }}
+      run: ./ci/check_result.sh ${{ needs.pre_check.result }} && ./ci/check_result.sh ${{ needs.build_and_compare_apk.result }} && ./ci/check_result.sh ${{ needs.verify_android_hello_world_per_version.result }} && ./ci/check_result.sh ${{ needs.gradle_tests.result }}
