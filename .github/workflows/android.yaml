@@ -101,30 +101,30 @@ jobs:
       - name: Prepare baseline folder (main only)
         if: github.ref == 'refs/heads/main' && success()
         run: |
-          rm -rf baseline_apk  # Remove if it exists
-          mkdir -p baseline_apk
-          cp ./bazel-bin/examples/android/android_app.apk baseline_apk/
+          rm -rf bazel_apk_baseline  # Remove if it exists
+          mkdir -p bazel_apk_baseline
+          cp ./bazel-bin/examples/android/android_app.apk bazel_apk_baseline/
 
       - name: Cache baseline APK (main only)
         if: github.ref == 'refs/heads/main' && success()
         uses: actions/cache/save@v3
         with:
-          path: baseline_apk
-          key: apk-main-baseline
+          path: bazel_apk_baseline
+          key: bazel-apk-main-baseline
 
       - name: Restore baseline APK from main (PR only)
         if: github.event_name == 'pull_request'
         uses: actions/cache/restore@v3
         with:
-          path: baseline_apk
-          key: apk-main-baseline
+          path: bazel_apk_baseline
+          key: bazel-apk-main-baseline
 
       - name: Compute and compare APK size
         if: github.event_name == 'pull_request'
         id: apk_size
         run: |
           APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
-          BASELINE_APK_PATH=$(find baseline_apk -name "android_app.apk" | head -n 1)
+          BAZEL_APK_BASELINE_PATH=$(find bazel_apk_baseline -name "android_app.apk" | head -n 1)
 
           if [ -z "$APK_PATH" ]; then
             echo "❌ Current APK file not found!"
@@ -135,16 +135,16 @@ jobs:
           CURRENT_KB=$((CURRENT_SIZE / 1024))
           echo "current_kb=$CURRENT_KB" >> $GITHUB_OUTPUT
 
-          if [ -z "$BASELINE_APK_PATH" ]; then
+          if [ -z "$BAZEL_APK_BASELINE_PATH" ]; then
             echo "baseline_kb=" >> $GITHUB_OUTPUT
             echo "diff_kb=" >> $GITHUB_OUTPUT
           else
-            BASELINE_SIZE=$(stat -c%s "$BASELINE_APK_PATH")
+            BASELINE_SIZE=$(stat -c%s "$BAZEL_APK_BASELINE_PATH")
             BASELINE_KB=$((BASELINE_SIZE / 1024))
             DIFF_KB=$((CURRENT_KB - BASELINE_KB))
             echo "baseline_kb=$BASELINE_KB" >> $GITHUB_OUTPUT
             echo "diff_kb=$DIFF_KB" >> $GITHUB_OUTPUT
-            MODIFIED_DATE=$(stat -c %y "$BASELINE_APK_PATH")
+            MODIFIED_DATE=$(stat -c %y "$BAZEL_APK_BASELINE_PATH")
             echo "Baseline APK last modified date: $MODIFIED_DATE"
           fi
 
