@@ -16,7 +16,7 @@ bd-runtime.workspace            = true
 bd-session.workspace            = true
 log.workspace                   = true
 parking_lot.workspace           = true
-regex.workspace                 = true
+regex-lite.workspace            = true
 time.workspace                  = true
 tokio.workspace                 = true
 
