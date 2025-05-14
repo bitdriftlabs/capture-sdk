@@ -88,103 +88,77 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Build Bazel APK 
-        timeout-minutes: 30
-        run: ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
+      - name: Cache apktool Installation
+        uses: actions/cache@v3
+        id: apktool-cache
+        with:
+          path: /usr/bin/apktool
+          key: apktool-cache-${{ runner.os }}
 
-      - name: Upload PR APK
+      - name: Install apktool if needed
+        if: steps.apktool-cache.outputs.cache-hit != 'true'
+        run: |
+          if command -v apktool &> /dev/null; then
+            echo "✅ apktool is already installed."
+          else
+            echo "⚠️ apktool not found. Installing now..."
+            sudo apt update && sudo apt install apktool -y
+          fi
+
+      - name: Verify apktool version
+        run: apktool --version
+
+      - name: Build Bazel x86_64 apk
+        timeout-minutes: 30
+        run: |
+          run: ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
+          echo "🔍 Checking apk file location..."
+          ls -lh bazel-bin/**/*.apk || echo "❌ No apk file found!"
+
+      - name: Upload Bazel x86_64 apk
         uses: actions/upload-artifact@v4
         with:
           name: android_app.apk
           path: ./bazel-bin/examples/android/android_app.apk
 
-      - name: Prepare baseline folder (main only)
-        if: github.ref == 'refs/heads/main' && success()
-        run: |
-          rm -rf baseline_apk  # Remove if it exists
-          mkdir -p baseline_apk
-          cp ./bazel-bin/examples/android/android_app.apk baseline_apk/
+      - name: Extract and Store AAR Sizes (Main)
+        # will uncomment before mergingif: github.ref == 'refs/heads/main' && success()
+        run: ./ci/android-compare-size.sh main 
 
-      - name: Cache baseline APK (main only)
-        if: github.ref == 'refs/heads/main' && success()
+      - name: Cache baseline CSV (main only)
+        # will uncomment before merging if: github.ref == 'refs/heads/main' && success()
         uses: actions/cache/save@v3
         with:
-          path: baseline_apk
-          key: apk-main-baseline
+          path: baseline_sizes.csv
+          key: aar-main-baseline-size
 
-      - name: Restore baseline APK from main (PR only)
+      - name: Restore baseline CSV (PR only)
         if: github.event_name == 'pull_request'
         uses: actions/cache/restore@v3
         with:
-          path: baseline_apk
-          key: apk-main-baseline
+          path: baseline_sizes.csv
 
-      - name: Compute and compare APK size
+      - name: Extract and Compare AAR Sizes (PR)
         if: github.event_name == 'pull_request'
-        id: apk_size
-        run: |
-          APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
-          BASELINE_APK_PATH=$(find baseline_apk -name "android_app.apk" | head -n 1)
+        run: ./ci/android-compare-size.sh pr  
 
-          if [ -z "$APK_PATH" ]; then
-            echo "❌ Current APK file not found!"
-            exit 1
-          fi
-
-          CURRENT_SIZE=$(stat -c%s "$APK_PATH")
-          CURRENT_KB=$((CURRENT_SIZE / 1024))
-          echo "current_kb=$CURRENT_KB" >> $GITHUB_OUTPUT
-
-          if [ -z "$BASELINE_APK_PATH" ]; then
-            echo "baseline_kb=" >> $GITHUB_OUTPUT
-            echo "diff_kb=" >> $GITHUB_OUTPUT
-          else
-            BASELINE_SIZE=$(stat -c%s "$BASELINE_APK_PATH")
-            BASELINE_KB=$((BASELINE_SIZE / 1024))
-            DIFF_KB=$((CURRENT_KB - BASELINE_KB))
-            echo "baseline_kb=$BASELINE_KB" >> $GITHUB_OUTPUT
-            echo "diff_kb=$DIFF_KB" >> $GITHUB_OUTPUT
-            MODIFIED_DATE=$(stat -c %y "$BASELINE_APK_PATH")
-            echo "Baseline APK last modified date: $MODIFIED_DATE"
-          fi
-
-      - name: Report APK size on PR
+      - name: Report AAR size on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
         env:
-          CURRENT_KB: ${{ steps.apk_size.outputs.current_kb }}
-          BASELINE_KB: ${{ steps.apk_size.outputs.baseline_kb }}
-          DIFF_KB: ${{ steps.apk_size.outputs.diff_kb }}
+          CSV_FILE: size_reports/sizes.csv
         with:
           script: |
-            const current = process.env.CURRENT_KB;
-            const baseline = process.env.BASELINE_KB;
-            const diff = process.env.DIFF_KB;
+            const fs = require('fs');
+            const csvData = fs.readFileSync(process.env.CSV_FILE, 'utf8');
 
-            let table = '';
-
-            if (baseline && baseline !== '') {
-              table = `
-              ### 📦 APK Size Report
-
-              | Metric     | Size (KB) |
-              |------------|-----------|
-              | Baseline   | ${baseline} |
-              | Current    | ${current} |
-              | Difference | ${diff} |
-
-              `;
-
-              if (parseInt(diff, 10) > 0) {
-                table += `> ❌ APK size increased by ${diff} KB.`;
-              } else if (parseInt(diff, 10) < 0) {
-                table += `> ✅ APK size decreased by ${Math.abs(diff)} KB.`;
-              } else {
-                table += `> ✅ APK size unchanged.`;
+            let table = "### 📦 AAR Size Report\n\n| Metric | Size on Main | Size on PR | Difference |\n|--------|-------------|------------|------------|\n";
+            csvData.split("\n").slice(1).forEach(row => {
+              if (row.trim() !== "") {
+                const [metric, mainSize, prSize, diff] = row.split(",");
+                table += `| ${metric} | ${mainSize} KB | ${prSize} KB | ${diff} KB |\n`;
               }
-            } else {
-              table = `📌 Current APK size: ${current} KB (No baseline available for comparison).`;
-            }
+            });
 
             github.rest.issues.createComment({
               owner: context.repo.owner,
