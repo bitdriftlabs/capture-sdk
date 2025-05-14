@@ -162,22 +162,49 @@ static int8_t architecture_constant(NSString *arch) {
   return [arch containsString:@"arm64"] ? /* Architecture.arm64 */ 2 : /* Architecture.x86_64 */ 4;
 }
 
+@interface BDOSBuild : NSObject
+@property (strong, nonatomic) NSString *name;
+@property (strong, nonatomic) NSString *version;
+@property (strong, nonatomic) NSString *kernversion;
+@end
+
+@implementation BDOSBuild
+- (instancetype)initWithVersion:(NSString *)version {
+  if (!version) {
+    return nil;
+  }
+  NSRegularExpression *matcher = [NSRegularExpression regularExpressionWithPattern:OS_VERSION_MATCHER options:0 error:nil];
+  NSTextCheckingResult *match = [[matcher matchesInString:version options:0 range:NSMakeRange(0, version.length)] firstObject];
+  NSRange nameRange = [match rangeWithName:@"osName"];
+  NSRange versionRange = [match rangeWithName:@"osVersion"];
+  NSRange buildRange = [match rangeWithName:@"buildNumber"];
+  if (!nameRange.length || !versionRange.length || !buildRange.length) {
+    return nil;
+  }
+  if (self = [super init]) {
+    if (!nameRange.length || !versionRange.length || !buildRange.length) {
+      self.version = version; // pathological case where there's a match but the captures don't hit
+    } else {
+      self.name = [version substringWithRange:nameRange];
+      self.version = [version substringWithRange:versionRange];
+      self.kernversion = [version substringWithRange:buildRange];
+    }
+  }
+  return self;
+}
+@end
+
 static void serialize_device_metrics(BDProcessorHandle handle, NSDictionary *metadata, NSTimeInterval timestamp) {
-  NSRegularExpression *version_matcher = [NSRegularExpression regularExpressionWithPattern:OS_VERSION_MATCHER options:0 error:nil];
-  NSString *version_info = string_for_key(metadata, @"osVersion");
-  NSTextCheckingResult *match = [[version_matcher matchesInString:version_info options:0 range:NSMakeRange(0, version_info.length)] firstObject];
-  NSString *os_name = match ? [version_info substringWithRange:[match rangeWithName:@"osName"]] : nil;
-  NSString *os_version = match ? [version_info substringWithRange:[match rangeWithName:@"osVersion"]] : nil;
-  NSString *os_kernversion = match ? [version_info substringWithRange:[match rangeWithName:@"buildNumber"]] : nil;
+  BDOSBuild *os_build_info = [[BDOSBuild alloc] initWithVersion:string_for_key(metadata, @"osVersion")];
   long double seconds = truncl(timestamp);
   long double nanoseconds = (timestamp - seconds) * NSEC_PER_SEC;
 
   BDDeviceMetrics device = {
     .model = cstring_from(string_for_key(metadata, @"deviceType")),
     .architecture = architecture_constant(string_for_key(metadata, @"platformArchitecture")),
-    .os_kernversion = cstring_from(os_kernversion),
-    .os_version = cstring_from(os_version),
-    .os_brand = cstring_from(os_name),
+    .os_kernversion = cstring_from(os_build_info.kernversion),
+    .os_version = cstring_from(os_build_info.version),
+    .os_brand = cstring_from(os_build_info.name),
     .time_nanos = nanoseconds,
     .time_seconds = seconds,
   };
