@@ -100,6 +100,15 @@ static inline const char * cstring_from(NSString *str) {
   return [str cStringUsingEncoding:NSUTF8StringEncoding];
 }
 
+static uint32_t crashed_thread_index(NSArray *stacks) {
+  for (uint32_t index = 0; index < stacks.count; index++) {
+    if ([number_for_key(stacks[index], @"threadAttributed") boolValue]) {
+      return index;
+    }
+  }
+  return 0; // first thread is crashed thread if none attributed
+}
+
 static uint64_t count_frames(NSDictionary *rootFrame) {
   uint64_t count = 0;
   NSDictionary *frame = rootFrame;
@@ -112,46 +121,54 @@ static uint64_t count_frames(NSDictionary *rootFrame) {
 
 static void serialize_error_threads(BDProcessorHandle handle, NSDictionary *crash, NSString *name, NSString *reason) {
   NSMutableSet <NSString *>* images = [NSMutableSet new];
-  NSArray *callStacks = dict_for_key(crash, @"callStackTree")[@"callStacks"];
-  for (NSDictionary *thread in callStacks) {
-    bool didCrash = [number_for_key(thread, @"threadAttributed") boolValue];
-    NSDictionary *frame = [array_for_key(thread, @"callStackRootFrames") firstObject];
-    uint64_t frameCount = count_frames(frame);
-    BDStackFrame *stack = (BDStackFrame *)calloc(frameCount, sizeof(BDStackFrame));
-    uint32_t index = 0;
+  NSArray *call_stacks = dict_for_key(crash, @"callStackTree")[@"callStacks"];
+  uint32_t crashed_index = crashed_thread_index(call_stacks);
 
-    while ([frame isKindOfClass:[NSDictionary class]]) {
-      NSString *binaryName = string_for_key(frame, @"binaryName");
-      NSString *binaryUUID = string_for_key(frame, @"binaryUUID");
+  for (uint32_t thread_index = 0; thread_index < call_stacks.count; thread_index++) {
+    NSDictionary *thread = call_stacks[thread_index];
+    NSDictionary *frame = [array_for_key(thread, @"callStackRootFrames") firstObject];
+    uint64_t frame_count = count_frames(frame);
+    BDStackFrame *stack = frame_count
+      ? (BDStackFrame *)calloc(frame_count, sizeof(BDStackFrame))
+      : 0;
+
+    uint32_t frame_index = 0;
+    while ([frame isKindOfClass:[NSDictionary class]] && frame_index < frame_count) {
+      NSString *binary_name = string_for_key(frame, @"binaryName");
+      NSString *binary_uuid = string_for_key(frame, @"binaryUUID");
       NSNumber *address = number_for_key(frame, @"address");
       NSNumber *offset = number_for_key(frame, @"offsetIntoBinaryTextSegment");
-      if (binaryName && binaryUUID && address && offset) {
-        if (![images containsObject:binaryUUID]) {
+      if (binary_name && binary_uuid && address && offset) {
+        if (![images containsObject:binary_uuid]) {
           BDBinaryImage image = {
-            .id = cstring_from(binaryUUID),
-            .path = cstring_from(binaryName),
+            .id = cstring_from(binary_uuid),
+            .path = cstring_from(binary_name),
             .load_address = [address unsignedLongLongValue] - [offset unsignedLongLongValue],
           };
           bdrw_add_binary_image(handle, &image);
-          [images addObject:binaryUUID];
+          [images addObject:binary_uuid];
         }
       } else {
         break; // if the frame is invalid, it's time to leave
       }
-      stack[index++] = (BDStackFrame) {
-        .image_id = cstring_from(binaryUUID),
+      stack[frame_index++] = (BDStackFrame) {
+        .image_id = cstring_from(binary_uuid),
         .frame_address = [address unsignedLongLongValue],
         .type_ = 2, // FrameType.DWARF
       };
       frame = [array_for_key(frame, @"subFrames") firstObject];
     }
-    if (didCrash) {
-      bdrw_add_error(handle, cstring_from(name), cstring_from(reason), 0, index, stack);
+    if (thread_index == crashed_index) {
+      bdrw_add_error(handle, cstring_from(name), cstring_from(reason), 0, frame_index, stack);
     } else {
       BDThread thread = { .quality_of_service = -1 };
-      bdrw_add_thread(handle, [callStacks count], &thread, index, stack);
+      bdrw_add_thread(handle, [call_stacks count], &thread, frame_index, stack);
     }
     free(stack);
+  }
+  // handle case where there are no threads
+  if (call_stacks.count == 0) {
+    bdrw_add_error(handle, cstring_from(name), cstring_from(reason), 0, 0, 0);
   }
 }
 
