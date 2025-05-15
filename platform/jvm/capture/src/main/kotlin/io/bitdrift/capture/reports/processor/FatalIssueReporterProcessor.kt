@@ -58,6 +58,7 @@ internal class FatalIssueReporterProcessor(
                         builder,
                         sdk,
                         appMetrics,
+                        clientAttributes.appId,
                         deviceMetrics,
                         description,
                         traceInputStream,

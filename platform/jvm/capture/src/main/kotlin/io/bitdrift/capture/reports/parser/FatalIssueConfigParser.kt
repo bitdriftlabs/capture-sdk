@@ -14,7 +14,7 @@ import java.io.File
 /**
  * Parse the runtime config into valid path/extension.
  *
- * NOTE: This is only applicable for [FatalIssueMechanism.CUSTOM_CONFIG]
+ * NOTE: This is only applicable for [io.bitdrift.capture.reports.FatalIssueMechanism.Integration]
  */
 internal object FatalIssueConfigParser {
     private const val CACHE_DIR_PLACE_HOLDER = "{cache_dir}"

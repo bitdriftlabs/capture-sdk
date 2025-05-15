@@ -29,6 +29,7 @@ internal object AppExitAnrTraceProcessor {
     private val ANR_STACK_TRACE_REGEX = Regex("^\\s+at\\s+(.*)\\.(.*)\\((.*):(\\d+)\\)$")
     private val mainStackTraceFrames = mutableListOf<Int>()
     private var isProcessingMainThreadTrace = false
+    private var mainThreadReason: String? = null
 
     /**
      * Process valid traceInputStream
@@ -39,6 +40,7 @@ internal object AppExitAnrTraceProcessor {
         builder: FlatBufferBuilder,
         sdk: Int,
         appMetrics: Int,
+        applicationId: String,
         deviceMetrics: Int,
         description: String?,
         traceInputStream: InputStream,
@@ -47,13 +49,14 @@ internal object AppExitAnrTraceProcessor {
         BufferedReader(inputStreamReader)
             .useLines { lines ->
                 lines.forEach { currentLine ->
-                    appendMainFramesIfNeeded(builder, currentLine)
+                    appendMainFramesIfNeeded(builder, currentLine, applicationId)
                 }
             }
 
         val name = if (description != null) builder.createString(description) else 0
         val trace = Error.createStackTraceVector(builder, mainStackTraceFrames.toIntArray())
-        val error = Error.createError(builder, name, 0, trace, ErrorRelation.CausedBy)
+        val reason = mainThreadReason?.let { builder.createString(it) } ?: 0
+        val error = Error.createError(builder, name, reason, trace, ErrorRelation.CausedBy)
 
         return Report.createReport(
             builder,
@@ -78,10 +81,23 @@ internal object AppExitAnrTraceProcessor {
         }
     }
 
+    private fun setMainThreadReason(
+        currentLine: String,
+        applicationId: String,
+    ) {
+        if (!isProcessingMainThreadTrace) return
+
+        val matchesAppId = currentLine.trim().contains(applicationId.trim())
+        if (mainThreadReason == null && matchesAppId) {
+            mainThreadReason = currentLine.trim()
+        }
+    }
+
     @Suppress("DestructuringDeclarationWithTooManyEntries")
     private fun appendMainFramesIfNeeded(
         builder: FlatBufferBuilder,
         currentLine: String,
+        applicationId: String,
     ) {
         setIsMainThreadStackTrace(currentLine)
         if (!isStackTraceLine(currentLine)) return
@@ -116,6 +132,7 @@ internal object AppExitAnrTraceProcessor {
                     0,
                 )
             mainStackTraceFrames.add(frame)
+            setMainThreadReason(currentLine, applicationId)
         }
     }
 }
