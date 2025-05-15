@@ -48,7 +48,6 @@ impl bd_api::Metadata for Mobile {
     self.device.id()
   }
 
-  #[must_use]
   fn collect_inner(&self) -> HashMap<String, String> {
     let mut metadata_map = HashMap::new();
 
