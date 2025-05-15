@@ -26,7 +26,7 @@ use bd_logger::{LogAttributesOverrides, LogFieldKind, LogFields, LogLevel, Metad
 use bd_noop_network::NoopNetwork;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
-use platform_shared::metadata::Mobile;
+use platform_shared::metadata::{self, Mobile};
 use platform_shared::{LoggerHolder, LoggerId};
 use std::borrow::{Borrow, Cow};
 use std::boxed::Box;
@@ -759,6 +759,11 @@ extern "C" fn capture_get_session_id(logger_id: LoggerId<'_>) -> *const Object {
 #[no_mangle]
 extern "C" fn capture_get_device_id(logger_id: LoggerId<'_>) -> *const Object {
   make_nsstring(&logger_id.device_id()).autorelease()
+}
+
+#[no_mangle]
+extern "C" fn capture_get_sdk_version() -> *const Object {
+  make_nsstring(&metadata::SDK_VERSION).autorelease()
 }
 
 #[no_mangle]

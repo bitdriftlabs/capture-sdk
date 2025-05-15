@@ -44,7 +44,7 @@ protocol CoreLogging: AnyObject {
         fields: Fields?,
         matchingFields: Fields?,
         error: Error?,
-        type: Logger.LogType,
+        type: Capture.Logger.LogType,
         blocking: Bool,
         occurredAtOverride: Date?
     )
@@ -186,7 +186,7 @@ extension CoreLogging {
         fields: Fields? = nil,
         matchingFields: Fields? = nil,
         error: Error? = nil,
-        type: Logger.LogType,
+        type: Capture.Logger.LogType,
         blocking: Bool = false,
         occurredAtOverride: Date? = nil
     )

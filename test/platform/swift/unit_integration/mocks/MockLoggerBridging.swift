@@ -21,7 +21,7 @@ public final class MockLoggerBridging {
         public let message: String
         public let fields: InternalFields?
         public let matchingFields: InternalFields?
-        public let type: Logger.LogType
+        public let type: Capture.Logger.LogType
         public let blocking: Bool
         public let occurredAtOverride: Date?
     }
@@ -63,7 +63,7 @@ extension MockLoggerBridging: LoggerBridging {
         message: @autoclosure () -> String,
         fields: InternalFields?,
         matchingFields: InternalFields?,
-        type: Logger.LogType,
+        type: Capture.Logger.LogType,
         blocking: Bool,
         occurredAtOverride: Date?
     ) {
