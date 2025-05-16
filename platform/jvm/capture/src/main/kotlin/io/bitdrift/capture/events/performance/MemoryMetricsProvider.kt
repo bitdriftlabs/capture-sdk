@@ -42,7 +42,7 @@ internal class MemoryMetricsProvider(
             put("_memory_class", memoryClassMB().toString())
             memoryThresholdBytes.takeIf { it != Long.MAX_VALUE }?.let {
                 put("_threshold_mem_kb", memoryThresholdBytes.bToKb())
-                put("_is_memory_low", isMemoryLow().toString())
+                put("_is_memory_low", if (isMemoryLow()) "1" else "0")
             }
         }
 
