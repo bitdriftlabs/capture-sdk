@@ -51,9 +51,10 @@ internal object AppExitAnrTraceProcessor {
                 }
             }
 
-        val name = if (description != null) builder.createString(description) else 0
+        val name = description?.let { builder.createString(it) } ?: 0
         val trace = Error.createStackTraceVector(builder, mainStackTraceFrames.toIntArray())
-        val error = Error.createError(builder, name, 0, trace, ErrorRelation.CausedBy)
+        val reason = builder.createString(AnrReason.extractFrom(description).readableType)
+        val error = Error.createError(builder, name, reason, trace, ErrorRelation.CausedBy)
 
         return Report.createReport(
             builder,
@@ -117,5 +118,67 @@ internal object AppExitAnrTraceProcessor {
                 )
             mainStackTraceFrames.add(frame)
         }
+    }
+
+    /**
+     * Based on android source (see frameworks/base/core/java/com/android/internal/os/TimeoutRecord.java)
+     */
+    private sealed class AnrReason(
+        val readableType: String,
+        private val sentenceToMatch: String?,
+    ) {
+        companion object {
+            fun extractFrom(description: String?): AnrReason {
+                if (description == null) return UndeterminedAnr
+                val sanitizedDescription = description.lowercase()
+
+                return when {
+                    UserPerceivedAnr.matches(sanitizedDescription) -> UserPerceivedAnr
+                    BroadcastReceiver.matches(sanitizedDescription) -> BroadcastReceiver
+                    ExecutingService.matches(sanitizedDescription) -> ExecutingService
+                    StartForegroundNotCalled.matches(sanitizedDescription) -> StartForegroundNotCalled
+                    ContentProvider.matches(sanitizedDescription) -> ContentProvider
+                    AppRegistered.matches(sanitizedDescription) -> AppRegistered
+                    ShortFgsTimeout.matches(sanitizedDescription) -> ShortFgsTimeout
+                    JobService.matches(sanitizedDescription) -> JobService
+                    AppStart.matches(sanitizedDescription) -> AppStart
+                    ServiceStart.matches(sanitizedDescription) -> ServiceStart
+                    else -> UndeterminedAnr
+                }
+            }
+        }
+
+        fun matches(description: String) = sentenceToMatch?.let { it in description } ?: false
+
+        /*
+         * Combining all Input Dispatching Timed Out as User Perceived ANR as per public definition
+         * See definition at https://developer.android.com/topic/performance/vitals/anr#android-vitals
+         */
+        data object UserPerceivedAnr :
+            AnrReason("User Perceived ANR", "input dispatching timed out")
+
+        data object BroadcastReceiver : AnrReason("Broadcast Receiver ANR", "broadcast of intent")
+
+        data object ExecutingService : AnrReason("Executing Service ANR", "executing service")
+
+        data object StartForegroundNotCalled : AnrReason(
+            "Service.startForeground() Not Called ANR",
+            "service.startforeground() not called",
+        )
+
+        data object ContentProvider : AnrReason("Content Provider ANR", "content provider timeout")
+
+        data object AppRegistered : AnrReason("App Registered ANR", "app registered timeout")
+
+        data object ShortFgsTimeout :
+            AnrReason("Short Foreground Service Timeout ANR", "short fgs timeout")
+
+        data object JobService : AnrReason("Job Service ANR", "job service timeout")
+
+        data object AppStart : AnrReason("App Start ANR", "app start timeout")
+
+        data object ServiceStart : AnrReason("Service Start ANR", "service start timeout")
+
+        data object UndeterminedAnr : AnrReason("Undetermined ANR", null)
     }
 }
