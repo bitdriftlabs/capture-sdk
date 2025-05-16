@@ -17,7 +17,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class MemoryMetricsProviderTest {
-
     private val runtime: Runtime = mock()
 
     @Test
@@ -57,7 +56,7 @@ class MemoryMetricsProviderTest {
             "_native_total_kb",
             "_memory_class",
             "_threshold_mem_kb",
-            "_is_memory_low"
+            "_is_memory_low",
         )
     }
 }

@@ -16,7 +16,6 @@ private const val KB = 1024L
 internal class MemoryMetricsProvider(
     private val activityManager: ActivityManager,
 ) : IMemoryMetricsProvider {
-
     var runtime: io.bitdrift.capture.common.Runtime? = null
 
     // We only save the threshold on first access since it's a constant value obtained via a rather expensive Binder call
@@ -27,8 +26,7 @@ internal class MemoryMetricsProvider(
                 .also { memoryInfo ->
                     activityManager.getMemoryInfo(memoryInfo)
                 }.threshold
-        }
-        else {
+        } else {
             // Use sentinel value
             Long.MAX_VALUE
         }
