@@ -9,7 +9,7 @@ use bd_api::Platform;
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock};
 
-static SDK_VERSION: LazyLock<String> =
+pub static SDK_VERSION: LazyLock<String> =
   LazyLock::new(|| include!(concat!(env!("OUT_DIR"), "/version.rs")).to_string());
 
 // A collection of typed metadata that is used to identify the client when communicating with
@@ -48,7 +48,6 @@ impl bd_api::Metadata for Mobile {
     self.device.id()
   }
 
-  #[must_use]
   fn collect_inner(&self) -> HashMap<String, String> {
     let mut metadata_map = HashMap::new();
 

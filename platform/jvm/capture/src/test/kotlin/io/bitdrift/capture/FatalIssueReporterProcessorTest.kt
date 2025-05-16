@@ -99,6 +99,7 @@ class FatalIssueReporterProcessorTest {
         val report = Report.getRootAsReport(buffer)
         val error = report.errors(0)!!
         assertThat(error.name).isEqualTo(APP_EXIT_DESCRIPTION_ANR)
+        assertThat(error.reason).isEqualTo("User Perceived ANR")
         assertThat(error.stackTrace(0)!!.type).isEqualTo(1)
         assertThat(error.stackTrace(0)!!.stateLength).isEqualTo(0)
         assertThat(error.stackTrace(0)!!.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")
@@ -106,6 +107,98 @@ class FatalIssueReporterProcessorTest {
         assertThat(error.stackTrace(0)!!.sourceFile!!.path).isEqualTo("FatalIssueGenerator.kt")
         assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(106)
         assertThat(error.stackTrace(0)!!.sourceFile!!.column).isEqualTo(0)
+    }
+
+    @Test
+    fun persistAppExitReport_whenUserPerceivedAnr_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit = "Input Dispatching Timed Out",
+            expectedReasonMessage = "User Perceived ANR",
+        )
+    }
+
+    @Test
+    fun persistAppExitReport_whenBroadcastReceiverAnr_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit =
+                "Broadcast of Intent { act=android.intent.action.MAIN " +
+                    "cmp=com.example.app/.MainActivity}",
+            expectedReasonMessage = "Broadcast Receiver ANR",
+        )
+    }
+
+    @Test
+    fun persistAppExitReport_whenExecutingServiceAnr_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit =
+                "Executing service. { act=android.intent.action.MAIN \" +\n" +
+                    "                    \"cmp=com.example.app/.MainActivity}",
+            expectedReasonMessage = "Executing Service ANR",
+        )
+    }
+
+    @Test
+    fun persistAppExitReport_whenStartServiceForegroundAnr_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit = "Service.StartForeground() not called.{ act=android.intent.action.MAIN}",
+            expectedReasonMessage = "Service.startForeground() Not Called ANR",
+        )
+    }
+
+    @Test
+    fun persistAppExitReport_whenContentProviderTimeoutAnr_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit = "My Application. Content Provider Timeout",
+            expectedReasonMessage = "Content Provider ANR",
+        )
+    }
+
+    @Test
+    fun persistAppExitReport_whenAppRegisteredTimeoutAnr_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit = "My Application. App Registered Timeout",
+            expectedReasonMessage = "App Registered ANR",
+        )
+    }
+
+    @Test
+    fun persistAppExitReport_whenShortFgsTimeoutAnr_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit = "Foreground service ANR. Short FGS Timeout. Duration=5000ms",
+            expectedReasonMessage = "Short Foreground Service Timeout ANR",
+        )
+    }
+
+    @Test
+    fun persistAppExitReport_whenSystemJobServiceTimeoutAnr_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit = "SystemJobService. Job Service Timeout",
+            expectedReasonMessage = "Job Service ANR",
+        )
+    }
+
+    @Test
+    fun persistAppExitReport_whenAppStartupTimeOut_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit = "App start timeout. Timeout=5000ms",
+            expectedReasonMessage = "App Start ANR",
+        )
+    }
+
+    @Test
+    fun persistAppExitReport_whenServiceStartTimeout_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit = "Service start timeout. Timeout=5000ms",
+            expectedReasonMessage = "Service Start ANR",
+        )
+    }
+
+    @Test
+    fun persistAppExitReport_whenGenericAnrTimeout_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit = "It's full moon ANR",
+            expectedReasonMessage = "Undetermined ANR",
+        )
     }
 
     @Test
@@ -143,6 +236,30 @@ class FatalIssueReporterProcessorTest {
 
         verify(fatalIssueReporterStorage, never())
             .persistFatalIssue(any(), any())
+    }
+
+    private fun assertAnrReason(
+        descriptionFromAppExit: String,
+        expectedReasonMessage: String,
+    ) {
+        val traceInputStream = createTraceInputStream(APP_EXIT_VALID_ANR_TRACE)
+
+        fatalIssueReporterProcessor.persistAppExitReport(
+            fatalIssueType = ReportType.AppNotResponding,
+            FAKE_TIME_STAMP,
+            descriptionFromAppExit,
+            traceInputStream,
+        )
+
+        verify(fatalIssueReporterStorage).persistFatalIssue(
+            eq(FAKE_TIME_STAMP),
+            fatalIssueReportCaptor.capture(),
+        )
+        val report = Report.getRootAsReport(ByteBuffer.wrap(fatalIssueReportCaptor.firstValue))
+        assertThat(report.errors(0)).isNotNull
+        report.errors(0)?.let { error ->
+            assertThat(error.reason).isEqualTo(expectedReasonMessage)
+        }
     }
 
     private companion object {

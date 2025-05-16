@@ -19,7 +19,7 @@ protocol LoggerBridging {
         message: @autoclosure () -> String,
         fields: InternalFields?,
         matchingFields: InternalFields?,
-        type: Logger.LogType,
+        type: Capture.Logger.LogType,
         blocking: Bool,
         occurredAtOverride: Date?
     )

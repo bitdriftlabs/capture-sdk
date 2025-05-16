@@ -72,10 +72,15 @@ bitdrift_rust_library(
 
 objc_library(
     name = "objc_bridge",
-    srcs = ["ObjCWrapper.mm"],
+    srcs = [
+        "ObjCWrapper.mm",
+        "reports/DiagnosticEventReporter.m",
+    ],
     hdrs = [
         "CaptureRustBridge.h",
         "ObjCWrapper.h",
+        "reports/DiagnosticEventReporter.h",
+        "reports/bd-report-writer/ffi.h",
     ],
     module_name = "CaptureLoggerBridge",
     tags = ["macos_only"],

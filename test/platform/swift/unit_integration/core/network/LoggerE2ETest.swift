@@ -117,7 +117,7 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         })
         XCTAssertTrue(logs.contains { log in
             log.message == "Screen captured"
-                && log.logType == Logger.LogType.replay.rawValue
+                && log.logType == Capture.Logger.LogType.replay.rawValue
                 && log.logLevel == UInt32(LogLevel.info.rawValue)
                 // Screen capture is included in a binary field.
                 && log.field(withKey: "screen")?.type == .data
@@ -186,7 +186,7 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         let helloWorldLog: UploadedLog = try XCTUnwrap(.captureNextLog())
 
         XCTAssertEqual(helloWorldLog.logLevel, UInt32(LogLevel.debug.rawValue))
-        XCTAssertEqual(helloWorldLog.logType, Logger.LogType.normal.rawValue)
+        XCTAssertEqual(helloWorldLog.logType, Capture.Logger.LogType.normal.rawValue)
         XCTAssertEqual(helloWorldLog.message, "hello world")
         XCTAssertEqual(helloWorldLog.sessionID, "mock-group-id")
 
@@ -229,7 +229,7 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
             "date_field": "1970-01-01T00:00:00.000Z",
         ].mergedOverwritingConflictingKeys(defaultFields)
 
-        XCTAssertEqual(secondLog.logType, Logger.LogType.normal.rawValue)
+        XCTAssertEqual(secondLog.logType, Capture.Logger.LogType.normal.rawValue)
         XCTAssertEqual(secondLog.logLevel, UInt32(LogLevel.debug.rawValue))
         XCTAssertEqual(secondLog.message, "second log")
         XCTAssertEqual(secondLog.sessionID, "mock-group-id")
@@ -243,13 +243,13 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
             message: "alternate type log",
             fields: fields,
             error: nil,
-            type: Logger.LogType.device,
+            type: Capture.Logger.LogType.device,
             blocking: false
         )
 
         let thirdLog: UploadedLog = try XCTUnwrap(.captureNextLog())
 
-        XCTAssertEqual(thirdLog.logType, Logger.LogType.device.rawValue)
+        XCTAssertEqual(thirdLog.logType, Capture.Logger.LogType.device.rawValue)
         XCTAssertEqual(thirdLog.logLevel, UInt32(LogLevel.debug.rawValue))
         XCTAssertEqual(thirdLog.message, "alternate type log")
         XCTAssertEqual(thirdLog.sessionID, "mock-group-id")

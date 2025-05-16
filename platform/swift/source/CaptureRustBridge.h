@@ -211,6 +211,11 @@ NSString *capture_get_session_id(logger_id logger_id);
  */
 NSString *capture_get_device_id(logger_id logger_id);
 
+/**
+ * Returns the version of the Capture SDK
+ */
+NSString *capture_get_sdk_version();
+
 /*
  * Adds a field that should be attached to all logs emitted by the logger going forward.
  * If a field with a given key has already been registered with the logger, its value is

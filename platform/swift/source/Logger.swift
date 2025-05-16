@@ -36,6 +36,7 @@ public final class Logger {
     private let sessionURLBase: URL
 
     static var issueReporterInitResult: IssueReporterInitResult = (.notInitialized, 0)
+    static var diagnosticReporter = Atomic<DiagnosticEventReporter?>(nil)
 
     private static let syncedShared = Atomic<State>(.notStarted)
 
