@@ -14,6 +14,7 @@ import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
  */
 class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
     private var exception: Exception? = null
+    private var isMemoryLow: Boolean = false
 
     override fun getMemoryAttributes(): Map<String, String> {
         exception?.let {
@@ -22,12 +23,18 @@ class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
         return DEFAULT_MEMORY_ATTRIBUTES_MAP
     }
 
+    override fun isMemoryLow() = isMemoryLow
+
     fun clear() {
         exception = null
     }
 
     fun setException(exception: Exception) {
         this.exception = exception
+    }
+
+    fun setIsMemoryLow(isMemoryLow: Boolean) {
+        this.isMemoryLow = isMemoryLow
     }
 
     companion object {

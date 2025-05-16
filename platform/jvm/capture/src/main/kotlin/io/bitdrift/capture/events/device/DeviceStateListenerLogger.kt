@@ -132,12 +132,13 @@ internal class DeviceStateListenerLogger(
         }
     }
 
+    @Deprecated("Deprecated in API 34")
     override fun onLowMemory() {
-        // no-op - this is already tracked by [AppMemoryPressureListenerLogger]
+        // no-op
     }
 
     override fun onTrimMemory(level: Int) {
-        // no-op - this is already tracked by [AppMemoryPressureListenerLogger]
+        // no-op
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)

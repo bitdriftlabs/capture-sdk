@@ -31,7 +31,6 @@ import io.bitdrift.capture.events.device.DeviceStateListenerLogger
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.AppLifecycleListenerLogger
 import io.bitdrift.capture.events.lifecycle.EventsListenerTarget
-import io.bitdrift.capture.events.performance.AppMemoryPressureListenerLogger
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
 import io.bitdrift.capture.events.performance.JankStatsMonitor
@@ -87,10 +86,10 @@ internal class LoggerImpl(
     private val fatalIssueReporter: IFatalIssueReporter,
 ) : ILogger {
     private val metadataProvider: MetadataProvider
-    private val memoryMetricsProvider = MemoryMetricsProvider(context)
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
     private val diskUsageMonitor: DiskUsageMonitor
+    private val memoryMetricsProvider: MemoryMetricsProvider
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
     private var jankStatsMonitor: JankStatsMonitor? = null
@@ -158,6 +157,7 @@ internal class LoggerImpl(
                         preferences,
                         context,
                     )
+                memoryMetricsProvider = MemoryMetricsProvider(activityManager)
 
                 resourceUtilizationTarget =
                     ResourceUtilizationTarget(
@@ -209,6 +209,7 @@ internal class LoggerImpl(
                 runtime = JniRuntime(this.loggerId)
                 sessionReplayTarget.runtime = runtime
                 diskUsageMonitor.runtime = runtime
+                memoryMetricsProvider.runtime = runtime
 
                 eventsListenerTarget.add(
                     AppLifecycleListenerLogger(
@@ -226,16 +227,6 @@ internal class LoggerImpl(
                         context,
                         batteryMonitor,
                         powerMonitor,
-                        runtime,
-                        eventListenerDispatcher.executorService,
-                    ),
-                )
-
-                eventsListenerTarget.add(
-                    AppMemoryPressureListenerLogger(
-                        this,
-                        context,
-                        memoryMetricsProvider,
                         runtime,
                         eventListenerDispatcher.executorService,
                     ),
