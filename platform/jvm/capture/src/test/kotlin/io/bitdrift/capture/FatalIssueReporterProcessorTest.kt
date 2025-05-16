@@ -197,7 +197,7 @@ class FatalIssueReporterProcessorTest {
     fun persistAppExitReport_whenGenericAnrTimeout_shouldMatchAnrReason() {
         assertAnrReason(
             descriptionFromAppExit = "It's full moon ANR",
-            expectedReasonMessage = "Generic ANR",
+            expectedReasonMessage = "Undetermined ANR",
         )
     }
 
