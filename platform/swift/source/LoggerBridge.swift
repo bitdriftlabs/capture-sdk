@@ -26,7 +26,32 @@ func makeDirectoryAndDisableProtection(at path: String) throws {
     var fileProtection: AnyObject?
     try url.getResourceValue(&fileProtection, forKey: .fileProtectionKey)
     if let protection = fileProtection as? URLFileProtection, protection != .none {
+        // Remove any restrictions from to the top level folder
         try url.setResourceValue(URLFileProtection.none, forKey: .fileProtectionKey)
+    }
+
+    // We now check if the buffers directory has the right permission, this might not be the case
+    // for cases where the app ran before we set the right permissions.
+    //
+    // TODO(Fz): Having the `buffers` hardcoded here is not ideal and can come and bite us in the
+    // future, we should remove this once newer sdk versions are widespread.
+    guard let buffers = url.appendingPathComponent("buffers", isDirectory: true),
+          manager.fileExists(atPath: buffers.path)
+    else {
+        return
+    }
+
+    // Check if the buffers/ directory has the right permissions, otherwise we'll recursively
+    // remove file restrictions (for legacy reasons)
+    let bufferAttributes = try buffers.resourceValues(forKeys: [.fileProtectionKey])
+    if bufferAttributes.fileProtection != URLFileProtection.none {
+        // Remove any restrictions from the top level buffers directory
+        try (buffers as NSURL).setResourceValue(URLFileProtection.none, forKey: .fileProtectionKey)
+
+        // Remove any restrictions for buffers/*
+        for item in try manager.contentsOfDirectory(at: buffers, includingPropertiesForKeys: []) {
+            try (item as NSURL).setResourceValue(URLFileProtection.none, forKey: .fileProtectionKey)
+        }
     }
 }
 
