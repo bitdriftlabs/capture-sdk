@@ -86,10 +86,10 @@ internal class LoggerImpl(
     private val fatalIssueReporter: IFatalIssueReporter,
 ) : ILogger {
     private val metadataProvider: MetadataProvider
-    private val memoryMetricsProvider = MemoryMetricsProvider(activityManager)
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
     private val diskUsageMonitor: DiskUsageMonitor
+    private val memoryMetricsProvider: MemoryMetricsProvider
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
     private var jankStatsMonitor: JankStatsMonitor? = null
@@ -157,6 +157,7 @@ internal class LoggerImpl(
                         preferences,
                         context,
                     )
+                memoryMetricsProvider = MemoryMetricsProvider(activityManager)
 
                 resourceUtilizationTarget =
                     ResourceUtilizationTarget(
@@ -208,6 +209,7 @@ internal class LoggerImpl(
                 runtime = JniRuntime(this.loggerId)
                 sessionReplayTarget.runtime = runtime
                 diskUsageMonitor.runtime = runtime
+                memoryMetricsProvider.runtime = runtime
 
                 eventsListenerTarget.add(
                     AppLifecycleListenerLogger(

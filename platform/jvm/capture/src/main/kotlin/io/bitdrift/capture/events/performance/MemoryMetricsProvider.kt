@@ -9,32 +9,44 @@ package io.bitdrift.capture.events.performance
 
 import android.app.ActivityManager
 import android.os.Debug
+import io.bitdrift.capture.common.RuntimeFeature
 
 private const val KB = 1024L
 
 internal class MemoryMetricsProvider(
     private val activityManager: ActivityManager,
 ) : IMemoryMetricsProvider {
+
+    var runtime: io.bitdrift.capture.common.Runtime? = null
+
     // We only save the threshold on first access since it's a constant value obtained via a rather expensive Binder call
     private val memoryThresholdBytes: Long by lazy {
-        ActivityManager
-            .MemoryInfo()
-            .also { memoryInfo ->
-                activityManager.getMemoryInfo(memoryInfo)
-            }.threshold
+        return@lazy if (runtime?.isEnabled(RuntimeFeature.APP_MEMORY_PRESSURE) != false) {
+            ActivityManager
+                .MemoryInfo()
+                .also { memoryInfo ->
+                    activityManager.getMemoryInfo(memoryInfo)
+                }.threshold
+        }
+        else {
+            // Use sentinel value
+            Long.MAX_VALUE
+        }
     }
 
     override fun getMemoryAttributes(): Map<String, String> =
-        mapOf(
-            "_jvm_used_kb" to usedJvmMemoryBytes().bToKb(),
-            "_jvm_total_kb" to totalJvmMemoryBytes().bToKb(),
-            "_jvm_max_kb" to maxJvmMemoryBytes().bToKb(),
-            "_native_used_kb" to allocatedNativeHeapSizeBytes().bToKb(),
-            "_native_total_kb" to totalNativeHeapSizeBytes().bToKb(),
-            "_threshold_mem_kb" to memoryThresholdBytes.bToKb(),
-            "_is_memory_low" to isMemoryLow().toString(),
-            "_memory_class" to memoryClassMB().toString(),
-        )
+        buildMap {
+            put("_jvm_used_kb", usedJvmMemoryBytes().bToKb())
+            put("_jvm_total_kb", totalJvmMemoryBytes().bToKb())
+            put("_jvm_max_kb", maxJvmMemoryBytes().bToKb())
+            put("_native_used_kb", allocatedNativeHeapSizeBytes().bToKb())
+            put("_native_total_kb", totalNativeHeapSizeBytes().bToKb())
+            put("_memory_class", memoryClassMB().toString())
+            memoryThresholdBytes.takeIf { it != Long.MAX_VALUE }?.let {
+                put("_threshold_mem_kb", memoryThresholdBytes.bToKb())
+                put("_is_memory_low", isMemoryLow().toString())
+            }
+        }
 
     override fun isMemoryLow(): Boolean = usedJvmMemoryBytes() > memoryThresholdBytes
 
