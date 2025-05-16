@@ -15,6 +15,10 @@ import io.bitdrift.capture.reports.binformat.v1.FrameType
 import io.bitdrift.capture.reports.binformat.v1.Report
 import io.bitdrift.capture.reports.binformat.v1.ReportType
 import io.bitdrift.capture.reports.binformat.v1.SourceFile
+import io.bitdrift.capture.reports.processor.AppExitAnrTraceProcessor.AnrReason.BroadcastReceiver
+import io.bitdrift.capture.reports.processor.AppExitAnrTraceProcessor.AnrReason.ExecutingService
+import io.bitdrift.capture.reports.processor.AppExitAnrTraceProcessor.AnrReason.Generic
+import io.bitdrift.capture.reports.processor.AppExitAnrTraceProcessor.AnrReason.StartForegroundNotCalled
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -29,7 +33,6 @@ internal object AppExitAnrTraceProcessor {
     private val ANR_STACK_TRACE_REGEX = Regex("^\\s+at\\s+(.*)\\.(.*)\\((.*):(\\d+)\\)$")
     private val mainStackTraceFrames = mutableListOf<Int>()
     private var isProcessingMainThreadTrace = false
-    private var mainThreadReason: String? = null
 
     /**
      * Process valid traceInputStream
@@ -40,7 +43,6 @@ internal object AppExitAnrTraceProcessor {
         builder: FlatBufferBuilder,
         sdk: Int,
         appMetrics: Int,
-        applicationId: String,
         deviceMetrics: Int,
         description: String?,
         traceInputStream: InputStream,
@@ -49,13 +51,13 @@ internal object AppExitAnrTraceProcessor {
         BufferedReader(inputStreamReader)
             .useLines { lines ->
                 lines.forEach { currentLine ->
-                    appendMainFramesIfNeeded(builder, currentLine, applicationId)
+                    appendMainFramesIfNeeded(builder, currentLine)
                 }
             }
 
-        val name = if (description != null) builder.createString(description) else 0
+        val name = description?.let { builder.createString(it) } ?: 0
         val trace = Error.createStackTraceVector(builder, mainStackTraceFrames.toIntArray())
-        val reason = mainThreadReason?.let { builder.createString(it) } ?: 0
+        val reason = builder.createString(extractAnrReason(description).message)
         val error = Error.createError(builder, name, reason, trace, ErrorRelation.CausedBy)
 
         return Report.createReport(
@@ -81,23 +83,10 @@ internal object AppExitAnrTraceProcessor {
         }
     }
 
-    private fun setMainThreadReason(
-        currentLine: String,
-        applicationId: String,
-    ) {
-        if (!isProcessingMainThreadTrace) return
-
-        val matchesAppId = currentLine.trim().contains(applicationId.trim())
-        if (mainThreadReason == null && matchesAppId) {
-            mainThreadReason = currentLine.trim()
-        }
-    }
-
     @Suppress("DestructuringDeclarationWithTooManyEntries")
     private fun appendMainFramesIfNeeded(
         builder: FlatBufferBuilder,
         currentLine: String,
-        applicationId: String,
     ) {
         setIsMainThreadStackTrace(currentLine)
         if (!isStackTraceLine(currentLine)) return
@@ -132,7 +121,52 @@ internal object AppExitAnrTraceProcessor {
                     0,
                 )
             mainStackTraceFrames.add(frame)
-            setMainThreadReason(currentLine, applicationId)
         }
+    }
+
+    private fun extractAnrReason(description: String?): AnrReason {
+        if (description == null) return Generic
+        val sanitizedDescription = description.lowercase()
+
+        return when {
+            "input dispatching timed out" in sanitizedDescription -> AnrReason.UserPerceivedAnr
+            "broadcast of intent" in sanitizedDescription -> BroadcastReceiver
+            "executing service" in sanitizedDescription -> ExecutingService
+            "service.startforeground() not called" in sanitizedDescription -> StartForegroundNotCalled
+            "content provider timeout" in sanitizedDescription -> AnrReason.ContentProvider
+            "app registered timeout" in sanitizedDescription -> AnrReason.AppRegistered
+            "short fgs timeout" in sanitizedDescription -> AnrReason.ShortFgsTimeout
+            "job service timeout" in sanitizedDescription -> AnrReason.JobService
+            "app start timeout" in sanitizedDescription -> AnrReason.AppStart
+            "service start timeout" in sanitizedDescription -> AnrReason.ServiceStart
+            else -> Generic
+        }
+    }
+
+    private sealed class AnrReason(
+        val message: String,
+    ) {
+        // Note: Combining all Input Dispatching Timed Out as User Perceived ANR
+        data object UserPerceivedAnr : AnrReason("User Perceived ANR")
+
+        data object BroadcastReceiver : AnrReason("Broadcast Receiver ANR")
+
+        data object ExecutingService : AnrReason("Executing Service ANR")
+
+        data object StartForegroundNotCalled : AnrReason("Service.startForeground() Not Called ANR")
+
+        data object ContentProvider : AnrReason("Content Provider ANR")
+
+        data object AppRegistered : AnrReason("App Registered ANR")
+
+        data object ShortFgsTimeout : AnrReason("Short Foreground Service Timeout ANR")
+
+        data object JobService : AnrReason("Job Service ANR")
+
+        data object AppStart : AnrReason("App Start ANR")
+
+        data object ServiceStart : AnrReason("Service Start ANR")
+
+        data object Generic : AnrReason("Generic ANR")
     }
 }
