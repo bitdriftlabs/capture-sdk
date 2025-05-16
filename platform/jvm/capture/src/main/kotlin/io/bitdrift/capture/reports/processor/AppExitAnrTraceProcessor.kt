@@ -143,10 +143,13 @@ internal object AppExitAnrTraceProcessor {
         }
     }
 
+    /**
+     * Based on android source (see frameworks/base/core/java/com/android/internal/os/TimeoutRecord.java)
+     */
     private sealed class AnrReason(
         val message: String,
     ) {
-        // Note: Combining all Input Dispatching Timed Out as User Perceived ANR
+        // Note: Combining all Input Dispatching Timed Out as User Perceived ANR as per public definition
         data object UserPerceivedAnr : AnrReason("User Perceived ANR")
 
         data object BroadcastReceiver : AnrReason("Broadcast Receiver ANR")
