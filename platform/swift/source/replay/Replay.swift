@@ -81,6 +81,13 @@ package final class Replay {
     private func traverse(into buffer: inout Data, parent: UIView, parentPosition: CGPoint, clipTo: CGRect,
                           ignoreViewType: Bool = false)
     {
+        // Shortcircuit traversal if parent view is SpriteKit
+        if let view = parent as? SKView {
+            return self.traverse(
+                into: &buffer, view: view, parentPosition: parentPosition, clipTo: clipTo
+            )
+        }
+
         for view in parent.subviews {
             if view.isHidden || view.alpha < 0.1 {
                 continue
