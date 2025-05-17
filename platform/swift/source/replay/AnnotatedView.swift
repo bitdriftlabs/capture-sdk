@@ -11,9 +11,9 @@ import UIKit
 /// Defines the view types used to represent rectangles visually when rendering the session replay.
 ///
 /// Note that as it's currently implemented, we only have 4 bits available and therefore we cannot exceed
-/// 15 types.
+/// 16 types.
 ///
-/// Types left: 1
+/// Types left: 2
 public enum ViewType: UInt8 {
     case label = 0
     case button = 1
