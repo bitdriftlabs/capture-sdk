@@ -25,9 +25,14 @@ extension Replay {
         var children: [(z: CGFloat, frame: CGRect)] = []
         var queue = view.scene?.children.map { ($0, 0, 0, 0.0) } ?? []
         while let (node, index, parentIndex, nodeZ) = queue.popLast() {
-            let ignoreNode =
-                (node.alpha < 0.1 || node.isHidden || node.frame.isEmpty || node.frame.isInfinite
-                    || node.frame.isNull || node.frame.width < 0.1 || node.frame.height < 0.1)
+            if node.alpha < 0.1 || node.isHidden {
+                continue
+            }
+
+            let ignoreNode = (
+                node.frame.isEmpty || node.frame.isInfinite || node.frame.isNull ||
+                node.frame.width < 0.1 || node.frame.height < 0.1
+            )
 
             if !ignoreNode {
                 var frame = node.frame
