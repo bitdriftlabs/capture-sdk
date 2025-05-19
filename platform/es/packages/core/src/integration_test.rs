@@ -38,43 +38,37 @@ async fn basic_test() {
 
   let stream = server.next_initialized_stream().await.unwrap();
 
-  server
-    .stream_action(
-      stream,
-      StreamAction::SendRuntime(make_update(
-        vec![(
-          bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
-          ValueKind::Int(1),
-        )],
-        "0".to_string(),
-      )),
-    )
+  stream
+    .stream_action(StreamAction::SendRuntime(make_update(
+      vec![(
+        bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
+        ValueKind::Int(1),
+      )],
+      "0".to_string(),
+    )))
     .await;
 
-  server
-    .stream_action(
-      stream,
-      StreamAction::SendConfiguration(configuration_update(
-        "0",
-        bd_proto::protos::client::api::configuration_update::StateOfTheWorld {
-          buffer_config_list: Some(BufferConfigList {
-            buffer_config: vec![default_buffer_config(
-              buffer_config::Type::CONTINUOUS,
-              make_buffer_matcher_matching_everything().into(),
-            )],
-            ..Default::default()
-          })
-          .into(),
+  stream
+    .stream_action(StreamAction::SendConfiguration(configuration_update(
+      "0",
+      bd_proto::protos::client::api::configuration_update::StateOfTheWorld {
+        buffer_config_list: Some(BufferConfigList {
+          buffer_config: vec![default_buffer_config(
+            buffer_config::Type::CONTINUOUS,
+            make_buffer_matcher_matching_everything().into(),
+          )],
           ..Default::default()
-        },
-      )),
-    )
+        })
+        .into(),
+        ..Default::default()
+      },
+    )))
     .await;
 
-  server.next_configuration_ack(stream).await;
+  server.next_configuration_ack(&stream).await;
 
 
-  logger.log(1, "message".to_string(), vec![]);
+  logger.log(1, "message".to_string(), [].into());
 
   assert_matches!(server.next_log_upload().await, Some(log_upload) => {
     assert_eq!(log_upload.logs.len(), 1);

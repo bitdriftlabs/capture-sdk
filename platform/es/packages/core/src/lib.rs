@@ -12,7 +12,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use bd_logger::{AnnotatedLogField, AnnotatedLogFields, LogField, LogFieldKind, LogFieldValue};
+use bd_logger::{AnnotatedLogField, AnnotatedLogFields, LogFieldValue};
 use logger::RustLogger;
 use napi::bindgen_prelude::{Buffer, Either4};
 use napi::Result;
@@ -89,7 +89,7 @@ impl Logger {
       Either4::C(value) => value.to_string().into(),
       Either4::D(value) => value.to_vec().into(),
     };
-    self.inner.add_field(LogField { key: field, value });
+    self.inner.add_field(field, value);
   }
 
   #[napi]
@@ -115,10 +115,7 @@ impl Logger {
           Either4::D(value) => value.to_vec().into(),
         };
 
-        AnnotatedLogField {
-          kind: LogFieldKind::Custom,
-          field: LogField { key, value },
-        }
+        (key.into(), AnnotatedLogField::new_ootb(value))
       })
       .collect();
 
@@ -148,10 +145,7 @@ impl Logger {
           Either4::D(value) => value.to_vec().into(),
         };
 
-        AnnotatedLogField {
-          kind: LogFieldKind::Ootb,
-          field: LogField { key, value },
-        }
+        (key.into(), AnnotatedLogField::new_ootb(value))
       })
       .collect();
     let duration = Duration::milliseconds(duration_ms.into());
