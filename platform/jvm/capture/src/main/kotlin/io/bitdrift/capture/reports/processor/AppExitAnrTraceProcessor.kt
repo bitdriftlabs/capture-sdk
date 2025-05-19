@@ -134,6 +134,7 @@ internal object AppExitAnrTraceProcessor {
 
                 return when {
                     UserPerceivedAnr.matches(sanitizedDescription) -> UserPerceivedAnr
+                    BackgroundAnr.matches(sanitizedDescription) -> BackgroundAnr
                     BroadcastReceiver.matches(sanitizedDescription) -> BroadcastReceiver
                     ExecutingService.matches(sanitizedDescription) -> ExecutingService
                     StartForegroundNotCalled.matches(sanitizedDescription) -> StartForegroundNotCalled
@@ -156,6 +157,8 @@ internal object AppExitAnrTraceProcessor {
          */
         data object UserPerceivedAnr :
             AnrReason("User Perceived ANR", "input dispatching timed out")
+
+        data object BackgroundAnr : AnrReason("Background ANR", "bg anr")
 
         data object BroadcastReceiver : AnrReason("Broadcast Receiver ANR", "broadcast of intent")
 
