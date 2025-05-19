@@ -20,10 +20,10 @@ use crate::SessionStrategy;
 use bd_client_common::error::handle_unexpected;
 use bd_key_value::Storage;
 use bd_logger::{
-  AnnotatedLogField,
   AnnotatedLogFields,
   InitParams,
-  LogField,
+  LogFieldValue,
+  LogFields,
   LogLevel,
   LogType,
   LoggerBuilder,
@@ -124,7 +124,7 @@ impl RustLogger {
       reporter
     };
 
-    let (logger, _, logger_future) = LoggerBuilder::new(InitParams {
+    let (logger, _, logger_future, _) = LoggerBuilder::new(InitParams {
       sdk_directory,
       api_key,
       session_strategy: session_strategy_clone,
@@ -159,7 +159,7 @@ impl RustLogger {
 
     let handle = logger.new_logger_handle();
 
-    handle.log_sdk_start(vec![], start.elapsed().try_into().unwrap_or_default());
+    handle.log_sdk_start([].into(), start.elapsed().try_into().unwrap_or_default());
 
     Ok(Self {
       _logger: logger,
@@ -175,7 +175,7 @@ impl RustLogger {
       LogType::Normal,
       message.into(),
       fields,
-      vec![],
+      [].into(),
       None,
       false,
     );
@@ -193,8 +193,8 @@ impl RustLogger {
     self.device.id()
   }
 
-  pub fn add_field(&self, field: LogField) {
-    self.handle.add_log_field(field);
+  pub fn add_field(&self, key: String, value: LogFieldValue) {
+    self.handle.add_log_field(key, value);
   }
 
   pub fn remove_field(&self, key: &str) {
@@ -251,14 +251,18 @@ impl bd_logger::MetadataProvider for MetadataProvider {
     Ok(time::OffsetDateTime::now_utc())
   }
 
-  fn fields(&self) -> anyhow::Result<bd_logger::AnnotatedLogFields> {
-    Ok(vec![
-      AnnotatedLogField::new_ootb("app_id".to_string(), self.app_id.clone().into()),
-      AnnotatedLogField::new_ootb("app_version".to_string(), self.app_version.clone().into()),
-      AnnotatedLogField::new_ootb("os".to_string(), self.os.clone().into()),
-      AnnotatedLogField::new_ootb("os_version".to_string(), self.os_version.clone().into()),
-      AnnotatedLogField::new_ootb("_locale".to_string(), self.locale.clone().into()),
-    ])
+  fn fields(&self) -> anyhow::Result<(LogFields, LogFields)> {
+    Ok((
+      [].into(),
+      [
+        ("app_id".into(), self.app_id.as_str().into()),
+        ("app_version".into(), self.app_version.as_str().into()),
+        ("os".into(), self.os.as_str().into()),
+        ("os_version".into(), self.os_version.as_str().into()),
+        ("_locale".into(), self.locale.as_str().into()),
+      ]
+      .into(),
+    ))
   }
 }
 
