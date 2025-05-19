@@ -12,6 +12,7 @@ import android.app.Application
 import android.os.Build
 import android.os.Bundle
 import android.view.Window
+import androidx.annotation.OpenForTesting
 import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
@@ -197,15 +198,16 @@ internal class JankStatsMonitor(
 
     @WorkerThread
     private fun FrameData.sendJankFrameData() {
-        val jankFrameLogDetails = this.getLogDetails()
+        val jankFrameType = toJankType()
         logger.log(
             LogType.UX,
-            jankFrameLogDetails.logLevel,
+            jankFrameType.logLevel,
             buildMap {
                 put(SpanField.Key.DURATION, toDurationMillis().toString().toFieldValue())
+                put(DROPPED_FRAME_TYPE_KEY, jankFrameType.fieldValue)
                 putAll(this@sendJankFrameData.states.toFields())
             },
-        ) { jankFrameLogDetails.message }
+        ) { jankFrameType.messageId }
     }
 
     @WorkerThread
@@ -215,31 +217,6 @@ internal class JankStatsMonitor(
             stateInfo.key to stateInfo.value.toFieldValue()
         }
     }
-
-    @WorkerThread
-    private fun FrameData.getLogDetails(): JankFrameLogDetails =
-        when (this.toJankType()) {
-            JankFrameType.SLOW -> {
-                JankFrameLogDetails(
-                    LogLevel.WARNING,
-                    DROPPED_FRAME_MESSAGE_ID,
-                )
-            }
-
-            JankFrameType.FROZEN -> {
-                JankFrameLogDetails(
-                    LogLevel.ERROR,
-                    DROPPED_FRAME_MESSAGE_ID,
-                )
-            }
-
-            JankFrameType.ANR -> {
-                JankFrameLogDetails(
-                    LogLevel.ERROR,
-                    ANR_MESSAGE_ID,
-                )
-            }
-        }
 
     private fun FrameData.toJankType(): JankFrameType {
         val durationMillis = this.toDurationMillis()
@@ -266,32 +243,33 @@ internal class JankStatsMonitor(
     /**
      * The different type of Janks according to Play Vitals
      */
-    private enum class JankFrameType {
+    @OpenForTesting
+    internal enum class JankFrameType(
+        val logLevel: LogLevel,
+        val messageId: String,
+        val fieldValue: FieldValue,
+    ) {
         /**
          * Has a duration >= 16 ms and below [RuntimeConfig.FROZEN_FRAME_THRESHOLD_MS]
          */
-        SLOW,
+        SLOW(LogLevel.WARNING, DROPPED_FRAME_MESSAGE_ID, "Slow".toFieldValue()),
 
         /**
          * With a duration between [RuntimeConfig.FROZEN_FRAME_THRESHOLD_MS] and below [RuntimeConfig.ANR_FRAME_THRESHOLD_MS]
          */
-        FROZEN,
+        FROZEN(LogLevel.ERROR, DROPPED_FRAME_MESSAGE_ID, "Frozen".toFieldValue()),
 
         /**
          * With a duration above [RuntimeConfig.ANR_FRAME_THRESHOLD_MS]
          */
-        ANR,
+        ANR(LogLevel.ERROR, ANR_MESSAGE_ID, "ANR".toFieldValue()),
     }
-
-    private data class JankFrameLogDetails(
-        val logLevel: LogLevel,
-        val message: String,
-    )
 
     private companion object {
         private const val ERROR_DURATION_THRESHOLD_MILLIS = 100_000_000L
         private const val DROPPED_FRAME_MESSAGE_ID = "DroppedFrame"
         private const val ANR_MESSAGE_ID = "ANR"
         private const val SCREEN_NAME_KEY = "_screen_name"
+        private const val DROPPED_FRAME_TYPE_KEY = "_frame_issue_type"
     }
 }

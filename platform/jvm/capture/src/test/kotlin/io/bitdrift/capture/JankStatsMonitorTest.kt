@@ -27,6 +27,7 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.JankStatsMonitor
+import io.bitdrift.capture.events.performance.JankStatsMonitor.JankFrameType
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.providers.toFieldValue
 import org.assertj.core.api.Assertions.assertThat
@@ -96,7 +97,7 @@ class JankStatsMonitorTest {
             durationInMilli = jankDurationInMilli,
         )
 
-        assertLogDetails(jankDurationInMilli, LogLevel.WARNING, "DroppedFrame")
+        assertLogDetails(jankDurationInMilli, JankFrameType.SLOW)
     }
 
     @Test
@@ -122,7 +123,7 @@ class JankStatsMonitorTest {
             durationInMilli = jankDurationInMilli,
         )
 
-        assertLogDetails(jankDurationInMilli, LogLevel.WARNING, "DroppedFrame")
+        assertLogDetails(jankDurationInMilli, JankFrameType.SLOW)
     }
 
     @Test
@@ -135,7 +136,7 @@ class JankStatsMonitorTest {
             durationInMilli = jankDurationInMilli,
         )
 
-        assertLogDetails(jankDurationInMilli, LogLevel.ERROR, "DroppedFrame")
+        assertLogDetails(jankDurationInMilli, JankFrameType.FROZEN)
     }
 
     @Test
@@ -148,7 +149,7 @@ class JankStatsMonitorTest {
             durationInMilli = jankDurationInMilli,
         )
 
-        assertLogDetails(jankDurationInMilli, LogLevel.ERROR, "ANR")
+        assertLogDetails(jankDurationInMilli, JankFrameType.ANR)
     }
 
     @Test
@@ -162,7 +163,7 @@ class JankStatsMonitorTest {
             durationInMilli = jankDurationInMilli,
         )
 
-        assertLogDetails(jankDurationInMilli, LogLevel.ERROR, "ANR")
+        assertLogDetails(jankDurationInMilli, JankFrameType.ANR)
     }
 
     @Test
@@ -292,6 +293,7 @@ class JankStatsMonitorTest {
             eq(
                 mapOf(
                     "_duration_ms" to jankDurationInMilli.toString().toFieldValue(),
+                    "_frame_issue_type" to JankFrameType.SLOW.fieldValue,
                     "_screen_name" to screenName.toFieldValue(),
                 ),
             ),
@@ -319,17 +321,21 @@ class JankStatsMonitorTest {
 
     private fun assertLogDetails(
         jankDurationInMilli: Long,
-        expectedLogLevel: LogLevel,
-        expectedMessage: String,
+        expectedFrameType: JankStatsMonitor.JankFrameType,
     ) {
         verify(logger).log(
             eq(LogType.UX),
-            eq(expectedLogLevel),
-            eq(mapOf("_duration_ms" to jankDurationInMilli.toString().toFieldValue())),
+            eq(expectedFrameType.logLevel),
+            eq(
+                mapOf(
+                    "_duration_ms" to jankDurationInMilli.toString().toFieldValue(),
+                    "_frame_issue_type" to expectedFrameType.fieldValue,
+                ),
+            ),
             eq(null),
             eq(null),
             eq(false),
-            argThat { message: () -> String -> message.invoke() == expectedMessage },
+            argThat { message: () -> String -> message.invoke() == expectedFrameType.messageId },
         )
     }
 
