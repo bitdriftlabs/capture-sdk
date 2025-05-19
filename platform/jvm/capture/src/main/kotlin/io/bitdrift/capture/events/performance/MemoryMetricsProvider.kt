@@ -46,7 +46,10 @@ internal class MemoryMetricsProvider(
             }
         }
 
-    override fun isMemoryLow(): Boolean = usedJvmMemoryBytes() > memoryThresholdBytes
+    override fun isMemoryLow(): Boolean {
+        val totalUsedMemoryByApp = usedJvmMemoryBytes() + allocatedNativeHeapSizeBytes()
+        return totalUsedMemoryByApp > memoryThresholdBytes
+    }
 
     private fun Long.bToKb(): String = (this / KB).toString()
 
