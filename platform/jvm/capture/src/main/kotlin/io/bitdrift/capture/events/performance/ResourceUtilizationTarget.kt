@@ -9,10 +9,13 @@ package io.bitdrift.capture.events.performance
 
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.IResourceUtilizationTarget
+import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.common.PowerMonitor
+import io.bitdrift.capture.providers.toFields
 import java.util.concurrent.ExecutorService
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -31,10 +34,10 @@ internal class ResourceUtilizationTarget(
         executor.execute {
             try {
                 val start = clock.elapsedRealtime()
-
+                val memorySnapshot = memoryMetricsProvider.getMemoryAttributes()
                 val fields =
                     buildMap {
-                        putAll(memoryMetricsProvider.getMemoryAttributes())
+                        putAll(memorySnapshot)
                         putAll(diskUsageMonitor.getDiskUsage())
                         putPair(batteryMonitor.batteryPercentageAttribute())
                         putPair(batteryMonitor.isBatteryChargingAttribute())
@@ -43,10 +46,21 @@ internal class ResourceUtilizationTarget(
 
                 val duration = clock.elapsedRealtime() - start
                 logger.logResourceUtilization(fields, duration.toDuration(DurationUnit.MILLISECONDS))
+                if (memoryMetricsProvider.isMemoryLow()) {
+                    logMemoryPressure(memorySnapshot)
+                }
             } catch (e: Throwable) {
                 errorHandler.handleError("resource utilization tick", e)
             }
         }
+    }
+
+    private fun logMemoryPressure(memAttributes: Map<String, String>) {
+        logger.log(
+            LogType.LIFECYCLE,
+            LogLevel.WARNING,
+            memAttributes.toFields(),
+        ) { "AppMemPressure" }
     }
 }
 
