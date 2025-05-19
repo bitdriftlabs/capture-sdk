@@ -38,7 +38,7 @@ jobs:
   ios-release-build:
     name: Capture.xcframework with artifacts
     needs: ["verify-version"]
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -110,7 +110,7 @@ jobs:
   # Builds libcapture.dylib targeting macos arm64, to support instant-android using the .aar on arm64 Macs.
   build-android-macos-arm64:
     name: arm64 libcapture.dylib
-    runs-on: macos-14
+    runs-on: macos-15
     needs: ["verify-version"]
     steps:
       - uses: actions/checkout@v4
@@ -129,7 +129,7 @@ jobs:
   # Builds libcapture.dylib targeting macos x86_64, to support instant-android using the .aar on arm64 Macs.
   build-android-macos-x86_64:
     name: x86_64 libcapture.dylib
-    runs-on: macos-14
+    runs-on: macos-15
     needs: ["verify-version"]
     steps:
       # Checkout repo to Github Actions runner
