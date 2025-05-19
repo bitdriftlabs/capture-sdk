@@ -77,7 +77,7 @@ class FatalIssueReporterProcessorTest {
             "persistJvmCrash_withFakeException_shouldCreateNonEmptyErrorModel",
         )
         assertThat(error.stackTrace(0)!!.sourceFile!!.path).isEqualTo("FatalIssueReporterProcessorTest.kt")
-        assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(49)
+        assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(50)
         assertThat(error.stackTrace(0)!!.sourceFile!!.column).isEqualTo(0)
     }
 
