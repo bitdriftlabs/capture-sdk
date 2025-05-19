@@ -204,7 +204,10 @@ class FatalIssueReporterProcessorTest {
     @Test
     fun persistAppExitReport_whenGenericAnrTimeout_shouldMatchAnrReason() {
         assertAnrReason(
-            descriptionFromAppExit = "bg anr: Process ProcessRecord{9707291 4609:io.bitdrift.gradletestapp/u0a207} failed to complete startup\n",
+            descriptionFromAppExit =
+                "bg anr: Process " +
+                    "ProcessRecord{9707291 4609:io.bitdrift.gradletestapp/u0a207} " +
+                    "failed to complete startup\n",
             expectedReasonMessage = "Background ANR",
         )
     }
