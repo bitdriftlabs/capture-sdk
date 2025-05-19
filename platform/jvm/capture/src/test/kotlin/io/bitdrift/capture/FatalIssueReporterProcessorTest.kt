@@ -34,6 +34,7 @@ class FatalIssueReporterProcessorTest {
     private lateinit var fatalIssueReporterProcessor: FatalIssueReporterProcessor
     private val fatalIssueReporterStorage: IFatalIssueReporterStorage = mock()
     private val fatalIssueReportCaptor = argumentCaptor<ByteArray>()
+    private val reportTypeCaptor = argumentCaptor<Byte>()
 
     @Before
     fun setUp() {
@@ -58,6 +59,7 @@ class FatalIssueReporterProcessorTest {
         verify(fatalIssueReporterStorage).persistFatalIssue(
             eq(FAKE_TIME_STAMP),
             fatalIssueReportCaptor.capture(),
+            reportTypeCaptor.capture(),
         )
         val buffer = ByteBuffer.wrap(fatalIssueReportCaptor.firstValue)
         val report = Report.getRootAsReport(buffer)
@@ -94,6 +96,7 @@ class FatalIssueReporterProcessorTest {
         verify(fatalIssueReporterStorage).persistFatalIssue(
             eq(FAKE_TIME_STAMP),
             fatalIssueReportCaptor.capture(),
+            reportTypeCaptor.capture(),
         )
         val buffer = ByteBuffer.wrap(fatalIssueReportCaptor.firstValue)
         val report = Report.getRootAsReport(buffer)
@@ -216,6 +219,7 @@ class FatalIssueReporterProcessorTest {
         verify(fatalIssueReporterStorage).persistFatalIssue(
             eq(FAKE_TIME_STAMP),
             fatalIssueReportCaptor.capture(),
+            reportTypeCaptor.capture(),
         )
         val buffer = ByteBuffer.wrap(fatalIssueReportCaptor.firstValue)
         val report = Report.getRootAsReport(buffer)
@@ -235,7 +239,7 @@ class FatalIssueReporterProcessorTest {
         )
 
         verify(fatalIssueReporterStorage, never())
-            .persistFatalIssue(any(), any())
+            .persistFatalIssue(any(), any(), any())
     }
 
     private fun assertAnrReason(
@@ -254,6 +258,7 @@ class FatalIssueReporterProcessorTest {
         verify(fatalIssueReporterStorage).persistFatalIssue(
             eq(FAKE_TIME_STAMP),
             fatalIssueReportCaptor.capture(),
+            reportTypeCaptor.capture(),
         )
         val report = Report.getRootAsReport(ByteBuffer.wrap(fatalIssueReportCaptor.firstValue))
         assertThat(report.errors(0)).isNotNull
