@@ -14,5 +14,6 @@ internal interface IFatalIssueReporterStorage {
     fun persistFatalIssue(
         terminationTimeStampInMilli: Long,
         data: ByteArray,
+        reportType: Byte,
     )
 }

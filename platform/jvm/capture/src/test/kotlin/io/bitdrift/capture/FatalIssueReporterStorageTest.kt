@@ -42,8 +42,41 @@ class FatalIssueReporterStorageTest {
     }
 
     @Test
+    fun persistFatalIssue_whenAnr_shouldAddTypeToFileName() {
+        assertFileWithExpectedType(
+            reportType = ReportType.AppNotResponding,
+            "ANR",
+        )
+    }
+
+    @Test
+    fun persistFatalIssue_whenJvmCrash_shouldAddTypeToFileName() {
+        assertFileWithExpectedType(
+            reportType = ReportType.JVMCrash,
+            "JVM_CRASH",
+        )
+    }
+
+    @Test
+    fun persistFatalIssue_whenNativeCrash_shouldAddTypeToFileName() {
+        assertFileWithExpectedType(
+            reportType = ReportType.NativeCrash,
+            "NATIVE_CRASH",
+        )
+    }
+
+    @Test
+    fun persistFatalIssue_whenStrictMode_shouldAddUnknownType() {
+        assertFileWithExpectedType(
+            reportType = ReportType.StrictModeViolation,
+            "UNKNOWN",
+        )
+    }
+
+    @Test
     fun parseBasicFormat() {
         val builder = FlatBufferBuilder()
+        val reportType = ReportType.StrictModeViolation
         val errors =
             listOf(
                 Error.createError(
@@ -65,7 +98,7 @@ class FatalIssueReporterStorageTest {
             Report.createReport(
                 builder,
                 SDKInfo.createSDKInfo(builder, builder.createString("com.example.some-sdk"), builder.createString("9.7.30")),
-                ReportType.StrictModeViolation,
+                reportType,
                 0,
                 0,
                 Report.createErrorsVector(builder, errors.toIntArray()),
@@ -74,7 +107,7 @@ class FatalIssueReporterStorageTest {
             )
         builder.finish(report)
         val timestamp = 1744287332021
-        storage.persistFatalIssue(timestamp, builder.sizedByteArray())
+        storage.persistFatalIssue(timestamp, builder.sizedByteArray(), reportType)
 
         val files = dir.toFile().listFiles()
         assertThat(files?.size).isEqualTo(1)
@@ -95,5 +128,25 @@ class FatalIssueReporterStorageTest {
         assertThat(parsed.errors(0)!!.reason).isEqualTo("failed to create bird property")
         assertThat(parsed.errors(1)!!.name).isEqualTo("BirdGenerator")
         assertThat(parsed.errors(1)!!.reason).isEqualTo("invalid configuration")
+    }
+
+    private fun assertFileWithExpectedType(
+        reportType: Byte,
+        expectedTypeInFileName: String,
+    ) {
+        val terminationTimeStampInMilli = System.currentTimeMillis()
+        val reportData = byteArrayOf()
+
+        storage.persistFatalIssue(
+            terminationTimeStampInMilli,
+            reportData,
+            reportType,
+        )
+
+        val generatedFile = dir.toFile().listFiles()?.first()
+        assertThat(generatedFile).isNotNull()
+        generatedFile?.let {
+            assertThat(it.name.contains(expectedTypeInFileName)).isTrue()
+        }
     }
 }
