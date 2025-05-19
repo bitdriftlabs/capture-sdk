@@ -143,6 +143,7 @@ internal object AppExitAnrTraceProcessor {
                     JobService.matches(sanitizedDescription) -> JobService
                     AppStart.matches(sanitizedDescription) -> AppStart
                     ServiceStart.matches(sanitizedDescription) -> ServiceStart
+                    BackgroundAnr.matches(sanitizedDescription) -> BackgroundAnr
                     else -> UndeterminedAnr
                 }
             }
@@ -178,6 +179,8 @@ internal object AppExitAnrTraceProcessor {
         data object AppStart : AnrReason("App Start ANR", "app start timeout")
 
         data object ServiceStart : AnrReason("Service Start ANR", "service start timeout")
+
+        data object BackgroundAnr : AnrReason("Background ANR", "bg anr")
 
         data object UndeterminedAnr : AnrReason("Undetermined ANR", null)
     }
