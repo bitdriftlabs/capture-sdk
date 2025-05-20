@@ -23,7 +23,10 @@ swift_library(
         "-Xclang",
         "-Xcc",
         "--linker-option=-lz",
-    ],
+    ] + select({
+        "//bazel:is_ci": ["-warnings-as-errors"],
+        "//conditions:default": [],
+    }),
     data = [
         "//platform/swift/resources:maybe_info_plist",
         "//platform/swift/resources:privacy_manifest",
@@ -57,6 +60,10 @@ swift_library(
         "manual",
     ],
     visibility = ["//visibility:public"],
+    copts = select({
+        "//bazel:is_ci": ["-warnings-as-errors"],
+        "//conditions:default": [],
+    }),
 )
 
 bitdrift_rust_library(

@@ -42,8 +42,8 @@ test --test_env=RUST_BACKTRACE=full --java_runtime_version=remotejdk_11
 
 # Shared configuration for all CI tasks.
 build:ci --config=clippy
-build:ci --swiftcopt=-warnings-as-errors
 build:ci --config=force-xcode-version
+build:ci --define build_config=ci
 
 # Common debug configuration for iOS/Android. Used when building examples apps.
 build:dbg-common --compilation_mode=opt
