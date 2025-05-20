@@ -1,7 +1,7 @@
-load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")
 load("@rules_apple//apple:apple.bzl", "apple_static_xcframework_import")
 load("@rules_apple//apple:ios.bzl", "ios_application")
 load("@rules_swift//swift:swift.bzl", "swift_library")
+load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")
 
 genrule(
     name = "expanded_xcframework",
