@@ -10,6 +10,8 @@ package io.bitdrift.capture.events.performance
 import android.app.ActivityManager
 import android.os.Debug
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.toFieldValue
 
 private const val KB = 1024L
 
@@ -45,6 +47,9 @@ internal class MemoryMetricsProvider(
                 put("_is_memory_low", if (isMemoryLow()) "1" else "0")
             }
         }
+
+    override fun getMemoryClass():Map<String, String> =
+        buildMap{ put("_memory_class", memoryClassMB().toString())}
 
     override fun isMemoryLow(): Boolean {
         val totalUsedMemoryByApp = usedJvmMemoryBytes() + allocatedNativeHeapSizeBytes()

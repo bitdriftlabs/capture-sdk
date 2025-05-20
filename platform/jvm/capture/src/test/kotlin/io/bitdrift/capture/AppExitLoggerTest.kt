@@ -204,6 +204,7 @@ class AppExitLoggerTest {
             put("_app_exit_pss", "1")
             put("_app_exit_rss", "2")
             put("_app_exit_description", "test-description")
-            putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
+            put("_app_exit_description", "test-description")
+            put("_memory_class", "1")
         }.toFields()
 }
