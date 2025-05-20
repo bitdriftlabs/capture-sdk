@@ -62,8 +62,8 @@ bazel_dep(name = "google_bazel_common", version = "0.0.1")
 
 http_jar(
     name = "bazel_diff",
-    sha256 = "0b9e32f9c20e570846b083743fe967ae54d13e2a1f7364983e0a7792979442be",
-    url = "https://github.com/Tinder/bazel-diff/releases/download/7.0.0/bazel-diff_deploy.jar",
+    integrity = "sha256-Sn3WTHsfsSGbglE4xiwgbSrOdHCqXToHpVRTLnQEiJM=",
+    url = "https://github.com/Tinder/bazel-diff/releases/download/9.0.3/bazel-diff_deploy.jar",
 )
 
 new_git_repository(

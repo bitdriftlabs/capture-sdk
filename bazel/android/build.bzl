@@ -31,7 +31,7 @@ def bitdrift_kt_jvm_library(name, srcs, require_javadocs = True, **args):
     _jvm_lint_support(name, srcs, require_javadocs)
 
 def bitdrift_kt_android_local_test(name, deps = [], jvm_flags = [], **kwargs):
-    lib_deps = native.glob(["src/test/**/*.kt"], exclude = ["src/test/**/*Test.kt"])
+    lib_deps = native.glob(["src/test/**/*.kt"], exclude = ["src/test/**/*Test.kt"], allow_empty = True)
 
     if len(lib_deps) != 0:
         # We want the tests below to be able to depend on non-test files defined within this package,
