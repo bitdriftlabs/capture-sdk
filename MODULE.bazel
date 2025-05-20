@@ -32,21 +32,18 @@ new_git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl"
 
 bazel_dep(name = "rules_robolectric", version = "4.14.1.2")
 bazel_dep(name = "rules_multirun", version = "0.10.0")
-bazel_dep(name = "apple_support", version = "1.17.1", repo_name = "build_bazel_apple_support")
-bazel_dep(name = "rules_swift", version = "2.3.1")
+bazel_dep(name = "apple_support", version = "1.22.0", repo_name = "build_bazel_apple_support")
+bazel_dep(name = "rules_swift", version = "2.8.2")
 
-# We need to support 1x because flatbuffers haven't updated to 2x yet
-multiple_version_override(
-    module_name = "rules_swift",
-    versions = [
-        "2.3.1",
-        "1.16.0",
-    ],
+git_override(
+    module_name = "apple_support",
+    remote = "https://github.com/Reflejo/apple_support.git",
+    commit = "017ad5dbc25cc4c5d345a5e7e3c9e9b6b7414b3a",
 )
 
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
-bazel_dep(name = "rules_xcodeproj", version = "2.10.0")
-bazel_dep(name = "rules_apple", version = "3.16.1")
+bazel_dep(name = "rules_xcodeproj", version = "2.12.1")
+bazel_dep(name = "rules_apple", version = "3.21.1")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
 bazel_dep(name = "rules_cc", version = "0.1.0")
 bazel_dep(name = "rules_java", version = "8.6.3")
@@ -54,7 +51,7 @@ bazel_dep(name = "rules_android", version = "0.6.0")
 bazel_dep(name = "rules_android_ndk", version = "0.1.2")
 bazel_dep(name = "rules_jvm_external", version = "6.6")
 bazel_dep(name = "rules_detekt", version = "0.8.1.2")
-bazel_dep(name = "flatbuffers", version = "24.3.25")
+bazel_dep(name = "flatbuffers", version = "25.2.10")
 bazel_dep(name = "platforms", version = "0.0.11")
 bazel_dep(name = "rules_kotlin", version = "2.0.0")
 bazel_dep(name = "rules_rust", version = "0.58.0")

@@ -11,6 +11,7 @@ somehow, this rule provides a separate --output_group for this
 
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
+load("@rules_android//rules:android_split_transition.bzl", "android_split_transition")
 
 def _impl(ctx):
     library_outputs = []
@@ -55,11 +56,11 @@ android_debug_info = rule(
     attrs = dict(
         dep = attr.label(
             providers = [CcInfo],
-            cfg = android_common.multi_cpu_configuration,
+            cfg = android_split_transition,
         ),
         _cc_toolchain = attr.label(
             default = Label("@bazel_tools//tools/cpp:current_cc_toolchain"),
-            cfg = android_common.multi_cpu_configuration,
+            cfg = android_split_transition,
         ),
     ),
     fragments = ["cpp", "android"],

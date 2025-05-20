@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@_implementationOnly import CaptureLoggerBridge
+internal import CaptureLoggerBridge
 import Foundation
 
 /// An object representing a HTTP response. Must be created from a corresponding `HTTPRequestLog` object.

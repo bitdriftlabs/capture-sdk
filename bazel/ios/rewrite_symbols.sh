@@ -55,5 +55,6 @@ do
     remove_rmeta "$binary"
   fi
 
+  # NOTE: Apple broke their bitcode_strip tool and it's trying to open a `strip` file
   xcrun bitcode_strip -r "$binary" -o "$binary"
 done
