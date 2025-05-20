@@ -127,7 +127,6 @@ native_binary(
     name = "DrString_Linux",
     src = "usr/bin/drstring",
     out = "usr/bin/drstring",
-    data = glob(["usr/lib/*.so"]),
     visibility = ["//visibility:public"],
 )
     """,
