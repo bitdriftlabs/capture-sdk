@@ -22,8 +22,10 @@ public final class LoggerObjc: NSObject {
     ///
     /// - parameter apiKey:                      The API key provided by bitdrift.
     /// - parameter sessionStrategy:             A session strategy for the management of session IDs.
-    /// - parameter apiURL:                      The base URL of the Capture API. Rely on its default value unless
-    ///                                          specifically instructed otherwise during discussions with Bitdrift.
+    /// - parameter apiURL:                      The base URL of the Capture API. Rely on its default value
+    ///                                          unless
+    ///                                          specifically instructed otherwise during discussions with
+    ///                                          Bitdrift.
     ///                                          Defaults to Bitdrift's hosted Compose API base URL.
     /// - parameter enableURLSessionIntegration: A flag indicating if automatic URLSession capture is enabled.
     @objc
@@ -170,7 +172,8 @@ public final class LoggerObjc: NSObject {
         Capture.Logger.logAppLaunchTTI(duration)
     }
 
-    /// Writes a log that indicates that a "screen" has been presented. This is useful for snakeys and other journeys visualization.
+    /// Writes a log that indicates that a "screen" has been presented. This is useful for snakeys and other
+    /// journeys visualization.
     ///
     /// - parameter screenName: The human readable unique identifier of the screen being presented.
     @objc

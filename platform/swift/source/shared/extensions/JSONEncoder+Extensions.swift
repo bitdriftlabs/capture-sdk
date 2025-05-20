@@ -13,12 +13,7 @@ extension JSONEncoder {
         let encoder = JSONEncoder()
         // Sorting below should help with parsing the encoding output but may lead to
         // negative performance impact.
-        let formattingOptions: JSONEncoder.OutputFormatting = if #available(iOS 13.0, *) {
-            [.sortedKeys, .withoutEscapingSlashes]
-        } else {
-            [.sortedKeys]
-        }
-
+        let formattingOptions: JSONEncoder.OutputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         encoder.outputFormatting = formattingOptions
         encoder.dateEncodingStrategy = .custom { date, encoder in
             var container = encoder.singleValueContainer()

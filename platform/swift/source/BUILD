@@ -23,7 +23,10 @@ swift_library(
         "-Xclang",
         "-Xcc",
         "--linker-option=-lz",
-    ],
+    ] + select({
+        "//bazel:is_ci": ["-warnings-as-errors"],
+        "//conditions:default": [],
+    }),
     data = [
         "//platform/swift/resources:maybe_info_plist",
         "//platform/swift/resources:privacy_manifest",
@@ -47,6 +50,10 @@ swift_library(
 swift_library(
     name = "CapturePassable",
     srcs = glob(["bridging/**/*.swift"]),
+    copts = select({
+        "//bazel:is_ci": ["-warnings-as-errors"],
+        "//conditions:default": [],
+    }),
     features = [
         "swift.enable_library_evolution",
     ],

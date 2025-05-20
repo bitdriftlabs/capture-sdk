@@ -16,6 +16,11 @@ config_setting(
     visibility = ["//visibility:public"],
 )
 
+config_setting(
+    name = "is_ci",
+    define_values = {"build_config": "ci"},
+)
+
 alias(
     name = "zipper",
     actual = "@bazel_tools//tools/zip:zipper",

@@ -190,7 +190,6 @@ extension LoggerCustomer: MXMetricManagerSubscriber {
         }
     }
 
-    @available(iOS 14.0, *)
     func didReceive(_ payloads: [MXDiagnosticPayload]) {
         Capture.Logger.logDebug("Did Receive MXDiagnosticPayloads")
         for payload in payloads {

@@ -14,6 +14,7 @@ swift_library(
     deps = [
         "//platform/swift/source:CapturePassable",
         "//platform/swift/source:ios_lib",
+        "//platform/swift/source:objc_bridge",
         "//test/platform/swift/bridging:rust_bridge",
         "@SwiftBenchmark//:swift_benchmark",
     ],

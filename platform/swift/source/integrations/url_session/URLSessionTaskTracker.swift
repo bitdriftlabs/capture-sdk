@@ -29,8 +29,10 @@ final class URLSessionTaskTracker {
 
     static let shared = URLSessionTaskTracker()
 
-    /// Ensures the given task type is supported by our current network instrumentation. Some of these don't have all properties we
-    /// access, and those are only known at runtime. To play safe, we only check the positive case here we know we support.
+    /// Ensures the given task type is supported by our current network instrumentation. Some of these don't
+    /// have all properties we
+    /// access, and those are only known at runtime. To play safe, we only check the positive case here we
+    /// know we support.
     ///
     /// TODO(fz): Add supports for other types of tasks (stream, download, avdownload, etc).
     ///

@@ -78,7 +78,8 @@ struct CustomConfigIssueReporter {
         return .success((config, destDir))
     }
 
-    /// Ensure a URL entry is a valid report by checking it is a regular file with a predetermined file extension
+    /// Ensure a URL entry is a valid report by checking it is a regular file with a predetermined file
+    /// extension
     ///
     /// - parameter entry:         a URL
     /// - parameter fileExtension: expected file extension

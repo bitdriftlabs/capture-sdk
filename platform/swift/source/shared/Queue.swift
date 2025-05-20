@@ -80,7 +80,7 @@ extension DispatchQueue {
 
 /// An extension with convenience to use methods for working with `OperationQueue`s.
 extension OperationQueue {
-    private final class OperationQueue: Foundation.OperationQueue {
+    private final class OperationQueue: Foundation.OperationQueue, @unchecked Sendable {
         /// A strong reference to the underlying queue. The public interface of `Foundation.OperationQueue`
         /// specifies its underlying queue as a non-retaining property and by capturing a strong reference in
         /// here we make our APIs easier to use.

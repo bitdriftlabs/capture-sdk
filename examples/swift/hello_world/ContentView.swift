@@ -56,9 +56,7 @@ struct ContentView: View {
                 }
             }
             .modify { view in
-                if #available(iOS 15, *) {
-                    view.buttonStyle(.bordered)
-                }
+                view.buttonStyle(.bordered)
             }
             Spacer()
             VStack {
@@ -77,9 +75,7 @@ struct ContentView: View {
                         Text("Generate Temporary Device Code").frame(maxWidth: .infinity)
                     }
                     .modify { view in
-                        if #available(iOS 15, *) {
-                            view.buttonStyle(.borderedProminent)
-                        }
+                        view.buttonStyle(.borderedProminent)
                     }
                     Text(self.createdDeviceCode)
                 }
@@ -89,9 +85,7 @@ struct ContentView: View {
                         Text("Copy Session URL").frame(maxWidth: .infinity)
                     }
                     .modify { view in
-                        if #available(iOS 15, *) {
-                            view.buttonStyle(.borderedProminent)
-                        }
+                        view.buttonStyle(.borderedProminent)
                     }
                     Button(action: {
                         self.loggerCustomer.startNewSession()
@@ -100,9 +94,7 @@ struct ContentView: View {
                         Text("Start New Session").frame(maxWidth: .infinity)
                     }
                     .modify { view in
-                        if #available(iOS 15, *) {
-                            view.buttonStyle(.borderedProminent)
-                        }
+                        view.buttonStyle(.borderedProminent)
                     }
                 }
                 Text(self.currentSessionID)

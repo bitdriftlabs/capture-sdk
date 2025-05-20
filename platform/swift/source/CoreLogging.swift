@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@_implementationOnly import CapturePassable
+internal import CapturePassable
 import Foundation
 
 private enum Keys {
@@ -34,7 +34,8 @@ protocol CoreLogging: AnyObject {
     /// - parameter error:              The error to log.
     /// - parameter type:               The type of the log message (i.e., `normal` or `internalsdk`).
     /// - parameter blocking:           Whether the call should block until the log is processed.
-    /// - parameter occurredAtOverride: An override for the time the log occurred. If `nil`, current date is used.
+    /// - parameter occurredAtOverride: An override for the time the log occurred. If `nil`, current date is
+    ///                                 used.
     func log(
         level: LogLevel,
         message: @autoclosure () -> String,
@@ -171,12 +172,14 @@ extension CoreLogging {
     /// - parameter line:               The line number on which the log is emitted.
     /// - parameter function:           The name of the declaration from within which the log is emitted.
     /// - parameter fields:             The extra fields to send as part of the log.
-    /// - parameter matchingFields:     These fields can be read when processing a given log but are not a part
+    /// - parameter matchingFields:     These fields can be read when processing a given log but are not a
+    ///                                 part
     ///                                 of the log itself.
     /// - parameter error:              The error to log.
     /// - parameter type:               The type of the log message (i.e., `normal` or `internalsdk`).
     /// - parameter blocking:           Whether the call should block until the log is processed.
-    /// - parameter occurredAtOverride: An override for the time the log occurred. If `nil`, current date is used.
+    /// - parameter occurredAtOverride: An override for the time the log occurred. If `nil`, current date is
+    ///                                 used.
     func log(
         level: LogLevel,
         message: @autoclosure () -> String,

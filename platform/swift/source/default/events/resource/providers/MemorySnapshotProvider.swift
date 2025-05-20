@@ -33,12 +33,8 @@ final class MemorySnapshotProvider {
     }
 
     private func remainingAvailableMemoryKBForApp(taskInfo: task_vm_info_data_t) -> UInt64 {
-        if #available(iOS 13.0, *) {
-            let availableMemory = os_proc_available_memory()
-            return availableMemory < 0 ? 0 : UInt64(availableMemory) / kBytesPerKB
-        } else {
-            return taskInfo.limit_bytes_remaining / kBytesPerKB
-        }
+        let availableMemory = os_proc_available_memory()
+        return availableMemory < 0 ? 0 : UInt64(availableMemory) / kBytesPerKB
     }
 }
 

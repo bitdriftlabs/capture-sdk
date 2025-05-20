@@ -20,6 +20,8 @@ KOTLIN_STD_VERSION = KOTLIN_COMPILE_VERSION
 
 NDK_API_LEVEL = 21
 
+SDK_API_LEVEL = 35
+
 ####################
 # Bazel dependencies
 ####################
@@ -32,32 +34,38 @@ new_git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl"
 
 bazel_dep(name = "rules_robolectric", version = "4.14.1.2")
 bazel_dep(name = "rules_multirun", version = "0.10.0")
-bazel_dep(name = "apple_support", version = "1.17.1", repo_name = "build_bazel_apple_support")
-bazel_dep(name = "rules_swift", version = "2.3.1")
+bazel_dep(name = "apple_support", version = "1.22.0", repo_name = "build_bazel_apple_support")
+bazel_dep(name = "rules_swift", version = "2.8.2")
 
-# We need to support 1x because flatbuffers haven't updated to 2x yet
-multiple_version_override(
-    module_name = "rules_swift",
-    versions = [
-        "2.3.1",
-        "1.16.0",
-    ],
+git_override(
+    module_name = "apple_support",
+    commit = "017ad5dbc25cc4c5d345a5e7e3c9e9b6b7414b3a",
+    remote = "https://github.com/Reflejo/apple_support.git",
 )
 
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
-bazel_dep(name = "rules_xcodeproj", version = "2.10.0")
-bazel_dep(name = "rules_apple", version = "3.16.1")
+bazel_dep(name = "rules_xcodeproj", version = "2.12.1")
+bazel_dep(name = "rules_apple", version = "3.21.1")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
 bazel_dep(name = "rules_cc", version = "0.1.0")
 bazel_dep(name = "rules_java", version = "8.6.3")
-bazel_dep(name = "rules_android", version = "0.6.0")
-bazel_dep(name = "rules_android_ndk", version = "0.1.2")
+bazel_dep(name = "rules_android", version = "0.6.4")
+bazel_dep(name = "rules_android_ndk", version = "0.1.3")
 bazel_dep(name = "rules_jvm_external", version = "6.6")
 bazel_dep(name = "rules_detekt", version = "0.8.1.2")
-bazel_dep(name = "flatbuffers", version = "24.3.25")
+bazel_dep(name = "flatbuffers", version = "25.2.10")
 bazel_dep(name = "platforms", version = "0.0.11")
-bazel_dep(name = "rules_kotlin", version = "2.0.0")
-bazel_dep(name = "rules_rust", version = "0.58.0")
+bazel_dep(name = "rules_kotlin", version = "2.1.3")
+
+# Tagged version of rules_kotlin (2.1.3) is broken in Bazel 8.x.
+# TODO(fz): Remove once a new release is out
+git_override(
+    module_name = "rules_kotlin",
+    commit = "9ea77be8fe56096123c821e5cd858906249c6e31",
+    remote = "https://github.com/bazelbuild/rules_kotlin.git",
+)
+
+bazel_dep(name = "rules_rust", version = "0.61.0")
 bazel_dep(name = "rules_shell", version = "0.4.0")
 
 # Required by android_artifacts for pom_file, it's not in bazel central registry
@@ -65,8 +73,8 @@ bazel_dep(name = "google_bazel_common", version = "0.0.1")
 
 http_jar(
     name = "bazel_diff",
-    sha256 = "0b9e32f9c20e570846b083743fe967ae54d13e2a1f7364983e0a7792979442be",
-    url = "https://github.com/Tinder/bazel-diff/releases/download/7.0.0/bazel-diff_deploy.jar",
+    integrity = "sha256-Sn3WTHsfsSGbglE4xiwgbSrOdHCqXToHpVRTLnQEiJM=",
+    url = "https://github.com/Tinder/bazel-diff/releases/download/9.0.3/bazel-diff_deploy.jar",
 )
 
 new_git_repository(
@@ -121,7 +129,6 @@ native_binary(
     name = "DrString_Linux",
     src = "usr/bin/drstring",
     out = "usr/bin/drstring",
-    data = glob(["usr/lib/*.so"]),
     visibility = ["//visibility:public"],
 )
     """,
@@ -132,6 +139,9 @@ native_binary(
 ####################
 # Android extensions
 ####################
+
+android_sdk_repository_extension = use_extension("//rules/android_sdk_repository:rule.bzl", "android_sdk_repository_extension")
+android_sdk_repository_extension.configure(api_level = SDK_API_LEVEL)
 
 android_ndk_repository_extension = use_extension("@rules_android_ndk//:extension.bzl", "android_ndk_repository_extension")
 android_ndk_repository_extension.configure(api_level = NDK_API_LEVEL)
