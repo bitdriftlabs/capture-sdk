@@ -50,6 +50,10 @@ swift_library(
 swift_library(
     name = "CapturePassable",
     srcs = glob(["bridging/**/*.swift"]),
+    copts = select({
+        "//bazel:is_ci": ["-warnings-as-errors"],
+        "//conditions:default": [],
+    }),
     features = [
         "swift.enable_library_evolution",
     ],
@@ -60,10 +64,6 @@ swift_library(
         "manual",
     ],
     visibility = ["//visibility:public"],
-    copts = select({
-        "//bazel:is_ci": ["-warnings-as-errors"],
-        "//conditions:default": [],
-    }),
 )
 
 bitdrift_rust_library(
