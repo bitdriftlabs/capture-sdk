@@ -47,11 +47,11 @@ bazel_diff="/tmp/bazel_diff"
 
 git -C "$workspace_path" checkout "$previous_revision" --quiet
 
-$bazel_diff generate-hashes -w "$workspace_path" -b "$bazel_path" $starting_hashes_json
+$bazel_diff generate-hashes -w "$workspace_path" -b "$bazel_path" $starting_hashes_json --excludeExternalTargets
 
 git -C "$workspace_path" checkout "$final_revision" --quiet
 
-$bazel_diff generate-hashes -w "$workspace_path" -b "$bazel_path" $final_hashes_json
+$bazel_diff generate-hashes -w "$workspace_path" -b "$bazel_path" $final_hashes_json --excludeExternalTargets
 
 $bazel_diff get-impacted-targets -sh $starting_hashes_json -fh $final_hashes_json -o $impacted_targets_path
 
