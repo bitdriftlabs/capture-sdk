@@ -28,7 +28,7 @@ build:android --android_crosstool_top=@androidndk//:toolchain
 build --@rules_rust//rust/settings:rustfmt.toml=//:rustfmt.toml
 build --@rules_rust//rust/settings:clippy.toml=//:.clippy.toml
 
-build --ios_minimum_os=12.0
+build --ios_minimum_os=15.0
 
 build:clippy --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
 build:clippy --output_groups=+clippy_checks
