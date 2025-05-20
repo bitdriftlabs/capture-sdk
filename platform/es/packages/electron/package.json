@@ -1,6 +1,6 @@
 {
   "name": "@bitdrift/electron",
-  "version": "0.1.1",
+  "version": "0.2.1",
   "description": "Electron support of the bitdrift SDK",
   "license": "See license in LICENSE file",
   "keywords": [
@@ -17,7 +17,7 @@
     "url": "https://github.com/bitdriftlabs/capture-es/issues"
   },
   "dependencies": {
-    "@bitdrift/core": "^0.1.1"
+    "@bitdrift/core": "^0.2.1"
   },
   "publishConfig": {
     "access": "public"

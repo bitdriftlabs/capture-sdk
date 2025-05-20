@@ -1,6 +1,6 @@
 {
   "name": "@bitdrift/core",
-  "version": "0.1.1",
+  "version": "0.2.1",
   "description": "bitdrift SDK rust core",
   "author": {
     "name": "bitdrift",
@@ -38,10 +38,10 @@
     "@napi-rs/cli": "^2.18.4"
   },
   "optionalDependencies": {
-    "@bitdrift/core-darwin-arm64": "0.1.1",
-    "@bitdrift/core-darwin-x64": "0.1.1",
-    "@bitdrift/core-win32-x64-msvc": "0.1.1",
-    "@bitdrift/core-win32-ia32-msvc": "0.1.1",
-    "@bitdrift/core-linux-x64-gnu": "0.1.1"
+    "@bitdrift/core-darwin-arm64": "0.2.1",
+    "@bitdrift/core-darwin-x64": "0.2.1",
+    "@bitdrift/core-win32-x64-msvc": "0.2.1",
+    "@bitdrift/core-win32-ia32-msvc": "0.2.1",
+    "@bitdrift/core-linux-x64-gnu": "0.2.1"
   }
 }
