@@ -207,7 +207,7 @@ internal class JankStatsMonitor(
                 put(DROPPED_FRAME_TYPE_KEY, jankFrameType.fieldValue)
                 putAll(this@sendJankFrameData.states.toFields())
             },
-        ) { jankFrameType.messageId }
+        ) { DROPPED_FRAME_MESSAGE_ID }
     }
 
     @WorkerThread
@@ -246,29 +246,27 @@ internal class JankStatsMonitor(
     @OpenForTesting
     internal enum class JankFrameType(
         val logLevel: LogLevel,
-        val messageId: String,
         val fieldValue: FieldValue,
     ) {
         /**
          * Has a duration >= 16 ms and below [RuntimeConfig.FROZEN_FRAME_THRESHOLD_MS]
          */
-        SLOW(LogLevel.WARNING, DROPPED_FRAME_MESSAGE_ID, "Slow".toFieldValue()),
+        SLOW(LogLevel.WARNING, "Slow".toFieldValue()),
 
         /**
          * With a duration between [RuntimeConfig.FROZEN_FRAME_THRESHOLD_MS] and below [RuntimeConfig.ANR_FRAME_THRESHOLD_MS]
          */
-        FROZEN(LogLevel.ERROR, DROPPED_FRAME_MESSAGE_ID, "Frozen".toFieldValue()),
+        FROZEN(LogLevel.ERROR, "Frozen".toFieldValue()),
 
         /**
          * With a duration above [RuntimeConfig.ANR_FRAME_THRESHOLD_MS]
          */
-        ANR(LogLevel.ERROR, ANR_MESSAGE_ID, "ANR".toFieldValue()),
+        ANR(LogLevel.ERROR, "ANR".toFieldValue()),
     }
 
     private companion object {
         private const val ERROR_DURATION_THRESHOLD_MILLIS = 100_000_000L
         private const val DROPPED_FRAME_MESSAGE_ID = "DroppedFrame"
-        private const val ANR_MESSAGE_ID = "ANR"
         private const val SCREEN_NAME_KEY = "_screen_name"
         private const val DROPPED_FRAME_TYPE_KEY = "_frame_issue_type"
     }

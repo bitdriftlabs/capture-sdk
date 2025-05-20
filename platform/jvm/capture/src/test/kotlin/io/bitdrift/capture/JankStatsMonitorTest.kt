@@ -335,7 +335,7 @@ class JankStatsMonitorTest {
             eq(null),
             eq(null),
             eq(false),
-            argThat { message: () -> String -> message.invoke() == expectedFrameType.messageId },
+            argThat { message: () -> String -> message.invoke() == "DroppedFrame" },
         )
     }
 
