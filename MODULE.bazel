@@ -37,8 +37,8 @@ bazel_dep(name = "rules_swift", version = "2.8.2")
 
 git_override(
     module_name = "apple_support",
-    remote = "https://github.com/Reflejo/apple_support.git",
     commit = "017ad5dbc25cc4c5d345a5e7e3c9e9b6b7414b3a",
+    remote = "https://github.com/Reflejo/apple_support.git",
 )
 
 bazel_dep(name = "bazel_skylib", version = "1.7.1")

@@ -12,9 +12,9 @@ swift_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//platform/swift/source:objc_bridge",
         "//platform/swift/source:CapturePassable",
         "//platform/swift/source:ios_lib",
+        "//platform/swift/source:objc_bridge",
         "//test/platform/swift/bridging:rust_bridge",
         "@SwiftBenchmark//:swift_benchmark",
     ],

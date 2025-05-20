@@ -328,7 +328,8 @@ extension Logger {
         Self.getShared()?.logAppLaunchTTI(duration)
     }
 
-    /// Writes a log that indicates that a "screen" has been presented. This is useful for snakeys and other journeys visualization.
+    /// Writes a log that indicates that a "screen" has been presented. This is useful for snakeys and other
+    /// journeys visualization.
     ///
     /// - parameter screenName: The human readable unique identifier of the screen being presented.
     public static func logScreenView(screenName: String) {
@@ -379,12 +380,18 @@ extension Logger {
     /// - parameter file:              The unique file identifier that has the form module/file.
     /// - parameter line:              The line number where the log is emitted.
     /// - parameter function:          The name of the function from which the log is emitted.
-    /// - parameter fields:            The extra fields to send as part of start and end logs for the operation.
-    /// - parameter startTimeInterval: An optional custom start time in milliseconds since the Unix epoch. This can be
-    ///                                used to override the default start time of the span. If provided, it needs
-    ///                                to be used in combination with an `endTimeMs`. Providing one and not the other is
-    ///                                considered an error and in that scenario, the default clock will be used instead.
-    /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hierarchies. A span without a
+    /// - parameter fields:            The extra fields to send as part of start and end logs for the
+    ///                                operation.
+    /// - parameter startTimeInterval: An optional custom start time in milliseconds since the Unix epoch.
+    ///                                This can be
+    ///                                used to override the default start time of the span. If provided, it
+    ///                                needs
+    ///                                to be used in combination with an `endTimeMs`. Providing one and not
+    ///                                the other is
+    ///                                considered an error and in that scenario, the default clock will be
+    ///                                used instead.
+    /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hierarchies. A
+    ///                                span without a
     ///                                parentSpanID is considered a root span.
     ///
     /// - returns: A span that can be used to signal the end of the operation if the Capture SDK has been

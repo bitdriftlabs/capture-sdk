@@ -9,9 +9,9 @@ But even if we could create those we'd need to get them out of the build
 somehow, this rule provides a separate --output_group for this
 """
 
+load("@rules_android//rules:android_split_transition.bzl", "android_split_transition")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
-load("@rules_android//rules:android_split_transition.bzl", "android_split_transition")
 
 def _impl(ctx):
     library_outputs = []

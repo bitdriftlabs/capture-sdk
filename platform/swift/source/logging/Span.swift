@@ -91,10 +91,13 @@ public final class Span {
     /// - parameter line:            The line number where the log is emitted.
     /// - parameter function:        The name of the function from which the log is emitted.
     /// - parameter fields:          The extra fields to include with the log.
-    /// - parameter endTimeInterval: An optional custom end time in milliseconds since the Unix epoch. This can be
+    /// - parameter endTimeInterval: An optional custom end time in milliseconds since the Unix epoch. This
+    ///                              can be
     ///                              used to override the default end time of the span. If provided, it needs
-    ///                              to be used in combination with `startTimeMs` at span creation. Providing one and
-    ///                              not the other is considered an error and in that scenario, the default clock will
+    ///                              to be used in combination with `startTimeMs` at span creation. Providing
+    ///                              one and
+    ///                              not the other is considered an error and in that scenario, the default
+    ///                              clock will
     ///                              be used instead.
     public func end(
         _ result: SpanResult,

@@ -47,17 +47,21 @@ public struct HTTPRequestMetrics {
     /// - parameter responseBodyBytesReceivedCount: The number of response body bytes received over-the-wire.
     /// - parameter requestHeadersBytesCount:       The number of request HTTP headers bytes.
     /// - parameter responseHeadersBytesCount:      The number of response HTTP headers bytes.
-    /// - parameter dnsResolutionDuration:          The cumulative duration of all DNS resolution query(ies) performed
+    /// - parameter dnsResolutionDuration:          The cumulative duration of all DNS resolution query(ies)
+    ///                                             performed
     ///                                             during the execution of a given HTTP request.
-    /// - parameter tlsDuration:                    The cumulative duration of all TLS handshakes performed during
+    /// - parameter tlsDuration:                    The cumulative duration of all TLS handshakes performed
+    ///                                             during
     ///                                             the execution of a given HTTP request.
     /// - parameter tcpDuration:                    The cumulative duration of all connection establishments
     ///                                             performed during the execution of a given HTTP request.
     /// - parameter fetchInitializationDuration:    The cumulative duration of all connection establishments
     ///                                             performed during the execution of a given HTTP request.
     /// - parameter responseLatency:                The cumulative duration of all responses from the time the
-    ///                                             request is sent to the time we get the first byte from the server.
-    /// - parameter protocolName:                   The protocol used on the request, e.g. (http/1.0, http/1.1, etc).
+    ///                                             request is sent to the time we get the first byte from the
+    ///                                             server.
+    /// - parameter protocolName:                   The protocol used on the request, e.g. (http/1.0,
+    ///                                             http/1.1, etc).
     public init(
         requestBodyBytesSentCount: Int64? = nil,
         responseBodyBytesReceivedCount: Int64? = nil,
