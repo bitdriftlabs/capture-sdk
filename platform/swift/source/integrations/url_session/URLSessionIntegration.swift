@@ -61,20 +61,15 @@ final class URLSessionIntegration {
     // MARK: - Private
 
     private func toggleURLSessionTaskSwizzling() {
-        if #available(iOS 15.0, *) {
-            let URLSessionTaskInternalClass: AnyClass = self.getTaskClass()
-            Self.swizzled.update { swizzled in
-                swizzled.toggle()
+        let URLSessionTaskInternalClass: AnyClass = self.getTaskClass()
+        Self.swizzled.update { swizzled in
+            swizzled.toggle()
 
-                exchangeInstanceMethod(
-                    class: URLSessionTaskInternalClass,
-                    selector: #selector(URLSessionTask.resume),
-                    with: #selector(URLSessionTask.cap_resume)
-                )
-            }
-        } else {
-            Self.shared.logger?.log(level: .error,
-                                    message: "Network Swizzling is not available in iOS < 15.0")
+            exchangeInstanceMethod(
+                class: URLSessionTaskInternalClass,
+                selector: #selector(URLSessionTask.resume),
+                with: #selector(URLSessionTask.cap_resume)
+            )
         }
     }
 

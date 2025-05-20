@@ -297,25 +297,22 @@ static NSString *name_for_signal(NSNumber *signal) {
 }
 
 static NSString *name_for_crash(MXCrashDiagnostic *event) {
-  if (@available(iOS 14, macOS 12, *)) {
-    switch (event.exceptionType.intValue) {
-        print_case(EXC_BAD_ACCESS);
-        print_case(EXC_BAD_INSTRUCTION);
-        print_case(EXC_SYSCALL);
-        print_case(EXC_MACH_SYSCALL);
-        print_case(EXC_CRASH);
-        print_case(EXC_RESOURCE);
-        print_case(EXC_GUARD);
-        print_case(EXC_CORPSE_NOTIFY);
-        print_case(EXC_ARITHMETIC);
-        print_case(EXC_EMULATION);
-        print_case(EXC_SOFTWARE);
-        print_case(EXC_BREAKPOINT);
-      default:
-        return name_for_signal(event.signal);
-    }
+  switch (event.exceptionType.intValue) {
+      print_case(EXC_BAD_ACCESS);
+      print_case(EXC_BAD_INSTRUCTION);
+      print_case(EXC_SYSCALL);
+      print_case(EXC_MACH_SYSCALL);
+      print_case(EXC_CRASH);
+      print_case(EXC_RESOURCE);
+      print_case(EXC_GUARD);
+      print_case(EXC_CORPSE_NOTIFY);
+      print_case(EXC_ARITHMETIC);
+      print_case(EXC_EMULATION);
+      print_case(EXC_SOFTWARE);
+      print_case(EXC_BREAKPOINT);
+    default:
+      return name_for_signal(event.signal);
   }
-  return nil;
 }
 #undef print_case
 

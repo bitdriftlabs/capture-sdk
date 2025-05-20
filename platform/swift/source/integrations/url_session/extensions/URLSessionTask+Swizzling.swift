@@ -10,7 +10,6 @@ import Foundation
 import ObjectiveC
 
 extension URLSessionTask {
-    @available(iOS 15.0, *)
     @objc
     func cap_resume() {
         defer { self.cap_resume() }

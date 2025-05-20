@@ -140,7 +140,6 @@ final class URLSessionIntegrationTests: XCTestCase {
         }
     }
 
-    @available(iOS 15.0, *)
     func testCreateInvalidTask() throws {
         self.customSetUp(swizzle: true)
 
@@ -262,7 +261,6 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     // MARK: - Tasks With Task Delegates
 
-    @available(iOS 15.0, *)
     func testCustomSessionTasksWithTaskDelegates() throws {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
             self.customSetUp(swizzle: true)
@@ -288,7 +286,6 @@ final class URLSessionIntegrationTests: XCTestCase {
         }
     }
 
-    @available(iOS 15.0, *)
     func testSharedSessionTasksWithTaskDelegates() throws {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
             self.customSetUp(swizzle: true)
@@ -382,7 +379,6 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     // MARK: - Cancelling Tasks With Task Delegates
 
-    @available(iOS 15.0, *)
     func testCancelRequestsSharedSessionWithTaskDelegates() throws {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
             self.customSetUp(swizzle: true)
@@ -400,7 +396,6 @@ final class URLSessionIntegrationTests: XCTestCase {
         }
     }
 
-    @available(iOS 15.0, *)
     func testCancelRequestsCustomSessionWithTaskDelegates() throws {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
             self.customSetUp(swizzle: true)
@@ -457,7 +452,6 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     // MARK: - Cancelling Tasks With Task Delegates And Completion Closures
 
-    @available(iOS 15.0, *)
     func testCancelRequestsSharedSessionWithTaskDelegatesAndCompletionClosures() throws {
         for taskTestCase in self.makeTaskWithCompletionClosureTestCases() {
             self.customSetUp(swizzle: true)
@@ -480,7 +474,6 @@ final class URLSessionIntegrationTests: XCTestCase {
         }
     }
 
-    @available(iOS 15.0, *)
     func testCancelRequestsCustomSessionWithTaskDelegatesAndCompletionClosures() throws {
         for taskTestCase in self.makeTaskWithCompletionClosureTestCases() {
             self.customSetUp(swizzle: true)

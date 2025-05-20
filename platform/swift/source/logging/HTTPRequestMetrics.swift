@@ -89,36 +89,26 @@ public struct HTTPRequestMetrics {
 
 extension HTTPRequestMetrics {
     init(metrics: URLSessionTaskMetrics) {
-        if #available(iOS 13.0, *) {
-            self.init(
-                requestBodyBytesSentCount: metrics.transactionMetrics
-                    .map(\.countOfRequestBodyBytesSent)
-                    .reduce(0, +),
-                responseBodyBytesReceivedCount: metrics.transactionMetrics
-                    .map(\.countOfResponseBodyBytesReceived)
-                    .reduce(0, +),
-                requestHeadersBytesCount: metrics.transactionMetrics
-                    .map(\.countOfRequestHeaderBytesSent)
-                    .reduce(0, +),
-                responseHeadersBytesCount: metrics.transactionMetrics
-                    .map(\.countOfResponseHeaderBytesReceived)
-                    .reduce(0, +),
-                dnsResolutionDuration: Self.getDNSResolutionDuration(metrics: metrics),
-                tlsDuration: Self.getTLSDuration(metrics: metrics),
-                tcpDuration: Self.getTCPDuration(metrics: metrics),
-                fetchInitializationDuration: Self.getInitializationDuration(metrics: metrics),
-                responseLatency: Self.getResponseLatency(metrics: metrics),
-                protocolName: metrics.transactionMetrics.last?.networkProtocolName
-            )
-        } else {
-            self.init(
-                dnsResolutionDuration: Self.getDNSResolutionDuration(metrics: metrics),
-                tlsDuration: Self.getTLSDuration(metrics: metrics),
-                tcpDuration: Self.getTCPDuration(metrics: metrics),
-                fetchInitializationDuration: Self.getInitializationDuration(metrics: metrics),
-                responseLatency: Self.getResponseLatency(metrics: metrics)
-            )
-        }
+        self.init(
+            requestBodyBytesSentCount: metrics.transactionMetrics
+                .map(\.countOfRequestBodyBytesSent)
+                .reduce(0, +),
+            responseBodyBytesReceivedCount: metrics.transactionMetrics
+                .map(\.countOfResponseBodyBytesReceived)
+                .reduce(0, +),
+            requestHeadersBytesCount: metrics.transactionMetrics
+                .map(\.countOfRequestHeaderBytesSent)
+                .reduce(0, +),
+            responseHeadersBytesCount: metrics.transactionMetrics
+                .map(\.countOfResponseHeaderBytesReceived)
+                .reduce(0, +),
+            dnsResolutionDuration: Self.getDNSResolutionDuration(metrics: metrics),
+            tlsDuration: Self.getTLSDuration(metrics: metrics),
+            tcpDuration: Self.getTCPDuration(metrics: metrics),
+            fetchInitializationDuration: Self.getInitializationDuration(metrics: metrics),
+            responseLatency: Self.getResponseLatency(metrics: metrics),
+            protocolName: metrics.transactionMetrics.last?.networkProtocolName
+        )
     }
 
     private static func reduce(metrics: URLSessionTaskMetrics,

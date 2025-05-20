@@ -101,13 +101,11 @@ extension Logger {
         switch type {
         case .builtIn:
             if let outputDir = Logger.reportCollectionDirectory() {
-                if #available(iOS 15, *) { // first version supporting immediate report collection
-                    let reporter = DiagnosticEventReporter(outputDir: outputDir, sdkVersion: capture_get_sdk_version())
-                    diagnosticReporter.update { val in
-                        val = reporter
-                    }
-                    MXMetricManager.shared.add(reporter)
+                let reporter = DiagnosticEventReporter(outputDir: outputDir, sdkVersion: capture_get_sdk_version())
+                diagnosticReporter.update { val in
+                    val = reporter
                 }
+                MXMetricManager.shared.add(reporter)
             } else {
                 log(level: .warning, message: "Fatal issue reporting output directory not defined, cannot enable reporting")
             }

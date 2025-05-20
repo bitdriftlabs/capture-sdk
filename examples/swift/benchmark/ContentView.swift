@@ -74,9 +74,7 @@ struct ContentView: View {
             }
             .padding(20)
             .modify { view in
-                if #available(iOS 15, *) {
-                    view.buttonStyle(.bordered)
-                }
+                view.buttonStyle(.bordered)
             }
             Spacer()
         }

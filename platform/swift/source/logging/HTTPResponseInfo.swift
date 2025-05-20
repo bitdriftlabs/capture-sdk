@@ -118,17 +118,14 @@ public struct HTTPResponseInfo {
         }
 
         if let metrics = self.metrics {
-            if #available(iOS 13.0, *) {
-                fields["_request_body_bytes_sent_count"] = metrics.requestBodyBytesSentCount
-                    .flatMap(String.init)
-                fields["_response_body_bytes_received_count"] = metrics.responseBodyBytesReceivedCount
-                    .flatMap(String.init)
-                fields["_request_headers_bytes_count"] = metrics.requestHeadersBytesCount
-                    .flatMap(String.init)
-                fields["_response_headers_bytes_count"] = metrics.responseHeadersBytesCount
-                    .flatMap(String.init)
-            }
-
+            fields["_request_body_bytes_sent_count"] = metrics.requestBodyBytesSentCount
+                .flatMap(String.init)
+            fields["_response_body_bytes_received_count"] = metrics.responseBodyBytesReceivedCount
+                .flatMap(String.init)
+            fields["_request_headers_bytes_count"] = metrics.requestHeadersBytesCount
+                .flatMap(String.init)
+            fields["_response_headers_bytes_count"] = metrics.responseHeadersBytesCount
+                .flatMap(String.init)
             fields["_dns_resolution_duration_ms"] = metrics.dnsResolutionDuration
                 .flatMap { "\($0.toMilliseconds())" }
             fields["_tls_duration_ms"] = metrics.tlsDuration
