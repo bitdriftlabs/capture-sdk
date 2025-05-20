@@ -47,14 +47,21 @@ bazel_dep(name = "rules_apple", version = "3.21.1")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
 bazel_dep(name = "rules_cc", version = "0.1.0")
 bazel_dep(name = "rules_java", version = "8.6.3")
-bazel_dep(name = "rules_android", version = "0.6.0")
-bazel_dep(name = "rules_android_ndk", version = "0.1.2")
+bazel_dep(name = "rules_android", version = "0.6.4")
+bazel_dep(name = "rules_android_ndk", version = "0.1.3")
 bazel_dep(name = "rules_jvm_external", version = "6.6")
 bazel_dep(name = "rules_detekt", version = "0.8.1.2")
 bazel_dep(name = "flatbuffers", version = "25.2.10")
 bazel_dep(name = "platforms", version = "0.0.11")
-bazel_dep(name = "rules_kotlin", version = "2.0.0")
-bazel_dep(name = "rules_rust", version = "0.58.0")
+bazel_dep(name = "rules_kotlin", version = "2.1.3")
+# Tagged version of rules_kotlin (2.1.3) is broken in Bazel 8.x.
+# TODO(fz): Remove once a new release is out
+git_override(
+    module_name = "rules_kotlin",
+    remote = "https://github.com/bazelbuild/rules_kotlin.git",
+    branch = "master",
+)
+bazel_dep(name = "rules_rust", version = "0.61.0")
 bazel_dep(name = "rules_shell", version = "0.4.0")
 
 # Required by android_artifacts for pom_file, it's not in bazel central registry
