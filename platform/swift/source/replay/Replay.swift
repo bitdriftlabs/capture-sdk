@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import Foundation
+import SpriteKit
 import UIKit
 
 private typealias CategorizerFunction = (UIView, CGRect) -> AnnotatedView?
@@ -81,6 +82,11 @@ package final class Replay {
     private func traverse(into buffer: inout Data, parent: UIView, parentPosition: CGPoint, clipTo: CGRect,
                           ignoreViewType: Bool = false)
     {
+        // Traverse SKView as a SpriteKit tree if parent view is SpriteKit
+        if let view = parent as? SKView {
+            self.traverse(into: &buffer, view: view, clipTo: clipTo)
+        }
+
         for view in parent.subviews {
             if view.isHidden || view.alpha < 0.1 {
                 continue
