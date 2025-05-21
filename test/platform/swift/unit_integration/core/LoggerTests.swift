@@ -355,12 +355,12 @@ final class LoggerTests: XCTestCase {
         let buffers = root.appendingPathComponent("buffers")
         try! FileManager.default.createDirectory(at: buffers,
                                                  withIntermediateDirectories: true)
-        try! (buffers as NSURL).setResourceValue(URLFileProtection.complete, forKey: .fileProtectionKey)
 
         // Create a file under buffers to pretend like it's the ring buffer
         let bufferFile = buffers.appendingPathComponent("bufferFile")
         FileManager.default.createFile(atPath: bufferFile.path,
                                        contents: "foobar".data(using: .ascii))
+        try! (bufferFile as NSURL).setResourceValue(URLFileProtection.complete, forKey: .fileProtectionKey)
 
         // Test to see if disable protection works on a new path
         XCTAssertEqual(.complete, try! protection(at: root.path))
