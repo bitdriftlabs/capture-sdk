@@ -97,7 +97,11 @@ extension Logger {
     /// This API is experimental and subject to change
     ///
     /// - parameter type: mechanism for crash detection
-    public static func initFatalIssueReporting(_ type: IssueReporterType = .customConfig) {
+    public static func initFatalIssueReporting() {
+        // TODO:(FranAguilera) BIT-5401: To add config option once we are ready to ship BuiltIn
+        // [io.bitdrift.capture.reports.FatalIssueMechanism.BuiltIn]**/
+        let type: IssueReporterType = .customConfig
+
         switch type {
         case .builtIn:
             if let outputDir = Logger.reportCollectionDirectory() {

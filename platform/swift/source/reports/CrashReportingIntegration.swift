@@ -8,12 +8,10 @@
 extension Integration {
     /// Enables reporting unexpected app terminations
     ///
-    /// - parameter type: mechanism used for crash detection
-    ///
     /// - returns: The crash reporting integration
-    public static func crashReporting(_ type: IssueReporterType = .builtIn) -> Integration {
+    public static func crashReporting() -> Integration {
         .init { _, _ in
-            Logger.initFatalIssueReporting(type)
+            Logger.initFatalIssueReporting()
         }
     }
 }
