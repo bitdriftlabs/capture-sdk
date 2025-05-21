@@ -28,6 +28,7 @@ import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
@@ -53,18 +54,7 @@ class AppExitLoggerTest {
     fun setUp() {
         whenever(runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)).thenReturn(true)
         whenever(versionChecker.isAtLeast(anyInt())).thenReturn(true)
-        appExitLogger =
-            AppExitLogger(
-                logger,
-                activityManager,
-                runtime,
-                errorHandler,
-                versionChecker,
-                memoryMetricsProvider,
-                backgroundThreadHandler,
-                lastExitInfo,
-                captureUncaughtExceptionHandler,
-            )
+        appExitLogger = buildAppExitLogger()
         lastExitInfo.reset()
     }
 
@@ -193,6 +183,39 @@ class AppExitLoggerTest {
         )
         verify(logger).flush(true)
     }
+
+    @Test
+    fun onJvmCrash_whenBuiltInFatalIssueMechanism_shouldNotSendAppExitCrashLog() {
+        val appExitLogger = buildAppExitLogger(FatalIssueMechanism.BuiltIn)
+        whenever(runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_CRASH)).thenReturn(true)
+
+        appExitLogger.onJvmCrash(Thread.currentThread(), IllegalStateException("Simulated Crash"))
+
+        verify(logger, never()).log(
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+            any(),
+        )
+        verify(logger, never()).flush(any())
+    }
+
+    private fun buildAppExitLogger(fatalIssueMechanism: FatalIssueMechanism = FatalIssueMechanism.None) =
+        AppExitLogger(
+            logger,
+            activityManager,
+            runtime,
+            errorHandler,
+            versionChecker,
+            memoryMetricsProvider,
+            backgroundThreadHandler,
+            lastExitInfo,
+            captureUncaughtExceptionHandler,
+            fatalIssueMechanism,
+        )
 
     private fun buildExpectedAnrFields(): Map<String, FieldValue> =
         buildMap {
