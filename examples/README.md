@@ -59,7 +59,7 @@ Using Homebrew to setup your machine, you can run the following commands to get 
 
 ```console
 brew tap mdogan/zulu
-brew install --cask zulu-jdk8 zulu-jdk11 zulu-jdk-17
+brew install --cask zulu-jdk8 zulu-jdk11 zulu-jdk17
 ```
 
 To install without Homebrew you can follow these instructions: [https://docs.azul.com/core/zulu-openjdk/install/macos](https://docs.azul.com/core/zulu-openjdk/install/macos)
