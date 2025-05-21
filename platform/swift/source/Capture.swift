@@ -95,9 +95,10 @@ extension Logger {
 
     /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
     /// This API is experimental and subject to change
-    ///
-    /// - parameter type: mechanism for crash detection
-    public static func initFatalIssueReporting(_ type: IssueReporterType = .customConfig) {
+    public static func initFatalIssueReporting() {
+        // TODO:(FranAguilera) BIT-5401: To add config option once we are ready to ship BuiltIn
+        let type: IssueReporterType = getIssueReporterType()
+
         switch type {
         case .builtIn:
             if let outputDir = Logger.reportCollectionDirectory() {
@@ -117,6 +118,12 @@ extension Logger {
                 log(level: .warning, message: "Fatal issue reporting already being initialized")
             }
         }
+    }
+
+    private static func getIssueReporterType() -> IssueReporterType {
+        // TODO:(FranAguilera) BIT-5401.
+        // Only added to make rules_swift happy. All of this will be reverted at BIT-5401
+        return .customConfig
     }
 
     /// Retrieves the session ID. It is nil before the Capture SDK is started.
