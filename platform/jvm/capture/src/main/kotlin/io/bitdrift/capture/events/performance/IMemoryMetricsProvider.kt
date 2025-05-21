@@ -19,7 +19,7 @@ interface IMemoryMetricsProvider {
     /**
      * Reports memory class type
      */
-    fun getMemoryClass():Map<String, String>
+    fun getMemoryClass(): Map<String, String>
 
     /** Reports whether the device is currently experiencing a low memory condition */
     fun isMemoryLow(): Boolean
