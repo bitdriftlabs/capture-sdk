@@ -351,12 +351,19 @@ final class LoggerTests: XCTestCase {
         try! FileManager.default.createDirectory(at: existingWithComplete,
                                                  withIntermediateDirectories: true)
 
-        // Make sure protections are correct
-        XCTAssertEqual(.complete, try! protection(at: root.path))
-        XCTAssertEqual(.complete, try! protection(at: existingWithComplete.path))
-        XCTAssertNil(try! protection(at: existingWithNone.path))
+        // Create a buffer directory inside the root path (should inherit complete protection)
+        let buffers = root.appendingPathComponent("buffers")
+        try! FileManager.default.createDirectory(at: buffers,
+                                                 withIntermediateDirectories: true)
+
+        // Create a file under buffers to pretend like it's the ring buffer
+        let bufferFile = buffers.appendingPathComponent("bufferFile")
+        FileManager.default.createFile(atPath: bufferFile.path,
+                                       contents: "foobar".data(using: .ascii))
+        try! (bufferFile as NSURL).setResourceValue(URLFileProtection.complete, forKey: .fileProtectionKey)
 
         // Test to see if disable protection works on a new path
+        XCTAssertEqual(.complete, try! protection(at: root.path))
         let newPath = root.appendingPathComponent("newPath")
         XCTAssertFalse(FileManager.default.fileExists(atPath: newPath.path))
         try! makeDirectoryAndDisableProtection(at: newPath.path)
@@ -364,15 +371,24 @@ final class LoggerTests: XCTestCase {
                        try! protection(at: newPath.path))
 
         // Test to see if disable protection works on an existing path with complete
+        XCTAssertEqual(.complete, try! protection(at: existingWithComplete.path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: existingWithComplete.path))
         try! makeDirectoryAndDisableProtection(at: existingWithComplete.path)
         XCTAssertEqual(.completeUntilFirstUserAuthentication,
                        try! protection(at: existingWithComplete.path))
 
         // Test to see if disable protection works on an existing path with none
+        XCTAssertNil(try! protection(at: existingWithNone.path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: existingWithNone.path))
         try! makeDirectoryAndDisableProtection(at: existingWithNone.path)
         XCTAssertNil(try! protection(at: existingWithNone.path))
+
+        // Test to see if disable protection works on all files under buffers
+        XCTAssertEqual(.complete, try! protection(at: bufferFile.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: bufferFile.path))
+        try! makeDirectoryAndDisableProtection(at: root.path)
+        XCTAssertEqual(.completeUntilFirstUserAuthentication,
+                       try! protection(at: bufferFile.path))
     }
 }
 
