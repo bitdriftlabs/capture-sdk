@@ -36,7 +36,6 @@ def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_
             "no-cache",
             "no-remote",
         ],
-        runner = "@rules_apple//apple/testing/default_runner:ios_xctestrun_ordered_runner",
         test_host = test_host,
         visibility = visibility,
     )
