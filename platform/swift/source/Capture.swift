@@ -95,11 +95,8 @@ extension Logger {
 
     /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
     /// This API is experimental and subject to change
-    ///
-    /// - parameter type: mechanism for crash detection
     public static func initFatalIssueReporting() {
         // TODO:(FranAguilera) BIT-5401: To add config option once we are ready to ship BuiltIn
-        // [io.bitdrift.capture.reports.FatalIssueMechanism.BuiltIn]**/
         let type: IssueReporterType = .customConfig
 
         switch type {
