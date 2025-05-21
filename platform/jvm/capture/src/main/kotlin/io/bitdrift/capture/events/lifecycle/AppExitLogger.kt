@@ -180,7 +180,7 @@ internal class AppExitLogger(
     private fun buildAppExitInternalFieldsMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap =
         buildMap {
             putAll(applicationExitInfo.toMap().toFields())
-            putAll(memoryMetricsProvider.getMemoryAttributes().toFields())
+            putAll(memoryMetricsProvider.getMemoryClass().toFields())
         }
 
     @TargetApi(Build.VERSION_CODES.R)
@@ -195,7 +195,6 @@ internal class AppExitLogger(
             APP_EXIT_PSS_KEY to this.pss.toString(),
             APP_EXIT_RSS_KEY to this.rss.toString(),
             APP_EXIT_DESCRIPTION_KEY to this.description.orEmpty(),
-            // TODO(murki): Extract getTraceInputStream() for REASON_ANR or REASON_CRASH_NATIVE
         )
     }
 

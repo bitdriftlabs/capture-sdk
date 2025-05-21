@@ -46,6 +46,8 @@ internal class MemoryMetricsProvider(
             }
         }
 
+    override fun getMemoryClass(): Map<String, String> = buildMap { put("_memory_class", memoryClassMB().toString()) }
+
     override fun isMemoryLow(): Boolean {
         val totalUsedMemoryByApp = usedJvmMemoryBytes() + allocatedNativeHeapSizeBytes()
         return totalUsedMemoryByApp > memoryThresholdBytes

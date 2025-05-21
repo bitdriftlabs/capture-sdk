@@ -25,6 +25,8 @@ class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
 
     override fun isMemoryLow() = isMemoryLow
 
+    override fun getMemoryClass(): Map<String, String> = mapOf("_memory_class" to "1")
+
     fun clear() {
         exception = null
     }
