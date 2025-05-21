@@ -8,8 +8,6 @@
 package io.bitdrift.capture.fakes
 
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
-import io.bitdrift.capture.providers.FieldValue
-import io.bitdrift.capture.providers.toFieldValue
 
 /**
  * Fake [IMemoryMetricsProvider] with default memory attribute values
