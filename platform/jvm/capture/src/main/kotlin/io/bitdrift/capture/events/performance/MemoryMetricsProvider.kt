@@ -10,6 +10,8 @@ package io.bitdrift.capture.events.performance
 import android.app.ActivityManager
 import android.os.Debug
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.toFieldValue
 
 private const val KB = 1024L
 
