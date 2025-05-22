@@ -120,7 +120,8 @@ async fn no_capacity_sends_error_with_runtime() {
     .update_snapshot(&bd_test_helpers::runtime::make_simple_update(vec![(
       crate::bridge::flags::ReportSendDataTimeoutError::path(),
       ValueKind::Bool(true),
-    )]));
+    )]))
+    .await;
 
   let mut stream = setup.stream();
 
@@ -143,7 +144,8 @@ async fn runtime_configured_deadline() {
     .update_snapshot(&bd_test_helpers::runtime::make_simple_update(vec![(
       crate::bridge::flags::SendDataTimeout::path(),
       ValueKind::Int(1),
-    )]));
+    )]))
+    .await;
 
   let mut stream = setup.stream();
 
