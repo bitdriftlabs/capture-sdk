@@ -8,7 +8,7 @@
 package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
-import com.nhaarman.mockitokotlin2.mock
+import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.IFatalIssueReporter
@@ -23,7 +23,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class SessionUrlTest {
-    private val fatalIssueReporter: IFatalIssueReporter = mock()
+    private val fatalIssueReporter: IFatalIssueReporter = FakeFatalIssueReporter()
 
     @Before
     fun setUp() {

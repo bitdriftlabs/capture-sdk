@@ -10,9 +10,9 @@ package io.bitdrift.capture
 import androidx.test.core.app.ApplicationProvider
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.error.ErrorReportRequest
 import io.bitdrift.capture.error.ErrorReporterService
+import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit
 class ErrorReporterTest {
     private lateinit var server: MockWebServer
     private lateinit var reporter: ErrorReporterService
-    private val fatalIssueReporter: IFatalIssueReporter = mock()
+    private val fatalIssueReporter: IFatalIssueReporter = FakeFatalIssueReporter()
 
     init {
         CaptureJniLibrary.load()
