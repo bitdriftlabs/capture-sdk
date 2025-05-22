@@ -54,6 +54,7 @@ bitdrift_kt_android_local_test(
         ":capture_logger_lib_kt",
     ],
     data = [
+        "//platform/jvm/capture/src/test/resources:test_resources",
         "//test/platform/jvm:capture",
     ],
     jvm_flags = [

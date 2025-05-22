@@ -26,9 +26,9 @@ internal class FatalIssueReporterStorage(
 
     private fun mapToReadableType(reportType: Byte): String =
         when (reportType) {
-            ReportType.AppNotResponding -> "ANR"
-            ReportType.JVMCrash -> "JVM_CRASH"
-            ReportType.NativeCrash -> "NATIVE_CRASH"
-            else -> "UNKNOWN"
+            ReportType.AppNotResponding -> "anr"
+            ReportType.JVMCrash -> "crash"
+            ReportType.NativeCrash -> "native_crash"
+            else -> "unknown"
         }
 }
