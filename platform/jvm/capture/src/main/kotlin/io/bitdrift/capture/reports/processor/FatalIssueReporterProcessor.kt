@@ -10,6 +10,7 @@ package io.bitdrift.capture.reports.processor
 import android.content.Context
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.google.flatbuffers.FlatBufferBuilder
+import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.reports.binformat.v1.AppBuildNumber
 import io.bitdrift.capture.reports.binformat.v1.DeviceMetrics
@@ -29,12 +30,16 @@ import kotlin.time.toDuration
 internal class FatalIssueReporterProcessor(
     appContext: Context,
     private val fatalIssueReporterStorage: IFatalIssueReporterStorage,
+    private val versionProvider: ISDKVersionProvider = CoreSDKVersionProvider(),
 ) {
     // Initial size for file builder buffer
     private val builderDefaultSize = 1024
     private val clientAttributes by lazy {
         // TODO(FranAguilera): BIT-5148 Refactor to avoid recreating ClientAttributes
         ClientAttributes(appContext, ProcessLifecycleOwner.get())
+    }
+    private val sdkVersion by lazy {
+        versionProvider.getSDKVersion()
     }
 
     /**
@@ -129,8 +134,7 @@ internal class FatalIssueReporterProcessor(
         SDKInfo.createSDKInfo(
             builder,
             builder.createString(ClientAttributes.SDK_LIBRARY_ID),
-            // e.g. 0.17.2 TODO(FranAguilera): BIT-5141. Extract sdk version
-            builder.createString(""),
+            if (sdkVersion != null) builder.createString(sdkVersion) else 0,
         )
 
     private fun createAppMetrics(builder: FlatBufferBuilder): Int {
@@ -164,5 +168,18 @@ internal class FatalIssueReporterProcessor(
             },
         )
         return DeviceMetrics.endDeviceMetrics(builder)
+    }
+}
+
+internal interface ISDKVersionProvider {
+    fun getSDKVersion(): String?
+}
+
+private class CoreSDKVersionProvider : ISDKVersionProvider {
+    override fun getSDKVersion(): String? {
+        // Ensure native lib is loaded - it will not yet be loaded when
+        // evaluating the SDK version during fatal issue handler initialization
+        CaptureJniLibrary.load()
+        return CaptureJniLibrary.getSdkVersion()
     }
 }
