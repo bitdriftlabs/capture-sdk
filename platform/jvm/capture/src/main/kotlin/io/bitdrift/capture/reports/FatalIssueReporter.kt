@@ -70,6 +70,11 @@ internal class FatalIssueReporter(
     }
 
     /**
+     * Returns the configured [io.bitdrift.capture.reports.FatalIssueMechanism]
+     */
+    override fun getReportingMechanism(): FatalIssueMechanism = fatalIssueReporterStatus.mechanism
+
+    /**
      * Applicable when [FatalIssueMechanism.BuiltIn] is available, given that registration
      * only occurs for calls like initialize(FatalIssueMechanism.BUILT_IN)
      */

@@ -251,6 +251,7 @@ internal class LoggerImpl(
                         runtime,
                         errorHandler,
                         memoryMetricsProvider = memoryMetricsProvider,
+                        fatalIssueMechanism = fatalIssueReporter.getReportingMechanism(),
                     )
 
                 // Install the app exit logger before the Capture logger is started to ensure

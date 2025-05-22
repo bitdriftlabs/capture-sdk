@@ -20,6 +20,7 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
@@ -61,7 +62,7 @@ class CaptureLoggerTest {
 
     private lateinit var logger: LoggerImpl
     private var testServerPort: Int? = null
-    private val fatalIssueReporter: IFatalIssueReporter = mock()
+    private val fatalIssueReporter: IFatalIssueReporter = FakeFatalIssueReporter()
 
     @Before
     fun setUp() {

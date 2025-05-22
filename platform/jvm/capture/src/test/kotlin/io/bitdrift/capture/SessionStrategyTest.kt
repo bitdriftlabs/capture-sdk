@@ -9,6 +9,7 @@ package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.mock
+import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import okhttp3.HttpUrl
@@ -24,7 +25,7 @@ import java.util.concurrent.CountDownLatch
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class SessionStrategyTest {
-    private val fatalIssueReporter: IFatalIssueReporter = mock()
+    private val fatalIssueReporter: IFatalIssueReporter = FakeFatalIssueReporter()
 
     @Before
     fun setUp() {
@@ -34,7 +35,7 @@ class SessionStrategyTest {
 
     @Test
     fun fixedSessionStrategy() {
-        var generatedSessionIds = mutableListOf<String>()
+        val generatedSessionIds = mutableListOf<String>()
 
         val logger =
             LoggerImpl(

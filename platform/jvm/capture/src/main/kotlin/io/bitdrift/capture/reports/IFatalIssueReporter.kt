@@ -11,7 +11,7 @@ import android.content.Context
 import io.bitdrift.capture.providers.FieldValue
 
 /**
- * Handles internal reporting of crashes
+ * Handles internal reporting of Fatal Issues
  */
 interface IFatalIssueReporter {
     /**
@@ -21,6 +21,11 @@ interface IFatalIssueReporter {
         appContext: Context,
         fatalIssueMechanism: FatalIssueMechanism,
     )
+
+    /**
+     * Returns the configured [io.bitdrift.capture.reports.FatalIssueMechanism]
+     */
+    fun getReportingMechanism(): FatalIssueMechanism
 
     /**
      * Generates the [InternalFieldsMap] to be reported upon Capture.Logger.start with
