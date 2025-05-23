@@ -45,7 +45,7 @@ class FatalIssueReporterStorageTest {
     fun persistFatalIssue_whenAnr_shouldAddTypeToFileName() {
         assertFileWithExpectedType(
             reportType = ReportType.AppNotResponding,
-            "ANR",
+            "anr",
         )
     }
 
@@ -53,7 +53,7 @@ class FatalIssueReporterStorageTest {
     fun persistFatalIssue_whenJvmCrash_shouldAddTypeToFileName() {
         assertFileWithExpectedType(
             reportType = ReportType.JVMCrash,
-            "JVM_CRASH",
+            "crash",
         )
     }
 
@@ -61,7 +61,7 @@ class FatalIssueReporterStorageTest {
     fun persistFatalIssue_whenNativeCrash_shouldAddTypeToFileName() {
         assertFileWithExpectedType(
             reportType = ReportType.NativeCrash,
-            "NATIVE_CRASH",
+            "native_crash",
         )
     }
 
@@ -69,7 +69,7 @@ class FatalIssueReporterStorageTest {
     fun persistFatalIssue_whenStrictMode_shouldAddUnknownType() {
         assertFileWithExpectedType(
             reportType = ReportType.StrictModeViolation,
-            "UNKNOWN",
+            "unknown",
         )
     }
 

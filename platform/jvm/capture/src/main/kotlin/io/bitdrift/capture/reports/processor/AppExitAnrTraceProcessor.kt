@@ -51,10 +51,10 @@ internal object AppExitAnrTraceProcessor {
                 }
             }
 
-        val name = description?.let { builder.createString(it) } ?: 0
         val trace = Error.createStackTraceVector(builder, mainStackTraceFrames.toIntArray())
         val reason = builder.createString(AnrReason.extractFrom(description).readableType)
-        val error = Error.createError(builder, name, reason, trace, ErrorRelation.CausedBy)
+        val detail = description?.let { builder.createString(it) } ?: 0
+        val error = Error.createError(builder, reason, detail, trace, ErrorRelation.CausedBy)
 
         return Report.createReport(
             builder,

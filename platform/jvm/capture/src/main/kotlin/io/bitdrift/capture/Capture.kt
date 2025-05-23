@@ -110,11 +110,10 @@ object Capture {
         @ExperimentalBitdriftApi
         @JvmStatic
         @JvmOverloads
-        fun initFatalIssueReporting(context: Context? = null) {
-            // TODO:(FranAguilera) BIT-5401: To allow passing fatalIssueMechanism config once
-            // we are ready to ship [io.bitdrift.capture.reports.FatalIssueMechanism.BuiltIn]
-            val fatalIssueMechanism = FatalIssueMechanism.Integration
-
+        fun initFatalIssueReporting(
+            context: Context? = null,
+            fatalIssueMechanism: FatalIssueMechanism,
+        ) {
             if (context == null && !ContextHolder.isInitialized) {
                 Log.w(LOG_TAG, "Attempted to initialize Fatal Issue Reporting with a null context. Skipping enabling crash tracking.")
                 return
