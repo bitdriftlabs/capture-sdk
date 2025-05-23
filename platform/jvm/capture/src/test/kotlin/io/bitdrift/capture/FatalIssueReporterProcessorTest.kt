@@ -279,12 +279,57 @@ class FatalIssueReporterProcessorTest {
         assertThat(report.errors(0)).isNotNull
         report.errors(0)?.let { error ->
             assertThat(error.name).isEqualTo(expectedMessage)
-            val frame = error.stackTrace(0)
-            assertThat(frame).isNotNull
-            assertThat(frame!!.sourceFile!!.line).isEqualTo(106)
-            assertThat(frame.sourceFile!!.path).isEqualTo("FatalIssueGenerator.kt")
-            assertThat(frame.symbolName).isEqualTo("startProcessing")
-            assertThat(frame.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")
+            val firstFrame = error.stackTrace(0)
+            assertThat(firstFrame).isNotNull
+            firstFrame?.let { frame ->
+                assertThat(frame.sourceFile!!.line).isEqualTo(106)
+                assertThat(frame.sourceFile!!.path).isEqualTo("FatalIssueGenerator.kt")
+                assertThat(frame.symbolName).isEqualTo("startProcessing")
+                assertThat(frame.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")
+            }
+
+            val secondFrame = error.stackTrace(1)
+            assertThat(secondFrame).isNotNull
+            secondFrame?.let { frame ->
+                assertThat(frame.sourceFile!!.line).isEqualTo(35)
+                assertThat(frame.sourceFile!!.path).isEqualTo("FatalIssueGenerator.kt")
+                assertThat(frame.symbolName).isEqualTo("forceDeadlockAnr\$")
+                assertThat(frame.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")
+            }
+
+            val unavailableFrame = error.stackTrace(2)
+            assertThat(unavailableFrame).isNotNull
+            unavailableFrame?.let { frame ->
+                assertThat(frame.sourceFile!!.line).isEqualTo(0)
+                assertThat(frame.sourceFile!!.path).isEqualTo("unavailable")
+                assertThat(frame.symbolName).isNull()
+                assertThat(frame.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")
+            }
+
+            val noMethodNoSourceFrame = error.stackTrace(3)
+            assertThat(noMethodNoSourceFrame).isNotNull
+            noMethodNoSourceFrame?.let { frame ->
+                assertThat(frame.sourceFile).isNull()
+                assertThat(frame.symbolName).isNull()
+                assertThat(frame.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")
+            }
+
+            val unsourcedFrame = error.stackTrace(4)
+            assertThat(unsourcedFrame).isNotNull
+            unsourcedFrame?.let { frame ->
+                assertThat(frame.sourceFile).isNull()
+                assertThat(frame.symbolName).isEqualTo("callOnMainThread")
+                assertThat(frame.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")
+            }
+
+            val nativeFrame = error.stackTrace(12)
+            assertThat(nativeFrame).isNotNull
+            nativeFrame?.let { frame ->
+                assertThat(frame.sourceFile!!.line).isEqualTo(0)
+                assertThat(frame.sourceFile!!.path).isEqualTo("Native method")
+                assertThat(frame.symbolName).isEqualTo("invoke")
+                assertThat(frame.className).isEqualTo("java.lang.reflect.Method")
+            }
         }
     }
 

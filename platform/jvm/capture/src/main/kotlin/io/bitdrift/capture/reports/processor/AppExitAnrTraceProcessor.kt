@@ -28,12 +28,12 @@ internal object AppExitAnrTraceProcessor {
 
     // matcher for lines like `    at some.pkg.ClassName.doSomething(ClassName.kt:732)`
     // * class  - fully-qualified class
-    // * method - method within class
+    // * method - method, starting with a match for Character.isJavaIdentifierStart() (java spec 3.8)
     // * file   - class source file
     // * line   - line number
     private val ANR_STACK_TRACE_REGEX =
         Regex(
-            "^\\s+at\\s+(?<class>.+)\\.(?<method>[^.]+)\\((?<file>[^:]+):(?<line>\\d+)\\)\$",
+            "^\\s+at\\s+(?<class>[.\\w]+?)(?:\\.(?<method>[a-z_\$][\\w\$]*))?(?:\\((?<file>[^:]+)(?::(?<line>\\d+))?\\))?\$",
         )
     private val mainStackTraceFrames = mutableListOf<Int>()
     private var isProcessingMainThreadTrace = false
@@ -96,20 +96,23 @@ internal object AppExitAnrTraceProcessor {
             if (!isProcessingMainThreadTrace) {
                 return
             }
-            val path = builder.createString(fileName)
             val sourceFile =
-                SourceFile.createSourceFile(
-                    builder,
-                    path,
-                    lineNumber.toLongOrNull() ?: 0,
-                    0,
-                )
+                if (fileName.isEmpty()) {
+                    0
+                } else {
+                    SourceFile.createSourceFile(
+                        builder,
+                        builder.createString(fileName),
+                        lineNumber.toLongOrNull() ?: 0,
+                        0,
+                    )
+                }
             val frame =
                 Frame.createFrame(
                     builder,
                     FrameType.JVM,
                     builder.createString(className),
-                    builder.createString(symbolName),
+                    if (symbolName.isEmpty()) 0 else builder.createString(symbolName),
                     sourceFile,
                     0,
                     0u,
