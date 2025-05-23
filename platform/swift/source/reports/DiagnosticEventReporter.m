@@ -39,6 +39,8 @@ static bool serialize_diagnostic(BDProcessorHandle handle,
                                  NSTimeInterval timestamp)
                                  API_AVAILABLE(ios(14.0), macos(12.0));
 
+static const char *name_for_diagnostic_type(MXDiagnostic *event);
+
 @interface DiagnosticEventReporter ()
 @property (nonnull, strong) NSURL *dir;
 @property (nonnull, strong) NSString *sdkVersion;
@@ -69,7 +71,7 @@ static bool serialize_diagnostic(BDProcessorHandle handle,
         const uint8_t *contents = bdrw_get_completed_buffer(&handle, &length);
         NSData *data = [NSData dataWithBytes:contents length:length];
         NSString *identifier = [[NSUUID UUID] UUIDString];
-        NSString *filename = [NSString stringWithFormat:@"%Lf_%@.cap", truncl(timestamp), identifier];
+        NSString *filename = [NSString stringWithFormat:@"%Lf_%s_%@.cap", truncl(timestamp), name_for_diagnostic_type(event), identifier];
         NSString *path = [[self.dir URLByAppendingPathComponent:filename] path];
         [fileManager createFileAtPath:path contents:data attributes:0];
         bdrw_dispose_buffer_handle(&handle);
@@ -82,6 +84,15 @@ static bool serialize_diagnostic(BDProcessorHandle handle,
 static NSString *name_for_signal(NSNumber *signal);
 static NSString *name_for_crash(MXCrashDiagnostic *event) API_AVAILABLE(ios(14.0), macos(12.0));
 static NSString *reason_for_crash(MXCrashDiagnostic *event, NSString *name) API_AVAILABLE(ios(14.0), macos(12.0));
+
+static const char *name_for_diagnostic_type(MXDiagnostic *event) {
+  if ([event isKindOfClass:[MXCrashDiagnostic class]]) {
+    return "crash";
+  } else if ([event isKindOfClass:[MXHangDiagnostic class]]) {
+    return "anr";
+  }
+  return "unknown";
+}
 
 static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
   if ([dict isKindOfClass:[NSDictionary class]]) {
