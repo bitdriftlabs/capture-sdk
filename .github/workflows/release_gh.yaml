@@ -44,7 +44,7 @@ jobs:
         with:
           ref: ${{ inputs.sha }}
       - name: 'Update the content of platform/shared/.sdk_version'
-        run: echo "${{ inputs.version }}" > platform/shared/.sdk_version
+        run: echo -n "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: 'Install dependencies'
         run: ./ci/mac_ci_setup.sh
       - name: Build xcframework + artifacts
