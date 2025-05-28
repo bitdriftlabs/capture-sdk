@@ -103,6 +103,11 @@ internal object CaptureJniLibrary : IBridge {
     external fun getDeviceId(loggerId: Long): String?
 
     /**
+     * Returns the version of the underlying SDK
+     */
+    external fun getSdkVersion(): String?
+
+    /**
      * Adds a field that should be attached to all logs emitted by the logger going forward.
      * If a field with a given key has already been registered with the logger, its value is
      * overridden with the new value.

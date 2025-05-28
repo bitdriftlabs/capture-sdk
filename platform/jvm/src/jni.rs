@@ -42,7 +42,7 @@ use jni::objects::{
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::{jboolean, jbyteArray, jdouble, jint, jlong, jobject, jvalue, JNI_TRUE};
 use jni::{JNIEnv, JavaVM};
-use platform_shared::metadata::Mobile;
+use platform_shared::metadata::{self, Mobile};
 use platform_shared::{LoggerHolder, LoggerId};
 use std::borrow::{Borrow, Cow};
 use std::collections::HashMap;
@@ -714,6 +714,19 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getSessionId<'
     || Ok(env.new_string(logger_id.session_id())?),
     JObject::null().into(),
     "jni get_session_id",
+  )
+}
+
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getSdkVersion<'a>(
+  env: JNIEnv<'a>,
+  _class: JClass<'_>,
+) -> JString<'a> {
+  let version = metadata::SDK_VERSION.clone();
+  bd_client_common::error::with_handle_unexpected_or(
+    || Ok(env.new_string(version)?),
+    JObject::null().into(),
+    "jni get_sdk_version",
   )
 }
 
