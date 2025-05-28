@@ -63,11 +63,7 @@ final class DispatchSourceMemoryMonitor {
         case .normal:
             state = "normal"
         default:
-            if #available(iOS 18.0, *) {
-                state = "unknown: \(event.description)"
-            } else {
-                state = "unknown: \(event.rawValue)"
-            }
+            state = "unknown: \(event.rawValue)"
         }
 
         let snapshot = self.memorySnapshotProvider.makeSnapshot()
