@@ -47,6 +47,7 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
@@ -264,7 +265,7 @@ internal class LoggerImpl(
 
         CaptureJniLibrary.writeSDKStartLog(
             this.loggerId,
-            fatalIssueReporter.getLogStatusFieldsMap(),
+            getCaptureSdkFields(),
             duration.toDouble(DurationUnit.SECONDS),
         )
     }
@@ -482,6 +483,14 @@ internal class LoggerImpl(
     private fun stopLoggingDefaultEvents() {
         appExitLogger.uninstallAppExitLogger()
     }
+
+    private fun getCaptureSdkFields(): Map<String, FieldValue> =
+        buildMap {
+            putAll(
+                mapOf("_capture_start_thread" to Thread.currentThread().name.toFieldValue()),
+            )
+            putAll(fatalIssueReporter.getLogStatusFieldsMap())
+        }
 
     /**
      * Usage: adb shell setprop debug.bitdrift.internal_log_level debug

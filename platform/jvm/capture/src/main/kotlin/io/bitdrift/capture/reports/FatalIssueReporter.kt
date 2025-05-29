@@ -17,6 +17,7 @@ import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
+import io.bitdrift.capture.reports.FatalIssueReporterState.NotInitialized
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.mapToFatalIssueType
@@ -50,6 +51,7 @@ internal class FatalIssueReporter(
         private set
 
     private lateinit var fatalIssueReporterProcessor: FatalIssueReporterProcessor
+    private var initializationCallerThread: String = NotInitialized.readableType
 
     /**
      * Initializes the fatal issue reporting with the specified [io.bitdrift.capture.reports.FatalIssueMechanism]
@@ -58,6 +60,7 @@ internal class FatalIssueReporter(
         appContext: Context,
         fatalIssueMechanism: FatalIssueMechanism,
     ) {
+        initializationCallerThread = Thread.currentThread().name
         if (fatalIssueReporterStatus.state is FatalIssueReporterState.NotInitialized) {
             if (fatalIssueMechanism == FatalIssueMechanism.Integration) {
                 fatalIssueReporterStatus = setupIntegrationReporting(appContext)
@@ -97,6 +100,7 @@ internal class FatalIssueReporter(
 
     override fun getLogStatusFieldsMap(): Map<String, FieldValue> =
         mapOf(
+            FATAL_ISSUE_REPORTING_INIT_THREAD_KEY to initializationCallerThread.toFieldValue(),
             FATAL_ISSUE_REPORTING_STATE_KEY to fatalIssueReporterStatus.state.readableType.toFieldValue(),
             FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY to
                 fatalIssueReporterStatus
@@ -296,6 +300,7 @@ internal class FatalIssueReporter(
         private const val CONFIGURATION_FILE_PATH = "/reports/config"
         private const val FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY = "_fatal_issue_reporting_duration_ms"
         private const val FATAL_ISSUE_REPORTING_STATE_KEY = "_fatal_issue_reporting_state"
+        private const val FATAL_ISSUE_REPORTING_INIT_THREAD_KEY = "_fatal_reporter_init_thread"
         private const val DESTINATION_FILE_PATH = "/reports/new"
         private const val LAST_MODIFIED_TIME_ATTRIBUTE = "lastModifiedTime"
 
