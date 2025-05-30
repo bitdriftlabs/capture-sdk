@@ -57,6 +57,7 @@ import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
+import kotlin.time.toDuration
 
 typealias LoggerId = Long
 internal typealias InternalFieldsList = List<Field>
@@ -107,8 +108,10 @@ internal class LoggerImpl(
     @VisibleForTesting
     internal val loggerId: LoggerId
 
+    private var duration: Duration = 0L.toDuration(DurationUnit.NANOSECONDS)
+
     init {
-        val duration =
+        duration =
             measureTime {
                 setUpInternalLogging()
 
@@ -259,10 +262,11 @@ internal class LoggerImpl(
                 // that logs emitted during the installation are the first logs emitted by the
                 // Capture logger.
                 appExitLogger.installAppExitLogger()
-
-                CaptureJniLibrary.startLogger(this.loggerId)
             }
+    }
 
+    fun startLogger() {
+        CaptureJniLibrary.startLogger(this.loggerId)
         CaptureJniLibrary.writeSDKStartLog(
             this.loggerId,
             getCaptureSdkFields(),
