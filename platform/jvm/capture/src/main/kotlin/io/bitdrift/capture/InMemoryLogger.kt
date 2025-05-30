@@ -24,7 +24,6 @@ import kotlin.time.Duration
 internal class InMemoryLogger : ILogger {
 
     private val bufferedLogsCalls = CopyOnWriteArrayList<(ILogger) -> Unit>()
-    private val fields = ConcurrentHashMap<String, String>()
 
     override val sessionId: String = DEFAULT_NOT_SETUP_MESSAGE
 
@@ -41,12 +40,10 @@ internal class InMemoryLogger : ILogger {
     }
 
     override fun addField(key: String, value: String) {
-        fields[key] = value
         bufferedLogsCalls.add { it.addField(key, value) }
     }
 
     override fun removeField(key: String) {
-        fields.remove(key)
         bufferedLogsCalls.add { it.removeField(key) }
     }
 
