@@ -16,6 +16,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.Spinner
 import android.widget.Toast
 //noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.MaterialTheme
@@ -31,8 +32,8 @@ import com.example.rocketreserver.LaunchListQuery
 import com.example.rocketreserver.LoginMutation
 import com.github.michaelbull.result.onFailure
 import com.github.michaelbull.result.onSuccess
-import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import io.bitdrift.capture.Capture.Logger
+import io.bitdrift.capture.Error
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.apollo.CaptureApolloInterceptor
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
@@ -131,15 +132,8 @@ class FirstFragment : Fragment() {
 
         binding.textviewFirst.text = Logger.sessionId
 
-        val items = LogLevel.values().map { it.name }.toTypedArray()
-        (binding.logLevelItems as? MaterialAutoCompleteTextView)?.setSimpleItems(items)
-        binding.logLevelItems.setText(LogLevel.INFO.name, false)
-
-        binding.spnAppExitOptions.adapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_dropdown_item,
-            AppExitReason.entries
-        )
+        setSpinnerAdapter(binding.spnAppExitOptions, AppExitReason.entries)
+        setSpinnerAdapter(binding.logLevelItems, LogLevel.entries.map { it.name }.toList())
 
         okHttpClient = OkHttpClient.Builder()
             .eventListenerFactory(CaptureOkHttpEventListenerFactory())
@@ -175,7 +169,7 @@ class FirstFragment : Fragment() {
                     updateDeviceCodeValue(it)
                 }
                 result.onFailure {
-                    updateDeviceCodeValue("$it")
+                    displayDeviceCodeError(it)
                 }
             })
         }
@@ -185,6 +179,10 @@ class FirstFragment : Fragment() {
         binding.deviceCodeTextView.text = deviceCode
         val data = ClipData.newPlainText("deviceCode", deviceCode)
         clipboardManager.setPrimaryClip(data)
+    }
+
+    private fun displayDeviceCodeError(error:Error){
+        binding.deviceCodeTextView.text = error.message
     }
 
     private fun performOkHttpRequest(view: View) {
@@ -237,7 +235,7 @@ class FirstFragment : Fragment() {
     }
 
     private fun logMessage(view: View?) {
-        val logLevel = LogLevel.valueOf(binding.logLevelItems.text.toString())
+        val logLevel = LogLevel.valueOf(binding.logLevelItems.selectedItem.toString())
         val tag = "FirstFragment"
         val exception = Exception("custom exception")
         when (logLevel) {
@@ -266,6 +264,14 @@ class FirstFragment : Fragment() {
             AppExitReason.APP_CRASH_OUT_OF_MEMORY -> FatalIssueGenerator.forceOutOfMemoryCrash()
             AppExitReason.SYSTEM_EXIT -> exitProcess(0)
         }
+    }
+
+    private fun setSpinnerAdapter(spinner: Spinner, items: List<*>){
+        spinner.adapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_dropdown_item,
+            items
+        )
     }
 
     enum class AppExitReason {
