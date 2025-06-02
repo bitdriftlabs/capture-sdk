@@ -71,7 +71,6 @@ import papa.AppLaunchType
 import papa.PapaEvent
 import papa.PapaEventListener
 import timber.log.Timber
-import java.io.File
 import java.util.concurrent.Executors
 import kotlin.random.Random
 import kotlin.time.DurationUnit
@@ -90,9 +89,9 @@ class GradleTestApp : Application() {
         Timber.i("Hello World!")
         setupStrictMode()
         initLogging()
-        trackAppLaunch()
         trackAppLifecycle()
         setupCrashSdks()
+        trackAppLaunch()
     }
 
     private fun initLogging() {

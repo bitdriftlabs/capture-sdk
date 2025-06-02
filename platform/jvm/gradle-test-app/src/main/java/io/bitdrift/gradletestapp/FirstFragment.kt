@@ -181,7 +181,7 @@ class FirstFragment : Fragment() {
         clipboardManager.setPrimaryClip(data)
     }
 
-    private fun displayDeviceCodeError(error:Error){
+    private fun displayDeviceCodeError(error: Error){
         binding.deviceCodeTextView.text = error.message
     }
 
