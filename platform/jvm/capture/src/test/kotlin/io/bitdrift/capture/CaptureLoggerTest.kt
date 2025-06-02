@@ -75,6 +75,7 @@ class CaptureLoggerTest {
         testServerPort = CaptureTestJniLibrary.startTestApiServer(-1)
 
         logger = buildLogger(dateProvider = systemDateProvider)
+        logger.startLogger()
     }
 
     @After
@@ -453,6 +454,7 @@ class CaptureLoggerTest {
 
     private fun resetLogger(logger: LoggerImpl) {
         this.logger = logger
+        this.logger.startLogger()
     }
 
     private fun buildLogger(

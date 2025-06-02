@@ -55,6 +55,7 @@ class InMemoryLoggerTest {
         inMemoryLogger.bufferedLoggerCalls.forEach { it(testLogger) }
     }
 
+    @Suppress("EmptyFunctionBlock")
     private class TestLogger : ILogger {
         val screenNameViewed = mutableListOf<String>()
 
