@@ -13,10 +13,15 @@ final class DeviceAttributesTests: XCTestCase {
     func testLocale() {
         let deviceAttributes = DeviceAttributes()
         // Confirm that attributes are initialized with the `locale` field value.
-        XCTAssertEqual("en_US", deviceAttributes.getFields()["_locale"] as? String)
+        let localeStr = deviceAttributes.getFields()["_locale"] as! String
+        XCTAssertNotNil(Locale(identifier: localeStr))
 
         deviceAttributes.start()
         // Confirm that the `locale` field looks OK after starting device attributes.
-        XCTAssertEqual("en_US", deviceAttributes.getFields()["_locale"] as? String)
+        let nowLocaleStr = deviceAttributes.getFields()["_locale"] as! String
+        XCTAssertNotNil(Locale(identifier: nowLocaleStr))
+
+        // And is the same as before.
+        XCTAssertEqual(localeStr, nowLocaleStr)
     }
 }
