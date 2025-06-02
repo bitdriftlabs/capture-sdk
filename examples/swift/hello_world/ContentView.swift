@@ -54,6 +54,12 @@ struct ContentView: View {
                 Button(action: { Thread.sleep(forTimeInterval: 5.0) }) {
                     Text("Simulate ANR (5s)").frame(maxWidth: .infinity)
                 }
+                Button(action: {
+                    let items = [1, 2, 3]
+                    print("the fourth item: \(items[3])")
+                }) {
+                    Text("Swift Assertion Failure").frame(maxWidth: .infinity)
+                }
             }
             .modify { view in
                 view.buttonStyle(.bordered)
