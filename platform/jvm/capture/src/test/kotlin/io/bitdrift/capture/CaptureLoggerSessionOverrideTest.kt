@@ -25,6 +25,7 @@ import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito
@@ -70,6 +71,7 @@ class CaptureLoggerSessionOverrideTest {
      *  Verify that upon the launch of the SDK it's possible to emit logs with session Id
      *  equal to the last active session ID from the previous run of the SDK.
      */
+    @Ignore("TODO(FranAguilera): BIT-5484. This works on gradle with Roboelectric. Fix on bazel")
     @Test
     fun testSessionIdOverride() {
         // Start the logger and process one log with it just so that

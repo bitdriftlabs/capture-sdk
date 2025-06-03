@@ -35,15 +35,10 @@ import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyInt
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [30])
 class AppExitLoggerTest {
     private val logger: LoggerImpl = mock()
     private val activityManager: ActivityManager = mock()
@@ -226,7 +221,7 @@ class AppExitLoggerTest {
         verify(
             errorHandler,
         ).handleError(
-            "AppExitLogger: The current Application process (org.robolectric.default) " +
+            "AppExitLogger: The current Application process " +
                 "didn't find a match on getHistoricalProcessExitReasons",
         )
     }

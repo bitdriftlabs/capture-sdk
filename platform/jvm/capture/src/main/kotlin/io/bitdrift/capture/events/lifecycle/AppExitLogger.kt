@@ -10,7 +10,6 @@ package io.bitdrift.capture.events.lifecycle
 import android.annotation.TargetApi
 import android.app.ActivityManager
 import android.app.ActivityManager.RunningAppProcessInfo
-import android.app.Application
 import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.annotation.VisibleForTesting
@@ -112,8 +111,7 @@ internal class AppExitLogger(
 
             is LatestAppExitReasonResult.ProcessNameNotFound -> {
                 val message =
-                    "AppExitLogger: The current Application process " +
-                        "(${Application.getProcessName()}) didn't find a match on getHistoricalProcessExitReasons"
+                    "AppExitLogger: The current Application process didn't find a match on getHistoricalProcessExitReasons"
                 errorHandler.handleError(message)
                 return
             }
