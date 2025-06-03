@@ -3,7 +3,7 @@
 set -e
 
 # https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md#xcode
-sudo xcode-select --switch /Applications/Xcode_15.4.app
+sudo xcode-select --switch /Applications/Xcode_16.2.app
 
 # workaround for https://github.com/actions/setup-python/issues/577#issuecomment-1365231818
 # homebrew fails to update python to 3.9.1.1 due to unlinking failure
