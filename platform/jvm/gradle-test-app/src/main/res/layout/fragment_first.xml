@@ -143,6 +143,16 @@
         <include layout="@layout/divider" />
 
         <Button
+            android:id="@+id/btnNavigateToWebView"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/navigate_to_web_view"
+            app:icon="@android:drawable/ic_menu_info_details"/>
+
+        <include layout="@layout/divider" />
+
+        <Button
             android:id="@+id/btnNavigateCompose"
             style="?attr/materialButtonOutlinedStyle"
             android:layout_width="wrap_content"

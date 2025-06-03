@@ -42,6 +42,12 @@ sealed class LatestAppExitReasonResult {
     data object Empty : LatestAppExitReasonResult()
 
     /**
+     * Returns when [ApplicationExitInfo.getProcessName] didn't match on any entry
+     * of [ApplicationExitInfo.getHistoricalProcessExitReasons]
+     */
+    data object ProcessNameNotFound : LatestAppExitReasonResult()
+
+    /**
      * Returns the detailed error while trying to determine prior reasons
      * @param message
      * @param throwable

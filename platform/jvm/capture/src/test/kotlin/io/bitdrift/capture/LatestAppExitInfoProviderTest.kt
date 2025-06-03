@@ -8,6 +8,7 @@
 package io.bitdrift.capture
 
 import android.app.ActivityManager
+import android.app.Application
 import android.app.ApplicationExitInfo
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
@@ -17,7 +18,12 @@ import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [30])
 class LatestAppExitInfoProviderTest {
     private val activityManager: ActivityManager = mock()
     private val latestAppExitInfoProvider = LatestAppExitInfoProvider
@@ -35,6 +41,7 @@ class LatestAppExitInfoProviderTest {
     @Test
     fun get_withValidExitInfo_shouldNotReturnNull() {
         val mockExitInfo: ApplicationExitInfo = mock()
+        whenever(mockExitInfo.processName).thenReturn(Application.getProcessName())
         whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
 
         val exitReason = latestAppExitInfoProvider.get(activityManager)
@@ -43,7 +50,7 @@ class LatestAppExitInfoProviderTest {
     }
 
     @Test
-    fun get_withEmptyExitReason_shouldReturnNull() {
+    fun get_withEmptyExitReason_shouldReturnEmpty() {
         whenever(
             activityManager
                 .getHistoricalProcessExitReasons(anyOrNull(), any(), any()),
@@ -52,5 +59,18 @@ class LatestAppExitInfoProviderTest {
         val exitReason = latestAppExitInfoProvider.get(activityManager)
 
         assertThat(exitReason is LatestAppExitReasonResult.Empty).isTrue()
+    }
+
+    @Test
+    fun get_withUnmatchedProcessName_shouldReturnProcessNameNotFound() {
+        val mockExitInfo: ApplicationExitInfo = mock()
+        whenever(
+            activityManager
+                .getHistoricalProcessExitReasons(anyOrNull(), any(), any()),
+        ).thenReturn(listOf(mockExitInfo))
+
+        val exitReason = latestAppExitInfoProvider.get(activityManager)
+
+        assertThat(exitReason is LatestAppExitReasonResult.ProcessNameNotFound).isTrue()
     }
 }

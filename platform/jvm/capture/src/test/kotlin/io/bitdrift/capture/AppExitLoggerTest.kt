@@ -22,6 +22,8 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
+import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.DEFAULT_ERROR
+import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.SESSION_ID
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
@@ -33,10 +35,15 @@ import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyInt
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [30])
 class AppExitLoggerTest {
     private val logger: LoggerImpl = mock()
     private val activityManager: ActivityManager = mock()
@@ -130,9 +137,9 @@ class AppExitLoggerTest {
     }
 
     @Test
-    fun testLogPreviousExitReasonIfAny() {
+    fun logPreviousExitReasonIfAny_withValidReasonAndProcessSummary_shouldEmitAppExitLog() {
         // ARRANGE
-        lastExitInfo.set(
+        lastExitInfo.setAsValidReason(
             exitReasonType = ApplicationExitInfo.REASON_ANR,
             description = "test-description",
         )
@@ -149,6 +156,99 @@ class AppExitLoggerTest {
             eq(LogAttributesOverrides.SessionID(SESSION_ID, TIME_STAMP)),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+    }
+
+    @Test
+    fun logPreviousExitReasonIfAny_withValidReasonAndInvalidProcessSummary_shouldReportErrorOnly() {
+        // ARRANGE
+        lastExitInfo.setAsValidReason(
+            exitReasonType = ApplicationExitInfo.REASON_ANR,
+            description = "test-description",
+            processStateSummary = null,
+        )
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        verify(logger, never()).log(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+        )
+        verify(errorHandler).handleError("AppExitLogger: processStateSummary from test-process-name is null.")
+    }
+
+    @Test
+    fun logPreviousExitReason_whenEmptyResult_shouldReportError() {
+        // ARRANGE
+        lastExitInfo.setAsEmptyReason()
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        verify(logger, never()).log(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+        )
+        verify(errorHandler).handleError("AppExitLogger: getHistoricalProcessExitReasons is an empty list")
+    }
+
+    @Test
+    fun logPreviousExitReason_withoutMatchingProcessName_shouldReportError() {
+        // ARRANGE
+        lastExitInfo.setAsInvalidProcessName()
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        verify(logger, never()).log(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+        )
+        verify(
+            errorHandler,
+        ).handleError(
+            "AppExitLogger: The current Application process (org.robolectric.default) " +
+                "didn't find a match on getHistoricalProcessExitReasons",
+        )
+    }
+
+    @Test
+    fun logPreviousExitReason_whenErrorResult_shouldReportEmptyReason() {
+        // ARRANGE
+        lastExitInfo.setAsErrorResult()
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        verify(errorHandler).handleError(DEFAULT_ERROR, FAKE_EXCEPTION)
+        verify(logger, never()).log(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
         )
     }
 
@@ -226,7 +326,6 @@ class AppExitLoggerTest {
             put("_app_exit_status", "0")
             put("_app_exit_pss", "1")
             put("_app_exit_rss", "2")
-            put("_app_exit_description", "test-description")
             put("_app_exit_description", "test-description")
             put("_memory_class", "1")
         }.toFields()

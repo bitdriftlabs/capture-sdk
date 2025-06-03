@@ -8,6 +8,7 @@ package io.bitdrift.capture.reports.exitinfo
 
 import android.annotation.TargetApi
 import android.app.ActivityManager
+import android.app.Application
 import android.app.ApplicationExitInfo
 import android.os.Build
 import io.bitdrift.capture.reports.binformat.v1.ReportType
@@ -21,12 +22,21 @@ internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         try {
             // a null packageName means match all packages belonging to the caller's process (UID)
             // pid should be 0, a value of 0 means to ignore this parameter and return all matching records
-            // maxNum should be 1, The maximum number of results to be returned, as we need only the last one
-            val latestExitReasons = activityManager.getHistoricalProcessExitReasons(null, 0, 1)
-            return if (latestExitReasons.isEmpty()) {
+            // maxNum should be 0, this will return the list of all last exists at the time
+            val latestKnownExitReasons =
+                activityManager
+                    .getHistoricalProcessExitReasons(null, 0, 0)
+            val matchingProcessReason =
+                latestKnownExitReasons
+                    .firstOrNull {
+                        it.processName == Application.getProcessName()
+                    }
+            return if (latestKnownExitReasons.isEmpty()) {
                 LatestAppExitReasonResult.Empty
+            } else if (matchingProcessReason == null) {
+                LatestAppExitReasonResult.ProcessNameNotFound
             } else {
-                LatestAppExitReasonResult.Valid(latestExitReasons.first())
+                LatestAppExitReasonResult.Valid(matchingProcessReason)
             }
         } catch (error: Throwable) {
             return LatestAppExitReasonResult.Error(
