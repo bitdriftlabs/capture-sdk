@@ -17,6 +17,10 @@
         <action
             android:id="@+id/action_FirstFragment_to_ConfigFragment"
             app:destination="@id/ConfigurationSettingsFragment" />
+
+        <action
+            android:id="@+id/action_FirstFragment_to_WebViewFragment"
+            app:destination="@id/WebViewFragment" />
     </fragment>
     <fragment
         android:id="@+id/SecondFragment"
@@ -33,4 +37,19 @@
         android:name="io.bitdrift.gradletestapp.ConfigurationSettingsFragment"
         android:label="@string/config_fragment_label">
     </fragment>
+
+    <fragment
+        android:id="@+id/WebViewFragment"
+        android:name="io.bitdrift.gradletestapp.WebViewFragment"
+        android:label="@string/web_view_fragment_label"
+        tools:layout="@layout/fragment_web_view">
+
+        <action
+            android:id="@+id/action_FirstFragment_to_WebViewFragment"
+            app:destination="@id/WebViewFragment" />
+        <action
+            android:id="@+id/action_WebViewFragment_to_FirstFragment"
+            app:destination="@id/FirstFragment" />
+    </fragment>
+
 </navigation>

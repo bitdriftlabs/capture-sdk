@@ -31,6 +31,13 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+
+        <!-- WebView will run into separate process like
+        com.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0-->
+        <meta-data
+            android:name="android.webkit.WebView.Multiprocess"
+            android:value="true"/>
+
     </application>
 
 </manifest>

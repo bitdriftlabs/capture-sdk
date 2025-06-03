@@ -105,6 +105,14 @@ internal class AppExitLogger(
 
         when (val lastExitInfoResult = latestAppExitInfoProvider.get(activityManager)) {
             is LatestAppExitReasonResult.Empty -> {
+                errorHandler.handleError("AppExitLogger: getHistoricalProcessExitReasons is an empty list")
+                return
+            }
+
+            is LatestAppExitReasonResult.ProcessNameNotFound -> {
+                val message =
+                    "AppExitLogger: The current Application process didn't find a match on getHistoricalProcessExitReasons"
+                errorHandler.handleError(message)
                 return
             }
 
@@ -114,11 +122,17 @@ internal class AppExitLogger(
 
             is LatestAppExitReasonResult.Valid -> {
                 val lastExitInfo = lastExitInfoResult.applicationExitInfo
-                // extract stored id from previous session in order to override the log, bail if not present
+                // extract stored id from previous session in order to override the log,
+                // bail and report error if not present
                 val sessionId =
-                    lastExitInfo.processStateSummary?.toString(StandardCharsets.UTF_8) ?: return
-                val timestampMs = lastExitInfo.timestamp
+                    lastExitInfo.processStateSummary?.toString(StandardCharsets.UTF_8)
+                if (sessionId == null) {
+                    val errorMessage = "AppExitLogger: processStateSummary from ${lastExitInfo.processName} is null."
+                    errorHandler.handleError(errorMessage)
+                    return
+                }
 
+                val timestampMs = lastExitInfo.timestamp
                 logger.log(
                     LogType.LIFECYCLE,
                     lastExitInfo.reason.toLogLevel(),

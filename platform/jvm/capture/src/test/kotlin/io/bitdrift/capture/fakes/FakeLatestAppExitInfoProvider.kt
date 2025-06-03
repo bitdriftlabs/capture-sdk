@@ -29,7 +29,7 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
     private var exitReasonType: Int = ApplicationExitInfo.REASON_UNKNOWN
 
     /**
-     * A traceInputStrem for REASON_ANR or REASON_CRASH_NATIVE
+     * A traceInputStream for REASON_ANR or REASON_CRASH_NATIVE
      */
     private var traceInputStream: InputStream? = null
 
@@ -39,6 +39,16 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
     private var hasNoPriorReason: Boolean = false
 
     /**
+     * To set, if there are errors while retrieving reason
+     */
+    private var hasErrorResult: Boolean = false
+
+    /**
+     * To set, if there is no matching process name on historical reasons
+     */
+    private var hasNotMatchedOnProcessName: Boolean = false
+
+    /**
      * Additional description fields for the app termination
      */
     private var description: String = DEFAULT_DESCRIPTION
@@ -46,7 +56,12 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
     /**
      * Specifies any prior process state summary
      */
-    private var processStateSummary: ByteArray? = null
+    private var processStateSummary: ByteArray? = PROCESS_STATE_SUMMARY
+
+    /**
+     * Specifies the process name of each exit reason entry
+     */
+    private var processName: String = PROCESS_NAME
 
     /*
      * Sets to default state
@@ -55,35 +70,63 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         exitReasonType = ApplicationExitInfo.REASON_UNKNOWN
         traceInputStream = null
         hasNoPriorReason = false
+        hasErrorResult = false
+        hasNotMatchedOnProcessName = false
         description = DEFAULT_DESCRIPTION
-        processStateSummary = null
+        processStateSummary = PROCESS_STATE_SUMMARY
     }
 
     /**
      * Set different [ApplicationExitInfo] properties
      */
-    fun set(
+    fun setAsValidReason(
         exitReasonType: Int,
         traceInputStream: InputStream? = null,
-        hasNoPriorReason: Boolean = false,
         description: String = DEFAULT_DESCRIPTION,
-        processStateSummary: ByteArray? = null,
+        processStateSummary: ByteArray? = PROCESS_STATE_SUMMARY,
     ) {
         this.exitReasonType = exitReasonType
         this.traceInputStream = traceInputStream
-        this.hasNoPriorReason = hasNoPriorReason
         this.description = description
         this.processStateSummary = processStateSummary
     }
 
+    /**
+     * Forces latestAppExitInfoProvider.get() to return [LatestAppExitReasonResult.Empty]
+     */
+    fun setAsEmptyReason() {
+        hasNoPriorReason = true
+    }
+
+    /**
+     * Forces latestAppExitInfoProvider.get() to return [LatestAppExitReasonResult.Error]
+     */
+    fun setAsErrorResult() {
+        hasErrorResult = true
+    }
+
+    /**
+     * Forces latestAppExitInfoProvider.get() to return [LatestAppExitReasonResult.ProcessNameNotFound]
+     */
+    fun setAsInvalidProcessName() {
+        hasNotMatchedOnProcessName = true
+    }
+
     override fun get(activityManager: ActivityManager): LatestAppExitReasonResult {
-        if (hasNoPriorReason) return LatestAppExitReasonResult.Empty
+        if (hasNoPriorReason) {
+            return LatestAppExitReasonResult.Empty
+        } else if (hasNotMatchedOnProcessName) {
+            return LatestAppExitReasonResult.ProcessNameNotFound
+        } else if (hasErrorResult) {
+            return LatestAppExitReasonResult.Error(
+                DEFAULT_ERROR,
+                FAKE_EXCEPTION,
+            )
+        }
 
         val appExitReason = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
         whenever(appExitReason.processStateSummary).thenReturn(
-            SESSION_ID.toByteArray(
-                StandardCharsets.UTF_8,
-            ),
+            processStateSummary,
         )
         whenever(appExitReason.timestamp).thenReturn(TIME_STAMP)
         whenever(appExitReason.processName).thenReturn("test-process-name")
@@ -100,7 +143,14 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
     companion object {
         const val SESSION_ID = "uuid-test-sample"
         const val TIME_STAMP = 1742376168992
+        const val PROCESS_NAME = "test-process-name"
+        val PROCESS_STATE_SUMMARY = SESSION_ID.toByteArray(StandardCharsets.UTF_8)
         const val DEFAULT_DESCRIPTION = "test-description"
+        const val DEFAULT_ERROR =
+            "Failed to retrieve ProcessExitReasons from ActivityManager " +
+                "failed: java.lang.IllegalArgumentException: Comparison method violates its " +
+                "general contract!"
+        val FAKE_EXCEPTION by lazy { Exception() }
 
         fun createTraceInputStream(rawText: String): InputStream = ByteArrayInputStream(rawText.toByteArray(Charsets.UTF_8))
     }
