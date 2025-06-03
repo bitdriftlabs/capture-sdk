@@ -98,23 +98,34 @@ extension Logger {
     ///
     /// - parameter type: mechanism for crash detection
     public static func initFatalIssueReporting(_ type: IssueReporterType = .customConfig) {
-        switch type {
-        case .builtIn:
-            if let outputDir = Logger.reportCollectionDirectory() {
+        if issueReporterInitResult.0 != .notInitialized {
+            log(level: .warning, message: "Fatal issue reporting already being initialized")
+            return
+        }
+
+        issueReporterInitResult = (.initializing, 0)
+        guard let outputDir = Logger.reportCollectionDirectory() else {
+            log(level: .warning, message: "Fatal issue reporting output directory not defined, cannot enable reporting")
+            issueReporterInitResult = (.initialized(.missingReportsDirectory), 0)
+            return
+        }
+
+        issueReporterInitResult = measureTime {
+            switch type {
+            case .builtIn:
+                #if targetEnvironment(simulator)
+                log(level: .info, message: "Fatal issue reporting disabled for simulated devices")
+                return .initialized(.unsupportedHardware)
+                #else
                 let reporter = DiagnosticEventReporter(outputDir: outputDir, sdkVersion: capture_get_sdk_version())
                 diagnosticReporter.update { val in
                     val = reporter
                 }
                 MXMetricManager.shared.add(reporter)
-            } else {
-                log(level: .warning, message: "Fatal issue reporting output directory not defined, cannot enable reporting")
-            }
-        case .customConfig:
-            if issueReporterInitResult.0 == .notInitialized {
-                issueReporterInitResult = (.initializing, 0)
-                issueReporterInitResult = CustomConfigIssueReporter.processFiles()
-            } else {
-                log(level: .warning, message: "Fatal issue reporting already being initialized")
+                return .initialized(.monitoring)
+                #endif
+            case .customConfig:
+                return CustomConfigIssueReporter.processFiles()
             }
         }
     }

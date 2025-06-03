@@ -16,10 +16,21 @@ enum IssueReporterInitState: Equatable {
 
 /// Final state of an initialized crash reporter
 enum ReporterInitResolution: Equatable, Error {
+    /// Found and delivered reports
     case sent
+    /// Enabled monitoring for reports, may or may not detect any
+    case monitoring
+    /// Disabled due to hardware limitations
+    case unsupportedHardware
+    /// Did not find any reports to deliver, checking completed
     case withoutPriorCrash
+    /// No crash reporting configuration found, cannot continue
     case missingConfigFile
+    /// No directory available for delivering reports, cannot continue
+    case missingReportsDirectory
+    /// Crash reporting configuration file contains errors, cannot continue
     case malformedConfigFile
+    /// Other kinds of errors occurred, cannot continue
     case processingFailure(String)
 }
 
@@ -40,14 +51,12 @@ struct CustomConfigIssueReporter {
         case max = 10_000_000
     }
 
-    static func processFiles() -> IssueReporterInitResult {
-        return measureTime {
-            switch readAndVerifyConfig() {
-            case .success(let (config, destDir)):
-                return copyFiles(config: config, destDir: destDir)
-            case .failure(let resolution):
-                return .initialized(resolution)
-            }
+    static func processFiles() -> IssueReporterInitState {
+        switch readAndVerifyConfig() {
+        case .success(let (config, destDir)):
+            return copyFiles(config: config, destDir: destDir)
+        case .failure(let resolution):
+            return .initialized(resolution)
         }
     }
 
@@ -195,12 +204,18 @@ extension IssueReporterInitState: CustomStringConvertible {
             return "INITIALIZING"
         case .initialized(let resolution):
             switch resolution {
+            case .monitoring:
+                return "CRASH_REPORT_MONITORING"
             case .sent:
                 return "CRASH_REPORT_SENT"
+            case .unsupportedHardware:
+                return "UNSUPPORTED_HARDWARE"
             case .withoutPriorCrash:
                 return "NO_PRIOR_CRASHES"
             case .missingConfigFile:
                 return "MISSING_CRASH_CONFIG_FILE"
+            case .missingReportsDirectory:
+                return "MISSING_CRASH_REPORT_DIR"
             case .malformedConfigFile:
                 return "MALFORMED_CRASH_CONFIG_FILE"
             case .processingFailure(let error):
