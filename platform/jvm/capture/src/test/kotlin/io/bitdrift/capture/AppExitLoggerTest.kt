@@ -22,7 +22,6 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
-import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.DEFAULT_ERROR
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.SESSION_ID
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
@@ -31,6 +30,9 @@ import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEM
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.FatalIssueMechanism
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EMPTY_LIST_MESSAGE
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
@@ -188,6 +190,7 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
+        verify(errorHandler).handleError(EXIT_REASON_EMPTY_LIST_MESSAGE)
         verify(logger, never()).log(
             any(),
             any(),
@@ -197,7 +200,6 @@ class AppExitLoggerTest {
             any(),
             any(),
         )
-        verify(errorHandler).handleError("AppExitLogger: getHistoricalProcessExitReasons is an empty list")
     }
 
     @Test
@@ -209,6 +211,7 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
+        verify(errorHandler).handleError(EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE)
         verify(logger, never()).log(
             any(),
             any(),
@@ -217,12 +220,6 @@ class AppExitLoggerTest {
             any(),
             any(),
             any(),
-        )
-        verify(
-            errorHandler,
-        ).handleError(
-            "AppExitLogger: The current Application process " +
-                "didn't find a match on getHistoricalProcessExitReasons",
         )
     }
 
@@ -235,7 +232,7 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        verify(errorHandler).handleError(DEFAULT_ERROR, FAKE_EXCEPTION)
+        verify(errorHandler).handleError(EXIT_REASON_EXCEPTION_MESSAGE, FAKE_EXCEPTION)
         verify(logger, never()).log(
             any(),
             any(),

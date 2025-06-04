@@ -104,21 +104,8 @@ internal class AppExitLogger(
         }
 
         when (val lastExitInfoResult = latestAppExitInfoProvider.get(activityManager)) {
-            is LatestAppExitReasonResult.Empty -> {
-                errorHandler.handleError("AppExitLogger: getHistoricalProcessExitReasons is an empty list")
-                return
-            }
-
-            is LatestAppExitReasonResult.ProcessNameNotFound -> {
-                val message =
-                    "AppExitLogger: The current Application process didn't find a match on getHistoricalProcessExitReasons"
-                errorHandler.handleError(message)
-                return
-            }
-
-            is LatestAppExitReasonResult.Error -> {
+            is LatestAppExitReasonResult.Error ->
                 errorHandler.handleError(lastExitInfoResult.message, lastExitInfoResult.throwable)
-            }
 
             is LatestAppExitReasonResult.Valid -> {
                 val lastExitInfo = lastExitInfoResult.applicationExitInfo

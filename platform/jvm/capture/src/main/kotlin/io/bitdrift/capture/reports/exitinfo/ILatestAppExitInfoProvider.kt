@@ -37,23 +37,12 @@ sealed class LatestAppExitReasonResult {
     ) : LatestAppExitReasonResult()
 
     /**
-     * Returns when there are no prior [ApplicationExitInfo]. i.e. initial app installation
-     */
-    data object Empty : LatestAppExitReasonResult()
-
-    /**
-     * Returns when [ApplicationExitInfo.getProcessName] didn't match on any entry
-     * of [ApplicationExitInfo.getHistoricalProcessExitReasons]
-     */
-    data object ProcessNameNotFound : LatestAppExitReasonResult()
-
-    /**
      * Returns the detailed error while trying to determine prior reasons
      * @param message
      * @param throwable
      */
     data class Error(
         val message: String,
-        val throwable: Throwable,
+        val throwable: Throwable? = null,
     ) : LatestAppExitReasonResult()
 }
