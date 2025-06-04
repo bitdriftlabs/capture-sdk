@@ -17,8 +17,15 @@ import io.bitdrift.capture.reports.binformat.v1.ReportType
  * Concrete impl of [ILatestAppExitInfoProvider]
  */
 internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
+    internal const val EXIT_REASON_EMPTY_LIST_MESSAGE =
+        "LatestAppExitInfoProvider: getHistoricalProcessExitReasons returned an empty list"
+    internal const val EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE =
+        "LatestAppExitInfoProvider: No matching process found in getHistoricalProcessExitReasons"
+    internal const val EXIT_REASON_EXCEPTION_MESSAGE =
+        "LatestAppExitInfoProvider: Failed to retrieve LatestAppExitReasonResult"
+
     @TargetApi(Build.VERSION_CODES.R)
-    override fun get(activityManager: ActivityManager): LatestAppExitReasonResult {
+    override fun get(activityManager: ActivityManager): LatestAppExitReasonResult =
         try {
             // a null packageName means match all packages belonging to the caller's process (UID)
             // pid should be 0, a value of 0 means to ignore this parameter and return all matching records
@@ -26,25 +33,27 @@ internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
             val latestKnownExitReasons =
                 activityManager
                     .getHistoricalProcessExitReasons(null, 0, 0)
+
             val matchingProcessReason =
-                latestKnownExitReasons
-                    .firstOrNull {
-                        it.processName == Application.getProcessName()
-                    }
-            return if (latestKnownExitReasons.isEmpty()) {
-                LatestAppExitReasonResult.Empty
-            } else if (matchingProcessReason == null) {
-                LatestAppExitReasonResult.ProcessNameNotFound
-            } else {
-                LatestAppExitReasonResult.Valid(matchingProcessReason)
+                latestKnownExitReasons.firstOrNull {
+                    it.processName == Application.getProcessName()
+                }
+
+            when {
+                latestKnownExitReasons.isEmpty() ->
+                    LatestAppExitReasonResult.Error(EXIT_REASON_EMPTY_LIST_MESSAGE)
+
+                matchingProcessReason == null ->
+                    LatestAppExitReasonResult.Error(EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE)
+
+                else -> LatestAppExitReasonResult.Valid(matchingProcessReason)
             }
         } catch (error: Throwable) {
-            return LatestAppExitReasonResult.Error(
-                "Failed to retrieve ProcessExitReasons from ActivityManager",
+            LatestAppExitReasonResult.Error(
+                EXIT_REASON_EXCEPTION_MESSAGE,
                 error,
             )
         }
-    }
 
     fun mapToFatalIssueType(exitReasonType: Int): Byte? =
         when (exitReasonType) {

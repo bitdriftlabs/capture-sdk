@@ -13,6 +13,9 @@ import android.app.ApplicationExitInfo
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EMPTY_LIST_MESSAGE
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import java.io.ByteArrayInputStream
@@ -114,12 +117,12 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
 
     override fun get(activityManager: ActivityManager): LatestAppExitReasonResult {
         if (hasNoPriorReason) {
-            return LatestAppExitReasonResult.Empty
+            return LatestAppExitReasonResult.Error(EXIT_REASON_EMPTY_LIST_MESSAGE)
         } else if (hasNotMatchedOnProcessName) {
-            return LatestAppExitReasonResult.ProcessNameNotFound
+            return LatestAppExitReasonResult.Error(EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE)
         } else if (hasErrorResult) {
             return LatestAppExitReasonResult.Error(
-                DEFAULT_ERROR,
+                EXIT_REASON_EXCEPTION_MESSAGE,
                 FAKE_EXCEPTION,
             )
         }
@@ -146,11 +149,12 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         const val PROCESS_NAME = "test-process-name"
         val PROCESS_STATE_SUMMARY = SESSION_ID.toByteArray(StandardCharsets.UTF_8)
         const val DEFAULT_DESCRIPTION = "test-description"
-        const val DEFAULT_ERROR =
-            "Failed to retrieve ProcessExitReasons from ActivityManager " +
-                "failed: java.lang.IllegalArgumentException: Comparison method violates its " +
-                "general contract!"
-        val FAKE_EXCEPTION by lazy { Exception() }
+        val FAKE_EXCEPTION by lazy {
+            Exception(
+                "failed: java.lang.IllegalArgumentException: " +
+                    "Comparison method violates its general contract",
+            )
+        }
 
         fun createTraceInputStream(rawText: String): InputStream = ByteArrayInputStream(rawText.toByteArray(Charsets.UTF_8))
     }

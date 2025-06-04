@@ -15,6 +15,9 @@ import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EMPTY_LIST_MESSAGE
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Ignore
@@ -34,7 +37,10 @@ class LatestAppExitInfoProviderTest {
 
         val exitReason = latestAppExitInfoProvider.get(activityManager)
 
-        assertThat(exitReason is LatestAppExitReasonResult.Error).isTrue()
+        assertResult<LatestAppExitReasonResult.Error>(
+            exitReason,
+            EXIT_REASON_EXCEPTION_MESSAGE,
+        )
     }
 
     @Ignore("TODO(FranAguilera): BIT-5484 This works on gradle with Roboelectric. Fix on bazel")
@@ -45,8 +51,11 @@ class LatestAppExitInfoProviderTest {
         whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
 
         val exitReason = latestAppExitInfoProvider.get(activityManager)
-
-        assertThat(exitReason is LatestAppExitReasonResult.Valid).isTrue()
+        
+        assertResult<LatestAppExitReasonResult.Valid>(
+            exitReason,
+            expectedApplicationExitInfo = mockExitInfo,
+        )
     }
 
     @Ignore("TODO(FranAguilera): BIT-5484. This works on gradle with Roboelectric. Fix on bazel")
@@ -59,7 +68,10 @@ class LatestAppExitInfoProviderTest {
 
         val exitReason = latestAppExitInfoProvider.get(activityManager)
 
-        assertThat(exitReason is LatestAppExitReasonResult.Empty).isTrue()
+        assertResult<LatestAppExitReasonResult.Error>(
+            exitReason,
+            EXIT_REASON_EMPTY_LIST_MESSAGE,
+        )
     }
 
     @Ignore("TODO(FranAguilera): BIT-5484. This works on gradle with Roboelectric. Fix on bazel")
@@ -73,6 +85,26 @@ class LatestAppExitInfoProviderTest {
 
         val exitReason = latestAppExitInfoProvider.get(activityManager)
 
-        assertThat(exitReason is LatestAppExitReasonResult.ProcessNameNotFound).isTrue()
+        assertResult<LatestAppExitReasonResult.Error>(
+            exitReason,
+            EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE,
+        )
+    }
+
+    private inline fun <reified T : LatestAppExitReasonResult> assertResult(
+        exitReason: LatestAppExitReasonResult,
+        expectedMessage: String? = null,
+        expectedApplicationExitInfo: ApplicationExitInfo? = null,
+    ) {
+        assertThat(exitReason).isInstanceOf(T::class.java)
+
+        when (exitReason) {
+            is LatestAppExitReasonResult.Valid -> {
+                assertThat(exitReason.applicationExitInfo).isEqualTo(expectedApplicationExitInfo)
+            }
+            is LatestAppExitReasonResult.Error -> {
+                assertThat(exitReason.message).isEqualTo(expectedMessage)
+            }
+        }
     }
 }
