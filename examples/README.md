@@ -74,6 +74,8 @@ Setup the environment, open Android Studio.
 
 1. Select `Open...` and select folder `/capture-sdk/platform/jvm`. This should automatically kick off the Gradle sync process.
 
+    - If you get a `java.io.IOException: Cannot run program "rustc"` error, open the project from the command line using `open -a "Android Studio"` in the project directory. 
+  
     - If you get an `NDK not installed` error:
 
         ![](../docs/images/android_local_gradle_error.png)
