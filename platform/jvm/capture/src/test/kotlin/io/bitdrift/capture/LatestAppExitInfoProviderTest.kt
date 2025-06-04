@@ -51,7 +51,7 @@ class LatestAppExitInfoProviderTest {
         whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
 
         val exitReason = latestAppExitInfoProvider.get(activityManager)
-        
+
         assertResult<LatestAppExitReasonResult.Valid>(
             exitReason,
             expectedApplicationExitInfo = mockExitInfo,

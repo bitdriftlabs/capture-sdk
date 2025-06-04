@@ -13,9 +13,6 @@ import android.app.ApplicationExitInfo
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EMPTY_LIST_MESSAGE
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import java.io.ByteArrayInputStream
@@ -117,12 +114,14 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
 
     override fun get(activityManager: ActivityManager): LatestAppExitReasonResult {
         if (hasNoPriorReason) {
-            return LatestAppExitReasonResult.Error(EXIT_REASON_EMPTY_LIST_MESSAGE)
+            return LatestAppExitReasonResult.Error("LatestAppExitInfoProvider: getHistoricalProcessExitReasons returned an empty list")
         } else if (hasNotMatchedOnProcessName) {
-            return LatestAppExitReasonResult.Error(EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE)
+            return LatestAppExitReasonResult.Error(
+                "LatestAppExitInfoProvider: No matching process found in getHistoricalProcessExitReasons",
+            )
         } else if (hasErrorResult) {
             return LatestAppExitReasonResult.Error(
-                EXIT_REASON_EXCEPTION_MESSAGE,
+                "LatestAppExitInfoProvider: Failed to retrieve LatestAppExitReasonResult",
                 FAKE_EXCEPTION,
             )
         }
