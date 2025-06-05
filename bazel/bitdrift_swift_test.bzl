@@ -58,3 +58,47 @@ def bitdrift_mobile_objc_test(name, srcs, data = [], deps = [], tags = [], visib
         tags = tags,
         visibility = visibility,
     )
+
+def bitdrift_mobile_swift_objc_test(name, srcs_swift, srcs_objc, hdrs_objc, data = [], deps = [], tags = [], use_test_host = False, repository = "", visibility = []):
+    test_swift_lib_name = name + "_swift_lib"
+    test_objc_lib_name = name + "_objc_lib"
+    swift_library(
+        name = test_swift_lib_name,
+        srcs = srcs_swift,
+        data = data,
+        deps = deps,
+        linkopts = ["-lresolv.9"],
+        testonly = True,
+        visibility = ["//visibility:private"],
+        tags = ["manual"],
+    )
+
+    objc_library(
+        name = test_objc_lib_name,
+        srcs = srcs_objc,
+        hdrs = hdrs_objc,
+        data = data,
+        deps = deps,
+        linkopts = ["-lresolv.9"],
+        testonly = True,
+        visibility = ["//visibility:private"],
+        tags = ["manual"],
+    )
+
+    test_host = None
+    if use_test_host:
+        test_host = "//test/platform/swift/test_host:TestHost"
+
+    ios_unit_test(
+        name = name,
+        data = data,
+        deps = [test_swift_lib_name, test_objc_lib_name],
+        minimum_os_version = MINIMUM_IOS_VERSION_TESTS,
+        timeout = "long",
+        tags = tags + [
+            "no-cache",
+            "no-remote",
+        ],
+        test_host = test_host,
+        visibility = visibility,
+    )

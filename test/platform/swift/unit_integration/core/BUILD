@@ -1,13 +1,15 @@
-load("//bazel:bitdrift_swift_test.bzl", "bitdrift_mobile_swift_test")
+load("//bazel:bitdrift_swift_test.bzl", "bitdrift_mobile_swift_objc_test")
 
-bitdrift_mobile_swift_test(
+bitdrift_mobile_swift_objc_test(
     name = "test",
-    srcs = glob(["**/*.swift"]) + ["//proto:report_swift_source"],
     data = [
         "testdata/lastCrash.bjn",
         "testdata/metrickit-example.json",
     ],
     repository = "@capture",
+    hdrs_objc = glob(["**/*.h"]),
+    srcs_objc = glob(["**/*.m"]),
+    srcs_swift = glob(["**/*.swift"]) + ["//proto:report_swift_source"],
     tags = ["macos_only"],
     visibility = ["//visibility:public"],
     deps = [
