@@ -1,8 +1,9 @@
-load("//bazel:bitdrift_swift_test.bzl", "bitdrift_mobile_swift_test")
+load("//bazel:bitdrift_swift_test.bzl", "bitdrift_mobile_swift_objc_test")
 
-bitdrift_mobile_swift_test(
+bitdrift_mobile_swift_objc_test(
     name = "test",
-    srcs = glob(["**/*.swift"]),
+    srcs_swift = glob(["**/*.swift"]),
+    srcs_objc = glob(["**/*.m"]),
     repository = "@capture",
     tags = ["macos_only"],
     visibility = ["//visibility:public"],
