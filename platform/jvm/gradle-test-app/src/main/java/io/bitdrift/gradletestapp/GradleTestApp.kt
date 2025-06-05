@@ -52,15 +52,16 @@ import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import com.bugsnag.android.Bugsnag
 import io.bitdrift.capture.Capture
-import io.bitdrift.capture.Capture.Logger.sessionUrl
+import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.getFatalIssueSourceConfig
-import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED
 import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BITDRIFT_API_KEY
 import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BUG_SNAG_SDK_API_KEY
 import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.SENTRY_SDK_DSN_KEY
@@ -71,6 +72,8 @@ import papa.AppLaunchType
 import papa.PapaEvent
 import papa.PapaEventListener
 import timber.log.Timber
+import java.util.Hashtable
+import java.util.UUID
 import java.util.concurrent.Executors
 import kotlin.random.Random
 import kotlin.time.DurationUnit
@@ -106,17 +109,42 @@ class GradleTestApp : Application() {
             return
         }
 
-        BitdriftInit.initBitdriftCaptureInJava(
-            apiUrl,
-            sharedPreferences.getString(BITDRIFT_API_KEY, ""),
-            sharedPreferences.getString(SESSION_STRATEGY_PREFS_KEY, FIXED.displayName),
+//        BitdriftInit.initBitdriftCaptureInJava(
+//            apiUrl,
+//            sharedPreferences.getString(BITDRIFT_API_KEY, ""),
+//            sharedPreferences.getString(SESSION_STRATEGY_PREFS_KEY, FIXED.displayName),
+//        )
+
+        val userID = UUID.randomUUID().toString()
+        val fieldProviders: MutableList<FieldProvider> = ArrayList()
+        fieldProviders.add(FieldProvider {
+            val fields: MutableMap<String, String> = Hashtable()
+            fields["user_id"] = userID
+            fields
+        })
+
+        Capture.Logger.start(
+            sharedPreferences.getString(BITDRIFT_API_KEY, "")!!,
+            sessionStrategy = SessionStrategy.ActivityBased(inactivityThresholdMins = 1L,
+                onSessionIdChanged = { sessionId ->
+                    Timber.d("Bitdrift session id changed: $sessionId ${Capture.Logger.sessionUrl}")
+                    Capture.Logger.sessionUrl?.let { sessionUrl ->
+                        Log.i("GradleTestApp", "Bitdrift session id changed: $sessionId $sessionUrl")
+                    }
+                }
+            ),
+            Configuration(),
+            fieldProviders,
+            null,
+            apiUrl
         )
+
         // Timber
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
         Timber.plant(CaptureTree())
-        Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
+        Timber.i("Bitdrift Logger initialized with session_url=${Capture.Logger}.sessionUrl")
     }
 
     private fun trackAppLaunch() {
