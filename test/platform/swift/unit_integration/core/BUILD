@@ -2,8 +2,9 @@ load("//bazel:bitdrift_swift_test.bzl", "bitdrift_mobile_swift_objc_test")
 
 bitdrift_mobile_swift_objc_test(
     name = "test",
-    srcs_swift = glob(["**/*.swift"]),
+    hdrs_objc = glob(["**/*.h"]),
     srcs_objc = glob(["**/*.m"]),
+    srcs_swift = glob(["**/*.swift"]),
     repository = "@capture",
     tags = ["macos_only"],
     visibility = ["//visibility:public"],

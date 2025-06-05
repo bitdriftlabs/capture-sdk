@@ -59,7 +59,7 @@ def bitdrift_mobile_objc_test(name, srcs, data = [], deps = [], tags = [], visib
         visibility = visibility,
     )
 
-def bitdrift_mobile_swift_objc_test(name, srcs_swift, srcs_objc, data = [], deps = [], tags = [], use_test_host = False, repository = "", visibility = []):
+def bitdrift_mobile_swift_objc_test(name, srcs_swift, srcs_objc, hdrs_objc, data = [], deps = [], tags = [], use_test_host = False, repository = "", visibility = []):
     test_swift_lib_name = name + "_swift_lib"
     test_objc_lib_name = name + "_objc_lib"
     swift_library(
@@ -76,6 +76,7 @@ def bitdrift_mobile_swift_objc_test(name, srcs_swift, srcs_objc, data = [], deps
     objc_library(
         name = test_objc_lib_name,
         srcs = srcs_objc,
+        hdrs = hdrs_objc,
         data = data,
         deps = deps,
         linkopts = ["-lresolv.9"],
