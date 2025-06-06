@@ -664,7 +664,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         network: network_manager,
         static_metadata,
       })
-      .with_client_stats(true)
       .with_internal_logger(true)
       .build()
       .map(|(logger, _, future, _)| LoggerHolder::new(logger, future))?;
