@@ -122,6 +122,7 @@ class CaptureLoggerSessionOverrideTest {
                 activityManager = activityManager,
                 fatalIssueReporter = fatalIssueReporter,
             )
+        logger.startLogger()
 
         val newStreamId = CaptureTestJniLibrary.awaitNextApiStream()
         assertThat(newStreamId).isNotEqualTo(-1)
