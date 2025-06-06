@@ -15,6 +15,7 @@ include(":capture-timber")
 include(":common")
 include(":replay")
 include(":capture-plugin")
+include(":capture-deobfuscation-plugin")
 
 include(":gradle-test-app")
 
