@@ -10,7 +10,7 @@ package io.bitdrift.capture.reports.processor
 import android.content.Context
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.google.flatbuffers.FlatBufferBuilder
-import io.bitdrift.capture.CaptureJniLibrary
+import io.bitdrift.capture.Capture
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.reports.binformat.v1.AppBuildNumber
 import io.bitdrift.capture.reports.binformat.v1.DeviceMetrics
@@ -176,10 +176,5 @@ internal interface ISDKVersionProvider {
 }
 
 private class CoreSDKVersionProvider : ISDKVersionProvider {
-    override fun getSDKVersion(): String? {
-        // Ensure native lib is loaded - it will not yet be loaded when
-        // evaluating the SDK version during fatal issue handler initialization
-        CaptureJniLibrary.load()
-        return CaptureJniLibrary.getSdkVersion()
-    }
+    override fun getSDKVersion(): String? = Capture.Logger.version()
 }

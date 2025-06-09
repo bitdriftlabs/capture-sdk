@@ -5,6 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+internal import CaptureLoggerBridge
 import Foundation
 
 // Make this class not available to Swift code. It should be used by Objective-c code only.
@@ -46,6 +47,14 @@ public final class LoggerObjc: NSObject {
         if let logger, enableURLSessionIntegration {
             logger.enableIntegrations([.urlSession()], disableSwizzling: false)
         }
+    }
+
+    /// Get the current version of the Capture library
+    ///
+    /// - returns: the version as a String
+    @objc
+    public static func sdkVersion() -> String {
+        return capture_get_sdk_version();
     }
 
     /// Defines the initialization of a new session within the current configured logger.

@@ -17,6 +17,7 @@ import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
+import io.bitdrift.capture.Capture
 import io.bitdrift.gradletestapp.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {

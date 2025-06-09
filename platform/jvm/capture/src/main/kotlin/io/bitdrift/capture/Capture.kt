@@ -100,6 +100,18 @@ object Capture {
         private val mainThreadHandler by lazy { MainThreadHandler() }
 
         /**
+         * Get the current version of the Capture library
+         *
+         * @return the version as a String or null if loading failed
+         */
+        @JvmStatic
+        val sdkVersion: String? get() {
+            // support operation prior to the library being initialized
+            CaptureJniLibrary.load()
+            return CaptureJniLibrary.getSdkVersion();
+        }
+
+        /**
          * Initializes fatal issue (ANR, JVM Crash, Native crash) reporting mechanism.
          *
          * @param context an optional context reference. You should provide the context if called from a [android.content.ContentProvider]
