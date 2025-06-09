@@ -31,6 +31,13 @@ extension Logger {
         self.getShared()
     }
 
+    /// Get the current version of the Capture library
+    ///
+    /// - returns: the version as a String
+    public static var sdkVersion: String {
+        capture_get_sdk_version()
+    }
+
     /// Initializes the Capture SDK with the specified API key, providers, and configuration.
     /// Calling other SDK methods has no effect unless the logger has been initialized.
     /// Subsequent calls to this function will have no effect.
