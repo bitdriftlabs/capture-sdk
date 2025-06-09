@@ -206,9 +206,6 @@ static int8_t architecture_constant(NSString *arch) {
   NSRange nameRange = [match rangeWithName:@"osName"];
   NSRange versionRange = [match rangeWithName:@"osVersion"];
   NSRange buildRange = [match rangeWithName:@"buildNumber"];
-  if (!nameRange.length || !versionRange.length || !buildRange.length) {
-    return nil;
-  }
   if (self = [super init]) {
     if (!nameRange.length || !versionRange.length || !buildRange.length) {
       self.version = version; // pathological case where there's a match but the captures don't hit
