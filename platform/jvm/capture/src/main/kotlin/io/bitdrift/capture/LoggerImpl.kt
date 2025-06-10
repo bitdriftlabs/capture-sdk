@@ -11,7 +11,6 @@ import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
-import android.content.pm.ApplicationInfo
 import android.system.Os
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -51,6 +50,7 @@ import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
+import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
 import okhttp3.HttpUrl
 import java.util.UUID
@@ -263,11 +263,7 @@ internal class LoggerImpl(
                 CaptureJniLibrary.startLogger(this.loggerId)
             }
 
-        CaptureJniLibrary.writeSDKStartLog(
-            this.loggerId,
-            getCaptureSdkFields(),
-            duration.toDouble(DurationUnit.SECONDS),
-        )
+        writeSdkStartLog(context, clientAttributes, initDuration = duration)
     }
 
     override val sessionId: String
@@ -484,13 +480,33 @@ internal class LoggerImpl(
         appExitLogger.uninstallAppExitLogger()
     }
 
-    private fun getCaptureSdkFields(): Map<String, FieldValue> =
-        buildMap {
-            putAll(
-                mapOf("_capture_start_thread" to Thread.currentThread().name.toFieldValue()),
-            )
-            putAll(fatalIssueReporter.getLogStatusFieldsMap())
-        }
+    private fun writeSdkStartLog(
+        appContext: Context,
+        clientAttributes: ClientAttributes,
+        initDuration: Duration,
+    ) {
+        val installationSource =
+            clientAttributes
+                .getInstallationSource(appContext, errorHandler)
+                .toFieldValue()
+
+        val sdkStartFields =
+            buildMap {
+                putAll(
+                    mapOf(
+                        "_app_installation_source" to installationSource,
+                        "_capture_start_thread" to Thread.currentThread().name.toFieldValue(),
+                    ),
+                )
+                putAll(fatalIssueReporter.getLogStatusFieldsMap())
+            }
+
+        CaptureJniLibrary.writeSDKStartLog(
+            this.loggerId,
+            sdkStartFields,
+            initDuration.toDouble(DurationUnit.SECONDS),
+        )
+    }
 
     /**
      * Usage: adb shell setprop debug.bitdrift.internal_log_level debug
@@ -501,8 +517,7 @@ internal class LoggerImpl(
     @Suppress("SpreadOperator")
     @SuppressLint("PrivateApi")
     private fun setUpInternalLogging() {
-        // Determine if app is debuggable using this bitwise operation
-        if (ContextHolder.APP_CONTEXT.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+        if (BuildTypeChecker.isDebuggable(ContextHolder.APP_CONTEXT)) {
             val defaultLevel = "info"
             runCatching {
                 // TODO(murki): Alternatively we could use JVM -D arg to pass properties
