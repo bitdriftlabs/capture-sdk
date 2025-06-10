@@ -20,6 +20,7 @@ import io.bitdrift.capture.reports.binformat.v1.Report
 import io.bitdrift.capture.reports.binformat.v1.ReportType
 import io.bitdrift.capture.reports.persistence.IFatalIssueReporterStorage
 import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor
+import io.bitdrift.capture.reports.processor.ISDKVersionProvider
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -47,7 +48,13 @@ class FatalIssueReporterProcessorTest {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
         fatalIssueReporterProcessor =
-            FatalIssueReporterProcessor(APP_CONTEXT, fatalIssueReporterStorage)
+            FatalIssueReporterProcessor(
+                APP_CONTEXT,
+                fatalIssueReporterStorage,
+                object : ISDKVersionProvider {
+                    override fun getSDKVersion(): String? = "3.4.51"
+                },
+            )
     }
 
     @Test
@@ -69,6 +76,10 @@ class FatalIssueReporterProcessorTest {
         )
         val buffer = ByteBuffer.wrap(fatalIssueReportCaptor.firstValue)
         val report = Report.getRootAsReport(buffer)
+
+        val sdk = report.sdk!!
+        assertThat(sdk.version).isEqualTo("3.4.51")
+
         val error = report.errors(0)!!
         assertThat(error.reason).isEqualTo("Fake JVM exception")
         assertThat(error.name).isEqualTo("io.bitdrift.capture.fakes.FakeJvmException")
@@ -83,7 +94,7 @@ class FatalIssueReporterProcessorTest {
             "persistJvmCrash_withFakeException_shouldCreateNonEmptyErrorModel",
         )
         assertThat(error.stackTrace(0)!!.sourceFile!!.path).isEqualTo("FatalIssueReporterProcessorTest.kt")
-        assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(56)
+        assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(63)
         assertThat(error.stackTrace(0)!!.sourceFile!!.column).isEqualTo(0)
     }
 
