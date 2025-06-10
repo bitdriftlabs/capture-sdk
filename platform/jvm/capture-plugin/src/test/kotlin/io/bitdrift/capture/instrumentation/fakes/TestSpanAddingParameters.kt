@@ -47,6 +47,9 @@ class TestSpanAddingParameters(
     override val debug: Property<Boolean>
         get() = DefaultProperty(PropertyHost.NO_OP, Boolean::class.javaObjectType)
             .convention(debugOutput)
+    override val proxyOkHttpEventListener: Property<Boolean>
+        get() = DefaultProperty(PropertyHost.NO_OP, Boolean::class.javaObjectType)
+            .convention(true)
 
     override val tmpDir: Property<File>
         get() = DefaultProperty<File>(PropertyHost.NO_OP, File::class.java).convention(inMemoryDir)
