@@ -17,7 +17,7 @@
 // - `osName` is everything before the version number ("iPhone OS")
 // - `osVersion` is the dot-delimited numbers
 // - `buildNumber` is the parenthesized letters and numbers
-static NSString *const OS_VERSION_MATCHER = @"^(?<osName>.*)\\s+(?<osVersion>\\d+\\.\\d+\\.\\d+)\\s+\\((?<buildNumber>.*)\\)$";
+static NSString *const OS_VERSION_MATCHER = @"^(?<osName>.*)\\s+(?<osVersion>\\d+.*)\\s+\\((?<buildNumber>.*)\\)$";
 // Name to use for `MXHangDiagnostic` events if no better name is detected
 static NSString *const DEFAULT_HANG_NAME = @"App Hang";
 // SDK identifier used in generated files
