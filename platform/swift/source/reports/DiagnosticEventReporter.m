@@ -111,13 +111,8 @@ static inline const char * cstring_from(NSString *str) {
   return [str cStringUsingEncoding:NSUTF8StringEncoding];
 }
 
-static uint32_t crashed_thread_index(NSArray *stacks) {
-  for (uint32_t index = 0; index < stacks.count; index++) {
-    if ([number_for_key(stacks[index], @"threadAttributed") boolValue]) {
-      return index;
-    }
-  }
-  return 0; // first thread is crashed thread if none attributed
+static NSDictionary *thread_root_frame(NSDictionary *thread) {
+  return [array_for_key(thread, @"callStackRootFrames") firstObject];
 }
 
 static uint64_t count_frames(NSDictionary *rootFrame) {
@@ -130,6 +125,21 @@ static uint64_t count_frames(NSDictionary *rootFrame) {
   return count;
 }
 
+static uint32_t crashed_thread_index(NSArray *stacks) {
+  for (uint32_t index = 0; index < stacks.count; index++) {
+    if ([number_for_key(stacks[index], @"threadAttributed") boolValue]) {
+      return index;
+    }
+  }
+  for (uint32_t index = 0; index < stacks.count; index++) {
+    if (count_frames(thread_root_frame(stacks[index])) > 0) {
+      return index; // grab first thread with frames if none attributed
+    }
+  }
+
+  return 0; // first thread is crashed thread if none contain frames
+}
+
 static void serialize_error_threads(BDProcessorHandle handle, NSDictionary *crash, NSString *name, NSString *reason) {
   NSMutableSet <NSString *>* images = [NSMutableSet new];
   NSArray *call_stacks = dict_for_key(crash, @"callStackTree")[@"callStacks"];
@@ -137,7 +147,7 @@ static void serialize_error_threads(BDProcessorHandle handle, NSDictionary *cras
 
   for (uint32_t thread_index = 0; thread_index < call_stacks.count; thread_index++) {
     NSDictionary *thread = call_stacks[thread_index];
-    NSDictionary *frame = [array_for_key(thread, @"callStackRootFrames") firstObject];
+    NSDictionary *frame = thread_root_frame(thread);
     uint64_t frame_count = count_frames(frame);
     BDStackFrame *stack = frame_count
       ? (BDStackFrame *)calloc(frame_count, sizeof(BDStackFrame))
