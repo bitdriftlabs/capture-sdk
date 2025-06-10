@@ -187,6 +187,20 @@ class ClientAttributesTest {
     }
 
     @Test
+    @Config(sdk = [21])
+    fun checkInstallationSource_withDebugBuilds_shouldReturnDebugBuildMessage() {
+        val hasValidInstallationSource = true
+        val expectedInstallationSource = "Debug build installation"
+        val isDebugBuild = true
+
+        assertInstallationSource(
+            hasValidInstallationSource,
+            expectedInstallationSource,
+            isDebugBuild,
+        )
+    }
+
+    @Test
     fun checkInstallationSource_viaInstallerPackageName_shouldReturnDefaultPlaceHolder() {
         val hasValidInstallationSource = false
         val expectedInstallationSource = "unknown"
@@ -197,14 +211,23 @@ class ClientAttributesTest {
     private fun assertInstallationSource(
         hasValidInstallationSource: Boolean,
         expectedInstallationSource: String,
+        isDebugBuild: Boolean = false,
     ) {
         val errorHandler: ErrorHandler = mock()
 
         val context = spy(ApplicationProvider.getApplicationContext<Context>())
-        val packageManager = obtainMockedPackageManager(context)
-        if (hasValidInstallationSource) {
-            packageManager.addInstallationSource(context)
-        }
+        val installerSourceName =
+            if (isDebugBuild) {
+                "Debug build installation"
+            } else {
+                context.applicationInfo.flags = 0
+                DEFAULT_INSTALLER_PACKAGE_NAME
+            }
+
+        val packageManager =
+            obtainMockedPackageManager(context).apply {
+                if (hasValidInstallationSource) addInstallationSource(context, installerSourceName)
+            }
         doReturn(packageManager).`when`(context).packageManager
 
         val attributes =
@@ -236,19 +259,22 @@ class ClientAttributesTest {
         return mockedPackageManager
     }
 
-    private fun PackageManager.addInstallationSource(context: Context) {
+    private fun PackageManager.addInstallationSource(
+        context: Context,
+        installerSourceName: String,
+    ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val mockSourceInfo = mock(InstallSourceInfo::class.java)
             `when`(mockSourceInfo.installingPackageName)
                 .thenReturn(
-                    DEFAULT_INSTALLER_PACKAGE_NAME,
+                    installerSourceName,
                 )
             `when`(getInstallSourceInfo(context.packageName)).thenReturn(
                 mockSourceInfo,
             )
         } else {
             `when`(getInstallerPackageName(context.packageName))
-                .thenReturn(DEFAULT_INSTALLER_PACKAGE_NAME)
+                .thenReturn(installerSourceName)
         }
     }
 
