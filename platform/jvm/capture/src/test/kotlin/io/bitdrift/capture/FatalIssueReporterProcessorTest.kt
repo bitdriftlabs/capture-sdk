@@ -109,13 +109,20 @@ class FatalIssueReporterProcessorTest {
         val error = report.errors(0)!!
         assertThat(error.name).isEqualTo("User Perceived ANR")
         assertThat(error.reason).isEqualTo(APP_EXIT_DESCRIPTION_ANR)
+
+        // Entries below corresponds to sample `app_exit_anr_deadlock_anr.txt`
         assertThat(error.stackTrace(0)!!.type).isEqualTo(1)
         assertThat(error.stackTrace(0)!!.stateLength).isEqualTo(0)
-        assertThat(error.stackTrace(0)!!.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")
-        assertThat(error.stackTrace(0)!!.symbolName).isEqualTo("startProcessing")
-        assertThat(error.stackTrace(0)!!.sourceFile!!.path).isEqualTo("FatalIssueGenerator.kt")
-        assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(106)
-        assertThat(error.stackTrace(0)!!.sourceFile!!.column).isEqualTo(0)
+        assertThat(error.stackTrace(0)!!.className).isEqualTo("\"main\" prio=5 tid=1 Blocked")
+
+        assertThat(error.stackTrace(1)!!.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")
+        assertThat(error.stackTrace(1)!!.symbolName).isEqualTo("startProcessing")
+        assertThat(error.stackTrace(1)!!.sourceFile!!.path).isEqualTo("FatalIssueGenerator.kt")
+        assertThat(error.stackTrace(1)!!.sourceFile!!.line).isEqualTo(106)
+        assertThat(error.stackTrace(1)!!.sourceFile!!.column).isEqualTo(0)
+
+        assertThat(error.stackTrace(2)!!.className)
+            .isEqualTo("  - waiting to lock <0x0481d03d> (a java.lang.String) held by thread 4")
     }
 
     @Test

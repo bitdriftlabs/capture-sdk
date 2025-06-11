@@ -10,11 +10,9 @@ package io.bitdrift.capture.reports.processor
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.reports.binformat.v1.Error
 import io.bitdrift.capture.reports.binformat.v1.ErrorRelation
-import io.bitdrift.capture.reports.binformat.v1.Frame
 import io.bitdrift.capture.reports.binformat.v1.FrameType
 import io.bitdrift.capture.reports.binformat.v1.Report
 import io.bitdrift.capture.reports.binformat.v1.ReportType
-import io.bitdrift.capture.reports.binformat.v1.SourceFile
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -26,6 +24,7 @@ import java.io.InputStreamReader
 internal object AppExitAnrTraceProcessor {
     private const val ANR_MAIN_THREAD_IDENTIFIED = "\"main\""
     private const val ANR_STACKTRACE_PREFIX = "at "
+    private const val ADDITIONAL_THREAD_INFO_IDENTIFIER = "|"
     private val ANR_STACK_TRACE_REGEX = Regex("^\\s+at\\s+(.*)\\.(.*)\\((.*):(\\d+)\\)$")
     private val mainStackTraceFrames = mutableListOf<Int>()
     private var isProcessingMainThreadTrace = false
@@ -85,40 +84,49 @@ internal object AppExitAnrTraceProcessor {
         currentLine: String,
     ) {
         setIsMainThreadStackTrace(currentLine)
-        if (!isStackTraceLine(currentLine)) return
 
-        ANR_STACK_TRACE_REGEX.find(currentLine)?.destructured?.let { (className, symbolName, fileName, lineNumber) ->
-            if (!isProcessingMainThreadTrace) {
-                return
-            }
-            val path = builder.createString(fileName)
-            val sourceFile =
-                SourceFile.createSourceFile(
-                    builder,
-                    path,
-                    lineNumber.toLongOrNull() ?: 0,
-                    0,
-                )
-            val frame =
-                Frame.createFrame(
-                    builder,
-                    FrameType.JVM,
-                    builder.createString(className),
-                    builder.createString(symbolName),
-                    sourceFile,
-                    0,
-                    0u,
-                    0u,
-                    0,
-                    0,
-                    0,
-                    0u,
-                    false,
-                    0,
-                )
-            mainStackTraceFrames.add(frame)
+        if (!isProcessingMainThreadTrace) {
+            return
         }
+
+        val frame =
+            when {
+                isStackTraceLine(currentLine) -> {
+                    ANR_STACK_TRACE_REGEX
+                        .find(currentLine)
+                        ?.destructured
+                        ?.let { (className, symbolName, fileName, lineNumber) ->
+                            val frameData =
+                                FrameData(
+                                    className = className,
+                                    symbolName = symbolName,
+                                    fileName = fileName,
+                                    lineNumber = lineNumber.toLongOrNull(),
+                                )
+                            ReportFrameBuilder.build(
+                                FrameType.JVM,
+                                builder,
+                                frameData,
+                            )
+                        }
+                }
+
+                isAdditionalStackTraceInfo(currentLine) -> {
+                    // TODO(FranAguilera): BIT-5576. To update underlying Report model to support a Frame Entry for
+                    //  details (e..g. sleeping on <0x07849c2b> (a java.lang.Object))
+                    ReportFrameBuilder.build(
+                        FrameType.JVM,
+                        builder,
+                        FrameData(className = currentLine),
+                    )
+                }
+
+                else -> null
+            }
+        frame?.let { mainStackTraceFrames.add(it) }
     }
+
+    private fun isAdditionalStackTraceInfo(currentLine: String): Boolean = !currentLine.contains(ADDITIONAL_THREAD_INFO_IDENTIFIER)
 
     /**
      * Based on android source (see frameworks/base/core/java/com/android/internal/os/TimeoutRecord.java)
