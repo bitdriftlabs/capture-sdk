@@ -125,7 +125,7 @@ internal object AppExitAnrTraceProcessor {
      */
     private sealed class AnrReason(
         val readableType: String,
-        private val sentenceToMatch: String?,
+        private val sentenceToMatch: String? = null,
     ) {
         companion object {
             fun extractFrom(description: String?): AnrReason {
@@ -136,52 +136,55 @@ internal object AppExitAnrTraceProcessor {
                     UserPerceivedAnr.matches(sanitizedDescription) -> UserPerceivedAnr
                     BackgroundAnr.matches(sanitizedDescription) -> BackgroundAnr
                     BroadcastReceiver.matches(sanitizedDescription) -> BroadcastReceiver
-                    ExecutingService.matches(sanitizedDescription) -> ExecutingService
-                    StartForegroundNotCalled.matches(sanitizedDescription) -> StartForegroundNotCalled
+                    ServiceAnr.matches(sanitizedDescription) -> ServiceAnr
                     ContentProvider.matches(sanitizedDescription) -> ContentProvider
                     AppRegistered.matches(sanitizedDescription) -> AppRegistered
-                    ShortFgsTimeout.matches(sanitizedDescription) -> ShortFgsTimeout
-                    JobService.matches(sanitizedDescription) -> JobService
                     AppStart.matches(sanitizedDescription) -> AppStart
-                    ServiceStart.matches(sanitizedDescription) -> ServiceStart
                     else -> UndeterminedAnr
                 }
             }
         }
 
-        fun matches(description: String) = sentenceToMatch?.let { it in description } ?: false
+        open fun matches(description: String) = sentenceToMatch?.let { it in description } ?: false
 
         /*
-         * Combining all Input Dispatching Timed Out as User Perceived ANR as per public definition
-         * See definition at https://developer.android.com/topic/performance/vitals/anr#android-vitals
+         * Even though play console definition at https://developer.android.com/topic/performance/vitals/anr#android-vitals
+         * mentions that User Perceived ANRs only are tracked as Input Dispatching time out,
+         * there are ANRs perceived by the user with a description of just `user request after error`,
+         * this occurs when the user sees the native ANR dialog
          */
         data object UserPerceivedAnr :
-            AnrReason("User Perceived ANR", "input dispatching timed out")
+            AnrReason("User Perceived ANR") {
+            override fun matches(description: String): Boolean =
+                "input dispatching timed out" in description ||
+                    "user request after error" == description
+        }
 
         data object BackgroundAnr : AnrReason("Background ANR", "bg anr")
 
         data object BroadcastReceiver : AnrReason("Broadcast Receiver ANR", "broadcast of intent")
 
-        data object ExecutingService : AnrReason("Executing Service ANR", "executing service")
+        data object ServiceAnr : AnrReason("Service ANR") {
+            private val serviceMessageTypes =
+                listOf(
+                    "executing service",
+                    "service.startforeground() not called",
+                    "short fgs timeout",
+                    "timed out while trying to bind",
+                    "job service timeout",
+                    "no response to onstopjob",
+                    "service start timeout",
+                )
 
-        data object StartForegroundNotCalled : AnrReason(
-            "Service.startForeground() Not Called ANR",
-            "service.startforeground() not called",
-        )
+            override fun matches(description: String): Boolean = serviceMessageTypes.any { it in description }
+        }
 
         data object ContentProvider : AnrReason("Content Provider ANR", "content provider timeout")
 
         data object AppRegistered : AnrReason("App Registered ANR", "app registered timeout")
 
-        data object ShortFgsTimeout :
-            AnrReason("Short Foreground Service Timeout ANR", "short fgs timeout")
-
-        data object JobService : AnrReason("Job Service ANR", "job service timeout")
-
         data object AppStart : AnrReason("App Start ANR", "app start timeout")
 
-        data object ServiceStart : AnrReason("Service Start ANR", "service start timeout")
-
-        data object UndeterminedAnr : AnrReason("Undetermined ANR", null)
+        data object UndeterminedAnr : AnrReason("Undetermined ANR")
     }
 }

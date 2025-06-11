@@ -127,6 +127,15 @@ class FatalIssueReporterProcessorTest {
     }
 
     @Test
+    fun persistAppExitReport_whenAnrDialogShown_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit =
+                "user request after error",
+            expectedMessage = "User Perceived ANR",
+        )
+    }
+
+    @Test
     fun persistAppExitReport_whenBroadcastReceiverAnr_shouldMatchAnrReason() {
         assertAnrReason(
             descriptionFromAppExit =
@@ -142,7 +151,7 @@ class FatalIssueReporterProcessorTest {
             descriptionFromAppExit =
                 "Executing service. { act=android.intent.action.MAIN \" +\n" +
                     "                    \"cmp=com.example.app/.MainActivity}",
-            expectedMessage = "Executing Service ANR",
+            expectedMessage = "Service ANR",
         )
     }
 
@@ -150,7 +159,15 @@ class FatalIssueReporterProcessorTest {
     fun persistAppExitReport_whenStartServiceForegroundAnr_shouldMatchAnrReason() {
         assertAnrReason(
             descriptionFromAppExit = "Service.StartForeground() not called.{ act=android.intent.action.MAIN}",
-            expectedMessage = "Service.startForeground() Not Called ANR",
+            expectedMessage = "Service ANR",
+        )
+    }
+
+    @Test
+    fun persistAppExitReport_whenServiceBindTimeoutAnr_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit = "user request after error: Timed out while trying to bind",
+            expectedMessage = "Service ANR",
         )
     }
 
@@ -171,22 +188,6 @@ class FatalIssueReporterProcessorTest {
     }
 
     @Test
-    fun persistAppExitReport_whenShortFgsTimeoutAnr_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit = "Foreground service ANR. Short FGS Timeout. Duration=5000ms",
-            expectedMessage = "Short Foreground Service Timeout ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenSystemJobServiceTimeoutAnr_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit = "SystemJobService. Job Service Timeout",
-            expectedMessage = "Job Service ANR",
-        )
-    }
-
-    @Test
     fun persistAppExitReport_whenAppStartupTimeOut_shouldMatchAnrReason() {
         assertAnrReason(
             descriptionFromAppExit = "App start timeout. Timeout=5000ms",
@@ -198,7 +199,39 @@ class FatalIssueReporterProcessorTest {
     fun persistAppExitReport_whenServiceStartTimeout_shouldMatchAnrReason() {
         assertAnrReason(
             descriptionFromAppExit = "Service start timeout. Timeout=5000ms",
-            expectedMessage = "Service Start ANR",
+            expectedMessage = "Service ANR",
+        )
+    }
+
+    @Test
+    fun persistAppExitReport_whenShortFgsTimeoutAnr_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit = "Foreground service ANR. Short FGS Timeout. Duration=5000ms",
+            expectedMessage = "Service ANR",
+        )
+    }
+
+    @Test
+    fun persistAppExitReport_whenSystemJobServiceTimeoutAnr_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit = "SystemJobService. Job Service Timeout",
+            expectedMessage = "Service ANR",
+        )
+    }
+
+    @Test
+    fun persistAppExitReport_whenJobServiceStartTimeout_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit = "job service timeout",
+            expectedMessage = "Service ANR",
+        )
+    }
+
+    @Test
+    fun persistAppExitReport_whenJobServiceStopTimeout_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit = "user request after error: No response to onStopJob",
+            expectedMessage = "Service ANR",
         )
     }
 
