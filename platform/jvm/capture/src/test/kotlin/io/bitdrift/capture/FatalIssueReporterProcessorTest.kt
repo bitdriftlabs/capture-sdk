@@ -111,11 +111,12 @@ class FatalIssueReporterProcessorTest {
         assertThat(error.reason).isEqualTo(APP_EXIT_DESCRIPTION_ANR)
         assertThat(error.stackTrace(0)!!.type).isEqualTo(1)
         assertThat(error.stackTrace(0)!!.stateLength).isEqualTo(0)
-        assertThat(error.stackTrace(0)!!.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")
-        assertThat(error.stackTrace(0)!!.symbolName).isEqualTo("startProcessing")
-        assertThat(error.stackTrace(0)!!.sourceFile!!.path).isEqualTo("FatalIssueGenerator.kt")
-        assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(106)
-        assertThat(error.stackTrace(0)!!.sourceFile!!.column).isEqualTo(0)
+        assertThat(error.stackTrace(0)!!.className).contains("prio=5 tid=1 Blocked")
+        assertThat(error.stackTrace(1)!!.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")
+        assertThat(error.stackTrace(1)!!.symbolName).isEqualTo("startProcessing")
+        assertThat(error.stackTrace(1)!!.sourceFile!!.path).isEqualTo("FatalIssueGenerator.kt")
+        assertThat(error.stackTrace(1)!!.sourceFile!!.line).isEqualTo(106)
+        assertThat(error.stackTrace(1)!!.sourceFile!!.column).isEqualTo(0)
     }
 
     @Test
