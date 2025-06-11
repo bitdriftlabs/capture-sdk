@@ -75,6 +75,7 @@ class SessionUrlTest {
             apiUrl = apiUrl.toHttpUrl(),
             configuration = Configuration(),
             fieldProviders = listOf(),
+            context = ContextHolder.APP_CONTEXT,
             dateProvider = SystemDateProvider(),
             sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
             fatalIssueReporter = fatalIssueReporter,

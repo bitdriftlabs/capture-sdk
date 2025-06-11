@@ -30,10 +30,8 @@ import io.bitdrift.capture.reports.persistence.FatalIssueReporterStorage
 import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor
 import io.bitdrift.capture.utils.SdkDirectory
 import java.io.File
-import java.lang.Thread
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
-import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
 
@@ -54,18 +52,49 @@ internal class FatalIssueReporter(
     private var initializationCallerThread: String = NotInitialized.readableType
 
     /**
-     * Initializes the fatal issue reporting with the specified [io.bitdrift.capture.reports.FatalIssueMechanism]
+     * Initializes integration fatal issue mechanism (a.k.a vendor)
      */
-    override fun initialize(
-        appContext: Context,
-        fatalIssueMechanism: FatalIssueMechanism,
-    ) {
-        initializationCallerThread = Thread.currentThread().name
-        if (fatalIssueReporterStatus.state is FatalIssueReporterState.NotInitialized) {
-            if (fatalIssueMechanism == FatalIssueMechanism.Integration) {
-                fatalIssueReporterStatus = setupIntegrationReporting(appContext)
-            } else if (fatalIssueMechanism == FatalIssueMechanism.BuiltIn) {
-                fatalIssueReporterStatus = setupBuiltInReporting(appContext)
+    override fun initIntegrationMode(appContext: Context) {
+        if (fatalIssueReporterStatus.state is NotInitialized) {
+            initializationCallerThread = Thread.currentThread().name
+            fatalIssueReporterStatus = setupIntegrationReporting(appContext)
+        } else {
+            Log.e(LOG_TAG, "Fatal issue reporting already being initialized")
+        }
+    }
+
+    /**
+     * Initializes a BuiltIn Fatal Issue reporting mechanism that doesn't depend on any 3rd party
+     * libraries
+     */
+    override fun initBuiltInMode(appContext: Context) {
+        if (fatalIssueReporterStatus.state is NotInitialized) {
+            runCatching {
+                initializationCallerThread = Thread.currentThread().name
+                var fatalIssueReporterState: FatalIssueReporterState
+                val duration =
+                    measureTime {
+                        val destinationDirectory = getFatalIssueDirectories(appContext)
+                        fatalIssueReporterProcessor =
+                            FatalIssueReporterProcessor(
+                                appContext,
+                                FatalIssueReporterStorage(destinationDirectory.destinationDirectory),
+                            )
+                        captureUncaughtExceptionHandler.install(this)
+                        persistLastExitReasonIfNeeded(appContext)
+                        fatalIssueReporterState = FatalIssueReporterState.BuiltIn.Initialized
+                    }
+                fatalIssueReporterState to duration
+                fatalIssueReporterStatus =
+                    FatalIssueReporterStatus(
+                        fatalIssueReporterState,
+                        duration,
+                        FatalIssueMechanism.BuiltIn,
+                    )
+            }.getOrElse {
+                val errorMessage =
+                    "Error while initializing reporter for ${FatalIssueMechanism.BuiltIn}. $it"
+                Log.e(LOG_TAG, errorMessage)
             }
         } else {
             Log.e(LOG_TAG, "Fatal issue reporting already being initialized")
@@ -108,64 +137,35 @@ internal class FatalIssueReporter(
                     .toFieldValue(),
         )
 
-    private fun performReportingSetup(
-        mechanism: FatalIssueMechanism,
-        setupAction: () -> Pair<FatalIssueReporterState, Duration?>,
-        cleanup: () -> Unit = {},
-    ): FatalIssueReporterStatus =
-        runCatching {
+    private fun setupIntegrationReporting(appContext: Context): FatalIssueReporterStatus {
+        val mechanism = FatalIssueMechanism.Integration
+        return runCatching {
             val (fatalIssueReporterState, duration) =
-                mainThreadHandler.runAndReturnResult { setupAction() }
+                mainThreadHandler.runAndReturnResult {
+                    var fatalIssueReporterState: FatalIssueReporterState
+                    val duration =
+                        measureTime {
+                            val fatalIssueDirectories = getFatalIssueDirectories(appContext)
+                            fatalIssueReporterState =
+                                verifyDirectoriesAndCopyFiles(appContext, fatalIssueDirectories)
+                        }
+                    fatalIssueReporterState to duration
+                }
             FatalIssueReporterStatus(
                 state = fatalIssueReporterState,
                 duration = duration,
                 mechanism = mechanism,
             )
         }.getOrElse {
-            cleanup()
-            val errorMessage = "Error while initializing reporter for $mechanism mode. ${it.message}"
+            val errorMessage =
+                "Error while initializing reporter for $mechanism mode. ${it.message}"
             Log.e(LOG_TAG, errorMessage)
             FatalIssueReporterStatus(
                 FatalIssueReporterState.ProcessingFailure(mechanism, errorMessage),
                 mechanism = mechanism,
             )
         }
-
-    private fun setupIntegrationReporting(appContext: Context): FatalIssueReporterStatus =
-        performReportingSetup(
-            FatalIssueMechanism.Integration,
-            setupAction = {
-                var fatalIssueReporterState: FatalIssueReporterState
-                val duration =
-                    measureTime {
-                        val fatalIssueDirectories = getFatalIssueDirectories(appContext)
-                        fatalIssueReporterState = verifyDirectoriesAndCopyFiles(appContext, fatalIssueDirectories)
-                    }
-                fatalIssueReporterState to duration
-            },
-        )
-
-    private fun setupBuiltInReporting(appContext: Context): FatalIssueReporterStatus =
-        performReportingSetup(
-            FatalIssueMechanism.BuiltIn,
-            setupAction = {
-                var fatalIssueReporterState: FatalIssueReporterState
-                val duration =
-                    measureTime {
-                        val destinationDirectory = getFatalIssueDirectories(appContext)
-                        fatalIssueReporterProcessor =
-                            FatalIssueReporterProcessor(
-                                appContext,
-                                FatalIssueReporterStorage(destinationDirectory.destinationDirectory),
-                            )
-                        captureUncaughtExceptionHandler.install(this)
-                        persistLastExitReasonIfNeeded(appContext)
-                        fatalIssueReporterState = FatalIssueReporterState.BuiltIn.Initialized
-                    }
-                fatalIssueReporterState to duration
-            },
-            cleanup = { captureUncaughtExceptionHandler.uninstall() },
-        )
+    }
 
     private fun persistLastExitReasonIfNeeded(appContext: Context) {
         val activityManager: ActivityManager =

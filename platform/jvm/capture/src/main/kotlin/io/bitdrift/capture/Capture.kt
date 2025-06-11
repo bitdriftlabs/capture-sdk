@@ -106,7 +106,11 @@ object Capture {
         private val mainThreadHandler by lazy { MainThreadHandler() }
 
         /**
-         * Initializes fatal issue (ANR, JVM Crash, Native crash) reporting mechanism.
+         * WARNING: For now this API is not exposed to customers. If there is a request for this
+         * will open visibility again
+         *
+         * Initializes fatal issue reporting mechanism that integrates
+         * with existing configured crash libraries
          *
          * @param fatalIssueMechanism the [FatalIssueMechanism] to use for crash detection
          * @param context an optional context reference. You should provide the context if called from a [android.content.ContentProvider]
@@ -116,16 +120,12 @@ object Capture {
         @Suppress("UnusedPrivateMember")
         @ExperimentalBitdriftApi
         @JvmStatic
-        @JvmOverloads
-        fun initFatalIssueReporting(
-            fatalIssueMechanism: FatalIssueMechanism = FatalIssueMechanism.BuiltIn,
-            context: Context? = null,
-        ) {
+        private fun initIntegrationFatalIssueReporting(context: Context? = null) {
             if (context == null && !ContextHolder.isInitialized) {
                 Log.w(LOG_TAG, "Attempted to initialize Fatal Issue Reporting with a null context. Skipping enabling crash tracking.")
                 return
             }
-            fatalIssueReporter.initialize(context?.applicationContext ?: ContextHolder.APP_CONTEXT, fatalIssueMechanism)
+            fatalIssueReporter.initIntegrationMode(context?.applicationContext ?: ContextHolder.APP_CONTEXT)
         }
 
         /**
@@ -141,6 +141,8 @@ object Capture {
          * @param apiUrl The base URL of Capture API. Depend on its default value unless specifically
          *               instructed otherwise during discussions with bitdrift. Defaults to bitdrift's hosted
          *               Compose API base URL.
+         * @param context an optional context reference. You should provide the context if called from
+         * a [android.content.ContentProvider]
          */
         @Synchronized
         @JvmStatic
@@ -152,6 +154,7 @@ object Capture {
             fieldProviders: List<FieldProvider> = listOf(),
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
+            context: Context? = null,
         ) {
             start(
                 apiKey,
@@ -161,6 +164,7 @@ object Capture {
                 dateProvider,
                 apiUrl,
                 CaptureJniLibrary,
+                context,
             )
         }
 
@@ -175,17 +179,17 @@ object Capture {
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             bridge: IBridge,
+            context: Context? = null,
             backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
         ) {
             // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
             // while subsequent logger access relies on volatile reads.
 
             // There's nothing we can do if we don't have yet access to the application context.
-            if (!ContextHolder.isInitialized) {
+            if (context == null && !ContextHolder.isInitialized) {
                 Log.w(
                     LOG_TAG,
-                    "Attempted to initialize Capture before androidx.startup.Initializers " +
-                        "are run. Aborting logger initialization.",
+                    "Attempted to initialize Capture with a null context",
                 )
                 return
             }
@@ -194,10 +198,15 @@ object Capture {
             if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting(preInitInMemoryLogger))) {
                 backgroundThreadHandler.runAsync {
                     try {
+                        val unwrappedContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
+                        if (configuration.enableFatalIssueReporting) {
+                            fatalIssueReporter.initBuiltInMode(unwrappedContext)
+                        }
                         val loggerImpl =
                             LoggerImpl(
                                 apiKey = apiKey,
                                 apiUrl = apiUrl,
+                                context = unwrappedContext,
                                 fieldProviders = fieldProviders,
                                 dateProvider = dateProvider ?: SystemDateProvider(),
                                 configuration = configuration,
