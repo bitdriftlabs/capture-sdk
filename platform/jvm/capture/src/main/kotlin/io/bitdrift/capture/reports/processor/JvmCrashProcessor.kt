@@ -10,11 +10,9 @@ package io.bitdrift.capture.reports.processor
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.reports.binformat.v1.Error
 import io.bitdrift.capture.reports.binformat.v1.ErrorRelation
-import io.bitdrift.capture.reports.binformat.v1.Frame
 import io.bitdrift.capture.reports.binformat.v1.FrameType
 import io.bitdrift.capture.reports.binformat.v1.Report
 import io.bitdrift.capture.reports.binformat.v1.ReportType
-import io.bitdrift.capture.reports.binformat.v1.SourceFile
 import io.bitdrift.capture.reports.binformat.v1.ThreadDetails
 
 /**
@@ -78,32 +76,17 @@ internal object JvmCrashProcessor {
         builder: FlatBufferBuilder,
         element: StackTraceElement,
     ): Int {
-        val sourceFile =
-            if (element.fileName != null) {
-                SourceFile.createSourceFile(
-                    builder,
-                    builder.createString(element.fileName),
-                    element.lineNumber.toLong(),
-                    0,
-                )
-            } else {
-                0
-            }
-        return Frame.createFrame(
-            builder,
+        val frameData =
+            FrameData(
+                className = element.className,
+                symbolName = element.methodName,
+                fileName = element.fileName,
+                lineNumber = element.lineNumber.toLong(),
+            )
+        return ReportFrameBuilder.build(
             FrameType.JVM,
-            builder.createString(element.className),
-            builder.createString(element.methodName),
-            sourceFile,
-            0,
-            0u,
-            0u,
-            0,
-            0,
-            0,
-            0u,
-            false,
-            0,
+            builder,
+            frameData,
         )
     }
 }
