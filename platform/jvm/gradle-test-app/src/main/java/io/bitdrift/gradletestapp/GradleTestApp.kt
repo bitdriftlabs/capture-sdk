@@ -99,7 +99,7 @@ class GradleTestApp : Application() {
     private fun initLogging() {
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         val fatalIssueMechanism = getFatalIssueSourceConfig(sharedPreferences)
-        if(fatalIssueMechanism == FatalIssueMechanism.Integration) {
+        if (fatalIssueMechanism == FatalIssueMechanism.Integration) {
             @OptIn(ExperimentalBitdriftApi::class)
             Capture.Logger.initIntegrationFatalIssueReporting()
         }
@@ -111,7 +111,7 @@ class GradleTestApp : Application() {
             return
         }
 
-        val configuration = Configuration(enableBuiltInFatalIssueReporting = fatalIssueMechanism == FatalIssueMechanism.BuiltIn)
+        val configuration = Configuration(enableFatalIssueReporting = fatalIssueMechanism == FatalIssueMechanism.BuiltIn)
         BitdriftInit.initBitdriftCaptureInJava(
             apiUrl,
             sharedPreferences.getString(BITDRIFT_API_KEY, ""),
