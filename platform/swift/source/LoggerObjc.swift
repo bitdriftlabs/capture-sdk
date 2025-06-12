@@ -56,10 +56,17 @@ public final class LoggerObjc: NSObject {
 
     /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
     /// This API is experimental and subject to change
+    @objc
+    public static func initFatalIssueReporting() {
+        Capture.Logger.initFatalIssueReporting(.builtIn)
+    }
+
+    /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
+    /// This API is experimental and subject to change
     ///
     /// - parameter type: mechanism for crash detection
     @objc
-    public static func initFatalIssueReporting(_ type: IssueReporterTypeObjc) {
+    public static func initFatalIssueReporting(withType type: IssueReporterTypeObjc) {
         switch type {
         case .builtIn:
             Capture.Logger.initFatalIssueReporting(.builtIn)
