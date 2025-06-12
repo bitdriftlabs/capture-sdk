@@ -466,6 +466,7 @@ class CaptureLoggerTest {
             apiUrl = testServerUrl(),
             fieldProviders = fieldProviders,
             sessionStrategy = sessionStrategy,
+            context = ContextHolder.APP_CONTEXT,
             dateProvider = dateProvider,
             configuration = Configuration(),
             fatalIssueReporter = fatalIssueReporter,

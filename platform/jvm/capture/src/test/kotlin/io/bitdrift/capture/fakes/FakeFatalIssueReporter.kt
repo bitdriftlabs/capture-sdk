@@ -17,10 +17,11 @@ import io.bitdrift.capture.reports.IFatalIssueReporter
 class FakeFatalIssueReporter : IFatalIssueReporter {
     private var fatalIssueMechanism: FatalIssueMechanism = FatalIssueMechanism.BuiltIn
 
-    override fun initialize(
-        appContext: Context,
-        fatalIssueMechanism: FatalIssueMechanism,
-    ) {
+    override fun initIntegrationMode(appContext: Context) {
+        // no-op
+    }
+
+    override fun initBuiltInMode(appContext: Context) {
         // no-op
     }
 

@@ -57,10 +57,7 @@ class FatalIssueReporterTest {
     fun initialize_whenIntegrationMechanismAndMissingConfigFile_shouldReportMissingConfigState() {
         prepareFileDirectories(doesReportsDirectoryExist = false)
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        fatalIssueReporter.initIntegrationMode(appContext)
 
         fatalIssueReporter
             .fatalIssueReporterStatus
@@ -76,10 +73,7 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        fatalIssueReporter.initIntegrationMode(appContext)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Integration.WithoutPriorFatalIssue::class.java,
@@ -95,10 +89,7 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        fatalIssueReporter.initIntegrationMode(appContext)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Integration.InvalidConfigDirectory::class.java,
@@ -123,10 +114,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        fatalIssueReporter.initIntegrationMode(appContext)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Integration.WithoutPriorFatalIssue::class.java,
@@ -141,10 +129,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        fatalIssueReporter.initIntegrationMode(appContext)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Integration.MalformedConfigFile::class.java,
@@ -153,38 +138,13 @@ class FatalIssueReporterTest {
 
     @Test
     fun initialize_whenBuiltInMechanism_shouldInitCrashHandlerAndFetchAppExitReason() {
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.BuiltIn)
+        fatalIssueReporter.initBuiltInMode(appContext)
 
         verify(captureUncaughtExceptionHandler).install(eq(fatalIssueReporter))
         verify(latestAppExitInfoProvider).get(any())
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.BuiltIn::class.java,
         )
-    }
-
-    @Test
-    fun initialize_whenBuiltInMechanismAndArtificialError_shouldReportFailedInitState() {
-        val mainThreadHandlerWithException: MainThreadHandler =
-            mock {
-                on { run(any()) } doAnswer { throw FakeJvmException() }
-                on { runAndReturnResult<Any>(any()) } doAnswer { throw FakeJvmException() }
-            }
-        val fatalIssueReporter = buildReporter(mainThreadHandlerWithException)
-
-        fatalIssueReporter.initialize(appContext, FatalIssueMechanism.BuiltIn)
-
-        verify(captureUncaughtExceptionHandler, never()).install(any())
-        verify(captureUncaughtExceptionHandler).uninstall()
-        verify(latestAppExitInfoProvider, never()).get(any())
-        fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.ProcessingFailure::class.java,
-        )
-        val state =
-            fatalIssueReporter.fatalIssueReporterStatus.state
-                as FatalIssueReporterState.ProcessingFailure
-        assertThat(state.fatalIssueMechanism).isEqualTo(FatalIssueMechanism.BuiltIn)
-        assertThat(state.errorMessage)
-            .isEqualTo("Error while initializing reporter for BuiltIn mode. Fake JVM exception")
     }
 
     private fun FatalIssueReporterStatus.assert(
@@ -270,10 +230,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        fatalIssueReporter.initIntegrationMode(appContext)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Integration.FatalIssueReportSent::class.java,
