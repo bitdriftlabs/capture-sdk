@@ -20,7 +20,6 @@ import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.reports.FatalIssueReporter
 import okhttp3.HttpUrl
 import java.util.UUID
@@ -110,15 +109,13 @@ object Capture {
         @ExperimentalBitdriftApi
         @JvmStatic
         @JvmOverloads
-        fun initFatalIssueReporting(
-            context: Context? = null,
-            fatalIssueMechanism: FatalIssueMechanism,
-        ) {
+        fun initIntegrationFatalIssueReporting(
+            context: Context? = null) {
             if (context == null && !ContextHolder.isInitialized) {
                 Log.w(LOG_TAG, "Attempted to initialize Fatal Issue Reporting with a null context. Skipping enabling crash tracking.")
                 return
             }
-            fatalIssueReporter.initialize(context?.applicationContext ?: ContextHolder.APP_CONTEXT, fatalIssueMechanism)
+            fatalIssueReporter.initIntegrationMode(context?.applicationContext ?: ContextHolder.APP_CONTEXT)
         }
 
         /**
@@ -185,6 +182,9 @@ object Capture {
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
             if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
                 try {
+                    if(configuration.enableBuiltInFatalIssueReporting){
+                        fatalIssueReporter.initBuiltInMode(ContextHolder.APP_CONTEXT)
+                    }
                     val logger =
                         LoggerImpl(
                             apiKey = apiKey,

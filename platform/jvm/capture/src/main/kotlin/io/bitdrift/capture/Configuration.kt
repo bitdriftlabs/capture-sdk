@@ -12,9 +12,11 @@ import io.bitdrift.capture.replay.SessionReplayConfiguration
 /**
  * A configuration object representing the feature set enabled for Capture.
  * @param sessionReplayConfiguration The resource reporting configuration to use. Passing `null` disables the feature.
+ * @param enableBuiltInFatalIssueReporting When set to true enables FatalIssue BuiltIn reporting
  */
 data class Configuration
     @JvmOverloads
     constructor(
         val sessionReplayConfiguration: SessionReplayConfiguration = SessionReplayConfiguration(),
+        val enableBuiltInFatalIssueReporting: Boolean = false,
     )

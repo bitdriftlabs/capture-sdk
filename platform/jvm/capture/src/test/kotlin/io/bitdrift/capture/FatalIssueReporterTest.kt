@@ -57,7 +57,7 @@ class FatalIssueReporterTest {
     fun initialize_whenIntegrationMechanismAndMissingConfigFile_shouldReportMissingConfigState() {
         prepareFileDirectories(doesReportsDirectoryExist = false)
 
-        fatalIssueReporter.initialize(
+        fatalIssueReporter.initBuiltInMode(
             appContext,
             fatalIssueMechanism = FatalIssueMechanism.Integration,
         )
@@ -76,7 +76,7 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        fatalIssueReporter.initialize(
+        fatalIssueReporter.initBuiltInMode(
             appContext,
             fatalIssueMechanism = FatalIssueMechanism.Integration,
         )
@@ -95,7 +95,7 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        fatalIssueReporter.initialize(
+        fatalIssueReporter.initBuiltInMode(
             appContext,
             fatalIssueMechanism = FatalIssueMechanism.Integration,
         )
@@ -123,7 +123,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(
+        fatalIssueReporter.initBuiltInMode(
             appContext,
             fatalIssueMechanism = FatalIssueMechanism.Integration,
         )
@@ -141,7 +141,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(
+        fatalIssueReporter.initBuiltInMode(
             appContext,
             fatalIssueMechanism = FatalIssueMechanism.Integration,
         )
@@ -153,7 +153,7 @@ class FatalIssueReporterTest {
 
     @Test
     fun initialize_whenBuiltInMechanism_shouldInitCrashHandlerAndFetchAppExitReason() {
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.BuiltIn)
+        fatalIssueReporter.initBuiltInMode(appContext, fatalIssueMechanism = FatalIssueMechanism.BuiltIn)
 
         verify(captureUncaughtExceptionHandler).install(eq(fatalIssueReporter))
         verify(latestAppExitInfoProvider).get(any())
@@ -171,7 +171,7 @@ class FatalIssueReporterTest {
             }
         val fatalIssueReporter = buildReporter(mainThreadHandlerWithException)
 
-        fatalIssueReporter.initialize(appContext, FatalIssueMechanism.BuiltIn)
+        fatalIssueReporter.initBuiltInMode(appContext, FatalIssueMechanism.BuiltIn)
 
         verify(captureUncaughtExceptionHandler, never()).install(any())
         verify(captureUncaughtExceptionHandler).uninstall()
@@ -270,7 +270,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(
+        fatalIssueReporter.initBuiltInMode(
             appContext,
             fatalIssueMechanism = FatalIssueMechanism.Integration,
         )
