@@ -97,7 +97,7 @@ extension Logger {
     /// This API is experimental and subject to change
     ///
     /// - parameter type: mechanism for crash detection
-    public static func initFatalIssueReporting(_ type: IssueReporterType = .customConfig) {
+    public static func initFatalIssueReporting(_ type: IssueReporterType = .builtIn) {
         if issueReporterInitResult.0 != .notInitialized {
             log(level: .warning, message: "Fatal issue reporting already being initialized")
             return

@@ -102,6 +102,7 @@ object Capture {
         /**
          * Initializes fatal issue (ANR, JVM Crash, Native crash) reporting mechanism.
          *
+         * @param fatalIssueMechanism the [FatalIssueMechanism] to use for crash detection
          * @param context an optional context reference. You should provide the context if called from a [android.content.ContentProvider]
          *
          * This should be called prior to Capture.Logger.start()
@@ -111,8 +112,8 @@ object Capture {
         @JvmStatic
         @JvmOverloads
         fun initFatalIssueReporting(
+            fatalIssueMechanism: FatalIssueMechanism = FatalIssueMechanism.BuiltIn,
             context: Context? = null,
-            fatalIssueMechanism: FatalIssueMechanism,
         ) {
             if (context == null && !ContextHolder.isInitialized) {
                 Log.w(LOG_TAG, "Attempted to initialize Fatal Issue Reporting with a null context. Skipping enabling crash tracking.")
