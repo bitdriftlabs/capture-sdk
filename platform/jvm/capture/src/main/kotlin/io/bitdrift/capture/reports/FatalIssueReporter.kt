@@ -14,6 +14,7 @@ import android.util.Log
 import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.Capture.LOG_TAG
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
@@ -30,7 +31,6 @@ import io.bitdrift.capture.reports.persistence.FatalIssueReporterStorage
 import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor
 import io.bitdrift.capture.utils.SdkDirectory
 import java.io.File
-import java.lang.Thread
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
 import kotlin.time.Duration
@@ -41,6 +41,7 @@ import kotlin.time.measureTime
  * Handles internal reporting of crashes
  */
 internal class FatalIssueReporter(
+    private val backgroundThreadHandler: IBackgroundThreadHandler,
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
@@ -60,15 +61,17 @@ internal class FatalIssueReporter(
         appContext: Context,
         fatalIssueMechanism: FatalIssueMechanism,
     ) {
-        initializationCallerThread = Thread.currentThread().name
-        if (fatalIssueReporterStatus.state is FatalIssueReporterState.NotInitialized) {
-            if (fatalIssueMechanism == FatalIssueMechanism.Integration) {
-                fatalIssueReporterStatus = setupIntegrationReporting(appContext)
-            } else if (fatalIssueMechanism == FatalIssueMechanism.BuiltIn) {
-                fatalIssueReporterStatus = setupBuiltInReporting(appContext)
+        backgroundThreadHandler.runAsync {
+            initializationCallerThread = Thread.currentThread().name
+            if (fatalIssueReporterStatus.state is FatalIssueReporterState.NotInitialized) {
+                if (fatalIssueMechanism == FatalIssueMechanism.Integration) {
+                    fatalIssueReporterStatus = setupIntegrationReporting(appContext)
+                } else if (fatalIssueMechanism == FatalIssueMechanism.BuiltIn) {
+                    fatalIssueReporterStatus = setupBuiltInReporting(appContext)
+                }
+            } else {
+                Log.e(LOG_TAG, "Fatal issue reporting already being initialized")
             }
-        } else {
-            Log.e(LOG_TAG, "Fatal issue reporting already being initialized")
         }
     }
 
@@ -110,12 +113,16 @@ internal class FatalIssueReporter(
 
     private fun performReportingSetup(
         mechanism: FatalIssueMechanism,
+        shouldRunOnMainThread: Boolean,
         setupAction: () -> Pair<FatalIssueReporterState, Duration?>,
         cleanup: () -> Unit = {},
     ): FatalIssueReporterStatus =
         runCatching {
-            val (fatalIssueReporterState, duration) =
+            val (fatalIssueReporterState, duration) = if (shouldRunOnMainThread) {
                 mainThreadHandler.runAndReturnResult { setupAction() }
+            } else {
+                setupAction()
+            }
             FatalIssueReporterStatus(
                 state = fatalIssueReporterState,
                 duration = duration,
@@ -134,6 +141,7 @@ internal class FatalIssueReporter(
     private fun setupIntegrationReporting(appContext: Context): FatalIssueReporterStatus =
         performReportingSetup(
             FatalIssueMechanism.Integration,
+            shouldRunOnMainThread = true,
             setupAction = {
                 var fatalIssueReporterState: FatalIssueReporterState
                 val duration =
@@ -148,6 +156,7 @@ internal class FatalIssueReporter(
     private fun setupBuiltInReporting(appContext: Context): FatalIssueReporterStatus =
         performReportingSetup(
             FatalIssueMechanism.BuiltIn,
+            shouldRunOnMainThread = false,
             setupAction = {
                 var fatalIssueReporterState: FatalIssueReporterState
                 val duration =

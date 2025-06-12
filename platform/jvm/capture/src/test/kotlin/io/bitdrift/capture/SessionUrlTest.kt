@@ -9,6 +9,7 @@ package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
 import io.bitdrift.capture.fakes.FakeFatalIssueReporter
+import io.bitdrift.capture.fakes.FakePreInitLogFlusher
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.IFatalIssueReporter
@@ -24,6 +25,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [21])
 class SessionUrlTest {
     private val fatalIssueReporter: IFatalIssueReporter = FakeFatalIssueReporter()
+    private val preInitLogFlusher = FakePreInitLogFlusher()
 
     @Before
     fun setUp() {
@@ -76,5 +78,6 @@ class SessionUrlTest {
             dateProvider = SystemDateProvider(),
             sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
             fatalIssueReporter = fatalIssueReporter,
+            preInitLogFlusher = preInitLogFlusher,
         )
 }

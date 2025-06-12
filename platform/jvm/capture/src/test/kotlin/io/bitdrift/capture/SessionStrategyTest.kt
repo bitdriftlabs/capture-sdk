@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.fakes.FakeFatalIssueReporter
+import io.bitdrift.capture.fakes.FakePreInitLogFlusher
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import okhttp3.HttpUrl
@@ -26,6 +27,7 @@ import java.util.concurrent.CountDownLatch
 @Config(sdk = [21])
 class SessionStrategyTest {
     private val fatalIssueReporter: IFatalIssueReporter = FakeFatalIssueReporter()
+    private val preInitLogFlusher = FakePreInitLogFlusher()
 
     @Before
     fun setUp() {
@@ -51,6 +53,7 @@ class SessionStrategyTest {
                     },
                 configuration = Configuration(),
                 fatalIssueReporter = fatalIssueReporter,
+                preInitLogFlusher = preInitLogFlusher,
             )
 
         val sessionId = logger.sessionId
@@ -85,6 +88,7 @@ class SessionStrategyTest {
                 configuration = Configuration(),
                 preferences = mock(),
                 fatalIssueReporter = fatalIssueReporter,
+                preInitLogFlusher = preInitLogFlusher,
             )
 
         val sessionId = logger.sessionId
