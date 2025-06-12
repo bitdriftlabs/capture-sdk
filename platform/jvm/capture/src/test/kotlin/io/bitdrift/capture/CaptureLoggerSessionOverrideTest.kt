@@ -86,6 +86,7 @@ class CaptureLoggerSessionOverrideTest {
                 dateProvider = systemDateProvider,
                 sessionStrategy = SessionStrategy.Fixed { "foo" },
                 configuration = Configuration(),
+                context = ContextHolder.APP_CONTEXT,
                 preferences = preferences,
                 fatalIssueReporter = fatalIssueReporter,
             )
@@ -118,6 +119,7 @@ class CaptureLoggerSessionOverrideTest {
                 dateProvider = systemDateProvider,
                 sessionStrategy = SessionStrategy.Fixed { "bar" },
                 configuration = Configuration(),
+                context = ContextHolder.APP_CONTEXT,
                 preferences = preferences,
                 activityManager = activityManager,
                 fatalIssueReporter = fatalIssueReporter,

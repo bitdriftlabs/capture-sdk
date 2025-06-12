@@ -53,10 +53,12 @@ import androidx.preference.PreferenceManager
 import com.bugsnag.android.Bugsnag
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
+import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.getFatalIssueSourceConfig
@@ -96,8 +98,11 @@ class GradleTestApp : Application() {
 
     private fun initLogging() {
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
-        @OptIn(ExperimentalBitdriftApi::class)
-        Capture.Logger.initFatalIssueReporting(fatalIssueMechanism = getFatalIssueSourceConfig(sharedPreferences))
+        val fatalIssueMechanism = getFatalIssueSourceConfig(sharedPreferences)
+        if (fatalIssueMechanism == FatalIssueMechanism.Integration) {
+            @OptIn(ExperimentalBitdriftApi::class)
+            Capture.Logger.initIntegrationFatalIssueReporting()
+        }
 
         val stringApiUrl = sharedPreferences.getString("apiUrl", null)
         val apiUrl = stringApiUrl?.toHttpUrlOrNull()
@@ -106,10 +111,12 @@ class GradleTestApp : Application() {
             return
         }
 
+        val configuration = Configuration(enableFatalIssueReporting = fatalIssueMechanism == FatalIssueMechanism.BuiltIn)
         BitdriftInit.initBitdriftCaptureInJava(
             apiUrl,
             sharedPreferences.getString(BITDRIFT_API_KEY, ""),
             sharedPreferences.getString(SESSION_STRATEGY_PREFS_KEY, FIXED.displayName),
+            configuration,
         )
         // Timber
         if (BuildConfig.DEBUG) {

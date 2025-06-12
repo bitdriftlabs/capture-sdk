@@ -106,6 +106,7 @@ class ErrorReporterTest {
                 apiUrl = testServerUrl(),
                 fieldProviders = listOf(),
                 dateProvider = SystemDateProvider(),
+                context = ContextHolder.APP_CONTEXT,
                 sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
                 configuration = Configuration(),
                 errorReporter = reporter,

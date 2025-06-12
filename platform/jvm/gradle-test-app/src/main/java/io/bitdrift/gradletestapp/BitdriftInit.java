@@ -23,7 +23,8 @@ public class BitdriftInit {
     public static void initBitdriftCaptureInJava(
             HttpUrl apiUrl,
             String apiKey,
-            String sessionStrategyName) {
+            String sessionStrategyName,
+            Configuration configuration) {
         String userID = UUID.randomUUID().toString();
         List<FieldProvider> fieldProviders = new ArrayList<>();
         fieldProviders.add(() -> {
@@ -35,7 +36,7 @@ public class BitdriftInit {
         Capture.Logger.start(
             apiKey,
             mapToSessionStrategy(sessionStrategyName),
-            new Configuration(),
+            configuration,
             fieldProviders,
             null,
             apiUrl

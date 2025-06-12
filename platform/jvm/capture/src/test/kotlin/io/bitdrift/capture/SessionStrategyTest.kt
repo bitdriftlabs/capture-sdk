@@ -43,6 +43,7 @@ class SessionStrategyTest {
                 apiUrl = testServerUrl(),
                 fieldProviders = listOf(),
                 dateProvider = mock(),
+                context = ContextHolder.APP_CONTEXT,
                 sessionStrategy =
                     SessionStrategy.Fixed {
                         val sessionId = UUID.randomUUID().toString()
@@ -77,6 +78,7 @@ class SessionStrategyTest {
                 apiUrl = testServerUrl(),
                 fieldProviders = listOf(),
                 dateProvider = mock(),
+                context = ContextHolder.APP_CONTEXT,
                 sessionStrategy =
                     SessionStrategy.ActivityBased {
                         observedSessionId = it
