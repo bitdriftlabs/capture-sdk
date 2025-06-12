@@ -17,6 +17,7 @@ import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.common.MainThreadHandler
+import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeJvmException
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
@@ -258,6 +259,7 @@ class FatalIssueReporterTest {
 
     private fun buildReporter(mainThreadHandler: MainThreadHandler): FatalIssueReporter =
         FatalIssueReporter(
+            FakeBackgroundThreadHandler(),
             mainThreadHandler,
             latestAppExitInfoProvider,
             captureUncaughtExceptionHandler,

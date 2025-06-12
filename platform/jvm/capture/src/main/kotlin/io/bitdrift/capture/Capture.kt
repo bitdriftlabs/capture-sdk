@@ -62,7 +62,7 @@ internal sealed class LoggerState {
 object Capture {
     internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
-    private val fatalIssueReporter = FatalIssueReporter()
+    private val fatalIssueReporter = FatalIssueReporter(backgroundThreadHandler = CaptureDispatchers.CommonBackground)
     private val preInitInMemoryLogger by lazy { PreInitInMemoryLogger() }
 
     /**
