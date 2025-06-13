@@ -7,6 +7,12 @@
 
 import Foundation
 
+@objc(CAPIssueReporterType)
+public enum IssueReporterTypeObjc: Int8 {
+    case builtIn
+    case customConfig
+}
+
 // Make this class not available to Swift code. It should be used by Objective-c code only.
 @available(swift, obsoleted: 1.0)
 @objc(CAPLogger)
@@ -45,6 +51,27 @@ public final class LoggerObjc: NSObject {
 
         if let logger, enableURLSessionIntegration {
             logger.enableIntegrations([.urlSession()], disableSwizzling: false)
+        }
+    }
+
+    /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
+    /// This API is experimental and subject to change
+    @objc
+    public static func initFatalIssueReporting() {
+        Capture.Logger.initFatalIssueReporting(.builtIn)
+    }
+
+    /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
+    /// This API is experimental and subject to change
+    ///
+    /// - parameter type: mechanism for crash detection
+    @objc
+    public static func initFatalIssueReporting(withType type: IssueReporterTypeObjc) {
+        switch type {
+        case .builtIn:
+            Capture.Logger.initFatalIssueReporting(.builtIn)
+        case .customConfig:
+            Capture.Logger.initFatalIssueReporting(.customConfig)
         }
     }
 
