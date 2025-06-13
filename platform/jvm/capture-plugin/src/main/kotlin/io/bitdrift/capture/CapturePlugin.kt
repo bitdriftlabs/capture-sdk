@@ -9,6 +9,7 @@ package io.bitdrift.capture
 
 import com.android.build.api.variant.AndroidComponentsExtension
 import io.bitdrift.capture.extension.BitdriftPluginExtension
+import io.bitdrift.capture.task.CLIHelpTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.slf4j.LoggerFactory
@@ -27,6 +28,12 @@ abstract class CapturePlugin @Inject constructor() : Plugin<Project> {
                     target,
                     extension,
             )
+        }
+
+        // Example BD CLI task that prints the help text
+        target.tasks.register("bdtool_help", CLIHelpTask::class.java) { task ->
+            task.description = "Call Bitdrift CLI tool: help"
+            task.group = "Other"
         }
     }
 
