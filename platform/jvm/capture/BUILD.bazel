@@ -7,8 +7,11 @@ exports_files(["consumer-rules.pro"])
 
 # Separate target to avoid running lints against the generated file.
 kt_jvm_library(
-    name = "log_type",
-    srcs = ["//proto:log_type_kt_source"],
+    name = "gen_sources",
+    srcs = [
+        "//platform/shared:version_kt_source",
+        "//proto:log_type_kt_source",
+    ],
 )
 
 bitdrift_kt_android_library(
@@ -20,7 +23,7 @@ bitdrift_kt_android_library(
     visibility = ["//visibility:public"],
     # Exported dependencies will appear as dependencies in the generated .pom xml.
     exports = [
-        ":log_type",
+        ":gen_sources",
         artifact("androidx.lifecycle:lifecycle-common"),
         artifact("androidx.lifecycle:lifecycle-process"),
         artifact("androidx.startup:startup-runtime"),
@@ -31,7 +34,7 @@ bitdrift_kt_android_library(
         artifact("com.squareup.okhttp3:okhttp"),
     ],
     deps = [
-        ":log_type",
+        ":gen_sources",
         "//platform/jvm/common:lib",
         "//platform/jvm/replay:lib",
         artifact("androidx.lifecycle:lifecycle-common"),
