@@ -16,7 +16,7 @@ public typealias FieldValue = Encodable & Sendable
 
 public enum IssueReporterType {
     case builtIn
-    case customConfig
+    case integration
 }
 
 extension Logger {
