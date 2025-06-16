@@ -10,7 +10,7 @@ import Foundation
 @objc(CAPIssueReporterType)
 public enum IssueReporterTypeObjc: Int8 {
     case builtIn
-    case customConfig
+    case integration
 }
 
 // Make this class not available to Swift code. It should be used by Objective-c code only.
@@ -70,8 +70,8 @@ public final class LoggerObjc: NSObject {
         switch type {
         case .builtIn:
             Capture.Logger.initFatalIssueReporting(.builtIn)
-        case .customConfig:
-            Capture.Logger.initFatalIssueReporting(.customConfig)
+        case .integration:
+            Capture.Logger.initFatalIssueReporting(.integration)
         }
     }
 

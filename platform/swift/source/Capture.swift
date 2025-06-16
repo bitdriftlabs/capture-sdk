@@ -124,7 +124,7 @@ extension Logger {
                 MXMetricManager.shared.add(reporter)
                 return .initialized(.monitoring)
                 #endif
-            case .customConfig:
+            case .integration:
                 return CustomConfigIssueReporter.processFiles()
             }
         }

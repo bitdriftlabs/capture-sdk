@@ -42,7 +42,7 @@ final class FatalIssueReporterTests: XCTestCase {
     }
 
     func testNoConfig() {
-        Logger.initFatalIssueReporting(.customConfig)
+        Logger.initFatalIssueReporting(.integration)
         let result = Logger.issueReporterInitResult
         XCTAssertEqual(IssueReporterInitState.initialized(.missingConfigFile), result.0)
 
@@ -53,7 +53,7 @@ final class FatalIssueReporterTests: XCTestCase {
 
     func testNoConfigDir() {
         try! FileManager.default.removeItem(at: reportDir)
-        Logger.initFatalIssueReporting(.customConfig)
+        Logger.initFatalIssueReporting(.integration)
         let result = Logger.issueReporterInitResult
         XCTAssertEqual(IssueReporterInitState.initialized(.missingConfigFile), result.0)
 
@@ -64,7 +64,7 @@ final class FatalIssueReporterTests: XCTestCase {
 
     func testBrokenConfig() {
         createConfig("some nonsense")
-        Logger.initFatalIssueReporting(.customConfig)
+        Logger.initFatalIssueReporting(.integration)
         let result = Logger.issueReporterInitResult
         XCTAssertEqual(IssueReporterInitState.initialized(.malformedConfigFile), result.0)
 
@@ -79,7 +79,7 @@ final class FatalIssueReporterTests: XCTestCase {
                     directory: "the-files/special",
                     filename: "something.yam",
                     contents: String(repeating: "<stuff>", count: 100))
-        Logger.initFatalIssueReporting(.customConfig)
+        Logger.initFatalIssueReporting(.integration)
         let result = Logger.issueReporterInitResult
         XCTAssertEqual(IssueReporterInitState.initialized(.withoutPriorCrash), result.0)
 
@@ -97,7 +97,7 @@ final class FatalIssueReporterTests: XCTestCase {
                     filename: "something.json",
                     contents: initContents,
                     attributes: [.modificationDate: modDate])
-        Logger.initFatalIssueReporting(.customConfig)
+        Logger.initFatalIssueReporting(.integration)
         let result = Logger.issueReporterInitResult
         XCTAssertEqual(IssueReporterInitState.initialized(.sent), result.0)
         XCTAssertLessThan(result.1, 50)
@@ -140,7 +140,7 @@ final class FatalIssueReporterTests: XCTestCase {
                     filename: "old-and-ignore.json",
                     contents: String(repeating: "<bad stuff>", count: 100),
                     attributes: [.modificationDate: modDate - TimeInterval(200)])
-        Logger.initFatalIssueReporting(.customConfig)
+        Logger.initFatalIssueReporting(.integration)
         let result = Logger.issueReporterInitResult
         XCTAssertEqual(IssueReporterInitState.initialized(.sent), result.0)
         XCTAssertLessThan(result.1, 50)
