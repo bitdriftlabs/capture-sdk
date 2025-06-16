@@ -335,13 +335,25 @@ static NSString *name_for_crash(MXCrashDiagnostic *event) {
 #undef print_case
 
 static NSString *reason_for_crash(MXCrashDiagnostic *event, NSString *name) {
+  NSMutableArray <NSString *> *components = [NSMutableArray new];
   if (@available(iOS 17, macOS 14, *)) {
     if (event.exceptionReason) {
-      return event.exceptionReason.composedMessage;
+      // exception name included here instead of in the name_for_crash
+      // to avoid cases where devices on iOS <17 have a different name
+      // and thus a different issue grouping
+      [components addObject:[NSString stringWithFormat:@"%@: %@",
+                               event.exceptionReason.exceptionName,
+                               event.exceptionReason.composedMessage]];
     }
   }
   if (event.terminationReason) {
-    return event.terminationReason;
+    [components addObject:event.terminationReason];
+  }
+  if (event.virtualMemoryRegionInfo) {
+    [components addObject:event.virtualMemoryRegionInfo];
+  }
+  if ([components count]) {
+    return [components componentsJoinedByString:@".\n"];
   }
   if (event.exceptionCode.longValue) {
     return [NSString stringWithFormat:@"code: %ld, signal: %@",
