@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-# Usage: ./bump-shared-core.sh [sha]
+# Usage: ./tools/bump-shared-core.sh [sha]
 # If sha is not provided, it defaults to the latest commit on the main branch of shared-core.
 
 if ! which cargo-upgrade >/dev/null 2>&1; then
