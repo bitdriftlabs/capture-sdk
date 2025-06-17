@@ -26,6 +26,9 @@ import timber.log.Timber
 
 class MainActivity : AppCompatActivity() {
 
+    init { System.loadLibrary("native-lib"); }
+    private external fun stringFromJNI(): String?
+
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
 
@@ -43,6 +46,8 @@ class MainActivity : AppCompatActivity() {
 
         Log.i("MainActivity", "Bitdrift Logger configured with url: ${Logger.sessionUrl}")
         Timber.i("Bitdrift Logger configured with url: %s", Logger.sessionUrl)
+        Log.i("MainActivity", "Calling JNI method: ${stringFromJNI()}")
+        Timber.i("Calling JNI method: ${stringFromJNI()}")
 
         super.onCreate(savedInstanceState)
 

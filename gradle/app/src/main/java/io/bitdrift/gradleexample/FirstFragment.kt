@@ -24,6 +24,7 @@ import io.bitdrift.gradleexample.databinding.FragmentFirstBinding
  */
 class FirstFragment : Fragment() {
 
+    private external fun triggerSegfault()
     private var _binding: FragmentFirstBinding? = null
 
     // This property is only valid between onCreateView and
@@ -51,6 +52,9 @@ class FirstFragment : Fragment() {
             clipboardManager.setPrimaryClip(data)
         }
 
+        binding.buttonCrash.setOnClickListener {
+            triggerSegfault()
+        }
         binding.buttonFirst.setOnClickListener {
             findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
         }
