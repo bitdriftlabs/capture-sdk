@@ -479,7 +479,7 @@ extern "C" fn capture_create_logger(
         };
 
       let path = unsafe { CStr::from_ptr(path) }.to_str()?;
-      let start_in_sleep_mode = false; // TODO(FranAguilera): Will be handled at BIT-5627
+      let start_in_sleep_mode = false; // TODO(kattrali): Will be handled as part of BIT-5426
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory: path.into(),
         api_key: unsafe { CStr::from_ptr(api_key) }.to_str()?.to_string(),
