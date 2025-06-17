@@ -1,10 +1,13 @@
 #!/bin/bash
 
+set -euo pipefail
+
 #
 # Install our provisioning certificates on the runner machine and sign the given
 # binary.
 #
 # Set $BITDRIFT_CERT_P12 and $P12_PASSWORD before invoking the script
+#
 
 KEYCHAIN="bitdrift-temp.keychain"
 KEYCHAIN_PASSWORD=$(openssl rand -base64 15)

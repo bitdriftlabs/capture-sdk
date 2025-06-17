@@ -111,6 +111,9 @@ jobs:
       - name: Codesign macOS build
         if: contains(matrix.settings.target, 'darwin')
         run: bash tools/sign.sh packages/core/${{ env.APP_NAME }}.darwin-*.node
+        env:
+          BITDRIFT_CERT_P12: ${{ secrets.BITDRIFT_CERT_P12 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
