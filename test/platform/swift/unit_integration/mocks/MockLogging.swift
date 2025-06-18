@@ -58,6 +58,8 @@ public final class MockLogging {
     public var logsCount: Int { self.logs.count }
     /// A closure that's called every time a log is emitted by the logger.
     public var onLog: (_ log: Log) -> Void = { _ in }
+    /// The sleep mode state
+    public private(set) var sleepMode: SleepMode = .inactive
 }
 
 extension MockLogging: Logging {
@@ -138,5 +140,9 @@ extension MockLogging: Logging {
             customStartTimeInterval: startTimeInterval,
             parentSpanID: parentSpanID
         )
+    }
+
+    public func setSleepMode(_ mode: Capture.SleepMode) {
+        sleepMode = mode
     }
 }

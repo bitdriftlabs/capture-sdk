@@ -87,7 +87,8 @@ open class BaseNetworkingTestCase: XCTestCase {
                 releaseVersion: "",
                 model: "",
                 network: network,
-                errorReporting: MockRemoteErrorReporter()
+                errorReporting: MockRemoteErrorReporter(),
+                sleepMode: .inactive
             )
         )
 

@@ -54,6 +54,41 @@ public final class LoggerObjc: NSObject {
         }
     }
 
+    /// Initializes the Capture SDK with the specified API key and session strategy.
+    /// Calling other SDK methods has no effect unless the logger has been initialized.
+    /// Subsequent calls to this function will have no effect.
+    ///
+    /// - parameter apiKey:                      The API key provided by bitdrift.
+    /// - parameter sessionStrategy:             A session strategy for the management of session IDs.
+    /// - parameter apiURL:                      The base URL of the Capture API. Rely on its default value
+    ///                                          unless
+    ///                                          specifically instructed otherwise during discussions with
+    ///                                          Bitdrift.
+    ///                                          Defaults to Bitdrift's hosted Compose API base URL.
+    /// - parameter enableURLSessionIntegration: A flag indicating if automatic URLSession capture is enabled.
+    /// - parameter sleepMode:                   .active if Capture should be initialized in minimal activity mode.
+    @objc
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionStrategy: SessionStrategyObjc,
+        // swiftlint:disable:next force_unwrapping use_static_string_url_init
+        apiURL: URL = URL(string: "https://api.bitdrift.io")!,
+        enableURLSessionIntegration: Bool = true,
+        sleepMode: SleepMode = .inactive
+    ) {
+        let logger = Capture.Logger
+            .start(
+                withAPIKey: apiKey,
+                sessionStrategy: sessionStrategy.underlyingSessionStrategy,
+                configuration: Configuration(sleepMode: sleepMode),
+                apiURL: apiURL
+            )
+
+        if let logger, enableURLSessionIntegration {
+            logger.enableIntegrations([.urlSession()], disableSwizzling: false)
+        }
+    }
+
     /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
     /// This API is experimental and subject to change
     @objc
@@ -73,6 +108,15 @@ public final class LoggerObjc: NSObject {
         case .customConfig:
             Capture.Logger.initFatalIssueReporting(.customConfig)
         }
+    }
+
+    /// Sets the operation mode of the logger, where activating sleep mode
+    /// reduces activity to a minimal level
+    ///
+    /// - parameter mode: the mode to use
+    @objc
+    public static func setSleepMode(_ mode: SleepMode) {
+        Capture.Logger.setSleepMode(mode)
     }
 
     /// Defines the initialization of a new session within the current configured logger.

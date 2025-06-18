@@ -109,6 +109,14 @@ public protocol Logging {
     /// - parameter screenName: The name of the screen.
     func logScreenView(screenName: String)
 
+    // MARK: - Sleep mode
+
+    /// Sets the operation mode of the logger, where activating sleep mode
+    /// reduces activity to a minimal level
+    ///
+    /// - parameter mode: the mode to use
+    func setSleepMode(_ mode: SleepMode)
+
     // MARK: - Spans
 
     /// Signals that an operation has started at this point in time. Each operation consists of start and

@@ -37,6 +37,8 @@ public final class MockLoggerBridging {
 
     public private(set) var errors: [HandledError] = []
 
+    public private(set) var sleepMode: SleepMode = .inactive
+
     public var shouldLogAppUpdateEvent = false
 
     public var logAppUpdateExpectation: XCTestExpectation?
@@ -129,4 +131,8 @@ extension MockLoggerBridging: LoggerBridging {
     }
 
     public func enableBlockingShutdown() {}
+
+    public func setSleepMode(_ mode: Capture.SleepMode) {
+        sleepMode = mode
+    }
 }

@@ -101,7 +101,7 @@ pub extern "C" fn await_api_server_received_handshake(stream_id: i32) {
       StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
         ExpectedStreamEvent::Handshake {
           matcher: None,
-          sleep_mode: false // TODO(kattrali): Will be handled as part of BIT-5425
+          sleep_mode: false,
         },
         Duration::seconds(15)
       )
@@ -198,7 +198,7 @@ pub extern "C" fn configure_aggressive_continuous_uploads(stream_id: i32) {
     assert!(stream.await_event_with_timeout(
       ExpectedStreamEvent::Handshake {
         matcher: None,
-        sleep_mode: false // TODO(kattrali): Will be handled as part of BIT-5425
+        sleep_mode: false,
       },
       Duration::milliseconds(2000),
     ));
@@ -276,7 +276,7 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
     if !StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
       ExpectedStreamEvent::Handshake {
         matcher: None,
-        sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
+        sleep_mode: false,
       },
       Duration::milliseconds(800),
     ) {
@@ -383,7 +383,7 @@ pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: Logger
       assert!(stream.await_event_with_timeout(
         ExpectedStreamEvent::Handshake {
           matcher: None,
-          sleep_mode: false // TODO(kattrali): Will be handled as part of BIT-5425
+          sleep_mode: false,
         },
         Duration::seconds(10),
       ));

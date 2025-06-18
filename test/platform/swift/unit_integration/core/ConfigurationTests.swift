@@ -42,6 +42,11 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertNotNil(Logger.getShared())
     }
 
+    func testConfigurationDefaultValues() {
+        let config = Configuration()
+        XCTAssertEqual(config.sleepMode, SleepMode.inactive)
+    }
+
     func testConfigurationFailure() {
         let factory = MockLoggerBridgingFactory(logger: nil)
 

@@ -580,6 +580,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   network: JObject<'_>,
   preferences: JObject<'_>,
   error_reporter: JObject<'_>,
+  start_in_sleep_mode: jboolean,
 ) -> jlong {
   initialize_logging();
 
@@ -663,7 +664,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         store,
         network: network_manager,
         static_metadata,
-        start_in_sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
+        start_in_sleep_mode: start_in_sleep_mode == JNI_TRUE,
       })
       .with_internal_logger(true)
       .build()
@@ -1084,6 +1085,23 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_reportError(
       },
     );
   }
+}
+
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setSleepModeEnabled(
+  _env: JNIEnv<'_>,
+  logger_id: jlong,
+  enabled: jboolean,
+) {
+  bd_client_common::error::with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.transition_sleep_mode(enabled == JNI_TRUE);
+
+      Ok(())
+    },
+    "jni transition sleep mode",
+  );
 }
 
 fn exception_stacktrace(

@@ -83,4 +83,9 @@ protocol LoggerBridging {
     ///
     /// For tests/profiling purposes only.
     func enableBlockingShutdown()
+
+    /// Enables or disables sleep mode
+    ///
+    /// - parameter mode: the mode to use
+    func setSleepMode(_ mode: SleepMode)
 }

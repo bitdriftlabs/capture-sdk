@@ -117,7 +117,7 @@ unsafe extern "C" fn test_stream_received_handshake(stream_id: i32, continuation
         stream_id,
         ExpectedStreamEvent::Handshake {
           matcher: None,
-          sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
+          sleep_mode: false,
         },
         Box::new(Continuation::new(continuation)),
       ),
