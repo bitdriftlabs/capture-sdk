@@ -149,6 +149,9 @@ static void serialize_error_threads(BDProcessorHandle handle, NSDictionary *cras
     NSDictionary *thread = call_stacks[thread_index];
     NSDictionary *frame = thread_root_frame(thread);
     uint64_t frame_count = count_frames(frame);
+    if (frame_count == 0 && thread_index != crashed_index) {
+      continue;
+    }
     BDStackFrame *stack = frame_count
       ? (BDStackFrame *)calloc(frame_count, sizeof(BDStackFrame))
       : 0;
