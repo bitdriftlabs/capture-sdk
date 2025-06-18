@@ -493,6 +493,7 @@ extern "C" fn capture_create_logger(
         store,
         device,
         static_metadata,
+        start_in_sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5426
       })
       .with_internal_logger(true)
       .build()

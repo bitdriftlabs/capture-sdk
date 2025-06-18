@@ -66,6 +66,7 @@ fn simple_log(c: &mut Criterion) {
     store,
     network: Box::new(NoopNetwork {}),
     static_metadata: Arc::new(EmptyMetadata),
+    start_in_sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
   })
   .build()
   .unwrap()
@@ -110,6 +111,7 @@ fn with_matcher_and_buffer(c: &mut Criterion) {
     store,
     network: Box::new(NoopNetwork {}),
     static_metadata: Arc::new(EmptyMetadata),
+    start_in_sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
   })
   .build()
   .unwrap()

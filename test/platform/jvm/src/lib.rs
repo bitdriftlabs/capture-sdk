@@ -114,13 +114,13 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_awaitApiServerR
 
   platform_test_helpers::with_expected_server(|h| {
     StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
-      ExpectedStreamEvent::Handshake(
-        HandshakeMatcher {
+      ExpectedStreamEvent::Handshake {
+        matcher: Some(HandshakeMatcher {
           attributes: expected_attributes,
           attribute_keys_to_ignore: expected_attribute_keys_to_ignore,
-        }
-        .into(),
-      ),
+        }),
+        sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
+      },
       Duration::seconds(5),
     )
   })

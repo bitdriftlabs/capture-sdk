@@ -97,8 +97,15 @@ pub extern "C" fn wait_for_stream_with_test_api_key(stream_id: i32) {
 #[no_mangle]
 pub extern "C" fn await_api_server_received_handshake(stream_id: i32) {
   with_expected_server(|h| {
-    assert!(StreamHandle::from_stream_id(stream_id, h)
-      .await_event_with_timeout(ExpectedStreamEvent::Handshake(None), Duration::seconds(15)));
+    assert!(
+      StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
+        ExpectedStreamEvent::Handshake {
+          matcher: None,
+          sleep_mode: false // TODO(kattrali): Will be handled as part of BIT-5425
+        },
+        Duration::seconds(15)
+      )
+    );
   });
 }
 
@@ -189,7 +196,10 @@ pub extern "C" fn configure_aggressive_continuous_uploads(stream_id: i32) {
     let stream = StreamHandle::from_stream_id(stream_id, h);
     // Ensure that we've received the handshake.
     assert!(stream.await_event_with_timeout(
-      ExpectedStreamEvent::Handshake(None),
+      ExpectedStreamEvent::Handshake {
+        matcher: None,
+        sleep_mode: false // TODO(kattrali): Will be handled as part of BIT-5425
+      },
       Duration::milliseconds(2000),
     ));
 
@@ -264,7 +274,10 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
 
   let is_succes = with_expected_server(|h| {
     if !StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
-      ExpectedStreamEvent::Handshake(None),
+      ExpectedStreamEvent::Handshake {
+        matcher: None,
+        sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
+      },
       Duration::milliseconds(800),
     ) {
       return false;
@@ -367,8 +380,13 @@ pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: Logger
 
       stream = h.blocking_next_stream()?;
 
-      assert!(stream
-        .await_event_with_timeout(ExpectedStreamEvent::Handshake(None), Duration::seconds(10),));
+      assert!(stream.await_event_with_timeout(
+        ExpectedStreamEvent::Handshake {
+          matcher: None,
+          sleep_mode: false // TODO(kattrali): Will be handled as part of BIT-5425
+        },
+        Duration::seconds(10),
+      ));
     }
 
     // Verify at least one upload to make sure that things are working as expected.

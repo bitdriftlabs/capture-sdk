@@ -115,7 +115,10 @@ unsafe extern "C" fn test_stream_received_handshake(stream_id: i32, continuation
     h.enqueue_expected_event(
       Event::StreamEvent(
         stream_id,
-        ExpectedStreamEvent::Handshake(None),
+        ExpectedStreamEvent::Handshake {
+          matcher: None,
+          sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
+        },
         Box::new(Continuation::new(continuation)),
       ),
       Duration::seconds(5),

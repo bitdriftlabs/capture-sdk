@@ -49,6 +49,7 @@ fn test_live_match_performance(c: &mut Criterion) {
     session_replay_target: Box::new(bd_test_helpers::session_replay::NoOpTarget),
     events_listener_target: Box::new(bd_test_helpers::events::NoOpListenerTarget),
     device,
+    start_in_sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
   })
   .build()
   .unwrap()

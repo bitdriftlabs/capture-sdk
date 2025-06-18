@@ -663,6 +663,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         store,
         network: network_manager,
         static_metadata,
+        start_in_sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
       })
       .with_internal_logger(true)
       .build()
