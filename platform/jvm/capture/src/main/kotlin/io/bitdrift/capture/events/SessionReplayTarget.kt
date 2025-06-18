@@ -71,13 +71,13 @@ internal class SessionReplayTarget(
         screen: FilteredCapture,
         metrics: ReplayCaptureMetrics,
     ) {
-        val fields =
-            buildMap {
-                put("screen", encodedScreen.toFieldValue())
-                putAll(metrics.toMap().toFields())
-            }
-
-        logger.logSessionReplayScreen(fields, metrics.parseDuration)
+//        val fields =
+//            buildMap {
+//                put("screen", encodedScreen.toFieldValue())
+//                putAll(metrics.toMap().toFields())
+//            }
+//
+//        logger.logSessionReplayScreen(fields, metrics.parseDuration)
     }
 
     override fun captureScreenshot() {
