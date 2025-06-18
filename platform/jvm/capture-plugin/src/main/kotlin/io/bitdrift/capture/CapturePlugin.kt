@@ -9,7 +9,8 @@ package io.bitdrift.capture
 
 import com.android.build.api.variant.AndroidComponentsExtension
 import io.bitdrift.capture.extension.BitdriftPluginExtension
-import io.bitdrift.capture.task.CLIHelpTask
+import io.bitdrift.capture.task.CLIUploadMappingTask
+import io.bitdrift.capture.task.CLIUploadSymbolsTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.slf4j.LoggerFactory
@@ -30,10 +31,20 @@ abstract class CapturePlugin @Inject constructor() : Plugin<Project> {
             )
         }
 
-        // Example BD CLI task that prints the help text
-        target.tasks.register("bdtool_help", CLIHelpTask::class.java) { task ->
-            task.description = "Call Bitdrift CLI tool: help"
-            task.group = "Other"
+        target.tasks.register("bdUploadMapping", CLIUploadMappingTask::class.java) { task ->
+            task.description = "Upload mapping to Bitdrift"
+            task.group = "Upload"
+        }
+
+        target.tasks.register("bdUploadSymbols", CLIUploadSymbolsTask::class.java) { task ->
+            task.description = "Upload symbols to Bitdrift"
+            task.group = "Upload"
+        }
+
+        target.tasks.register("bdUpload") { task ->
+            task.description = "Upload all symbol and mapping files to Bitdrift"
+            task.group = "Upload"
+            task.dependsOn("bdUploadMapping", "bdUploadSymbols")
         }
     }
 
