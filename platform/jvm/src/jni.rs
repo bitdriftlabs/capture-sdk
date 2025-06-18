@@ -651,7 +651,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       // the error reporter is set up.
       UnexpectedErrorHandler::set_reporter(Arc::new(error_reporter));
 
-      let start_in_sleep_mode = false; // TODO(kattrali): Will be handled as part of BIT-5425
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory,
         api_key: unsafe { env.get_string_unchecked(&api_key) }?.into(),
@@ -664,7 +663,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         store,
         network: network_manager,
         static_metadata,
-        start_in_sleep_mode,
+        start_in_sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
       })
       .with_internal_logger(true)
       .build()
