@@ -21,6 +21,7 @@ compile_commands.json
 *.xcodeproj
 rust-project.json
 .cache
+.kotlin
 
 # Profiling
 /buffers
