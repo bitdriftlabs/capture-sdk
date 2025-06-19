@@ -95,6 +95,11 @@ internal class FatalIssueReporter(
                 val errorMessage =
                     "Error while initializing reporter for ${FatalIssueMechanism.BuiltIn}. $it"
                 Log.e(LOG_TAG, errorMessage)
+                fatalIssueReporterStatus =
+                    FatalIssueReporterStatus(
+                        FatalIssueReporterState.BuiltIn.InitializationFailed,
+                        mechanism = FatalIssueMechanism.BuiltIn,
+                    )
             }
         } else {
             Log.e(LOG_TAG, "Fatal issue reporting already being initialized")
