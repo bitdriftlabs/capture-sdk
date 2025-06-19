@@ -97,6 +97,8 @@ class PreInitInMemoryLoggerTest {
             parentSpanId: UUID?,
         ): Span = Span(null, name, level, fields, startTimeMs, parentSpanId)
 
+        override fun setSleepMode(sleepMode: SleepMode) {}
+
         override fun log(httpRequestInfo: HttpRequestInfo) {}
 
         override fun log(httpResponseInfo: HttpResponseInfo) {}

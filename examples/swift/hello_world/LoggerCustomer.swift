@@ -91,10 +91,11 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
             .start(
                 withAPIKey: Configuration.storedAPIKey ?? "",
                 sessionStrategy: .fixed(),
+                configuration: Capture.Configuration(enableFatalIssueReporting: true),  
                 fieldProviders: [CustomFieldProvider()],
                 apiURL: apiURL
             )?
-            .enableIntegrations([.urlSession(), .crashReporting()], disableSwizzling: true)
+            .enableIntegrations([.urlSession()], disableSwizzling: true)
 
         Logger.addField(withKey: "field_container_field_key", value: "field_container_value")
         Logger.logInfo("App launched. Logger configured.")

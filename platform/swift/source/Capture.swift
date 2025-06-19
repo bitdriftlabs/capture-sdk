@@ -81,6 +81,9 @@ extension Logger {
     ) -> LoggerIntegrator?
     {
         return self.createOnce {
+            if configuration.enableFatalIssueReporting {
+                Capture.Logger.initFatalIssueReporting(.builtIn)
+            }
             return Logger(
                 withAPIKey: apiKey,
                 apiURL: apiURL,
@@ -96,8 +99,10 @@ extension Logger {
     /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
     /// This API is experimental and subject to change
     ///
+    /// WARNING: For now this API is not exposed to customers. If there is a request for this will open visibility again
+    ///
     /// - parameter type: mechanism for crash detection
-    public static func initFatalIssueReporting(_ type: IssueReporterType = .builtIn) {
+    static func initFatalIssueReporting(_ type: IssueReporterType = .builtIn) {
         if issueReporterInitResult.0 != .notInitialized {
             log(level: .warning, message: "Fatal issue reporting already being initialized")
             return

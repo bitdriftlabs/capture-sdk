@@ -67,6 +67,7 @@ public final class LoggerObjc: NSObject {
     ///                                          Defaults to Bitdrift's hosted Compose API base URL.
     /// - parameter enableURLSessionIntegration: A flag indicating if automatic URLSession capture is enabled.
     /// - parameter sleepMode:                   .active if Capture should be initialized in minimal activity mode.
+    /// - parameter enableFatalIssueReporting:   true if Capture should enable Fatal Issue Reporting.
     @objc
     public static func start(
         withAPIKey apiKey: String,
@@ -74,13 +75,14 @@ public final class LoggerObjc: NSObject {
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
         apiURL: URL = URL(string: "https://api.bitdrift.io")!,
         enableURLSessionIntegration: Bool = true,
-        sleepMode: SleepMode = .inactive
+        sleepMode: SleepMode = .inactive,
+        enableFatalIssueReporting: Bool = false
     ) {
         let logger = Capture.Logger
             .start(
                 withAPIKey: apiKey,
                 sessionStrategy: sessionStrategy.underlyingSessionStrategy,
-                configuration: Configuration(sleepMode: sleepMode),
+                configuration: Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting),
                 apiURL: apiURL
             )
 
@@ -91,17 +93,20 @@ public final class LoggerObjc: NSObject {
 
     /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
     /// This API is experimental and subject to change
+    /// WARNING: For now this API is not exposed to customers. If there is a request for this will open visibility again
     @objc
-    public static func initFatalIssueReporting() {
+    static func initFatalIssueReporting() {
         Capture.Logger.initFatalIssueReporting(.builtIn)
     }
 
     /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
     /// This API is experimental and subject to change
     ///
+    /// WARNING: For now this API is not exposed to customers. If there is a request for this will open visibility again
+    ///
     /// - parameter type: mechanism for crash detection
     @objc
-    public static func initFatalIssueReporting(withType type: IssueReporterTypeObjc) {
+    static func initFatalIssueReporting(withType type: IssueReporterTypeObjc) {
         switch type {
         case .builtIn:
             Capture.Logger.initFatalIssueReporting(.builtIn)
