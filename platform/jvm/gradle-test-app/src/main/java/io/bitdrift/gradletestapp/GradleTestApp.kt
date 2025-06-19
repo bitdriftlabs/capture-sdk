@@ -44,6 +44,7 @@ import android.app.ApplicationStartInfo.START_TYPE_UNSET
 import android.app.ApplicationStartInfo.START_TYPE_WARM
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Paint.Cap
 import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
@@ -51,6 +52,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import com.bugsnag.android.Bugsnag
+import com.bugsnag.android.Logger
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.LogLevel

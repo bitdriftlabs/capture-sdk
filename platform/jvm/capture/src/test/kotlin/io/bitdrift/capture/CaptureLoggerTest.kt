@@ -21,6 +21,7 @@ import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.fakes.FakeFatalIssueReporter
+import io.bitdrift.capture.fakes.FakePreInitLogFlusher
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
@@ -63,6 +64,7 @@ class CaptureLoggerTest {
     private lateinit var logger: LoggerImpl
     private var testServerPort: Int? = null
     private val fatalIssueReporter: IFatalIssueReporter = FakeFatalIssueReporter()
+    private val preInitLogFlusher = FakePreInitLogFlusher()
 
     @Before
     fun setUp() {
@@ -74,6 +76,7 @@ class CaptureLoggerTest {
 
         testServerPort = CaptureTestJniLibrary.startTestApiServer(-1)
 
+        preInitLogFlusher.reset()
         logger = buildLogger(dateProvider = systemDateProvider)
     }
 
@@ -441,6 +444,7 @@ class CaptureLoggerTest {
         )
 
         assertThat(JniRuntime(logger.loggerId).isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)).isFalse
+        assertThat(preInitLogFlusher.wasFlushed).isTrue()
     }
 
     private fun testServerUrl(): HttpUrl =
@@ -469,6 +473,7 @@ class CaptureLoggerTest {
             dateProvider = dateProvider,
             configuration = Configuration(),
             fatalIssueReporter = fatalIssueReporter,
+            preInitLogFlusher = preInitLogFlusher,
         )
     }
 

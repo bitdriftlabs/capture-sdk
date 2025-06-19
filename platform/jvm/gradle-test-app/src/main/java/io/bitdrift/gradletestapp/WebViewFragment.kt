@@ -13,6 +13,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.fragment.app.Fragment
+import io.bitdrift.capture.Capture
+import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.events.span.SpanResult
 
 /**
  * A basic WebView that can be used to test multi process.
@@ -23,9 +26,11 @@ class WebViewFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        val span = Capture.Logger.startSpan("WebViewFragment", LogLevel.INFO)
         val view = inflater.inflate(R.layout.fragment_web_view, container, false)
         val webView = view.findViewById<WebView>(R.id.webView)
         webView.loadUrl("https://bitdrift.io/")
+        span?.end(SpanResult.SUCCESS)
         return view
     }
 }

@@ -11,12 +11,10 @@ import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebView
 import android.widget.ArrayAdapter
 import android.widget.Spinner
 import android.widget.Toast
@@ -38,6 +36,8 @@ import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.Error
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.apollo.CaptureApolloInterceptor
+import io.bitdrift.capture.events.span.Span
+import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.gradletestapp.databinding.FragmentFirstBinding
 import kotlinx.coroutines.MainScope
@@ -83,11 +83,14 @@ class FirstFragment : Fragment() {
     private lateinit var clipboardManager: ClipboardManager
     private lateinit var okHttpClient: OkHttpClient
     private lateinit var apolloClient: ApolloClient
+    private var firstFragmentToCopySessionSpan: Span ?= null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+
+        firstFragmentToCopySessionSpan = Logger.startSpan("CreateFragmentToCopySessionClick", LogLevel.INFO)
 
         _binding = FragmentFirstBinding.inflate(inflater, container, false)
         val viewRoot = binding.root
@@ -160,6 +163,7 @@ class FirstFragment : Fragment() {
     private fun copySessionUrl(view: View) {
         val data = ClipData.newPlainText("sessionUrl", Logger.sessionUrl)
         clipboardManager.setPrimaryClip(data)
+        firstFragmentToCopySessionSpan?.end(SpanResult.SUCCESS)
     }
 
     private fun startNewSession(view: View) {

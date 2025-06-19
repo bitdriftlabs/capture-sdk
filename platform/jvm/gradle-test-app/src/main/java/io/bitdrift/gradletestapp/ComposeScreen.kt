@@ -25,11 +25,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.HtmlCompat
+import io.bitdrift.capture.Capture
+import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.replay.compose.CaptureModifier.captureIgnore
 import timber.log.Timber
 
 @Composable
 fun SecondScreen() {
+    val span = Capture.Logger.startSpan("ComposeScreen", LogLevel.INFO)
     Surface {
         val smallSpacing = Dp(value = 5f)
         val normalSpacing = Dp(value = 10f)
@@ -68,6 +72,7 @@ fun SecondScreen() {
             }
         }
     }
+    span?.end(SpanResult.SUCCESS)
 }
 
 @Composable
