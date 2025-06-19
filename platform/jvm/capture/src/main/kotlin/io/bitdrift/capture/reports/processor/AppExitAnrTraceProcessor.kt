@@ -13,6 +13,8 @@ import io.bitdrift.capture.reports.binformat.v1.ErrorRelation
 import io.bitdrift.capture.reports.binformat.v1.FrameType
 import io.bitdrift.capture.reports.binformat.v1.Report
 import io.bitdrift.capture.reports.binformat.v1.ReportType
+import io.bitdrift.capture.reports.binformat.v1.Thread
+import io.bitdrift.capture.reports.binformat.v1.ThreadDetails
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -22,12 +24,12 @@ import java.io.InputStreamReader
  * into a binary flatbuffer Report
  */
 internal object AppExitAnrTraceProcessor {
-    private const val ANR_MAIN_THREAD_IDENTIFIED = "\"main\""
-    private const val ANR_STACKTRACE_PREFIX = "at "
-    private const val ADDITIONAL_THREAD_INFO_IDENTIFIER = "|"
+    private val ACTIVE_THREAD_STATES = setOf("Runnable", "Native")
+    private const val ANR_MAIN_THREAD_IDENTIFIER = "\"main\""
     private val ANR_STACK_TRACE_REGEX = Regex("^\\s+at\\s+(.*)\\.(.*)\\((.*):(\\d+)\\)$")
-    private val mainStackTraceFrames = mutableListOf<Int>()
-    private var isProcessingMainThreadTrace = false
+    private const val ADDITIONAL_THREAD_INFO_IDENTIFIER = "|"
+    private const val ENDING_THREADS_PART_IDENTIFIER = "Zygote loaded classes"
+    private val THREAD_DETAILS_REGEX = Regex("^\"([^\"]+)\"(?:\\s+daemon)?\\s+prio=(\\d+)\\s+tid=(\\d+)(.*)$")
 
     /**
      * Process valid traceInputStream
@@ -43,18 +45,19 @@ internal object AppExitAnrTraceProcessor {
         traceInputStream: InputStream,
     ): Int {
         val inputStreamReader = InputStreamReader(traceInputStream)
-        BufferedReader(inputStreamReader)
-            .useLines { lines ->
-                lines.forEach { currentLine ->
-                    appendMainFramesIfNeeded(builder, currentLine)
-                }
-            }
+        val stackTraceAndThreadInfo = extractStackTraceAndThreadInfo(builder, inputStreamReader)
 
-        val trace = Error.createStackTraceVector(builder, mainStackTraceFrames.toIntArray())
         val reason = builder.createString(AnrReason.extractFrom(description).readableType)
         val detail = description?.let { builder.createString(it) } ?: 0
-        val error = Error.createError(builder, reason, detail, trace, ErrorRelation.CausedBy)
-
+        val error =
+            Error.createError(
+                builder,
+                reason,
+                detail,
+                stackTraceAndThreadInfo.capturedErrorTrace,
+                ErrorRelation.CausedBy,
+            )
+        val threadList = stackTraceAndThreadInfo.threadList
         return Report.createReport(
             builder,
             sdk,
@@ -62,71 +65,155 @@ internal object AppExitAnrTraceProcessor {
             appMetrics,
             deviceMetrics,
             Report.createErrorsVector(builder, intArrayOf(error)),
-            // TODO(FranAguilera): BIT-5142. Append thread info
-            0,
+            ThreadDetails.createThreadDetails(
+                builder,
+                threadList.size.toUShort(),
+                ThreadDetails.createThreadsVector(builder, threadList.toIntArray()),
+            ),
             0,
         )
     }
 
-    private fun isStackTraceLine(currentLine: String) = currentLine.trim().startsWith(ANR_STACKTRACE_PREFIX)
+    @Suppress("DestructuringDeclarationWithTooManyEntries")
+    private fun extractStackTraceAndThreadInfo(
+        builder: FlatBufferBuilder,
+        inputStreamReader: InputStreamReader,
+    ): StackTraceAndThreadInfo {
+        var capturedErrorTrace = 0
+        val threadList = mutableListOf<Int>()
 
-    private fun setIsMainThreadStackTrace(line: String) {
-        if (line.startsWith(ANR_MAIN_THREAD_IDENTIFIED)) {
-            isProcessingMainThreadTrace = true
-        } else if (isProcessingMainThreadTrace && line.isEmpty()) {
-            isProcessingMainThreadTrace = false
+        BufferedReader(inputStreamReader).useLines { lines ->
+
+            val currentFrames = mutableListOf<Int>()
+            var currentThreadData: ThreadData? = null
+            var isRelevantTracePart = false
+
+            lines.forEach { line ->
+
+                when {
+                    isEndOfThreadsPart(line) -> return@forEach
+
+                    isStartOfRelevantTracePart(line, isRelevantTracePart) -> {
+                        isRelevantTracePart = true
+                    }
+
+                    isRelevantTraceLine(line, isRelevantTracePart) -> {
+                        val threadDetailsMatchResult = THREAD_DETAILS_REGEX.find(line)
+                        if (threadDetailsMatchResult != null) {
+                            val (name, priority, tid, state) = threadDetailsMatchResult.destructured
+                            currentThreadData =
+                                ThreadData(
+                                    name = builder.createString(name),
+                                    state = builder.createString(state),
+                                    isActive = isThreadActive(state),
+                                    priority = priority.toFloatOrNull() ?: 0F,
+                                    tid = tid.toUIntOrNull() ?: 0U,
+                                )
+                        } else {
+                            currentFrames.add(line.toFrameData(builder))
+                        }
+                    }
+
+                    isEndOfCurrentThreadBlock(line, isRelevantTracePart) -> {
+                        if (currentFrames.isNotEmpty()) {
+                            // First trace will be labelled as Captured Error
+                            if (capturedErrorTrace == 0) {
+                                capturedErrorTrace =
+                                    Error.createStackTraceVector(
+                                        builder,
+                                        currentFrames.toIntArray(),
+                                    )
+                            } else {
+                                currentThreadData?.let {
+                                    threadList.add(buildThread(builder, it, currentFrames))
+                                }
+                            }
+                        }
+                        currentFrames.clear()
+                        currentThreadData = null
+                    }
+                }
+            }
         }
+        return StackTraceAndThreadInfo(capturedErrorTrace, threadList)
     }
 
     @Suppress("DestructuringDeclarationWithTooManyEntries")
-    private fun appendMainFramesIfNeeded(
+    private fun String.toFrameData(builder: FlatBufferBuilder): Int =
+        ANR_STACK_TRACE_REGEX
+            .find(this)
+            ?.destructured
+            ?.let { (className, symbolName, fileName, lineNumber) ->
+                ReportFrameBuilder.build(
+                    FrameType.JVM,
+                    builder,
+                    FrameData(
+                        className = className,
+                        symbolName = symbolName,
+                        fileName = fileName,
+                        lineNumber = lineNumber.toLongOrNull(),
+                    ),
+                )
+            } ?: ReportFrameBuilder.build(
+            FrameType.JVM,
+            builder,
+            FrameData(
+                // TODO(FranAguilera): BIT-5576. To update underlying Report model to support a Frame Entry for
+                //  details (e..g. sleeping on <0x07849c2b> (a java.lang.Object))
+                className = this,
+            ),
+        )
+
+    private fun isEndOfThreadsPart(line: String): Boolean = line.contains(ENDING_THREADS_PART_IDENTIFIER)
+
+    private fun isStartOfRelevantTracePart(
+        line: String,
+        isRelevantTracePart: Boolean,
+    ): Boolean = line.contains(ANR_MAIN_THREAD_IDENTIFIER) && !isRelevantTracePart
+
+    private fun isEndOfCurrentThreadBlock(
+        line: String,
+        isRelevantTracePart: Boolean,
+    ): Boolean = isRelevantTracePart && line.isEmpty()
+
+    private fun isRelevantTraceLine(
+        line: String,
+        isRelevantTracePart: Boolean,
+    ): Boolean = isRelevantTracePart && line.isNotEmpty() && !line.contains(ADDITIONAL_THREAD_INFO_IDENTIFIER)
+
+    private fun isThreadActive(threadState: String): Boolean = ACTIVE_THREAD_STATES.any { threadState.contains(it, ignoreCase = true) }
+
+    private fun buildThread(
         builder: FlatBufferBuilder,
-        currentLine: String,
-    ) {
-        setIsMainThreadStackTrace(currentLine)
+        threadData: ThreadData,
+        currentFrames: List<Int>,
+    ): Int =
+        Thread.createThread(
+            builder,
+            threadData.name,
+            threadData.isActive,
+            threadData.tid,
+            threadData.state,
+            threadData.priority,
+            -1,
+            Thread.createStackTraceVector(
+                builder,
+                currentFrames.toIntArray(),
+            ),
+        )
 
-        if (!isProcessingMainThreadTrace) {
-            return
-        }
+    private data class ThreadData(
+        val name: Int,
+        val state: Int,
+        val isActive: Boolean,
+        val priority: Float,
+        val tid: UInt,
+    )
 
-        val frame =
-            when {
-                isStackTraceLine(currentLine) -> {
-                    ANR_STACK_TRACE_REGEX
-                        .find(currentLine)
-                        ?.destructured
-                        ?.let { (className, symbolName, fileName, lineNumber) ->
-                            val frameData =
-                                FrameData(
-                                    className = className,
-                                    symbolName = symbolName,
-                                    fileName = fileName,
-                                    lineNumber = lineNumber.toLongOrNull(),
-                                )
-                            ReportFrameBuilder.build(
-                                FrameType.JVM,
-                                builder,
-                                frameData,
-                            )
-                        }
-                }
-
-                isAdditionalStackTraceInfo(currentLine) -> {
-                    // TODO(FranAguilera): BIT-5576. To update underlying Report model to support a Frame Entry for
-                    //  details (e..g. sleeping on <0x07849c2b> (a java.lang.Object))
-                    ReportFrameBuilder.build(
-                        FrameType.JVM,
-                        builder,
-                        FrameData(className = currentLine),
-                    )
-                }
-
-                else -> null
-            }
-        frame?.let { mainStackTraceFrames.add(it) }
-    }
-
-    private fun isAdditionalStackTraceInfo(currentLine: String): Boolean = !currentLine.contains(ADDITIONAL_THREAD_INFO_IDENTIFIER)
+    private data class StackTraceAndThreadInfo(
+        val capturedErrorTrace: Int,
+        val threadList: List<Int>,
+    )
 
     /**
      * Based on android source (see frameworks/base/core/java/com/android/internal/os/TimeoutRecord.java)
