@@ -91,7 +91,7 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
             .start(
                 withAPIKey: Configuration.storedAPIKey ?? "",
                 sessionStrategy: .fixed(),
-                configuration: Capture.Configuration(enableFatalIssueReporting: true),  
+                configuration: Capture.Configuration(enableFatalIssueReporting: true),
                 fieldProviders: [CustomFieldProvider()],
                 apiURL: apiURL
             )?
