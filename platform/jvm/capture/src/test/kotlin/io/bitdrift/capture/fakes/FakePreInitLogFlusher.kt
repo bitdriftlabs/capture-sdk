@@ -17,7 +17,7 @@ class FakePreInitLogFlusher : IPreInitLogFlusher {
     val wasFlushed: Boolean
         get() = _wasFlushed
 
-    override fun flushToNative(nativeLogger: ILogger) {
+    override fun flushToNative(loggerImpl: ILogger) {
         _wasFlushed = true
     }
 

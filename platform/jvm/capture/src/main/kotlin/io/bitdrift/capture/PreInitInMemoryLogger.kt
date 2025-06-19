@@ -37,8 +37,8 @@ internal class PreInitInMemoryLogger :
     override val deviceId: String = DEFAULT_NOT_SETUP_MESSAGE
 
     /** Flush all in memory Logger calls into the Native `LoggerImpl` **/
-    override fun flushToNative(nativeLogger: ILogger) {
-        _bufferedLoggerCalls.forEach { it(nativeLogger) }
+    override fun flushToNative(loggerImpl: ILogger) {
+        _bufferedLoggerCalls.forEach { it(loggerImpl) }
         _bufferedLoggerCalls.clear()
     }
 
@@ -86,7 +86,10 @@ internal class PreInitInMemoryLogger :
         parentSpanId: UUID?,
     ): Span {
         val span = Span(null, name, level, fields, startTimeMs, parentSpanId)
-        addLoggerCall { it.startSpan(name, level, fields, startTimeMs, parentSpanId) }
+        addLoggerCall {
+            span.setLoggerImpl(it as LoggerImpl)
+            it.startSpan(name, level, fields, startTimeMs, parentSpanId)
+        }
         return span
     }
 
@@ -112,6 +115,6 @@ internal class PreInitInMemoryLogger :
 
     private companion object {
         private const val DEFAULT_NOT_SETUP_MESSAGE = "SDK starting"
-        private const val MAX_LOG_CALL_SIZE = 1024
+        private const val MAX_LOG_CALL_SIZE = 512 // Matching the pre-config buffer definition
     }
 }

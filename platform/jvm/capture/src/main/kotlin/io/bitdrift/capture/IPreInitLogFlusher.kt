@@ -11,5 +11,5 @@ package io.bitdrift.capture
  */
 fun interface IPreInitLogFlusher {
     /** Flush all in memory Logger calls into the Native `LoggerImpl` **/
-    fun flushToNative(nativeLogger: ILogger)
+    fun flushToNative(loggerImpl: ILogger)
 }

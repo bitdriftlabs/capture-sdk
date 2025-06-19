@@ -42,8 +42,8 @@ class PreInitInMemoryLoggerTest {
 
         triggerScreenViewCalls(totalCalls = totalCalls)
 
-        assertThat(testLogger.screenNameViewed.size).isEqualTo(1024)
-        assertThat(testLogger.screenNameViewed).first().isEqualTo("Screen Viewed 1025")
+        assertThat(testLogger.screenNameViewed.size).isEqualTo(512)
+        assertThat(testLogger.screenNameViewed).first().isEqualTo("Screen Viewed 1537")
         assertThat(testLogger.screenNameViewed).last().isEqualTo("Screen Viewed 2048")
     }
 
