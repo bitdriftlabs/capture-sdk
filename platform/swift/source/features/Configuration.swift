@@ -12,10 +12,18 @@ public struct Configuration {
     /// The session replay configuration.
     public var sessionReplayConfiguration: SessionReplayConfiguration
 
+    /// .active if Capture should initialize in minimal activity mode
+    public var sleepMode: SleepMode
+
     /// Initializes a new instance of the Capture configuration.
     ///
     /// - parameter sessionReplayConfiguration: The session replay configuration to use.
-    public init(sessionReplayConfiguration: SessionReplayConfiguration = .init()) {
+    /// - parameter sleepMode:                  .active if Capture should initialize in minimal activity mode
+    public init(
+        sessionReplayConfiguration: SessionReplayConfiguration = .init(),
+        sleepMode: SleepMode = .inactive
+    ) {
         self.sessionReplayConfiguration = sessionReplayConfiguration
+        self.sleepMode = sleepMode
     }
 }

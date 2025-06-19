@@ -146,4 +146,12 @@ interface ILogger {
      * @param httpResponseInfo information used to enrich the log line
      */
     fun log(httpResponseInfo: HttpResponseInfo)
+
+    /**
+     * Sets the operation mode of the logger, where activating sleep mode
+     * reduces activity to a minimal level
+     *
+     * @param sleepMode mode to use
+     */
+    fun setSleepMode(sleepMode: SleepMode)
 }

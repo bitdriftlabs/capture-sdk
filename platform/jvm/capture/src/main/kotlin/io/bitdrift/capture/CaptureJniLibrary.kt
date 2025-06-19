@@ -49,6 +49,7 @@ internal object CaptureJniLibrary : IBridge {
      * @param network the network implementation to use to communicate with the backend
      * @param preferences the preferences storage to use for persistent storage of simple settings and configuration.
      * @param errorReporter the error reporter to use for reporting error to bitdrift services.
+     * @param startInSleepMode true to initialize in sleep mode
      */
     external override fun createLogger(
         sdkDirectory: String,
@@ -64,6 +65,7 @@ internal object CaptureJniLibrary : IBridge {
         network: ICaptureNetwork,
         preferences: IPreferences,
         errorReporter: IErrorReporter,
+        startInSleepMode: Boolean,
     ): Long
 
     /**
@@ -303,5 +305,16 @@ internal object CaptureJniLibrary : IBridge {
     external fun reportError(
         message: String,
         stackTraceProvider: StackTraceProvider,
+    )
+
+    /**
+     * Sets sleep mode on or off
+     *
+     * @param loggerId the ID of the logger to update
+     * @param enabled true if sleep mode should be activated
+     */
+    external fun setSleepModeEnabled(
+        loggerId: Long,
+        enabled: Boolean,
     )
 }

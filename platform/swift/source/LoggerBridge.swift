@@ -73,7 +73,8 @@ final class LoggerBridge: LoggerBridging {
         releaseVersion: String,
         model: String,
         network: Network?,
-        errorReporting: RemoteErrorReporting
+        errorReporting: RemoteErrorReporting,
+        sleepMode: SleepMode
     ) {
         do {
             try bufferDirectoryPath.map(makeDirectoryAndDisableProtection(at:))
@@ -95,7 +96,8 @@ final class LoggerBridge: LoggerBridging {
             releaseVersion,
             model,
             network,
-            errorReporting
+            errorReporting,
+            sleepMode == SleepMode.active
         )
 
         if loggerID == -1 {
@@ -125,7 +127,8 @@ final class LoggerBridge: LoggerBridging {
         releaseVersion: String,
         model: String,
         network: Network?,
-        errorReporting: RemoteErrorReporting
+        errorReporting: RemoteErrorReporting,
+        sleepMode: SleepMode
     ) -> LoggerBridging? {
         return LoggerBridge(
             apiKey: apiKey,
@@ -139,7 +142,8 @@ final class LoggerBridge: LoggerBridging {
             releaseVersion: releaseVersion,
             model: model,
             network: network,
-            errorReporting: errorReporting
+            errorReporting: errorReporting,
+            sleepMode: sleepMode
         )
     }
 
@@ -244,5 +248,9 @@ final class LoggerBridge: LoggerBridging {
 
     func enableBlockingShutdown() {
         self.blockingShutdown = true
+    }
+
+    func setSleepMode(_ mode: SleepMode) {
+        capture_set_sleep_mode(self.loggerID, mode == .active)
     }
 }

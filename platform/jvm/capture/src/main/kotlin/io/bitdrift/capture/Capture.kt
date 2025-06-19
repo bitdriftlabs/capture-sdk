@@ -503,6 +503,17 @@ object Capture {
         }
 
         /**
+         * Sets the operation mode of the logger, where activating sleep mode
+         * reduces activity to a minimal level
+         *
+         * @param sleepMode mode to use
+         */
+        @JvmStatic
+        fun setSleepMode(sleepMode: SleepMode) {
+            logger()?.setSleepMode(sleepMode)
+        }
+
+        /**
          * Used for testing purposes.
          */
         internal fun resetShared() {

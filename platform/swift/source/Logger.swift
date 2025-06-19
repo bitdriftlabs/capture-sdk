@@ -188,7 +188,8 @@ public final class Logger {
             releaseVersion: clientAttributes.appVersion,
             model: deviceAttributes.hardwareVersion,
             network: network,
-            errorReporting: self.remoteErrorReporter
+            errorReporting: self.remoteErrorReporter,
+            sleepMode: configuration.sleepMode
         ) else {
             return nil
         }
@@ -239,6 +240,14 @@ public final class Logger {
     /// For tests/profiling purposes only.
     func enableBlockingShutdown() {
         self.underlyingLogger.enableBlockingShutdown()
+    }
+
+    /// Sets the operation mode of the logger, where activating sleep mode
+    /// reduces activity to a minimal level
+    ///
+    /// - parameter mode: the mode to use
+    public func setSleepMode(_ mode: SleepMode) {
+        self.underlyingLogger.setSleepMode(mode)
     }
 
     deinit {

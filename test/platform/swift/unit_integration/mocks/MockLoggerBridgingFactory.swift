@@ -29,7 +29,8 @@ public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
         releaseVersion _: String,
         model _: String,
         network _: Network?,
-        errorReporting _: RemoteErrorReporting
+        errorReporting _: RemoteErrorReporting,
+        sleepMode: Capture.SleepMode
     ) -> LoggerBridging? {
         self.makeLoggerCallsCount += 1
         return self.logger

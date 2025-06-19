@@ -174,6 +174,10 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.enableBlockingShutdown()
     }
 
+    func setSleepMode(_ mode: SleepMode) {
+        self.underlyingLogger.setSleepMode(mode)
+    }
+
     private func convertFields(fields: Fields) -> [CapturePassable.Field] {
         fields.compactMap { fieldKeyValue in
             do {

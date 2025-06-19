@@ -155,6 +155,10 @@ extension Logger {
         return Self.getShared()?.deviceID
     }
 
+    public static func setSleepMode(_ mode: SleepMode) {
+        Self.getShared()?.setSleepMode(mode)
+    }
+
     // MARK: - Logging
 
     /// Logs a message at a specified level to the default logger instance.

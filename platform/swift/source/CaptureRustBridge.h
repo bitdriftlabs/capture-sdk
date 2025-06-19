@@ -33,6 +33,7 @@ void capture_report_error(const char *message);
  * @param model the model of the device to identify the client as a null terminated C string.
  * @param network the Capture Network protocol to use for performing network requests.
  * @param error_reporter the error reported protocol to use for reporting errors.
+ * @param start_in_sleep_mode true if sleep mode should initialize now
  */
 logger_id capture_create_logger(
     const char *_Nullable path,
@@ -46,7 +47,8 @@ logger_id capture_create_logger(
     const char *app_version,
     const char *model,
     _Nullable id<Network> network,
-    _Nullable id<RemoteErrorReporting> error_reporter
+    _Nullable id<RemoteErrorReporting> error_reporter,
+    bool start_in_sleep_mode
 );
 
 /*
@@ -307,5 +309,13 @@ void capture_session_replay_record_capture_screen_duration(logger_id logger_id, 
  * @param url_path the URL path to normalize.
  */
 NSString * capture_normalize_url_path(const char *url_path);
+
+/**
+ * Set sleep mode active or inactive
+ *
+ * @param logger_id the logger to set sleep mode for
+ * @param enabled true if sleep mode should be active
+ */
+void capture_set_sleep_mode(logger_id logger_id, bool enabled);
 
 NS_ASSUME_NONNULL_END
