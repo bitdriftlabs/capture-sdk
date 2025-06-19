@@ -31,6 +31,11 @@ sealed class FatalIssueReporterState(
          * Represents the initialized state when [io.bitdrift.capture.reports.FatalIssueMechanism.BuiltIn] is configured
          */
         data object Initialized : BuiltIn("BUILT_IN_MODE_INITIALIZED")
+
+        /**
+         * Represents the failed initialization state when [io.bitdrift.capture.reports.FatalIssueMechanism.BuiltIn] is configured
+         */
+        data object InitializationFailed : BuiltIn("BUILT_IN_MODE_FAILED")
     }
 
     /**
