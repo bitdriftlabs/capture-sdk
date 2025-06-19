@@ -15,12 +15,14 @@ import io.bitdrift.capture.providers.FieldValue
  */
 interface IFatalIssueReporter {
     /**
-     * Initializes the reporter
+     * Initializes the Integration mode reporter
      */
-    fun initialize(
-        appContext: Context,
-        fatalIssueMechanism: FatalIssueMechanism,
-    )
+    fun initIntegrationMode(appContext: Context)
+
+    /**
+     * Initializes the BuiltIn reporter
+     */
+    fun initBuiltInMode(appContext: Context)
 
     /**
      * Returns the configured [io.bitdrift.capture.reports.FatalIssueMechanism]

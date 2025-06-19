@@ -93,6 +93,10 @@ internal class PreInitInMemoryLogger :
         return span
     }
 
+    override fun setSleepMode(sleepMode: SleepMode) {
+        addLoggerCall { it.setSleepMode(sleepMode) }
+    }
+
     override fun log(httpRequestInfo: HttpRequestInfo) {
         addLoggerCall { it.log(httpRequestInfo) }
     }

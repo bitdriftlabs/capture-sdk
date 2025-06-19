@@ -15,15 +15,21 @@ public struct Configuration {
     /// .active if Capture should initialize in minimal activity mode
     public var sleepMode: SleepMode
 
+    /// true if Capture should enable Fatal Issue Reporting
+    public var enableFatalIssueReporting: Bool
+
     /// Initializes a new instance of the Capture configuration.
     ///
     /// - parameter sessionReplayConfiguration: The session replay configuration to use.
     /// - parameter sleepMode:                  .active if Capture should initialize in minimal activity mode
+    /// - parameter enableFatalIssueReporting:  true if Capture should enable Fatal Issue Reporting
     public init(
         sessionReplayConfiguration: SessionReplayConfiguration = .init(),
-        sleepMode: SleepMode = .inactive
+        sleepMode: SleepMode = .inactive,
+        enableFatalIssueReporting: Bool = false
     ) {
         self.sessionReplayConfiguration = sessionReplayConfiguration
         self.sleepMode = sleepMode
+        self.enableFatalIssueReporting = enableFatalIssueReporting
     }
 }

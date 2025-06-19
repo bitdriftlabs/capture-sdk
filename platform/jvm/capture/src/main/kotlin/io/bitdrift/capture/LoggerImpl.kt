@@ -71,7 +71,7 @@ internal class LoggerImpl(
     dateProvider: DateProvider,
     private val errorHandler: ErrorHandler = ErrorHandler(),
     sessionStrategy: SessionStrategy,
-    context: Context = ContextHolder.APP_CONTEXT,
+    context: Context,
     clientAttributes: ClientAttributes =
         ClientAttributes(
             context,
