@@ -60,6 +60,7 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
@@ -113,7 +114,7 @@ class GradleTestApp : Application() {
         BitdriftInit.initBitdriftCaptureInJava(
             apiUrl,
             sharedPreferences.getString(BITDRIFT_API_KEY, ""),
-            sharedPreferences.getString(SESSION_STRATEGY_PREFS_KEY, FIXED.displayName),
+            getSessionStrategy(),
             configuration,
         )
         // Timber
@@ -122,6 +123,19 @@ class GradleTestApp : Application() {
         }
         Timber.plant(CaptureTree())
         Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
+    }
+
+    private fun getSessionStrategy():SessionStrategy{
+        return if(sharedPreferences.getString(SESSION_STRATEGY_PREFS_KEY, FIXED.displayName) == "Fixed"){
+            SessionStrategy.Fixed()
+        }else{
+            SessionStrategy.ActivityBased(
+                inactivityThresholdMins = 60L,
+                onSessionIdChanged = { sessionId ->
+                    Timber.i("Bitdrift Logger session id updated: $sessionId")
+                }
+            )
+        }
     }
 
     private fun trackAppLaunch() {

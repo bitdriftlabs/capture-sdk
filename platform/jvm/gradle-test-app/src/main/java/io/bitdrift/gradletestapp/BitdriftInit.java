@@ -23,7 +23,7 @@ public class BitdriftInit {
     public static void initBitdriftCaptureInJava(
             HttpUrl apiUrl,
             String apiKey,
-            String sessionStrategyName,
+            SessionStrategy sessionStrategy,
             Configuration configuration) {
         String userID = UUID.randomUUID().toString();
         List<FieldProvider> fieldProviders = new ArrayList<>();
@@ -35,19 +35,11 @@ public class BitdriftInit {
 
         Capture.Logger.start(
             apiKey,
-            mapToSessionStrategy(sessionStrategyName),
+            sessionStrategy,
             configuration,
             fieldProviders,
             null,
             apiUrl
         );
-    }
-
-    private static SessionStrategy mapToSessionStrategy(String sessionStrategyName) {
-        if(sessionStrategyName.equals(SessionStrategyPreferences.ACTIVITY_BASED.getDisplayName())){
-            return new SessionStrategy.ActivityBased();
-        }else{
-            return new SessionStrategy.Fixed();
-        }
     }
 }
