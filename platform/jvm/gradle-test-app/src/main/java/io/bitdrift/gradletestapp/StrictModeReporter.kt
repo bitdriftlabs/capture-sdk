@@ -23,7 +23,6 @@ internal class StrictModeReporter {
         val cause = violation.toString()
         val stackTrace = Log.getStackTraceString(violation)
         if (KNOWN_ISSUES_LIST.any { stackTrace.contains(it) }) {
-            // Avoid emitting for known violations
             return
         }
         val strictModeFields = mapOf(
