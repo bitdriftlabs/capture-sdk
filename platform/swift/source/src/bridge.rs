@@ -22,7 +22,15 @@ use bd_client_common::error::{
   MetadataErrorReporter,
   UnexpectedErrorHandler,
 };
-use bd_logger::{LogAttributesOverrides, LogFieldKind, LogFields, LogLevel, MetadataProvider};
+use bd_logger::{
+  Block,
+  CaptureSession,
+  LogAttributesOverrides,
+  LogFieldKind,
+  LogFields,
+  LogLevel,
+  MetadataProvider,
+};
 use bd_noop_network::NoopNetwork;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
@@ -600,7 +608,8 @@ extern "C" fn capture_write_log(
         fields,
         matching_fields,
         attributes_overrides,
-        blocking,
+        if blocking { Block::Yes } else { Block::No },
+        CaptureSession::default(),
       );
 
       Ok(())

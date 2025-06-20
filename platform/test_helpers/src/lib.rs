@@ -7,7 +7,7 @@
 
 use assert_matches::assert_matches;
 use bd_key_value::Storage;
-use bd_logger::{log_level, LogMessage, LogType};
+use bd_logger::{log_level, Block, CaptureSession, LogMessage, LogType};
 use bd_proto::flatbuffers::buffer_log::bitdrift_public::fbs::logging::v_1::Log;
 use bd_proto::protos::client::api::configuration_update::StateOfTheWorld;
 use bd_proto::protos::config::v1::config::buffer_config::Type;
@@ -336,7 +336,8 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
       [].into(),
       [].into(),
       None,
-      true,
+      Block::Yes,
+      CaptureSession::default(),
     );
   }
 
@@ -372,7 +373,8 @@ pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: Logger
           [].into(),
           [].into(),
           None,
-          false,
+          bd_logger::Block::No,
+          CaptureSession::default(),
         );
       }
 
@@ -416,7 +418,8 @@ pub extern "C" fn run_aggressive_upload_test(logger_id: LoggerId<'_>) {
       [].into(),
       [].into(),
       None,
-      false,
+      bd_logger::Block::No,
+      CaptureSession::default(),
     );
   }
 
