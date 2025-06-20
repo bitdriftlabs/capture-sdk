@@ -113,16 +113,31 @@ class FatalIssueReporterProcessorTest {
         // Entries below corresponds to sample `app_exit_anr_deadlock_anr.txt`
         assertThat(error.stackTrace(0)!!.type).isEqualTo(1)
         assertThat(error.stackTrace(0)!!.stateLength).isEqualTo(0)
-        assertThat(error.stackTrace(0)!!.className).isEqualTo("\"main\" prio=5 tid=1 Blocked")
+        assertThat(error.stackTrace(0)!!.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")
+        assertThat(error.stackTrace(0)!!.symbolName).isEqualTo("startProcessing")
+        assertThat(error.stackTrace(0)!!.sourceFile!!.path).isEqualTo("FatalIssueGenerator.kt")
+        assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(106)
+        assertThat(error.stackTrace(0)!!.sourceFile!!.column).isEqualTo(0)
 
-        assertThat(error.stackTrace(1)!!.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")
-        assertThat(error.stackTrace(1)!!.symbolName).isEqualTo("startProcessing")
-        assertThat(error.stackTrace(1)!!.sourceFile!!.path).isEqualTo("FatalIssueGenerator.kt")
-        assertThat(error.stackTrace(1)!!.sourceFile!!.line).isEqualTo(106)
-        assertThat(error.stackTrace(1)!!.sourceFile!!.column).isEqualTo(0)
+        val blockedThread = report.threadDetails!!.threads(0)!!
+        assertThat(blockedThread.name).isEqualTo("background_thread_for_deadlock_demo")
+        assertThat(blockedThread.active).isEqualTo(false)
+        assertThat(blockedThread.state).isEqualTo("Blocked")
+        assertThat(blockedThread.index).isEqualTo(4U)
+        assertThat(blockedThread.priority).isEqualTo(5F)
+        assertThat(blockedThread.stackTrace(0)!!.className).contains("io.bitdrift.capture.FatalIssueGenerator")
+        assertThat(blockedThread.stackTrace(0)!!.symbolName).isEqualTo("run")
+        assertThat(blockedThread.stackTrace(0)!!.sourceFile!!.path).isEqualTo("FatalIssueGenerator.kt")
+        assertThat(blockedThread.stackTrace(0)!!.sourceFile!!.line).isEqualTo(91)
+        assertThat(blockedThread.stackTrace(0)!!.sourceFile!!.column).isEqualTo(0)
 
-        assertThat(error.stackTrace(2)!!.className)
-            .isEqualTo("  - waiting to lock <0x0481d03d> (a java.lang.String) held by thread 4")
+        val activeThread = report.threadDetails!!.threads(5)!!
+        assertThat(activeThread.name).isEqualTo("Signal Catcher")
+        assertThat(activeThread.active).isEqualTo(true)
+        assertThat(activeThread.state).isEqualTo("Runnable")
+        assertThat(activeThread.index).isEqualTo(2U)
+        assertThat(activeThread.priority).isEqualTo(10F)
+        assertThat(activeThread.stackTrace(0)!!.className).contains("/apex/com.android.art/lib64/libart.so")
     }
 
     @Test
