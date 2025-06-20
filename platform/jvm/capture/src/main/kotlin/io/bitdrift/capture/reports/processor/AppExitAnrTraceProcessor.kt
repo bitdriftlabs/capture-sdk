@@ -91,20 +91,19 @@ internal object AppExitAnrTraceProcessor {
             lines.forEach { line ->
 
                 when {
-                    isEndOfThreadsPart(line) -> return@forEach
-
-                    isStartOfRelevantTracePart(line, isRelevantTracePart) -> {
+                    isStartOfRelevantTracePart(line, isRelevantTracePart) ->
                         isRelevantTracePart = true
-                    }
 
-                    isRelevantTraceLine(line, isRelevantTracePart) -> {
+                    isEndOfRelevantTracePart(line) -> return@forEach
+
+                    isValidFrameLine(line, isRelevantTracePart) -> {
                         val threadDetailsMatchResult = THREAD_DETAILS_REGEX.find(line)
                         if (threadDetailsMatchResult != null) {
                             val (name, priority, tid, state) = threadDetailsMatchResult.destructured
                             currentThreadData =
                                 ThreadData(
                                     name = builder.createString(name),
-                                    state = builder.createString(state),
+                                    state = builder.createString(state.trim()),
                                     isActive = isThreadActive(state),
                                     priority = priority.toFloatOrNull() ?: 0F,
                                     tid = tid.toUIntOrNull() ?: 0U,
@@ -164,7 +163,7 @@ internal object AppExitAnrTraceProcessor {
             ),
         )
 
-    private fun isEndOfThreadsPart(line: String): Boolean = line.contains(ENDING_THREADS_PART_IDENTIFIER)
+    private fun isEndOfRelevantTracePart(line: String): Boolean = line.contains(ENDING_THREADS_PART_IDENTIFIER)
 
     private fun isStartOfRelevantTracePart(
         line: String,
@@ -176,7 +175,7 @@ internal object AppExitAnrTraceProcessor {
         isRelevantTracePart: Boolean,
     ): Boolean = isRelevantTracePart && line.isEmpty()
 
-    private fun isRelevantTraceLine(
+    private fun isValidFrameLine(
         line: String,
         isRelevantTracePart: Boolean,
     ): Boolean = isRelevantTracePart && line.isNotEmpty() && !line.contains(ADDITIONAL_THREAD_INFO_IDENTIFIER)

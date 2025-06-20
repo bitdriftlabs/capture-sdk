@@ -119,11 +119,19 @@ class FatalIssueReporterProcessorTest {
         assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(106)
         assertThat(error.stackTrace(0)!!.sourceFile!!.column).isEqualTo(0)
 
-        val nextThread = report.threadDetails!!.threads(0)!!
-        assertThat(nextThread.name).isEqualTo("background_thread_for_deadlock_demo")
-        assertThat(nextThread.state).isEqualTo(" Blocked")
-        assertThat(nextThread.index).isEqualTo(4U)
-        assertThat(nextThread.priority).isEqualTo(5F)
+        val blockedThread = report.threadDetails!!.threads(0)!!
+        assertThat(blockedThread.name).isEqualTo("background_thread_for_deadlock_demo")
+        assertThat(blockedThread.active).isEqualTo(false)
+        assertThat(blockedThread.state).isEqualTo("Blocked")
+        assertThat(blockedThread.index).isEqualTo(4U)
+        assertThat(blockedThread.priority).isEqualTo(5F)
+
+        val activeThread = report.threadDetails!!.threads(5)!!
+        assertThat(activeThread.name).isEqualTo("Signal Catcher")
+        assertThat(activeThread.active).isEqualTo(true)
+        assertThat(activeThread.state).isEqualTo("Runnable")
+        assertThat(activeThread.index).isEqualTo(2U)
+        assertThat(activeThread.priority).isEqualTo(10F)
     }
 
     @Test
