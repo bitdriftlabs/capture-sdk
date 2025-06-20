@@ -125,6 +125,11 @@ class FatalIssueReporterProcessorTest {
         assertThat(blockedThread.state).isEqualTo("Blocked")
         assertThat(blockedThread.index).isEqualTo(4U)
         assertThat(blockedThread.priority).isEqualTo(5F)
+        assertThat(blockedThread.stackTrace(0)!!.className).contains("io.bitdrift.capture.FatalIssueGenerator")
+        assertThat(blockedThread.stackTrace(0)!!.symbolName).isEqualTo("run")
+        assertThat(blockedThread.stackTrace(0)!!.sourceFile!!.path).isEqualTo("FatalIssueGenerator.kt")
+        assertThat(blockedThread.stackTrace(0)!!.sourceFile!!.line).isEqualTo(91)
+        assertThat(blockedThread.stackTrace(0)!!.sourceFile!!.column).isEqualTo(0)
 
         val activeThread = report.threadDetails!!.threads(5)!!
         assertThat(activeThread.name).isEqualTo("Signal Catcher")
@@ -132,6 +137,7 @@ class FatalIssueReporterProcessorTest {
         assertThat(activeThread.state).isEqualTo("Runnable")
         assertThat(activeThread.index).isEqualTo(2U)
         assertThat(activeThread.priority).isEqualTo(10F)
+        assertThat(activeThread.stackTrace(0)!!.className).contains("/apex/com.android.art/lib64/libart.so")
     }
 
     @Test
