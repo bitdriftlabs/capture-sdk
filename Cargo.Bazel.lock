@@ -1,5 +1,5 @@
 {
-  "checksum": "28b270aceb509e1ff68ae646396520f6fedfe5826e759287b213a4829c2b2587",
+  "checksum": "1e621e97cc4a6f8d46a2a87f63e991f70a740458bb4b57e57c8d40e11cb784b6",
   "crates": {
     "addr2line 0.24.2": {
       "name": "addr2line",
@@ -423,7 +423,7 @@
         "deps": {
           "common": [
             {
-              "id": "libc 0.2.173",
+              "id": "libc 0.2.174",
               "target": "libc"
             }
           ],
@@ -1093,14 +1093,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "autocfg 1.4.0": {
+    "autocfg 1.5.0": {
       "name": "autocfg",
-      "version": "1.4.0",
+      "version": "1.5.0",
       "package_url": "https://github.com/cuviper/autocfg",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/autocfg/1.4.0/download",
-          "sha256": "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
+          "url": "https://static.crates.io/crates/autocfg/1.5.0/download",
+          "sha256": "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
         }
       },
       "targets": [
@@ -1123,7 +1123,7 @@
           "**"
         ],
         "edition": "2015",
-        "version": "1.4.0"
+        "version": "1.5.0"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
@@ -1701,7 +1701,7 @@
                 "target": "addr2line"
               },
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               },
               {
@@ -1826,7 +1826,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-api"
         }
@@ -1939,7 +1939,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "proc_macro_deps": {
           "common": [
             {
@@ -1963,7 +1963,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-artifact-upload"
         }
@@ -2092,7 +2092,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-bounded-buffer"
         }
@@ -2160,7 +2160,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-buffer"
         }
@@ -2265,7 +2265,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "proc_macro_deps": {
           "common": [
             {
@@ -2289,7 +2289,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-client-common"
         }
@@ -2386,7 +2386,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "proc_macro_deps": {
           "common": [
             {
@@ -2410,7 +2410,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-client-stats"
         }
@@ -2503,7 +2503,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "proc_macro_deps": {
           "common": [
             {
@@ -2527,7 +2527,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-client-stats-store"
         }
@@ -2588,7 +2588,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -2603,7 +2603,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-completion"
         }
@@ -2648,7 +2648,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -2663,7 +2663,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-crash-handler"
         }
@@ -2780,7 +2780,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "proc_macro_deps": {
           "common": [
             {
@@ -2804,7 +2804,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-device"
         }
@@ -2873,7 +2873,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -2888,7 +2888,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-events"
         }
@@ -2937,7 +2937,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -2952,7 +2952,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-grpc"
         }
@@ -3125,7 +3125,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "proc_macro_deps": {
           "common": [
             {
@@ -3175,7 +3175,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-grpc-codec"
         }
@@ -3243,7 +3243,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -3258,7 +3258,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-hyper-network"
         }
@@ -3358,7 +3358,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "proc_macro_deps": {
           "common": [
             {
@@ -3382,7 +3382,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-internal-logging"
         }
@@ -3431,7 +3431,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -3446,7 +3446,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-key-value"
         }
@@ -3507,7 +3507,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -3522,7 +3522,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-log"
         }
@@ -3591,7 +3591,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -3606,7 +3606,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-log-filter"
         }
@@ -3671,7 +3671,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -3686,7 +3686,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-log-matcher"
         }
@@ -3743,7 +3743,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -3758,7 +3758,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-log-metadata"
         }
@@ -3799,7 +3799,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -3814,7 +3814,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-log-primitives"
         }
@@ -3867,7 +3867,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -3882,7 +3882,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-logger"
         }
@@ -4087,7 +4087,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "proc_macro_deps": {
           "common": [
             {
@@ -4111,7 +4111,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-matcher"
         }
@@ -4164,7 +4164,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -4179,7 +4179,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-metadata"
         }
@@ -4240,7 +4240,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -4255,7 +4255,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-network-quality"
         }
@@ -4279,7 +4279,7 @@
         "compile_data_glob": [
           "**"
         ],
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -4294,7 +4294,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-noop-network"
         }
@@ -4335,7 +4335,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "proc_macro_deps": {
           "common": [
             {
@@ -4359,7 +4359,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-panic"
         }
@@ -4400,7 +4400,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -4415,7 +4415,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-pgv"
         }
@@ -4472,7 +4472,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "build_script_attrs": {
@@ -4513,7 +4513,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-proto"
         }
@@ -4574,7 +4574,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "build_script_attrs": {
@@ -4619,7 +4619,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-report-writer"
         }
@@ -4672,7 +4672,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "build_script_attrs": {
@@ -4717,7 +4717,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-resource-utilization"
         }
@@ -4786,7 +4786,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -4801,7 +4801,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-runtime"
         }
@@ -4866,7 +4866,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "proc_macro_deps": {
           "common": [
             {
@@ -4890,7 +4890,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-server-stats"
         }
@@ -4967,7 +4967,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -4982,7 +4982,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-session"
         }
@@ -5063,7 +5063,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -5078,7 +5078,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-session-replay"
         }
@@ -5163,7 +5163,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -5178,7 +5178,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-shutdown"
         }
@@ -5215,7 +5215,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -5230,7 +5230,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-stats-common"
         }
@@ -5263,7 +5263,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "version": "1.0.0"
       },
       "license": null,
@@ -5278,7 +5278,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-test-helpers"
         }
@@ -5439,7 +5439,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "proc_macro_deps": {
           "common": [
             {
@@ -5463,7 +5463,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-time"
         }
@@ -5512,7 +5512,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "proc_macro_deps": {
           "common": [
             {
@@ -5536,7 +5536,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6a412c46f678fe969701349097295a0be6fded42"
+            "Rev": "3241184f1521baec6a6ecb42714fb44782984e9e"
           },
           "strip_prefix": "bd-workflows"
         }
@@ -5665,7 +5665,7 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
+        "edition": "2024",
         "proc_macro_deps": {
           "common": [
             {
@@ -7147,25 +7147,25 @@
           "selects": {
             "aarch64-linux-android": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
             "cfg(all(target_arch = \"aarch64\", target_os = \"linux\"))": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
             "cfg(all(target_arch = \"aarch64\", target_vendor = \"apple\"))": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
             "cfg(all(target_arch = \"loongarch64\", target_os = \"linux\"))": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ]
@@ -8386,19 +8386,19 @@
           "selects": {
             "cfg(target_os = \"hermit\")": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
             "cfg(target_os = \"wasi\")": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
             "cfg(unix)": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -8889,7 +8889,7 @@
         "deps": {
           "common": [
             {
-              "id": "autocfg 1.4.0",
+              "id": "autocfg 1.5.0",
               "target": "autocfg"
             }
           ],
@@ -8937,7 +8937,7 @@
           "selects": {
             "cfg(unix)": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -9691,7 +9691,7 @@
             ],
             "cfg(unix)": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ]
@@ -9768,7 +9768,7 @@
           "selects": {
             "cfg(all(any(target_os = \"linux\", target_os = \"android\"), not(any(all(target_os = \"linux\", target_env = \"\"), getrandom_backend = \"custom\", getrandom_backend = \"linux_raw\", getrandom_backend = \"rdrand\", getrandom_backend = \"rndr\"))))": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -9786,43 +9786,43 @@
             ],
             "cfg(any(target_os = \"dragonfly\", target_os = \"freebsd\", target_os = \"hurd\", target_os = \"illumos\", target_os = \"cygwin\", all(target_os = \"horizon\", target_arch = \"arm\")))": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
             "cfg(any(target_os = \"haiku\", target_os = \"redox\", target_os = \"nto\", target_os = \"aix\"))": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
             "cfg(any(target_os = \"ios\", target_os = \"visionos\", target_os = \"watchos\", target_os = \"tvos\"))": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
             "cfg(any(target_os = \"macos\", target_os = \"openbsd\", target_os = \"vita\", target_os = \"emscripten\"))": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
             "cfg(target_os = \"netbsd\")": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
             "cfg(target_os = \"solaris\")": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
             "cfg(target_os = \"vxworks\")": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ]
@@ -10781,7 +10781,7 @@
               "target": "hyper"
             },
             {
-              "id": "libc 0.2.173",
+              "id": "libc 0.2.174",
               "target": "libc"
             },
             {
@@ -11608,14 +11608,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "libc 0.2.173": {
+    "libc 0.2.174": {
       "name": "libc",
-      "version": "0.2.173",
+      "version": "0.2.174",
       "package_url": "https://github.com/rust-lang/libc",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/libc/0.2.173/download",
-          "sha256": "d8cfeafaffdbc32176b64fb251369d52ea9f0a8fbc6f8759edffef7b525d64bb"
+          "url": "https://static.crates.io/crates/libc/0.2.174/download",
+          "sha256": "1171693293099992e19cddea4e8b849964e9846f4acee11b3948bcc337be8776"
         }
       },
       "targets": [
@@ -11663,14 +11663,14 @@
         "deps": {
           "common": [
             {
-              "id": "libc 0.2.173",
+              "id": "libc 0.2.174",
               "target": "build_script_build"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.2.173"
+        "version": "0.2.174"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -11959,7 +11959,7 @@
         "deps": {
           "common": [
             {
-              "id": "autocfg 1.4.0",
+              "id": "autocfg 1.5.0",
               "target": "autocfg"
             }
           ],
@@ -12131,7 +12131,7 @@
         "deps": {
           "common": [
             {
-              "id": "libc 0.2.173",
+              "id": "libc 0.2.174",
               "target": "libc"
             }
           ],
@@ -12319,7 +12319,7 @@
           "selects": {
             "cfg(unix)": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ]
@@ -12407,7 +12407,7 @@
         "deps": {
           "common": [
             {
-              "id": "autocfg 1.4.0",
+              "id": "autocfg 1.5.0",
               "target": "autocfg"
             }
           ],
@@ -12556,13 +12556,13 @@
           "selects": {
             "cfg(target_os = \"hermit\")": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
             "cfg(target_os = \"wasi\")": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               },
               {
@@ -12572,7 +12572,7 @@
             ],
             "cfg(unix)": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -12919,7 +12919,7 @@
         "deps": {
           "common": [
             {
-              "id": "autocfg 1.4.0",
+              "id": "autocfg 1.5.0",
               "target": "autocfg"
             }
           ],
@@ -13456,7 +13456,7 @@
             ],
             "cfg(unix)": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -15136,7 +15136,7 @@
         "deps": {
           "common": [
             {
-              "id": "libc 0.2.173",
+              "id": "libc 0.2.174",
               "target": "libc"
             }
           ],
@@ -15219,7 +15219,7 @@
         "deps": {
           "common": [
             {
-              "id": "libc 0.2.173",
+              "id": "libc 0.2.174",
               "target": "libc"
             },
             {
@@ -16302,13 +16302,13 @@
             ],
             "cfg(all(all(target_arch = \"aarch64\", target_endian = \"little\"), target_vendor = \"apple\", any(target_os = \"ios\", target_os = \"macos\", target_os = \"tvos\", target_os = \"visionos\", target_os = \"watchos\")))": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
             "cfg(all(any(all(target_arch = \"aarch64\", target_endian = \"little\"), all(target_arch = \"arm\", target_endian = \"little\")), any(target_os = \"android\", target_os = \"linux\")))": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ]
@@ -16501,7 +16501,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -16524,7 +16524,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -16631,7 +16631,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -16642,7 +16642,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -16653,7 +16653,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -16664,7 +16664,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -16675,7 +16675,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -16698,7 +16698,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -16720,7 +16720,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -16731,7 +16731,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -16742,7 +16742,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ]
@@ -18005,7 +18005,7 @@
         "deps": {
           "common": [
             {
-              "id": "libc 0.2.173",
+              "id": "libc 0.2.174",
               "target": "libc"
             }
           ],
@@ -18307,7 +18307,7 @@
           "selects": {
             "cfg(unix)": [
               {
-                "id": "libc 0.2.173",
+                "id": "libc 0.2.174",
                 "target": "libc"
               }
             ],
@@ -19736,7 +19736,7 @@
               "target": "bytes"
             },
             {
-              "id": "libc 0.2.173",
+              "id": "libc 0.2.174",
               "target": "libc"
             },
             {

@@ -27,7 +27,7 @@ use bd_client_common::error::{
   MetadataErrorReporter,
   UnexpectedErrorHandler,
 };
-use bd_logger::{LogAttributesOverrides, LogFieldKind, LogFields, LogType};
+use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields, LogType};
 use jni::descriptors::Desc;
 use jni::objects::{
   GlobalRef,
@@ -835,7 +835,12 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
         fields,
         matching_fields,
         attributes_overrides,
-        blocking == JNI_TRUE,
+        if blocking == JNI_TRUE {
+          Block::Yes
+        } else {
+          Block::No
+        },
+        CaptureSession::default(),
       );
 
       Ok(())
