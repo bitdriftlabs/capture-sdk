@@ -82,41 +82,42 @@ internal class JankStatsMonitor(
     }
 
     override fun onFrame(volatileFrameData: FrameData) {
+        if (!volatileFrameData.isJank) {
+            return
+        }
         // From the docs: note that the FrameData object sent in the callback is reused on every frame
         // to prevent having to allocate new objects for data reporting.
         // This means that you must copy and cache that data elsewhere since that object should be considered stale
         // and obsolete as soon as the callback returns.
         val frameData = volatileFrameData.copy()
-        if (frameData.isJank) {
-            if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
-                stopCollection()
-                return
-            }
+        if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
+            stopCollection()
+            return
+        }
 
-            val durationNano = frameData.toDurationNano()
-            val durationMillis = frameData.toDurationMillis()
-            if (durationNano < 0 || durationMillis > ERROR_DURATION_THRESHOLD_MILLIS) {
-                val errorMessage =
-                    "Unexpected frame duration. durationInNano: $durationNano." +
-                        " durationMillis: $durationMillis"
-                errorHandler.handleError(errorMessage)
-                return
-            }
+        val durationNano = frameData.toDurationNano()
+        val durationMillis = frameData.toDurationMillis()
+        if (durationNano < 0 || durationMillis > ERROR_DURATION_THRESHOLD_MILLIS) {
+            val errorMessage =
+                "Unexpected frame duration. durationInNano: $durationNano." +
+                    " durationMillis: $durationMillis"
+            errorHandler.handleError(errorMessage)
+            return
+        }
 
-            if (durationMillis < runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS)
-            ) {
-                // The Frame is considered as Jank but it didn't reached the min
-                // threshold defined by MIN_JANK_FRAME_THRESHOLD_MS config
-                return
-            }
+        if (durationMillis < runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS)
+        ) {
+            // The Frame is considered as Jank but it didn't reached the min
+            // threshold defined by MIN_JANK_FRAME_THRESHOLD_MS config
+            return
+        }
 
-            // Below API 24 [onFrame(volatileFrameData)] call happens on the main thread
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-                backgroundThreadHandler.runAsync { frameData.sendJankFrameData() }
-            } else {
-                // For >= 24 this happens on `FrameMetricsAggregator` thread
-                frameData.sendJankFrameData()
-            }
+        // Below API 24 [onFrame(volatileFrameData)] call happens on the main thread
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            backgroundThreadHandler.runAsync { frameData.sendJankFrameData() }
+        } else {
+            // For >= 24 this happens on `FrameMetricsAggregator` thread
+            frameData.sendJankFrameData()
         }
     }
 
