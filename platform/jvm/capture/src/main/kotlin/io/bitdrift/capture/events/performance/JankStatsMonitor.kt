@@ -82,14 +82,19 @@ internal class JankStatsMonitor(
     }
 
     override fun onFrame(volatileFrameData: FrameData) {
-        if (volatileFrameData.isJank) {
+        // From the docs: note that the FrameData object sent in the callback is reused on every frame
+        // to prevent having to allocate new objects for data reporting.
+        // This means that you must copy and cache that data elsewhere since that object should be considered stale
+        // and obsolete as soon as the callback returns.
+        val frameData = volatileFrameData.copy()
+        if (frameData.isJank) {
             if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
                 stopCollection()
                 return
             }
 
-            val durationNano = volatileFrameData.toDurationNano()
-            val durationMillis = volatileFrameData.toDurationMillis()
+            val durationNano = frameData.toDurationNano()
+            val durationMillis = frameData.toDurationMillis()
             if (durationNano < 0 || durationMillis > ERROR_DURATION_THRESHOLD_MILLIS) {
                 val errorMessage =
                     "Unexpected frame duration. durationInNano: $durationNano." +
@@ -107,10 +112,10 @@ internal class JankStatsMonitor(
 
             // Below API 24 [onFrame(volatileFrameData)] call happens on the main thread
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-                backgroundThreadHandler.runAsync { volatileFrameData.sendJankFrameData() }
+                backgroundThreadHandler.runAsync { frameData.sendJankFrameData() }
             } else {
                 // For >= 24 this happens on `FrameMetricsAggregator` thread
-                volatileFrameData.sendJankFrameData()
+                frameData.sendJankFrameData()
             }
         }
     }
