@@ -85,15 +85,16 @@ internal class JankStatsMonitor(
         if (!volatileFrameData.isJank) {
             return
         }
+        if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
+            stopCollection()
+            return
+        }
+
         // From the docs: note that the FrameData object sent in the callback is reused on every frame
         // to prevent having to allocate new objects for data reporting.
         // This means that you must copy and cache that data elsewhere since that object should be considered stale
         // and obsolete as soon as the callback returns.
         val frameData = volatileFrameData.copy()
-        if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
-            stopCollection()
-            return
-        }
 
         val durationNano = frameData.toDurationNano()
         val durationMillis = frameData.toDurationMillis()
