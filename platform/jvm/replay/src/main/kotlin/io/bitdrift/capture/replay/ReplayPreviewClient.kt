@@ -28,7 +28,6 @@ import okhttp3.WebSocketListener
 import okio.ByteString
 import okio.ByteString.Companion.toByteString
 import java.time.Duration
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -54,7 +53,7 @@ class ReplayPreviewClient(
         ReplayCaptureEngine(
             sessionReplayConfiguration,
             errorHandler,
-            logger,
+            this,
             MainThreadHandler(),
             WindowManager(errorHandler),
             DisplayManagers(context),
@@ -165,52 +164,5 @@ class ReplayPreviewClient(
         fields: Map<String, String>?,
     ) {
         logger.logErrorInternal(message, e, fields)
-    }
-
-    private object WebSocketLogger : WebSocketListener() {
-        override fun onClosed(
-            webSocket: WebSocket,
-            code: Int,
-            reason: String,
-        ) {
-            Log.d("ReplayPreviewClient", "onClosed($webSocket, $code, $reason)")
-        }
-
-        override fun onClosing(
-            webSocket: WebSocket,
-            code: Int,
-            reason: String,
-        ) {
-            Log.d("ReplayPreviewClient", "onClosing($webSocket, $code, $reason)")
-        }
-
-        override fun onFailure(
-            webSocket: WebSocket,
-            t: Throwable,
-            response: Response?,
-        ) {
-            Log.d("ReplayPreviewClient", "onFailure($webSocket, $t, $response)")
-        }
-
-        override fun onMessage(
-            webSocket: WebSocket,
-            text: String,
-        ) {
-            Log.d("ReplayPreviewClient", "onMessage($webSocket, $text)")
-        }
-
-        override fun onMessage(
-            webSocket: WebSocket,
-            bytes: ByteString,
-        ) {
-            Log.d("ReplayPreviewClient", "onMessage($webSocket, $bytes)")
-        }
-
-        override fun onOpen(
-            webSocket: WebSocket,
-            response: Response,
-        ) {
-            Log.d("ReplayPreviewClient", "onOpen($webSocket, $response)")
-        }
     }
 }
