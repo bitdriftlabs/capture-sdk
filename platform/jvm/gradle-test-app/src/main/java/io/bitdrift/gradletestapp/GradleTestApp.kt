@@ -44,6 +44,7 @@ import android.app.ApplicationStartInfo.START_TYPE_UNSET
 import android.app.ApplicationStartInfo.START_TYPE_WARM
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Paint.Cap
 import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
@@ -51,12 +52,16 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import com.bugsnag.android.Bugsnag
+import com.bugsnag.android.Logger
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
+import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.getFatalIssueSourceConfig
@@ -96,9 +101,7 @@ class GradleTestApp : Application() {
 
     private fun initLogging() {
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
-        @OptIn(ExperimentalBitdriftApi::class)
-        Capture.Logger.initFatalIssueReporting(fatalIssueMechanism = getFatalIssueSourceConfig(sharedPreferences))
-
+        val fatalIssueMechanism = getFatalIssueSourceConfig(sharedPreferences)
         val stringApiUrl = sharedPreferences.getString("apiUrl", null)
         val apiUrl = stringApiUrl?.toHttpUrlOrNull()
         if (apiUrl == null) {
@@ -106,10 +109,13 @@ class GradleTestApp : Application() {
             return
         }
 
+        val enableFatalIssueReporting = fatalIssueMechanism == FatalIssueMechanism.BuiltIn.displayName
+        val configuration = Configuration(enableFatalIssueReporting = enableFatalIssueReporting)
         BitdriftInit.initBitdriftCaptureInJava(
             apiUrl,
             sharedPreferences.getString(BITDRIFT_API_KEY, ""),
-            sharedPreferences.getString(SESSION_STRATEGY_PREFS_KEY, FIXED.displayName),
+            getSessionStrategy(),
+            configuration,
         )
         // Timber
         if (BuildConfig.DEBUG) {
@@ -117,6 +123,19 @@ class GradleTestApp : Application() {
         }
         Timber.plant(CaptureTree())
         Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
+    }
+
+    private fun getSessionStrategy():SessionStrategy{
+        return if(sharedPreferences.getString(SESSION_STRATEGY_PREFS_KEY, FIXED.displayName) == "Fixed"){
+            SessionStrategy.Fixed()
+        }else{
+            SessionStrategy.ActivityBased(
+                inactivityThresholdMins = 60L,
+                onSessionIdChanged = { sessionId ->
+                    Timber.i("Bitdrift Logger session id updated: $sessionId")
+                }
+            )
+        }
     }
 
     private fun trackAppLaunch() {

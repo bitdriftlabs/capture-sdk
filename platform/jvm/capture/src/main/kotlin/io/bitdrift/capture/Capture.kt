@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import android.content.Context
 import android.util.Log
 import com.github.michaelbull.result.Err
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
@@ -22,6 +23,7 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.reports.FatalIssueReporter
+import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -35,14 +37,17 @@ internal sealed class LoggerState {
 
     /**
      * The logger is in the process of being started. Subsequent attempts to start the logger will be ignored.
+     * Any calls to Logger.log() meanwhile Logger.start() is in process will be cached in memory
      */
-    data object Starting : LoggerState()
+    class Starting(
+        val preInitInMemoryLogger: PreInitInMemoryLogger,
+    ) : LoggerState()
 
     /**
      * The logger has been successfully started and is ready for use. Subsequent attempts to start the logger will be ignored.
      */
     class Started(
-        val logger: LoggerImpl,
+        val loggerImpl: LoggerImpl,
     ) : LoggerState()
 
     /**
@@ -58,6 +63,7 @@ object Capture {
     internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
     private val fatalIssueReporter = FatalIssueReporter()
+    private val preInitInMemoryLogger by lazy { PreInitInMemoryLogger() }
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -67,8 +73,8 @@ object Capture {
     fun logger(): ILogger? =
         when (val state = default.get()) {
             is LoggerState.NotStarted -> null
-            is LoggerState.Starting -> null
-            is LoggerState.Started -> state.logger
+            is LoggerState.Starting -> state.preInitInMemoryLogger
+            is LoggerState.Started -> state.loggerImpl
             is LoggerState.StartFailure -> null
         }
 
@@ -100,7 +106,11 @@ object Capture {
         private val mainThreadHandler by lazy { MainThreadHandler() }
 
         /**
-         * Initializes fatal issue (ANR, JVM Crash, Native crash) reporting mechanism.
+         * WARNING: For now this API is not exposed to customers. If there is a request for this
+         * will open visibility again
+         *
+         * Initializes fatal issue reporting mechanism that integrates
+         * with existing configured crash libraries
          *
          * @param fatalIssueMechanism the [FatalIssueMechanism] to use for crash detection
          * @param context an optional context reference. You should provide the context if called from a [android.content.ContentProvider]
@@ -110,16 +120,12 @@ object Capture {
         @Suppress("UnusedPrivateMember")
         @ExperimentalBitdriftApi
         @JvmStatic
-        @JvmOverloads
-        fun initFatalIssueReporting(
-            fatalIssueMechanism: FatalIssueMechanism = FatalIssueMechanism.BuiltIn,
-            context: Context? = null,
-        ) {
+        private fun initIntegrationFatalIssueReporting(context: Context? = null) {
             if (context == null && !ContextHolder.isInitialized) {
                 Log.w(LOG_TAG, "Attempted to initialize Fatal Issue Reporting with a null context. Skipping enabling crash tracking.")
                 return
             }
-            fatalIssueReporter.initialize(context?.applicationContext ?: ContextHolder.APP_CONTEXT, fatalIssueMechanism)
+            fatalIssueReporter.initIntegrationMode(context?.applicationContext ?: ContextHolder.APP_CONTEXT)
         }
 
         /**
@@ -135,6 +141,8 @@ object Capture {
          * @param apiUrl The base URL of Capture API. Depend on its default value unless specifically
          *               instructed otherwise during discussions with bitdrift. Defaults to bitdrift's hosted
          *               Compose API base URL.
+         * @param context an optional context reference. You should provide the context if called from
+         * a [android.content.ContentProvider]
          */
         @Synchronized
         @JvmStatic
@@ -146,6 +154,7 @@ object Capture {
             fieldProviders: List<FieldProvider> = listOf(),
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
+            context: Context? = null,
         ) {
             start(
                 apiKey,
@@ -155,6 +164,7 @@ object Capture {
                 dateProvider,
                 apiUrl,
                 CaptureJniLibrary,
+                context,
             )
         }
 
@@ -169,38 +179,48 @@ object Capture {
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             bridge: IBridge,
+            context: Context? = null,
+            backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
         ) {
             // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
             // while subsequent logger access relies on volatile reads.
 
             // There's nothing we can do if we don't have yet access to the application context.
-            if (!ContextHolder.isInitialized) {
+            if (context == null && !ContextHolder.isInitialized) {
                 Log.w(
                     LOG_TAG,
-                    "Attempted to initialize Capture before androidx.startup.Initializers " +
-                        "are run. Aborting logger initialization.",
+                    "Attempted to initialize Capture with a null context",
                 )
                 return
             }
 
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
-            if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
-                try {
-                    val logger =
-                        LoggerImpl(
-                            apiKey = apiKey,
-                            apiUrl = apiUrl,
-                            fieldProviders = fieldProviders,
-                            dateProvider = dateProvider ?: SystemDateProvider(),
-                            configuration = configuration,
-                            sessionStrategy = sessionStrategy,
-                            bridge = bridge,
-                            fatalIssueReporter = fatalIssueReporter,
-                        )
-                    default.set(LoggerState.Started(logger))
-                } catch (e: Throwable) {
-                    Log.w(LOG_TAG, "Failed to start Capture", e)
-                    default.set(LoggerState.StartFailure)
+            if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting(preInitInMemoryLogger))) {
+                backgroundThreadHandler.runAsync {
+                    try {
+                        val unwrappedContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
+                        if (configuration.enableFatalIssueReporting) {
+                            fatalIssueReporter.initBuiltInMode(unwrappedContext)
+                        }
+                        val loggerImpl =
+                            LoggerImpl(
+                                apiKey = apiKey,
+                                apiUrl = apiUrl,
+                                context = unwrappedContext,
+                                fieldProviders = fieldProviders,
+                                dateProvider = dateProvider ?: SystemDateProvider(),
+                                configuration = configuration,
+                                sessionStrategy = sessionStrategy,
+                                bridge = bridge,
+                                fatalIssueReporter = fatalIssueReporter,
+                                preInitLogFlusher = preInitInMemoryLogger,
+                            )
+                        default.set(LoggerState.Started(loggerImpl))
+                    } catch (e: Throwable) {
+                        Log.w(LOG_TAG, "Failed to start Capture", e)
+                        preInitInMemoryLogger.clear()
+                        default.set(LoggerState.StartFailure)
+                    }
                 }
             } else {
                 Log.w(LOG_TAG, "Multiple attempts to start Capture")
@@ -489,6 +509,17 @@ object Capture {
         @JvmStatic
         fun log(httpResponseInfo: HttpResponseInfo) {
             logger()?.log(httpResponseInfo)
+        }
+
+        /**
+         * Sets the operation mode of the logger, where activating sleep mode
+         * reduces activity to a minimal level
+         *
+         * @param sleepMode mode to use
+         */
+        @JvmStatic
+        fun setSleepMode(sleepMode: SleepMode) {
+            logger()?.setSleepMode(sleepMode)
         }
 
         /**

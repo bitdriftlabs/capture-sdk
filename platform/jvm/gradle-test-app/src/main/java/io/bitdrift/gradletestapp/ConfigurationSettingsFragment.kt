@@ -72,7 +72,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
             FATAL_ISSUE_SOURCE_PREFS_KEY,
             FATAL_ISSUE_TYPE_TITLE,
             FATAL_ISSUE_REPORTING_TYPES,
-            FatalIssueMechanism.Integration.displayName,
+            FatalIssueMechanism.BuiltIn.displayName,
             context
         )
         backendCategory.addPreference(sessionStrategyPref)
@@ -115,22 +115,17 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         const val FATAL_ISSUE_SOURCE_PREFS_KEY = "fatalIssueSource"
         private const val SELECTION_SUMMARY = "App needs to be restarted for changes to take effect"
         private const val SESSION_STRATEGY_TITLE = "Session Strategy"
-        private const val FATAL_ISSUE_TYPE_TITLE = "Fatal Issue Reporting Source Type"
+        private const val FATAL_ISSUE_TYPE_TITLE = "Fatal Issue Mechanism"
         private val FATAL_ISSUE_REPORTING_TYPES =
             arrayOf(
                 FatalIssueMechanism.BuiltIn.displayName,
-                FatalIssueMechanism.Integration.displayName)
+                "NONE")
 
         private val SESSION_STRATEGY_ENTRIES =
             arrayOf(SessionStrategyPreferences.FIXED.displayName, SessionStrategyPreferences.ACTIVITY_BASED.displayName)
 
-        fun getFatalIssueSourceConfig(sharedPreferences: SharedPreferences):FatalIssueMechanism{
-            val displayName = sharedPreferences.getString(FATAL_ISSUE_SOURCE_PREFS_KEY, null)
-            return if(displayName == FatalIssueMechanism.BuiltIn.displayName){
-                FatalIssueMechanism.BuiltIn
-            }else {
-                FatalIssueMechanism.Integration
-            }
+        fun getFatalIssueSourceConfig(sharedPreferences: SharedPreferences):String{
+            return sharedPreferences.getString(FATAL_ISSUE_SOURCE_PREFS_KEY, null)?:""
         }
     }
 }

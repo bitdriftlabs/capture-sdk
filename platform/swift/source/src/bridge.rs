@@ -22,7 +22,15 @@ use bd_client_common::error::{
   MetadataErrorReporter,
   UnexpectedErrorHandler,
 };
-use bd_logger::{LogAttributesOverrides, LogFieldKind, LogFields, LogLevel, MetadataProvider};
+use bd_logger::{
+  Block,
+  CaptureSession,
+  LogAttributesOverrides,
+  LogFieldKind,
+  LogFields,
+  LogLevel,
+  MetadataProvider,
+};
 use bd_noop_network::NoopNetwork;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
@@ -423,6 +431,7 @@ extern "C" fn capture_create_logger(
   model: *const c_char,
   bd_network_nsobject: *mut Object,
   error_reporter_ns_object: *mut Object,
+  start_in_sleep_mode: bool,
 ) -> LoggerId<'static> {
   initialize_logging();
 
@@ -493,7 +502,7 @@ extern "C" fn capture_create_logger(
         store,
         device,
         static_metadata,
-        start_in_sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5426
+        start_in_sleep_mode,
       })
       .with_internal_logger(true)
       .build()
@@ -599,7 +608,8 @@ extern "C" fn capture_write_log(
         fields,
         matching_fields,
         attributes_overrides,
-        blocking,
+        if blocking { Block::Yes } else { Block::No },
+        CaptureSession::default(),
       );
 
       Ok(())
@@ -807,6 +817,18 @@ extern "C" fn capture_flush(logger_id: LoggerId<'_>, blocking: bool) {
       Ok(())
     },
     "swift flush state",
+  );
+}
+
+#[no_mangle]
+extern "C" fn capture_set_sleep_mode(logger_id: LoggerId<'_>, enabled: bool) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      logger_id.transition_sleep_mode(enabled);
+
+      Ok(())
+    },
+    "swift transition sleep mode",
   );
 }
 

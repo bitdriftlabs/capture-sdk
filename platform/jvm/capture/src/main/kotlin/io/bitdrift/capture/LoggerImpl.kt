@@ -71,7 +71,7 @@ internal class LoggerImpl(
     dateProvider: DateProvider,
     private val errorHandler: ErrorHandler = ErrorHandler(),
     sessionStrategy: SessionStrategy,
-    context: Context = ContextHolder.APP_CONTEXT,
+    context: Context,
     clientAttributes: ClientAttributes =
         ClientAttributes(
             context,
@@ -85,6 +85,7 @@ internal class LoggerImpl(
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
     private val fatalIssueReporter: IFatalIssueReporter,
+    private val preInitLogFlusher: IPreInitLogFlusher,
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val batteryMonitor = BatteryMonitor(context)
@@ -201,6 +202,7 @@ internal class LoggerImpl(
                         network,
                         preferences,
                         localErrorReporter,
+                        configuration.sleepMode == SleepMode.ACTIVE,
                     )
 
                 check(loggerId != -1L) { "initialization of the rust logger failed" }
@@ -261,6 +263,8 @@ internal class LoggerImpl(
                 appExitLogger.installAppExitLogger()
 
                 CaptureJniLibrary.startLogger(this.loggerId)
+
+                preInitLogFlusher.flushToNative(this)
             }
 
         writeSdkStartLog(context, clientAttributes, initDuration = duration)
@@ -364,6 +368,10 @@ internal class LoggerImpl(
 
     override fun removeField(key: String) {
         CaptureJniLibrary.removeLogField(this.loggerId, key)
+    }
+
+    override fun setSleepMode(sleepMode: SleepMode) {
+        CaptureJniLibrary.setSleepModeEnabled(this.loggerId, sleepMode == SleepMode.ACTIVE)
     }
 
     @JvmName("logFields")

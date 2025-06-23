@@ -22,6 +22,9 @@ internal class StrictModeReporter {
     fun onViolation(violationType: ViolationType, violation: Violation) {
         val cause = violation.toString()
         val stackTrace = Log.getStackTraceString(violation)
+        if (KNOWN_ISSUES_LIST.any { stackTrace.contains(it) }) {
+            return
+        }
         val strictModeFields = mapOf(
             "strict_mode_reason" to violation.toString(),
             "strict_mode_stack_trace" to stackTrace
@@ -33,5 +36,9 @@ internal class StrictModeReporter {
     internal enum class ViolationType {
         VM,
         THREAD
+    }
+
+    private companion object{
+        val KNOWN_ISSUES_LIST  = listOf("Sentry", "BugSnag")
     }
 }

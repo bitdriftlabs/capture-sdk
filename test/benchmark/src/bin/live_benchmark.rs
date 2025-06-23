@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use bd_logger::{log_level, AnnotatedLogField, InitParams, LogType};
+use bd_logger::{log_level, AnnotatedLogField, Block, CaptureSession, InitParams, LogType};
 use bd_session::fixed::UUIDCallbacks;
 use bd_session::{fixed, Strategy};
 use bd_shutdown::ComponentShutdownTrigger;
@@ -49,7 +49,7 @@ fn test_live_match_performance(c: &mut Criterion) {
     session_replay_target: Box::new(bd_test_helpers::session_replay::NoOpTarget),
     events_listener_target: Box::new(bd_test_helpers::events::NoOpListenerTarget),
     device,
-    start_in_sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
+    start_in_sleep_mode: false,
   })
   .build()
   .unwrap()
@@ -68,7 +68,8 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         [].into(),
         None,
-        false,
+        Block::No,
+        CaptureSession::default(),
       );
       handle.log(
         log_level::DEBUG,
@@ -77,7 +78,8 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         [].into(),
         None,
-        false,
+        Block::No,
+        CaptureSession::default(),
       );
       handle.log(
         log_level::INFO,
@@ -86,7 +88,8 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         [].into(),
         None,
-        false,
+        Block::No,
+        CaptureSession::default(),
       );
       handle.log(
         log_level::WARNING,
@@ -95,7 +98,8 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         [].into(),
         None,
-        false,
+        Block::No,
+        CaptureSession::default(),
       );
       handle.log(
         log_level::ERROR,
@@ -104,7 +108,8 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         [].into(),
         None,
-        false,
+        Block::No,
+        CaptureSession::default(),
       );
     });
   });
@@ -126,7 +131,8 @@ fn test_live_match_performance(c: &mut Criterion) {
         .into(),
         [].into(),
         None,
-        false,
+        Block::No,
+        CaptureSession::default(),
       );
     });
   });

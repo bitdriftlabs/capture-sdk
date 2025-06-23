@@ -160,6 +160,11 @@ protocol CoreLogging: AnyObject {
     ///
     /// For tests/profiling purposes only.
     func enableBlockingShutdown()
+
+    /// Enables or disables sleep mode, which when active places the logger in minimal activity mode
+    ///
+    /// - parameter mode: The mode to use
+    func setSleepMode(_ mode: SleepMode)
 }
 
 extension CoreLogging {

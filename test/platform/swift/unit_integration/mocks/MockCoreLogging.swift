@@ -166,4 +166,6 @@ extension MockCoreLogging: CoreLogging {
     public func handleError(context _: String, error _: Error) {}
 
     public func enableBlockingShutdown() {}
+
+    public func setSleepMode(_ mode: SleepMode) {}
 }

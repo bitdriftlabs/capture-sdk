@@ -136,6 +136,16 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(bridge.errors[0].context, "write_log: failed to encode field")
     }
 
+    func testSleepModeChangeFiresOverBridge() throws {
+        let bridge = MockLoggerBridging()
+        let logger = try Logger.testLogger(
+            withAPIKey: "some_key",
+            loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
+        )
+        logger.setSleepMode(.active)
+        XCTAssertEqual(bridge.sleepMode, .active)
+    }
+
     func testErrorLogging() throws {
         struct Error: Swift.Error {}
 

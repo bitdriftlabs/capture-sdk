@@ -119,7 +119,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_awaitApiServerR
           attributes: expected_attributes,
           attribute_keys_to_ignore: expected_attribute_keys_to_ignore,
         }),
-        sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
+        sleep_mode: false,
       },
       Duration::seconds(5),
     )

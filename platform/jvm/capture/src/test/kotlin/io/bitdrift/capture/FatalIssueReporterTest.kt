@@ -10,17 +10,13 @@ package io.bitdrift.capture
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.doAnswer
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.common.MainThreadHandler
-import io.bitdrift.capture.fakes.FakeJvmException
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
-import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.FatalIssueReporter.Companion.buildFieldsMap
 import io.bitdrift.capture.reports.FatalIssueReporter.Companion.getDuration
@@ -57,10 +53,7 @@ class FatalIssueReporterTest {
     fun initialize_whenIntegrationMechanismAndMissingConfigFile_shouldReportMissingConfigState() {
         prepareFileDirectories(doesReportsDirectoryExist = false)
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        fatalIssueReporter.initIntegrationMode(appContext)
 
         fatalIssueReporter
             .fatalIssueReporterStatus
@@ -76,10 +69,7 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        fatalIssueReporter.initIntegrationMode(appContext)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Integration.WithoutPriorFatalIssue::class.java,
@@ -95,10 +85,7 @@ class FatalIssueReporterTest {
             crashFilePresent = false,
         )
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        fatalIssueReporter.initIntegrationMode(appContext)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Integration.InvalidConfigDirectory::class.java,
@@ -123,10 +110,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        fatalIssueReporter.initIntegrationMode(appContext)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Integration.WithoutPriorFatalIssue::class.java,
@@ -141,10 +125,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        fatalIssueReporter.initIntegrationMode(appContext)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Integration.MalformedConfigFile::class.java,
@@ -153,38 +134,13 @@ class FatalIssueReporterTest {
 
     @Test
     fun initialize_whenBuiltInMechanism_shouldInitCrashHandlerAndFetchAppExitReason() {
-        fatalIssueReporter.initialize(appContext, fatalIssueMechanism = FatalIssueMechanism.BuiltIn)
+        fatalIssueReporter.initBuiltInMode(appContext)
 
         verify(captureUncaughtExceptionHandler).install(eq(fatalIssueReporter))
         verify(latestAppExitInfoProvider).get(any())
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.BuiltIn::class.java,
         )
-    }
-
-    @Test
-    fun initialize_whenBuiltInMechanismAndArtificialError_shouldReportFailedInitState() {
-        val mainThreadHandlerWithException: MainThreadHandler =
-            mock {
-                on { run(any()) } doAnswer { throw FakeJvmException() }
-                on { runAndReturnResult<Any>(any()) } doAnswer { throw FakeJvmException() }
-            }
-        val fatalIssueReporter = buildReporter(mainThreadHandlerWithException)
-
-        fatalIssueReporter.initialize(appContext, FatalIssueMechanism.BuiltIn)
-
-        verify(captureUncaughtExceptionHandler, never()).install(any())
-        verify(captureUncaughtExceptionHandler).uninstall()
-        verify(latestAppExitInfoProvider, never()).get(any())
-        fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.ProcessingFailure::class.java,
-        )
-        val state =
-            fatalIssueReporter.fatalIssueReporterStatus.state
-                as FatalIssueReporterState.ProcessingFailure
-        assertThat(state.fatalIssueMechanism).isEqualTo(FatalIssueMechanism.BuiltIn)
-        assertThat(state.errorMessage)
-            .isEqualTo("Error while initializing reporter for BuiltIn mode. Fake JVM exception")
     }
 
     private fun FatalIssueReporterStatus.assert(
@@ -270,10 +226,7 @@ class FatalIssueReporterTest {
             crashFilePresent = true,
         )
 
-        fatalIssueReporter.initialize(
-            appContext,
-            fatalIssueMechanism = FatalIssueMechanism.Integration,
-        )
+        fatalIssueReporter.initIntegrationMode(appContext)
 
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.Integration.FatalIssueReportSent::class.java,

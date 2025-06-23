@@ -21,7 +21,7 @@ sealed class FatalIssueMechanism(
      * Use this option to integrate with an existing fatal issue reporting mechanism.
      * This will scan for specific fatal issues on the configured directory.
      */
-    data object Integration : FatalIssueMechanism("INTEGRATION")
+    internal data object Integration : FatalIssueMechanism("INTEGRATION")
 
     /**
      * Built-in fatal issue reporter implementation that doesn't rely on any 3rd party integration

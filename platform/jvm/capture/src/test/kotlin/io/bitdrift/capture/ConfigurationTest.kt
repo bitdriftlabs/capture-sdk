@@ -13,6 +13,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.providers.session.SessionStrategy
 import org.assertj.core.api.Assertions
 import org.junit.After
@@ -24,6 +25,8 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class ConfigurationTest {
+    private val fakeBackgroundThreadHandler = FakeBackgroundThreadHandler()
+
     @Test
     fun configurationFailure() {
         val initializer = ContextHolder()
@@ -32,6 +35,7 @@ class ConfigurationTest {
         val bridge: IBridge = mock {}
         whenever(
             bridge.createLogger(
+                anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),
@@ -56,6 +60,7 @@ class ConfigurationTest {
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,
             bridge = bridge,
+            backgroundThreadHandler = fakeBackgroundThreadHandler,
         )
 
         // The configuration failed so the logger is still `null`.
@@ -63,6 +68,7 @@ class ConfigurationTest {
 
         // We confirm that we actually tried to configure the logger.
         verify(bridge, times(1)).createLogger(
+            anyOrNull(),
             anyOrNull(),
             anyOrNull(),
             anyOrNull(),
@@ -85,12 +91,14 @@ class ConfigurationTest {
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,
             bridge = bridge,
+            backgroundThreadHandler = fakeBackgroundThreadHandler,
         )
 
         Assertions.assertThat(Capture.logger()).isNull()
 
         // We verify that the second configure call was a no-op.
         verify(bridge, times(1)).createLogger(
+            anyOrNull(),
             anyOrNull(),
             anyOrNull(),
             anyOrNull(),
