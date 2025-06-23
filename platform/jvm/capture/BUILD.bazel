@@ -16,9 +16,11 @@ kt_jvm_library(
 
 bitdrift_kt_android_library(
     name = "capture_logger_lib",
-    srcs = glob([
-        "src/main/**/*.kt",
-    ]),
+    srcs = glob(
+        include = ["src/main/**/*.kt"],
+        # Exclude BuildConstants stub file
+        exclude = ["src/main/**/BuildConstants.kt"],
+    ),
     custom_package = "io.bitdrift.capture",
     visibility = ["//visibility:public"],
     # Exported dependencies will appear as dependencies in the generated .pom xml.
