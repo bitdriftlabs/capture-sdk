@@ -10,6 +10,7 @@ package io.bitdrift.capture.reports.processor
 import android.content.Context
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.google.flatbuffers.FlatBufferBuilder
+import io.bitdrift.capture.BuildConstants
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.reports.binformat.v1.AppBuildNumber
 import io.bitdrift.capture.reports.binformat.v1.DeviceMetrics
@@ -129,8 +130,7 @@ internal class FatalIssueReporterProcessor(
         SDKInfo.createSDKInfo(
             builder,
             builder.createString(ClientAttributes.SDK_LIBRARY_ID),
-            // e.g. 0.17.2 TODO(FranAguilera): BIT-5141. Extract sdk version
-            builder.createString(""),
+            builder.createString(BuildConstants.SDK_VERSION),
         )
 
     private fun createAppMetrics(builder: FlatBufferBuilder): Int {
