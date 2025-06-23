@@ -1,4 +1,4 @@
-load("@build_bazel_rules_swift//swift:swift.bzl", "swift_library")
+load("@rules_swift//swift:swift.bzl", "swift_library")
 load("//bazel:bitdrift_swift_test.bzl", "bitdrift_mobile_swift_test")
 
 swift_library(
@@ -14,6 +14,7 @@ swift_library(
     deps = [
         "//platform/swift/source:CapturePassable",
         "//platform/swift/source:ios_lib",
+        "//platform/swift/source:objc_bridge",
         "//test/platform/swift/bridging:rust_bridge",
         "@SwiftBenchmark//:swift_benchmark",
     ],

@@ -9,41 +9,39 @@ package io.bitdrift.capture.replay.internal
 
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.replay.L
-import io.bitdrift.capture.replay.ReplayModule
+import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.replay.ReplayType
+import io.bitdrift.capture.replay.SessionReplayController
 
 // Add the screen and keyboard layouts to the replay capture
 internal class ReplayDecorations(
-    errorHandler: ErrorHandler = ReplayModule.replayDependencies.errorHandler,
-    private val displayManager: DisplayManagers = ReplayModule.replayDependencies.displayManager,
+    private val displayManager: DisplayManagers,
+    private val windowManager: IWindowManager,
 ) {
-    private val windowManager = WindowManager(errorHandler)
-
     fun addDecorations(filteredCapture: FilteredCapture): FilteredCapture {
         // Add screen size as the first element
-        val bounds = displayManager.refreshDisplay()
-        L.d("Display Screen size $bounds")
+        val bounds = displayManager.computeDisplayRect()
+        SessionReplayController.L.d("Display Screen size $bounds")
         val screen: MutableList<ReplayRect> = mutableListOf(bounds)
         screen.addAll(filteredCapture)
 
         var imeBounds: ReplayRect
-        windowManager.findRootViews().forEach { rootView ->
+        windowManager.getAllRootViews().iterator().forEach { rootView ->
             ViewCompat.getRootWindowInsets(rootView)?.let { windowInset ->
 
                 // Add Keyboard overlay
                 val imeType = WindowInsetsCompat.Type.ime()
                 if (windowInset.isVisible(imeType)) {
                     val insets = windowInset.getInsets(imeType)
-                    imeBounds = ReplayRect(
-                        type = ReplayType.Keyboard,
-                        x = rootView.left,
-                        y = rootView.bottom - insets.bottom,
-                        width = rootView.width,
-                        height = insets.bottom,
-                    )
-                    L.d("Keyboard IME size $imeBounds")
+                    imeBounds =
+                        ReplayRect(
+                            type = ReplayType.Keyboard,
+                            x = rootView.left,
+                            y = rootView.bottom - insets.bottom,
+                            width = rootView.width,
+                            height = insets.bottom,
+                        )
+                    SessionReplayController.L.d("Keyboard IME size $imeBounds")
                     screen.add(imeBounds)
                 }
             }

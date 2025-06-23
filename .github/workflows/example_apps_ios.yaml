@@ -27,7 +27,7 @@ jobs:
     name: Build & upload
     permissions:
       contents: write
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       # Checkout repo to Github Actions runner
       - name: Checkout

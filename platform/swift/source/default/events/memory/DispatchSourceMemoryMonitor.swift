@@ -63,7 +63,7 @@ final class DispatchSourceMemoryMonitor {
         case .normal:
             state = "normal"
         default:
-            state = "unknown: \(event)"
+            state = "unknown: \(event.rawValue)"
         }
 
         let snapshot = self.memorySnapshotProvider.makeSnapshot()

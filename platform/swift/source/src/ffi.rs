@@ -7,7 +7,16 @@
 
 // Helpers for safely interacting with Objective-C types.
 use crate::ffi;
-use bd_logger::{LogField, LogFields, StringOrBytes};
+use ahash::AHashMap;
+use bd_log_primitives::LogFieldKey;
+use bd_logger::{
+  AnnotatedLogField,
+  AnnotatedLogFields,
+  LogFieldKind,
+  LogFieldValue,
+  LogFields,
+  StringOrBytes,
+};
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use std::collections::HashMap;
@@ -139,20 +148,37 @@ pub fn convert_map<S: ::std::hash::BuildHasher>(map: &HashMap<&str, &str, S>) ->
 const FIELD_TYPE_STRING: usize = 0;
 const FIELD_TYPE_DATA: usize = 1;
 
-/// Converts a `NSArray` into a `Vec` of references to the underlying data.
+/// Converts a `NSArray` into a `AnnotatedLogFields` of references to the underlying data.
+/// # Safety
+/// This assumes that the provided ptr refers to a `NSArray<Field>`.
+pub unsafe fn convert_annotated_fields(
+  ptr: *const Object,
+  kind: LogFieldKind,
+) -> anyhow::Result<AnnotatedLogFields> {
+  convert_fields_helper(ptr, |value| AnnotatedLogField { value, kind })
+}
+
+/// Converts a `NSArray` into a `LogFields` of references to the underlying data.
 /// # Safety
 /// This assumes that the provided ptr refers to a `NSArray<Field>`.
 pub unsafe fn convert_fields(ptr: *const Object) -> anyhow::Result<LogFields> {
+  convert_fields_helper(ptr, Into::into)
+}
+
+unsafe fn convert_fields_helper<FieldValue>(
+  ptr: *const Object,
+  converter: impl Fn(LogFieldValue) -> FieldValue,
+) -> anyhow::Result<AHashMap<LogFieldKey, FieldValue>> {
   debug_check_class!(ptr, NSArray);
 
   // Helps us to avoid having to call to make a `count` Objective-C call below.
   if ptr.is_null() {
-    return Ok(Vec::new());
+    return Ok(AHashMap::default());
   }
 
   let count: usize = msg_send![ptr, count];
 
-  let mut fields = Vec::with_capacity(count);
+  let mut fields = AHashMap::default();
   for i in 0 .. count {
     // TODO(snowp): Figure out how to use objc/2 to better model ths.
     let field: *const Object = msg_send![ptr, objectAtIndex: i];
@@ -174,10 +200,7 @@ pub unsafe fn convert_fields(ptr: *const Object) -> anyhow::Result<LogFields> {
       _ => panic!("unknown field value type: {field_type:?}"),
     };
 
-    fields.push(LogField {
-      key: field_key.to_string(),
-      value,
-    });
+    fields.insert(field_key.into(), converter(value));
   }
 
   Ok(fields)

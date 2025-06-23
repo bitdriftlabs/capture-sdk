@@ -16,15 +16,24 @@ import androidx.core.widget.CompoundButtonCompat
 import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.internal.ReplayRect
 
-internal data class ButtonMapperConfig(val paddingStart: Int, val paddingTop: Int, val paddingEnd: Int, val paddingBottom: Int)
-internal data class SwitchConfig(val paddingStart: Int, val widthRatio: Int, val heightRatio: Int)
+internal data class ButtonMapperConfig(
+    val paddingStart: Int,
+    val paddingTop: Int,
+    val paddingEnd: Int,
+    val paddingBottom: Int,
+)
+
+internal data class SwitchConfig(
+    val paddingStart: Int,
+    val widthRatio: Int,
+    val heightRatio: Int,
+)
 
 // Map a view implementing android.widget.Button to a ReplayRect
 internal class ButtonMapper(
     private val buttonMapperConfig: ButtonMapperConfig = ButtonMapperConfig(8, 8, 8, 8),
     private val switchConfig: SwitchConfig = SwitchConfig(paddingStart = 5, widthRatio = 2, heightRatio = 1),
 ) : Mapper() {
-
     override fun map(view: View): MutableList<ReplayRect> {
         val list = super.map(view)
         when (view) {
@@ -63,11 +72,12 @@ internal class ButtonMapper(
                 }
                 // TODO(murki): Use Drawable.getButtonDrawable() once we increase min api level to 23+
                 CompoundButtonCompat.getButtonDrawable(view)?.bounds?.let { bounds ->
-                    val type = if (view.isChecked) {
-                        ReplayType.Button
-                    } else {
-                        ReplayType.View
-                    }
+                    val type =
+                        if (view.isChecked) {
+                            ReplayType.Button
+                        } else {
+                            ReplayType.View
+                        }
                     addButton(type, viewOriginX + bounds.left, viewOriginY + bounds.top, bounds.width(), bounds.height(), list)
                 }
             }
@@ -78,7 +88,14 @@ internal class ButtonMapper(
         return list
     }
 
-    private fun addButton(type: ReplayType, left: Int, top: Int, width: Int, height: Int, list: MutableList<ReplayRect>) {
+    private fun addButton(
+        type: ReplayType,
+        left: Int,
+        top: Int,
+        width: Int,
+        height: Int,
+        list: MutableList<ReplayRect>,
+    ) {
         list.add(
             ReplayRect(
                 type,

@@ -17,6 +17,7 @@ object Mocks {
     val sameThreadHandler: MainThreadHandler by lazy {
         mock {
             on { run(any()) } doAnswer { (it.arguments[0] as Function0<Unit>).invoke() }
+            on { runAndReturnResult<Any>(any()) } doAnswer { (it.arguments[0] as Function0<Any>).invoke() }
         }
     }
 }

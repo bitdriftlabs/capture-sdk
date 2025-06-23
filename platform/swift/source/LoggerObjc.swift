@@ -7,6 +7,12 @@
 
 import Foundation
 
+@objc(CAPIssueReporterType)
+public enum IssueReporterTypeObjc: Int8 {
+    case builtIn
+    case customConfig
+}
+
 // Make this class not available to Swift code. It should be used by Objective-c code only.
 @available(swift, obsoleted: 1.0)
 @objc(CAPLogger)
@@ -16,34 +22,64 @@ public final class LoggerObjc: NSObject {
         fatalError("init() is not available. Use static methods instead.")
     }
 
-    /// Configures Capture with provided API key and session strategy. This call is required with at
-    /// least the API key prior to calling the log functions. Subsequent calls to this function will no-op.
+    /// Initializes the Capture SDK with the specified API key and session strategy.
+    /// Calling other SDK methods has no effect unless the logger has been initialized.
+    /// Subsequent calls to this function will have no effect.
     ///
-    /// - parameter apiKey:          The API key provided by bitdrift.
-    /// - parameter sessionStrategy: A session strategy for the management of session ID.
-    /// - parameter apiURL:          The base URL of Capture API. Depend on its default value unless
-    ///                              specifically
-    ///                              instructed otherwise during discussions with bitdrift. Defaults to
-    ///                              bitdrift's hosted Compose API base URL.
+    /// - parameter apiKey:                      The API key provided by bitdrift.
+    /// - parameter sessionStrategy:             A session strategy for the management of session IDs.
+    /// - parameter apiURL:                      The base URL of the Capture API. Rely on its default value
+    ///                                          unless
+    ///                                          specifically instructed otherwise during discussions with
+    ///                                          Bitdrift.
+    ///                                          Defaults to Bitdrift's hosted Compose API base URL.
+    /// - parameter enableURLSessionIntegration: A flag indicating if automatic URLSession capture is enabled.
     @objc
-    public static func configure(
+    public static func start(
         withAPIKey apiKey: String,
         sessionStrategy: SessionStrategyObjc,
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
-        apiURL: URL = URL(string: "https://api.bitdrift.io")!
+        apiURL: URL = URL(string: "https://api.bitdrift.io")!,
+        enableURLSessionIntegration: Bool = true
     ) {
-        Capture.Logger.configure(
-            withAPIKey: apiKey,
-            sessionStrategy: sessionStrategy.underlyingSessionStrategy,
-            apiURL: apiURL
-        )
+        let logger = Capture.Logger
+            .start(
+                withAPIKey: apiKey,
+                sessionStrategy: sessionStrategy.underlyingSessionStrategy,
+                apiURL: apiURL
+            )
+
+        if let logger, enableURLSessionIntegration {
+            logger.enableIntegrations([.urlSession()], disableSwizzling: false)
+        }
+    }
+
+    /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
+    /// This API is experimental and subject to change
+    @objc
+    public static func initFatalIssueReporting() {
+        Capture.Logger.initFatalIssueReporting(.builtIn)
+    }
+
+    /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
+    /// This API is experimental and subject to change
+    ///
+    /// - parameter type: mechanism for crash detection
+    @objc
+    public static func initFatalIssueReporting(withType type: IssueReporterTypeObjc) {
+        switch type {
+        case .builtIn:
+            Capture.Logger.initFatalIssueReporting(.builtIn)
+        case .customConfig:
+            Capture.Logger.initFatalIssueReporting(.customConfig)
+        }
     }
 
     /// Defines the initialization of a new session within the current configured logger.
     /// If no logger is configured, this is a no-op.
     @objc
     public static func startNewSession() {
-        Capture.Logger.shared?.startNewSession()
+        Capture.Logger.startNewSession()
     }
 
     /// Logs a trace level message to the default logger instance.
@@ -153,12 +189,39 @@ public final class LoggerObjc: NSObject {
         )
     }
 
+    /// Writes an app launch TTI log event. This event should be logged only once per Logger start.
+    /// Consecutive calls have no effect.
+    ///
+    /// - parameter duration: The time between a user's intent to launch the app and when the app becomes
+    ///                       interactive. Calls with a negative duration are ignored.
+    @objc
+    public static func logAppLaunchTTI(_ duration: TimeInterval) {
+        Capture.Logger.logAppLaunchTTI(duration)
+    }
+
+    /// Writes a log that indicates that a "screen" has been presented. This is useful for snakeys and other
+    /// journeys visualization.
+    ///
+    /// - parameter screenName: The human readable unique identifier of the screen being presented.
+    @objc
+    public static func logScreenView(screenName: String) {
+        Capture.Logger.logScreenView(screenName: screenName)
+    }
+
     /// Retrieves the session ID. It's equal to `nil` prior to the configuration of Capture SDK.
     ///
     /// - returns: The ID for the current ongoing session.
     @objc
     public static func sessionID() -> String? {
         return Capture.Logger.sessionID
+    }
+
+    /// Retrieves the session URL. It is `nil` before the Capture SDK is started.
+    ///
+    /// - returns: The Session URL represented as a string.
+    @objc
+    public static func sessionURL() -> String? {
+        return Capture.Logger.sessionURL
     }
 
     /// A canonical identifier for a device that remains consistent as long as an application
@@ -171,6 +234,49 @@ public final class LoggerObjc: NSObject {
     @objc
     public static func deviceID() -> String? {
         return Capture.Logger.deviceID
+    }
+
+    // MARK: - Extra
+
+    /// Adds a field to all logs emitted by the logger from this point forward.
+    /// If a field with a given key has already been registered with the logger, its value is
+    /// replaced with the new one.
+    ///
+    /// Fields added with this method take precedence over fields provided by registered `FieldProvider`s
+    /// and are overwritten by fields provided with custom logs.
+    ///
+    /// - parameter key:   The name of the field to add.
+    /// - parameter value: The value of the field to add.
+    @objc
+    public static func addField(key: String, value: String) {
+        Capture.Logger.addField(withKey: key, value: value)
+    }
+
+    /// Removes a field with a given key. This operation has no effect if a field with the given key
+    /// is not registered with the logger.
+    ///
+    /// - parameter key: The name of the field to remove.
+    @objc
+    public static func removeField(key: String) {
+        Capture.Logger.removeField(withKey: key)
+    }
+
+    /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a
+    /// given device in real-time fashion. The creation of the device code requires communication with
+    /// the bitdrift remote service.
+    ///
+    /// - parameter completion: The closure that is called when the operation is complete. Called on the
+    ///                         main queue.
+    @objc
+    public static func createTemporaryDeviceCode(completion: @escaping (String?, Error?) -> Void) {
+        Capture.Logger.createTemporaryDeviceCode { result in
+            switch result {
+            case .success(let deviceCode):
+                completion(deviceCode, nil)
+            case .failure(let error):
+                completion(nil, error)
+            }
+        }
     }
 }
 

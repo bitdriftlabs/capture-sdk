@@ -1,11 +1,11 @@
+load("@rules_detekt//detekt:defs.bzl", "detekt")
 load(
-    "@io_bazel_rules_kotlin//kotlin:android.bzl",
+    "@rules_kotlin//kotlin:android.bzl",
     "kt_android_library",
     "kt_android_local_test",
 )
-load("@io_bazel_rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
-load("@io_bazel_rules_kotlin//kotlin:lint.bzl", "ktlint_fix", "ktlint_test")
-load("@rules_detekt//detekt:defs.bzl", "detekt")
+load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
+load("@rules_kotlin//kotlin:lint.bzl", "ktlint_fix", "ktlint_test")
 
 # Configures a kt_android_library with lint targets.
 def bitdrift_kt_android_library(name, srcs, require_javadocs = True, **args):
@@ -15,7 +15,11 @@ def bitdrift_kt_android_library(name, srcs, require_javadocs = True, **args):
         **args
     )
 
-    _jvm_lint_support(name, srcs, require_javadocs)
+    _jvm_lint_support(
+        name,
+        native.glob(srcs, exclude = ["**/binformat/**"]),
+        require_javadocs,
+    )
 
 def bitdrift_kt_jvm_library(name, srcs, require_javadocs = True, **args):
     kt_jvm_library(
@@ -27,7 +31,7 @@ def bitdrift_kt_jvm_library(name, srcs, require_javadocs = True, **args):
     _jvm_lint_support(name, srcs, require_javadocs)
 
 def bitdrift_kt_android_local_test(name, deps = [], jvm_flags = [], **kwargs):
-    lib_deps = native.glob(["src/test/**/*.kt"], exclude = ["src/test/**/*Test.kt"])
+    lib_deps = native.glob(["src/test/**/*.kt"], exclude = ["src/test/**/*Test.kt"], allow_empty = True)
 
     if len(lib_deps) != 0:
         # We want the tests below to be able to depend on non-test files defined within this package,
@@ -37,6 +41,7 @@ def bitdrift_kt_android_local_test(name, deps = [], jvm_flags = [], **kwargs):
             name = "_{}_lib".format(name),
             srcs = native.glob(["src/test/**/*.kt"], exclude = ["**/*Test.kt"]),
             deps = deps,
+            testonly = True,
         )
 
         deps = [":_{}_lib".format(name)]

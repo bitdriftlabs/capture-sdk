@@ -1,3 +1,5 @@
+#!/bin/bash
+
 ./bazelw build //test/benchmark:live_benchmark --config benchmark
 rm -rf target/criterion
 

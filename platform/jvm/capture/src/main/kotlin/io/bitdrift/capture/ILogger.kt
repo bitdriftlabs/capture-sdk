@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
+import java.util.UUID
 import kotlin.time.Duration
 
 /**
@@ -61,7 +62,10 @@ interface ILogger {
      * @param key the name of the field to add.
      * @param value the value of the field to add.
      */
-    fun addField(key: String, value: String)
+    fun addField(
+        key: String,
+        value: String,
+    )
 
     /**
      * Removes a field with a given key. This operation has no effect if a field with the given key
@@ -96,6 +100,13 @@ interface ILogger {
     fun logAppLaunchTTI(duration: Duration)
 
     /**
+     * Logs a screen view event.
+     *
+     * @param screenName the name of the screen.
+     */
+    fun logScreenView(screenName: String)
+
+    /**
      * Signals that an operation has started at this point in time. Each operation consists of start
      * and end event logs. The start event is emitted immediately upon calling the
      * `Logger.startSpan(...)` method, while the corresponding end event is emitted when the
@@ -105,9 +116,22 @@ interface ILogger {
      * @param name the name of the operation.
      * @param level the severity of the log.
      * @param fields additional fields to include in the log.
+     * @param startTimeMs an optional custom start time in milliseconds since the Unix epoch. This can be
+     *                    used to override the default start time of the span. If provided, it needs
+     *                    to be used in combination with an `endTimeMs`. Providing one and not the other is
+     *                    considered an error and in that scenario, the default clock will be used instead.
+     * @param parentSpanId: An optional ID of the parent span, used to build span hierarchies. A span
+     *                      without a parentSpanId is considered a root span.
+     *
      * @return a [Span] object that can be used to signal the end of the operation.
      */
-    fun startSpan(name: String, level: LogLevel, fields: Map<String, String>? = null): Span
+    fun startSpan(
+        name: String,
+        level: LogLevel,
+        fields: Map<String, String>? = null,
+        startTimeMs: Long? = null,
+        parentSpanId: UUID? = null,
+    ): Span
 
     /**
      * Records information about an HTTP network request

@@ -9,7 +9,7 @@ use bd_api::Platform;
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock};
 
-static SDK_VERSION: LazyLock<String> =
+pub static SDK_VERSION: LazyLock<String> =
   LazyLock::new(|| include!(concat!(env!("OUT_DIR"), "/version.rs")).to_string());
 
 // A collection of typed metadata that is used to identify the client when communicating with
@@ -23,8 +23,12 @@ pub struct Mobile {
 
   pub platform: Platform,
 
+  pub os: String,
+
   /// Provides current device installation identifier.
   pub device: Arc<bd_logger::Device>,
+
+  pub model: String,
 }
 
 impl bd_api::Metadata for Mobile {
@@ -36,7 +40,14 @@ impl bd_api::Metadata for Mobile {
     &self.platform
   }
 
-  #[must_use]
+  fn os(&self) -> String {
+    self.os.clone()
+  }
+
+  fn device_id(&self) -> String {
+    self.device.id()
+  }
+
   fn collect_inner(&self) -> HashMap<String, String> {
     let mut metadata_map = HashMap::new();
 
@@ -48,7 +59,7 @@ impl bd_api::Metadata for Mobile {
       metadata_map.insert("app_version".to_string(), app_version.to_string());
     }
 
-    metadata_map.insert("device_id".to_string(), self.device.id());
+    metadata_map.insert("model".to_string(), self.model.clone());
 
     metadata_map
   }

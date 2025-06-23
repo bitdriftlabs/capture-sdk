@@ -31,7 +31,6 @@ interface ICaptureStream {
  * api task to initiate new streams to the Bitdrift backend.
  */
 interface ICaptureNetwork {
-
     /**
      * Called when the Capture library intends to initialize a new stream. For each startStream call received,
      * the receiver *must* call Jni.releaseApiStream exactly once with the provided streamId in order to
@@ -41,19 +40,29 @@ interface ICaptureNetwork {
      * @param headers headers to add to network requests.
      * @return a new stream handle
      */
-    fun startStream(streamId: Long, headers: Map<String, String>): ICaptureStream
+    fun startStream(
+        streamId: Long,
+        headers: Map<String, String>,
+    ): ICaptureStream
 }
 
 internal object Jni {
     /**
      * Called to provide the native API implementation with data for processing.
      */
-    external fun onApiChunkReceived(streamId: Long, dataToSend: ByteArray, size: Int)
+    external fun onApiChunkReceived(
+        streamId: Long,
+        dataToSend: ByteArray,
+        size: Int,
+    )
 
     /**
      * Called to notify the native API implementation that the stream has closed.
      */
-    external fun onApiStreamClosed(streamId: Long, reason: String)
+    external fun onApiStreamClosed(
+        streamId: Long,
+        reason: String,
+    )
 
     /**
      * Releases the native memory associated with the stream. This must be called for each stream

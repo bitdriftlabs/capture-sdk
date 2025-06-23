@@ -1,10 +1,12 @@
 package io.bitdrift.flappychippy
 
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
@@ -22,11 +24,10 @@ import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.replay.ReplayLogger
-import io.bitdrift.capture.replay.ReplayModule
+import io.bitdrift.capture.replay.IReplayLogger
+import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.ReplayPreviewClient
 import io.bitdrift.capture.replay.SessionReplayConfiguration
-import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import io.bitdrift.flappychippy.model.GameMode
 import kotlinx.coroutines.CoroutineScope
@@ -44,36 +45,35 @@ private const val bitdriftAPIKey = ""
 private const val chromebookIP = "192.168.0.100"
 private val BITDRIFT_STAGING_URL = HttpUrl.Builder().scheme("https").host(chromebookIP).port(4444).build()
 
+@RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : ComponentActivity() {
     private val viewModel: GameViewModel by viewModels()
 
     private val replayPreviewClient: ReplayPreviewClient by lazy {
-        ReplayPreviewClient(ReplayModule(
-            object: ErrorHandler {
+        ReplayPreviewClient(
+            object : ErrorHandler {
                 override fun handleError(detail: String, e: Throwable?) {}
             },
-            object: ReplayLogger {
-                override fun onScreenCaptured(encodedScreen: ByteArray, screen: FilteredCapture,
-                                              metrics: EncodedScreenMetrics
-                ) {}
+            object : IReplayLogger {
+                override fun onScreenCaptured(
+                    encodedScreen: ByteArray, screen: FilteredCapture,
+                    metrics: ReplayCaptureMetrics
+                ) { }
                 override fun logVerboseInternal(message: String, fields: Map<String, String>?) {}
                 override fun logDebugInternal(message: String, fields: Map<String, String>?) {}
                 override fun logErrorInternal(message: String, e: Throwable?, fields: Map<String, String>?) {}
             },
+            context = this.applicationContext,
             SessionReplayConfiguration(),
-            object: Runtime {
-                override fun isEnabled(feature: RuntimeFeature): Boolean {
-                    return true
-                }
-            }
-        ), host = chromebookIP, context = this.applicationContext)
+            host = chromebookIP
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val date = dateFormat.format(Date())
-        Logger.configure(
+        Logger.start(
             apiKey = bitdriftAPIKey,
             apiUrl = BITDRIFT_STAGING_URL,
             sessionStrategy = SessionStrategy.Fixed { "flappy-chippy-session-$date" }
@@ -128,7 +128,7 @@ class MainActivity : ComponentActivity() {
         }
 
         replayPreviewClient.connect()
-        timer(initialDelay = 0, period = 300L ) {
+        timer(initialDelay = 0, period = 300L) {
             CoroutineScope(Dispatchers.Main).launch {
                 replayPreviewClient.captureScreen()
             }

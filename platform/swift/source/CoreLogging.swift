@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@_implementationOnly import CapturePassable
+internal import CapturePassable
 import Foundation
 
 private enum Keys {
@@ -23,17 +23,19 @@ protocol CoreLogging: AnyObject {
     /// Logs messages using `normal` log type and non-blocking mode. Intended to be called from within the
     /// implementation of methods that expose logging interfaces to customers of the SDK.
     ///
-    /// - parameter level:          The log level to use.
-    /// - parameter message:        The message to log.
-    /// - parameter file:           The unique file identifier that has the form module/file.
-    /// - parameter line:           The line number on which the log is emitted.
-    /// - parameter function:       The name of the declaration from within which the log is emitted.
-    /// - parameter fields:         The fields to send as part of the log.
-    /// - parameter matchingFields: The matching fields to include as part of the log. These fields can be
-    ///                             read when processing a given log but are not a part of the log itself.
-    /// - parameter error:          The error to log.
-    /// - parameter type:           The type of the log message (i.e., `normal` or `internalsdk`).
-    /// - parameter blocking:       Whether the call should block until the log is processed.
+    /// - parameter level:              The log level to use.
+    /// - parameter message:            The message to log.
+    /// - parameter file:               The unique file identifier that has the form module/file.
+    /// - parameter line:               The line number on which the log is emitted.
+    /// - parameter function:           The name of the declaration from within which the log is emitted.
+    /// - parameter fields:             The fields to send as part of the log.
+    /// - parameter matchingFields:     The matching fields to include as part of the log. These fields can be
+    ///                                 read when processing a given log but are not a part of the log itself.
+    /// - parameter error:              The error to log.
+    /// - parameter type:               The type of the log message (i.e., `normal` or `internalsdk`).
+    /// - parameter blocking:           Whether the call should block until the log is processed.
+    /// - parameter occurredAtOverride: An override for the time the log occurred. If `nil`, current date is
+    ///                                 used.
     func log(
         level: LogLevel,
         message: @autoclosure () -> String,
@@ -43,15 +45,22 @@ protocol CoreLogging: AnyObject {
         fields: Fields?,
         matchingFields: Fields?,
         error: Error?,
-        type: Logger.LogType,
-        blocking: Bool
+        type: Capture.Logger.LogType,
+        blocking: Bool,
+        occurredAtOverride: Date?
     )
 
-    /// Writes a session replay log.
+    /// Writes a session replay screen log.
     ///
-    /// - parameter screen:   The capture screen.
+    /// - parameter screen:   The captured screen.
     /// - parameter duration: The duration of time the preparation of the log took.
-    func logSessionReplay(screen: SessionReplayScreenCapture, duration: TimeInterval)
+    func logSessionReplayScreen(screen: SessionReplayCapture, duration: TimeInterval)
+
+    /// Writes a session replay screen log.
+    ///
+    /// - parameter screen:   The captured screenshot. `nil` if screenshot couldn't be taken.
+    /// - parameter duration: The duration of time the preparation of the log took.
+    func logSessionReplayScreenshot(screen: SessionReplayCapture?, duration: TimeInterval)
 
     /// Writes a resource utilization log.
     ///
@@ -63,7 +72,7 @@ protocol CoreLogging: AnyObject {
     ///
     /// - parameter fields:   The extra fields to include with the log.
     /// - parameter duration: The duration of time the SDK configuration took.
-    func logSDKConfigured(fields: Fields, duration: TimeInterval)
+    func logSDKStart(fields: Fields, duration: TimeInterval)
 
     /// Checks whether the app update log should be emitted.
     ///
@@ -95,6 +104,11 @@ protocol CoreLogging: AnyObject {
     /// - parameter duration: The time between a user's intent to launch the app and when the app becomes
     ///                       interactive.
     func logAppLaunchTTI(_ duration: TimeInterval)
+
+    /// Logs a screen view event.
+    ///
+    /// - parameter screenName: The name of the screen.
+    func logScreenView(screenName: String)
 
     /// Stars new session using configured session strategy.
     func startNewSession()
@@ -152,17 +166,20 @@ extension CoreLogging {
     /// Logs messages using `normal` log type and non-blocking mode. Intended to be called from within the
     /// implementation of methods that expose logging interfaces to customers of the SDK.
     ///
-    /// - parameter level:          The log level to use.
-    /// - parameter message:        The message to log.
-    /// - parameter file:           The unique file identifier that has the form module/file.
-    /// - parameter line:           The line number on which the log is emitted.
-    /// - parameter function:       The name of the declaration from within which the log is emitted.
-    /// - parameter fields:         The extra fields to send as part of the log.
-    /// - parameter matchingFields: These fields can be read when processing a given log but are not a part
-    ///                              of the log itself.
-    /// - parameter error:          The error to log.
-    /// - parameter type:           The type of the log message (i.e., `normal` or `internalsdk`).
-    /// - parameter blocking:       Whether the call should block until the log is processed.
+    /// - parameter level:              The log level to use.
+    /// - parameter message:            The message to log.
+    /// - parameter file:               The unique file identifier that has the form module/file.
+    /// - parameter line:               The line number on which the log is emitted.
+    /// - parameter function:           The name of the declaration from within which the log is emitted.
+    /// - parameter fields:             The extra fields to send as part of the log.
+    /// - parameter matchingFields:     These fields can be read when processing a given log but are not a
+    ///                                 part
+    ///                                 of the log itself.
+    /// - parameter error:              The error to log.
+    /// - parameter type:               The type of the log message (i.e., `normal` or `internalsdk`).
+    /// - parameter blocking:           Whether the call should block until the log is processed.
+    /// - parameter occurredAtOverride: An override for the time the log occurred. If `nil`, current date is
+    ///                                 used.
     func log(
         level: LogLevel,
         message: @autoclosure () -> String,
@@ -172,8 +189,9 @@ extension CoreLogging {
         fields: Fields? = nil,
         matchingFields: Fields? = nil,
         error: Error? = nil,
-        type: Logger.LogType,
-        blocking: Bool = false
+        type: Capture.Logger.LogType,
+        blocking: Bool = false,
+        occurredAtOverride: Date? = nil
     )
     {
         self.log(
@@ -186,7 +204,8 @@ extension CoreLogging {
             matchingFields: matchingFields,
             error: error,
             type: type,
-            blocking: blocking
+            blocking: blocking,
+            occurredAtOverride: occurredAtOverride
         )
     }
 

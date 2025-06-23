@@ -13,15 +13,16 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
+import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.utils.BuildTypeChecker
 
 internal class ClientAttributes(
     context: Context,
     private val processLifecycleOwner: LifecycleOwner,
 ) : FieldProvider {
-
-    val appId = context.packageName ?: "unknown"
+    val appId = context.packageName ?: UNKNOWN_FIELD_VALUE
 
     val appVersion: String
         get() {
@@ -39,14 +40,15 @@ internal class ClientAttributes(
         }
 
     @Suppress("SwallowedException")
-    private val packageInfo: PackageInfo? = try {
-        context.packageManager.getPackageInfoCompat(appId)
-    } catch (e: Exception) {
-        null
-    }
+    private val packageInfo: PackageInfo? =
+        try {
+            context.packageManager.getPackageInfoCompat(appId)
+        } catch (e: Exception) {
+            null
+        }
 
-    override fun invoke(): Fields {
-        return mapOf(
+    override fun invoke(): Fields =
+        mapOf(
             // The package name which identifies the running app (e.g. me.foobar.android)
             "app_id" to appId,
             // Operating system. Always Android for this code path.
@@ -62,7 +64,6 @@ internal class ClientAttributes(
             // This number helps determine whether one version is more recent than another.
             "_app_version_code" to appVersionCode.toString(),
         )
-    }
 
     private fun isForeground(): String {
         // refer to lifecycle states https://developer.android.com/topic/libraries/architecture/lifecycle#lc
@@ -76,10 +77,52 @@ internal class ClientAttributes(
         }
     }
 
-    private fun PackageManager.getPackageInfoCompat(packageName: String, flags: Int = 0): PackageInfo =
+    private fun PackageManager.getPackageInfoCompat(
+        packageName: String,
+        flags: Int = 0,
+    ): PackageInfo =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(flags.toLong()))
         } else {
             getPackageInfo(packageName, flags)
         }
+
+    /**
+     * Returns the installation source (e.g. `com.android.vending` will be shown when
+     * installed from the play store)
+     */
+    fun getInstallationSource(
+        appContext: Context,
+        errorHandler: ErrorHandler,
+    ): String =
+        runCatching {
+            if (BuildTypeChecker.isDebuggable(appContext)) {
+                return@runCatching DEBUG_BUILD_INSTALLATION_MESSAGE
+            }
+            val packageManager = appContext.packageManager
+            val packageName = appContext.packageName
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                packageManager.getInstallSourceInfo(packageName).installingPackageName
+                    ?: UNKNOWN_FIELD_VALUE
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getInstallerPackageName(packageName) ?: UNKNOWN_FIELD_VALUE
+            }
+        }.getOrElse {
+            errorHandler.handleError("Could not determine Installation source", it)
+            UNKNOWN_FIELD_VALUE
+        }
+
+    /**
+     * Holds constants for Client attributes
+     */
+    companion object {
+        // The unique sdk library that can be used for custom reports
+        // TODO(FranAguilera): BIT-5149 Finalize model
+        const val SDK_LIBRARY_ID = "io.bitdrift.capture-android"
+
+        private const val UNKNOWN_FIELD_VALUE = "unknown"
+
+        private const val DEBUG_BUILD_INSTALLATION_MESSAGE = "Debug build installation"
+    }
 }

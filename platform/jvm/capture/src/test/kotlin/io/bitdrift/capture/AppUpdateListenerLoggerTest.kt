@@ -33,7 +33,7 @@ class AppUpdateListenerLoggerTest {
     private val logger: LoggerImpl = mock()
     private val clientAttributes: ClientAttributes = mock()
     private val runtime: Runtime = mock()
-    private val executor: ExecutorService = Executors.newSingleThreadScheduledExecutor()
+    private val executor: ExecutorService = Executors.newSingleThreadExecutor()
 
     private lateinit var appUpdateLogger: AppUpdateListenerLogger
 
@@ -42,13 +42,14 @@ class AppUpdateListenerLoggerTest {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
 
-        appUpdateLogger = AppUpdateListenerLogger(
-            logger = logger,
-            clientAttributes = clientAttributes,
-            context = ContextHolder.APP_CONTEXT,
-            runtime = runtime,
-            executor = executor,
-        )
+        appUpdateLogger =
+            AppUpdateListenerLogger(
+                logger = logger,
+                clientAttributes = clientAttributes,
+                context = ContextHolder.APP_CONTEXT,
+                runtime = runtime,
+                executor = executor,
+            )
     }
 
     @Test

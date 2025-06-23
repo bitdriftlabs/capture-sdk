@@ -9,8 +9,8 @@
 import XCTest
 
 /// Logging interface mock.
-final class MockLogging {
-    struct Log {
+public final class MockLogging {
+    public struct Log {
         enum Object {
             case message(String)
             case request(HTTPRequestInfo)
@@ -19,9 +19,9 @@ final class MockLogging {
 
         let level: LogLevel
         let object: Object
-        let fields: Fields?
+        public let fields: Fields?
 
-        func message() -> String? {
+        public func message() -> String? {
             if case let .message(message) = self.object {
                 return message
             }
@@ -29,7 +29,7 @@ final class MockLogging {
             return nil
         }
 
-        func request() -> HTTPRequestInfo? {
+        public func request() -> HTTPRequestInfo? {
             if case let .request(request) = self.object {
                 return request
             }
@@ -37,7 +37,7 @@ final class MockLogging {
             return nil
         }
 
-        func response() -> HTTPResponseInfo? {
+        public func response() -> HTTPResponseInfo? {
             if case let .response(response) = self.object {
                 return response
             }
@@ -46,27 +46,29 @@ final class MockLogging {
         }
     }
 
-    var logExpectation: XCTestExpectation?
-    var logRequestExpectation: XCTestExpectation?
-    var logResponseExpectation: XCTestExpectation?
+    public var logExpectation: XCTestExpectation?
+    public var logRequestExpectation: XCTestExpectation?
+    public var logResponseExpectation: XCTestExpectation?
+
+    public init() {}
 
     /// The logs emitted by the logger
-    private(set) var logs = [Log]()
+    public private(set) var logs = [Log]()
     /// The number of logs emitted by the logger.
-    var logsCount: Int { self.logs.count }
+    public var logsCount: Int { self.logs.count }
     /// A closure that's called every time a log is emitted by the logger.
-    var onLog: (_ log: Log) -> Void = { _ in }
+    public var onLog: (_ log: Log) -> Void = { _ in }
 }
 
 extension MockLogging: Logging {
-    var sessionID: String { "fooID" }
-    var sessionURL: String { "fooURL" }
+    public var sessionID: String { "fooID" }
+    public var sessionURL: String { "fooURL" }
 
-    func startNewSession() {}
+    public func startNewSession() {}
 
-    var deviceID: String { "deviceID" }
+    public var deviceID: String { "deviceID" }
 
-    func log(
+    public func log(
         level: LogLevel,
         message: @autoclosure () -> String,
         file _: String?,
@@ -85,7 +87,7 @@ extension MockLogging: Logging {
         self.onLog(log)
     }
 
-    func log(_ request: HTTPRequestInfo, file _: String?, line _: Int?, function _: String?) {
+    public func log(_ request: HTTPRequestInfo, file _: String?, line _: Int?, function _: String?) {
         let log = Log(
             level: .debug,
             object: .request(request),
@@ -97,7 +99,7 @@ extension MockLogging: Logging {
         self.onLog(log)
     }
 
-    func log(_ response: HTTPResponseInfo, file _: String?, line _: Int?, function _: String?) {
+    public func log(_ response: HTTPResponseInfo, file _: String?, line _: Int?, function _: String?) {
         let log = Log(
             level: .debug,
             object: .response(response),
@@ -109,11 +111,32 @@ extension MockLogging: Logging {
         self.onLog(log)
     }
 
-    func logAppLaunchTTI(_: TimeInterval) {}
+    public func logAppLaunchTTI(_: TimeInterval) {}
 
-    func addField(withKey _: String, value _: FieldValue) {}
+    public func logScreenView(screenName _: String) {}
 
-    func removeField(withKey _: String) {}
+    public func addField(withKey _: String, value _: FieldValue) {}
 
-    func createTemporaryDeviceCode(completion _: @escaping (Result<String, Error>) -> Void) {}
+    public func removeField(withKey _: String) {}
+
+    public func createTemporaryDeviceCode(completion _: @escaping (Result<String, Error>) -> Void) {}
+
+    public func startSpan(name: String, level: LogLevel, file: String? = nil, line: Int? = nil,
+                          function: String? = nil, fields: Fields? = nil,
+                          startTimeInterval: TimeInterval? = nil,
+                          parentSpanID: UUID? = nil) -> Span
+    {
+        Span(
+            logger: MockCoreLogging(),
+            name: name,
+            level: level,
+            file: file,
+            line: line,
+            function: function,
+            fields: fields,
+            timeProvider: MockTimeProvider(),
+            customStartTimeInterval: startTimeInterval,
+            parentSpanID: parentSpanID
+        )
+    }
 }

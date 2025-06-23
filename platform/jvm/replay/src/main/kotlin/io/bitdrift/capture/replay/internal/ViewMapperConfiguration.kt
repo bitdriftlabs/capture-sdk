@@ -7,14 +7,14 @@
 
 package io.bitdrift.capture.replay.internal
 
-import io.bitdrift.capture.replay.ReplayModule
 import io.bitdrift.capture.replay.ReplayType
+import io.bitdrift.capture.replay.SessionReplayConfiguration
 
 internal class ViewMapperConfiguration(
+    sessionReplayConfiguration: SessionReplayConfiguration,
     private val externalMapper: Map<ReplayType, List<String>>? =
-        ReplayModule.replayDependencies.sessionReplayConfiguration.replayMapperConfiguration?.customMapper,
+        sessionReplayConfiguration.categorizers,
 ) {
-
     /**
      * Let a third party select the ReplayType for the given class name.
      */
@@ -36,63 +36,72 @@ internal class ViewMapperConfiguration(
     }
 
     // TODO(murki): Clean-up the list below for Compose and provide a Modifier to let users mark things a types instead.
-    private val defaultMapper: Map<ReplayType, List<String>> = mapOf(
-        ReplayType.View to listOf(
-            "View",
-            "DecorView",
-            "ViewStub",
-            "ComposeView",
-            "CircleView",
-            "FloatingBarView",
-            "MaterialCardView",
-            // Compose (Foundation)
-            "AndroidView",
-            "Box",
-            "Surface",
-            "Row",
-            "Column",
-        ),
-        ReplayType.BackgroundImage to emptyList(),
-        ReplayType.Chevron to emptyList(),
-        ReplayType.Ignore to listOf(
-            "ContentFrameLayout",
-            "FitWindowsLinearLayout",
-        ),
-        ReplayType.Image to listOf(
-            "ImageView",
-            "AppCompatImageView",
-            "AsyncImage",
-            // Compose (Foundation)
-            "Image",
-            "Icon",
-        ),
-        ReplayType.Label to listOf(
-            // Compose (Foundation)
-            "BasicText",
-            "Text",
-        ),
-        ReplayType.Button to listOf(
-            // Compose (Foundation)
-            "ClickableText",
-            // Compose (Material)
-            "Button",
-            "IconButton",
-            "TextButton",
-        ),
-        ReplayType.SwitchOff to listOf(
-            // Compose (Foundation)
-            "Checkbox", // TODO(murki): Figure how to handle on/off state for Compose
-        ),
-        ReplayType.Keyboard to emptyList(),
-        ReplayType.Map to listOf(
-            "MapView",
-        ),
-        ReplayType.TextInput to listOf(
-            "TextInputEditText",
-            // Compose (Foundation)
-            "TextField",
-        ),
-        ReplayType.TransparentView to emptyList(),
-        ReplayType.WebView to emptyList(),
-    )
+    private val defaultMapper: Map<ReplayType, List<String>> =
+        mapOf(
+            ReplayType.View to
+                listOf(
+                    "View",
+                    "DecorView",
+                    "ViewStub",
+                    "ComposeView",
+                    "CircleView",
+                    "FloatingBarView",
+                    "MaterialCardView",
+                    // Compose (Foundation)
+                    "AndroidView",
+                    "Box",
+                    "Surface",
+                    "Row",
+                    "Column",
+                ),
+            ReplayType.BackgroundImage to emptyList(),
+            ReplayType.Chevron to emptyList(),
+            ReplayType.Ignore to
+                listOf(
+                    "ContentFrameLayout",
+                    "FitWindowsLinearLayout",
+                ),
+            ReplayType.Image to
+                listOf(
+                    "ImageView",
+                    "AppCompatImageView",
+                    "AsyncImage",
+                    // Compose (Foundation)
+                    "Image",
+                    "Icon",
+                ),
+            ReplayType.Label to
+                listOf(
+                    // Compose (Foundation)
+                    "BasicText",
+                    "Text",
+                ),
+            ReplayType.Button to
+                listOf(
+                    // Compose (Foundation)
+                    "ClickableText",
+                    // Compose (Material)
+                    "Button",
+                    "IconButton",
+                    "TextButton",
+                ),
+            ReplayType.SwitchOff to
+                listOf(
+                    // Compose (Foundation)
+                    "Checkbox", // TODO(murki): Figure how to handle on/off state for Compose
+                ),
+            ReplayType.Keyboard to emptyList(),
+            ReplayType.Map to
+                listOf(
+                    "MapView",
+                ),
+            ReplayType.TextInput to
+                listOf(
+                    "TextInputEditText",
+                    // Compose (Foundation)
+                    "TextField",
+                ),
+            ReplayType.TransparentView to emptyList(),
+            ReplayType.WebView to emptyList(),
+        )
 }

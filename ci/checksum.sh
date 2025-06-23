@@ -5,28 +5,28 @@ set -euo pipefail
 function create_MD5_file() {
   local -r file="$1"
   echo "+ Generating MD5 checksum for $file"
-  echo "$(md5sum "$file" | awk '{print $1}')" > "$file.md5"
+  md5sum "$file" | awk '{print $1}' > "$file.md5"
   cat "$file.md5"
 }
 
 function create_SHA1_file() {
   local -r file="$1"
   echo "+ Generating SHA-1 checksum for $file"
-  echo "$(sha1sum "$file" | awk '{print $1}')" > "$file.sha1"
+  sha1sum "$file" | awk '{print $1}' > "$file.sha1"
   cat "$file.sha1"
 }
 
 function create_SHA256_file() {
   local -r file="$1"
   echo "+ Generating SHA256 checksum for $file"
-  echo "$(shasum -a 256 "$file" | awk '{print $1}')" > "$file.sha256"
+  shasum -a 256 "$file" | awk '{print $1}' > "$file.sha256"
   cat "$file.sha256"
 }
 
 function create_SHA512_file() {
   local -r file="$1"
   echo "+ Generating SHA512 checksum for $file"
-  echo "$(shasum -a 512 "$file" | awk '{print $1}')" > "$file.sha512"
+  shasum -a 512 "$file" | awk '{print $1}' > "$file.sha512"
   cat "$file.sha512"
 }
 

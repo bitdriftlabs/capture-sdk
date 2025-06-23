@@ -26,16 +26,17 @@ internal class ErrorHandler : ErrorHandler {
      * @param detail a string identifying the action that resulted in an error.
      * @param e the throwable associated with the error.
      */
-    override fun handleError(detail: String, e: Throwable?) {
+    override fun handleError(
+        detail: String,
+        e: Throwable?,
+    ) {
         try {
             // Delegate to the JNI function over using the error reporter directly. This is done so
             // that we can reuse the report limits implemented on the native side.
             CaptureJniLibrary.reportError(
                 "'$detail' failed: $e",
                 object : StackTraceProvider {
-                    override fun invoke(): String? {
-                        return e?.stackTraceToString()
-                    }
+                    override fun invoke(): String? = e?.stackTraceToString()
                 },
             )
         } catch (e: Throwable) {

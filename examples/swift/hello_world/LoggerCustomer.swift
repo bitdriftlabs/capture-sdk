@@ -9,9 +9,6 @@ import Capture
 import Foundation
 import MetricKit
 
-private let kBitdriftAPIKey = "<YOUR API KEY GOES HERE>"
-// swiftlint:disable:next force_unwrapping use_static_string_url_init
-private let kBitdriftURL = URL(string: "https://api.bitdrift.io")!
 private let kDeviceId = "ios-helloworld"
 
 private struct EncodableExampleStruct: Encodable {
@@ -83,20 +80,24 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
     override init() {
         self.appStartTime = Date()
 
+        super.init()
+
+        guard let apiURL = URL(string: Configuration.storedAPIURL) else {
+            print("failed to initialize logger due to invalid API URL: \(Configuration.storedAPIURL)")
+            return
+        }
+
         Logger
-            .configure(
-                withAPIKey: kBitdriftAPIKey,
+            .start(
+                withAPIKey: Configuration.storedAPIKey ?? "",
                 sessionStrategy: .fixed(),
-                configuration: .init(),
                 fieldProviders: [CustomFieldProvider()],
-                apiURL: kBitdriftURL
-            )
-            .enableIntegrations([.urlSession()], disableSwizzling: true)
+                apiURL: apiURL
+            )?
+            .enableIntegrations([.urlSession(), .crashReporting()], disableSwizzling: true)
 
         Logger.addField(withKey: "field_container_field_key", value: "field_container_value")
         Logger.logInfo("App launched. Logger configured.")
-
-        super.init()
 
         MXMetricManager.shared.add(self)
     }
@@ -144,6 +145,14 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         }
     }
 
+    func simulateNavigation() {
+        Logger.logScreenView(screenName: "First Screen")
+
+        DispatchQueue.main.asyncAfter(deadline: .now().advanced(by: .milliseconds(500))) {
+            Logger.logScreenView(screenName: "Second Screen")
+        }
+    }
+
     func log(with level: LogLevel) {
         let fields: [String: Encodable] = [
             "date_time": Date(),
@@ -181,7 +190,6 @@ extension LoggerCustomer: MXMetricManagerSubscriber {
         }
     }
 
-    @available(iOS 14.0, *)
     func didReceive(_ payloads: [MXDiagnosticPayload]) {
         Capture.Logger.logDebug("Did Receive MXDiagnosticPayloads")
         for payload in payloads {

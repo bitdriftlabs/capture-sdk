@@ -2,26 +2,39 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.apollo.graphql)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.compose.compiler)
 }
 
 dependencies {
     implementation(project(":capture"))
-    implementation(project(":capture-apollo3"))
+    implementation(project(":capture-apollo"))
     implementation(project(":capture-timber"))
-    implementation("androidx.core:core-ktx:1.9.0")
-    implementation("androidx.compose.material:material:1.4.0")
-    implementation("androidx.activity:activity-compose:1.8.0")
+    implementation(libs.androidx.material3.android)
+    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.compose.ui:ui:1.7.8")
+    implementation("androidx.compose.material:material:1.7.8")
+    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.compose.ui:ui-text:1.7.8")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
-    implementation("com.apollographql.apollo3:apollo-runtime:3.8.3")
-    implementation("com.apollographql.apollo3:apollo-runtime:3.8.3")
+    implementation("androidx.preference:preference-ktx:1.2.1")
+    implementation("com.apollographql.apollo:apollo-runtime:4.1.0")
+    implementation("com.apollographql.apollo:apollo-runtime:4.1.0")
     implementation("com.jakewharton.timber:timber:5.0.1")
     implementation("com.google.android.material:material:1.8.0")
-    implementation(libs.androidx.material3.android)
+    implementation("com.squareup.papa:papa:0.26")
+    implementation("androidx.metrics:metrics-performance:1.0.0-beta01")
+    implementation("com.bugsnag:bugsnag-android:6.12.0")
+    implementation ("io.reactivex.rxjava3:rxandroid:3.0.0")
+    implementation ("io.reactivex.rxjava3:rxjava:3.0.0")
+    implementation("io.sentry:sentry-android:8.2.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.0")
 
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.4.0")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")
+    debugImplementation ("com.squareup.leakcanary:leakcanary-android:2.14")
 
     testImplementation("junit:junit:4.13.2")
 
@@ -41,7 +54,7 @@ dependencies {
 
 android {
     namespace = "io.bitdrift.gradletestapp"
-    compileSdk = 34
+    compileSdk = 35
 
     buildFeatures {
         compose = true
@@ -49,14 +62,10 @@ android {
         buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
-    }
-
     defaultConfig {
         applicationId = "io.bitdrift.gradletestapp"
         minSdk = 21
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 66
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

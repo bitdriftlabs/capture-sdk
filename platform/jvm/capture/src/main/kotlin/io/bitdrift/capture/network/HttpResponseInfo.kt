@@ -26,87 +26,95 @@ import io.bitdrift.capture.providers.toFields
  * an option to override them by providing these attributes in the `HTTPResponse`. Refer to `HTTPResponse`
  * for more details.
  */
-data class HttpResponseInfo @JvmOverloads constructor(
-    private val request: HttpRequestInfo,
-    private val response: HttpResponse,
-    private val durationMs: Long,
-    private var metrics: HttpRequestMetrics? = null,
-    private val extraFields: Map<String, String> = mapOf(),
-) {
-    internal val name: String = "HTTPResponse"
+data class HttpResponseInfo
+    @JvmOverloads
+    constructor(
+        private val request: HttpRequestInfo,
+        private val response: HttpResponse,
+        private val durationMs: Long,
+        private var metrics: HttpRequestMetrics? = null,
+        private val extraFields: Map<String, String> = mapOf(),
+    ) {
+        internal val name: String = "HTTPResponse"
 
-    internal val fields: InternalFieldsMap =
-        run {
-            // Collect out-of-the-box fields specific to HTTPResponse logs. The list consists of
-            // HTTP specific fields such as host, path, or query and HTTP request performance
-            // metrics such as DNS resolution time.
-            val fields = buildMap {
-                this.put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_END))
-                this.put(
-                    SpanField.Key.DURATION,
-                    FieldValue.StringField(durationMs.toString()),
-                )
-                this.put(
-                    SpanField.Key.RESULT,
-                    FieldValue.StringField(response.result.name.lowercase()),
-                )
-                putOptional("_status_code", response.statusCode)
-                putOptional(
-                    "_error_type",
-                    response.error,
-                ) { it::javaClass.get().simpleName }
-                putOptional(
-                    "_error_message",
-                    response.error,
-                ) { it.message.orEmpty() }
-                putOptional(HttpFieldKey.HOST, response.host)
-                putOptional(HttpFieldKey.PATH, response.path?.value)
-                putOptional(HttpFieldKey.QUERY, response.query)
+        internal val fields: InternalFieldsMap =
+            run {
+                // Collect out-of-the-box fields specific to HTTPResponse logs. The list consists of
+                // HTTP specific fields such as host, path, or query and HTTP request performance
+                // metrics such as DNS resolution time.
+                val fields =
+                    buildMap {
+                        this.put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_END))
+                        this.put(
+                            SpanField.Key.DURATION,
+                            FieldValue.StringField(durationMs.toString()),
+                        )
+                        this.put(
+                            SpanField.Key.RESULT,
+                            FieldValue.StringField(response.result.name.lowercase()),
+                        )
+                        putOptional("_status_code", response.statusCode)
+                        putOptional(
+                            "_error_type",
+                            response.error,
+                        ) { it::javaClass.get().simpleName }
+                        putOptional(
+                            "_error_message",
+                            response.error,
+                        ) { it.message.orEmpty() }
+                        putOptional(HttpFieldKey.HOST, response.host)
+                        putOptional(HttpFieldKey.PATH, response.path?.value)
+                        putOptional(HttpFieldKey.QUERY, response.query)
 
-                response.path?.let {
-                    val requestPathTemplate =
-                        if (request.path?.value == it.value) {
-                            // If the path between request and response did not change and an explicit path
-                            // template was provided as part of a request use it as path template on a response.
-                            request.path.template
-                        } else {
-                            null
+                        response.path?.let {
+                            val requestPathTemplate =
+                                if (request.path?.value == it.value) {
+                                    // If the path between request and response did not change and an explicit path
+                                    // template was provided as part of a request use it as path template on a response.
+                                    request.path.template
+                                } else {
+                                    null
+                                }
+
+                            putOptional(
+                                HttpFieldKey.PATH_TEMPLATE,
+                                requestPathTemplate?.let { it } ?: it.template?.let { it },
+                            )
                         }
 
-                    putOptional(
-                        HttpFieldKey.PATH_TEMPLATE,
-                        requestPathTemplate?.let { it } ?: it.template?.let { it },
-                    )
-                }
+                        metrics?.let<HttpRequestMetrics, Unit> {
+                            this.put(
+                                "_request_body_bytes_sent_count",
+                                FieldValue.StringField(it.requestBodyBytesSentCount.toString()),
+                            )
+                            this.put(
+                                "_response_body_bytes_received_count",
+                                FieldValue.StringField(it.responseBodyBytesReceivedCount.toString()),
+                            )
+                            this.put(
+                                "_request_headers_bytes_count",
+                                FieldValue.StringField(it.requestHeadersBytesCount.toString()),
+                            )
+                            this.put(
+                                "_response_headers_bytes_count",
+                                FieldValue.StringField(it.responseHeadersBytesCount.toString()),
+                            )
+                            putOptional("_dns_resolution_duration_ms", it.dnsResolutionDurationMs)
+                            putOptional("_tls_duration_ms", it.tlsDurationMs)
+                            putOptional("_tcp_duration_ms", it.tcpDurationMs)
+                            putOptional("_fetch_init_duration_ms", it.fetchInitializationMs)
+                            putOptional("_response_latency_ms", it.responseLatencyMs)
+                            putOptional("_protocol", it.protocolName)
+                        }
+                    }
 
-                metrics?.let<HttpRequestMetrics, Unit> {
-                    this.put(
-                        "_request_body_bytes_sent_count",
-                        FieldValue.StringField(it.requestBodyBytesSentCount.toString()),
-                    )
-                    this.put(
-                        "_response_body_bytes_received_count",
-                        FieldValue.StringField(it.responseBodyBytesReceivedCount.toString()),
-                    )
-                    this.put(
-                        "_request_headers_bytes_count",
-                        FieldValue.StringField(it.requestHeadersBytesCount.toString()),
-                    )
-                    this.put(
-                        "_response_headers_bytes_count",
-                        FieldValue.StringField(it.responseHeadersBytesCount.toString()),
-                    )
-                    putOptional("_dns_resolution_duration_ms", it.dnsResolutionDurationMs)
-                }
+                // Combine fields in the increasing order of their priority as the latter fields
+                // override the former ones in the case of field name conflicts.
+                extraFields.toFields() + request.commonFields + fields
             }
 
-            // Combine fields in the increasing order of their priority as the latter fields
-            // override the former ones in the case of field name conflicts.
-            extraFields.toFields() + request.commonFields + fields
-        }
-
-    internal val matchingFields: InternalFieldsMap =
-        request.fields.mapKeys { "_request.${it.key}" } +
-            request.matchingFields.mapKeys { "_request.${it.key}" } +
-            response.headers?.let { HTTPHeaders.normalizeHeaders(it) }.toFields()
-}
+        internal val matchingFields: InternalFieldsMap =
+            request.fields.mapKeys { "_request.${it.key}" } +
+                request.matchingFields.mapKeys { "_request.${it.key}" } +
+                response.headers?.let { HTTPHeaders.normalizeHeaders(it) }.toFields()
+    }

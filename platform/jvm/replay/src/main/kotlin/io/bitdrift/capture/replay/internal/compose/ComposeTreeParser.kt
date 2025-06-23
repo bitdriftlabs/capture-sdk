@@ -11,6 +11,7 @@ package io.bitdrift.capture.replay.internal.compose
 
 import android.view.View
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.AndroidComposeView
 import androidx.compose.ui.semantics.Role
@@ -21,8 +22,9 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.toSize
-import io.bitdrift.capture.replay.L
 import io.bitdrift.capture.replay.ReplayType
+import io.bitdrift.capture.replay.SessionReplayController
+import io.bitdrift.capture.replay.compose.CaptureModifier
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
 
@@ -31,36 +33,61 @@ internal object ComposeTreeParser {
         get() = this is AndroidComposeView
 
     internal fun parse(androidComposeView: View): ScannableView {
-        val semanticsOwner = if (androidComposeView is AndroidComposeView) {
-            androidComposeView.semanticsOwner
-        } else {
-            L.e(null, "View passed to ComposeTreeParser.parse() is not an AndroidComposeView. view=${androidComposeView.javaClass.name}")
-            return ScannableView.IgnoredComposeView
-        }
+        val semanticsOwner =
+            if (androidComposeView is AndroidComposeView) {
+                androidComposeView.semanticsOwner
+            } else {
+                SessionReplayController.L.e(
+                    null,
+                    "View passed to ComposeTreeParser.parse() is not an AndroidComposeView. view=${androidComposeView.javaClass.name}",
+                )
+                return ScannableView.IgnoredComposeView
+            }
         val rootNode = semanticsOwner.unmergedRootSemanticsNode
-        L.d("Found Compose SemanticsNode root. Parsing Compose tree.")
+        SessionReplayController.L.d("Found Compose SemanticsNode root. Parsing Compose tree.")
         return rootNode.toScannableView()
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
-    private fun SemanticsNode.toScannableView(): ScannableView.ComposeView {
+    @OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
+    private fun SemanticsNode.toScannableView(): ScannableView {
         val notAttachedOrPlaced = !this.layoutNode.isPlaced || !this.layoutNode.isAttached
-        val isVisible = !this.isTransparent && !unmergedConfig.contains(SemanticsProperties.InvisibleToUser)
-        val type = if (notAttachedOrPlaced) {
-            return ScannableView.IgnoredComposeView
-        } else if (!isVisible) {
-            ReplayType.TransparentView
-        } else {
-            this.unmergedConfig.toReplayType()
+        val captureIgnoreSubTree = this.unmergedConfig.getOrNull(CaptureModifier.CaptureIgnore)
+        val isVisible = !this.isTransparent && !this.unmergedConfig.contains(SemanticsProperties.InvisibleToUser)
+        val type =
+            if (notAttachedOrPlaced) {
+                return ScannableView.IgnoredComposeView
+            } else if (captureIgnoreSubTree != null) {
+                if (captureIgnoreSubTree) {
+                    // short-circuit the entire sub-tree
+                    return ScannableView.IgnoredComposeView
+                } else {
+                    // just ignore this one element
+                    ReplayType.Ignore
+                }
+            } else if (!isVisible) {
+                ReplayType.TransparentView
+            } else {
+                this.unmergedConfig.toReplayType()
+            }
+
+        // Handle hybrid interop AndroidViews inside Compose elements
+        val interopAndroidView = this.layoutNode.getInteropView()
+        if (type == ReplayType.View && interopAndroidView != null) {
+            return ScannableView.AndroidView(
+                view = interopAndroidView,
+                skipReplayComposeViews = false,
+            )
         }
+
         return ScannableView.ComposeView(
-            replayRect = ReplayRect(
-                type = type,
-                x = this.unclippedGlobalBounds.left.toInt(),
-                y = this.unclippedGlobalBounds.top.toInt(),
-                width = this.unclippedGlobalBounds.width.toInt(),
-                height = this.unclippedGlobalBounds.height.toInt(),
-            ),
+            replayRect =
+                ReplayRect(
+                    type = type,
+                    x = this.unclippedGlobalBounds.left.toInt(),
+                    y = this.unclippedGlobalBounds.top.toInt(),
+                    width = this.unclippedGlobalBounds.width.toInt(),
+                    height = this.unclippedGlobalBounds.height.toInt(),
+                ),
             // The display name is not really used for anything
             displayName = "ComposeView",
             children = this.children.asSequence().map { it.toScannableView() },

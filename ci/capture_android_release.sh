@@ -9,6 +9,9 @@ readonly remote_location_root_prefix="s3://bitdrift-public-dl/sdk/android-maven/
 readonly version="$1"
 readonly capture_archive="$2"
 readonly capture_timber_archive="$3"
+readonly capture_apollo_archive="$4"
+readonly capture_plugin_archive="$5"
+readonly capture_plugin_marker_archive="$6"
 
 function upload_file() {
   local -r location="$1"
@@ -27,15 +30,17 @@ function upload_file() {
 
 function generate_maven_file() {
   local -r location="$1"
+  local -r library_name="$2"
 
   echo "+++ Generating maven-metadata.xml for '$location'"
 
   releases=$(aws s3 ls "$location/" \
     | grep -v 'maven-metadata.xml' \
+    | grep -v 'io.bitdrift' \
     | awk '{print $2}' \
     | sed 's/^\///;s/\/$//')
 
-  python3 "$sdk_repo/ci/generate_maven_metadata.py" --releases "${releases//$'\n'/,}"
+  python3 "$sdk_repo/ci/generate_maven_metadata.py" --releases "${releases//$'\n'/,}" --library "library_name"
 
   echo "+++ Generated maven-metadata.xml:"
   cat maven-metadata.xml
@@ -64,6 +69,7 @@ function release_capture_sdk() {
       "$sdk_repo/ci/NOTICE.txt" \
       "$name.pom" \
       "$name-javadoc.jar" \
+      "$name-sources.jar" \
       "$name-symbols.tar" \
       "$name-dylib.tar" \
       "$name.aar" \
@@ -73,39 +79,55 @@ function release_capture_sdk() {
       upload_file "$remote_location_prefix/$version" "$file"
     done
 
-    generate_maven_file "$remote_location_prefix"
+    generate_maven_file "$remote_location_prefix" "capture"
   popd
 }
 
-function release_capture_timber() {
-  echo "+++ dl.bitdrift.io Android Capture Timber artifacts upload"
+function release_gradle_library() {
+  local -r library_name="$1"
+  local -r archive="$2"
 
-  # We get a zip containing the artifacts named per Maven conventions.
+  echo "+++ dl.bitdrift.io Android Integration $library_name artifacts upload"
+
+  local -r remote_location_prefix="$remote_location_root_prefix/$library_name"
 
   pushd "$(mktemp -d)"
-    unzip -o "$sdk_repo/$capture_timber_archive"
+    unzip -o "$sdk_repo/$archive"
+    
+    # Update the per-version files
+    aws s3 cp "$sdk_repo/ci/LICENSE.txt" "$remote_location_prefix/$version/LICENSE.txt" --region us-east-1
+    aws s3 cp "$sdk_repo/ci/NOTICE.txt" "$remote_location_prefix/$version/NOTICE.txt" --region us-east-1
 
-    echo "+++ Uploading artifacts to s3 bucket"
+    # Upload all the files in the zip
+    aws s3 cp . "$remote_location_prefix/$version/" --recursive --region us-east-1
 
-    local -r remote_location_prefix="$remote_location_root_prefix/capture-timber"
-    local -r name="capture-timber-$version"
-
-    files=(\
-      "$sdk_repo/ci/LICENSE.txt" \
-      "$sdk_repo/ci/NOTICE.txt" \
-      "$name.pom" \
-      "$name-javadoc.jar" \
-      "$name.module" \
-      "$name.aar" \
-    )
-
-    for file in "${files[@]}"; do
-      upload_file "$remote_location_prefix/$version" "$file"
-    done
-
-    generate_maven_file "$remote_location_prefix"
+    generate_maven_file "$remote_location_prefix" "$library_name"
   popd
+}
+
+function release_gradle_plugin() {
+  local -r plugin_name="$1"
+  local -r plugin_marker="$2"
+  local -r archive="$3"
+
+  echo "+++ dl.bitdrift.io Android Integration plugin $plugin_name / $plugin_marker artifacts upload"
+
+  local -r remote_location_prefix="$remote_location_root_prefix/$plugin_name/$plugin_marker"
+
+  pushd "$(mktemp -d)"
+    unzip -o "$sdk_repo/$archive"
+
+    aws s3 cp "$sdk_repo/ci/LICENSE.txt" "$remote_location_prefix/$version/LICENSE.txt" --region us-east-1
+    aws s3 cp "$sdk_repo/ci/NOTICE.txt" "$remote_location_prefix/$version/NOTICE.txt" --region us-east-1
+
+    aws s3 cp . "$remote_location_prefix/$version/" --recursive --region us-east-1
+
+    generate_maven_file "$remote_location_prefix" "$plugin_marker"
+    popd
 }
 
 release_capture_sdk
-release_capture_timber
+release_gradle_library "capture-timber" "$capture_timber_archive"
+release_gradle_library "capture-apollo" "$capture_apollo_archive"
+release_gradle_library "capture-plugin" "$capture_plugin_archive"
+release_gradle_plugin "capture-plugin" "io.bitdrift.capture-plugin.gradle.plugin" "$capture_plugin_marker_archive"

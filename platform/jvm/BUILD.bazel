@@ -15,7 +15,11 @@ cc_binary(
         "-lm",  # Required to avoid dlopen runtime failures unrelated to rust
         "-lz",  # Link against system zlib library
     ] + select({
-        "@platforms//os:android": ["-Wl,--retain-symbols-file=$(location :jni_symbols.lds)"],
+        "@platforms//os:android": [
+            "-Wl,-z,max-page-size=16384",  # enable 16 KB ELF alignment on Android to support API 35+
+            "-Wl,--retain-symbols-file=$(location :jni_symbols.lds)",
+            "-Wl,--build-id",  # Include build id in the binary
+        ],
         "@platforms//os:linux": ["-Wl,--retain-symbols-file=$(location :jni_symbols.lds)"],
         # The linker on macos doesn't support the same options or file formats as linux, so use a pattern match here (not availabile on linux).
         # We could use another file which prefixes all the symbols with _, but this seems easier.
@@ -27,9 +31,6 @@ cc_binary(
             "-Wl,-framework,Security",
         ],
         "//conditions:default": ["@platforms//:incompatible"],
-    }) + select({
-        "//bazel:dbg_build": ["-Wl,--build-id"],
-        "//conditions:default": [],
     }),
     linkshared = True,
     tags = [

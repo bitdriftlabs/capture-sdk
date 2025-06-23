@@ -22,7 +22,7 @@ extension DispatchQueue {
     /// A root queue to be targeted by any queue that wants to perform basic (simple, short-lived) processing
     /// tasks.
     static let `default` = DispatchQueue(
-        label: "io.bitdrift.default",
+        label: "io.bitdrift.capture.default",
         qos: .utility,
         /// Per https://twitter.com/pedantcoder/status/1370080183051382786?s=20 it's good to always set
         /// `autoreleaseFrequency` attribute so we do it here.
@@ -31,7 +31,7 @@ extension DispatchQueue {
 
     /// A root queue to be used for heavy (long) operations such as IO operations
     static let heavy = DispatchQueue(
-        label: "io.bitdrift.io",
+        label: "io.bitdrift.capture.io",
         qos: .utility,
         /// Per https://twitter.com/pedantcoder/status/1370080183051382786?s=20 it's good to always set
         /// `autoreleaseFrequency` attribute so we do it here.
@@ -40,7 +40,7 @@ extension DispatchQueue {
 
     /// A root queue to be used for network operations performed by the SDK itself.
     static let network = DispatchQueue(
-        label: "io.bitdrift.network",
+        label: "io.bitdrift.capture.network",
         qos: .utility,
         autoreleaseFrequency: .workItem
     )
@@ -80,7 +80,7 @@ extension DispatchQueue {
 
 /// An extension with convenience to use methods for working with `OperationQueue`s.
 extension OperationQueue {
-    private final class OperationQueue: Foundation.OperationQueue {
+    private final class OperationQueue: Foundation.OperationQueue, @unchecked Sendable {
         /// A strong reference to the underlying queue. The public interface of `Foundation.OperationQueue`
         /// specifies its underlying queue as a non-retaining property and by capturing a strong reference in
         /// here we make our APIs easier to use.

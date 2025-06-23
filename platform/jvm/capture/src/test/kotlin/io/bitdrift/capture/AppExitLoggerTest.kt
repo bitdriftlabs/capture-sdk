@@ -8,7 +8,6 @@
 package io.bitdrift.capture
 
 import android.app.ActivityManager
-import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
@@ -21,14 +20,24 @@ import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
-import io.bitdrift.capture.events.lifecycle.CaptureUncaughtExceptionHandler
+import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
+import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
+import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
+import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.SESSION_ID
+import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
+import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
+import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.FatalIssueMechanism
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EMPTY_LIST_MESSAGE
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE
+import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
-import org.mockito.Mockito
-import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 
@@ -36,22 +45,21 @@ class AppExitLoggerTest {
     private val logger: LoggerImpl = mock()
     private val activityManager: ActivityManager = mock()
     private val runtime: Runtime = mock()
+
     private val errorHandler: ErrorHandler = mock()
-    private val crashHandler: CaptureUncaughtExceptionHandler = mock()
     private val versionChecker: BuildVersionChecker = mock()
-    private val appExitLogger = AppExitLogger(
-        logger,
-        activityManager,
-        runtime,
-        errorHandler,
-        crashHandler,
-        versionChecker,
-    )
+    private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
+    private val memoryMetricsProvider = FakeMemoryMetricsProvider()
+    private val backgroundThreadHandler = FakeBackgroundThreadHandler()
+    private val lastExitInfo = FakeLatestAppExitInfoProvider()
+    private lateinit var appExitLogger: AppExitLogger
 
     @Before
     fun setUp() {
         whenever(runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)).thenReturn(true)
         whenever(versionChecker.isAtLeast(anyInt())).thenReturn(true)
+        appExitLogger = buildAppExitLogger()
+        lastExitInfo.reset()
     }
 
     @Test
@@ -61,7 +69,7 @@ class AppExitLoggerTest {
         // ACT
         appExitLogger.installAppExitLogger()
         // ASSERT
-        verify(crashHandler, never()).install(any())
+        verify(captureUncaughtExceptionHandler, never()).install(any())
         verify(activityManager, never()).setProcessStateSummary(any())
         verify(activityManager, never()).getHistoricalProcessExitReasons(anyOrNull(), any(), any())
     }
@@ -74,9 +82,8 @@ class AppExitLoggerTest {
         // ACT
         appExitLogger.installAppExitLogger()
         // ASSERT
-        verify(crashHandler).install(appExitLogger)
+        verify(captureUncaughtExceptionHandler).install(appExitLogger)
         verify(activityManager).setProcessStateSummary(any())
-        verify(activityManager).getHistoricalProcessExitReasons(anyOrNull(), any(), any())
     }
 
     @Test
@@ -87,7 +94,7 @@ class AppExitLoggerTest {
         appExitLogger.uninstallAppExitLogger()
 
         // ASSERT
-        verify(crashHandler).uninstall()
+        verify(captureUncaughtExceptionHandler).uninstall()
     }
 
     @Test
@@ -127,59 +134,114 @@ class AppExitLoggerTest {
     }
 
     @Test
-    fun testLogPreviousExitReasonIfAny() {
+    fun logPreviousExitReasonIfAny_withValidReasonAndProcessSummary_shouldEmitAppExitLog() {
         // ARRANGE
-        val sessionId = "test-session-id"
-        val timestamp = 123L
-        val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = RETURNS_DEEP_STUBS)
-        whenever(mockExitInfo.processStateSummary).thenReturn(sessionId.toByteArray(StandardCharsets.UTF_8))
-        whenever(mockExitInfo.timestamp).thenReturn(timestamp)
-        whenever(mockExitInfo.processName).thenReturn("test-process-name")
-        whenever(mockExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_ANR)
-        whenever(mockExitInfo.importance).thenReturn(RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
-        whenever(mockExitInfo.status).thenReturn(0)
-        whenever(mockExitInfo.pss).thenReturn(1)
-        whenever(mockExitInfo.rss).thenReturn(2)
-        whenever(mockExitInfo.description).thenReturn("test-description")
-        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
+        lastExitInfo.setAsValidReason(
+            exitReasonType = ApplicationExitInfo.REASON_ANR,
+            description = "test-description",
+        )
 
         // ACT
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        val expectedFields = mapOf(
-            "_app_exit_source" to "ApplicationExitInfo",
-            "_app_exit_process_name" to "test-process-name",
-            "_app_exit_reason" to "ANR",
-            "_app_exit_importance" to "FOREGROUND",
-            "_app_exit_status" to "0",
-            "_app_exit_pss" to "1",
-            "_app_exit_rss" to "2",
-            "_app_exit_description" to "test-description",
-        ).toFields()
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
-            eq(expectedFields),
+            eq(buildExpectedAnrFields()),
             eq(null),
-            eq(LogAttributesOverrides(sessionId, timestamp)),
+            eq(LogAttributesOverrides.SessionID(SESSION_ID, TIME_STAMP)),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppExit" },
         )
     }
 
     @Test
-    fun testLogPreviousExitReasonIfAnyReportsError() {
+    fun logPreviousExitReasonIfAny_withValidReasonAndInvalidProcessSummary_shouldReportErrorOnly() {
         // ARRANGE
-        val error = RuntimeException("test exception")
-        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenThrow(error)
+        lastExitInfo.setAsValidReason(
+            exitReasonType = ApplicationExitInfo.REASON_ANR,
+            description = "test-description",
+            processStateSummary = null,
+        )
 
         // ACT
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        verify(errorHandler).handleError(any(), eq(error))
-        Mockito.verifyNoInteractions(logger)
+        verify(logger, never()).log(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+        )
+        verify(errorHandler).handleError("AppExitLogger: processStateSummary from test-process-name is null.")
+    }
+
+    @Test
+    fun logPreviousExitReason_whenEmptyResult_shouldReportError() {
+        // ARRANGE
+        lastExitInfo.setAsEmptyReason()
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        verify(errorHandler).handleError(EXIT_REASON_EMPTY_LIST_MESSAGE)
+        verify(logger, never()).log(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+        )
+    }
+
+    @Test
+    fun logPreviousExitReason_withoutMatchingProcessName_shouldReportError() {
+        // ARRANGE
+        lastExitInfo.setAsInvalidProcessName()
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        verify(errorHandler).handleError(EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE)
+        verify(logger, never()).log(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+        )
+    }
+
+    @Test
+    fun logPreviousExitReason_whenErrorResult_shouldReportEmptyReason() {
+        // ARRANGE
+        lastExitInfo.setAsErrorResult()
+
+        // ACT
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        // ASSERT
+        verify(errorHandler).handleError(EXIT_REASON_EXCEPTION_MESSAGE, FAKE_EXCEPTION)
+        verify(logger, never()).log(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+        )
     }
 
     @Test
@@ -188,16 +250,20 @@ class AppExitLoggerTest {
         whenever(runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_CRASH)).thenReturn(true)
         val currentThread = Thread.currentThread()
         val appException = IOException("real app crash")
+
         // ACT
-        appExitLogger.logCrash(currentThread, RuntimeException("wrapper crash", appException))
+        appExitLogger.onJvmCrash(currentThread, RuntimeException("wrapper crash", appException))
+
         // ASSERT
-        val expectedFields = mapOf(
-            "_app_exit_source" to "UncaughtExceptionHandler",
-            "_app_exit_reason" to "Crash",
-            "_app_exit_info" to appException.javaClass.name,
-            "_app_exit_details" to appException.message.orEmpty(),
-            "_app_exit_thread" to currentThread.name,
-        ).toFields()
+        val expectedFields =
+            buildMap {
+                put("_app_exit_source", "UncaughtExceptionHandler")
+                put("_app_exit_reason", "Crash")
+                put("_app_exit_info", appException.javaClass.name)
+                put("_app_exit_details", appException.message.orEmpty())
+                put("_app_exit_thread", currentThread.name)
+                putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
+            }.toFields()
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
@@ -209,4 +275,50 @@ class AppExitLoggerTest {
         )
         verify(logger).flush(true)
     }
+
+    @Test
+    fun onJvmCrash_whenBuiltInFatalIssueMechanism_shouldNotSendAppExitCrashLog() {
+        val appExitLogger = buildAppExitLogger(FatalIssueMechanism.BuiltIn)
+        whenever(runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_CRASH)).thenReturn(true)
+
+        appExitLogger.onJvmCrash(Thread.currentThread(), IllegalStateException("Simulated Crash"))
+
+        verify(logger, never()).log(
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+            any(),
+        )
+        verify(logger, never()).flush(any())
+    }
+
+    private fun buildAppExitLogger(fatalIssueMechanism: FatalIssueMechanism = FatalIssueMechanism.None) =
+        AppExitLogger(
+            logger,
+            activityManager,
+            runtime,
+            errorHandler,
+            versionChecker,
+            memoryMetricsProvider,
+            backgroundThreadHandler,
+            lastExitInfo,
+            captureUncaughtExceptionHandler,
+            fatalIssueMechanism,
+        )
+
+    private fun buildExpectedAnrFields(): Map<String, FieldValue> =
+        buildMap {
+            put("_app_exit_source", "ApplicationExitInfo")
+            put("_app_exit_process_name", "test-process-name")
+            put("_app_exit_reason", "ANR")
+            put("_app_exit_importance", "FOREGROUND")
+            put("_app_exit_status", "0")
+            put("_app_exit_pss", "1")
+            put("_app_exit_rss", "2")
+            put("_app_exit_description", "test-description")
+            put("_memory_class", "1")
+        }.toFields()
 }

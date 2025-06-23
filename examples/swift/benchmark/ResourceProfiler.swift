@@ -34,10 +34,7 @@ final class ResourceProfiler {
         self.startNetworkProfiling(
             isRunning: isRunning,
             name: "Simple",
-            configuration: .init(
-                sessionReplayConfiguration: nil,
-                resourceReportingConfiguration: nil
-            ),
+            configuration: .init(sessionReplayConfiguration: nil),
             streamHandler: { streamID in
                 configure_benchmarking_configuration(streamID)
                 await_configuration_ack(streamID)
@@ -86,16 +83,17 @@ final class ResourceProfiler {
         let url = self.makeDirectoryURL()
         self.logger = Logger(
             withAPIKey: "foo",
-            appInstallID: "device-id",
             bufferDirectory: url,
             // swiftlint:disable:next force_unwrapping
             apiURL: URL(string: "https://localhost:\(port)")!,
             remoteErrorReporter: nil,
             configuration: configuration,
-            sessionProvider: InMemorySessionProvider(sessionIDGenerator: { UUID().uuidString }),
+            sessionStrategy: .fixed(),
             dateProvider: nil,
             fieldProviders: [],
-            enableNetwork: true
+            enableNetwork: true,
+            storageProvider: Storage.shared,
+            timeProvider: SystemTimeProvider()
         )
         self.loggerURL = url
 

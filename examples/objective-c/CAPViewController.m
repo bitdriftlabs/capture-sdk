@@ -80,9 +80,10 @@ NSString *logLevelToString(LogLevel level) {
 
 - (void)setUpLogger {
     [CAPLogger
-     configureWithAPIKey:kCaptureAPIKey
+     startWithAPIKey:kCaptureAPIKey
      sessionStrategy:[CAPSessionStrategy fixed]
      apiURL:[NSURL URLWithString:kCaptureURLString]
+     enableURLSessionIntegration:true
     ];
 
     [CAPLogger logInfo:@"An objective-c example app is launching" fields:nil];

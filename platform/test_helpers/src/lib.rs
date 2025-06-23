@@ -28,7 +28,13 @@ use config_helper::{
 };
 use platform_shared::LoggerId;
 use std::sync::{LazyLock, Mutex, MutexGuard};
-use test_api_server::{default_configuration_update, start_server, ServerHandle, StreamAction};
+use test_api_server::{
+  default_configuration_update,
+  start_server,
+  ServerHandle,
+  StreamAction,
+  StreamHandle,
+};
 pub use test_api_server::{EventCallback, StreamEvent};
 use time::Duration;
 
@@ -71,7 +77,7 @@ pub extern "C" fn stop_test_api_server() {
 
 #[no_mangle]
 pub extern "C" fn await_next_api_stream() -> i32 {
-  with_expected_server(|h| h.blocking_next_stream().unwrap_or(-1))
+  with_expected_server(|h| h.blocking_next_stream().map_or(-1, |s| s.id()))
 }
 
 #[no_mangle]
@@ -79,30 +85,34 @@ pub extern "C" fn wait_for_stream_with_test_api_key(stream_id: i32) {
   with_expected_server(|h| {
     // TODO(snowp): Support passing the expected API key for test vs testing for a specific test
     // one.
-    assert!(h.await_event_with_timeout(
-      stream_id,
-      ExpectedStreamEvent::Created(Some("test!".to_string())),
-      Duration::seconds(5)
-    ));
+    assert!(
+      StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
+        ExpectedStreamEvent::Created(Some("test!".to_string())),
+        Duration::seconds(5)
+      )
+    );
   });
 }
 
 #[no_mangle]
 pub extern "C" fn await_api_server_received_handshake(stream_id: i32) {
   with_expected_server(|h| {
-    assert!(h.await_event_with_timeout(
-      stream_id,
-      ExpectedStreamEvent::Handshake(None),
-      Duration::seconds(15)
-    ));
+    assert!(
+      StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
+        ExpectedStreamEvent::Handshake {
+          matcher: None,
+          sleep_mode: false // TODO(kattrali): Will be handled as part of BIT-5425
+        },
+        Duration::seconds(15)
+      )
+    );
   });
 }
 
 #[no_mangle]
 pub extern "C" fn await_api_server_stream_closed(stream_id: i32, wait_time_ms: i64) -> bool {
   with_expected_server(|h| {
-    h.await_event_with_timeout(
-      stream_id,
+    StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
       ExpectedStreamEvent::Closed,
       Duration::milliseconds(wait_time_ms),
     )
@@ -112,8 +122,7 @@ pub extern "C" fn await_api_server_stream_closed(stream_id: i32, wait_time_ms: i
 #[no_mangle]
 pub extern "C" fn send_configuration_update(stream_id: i32) {
   with_expected_server(|h| {
-    h.blocking_stream_action(
-      stream_id,
+    StreamHandle::from_stream_id(stream_id, h).blocking_stream_action(
       StreamAction::SendConfiguration(default_configuration_update()),
     );
   });
@@ -122,62 +131,55 @@ pub extern "C" fn send_configuration_update(stream_id: i32) {
 #[no_mangle]
 pub extern "C" fn configure_benchmarking_configuration(stream_id: i32) {
   with_expected_server(|h| {
-    h.blocking_stream_action(
-      stream_id,
-      StreamAction::SendConfiguration(make_benchmarking_configuration_update()),
-    );
-    perform_benchmarking_runtime_update(h, stream_id);
+    let stream = StreamHandle::from_stream_id(stream_id, h);
+    stream.blocking_stream_action(StreamAction::SendConfiguration(
+      make_benchmarking_configuration_update(),
+    ));
+    perform_benchmarking_runtime_update(&stream);
   });
 }
 
 #[no_mangle]
 pub extern "C" fn configure_benchmarking_configuration_with_workflows(stream_id: i32) {
   with_expected_server(|h| {
-    h.blocking_stream_action(
-      stream_id,
-      StreamAction::SendConfiguration(make_benchmarking_configuration_with_workflows_update()),
-    );
-    perform_benchmarking_runtime_update(h, stream_id);
+    let stream = StreamHandle::from_stream_id(stream_id, h);
+    stream.blocking_stream_action(StreamAction::SendConfiguration(
+      make_benchmarking_configuration_with_workflows_update(),
+    ));
+    perform_benchmarking_runtime_update(&stream);
   });
 }
 
-fn perform_benchmarking_runtime_update(server_handle: &ServerHandle, stream_id: i32) {
-  server_handle.blocking_stream_action(
-    stream_id,
-    StreamAction::SendRuntime(make_update(
-      vec![
-        // Enable platform events listener.
-        (
-          bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
-          ValueKind::Bool(true),
-        ),
-        // Stats.
-        (
-          bd_runtime::runtime::stats::DirectStatFlushIntervalFlag::path(),
-          ValueKind::Int(30),
-        ),
-        // Enable internal logs.
-        (
-          bd_runtime::runtime::debugging::InternalLoggingFlag::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
-          ValueKind::Int(100),
-        ),
-        (
-          bd_runtime::runtime::workflows::WorkflowsEnabledFlag::path(),
-          ValueKind::Bool(true),
-        ),
-        // Enable resource utilization logs.
-        (
-          bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
-          ValueKind::Bool(true),
-        ),
-      ],
-      "base".to_string(),
-    )),
-  );
+fn perform_benchmarking_runtime_update(stream: &StreamHandle) {
+  stream.blocking_stream_action(StreamAction::SendRuntime(make_update(
+    vec![
+      // Enable platform events listener.
+      (
+        bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
+        ValueKind::Bool(true),
+      ),
+      // Stats.
+      (
+        bd_runtime::runtime::stats::DirectStatFlushIntervalFlag::path(),
+        ValueKind::Int(30),
+      ),
+      // Enable internal logs.
+      (
+        bd_runtime::runtime::debugging::InternalLoggingFlag::path(),
+        ValueKind::Bool(true),
+      ),
+      (
+        bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
+        ValueKind::Int(100),
+      ),
+      // Enable resource utilization logs.
+      (
+        bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
+        ValueKind::Bool(true),
+      ),
+    ],
+    "base".to_string(),
+  )));
 }
 
 #[no_mangle]
@@ -191,18 +193,20 @@ pub extern "C" fn await_configuration_ack(stream_id: i32) {
 #[no_mangle]
 pub extern "C" fn configure_aggressive_continuous_uploads(stream_id: i32) {
   with_expected_server(|h| {
+    let stream = StreamHandle::from_stream_id(stream_id, h);
     // Ensure that we've received the handshake.
-    assert!(h.await_event_with_timeout(
-      stream_id,
-      ExpectedStreamEvent::Handshake(None),
+    assert!(stream.await_event_with_timeout(
+      ExpectedStreamEvent::Handshake {
+        matcher: None,
+        sleep_mode: false // TODO(kattrali): Will be handled as part of BIT-5425
+      },
       Duration::milliseconds(2000),
     ));
 
     // Configure very aggressive runtime values: attempt to read the buffer every 1ms and attempt to
     // upload logs in batches of one. This should ensure a steady state of uploads being sent.
-    h.blocking_stream_action(
-      stream_id,
-      StreamAction::SendRuntime(make_update(
+    StreamHandle::from_stream_id(stream_id, h).blocking_stream_action(StreamAction::SendRuntime(
+      make_update(
         vec![
           // Enabled platform events listener.
           (
@@ -212,10 +216,6 @@ pub extern "C" fn configure_aggressive_continuous_uploads(stream_id: i32) {
           // Log upload.
           (
             bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
-            ValueKind::Int(1),
-          ),
-          (
-            bd_runtime::runtime::log_upload::ContinuousBufferPollIntervalFlag::path(),
             ValueKind::Int(1),
           ),
           (
@@ -242,10 +242,15 @@ pub extern "C" fn configure_aggressive_continuous_uploads(stream_id: i32) {
             bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
             ValueKind::Bool(true),
           ),
+          // Enable session replay periodic screen collection.
+          (
+            bd_runtime::runtime::session_replay::PeriodicScreensEnabledFlag::path(),
+            ValueKind::Bool(true),
+          ),
         ],
         "base".to_string(),
-      )),
-    );
+      ),
+    ));
 
     h.blocking_next_runtime_ack();
 
@@ -256,10 +261,8 @@ pub extern "C" fn configure_aggressive_continuous_uploads(stream_id: i32) {
       make_workflow_matcher_matching_everything_except_internal_logs(),
     );
 
-    h.blocking_stream_action(
-      stream_id,
-      StreamAction::SendConfiguration(configuration_update),
-    );
+    StreamHandle::from_stream_id(stream_id, h)
+      .blocking_stream_action(StreamAction::SendConfiguration(configuration_update));
 
     h.blocking_next_configuration_ack();
   });
@@ -270,30 +273,25 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
   let stream_id = await_next_api_stream();
 
   let is_succes = with_expected_server(|h| {
-    if !h.await_event_with_timeout(
-      stream_id,
-      ExpectedStreamEvent::Handshake(None),
+    if !StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
+      ExpectedStreamEvent::Handshake {
+        matcher: None,
+        sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
+      },
       Duration::milliseconds(800),
     ) {
       return false;
     }
 
-    h.blocking_stream_action(
-      stream_id,
-      StreamAction::SendRuntime(make_update(
-        vec![
-          (
-            bd_runtime::runtime::log_upload::ContinuousBufferPollIntervalFlag::path(),
-            ValueKind::Int(1),
-          ),
-          (
-            bd_runtime::runtime::log_upload::BatchSizeBytesFlag::path(),
-            ValueKind::Int(1024 * 1024 * 2), // 2 MiB, 2x the request buffer.
-          ),
-        ],
+    StreamHandle::from_stream_id(stream_id, h).blocking_stream_action(StreamAction::SendRuntime(
+      make_update(
+        vec![(
+          bd_runtime::runtime::log_upload::BatchSizeBytesFlag::path(),
+          ValueKind::Int(1024 * 1024 * 2), // 2 MiB, 2x the request buffer.
+        )],
         "base".to_string(),
-      )),
-    );
+      ),
+    ));
 
     h.blocking_next_runtime_ack();
 
@@ -316,8 +314,7 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
       },
     );
 
-    h.blocking_stream_action(
-      stream_id,
+    StreamHandle::from_stream_id(stream_id, h).blocking_stream_action(
       StreamAction::SendConfiguration(extra_large_buffer_uploading_everything),
     );
 
@@ -336,8 +333,8 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
       log_level::DEBUG,
       LogType::Normal,
       LogMessage::Bytes(vec![0; 100_000]),
-      vec![],
-      vec![],
+      [].into(),
+      [].into(),
       None,
       true,
     );
@@ -345,7 +342,7 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
 
   with_expected_server(|s| {
     assert_matches!(s.blocking_next_log_upload(), Some(log_upload) => {
-        assert_eq!(log_upload.logs.len(), 21);
+        assert_eq!(log_upload.logs().len(), 21);
     });
   });
 
@@ -354,7 +351,7 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
 
 #[no_mangle]
 pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: LoggerId<'_>) -> bool {
-  let mut stream_id = await_next_api_stream();
+  let stream_id = await_next_api_stream();
   if stream_id == -1 {
     return false;
   }
@@ -362,6 +359,8 @@ pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: Logger
   configure_aggressive_continuous_uploads(stream_id);
 
   with_expected_server(|h| {
+    let mut stream = StreamHandle::from_stream_id(stream_id, h);
+
     // Write logs and turn around the API stream several times. This should tickle the cases
     // where the stream is being torn down while uploads are happening.
     for _ in 0 .. 5 {
@@ -370,18 +369,22 @@ pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: Logger
           log_level::TRACE,
           LogType::Normal,
           "hello".into(),
-          vec![],
-          vec![],
+          [].into(),
+          [].into(),
           None,
           false,
         );
       }
 
-      h.blocking_stream_action(stream_id, StreamAction::CloseStream);
-      stream_id = h.blocking_next_stream()?;
-      assert!(h.await_event_with_timeout(
-        stream_id,
-        ExpectedStreamEvent::Handshake(None),
+      stream.blocking_stream_action(StreamAction::CloseStream);
+
+      stream = h.blocking_next_stream()?;
+
+      assert!(stream.await_event_with_timeout(
+        ExpectedStreamEvent::Handshake {
+          matcher: None,
+          sleep_mode: false // TODO(kattrali): Will be handled as part of BIT-5425
+        },
         Duration::seconds(10),
       ));
     }
@@ -410,8 +413,8 @@ pub extern "C" fn run_aggressive_upload_test(logger_id: LoggerId<'_>) {
       log_level::TRACE,
       LogType::Normal,
       "hello".into(),
-      vec![],
-      vec![],
+      [].into(),
+      [].into(),
       None,
       false,
     );
@@ -425,7 +428,7 @@ pub extern "C" fn run_aggressive_upload_test(logger_id: LoggerId<'_>) {
         .blocking_next_log_upload()
         .expect("logs should be uploaded");
 
-      assert_eq!(upload.logs.len(), 1);
+      assert_eq!(upload.logs().len(), 1);
     }
   });
 }
@@ -455,6 +458,11 @@ pub fn run_key_value_storage_tests(storage: &dyn Storage) {
 
 pub fn run_resource_utilization_target_tests(target: &dyn bd_logger::ResourceUtilizationTarget) {
   target.tick();
+}
+
+pub fn run_session_replay_target_tests(target: &dyn bd_logger::SessionReplayTarget) {
+  target.capture_screen();
+  target.capture_screenshot();
 }
 
 pub fn run_events_listener_target_tests(target: &dyn bd_logger::EventsListenerTarget) {

@@ -5,19 +5,20 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
-
 package io.bitdrift.gradletestapp
 
 import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.WebView
 import android.widget.ArrayAdapter
+import android.widget.Spinner
 import android.widget.Toast
 //noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.MaterialTheme
@@ -26,17 +27,17 @@ import androidx.compose.material.Text
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import com.apollographql.apollo3.ApolloClient
+import com.apollographql.apollo.ApolloClient
+import com.apollographql.apollo.network.okHttpClient
+import com.example.rocketreserver.BookTripsMutation
 import com.example.rocketreserver.LaunchListQuery
+import com.example.rocketreserver.LoginMutation
 import com.github.michaelbull.result.onFailure
 import com.github.michaelbull.result.onSuccess
-import com.google.android.material.textfield.MaterialAutoCompleteTextView
-import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger
-import io.bitdrift.capture.CaptureJniLibrary
+import io.bitdrift.capture.Error
 import io.bitdrift.capture.LogLevel
-import io.bitdrift.capture.LoggerImpl
-import io.bitdrift.capture.apollo3.CaptureApollo3Interceptor
+import io.bitdrift.capture.apollo.CaptureApolloInterceptor
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.gradletestapp.databinding.FragmentFirstBinding
 import kotlinx.coroutines.MainScope
@@ -100,7 +101,11 @@ class FirstFragment : Fragment() {
             setContent {
                 // In Compose world
                 MaterialTheme {
-                    Text("Hello from Compose!")
+                    Text(
+                        text = "Text in Compose",
+                        style = MaterialTheme.typography.h6,
+                        color = MaterialTheme.colors.secondary,
+                    )
                 }
             }
         }
@@ -109,7 +114,11 @@ class FirstFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        Logger.logScreenView("first_fragment")
+        binding.btnNavigateConfiguration.setOnClickListener {
+            Logger.logScreenView("config_fragment")
+            findNavController().navigate(R.id.action_FirstFragment_to_ConfigFragment)
+        }
         binding.btnCopySessionUrl.setOnClickListener(this::copySessionUrl)
         binding.btnStartNewSession.setOnClickListener(this::startNewSession)
         binding.btnTempDeviceCode.setOnClickListener(this::getTempDeviceCode)
@@ -117,37 +126,29 @@ class FirstFragment : Fragment() {
         binding.btnGraphQlRequest.setOnClickListener(this::performGraphQlRequest)
         binding.btnLogMessage.setOnClickListener(this::logMessage)
         binding.btnAppExit.setOnClickListener(this::forceAppExit)
+        binding.btnNavigateToWebView.setOnClickListener{
+            Logger.logScreenView("web_view_fragment")
+            findNavController().navigate(R.id.action_FirstFragment_to_WebViewFragment)
+        }
         binding.btnNavigateCompose.setOnClickListener {
             Timber.i("Navigating to Compose Fragment")
+            Logger.logScreenView("compose_second_fragment")
             findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
         }
 
         binding.textviewFirst.text = Logger.sessionId
 
-        val items = LogLevel.values().map { it.name }.toTypedArray()
-        (binding.logLevelItems as? MaterialAutoCompleteTextView)?.setSimpleItems(items)
-        binding.logLevelItems.setText(LogLevel.INFO.name, false)
+        setSpinnerAdapter(binding.spnAppExitOptions, AppExitReason.entries)
+        setSpinnerAdapter(binding.logLevelItems, LogLevel.entries.map { it.name }.toList())
 
-        binding.spnAppExitOptions.adapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_dropdown_item,
-            AppExitReason.entries
-        )
-
-        okHttpClient = provideOkHttpClient()
-        apolloClient = provideApolloClient()
-    }
-
-    private fun provideOkHttpClient(): OkHttpClient {
-        return OkHttpClient.Builder()
+        okHttpClient = OkHttpClient.Builder()
             .eventListenerFactory(CaptureOkHttpEventListenerFactory())
             .build()
-    }
 
-    private fun provideApolloClient(): ApolloClient {
-        return ApolloClient.Builder()
+        apolloClient = ApolloClient.Builder()
             .serverUrl("https://apollo-fullstack-tutorial.herokuapp.com/graphql")
-            .addInterceptor(CaptureApollo3Interceptor())
+            .okHttpClient(okHttpClient)
+            .addInterceptor(CaptureApolloInterceptor())
             .build()
     }
 
@@ -174,7 +175,7 @@ class FirstFragment : Fragment() {
                     updateDeviceCodeValue(it)
                 }
                 result.onFailure {
-                    updateDeviceCodeValue("$it")
+                    displayDeviceCodeError(it)
                 }
             })
         }
@@ -184,6 +185,10 @@ class FirstFragment : Fragment() {
         binding.deviceCodeTextView.text = deviceCode
         val data = ClipData.newPlainText("deviceCode", deviceCode)
         clipboardManager.setPrimaryClip(data)
+    }
+
+    private fun displayDeviceCodeError(error: Error){
+        binding.deviceCodeTextView.text = error.message
     }
 
     private fun performOkHttpRequest(view: View) {
@@ -202,26 +207,41 @@ class FirstFragment : Fragment() {
 
         call.enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
-                val s = response.body!!.string()
-                Timber.v("Http request completed with status code=${response.code}")
+                val body = response.use {
+                    it.body!!.string()
+                }
+                Timber.v("Http request completed with status code=${response.code} and body=$body")
             }
 
             override fun onFailure(call: Call, e: IOException) {
-                Timber.v("Http request failed with exception=${e.javaClass::class.simpleName}")
+                Timber.v("Http request failed with exception=$e")
             }
         })
     }
 
+    private val graphQlOperations by lazy {
+        listOf(
+            apolloClient.query(LaunchListQuery()),
+            apolloClient.mutation(LoginMutation(email = "me@example.com")),
+            apolloClient.mutation(BookTripsMutation(launchIds = listOf())),
+        )
+    }
+
     private fun performGraphQlRequest(view: View) {
+        val operation = graphQlOperations.random()
         MainScope().launch {
-            val response = apolloClient.query(LaunchListQuery()).execute()
-            Logger.logDebug(mapOf("response_data" to response.data.toString())) { "GraphQL response data received" }
+            try {
+                val response = operation.execute()
+                Logger.logDebug(mapOf("response_data" to response.data.toString())) { "GraphQL response data received" }
+            } catch (e: Exception) {
+                Timber.e(e, "GraphQL request failed")
+            }
         }
 
     }
 
     private fun logMessage(view: View?) {
-        val logLevel = LogLevel.valueOf(binding.logLevelItems.text.toString())
+        val logLevel = LogLevel.valueOf(binding.logLevelItems.selectedItem.toString())
         val tag = "FirstFragment"
         val exception = Exception("custom exception")
         when (logLevel) {
@@ -238,27 +258,39 @@ class FirstFragment : Fragment() {
     private fun forceAppExit(view: View) {
         val selectedAppExitReason = binding.spnAppExitOptions.selectedItem.toString()
         when (AppExitReason.valueOf(selectedAppExitReason)) {
-            AppExitReason.APP_CRASH_EXCEPTION -> {
-                throw RuntimeException("Forced unhandled exception")
-            }
-            AppExitReason.ANR -> {
-                Thread.sleep(15000)
-            }
-            AppExitReason.SYSTEM_EXIT -> {
-                exitProcess(0)
-            }
-            AppExitReason.APP_CRASH_NATIVE -> {
-                val logger = Capture.logger()
-                CaptureJniLibrary.destroyLogger((logger as LoggerImpl).loggerId)
-                Logger.logInfo { "Forced native crash" }
-            }
+            AppExitReason.ANR_BLOCKING_GET -> FatalIssueGenerator.forceBlockingGetAnr()
+            AppExitReason.ANR_BROADCAST_RECEIVER -> FatalIssueGenerator.forceBroadcastReceiverAnr(view.context)
+            AppExitReason.ANR_COROUTINES -> FatalIssueGenerator.forceCoroutinesAnr()
+            AppExitReason.ANR_DEADLOCK -> FatalIssueGenerator.forceDeadlockAnr()
+            AppExitReason.ANR_SLEEP_MAIN_THREAD -> FatalIssueGenerator.forceThreadSleepAnr()
+            AppExitReason.APP_CRASH_COROUTINE_EXCEPTION -> FatalIssueGenerator.forceCoroutinesCrash()
+            AppExitReason.APP_CRASH_REGULAR_JVM_EXCEPTION -> FatalIssueGenerator.forceUnhandledException()
+            AppExitReason.APP_CRASH_RX_JAVA_EXCEPTION -> FatalIssueGenerator.forceRxJavaException()
+            AppExitReason.APP_CRASH_NATIVE -> FatalIssueGenerator.forceNativeCrash()
+            AppExitReason.APP_CRASH_OUT_OF_MEMORY -> FatalIssueGenerator.forceOutOfMemoryCrash()
+            AppExitReason.SYSTEM_EXIT -> exitProcess(0)
         }
     }
 
+    private fun setSpinnerAdapter(spinner: Spinner, items: List<*>){
+        spinner.adapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_dropdown_item,
+            items
+        )
+    }
+
     enum class AppExitReason {
-        APP_CRASH_EXCEPTION,
+        ANR_BLOCKING_GET,
+        ANR_BROADCAST_RECEIVER,
+        ANR_COROUTINES,
+        ANR_DEADLOCK,
+        ANR_SLEEP_MAIN_THREAD,
+        APP_CRASH_COROUTINE_EXCEPTION,
+        APP_CRASH_REGULAR_JVM_EXCEPTION,
+        APP_CRASH_RX_JAVA_EXCEPTION,
+        APP_CRASH_OUT_OF_MEMORY,
         APP_CRASH_NATIVE,
         SYSTEM_EXIT,
-        ANR
     }
 }

@@ -45,29 +45,33 @@ import io.bitdrift.capture.providers.Fields
 import java.util.concurrent.atomic.AtomicReference
 
 @SuppressLint("MissingPermission")
-internal class NetworkAttributes(private val context: Context) : FieldProvider, ConnectivityManager.NetworkCallback() {
+internal class NetworkAttributes(
+    private val context: Context,
+) : ConnectivityManager.NetworkCallback(),
+    FieldProvider {
     @SuppressLint("InlinedApi")
-    private val radioTypeNameMap = hashMapOf(
-        NETWORK_TYPE_1xRTT to "onExRtt",
-        NETWORK_TYPE_CDMA to "cdma",
-        NETWORK_TYPE_EDGE to "edge",
-        NETWORK_TYPE_EHRPD to "ehrpd",
-        NETWORK_TYPE_EVDO_0 to "evdo0",
-        NETWORK_TYPE_EVDO_A to "evdoA",
-        NETWORK_TYPE_EVDO_B to "evdoB",
-        NETWORK_TYPE_GPRS to "gprs",
-        NETWORK_TYPE_GSM to "gsm",
-        NETWORK_TYPE_HSDPA to "hsdpa",
-        NETWORK_TYPE_HSPA to "hspa",
-        NETWORK_TYPE_HSPAP to "hspap",
-        NETWORK_TYPE_HSUPA to "hsupa",
-        NETWORK_TYPE_IWLAN to "iwlan",
-        NETWORK_TYPE_LTE to "lte",
-        NETWORK_TYPE_NR to "nr",
-        NETWORK_TYPE_TD_SCDMA to "tdScdma",
-        NETWORK_TYPE_UMTS to "umts",
-        NETWORK_TYPE_UNKNOWN to "unknown",
-    )
+    private val radioTypeNameMap =
+        hashMapOf(
+            NETWORK_TYPE_1xRTT to "onExRtt",
+            NETWORK_TYPE_CDMA to "cdma",
+            NETWORK_TYPE_EDGE to "edge",
+            NETWORK_TYPE_EHRPD to "ehrpd",
+            NETWORK_TYPE_EVDO_0 to "evdo0",
+            NETWORK_TYPE_EVDO_A to "evdoA",
+            NETWORK_TYPE_EVDO_B to "evdoB",
+            NETWORK_TYPE_GPRS to "gprs",
+            NETWORK_TYPE_GSM to "gsm",
+            NETWORK_TYPE_HSDPA to "hsdpa",
+            NETWORK_TYPE_HSPA to "hspa",
+            NETWORK_TYPE_HSPAP to "hspap",
+            NETWORK_TYPE_HSUPA to "hsupa",
+            NETWORK_TYPE_IWLAN to "iwlan",
+            NETWORK_TYPE_LTE to "lte",
+            NETWORK_TYPE_NR to "nr",
+            NETWORK_TYPE_TD_SCDMA to "tdScdma",
+            NETWORK_TYPE_UMTS to "umts",
+            NETWORK_TYPE_UNKNOWN to "unknown",
+        )
     private val currentNetworkType: AtomicReference<String> = AtomicReference("unknown")
     private val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
     private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -76,13 +80,12 @@ internal class NetworkAttributes(private val context: Context) : FieldProvider, 
         monitorNetworkType()
     }
 
-    override fun invoke(): Fields {
-        return mapOf(
+    override fun invoke(): Fields =
+        mapOf(
             "carrier" to telephonyManager.networkOperatorName,
             "network_type" to currentNetworkType.get(),
             "radio_type" to permissiveOperation({ radioType() }, READ_PHONE_STATE),
         )
-    }
 
     @SuppressLint("NewApi")
     @Suppress("SwallowedException")
@@ -107,7 +110,10 @@ internal class NetworkAttributes(private val context: Context) : FieldProvider, 
         }
     }
 
-    override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+    override fun onCapabilitiesChanged(
+        network: Network,
+        networkCapabilities: NetworkCapabilities,
+    ) {
         updateNetworkType(networkCapabilities)
     }
 
@@ -129,7 +135,10 @@ internal class NetworkAttributes(private val context: Context) : FieldProvider, 
         return radioTypeNameMap[telephonyManager.networkType] ?: "unknown"
     }
 
-    private fun permissiveOperation(func: () -> String, permission: String): String {
+    private fun permissiveOperation(
+        func: () -> String,
+        permission: String,
+    ): String {
         // We'll only attempt to get this value if permission has been granted
         // TODO: Use androidx.core.content.ContextCompat - fix adding dep to "androidx.core:core-ktx:1.8.0"
         return if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {

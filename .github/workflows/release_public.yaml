@@ -23,7 +23,6 @@ on:
 jobs:
   release-ios:
     name: Upload iOS artifacts to dl.bitdrift.io
-    environment: public
     permissions:
       id-token: write # required to use OIDC authentication
       contents: read
@@ -60,7 +59,6 @@ jobs:
         VERSION: ${{ inputs.version }}
   release-android:
     name: Upload Android artifacts to dl.bitdrift.io
-    environment: public
     permissions:
       id-token: write # required to use OIDC authentication (set up aws credentials)
       contents: read
@@ -90,9 +88,11 @@ jobs:
       run: |
         gh release download "v$VERSION" -p 'Capture*.android.zip'
         gh release download "v$VERSION" -p 'capture-timber*.android.zip'
+        gh release download "v$VERSION" -p 'capture-apollo*.android.zip'
+        gh release download "v$VERSION" -p 'capture-plugin*.android.zip'
       env:
         VERSION: ${{ inputs.version }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Upload Android Artifacts to aws bucket
-      run: ./ci/capture_android_release.sh ${{ inputs.version }} "Capture-${{ inputs.version }}.android.zip" "capture-timber-${{ inputs.version }}.android.zip"
+      run: ./ci/capture_android_release.sh ${{ inputs.version }} "Capture-${{ inputs.version }}.android.zip" "capture-timber-${{ inputs.version }}.android.zip" "capture-apollo-${{ inputs.version }}.android.zip" "capture-plugin-${{ inputs.version }}.android.zip" "capture-plugin-marker-${{ inputs.version }}.android.zip"
 

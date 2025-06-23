@@ -5,6 +5,7 @@
 
 # Bazel
 /bazel-*
+**/Bazel Generated/
 
 compile_commands.json
 .DS_Store
@@ -20,6 +21,7 @@ compile_commands.json
 *.xcodeproj
 rust-project.json
 .cache
+.kotlin
 
 # Profiling
 /buffers

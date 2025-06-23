@@ -14,41 +14,39 @@ package io.bitdrift.capture.common
  * @param featureName the runtime key to use for a certain feature
  * @param defaultValue whether the feature is enabled by default
  */
-sealed class RuntimeFeature(val featureName: String, val defaultValue: Boolean = true) {
-    /**
-     * Whether the session replay feature is enabled.
-     */
-    data object SESSION_REPLAY : RuntimeFeature("client_feature.android.session_replay")
-
+sealed class RuntimeFeature(
+    val featureName: String,
+    val defaultValue: Boolean,
+) {
     /**
      * Whether the session replay feature is enabled for Compose views.
      */
-    data object SESSION_REPLAY_COMPOSE : RuntimeFeature("client_feature.android.session_replay_compose")
+    data object SESSION_REPLAY_COMPOSE : RuntimeFeature("client_feature.android.session_replay_compose", defaultValue = true)
 
     /**
      * Whether an app update event emission is enabled or not.
      */
-    data object APP_UPDATE_EVENTS : RuntimeFeature("client_feature.android.application_update_reporting")
+    data object APP_UPDATE_EVENTS : RuntimeFeature("client_feature.android.application_update_reporting", defaultValue = true)
 
     /**
      * Whether memory pressure monitoring is enabled.
      */
-    data object APP_MEMORY_PRESSURE : RuntimeFeature("client_feature.android.memory_pressure_reporting")
+    data object APP_MEMORY_PRESSURE : RuntimeFeature("client_feature.android.memory_pressure_reporting", defaultValue = true)
 
     /**
      * Whether device state monitoring is enabled.
      */
-    data object DEVICE_STATE_EVENTS : RuntimeFeature("client_features.android.device_lifecycle_reporting")
+    data object DEVICE_STATE_EVENTS : RuntimeFeature("client_features.android.device_lifecycle_reporting", defaultValue = true)
 
     /**
      * Whether application lifecycle monitoring is enabled.
      */
-    data object APP_LIFECYCLE_EVENTS : RuntimeFeature("client_feature.android.application_lifecycle_reporting")
+    data object APP_LIFECYCLE_EVENTS : RuntimeFeature("client_feature.android.application_lifecycle_reporting", defaultValue = true)
 
     /**
      * Whether application exit monitoring is enabled.
      */
-    data object APP_EXIT_EVENTS : RuntimeFeature("client_feature.android.application_exit_reporting")
+    data object APP_EXIT_EVENTS : RuntimeFeature("client_feature.android.application_exit_reporting", defaultValue = true)
 
     /**
      * Whether data disk usage should be reported as part of resource utilization logs.
@@ -64,6 +62,59 @@ sealed class RuntimeFeature(val featureName: String, val defaultValue: Boolean =
      * Whether the logger should be flushed on crash.
      */
     data object LOGGER_FLUSHING_ON_CRASH : RuntimeFeature("client_feature.android.logger_flushing_on_force_quit", defaultValue = true)
+
+    /**
+     * Whether Dropped Frames reporting is enabled
+     */
+    data object DROPPED_EVENTS_MONITORING : RuntimeFeature("client_feature.android.dropped_frames_reporting", defaultValue = true)
+}
+
+/**
+ * Known runtime config values.
+ * @param configName the runtime key to use for this config value
+ * @param defaultValue The value
+ */
+sealed class RuntimeConfig(
+    val configName: String,
+    val defaultValue: Int,
+) {
+    /**
+     * The configured value for [jankHeuristicMultiplier] from [JankStatsMonitoring]. More info at https://developer.android.com/topic/performance/jankstats#jank-heuristics
+     */
+    data object JANK_FRAME_HEURISTICS_MULTIPLIER : RuntimeConfig("client_feature.android.jank_frame_heuristics_multiplier", 2)
+
+    /**
+     * The lower bound threshold on what it defines a Jank Frame by its duration [JankStats]
+     *
+     * The default value is 16 ms
+     *
+     * Slow Frame: >= MIN_JANK_FRAME_THRESHOLD_MS to < FROZEN_FRAME_THRESHOLD_MS
+     * Frozen Frame: >= FROZEN_FRAME_THRESHOLD_MS to < ANR_FRAME_THRESHOLD_MS
+     * ANR Frame: >= ANR_FRAME_THRESHOLD_MS
+     */
+    data object MIN_JANK_FRAME_THRESHOLD_MS : RuntimeConfig("client_feature.android.min_jank_frame.threshold_ms", 16)
+
+    /**
+     * The upper bound threshold that defines what constitutes a FROZEN frame reported via [JankStats]
+     *
+     * The default value is 700ms
+     *
+     * Slow Frame: >= MIN_JANK_FRAME_THRESHOLD_MS to < FROZEN_FRAME_THRESHOLD_MS
+     * Frozen Frame: >= FROZEN_FRAME_THRESHOLD_MS to < ANR_FRAME_THRESHOLD_MS
+     * ANR Frame: >= ANR_FRAME_THRESHOLD_MS
+     */
+    data object FROZEN_FRAME_THRESHOLD_MS : RuntimeConfig("client_feature.android.frozen_frame.threshold_ms", 700)
+
+    /**
+     * The upper bound threshold that defines what constitutes an ANR frame reported via [JankStats]
+     *
+     * The default value is 5000ms
+     *
+     * Slow Frame: >= MIN_JANK_FRAME_THRESHOLD_MS to < FROZEN_FRAME_THRESHOLD_MS
+     * Frozen Frame: >= FROZEN_FRAME_THRESHOLD_MS to < ANR_FRAME_THRESHOLD_MS
+     * ANR Frame: >= ANR_FRAME_THRESHOLD_MS
+     */
+    data object ANR_FRAME_THRESHOLD_MS : RuntimeConfig("client_feature.android.anr_frame.threshold_ms", 5000)
 }
 
 /**
@@ -76,4 +127,10 @@ interface Runtime {
      * @param feature the feature flag to check
      */
     fun isEnabled(feature: RuntimeFeature): Boolean
+
+    /**
+     * Returns the configured value
+     * @param config the configuration value to check
+     */
+    fun getConfigValue(config: RuntimeConfig): Int
 }

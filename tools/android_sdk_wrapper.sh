@@ -23,7 +23,7 @@ readonly softlink_root_dir="/tmp/bitdrift-android-sdk"
 readonly softlink_unarchived_dir="$softlink_root_dir/android-sdk-$android_sdk_version-unarchived"
 
 readonly cmdline_tools_version="6.0"
-readonly ndk_version="27.1.12297006"
+readonly ndk_version="27.2.12479018"
 readonly install_android_cmd_line_tools=(
   "$android_sdk_unarchived_dir/tools/bin/sdkmanager"
   "--install"
@@ -34,8 +34,8 @@ readonly install_android_sdk_packages_command=(
   "--install"
   "platform-tools"
   "ndk;$ndk_version"
-  "platforms;android-34"
-  "build-tools;34.0.0"
+  "platforms;android-35"
+  "build-tools;35.0.0"
 )
 
 function download_android_sdk() {

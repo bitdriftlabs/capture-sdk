@@ -10,9 +10,9 @@
 mod bridge_tests;
 
 use crate::bridge::ffi::make_nsstring;
-use crate::ffi::{convert_fields, nsstring_into_string};
+use crate::ffi::nsstring_into_string;
 use crate::key_value_storage::UserDefaultsStorage;
-use crate::{events, ffi, resource_utilization};
+use crate::{events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
 use bd_api::{Platform, PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
 use bd_client_common::error::{
@@ -22,18 +22,11 @@ use bd_client_common::error::{
   MetadataErrorReporter,
   UnexpectedErrorHandler,
 };
-use bd_logger::{
-  AnnotatedLogField,
-  AnnotatedLogFields,
-  LogField,
-  LogFieldKind,
-  LogLevel,
-  MetadataProvider,
-};
+use bd_logger::{LogAttributesOverrides, LogFieldKind, LogFields, LogLevel, MetadataProvider};
 use bd_noop_network::NoopNetwork;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
-use platform_shared::metadata::Mobile;
+use platform_shared::metadata::{self, Mobile};
 use platform_shared::{LoggerHolder, LoggerId};
 use std::borrow::{Borrow, Cow};
 use std::boxed::Box;
@@ -42,7 +35,7 @@ use std::convert::From;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::sync::{Arc, Once};
-use time::Duration;
+use time::{Duration, OffsetDateTime};
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -62,10 +55,12 @@ fn initialize_logging() {
       .with_default_directive(LevelFilter::INFO.into())
       .from_env_lossy();
 
-    tracing_subscriber::Registry::default()
+    // Use try_init() to avoid situations where the logger has already been initialized by test
+    // harnesses. This is not ideal but it's the easiest fix for now.
+    let _ = tracing_subscriber::Registry::default()
       .with(filter)
       .with(stderr)
-      .init();
+      .try_init();
   });
 }
 
@@ -190,7 +185,7 @@ impl<W: StreamWriter + Send> PlatformNetworkStream for SwiftNetworkStream<W> {
     // the idea that we want to let the system attempt to send for a period of time, and not
     // fire immediately if the process is suspended for >3m.
     let timeout_across_suspension =
-      std::time::Duration::from_secs(self.send_data_timeout.read().into());
+      std::time::Duration::from_secs((*self.send_data_timeout.read()).into());
 
     // Dividing the total timeout by the slice duration gets us the number of times we want to
     // retry this operation.
@@ -204,10 +199,7 @@ impl<W: StreamWriter + Send> PlatformNetworkStream for SwiftNetworkStream<W> {
       let written = self.stream_writer.write_to_stream(slice);
 
       if written < 0 {
-        log::trace!(
-          "failed to send data (rval {}), trying again in 100ms",
-          written
-        );
+        log::trace!("failed to send data (rval {written}), trying again in 100ms");
         // Error. Retry after a wait.
         tokio::select! {
           () = tokio::time::sleep(std::time::Duration::from_millis(PER_SLICE_SLEEP_MS)) => {
@@ -217,7 +209,7 @@ impl<W: StreamWriter + Send> PlatformNetworkStream for SwiftNetworkStream<W> {
             if timeout_slices == 0 {
               // Erroring out here if we hit the timeout to send an error report, but returning Ok.
               // Things will be pretty broken if we don't get the stream close timeout properly.
-              if self.emit_send_data_timeout_error.read() {
+              if *self.emit_send_data_timeout_error.read() {
                 handle_unexpected::<(), anyhow::Error>(Err(anyhow!("timed out!")), "send_data");
               }
 
@@ -395,27 +387,15 @@ impl MetadataProvider for LogMetadataProvider {
     })
   }
 
-  fn fields(&self) -> anyhow::Result<AnnotatedLogFields> {
+  fn fields(&self) -> anyhow::Result<(LogFields, LogFields)> {
     // Safety: Since we receive MetadataProvider as a typed protocol, we know that it
     // responds to `ootbFields` and `customFields` selectors.
     objc::rc::autoreleasepool(|| unsafe {
-      let ootb_fields = ffi::convert_fields(msg_send![*self.ptr, ootbFields])?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        });
+      let ootb_fields = ffi::convert_fields(msg_send![*self.ptr, ootbFields])?;
 
-      let custom_fields = ffi::convert_fields(msg_send![*self.ptr, customFields])?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Custom,
-        });
+      let custom_fields = ffi::convert_fields(msg_send![*self.ptr, customFields])?;
 
-      // The SDK internally assumes that Out-of-the-Box (OOTB) fields are at the beginning of the
-      // list, followed by any custom logs (if present).
-      Ok(ootb_fields.into_iter().chain(custom_fields).collect())
+      Ok((custom_fields, ootb_fields))
     })
   }
 }
@@ -436,9 +416,11 @@ extern "C" fn capture_create_logger(
   session_strategy: *mut Object,
   provider: *mut Object,
   resource_utilization_target: *mut Object,
+  session_replay_target: *mut Object,
   events_listener_target: *mut Object,
   app_id: *const c_char,
   app_version: *const c_char,
+  model: *const c_char,
   bd_network_nsobject: *mut Object,
   error_reporter_ns_object: *mut Object,
 ) -> LoggerId<'static> {
@@ -463,8 +445,14 @@ extern "C" fn capture_create_logger(
         // String conversion can fail if the provided string is not UTF-8.
         app_id: Some(unsafe { CStr::from_ptr(app_id) }.to_str()?.to_string()),
         app_version: Some(unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string()),
-        platform: Platform::Ios,
+        platform: Platform::Apple,
+        // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
+        // Further, "os" as sent as a log tag is hard coded as "iOS" so we have a casing
+        // mismatch. We need to untangle all of this but we can do that when we send all fixed
+        // fields as metadata and only use the fixed fields on logs for matching.
+        os: "ios".to_string(),
         device: device.clone(),
+        model: unsafe { CStr::from_ptr(model) }.to_str()?.to_string(),
       });
 
       let error_reporter = MetadataErrorReporter::new(
@@ -499,17 +487,17 @@ extern "C" fn capture_create_logger(
         resource_utilization_target: Box::new(resource_utilization::Target::new(
           resource_utilization_target,
         )),
+        session_replay_target: Box::new(session_replay::Target::new(session_replay_target)),
         events_listener_target: Box::new(events::Target::new(events_listener_target)),
         network: network_manager,
-        platform: Platform::Ios,
         store,
         device,
         static_metadata,
+        start_in_sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5426
       })
-      .with_mobile_features(true)
       .with_internal_logger(true)
       .build()
-      .map(|(logger, _, future)| LoggerHolder::new(logger, future))?;
+      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future))?;
 
       Ok(logger.into_raw())
     },
@@ -584,27 +572,25 @@ extern "C" fn capture_write_log(
   fields: *const Object,
   matching_fields: *const Object,
   blocking: bool,
+  override_occurred_at_unix_milliseconds: i64,
 ) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
       let log_str = unsafe { CStr::from_ptr(log) }.to_str()?.to_string();
 
       // TODO(Augustyniak): Differentiate between incoming OOTB and custom log fields.
-      let fields = unsafe { ffi::convert_fields(fields) }?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = unsafe { ffi::convert_annotated_fields(fields, LogFieldKind::Ootb) }?;
 
-      let matching_fields = unsafe { ffi::convert_fields(matching_fields) }?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let matching_fields =
+        unsafe { ffi::convert_annotated_fields(matching_fields, LogFieldKind::Ootb) }?;
+
+      let attributes_overrides = if override_occurred_at_unix_milliseconds <= 0 {
+        None
+      } else {
+        Some(LogAttributesOverrides::OccurredAt(
+          unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
+        ))
+      };
 
       logger_id.log(
         log_level,
@@ -612,7 +598,7 @@ extern "C" fn capture_write_log(
         log_str.into(),
         fields,
         matching_fields,
-        None,
+        attributes_overrides,
         blocking,
       );
 
@@ -623,25 +609,36 @@ extern "C" fn capture_write_log(
 }
 
 #[no_mangle]
-extern "C" fn capture_write_session_replay_log(
+extern "C" fn capture_write_session_replay_screen_log(
   logger_id: LoggerId<'_>,
   fields: *const Object,
   duration_s: f64,
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = unsafe { convert_fields(fields) }?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = unsafe { ffi::convert_annotated_fields(fields, LogFieldKind::Ootb) }?;
 
-      logger_id.log_session_replay(fields, time::Duration::seconds_f64(duration_s));
+      logger_id.log_session_replay_screen(fields, time::Duration::seconds_f64(duration_s));
       Ok(())
     },
-    "swift write session replay log",
+    "swift write session replay screen log",
+  );
+}
+
+#[no_mangle]
+extern "C" fn capture_write_session_replay_screenshot_log(
+  logger_id: LoggerId<'_>,
+  fields: *const Object,
+  duration_s: f64,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let fields = unsafe { ffi::convert_annotated_fields(fields, LogFieldKind::Ootb) }?;
+
+      logger_id.log_session_replay_screenshot(fields, time::Duration::seconds_f64(duration_s));
+      Ok(())
+    },
+    "swift write session replay screenshot log",
   );
 }
 
@@ -653,13 +650,7 @@ extern "C" fn capture_write_resource_utilization_log(
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = unsafe { convert_fields(fields) }?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = unsafe { ffi::convert_annotated_fields(fields, LogFieldKind::Ootb) }?;
 
       logger_id.log_resource_utilization(fields, time::Duration::seconds_f64(duration_s));
       Ok(())
@@ -669,25 +660,19 @@ extern "C" fn capture_write_resource_utilization_log(
 }
 
 #[no_mangle]
-extern "C" fn capture_write_sdk_configured_log(
+extern "C" fn capture_write_sdk_start_log(
   logger_id: LoggerId<'_>,
   fields: *const Object,
   duration_s: f64,
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = unsafe { convert_fields(fields) }?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = unsafe { ffi::convert_annotated_fields(fields, LogFieldKind::Ootb) }?;
 
-      logger_id.log_sdk_configured(fields, time::Duration::seconds_f64(duration_s));
+      logger_id.log_sdk_start(fields, time::Duration::seconds_f64(duration_s));
       Ok(())
     },
-    "swift write sdk configured log",
+    "swift write sdk started log",
   );
 }
 
@@ -729,7 +714,7 @@ extern "C" fn capture_write_app_update_log(
         app_version,
         bd_logger::AppVersionExtra::BuildNumber(build_number),
         app_install_size_bytes.into(),
-        vec![],
+        [].into(),
         Duration::seconds_f64(duration_s),
       );
       Ok(())
@@ -750,6 +735,18 @@ extern "C" fn capture_write_app_launch_tti_log(logger_id: LoggerId<'_>, duration
 }
 
 #[no_mangle]
+extern "C" fn capture_write_screen_view_log(logger_id: LoggerId<'_>, screen_name: *const Object) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let screen_name = unsafe { nsstring_into_string(screen_name) }?;
+      logger_id.log_screen_view(screen_name);
+      Ok(())
+    },
+    "swift write screen view log",
+  );
+}
+
+#[no_mangle]
 extern "C" fn capture_start_new_session(logger_id: LoggerId<'_>) {
   logger_id.start_new_session();
 }
@@ -765,6 +762,11 @@ extern "C" fn capture_get_device_id(logger_id: LoggerId<'_>) -> *const Object {
 }
 
 #[no_mangle]
+extern "C" fn capture_get_sdk_version() -> *const Object {
+  make_nsstring(&metadata::SDK_VERSION).autorelease()
+}
+
+#[no_mangle]
 extern "C" fn capture_add_log_field(
   logger_id: LoggerId<'_>,
   key: *const c_char,
@@ -775,10 +777,7 @@ extern "C" fn capture_add_log_field(
       let key = unsafe { CStr::from_ptr(key) }.to_str()?.to_string();
       let value = unsafe { CStr::from_ptr(value) }.to_str()?.to_string();
 
-      logger_id.add_log_field(LogField {
-        key,
-        value: value.into(),
-      });
+      logger_id.add_log_field(key, value.into());
 
       Ok(())
     },
@@ -821,4 +820,11 @@ mod flags {
   );
 
   int_feature_flag!(SendDataTimeout, "ios.report_send_data_timeout_s", 60 * 3);
+}
+
+fn unix_milliseconds_to_date(millis_since_utc_epoch: i64) -> anyhow::Result<OffsetDateTime> {
+  let seconds = millis_since_utc_epoch / 1000;
+  let nano = (millis_since_utc_epoch % 1000) * 10_i64.pow(6);
+
+  Ok(time::OffsetDateTime::from_unix_timestamp(seconds)? + Duration::nanoseconds(nano))
 }

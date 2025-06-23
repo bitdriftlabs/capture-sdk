@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@_implementationOnly import CaptureLoggerBridge
+internal import CaptureLoggerBridge
 import Foundation
 
 // A marker for types that can be loaded from the runtime configuration.
@@ -39,11 +39,6 @@ extension RuntimeVariable {
 
 /// A feature that can be tracked via the runtime configuration system.
 extension RuntimeVariable<Bool> {
-    static let sessionReplay = RuntimeVariable(
-        name: "client_features.ios.session_replay",
-        defaultValue: true
-    )
-
     static let periodicLowPowerModeReporting = RuntimeVariable(
         name: "client_features.ios.resource_reporting.low_power",
         defaultValue: true
@@ -66,8 +61,7 @@ extension RuntimeVariable<Bool> {
 
     static let applicationANRReporting = RuntimeVariable(
         name: "client_feature.ios.application_anr_reporting",
-        // TODO(Augustyniak): Flip default to `true` once we verify that the feature doesn't cause any issues.
-        defaultValue: false
+        defaultValue: true
     )
 
     static let applicationLifecycleReporting = RuntimeVariable(

@@ -15,6 +15,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.gradletestapp.databinding.FragmentSecondBinding
 import timber.log.Timber
 

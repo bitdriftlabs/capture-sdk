@@ -1,4 +1,4 @@
-name: Update SDK Version
+name: Release and Update SDK Version
 
 on:
   workflow_dispatch:
@@ -7,21 +7,43 @@ on:
         description: 'The new version to release, ex: 0.12.0'
         required: true
         type: string
+      sha:
+        description: '[Optional] Commit SHA1, branch or tag to build. The latest SHA1 on a given branch is used if no value is provided.'
+        required: false
+        type: string
+      emergency:
+        type: boolean
+        description: Ignore main branch requirement (SOC2 compliance)
+        required: true
 jobs:
-  verify-version:
-    name: Verify arguments
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print & verify entered "version"
-        run: |
-          echo "$version"
-          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+(\.[0-9]+)?)?$ ]]; then exit 1; fi
-    env:
+  gh-release:
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release_gh.yaml
+    with:
       version: ${{ inputs.version }}
+      sha: ${{ inputs.sha }}
+    secrets: inherit
+  public-release:
+    permissions:
+      id-token: write # required to use OIDC authentication
+      contents: read
+    uses: ./.github/workflows/release_public.yaml
+    with:
+      version: ${{ inputs.version }}
+      emergency: ${{ inputs.emergency }}
+    secrets: inherit
+    needs: gh-release
+  capture-ios-release:
+    uses: ./.github/workflows/release_capture_ios.yaml
+    with:
+      version: ${{ inputs.version }}
+    needs: public-release
+    secrets: inherit
 
   update-sdk-version:
     name: Update SDK version
-    needs: "verify-version"
+    needs: public-release
     permissions:
       contents: write
       pull-requests: write
@@ -66,4 +88,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.org-pr-create-token.outputs.token }}
         run: |
-          gh pr create --fill
+          # Create PR and capture the URL
+          PR_URL=$(gh pr create --fill --head update-sdk-version-${{ inputs.version }})
+          echo "PR created at $PR_URL"

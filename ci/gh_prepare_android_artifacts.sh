@@ -40,36 +40,4 @@ function prepare_capture_sdk() {
   popd
 }
 
-function prepare_capture_timber() {
-  echo "+++ Preparing Android Capture Timber library artifacts for '$version' version"
-
-  pushd "$(mktemp -d)"
-    local -r out_artifacts_dir="capture-timber-out"
-
-    unzip "$sdk_repo/capture-timber.zip"
-
-    mkdir "$out_artifacts_dir"
-
-    local -r name="capture-timber-$version"
-
-    files=(\
-      "$name.aar" \
-      "$name.module" \
-      "$name.pom" \
-      "$name-javadoc.jar" \
-      "$name-sources.jar" \
-      "$sdk_repo/ci/LICENSE.txt" \
-      "$sdk_repo/ci/NOTICE.txt" \
-    )
-
-    for file in "${files[@]}"; do
-      filename=$(basename "$file")
-      mv "$file" "$out_artifacts_dir/$filename"
-    done
-
-    (cd "$out_artifacts_dir" && zip -r "$sdk_repo/capture-timber-$version.android.zip" ./*)
-  popd
-}
-
 prepare_capture_sdk
-prepare_capture_timber

@@ -18,11 +18,14 @@ extension Error {
         fields["_error_details"] = String(describing: self)
 
         for (key, value) in (self as NSError).userInfo {
-            guard let value = value as? Encodable else {
-                continue
+            let fieldsKey = "_error_info_\(key)"
+            if let value = value as? Encodable {
+                fields[fieldsKey] = value
+            } else if let value = value as? CustomStringConvertible {
+                fields[fieldsKey] = String(describing: value)
+            } else if let value = value as? CustomDebugStringConvertible {
+                fields[fieldsKey] = String(describing: value)
             }
-
-            fields["_error_info_\(key)"] = value
         }
 
         return fields

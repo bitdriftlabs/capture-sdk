@@ -9,16 +9,19 @@ package io.bitdrift.capture.events.performance
 
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.IResourceUtilizationTarget
+import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.common.PowerMonitor
+import io.bitdrift.capture.providers.toFields
 import java.util.concurrent.ExecutorService
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 internal class ResourceUtilizationTarget(
-    private val memoryMonitor: MemoryMonitor,
+    private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val batteryMonitor: BatteryMonitor,
     private val powerMonitor: PowerMonitor,
     private val diskUsageMonitor: DiskUsageMonitor,
@@ -27,32 +30,41 @@ internal class ResourceUtilizationTarget(
     private val executor: ExecutorService,
     private val clock: IClock = DefaultClock.getInstance(),
 ) : IResourceUtilizationTarget {
-
     override fun tick() {
-        executor.run {
+        executor.execute {
             try {
                 val start = clock.elapsedRealtime()
-
-                val fields = buildMap {
-                    putAll(memoryMonitor.getMemoryAttributes())
-                    putAll(diskUsageMonitor.getDiskUsage())
-                    putPair(batteryMonitor.batteryPercentageAttribute())
-                    putPair(batteryMonitor.isBatteryChargingAttribute())
-                    putPair(powerMonitor.isPowerSaveModeEnabledAttribute())
-                }
+                val memorySnapshot = memoryMetricsProvider.getMemoryAttributes()
+                val fields =
+                    buildMap {
+                        putAll(memorySnapshot)
+                        putAll(diskUsageMonitor.getDiskUsage())
+                        putPair(batteryMonitor.batteryPercentageAttribute())
+                        putPair(batteryMonitor.isBatteryChargingAttribute())
+                        putPair(powerMonitor.isPowerSaveModeEnabledAttribute())
+                    }
 
                 val duration = clock.elapsedRealtime() - start
                 logger.logResourceUtilization(fields, duration.toDuration(DurationUnit.MILLISECONDS))
+                if (memoryMetricsProvider.isMemoryLow()) {
+                    logMemoryPressure(memorySnapshot)
+                }
             } catch (e: Throwable) {
                 errorHandler.handleError("resource utilization tick", e)
             }
         }
     }
+
+    private fun logMemoryPressure(memAttributes: Map<String, String>) {
+        logger.log(
+            LogType.LIFECYCLE,
+            LogLevel.WARNING,
+            memAttributes.toFields(),
+        ) { "AppMemPressure" }
+    }
 }
 
-internal fun MutableMap<String, String>.putPair(
-    pair: Pair<String, String>,
-): MutableMap<String, String> {
+internal fun MutableMap<String, String>.putPair(pair: Pair<String, String>): MutableMap<String, String> {
     this[pair.first] = pair.second
     return this
 }

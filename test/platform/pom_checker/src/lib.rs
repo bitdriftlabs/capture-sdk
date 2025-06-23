@@ -14,7 +14,7 @@ mod test {
   fn runfiles_path(name: &str) -> PathBuf {
     let runfiles = std::env::var("RUNFILES_DIR").unwrap();
 
-    PathBuf::from(runfiles).join("__main__").join(name)
+    PathBuf::from(runfiles).join("_main").join(name)
   }
 
   #[test]
@@ -32,9 +32,11 @@ mod test {
       "androidx.startup:startup-runtime",
       "com.google.code.gson:gson",
       "com.google.guava:listenablefuture",
+      "com.google.flatbuffers:flatbuffers-java",
       "com.michael-bull.kotlin-result:kotlin-result-jvm",
       "com.squareup.okhttp3:okhttp",
       "org.jetbrains.kotlin:kotlin-stdlib",
+      "androidx.metrics:metrics-performance",
     ];
 
     let root = simple_xml::from_file(runfiles_path("capture_aar_pom_xml.xml")).unwrap();

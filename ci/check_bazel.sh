@@ -31,6 +31,13 @@ workspace_path=$(pwd)
 # Path to your Bazel executable
 bazel_path=$(pwd)/bazelw
 
+# If the only file that changed was .sdk_version, we don't need to run bazel-diff and just mark it as no changes detected.
+if ./ci/version_only_change.sh; then
+  echo "Only change was platform/shared/.sdk-version, no Bazel changes detected."
+  echo "check_result=2" >> "$GITHUB_OUTPUT"
+  exit 1
+fi
+
 starting_hashes_json="/tmp/starting_hashes.json"
 final_hashes_json="/tmp/final_hashes.json"
 impacted_targets_path="/tmp/impacted_targets.txt"
@@ -40,11 +47,11 @@ bazel_diff="/tmp/bazel_diff"
 
 git -C "$workspace_path" checkout "$previous_revision" --quiet
 
-$bazel_diff generate-hashes -w "$workspace_path" -b "$bazel_path" $starting_hashes_json
+$bazel_diff generate-hashes -w "$workspace_path" -b "$bazel_path" $starting_hashes_json --excludeExternalTargets
 
 git -C "$workspace_path" checkout "$final_revision" --quiet
 
-$bazel_diff generate-hashes -w "$workspace_path" -b "$bazel_path" $final_hashes_json
+$bazel_diff generate-hashes -w "$workspace_path" -b "$bazel_path" $final_hashes_json --excludeExternalTargets
 
 $bazel_diff get-impacted-targets -sh $starting_hashes_json -fh $final_hashes_json -o $impacted_targets_path
 
@@ -84,4 +91,5 @@ if [ "$changes_detected" = true ]; then
 else
   echo "No changes detected."
   echo "check_result=2" >> "$GITHUB_OUTPUT"
+  exit 1
 fi

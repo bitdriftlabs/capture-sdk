@@ -9,11 +9,15 @@ But even if we could create those we'd need to get them out of the build
 somehow, this rule provides a separate --output_group for this
 """
 
+load("@rules_android//rules:android_split_transition.bzl", "android_split_transition")
+load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
+load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
+
 def _impl(ctx):
     library_outputs = []
     objdump_outputs = []
     for platform, dep in ctx.split_attr.dep.items():
-        # When --fat_apk_cpu isn't set, the platform is None
+        # When --android_platforms isn't set, the platform is None
         if len(dep.files.to_list()) != 1:
             fail("Expected exactly one file in the library")
 
@@ -52,11 +56,11 @@ android_debug_info = rule(
     attrs = dict(
         dep = attr.label(
             providers = [CcInfo],
-            cfg = android_common.multi_cpu_configuration,
+            cfg = android_split_transition,
         ),
         _cc_toolchain = attr.label(
             default = Label("@bazel_tools//tools/cpp:current_cc_toolchain"),
-            cfg = android_common.multi_cpu_configuration,
+            cfg = android_split_transition,
         ),
     ),
     fragments = ["cpp", "android"],

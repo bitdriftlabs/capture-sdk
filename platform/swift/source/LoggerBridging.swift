@@ -5,8 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@_implementationOnly import CaptureLoggerBridge
-@_implementationOnly import CapturePassable
+internal import CaptureLoggerBridge
+internal import CapturePassable
 import Foundation
 
 typealias InternalFields = [CapturePassable.Field]
@@ -19,15 +19,18 @@ protocol LoggerBridging {
         message: @autoclosure () -> String,
         fields: InternalFields?,
         matchingFields: InternalFields?,
-        type: Logger.LogType,
-        blocking: Bool
+        type: Capture.Logger.LogType,
+        blocking: Bool,
+        occurredAtOverride: Date?
     )
 
-    func logSessionReplay(fields: InternalFields, duration: TimeInterval)
+    func logSessionReplayScreen(fields: InternalFields, duration: TimeInterval)
+
+    func logSessionReplayScreenshot(fields: InternalFields, duration: TimeInterval)
 
     func logResourceUtilization(fields: InternalFields, duration: TimeInterval)
 
-    func logSDKConfigured(fields: [CapturePassable.Field], duration: TimeInterval)
+    func logSDKStart(fields: [CapturePassable.Field], duration: TimeInterval)
 
     func shouldLogAppUpdate(
         appVersion: String,
@@ -42,6 +45,8 @@ protocol LoggerBridging {
     )
 
     func logAppLaunchTTI(_ duration: TimeInterval)
+
+    func logScreenView(screenName: String)
 
     func start()
 

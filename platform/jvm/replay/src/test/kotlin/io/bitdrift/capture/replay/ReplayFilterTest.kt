@@ -13,21 +13,22 @@ import org.junit.Assert
 import org.junit.Test
 
 class ReplayFilterTest {
-
     // Filter will aggregate the different window roots
     @Test
     fun testFilter_mergeList() {
-        val listOfRects = listOf(
-            ReplayRect(ReplayType.Label, 1, 2, 3, 4),
-            ReplayRect(ReplayType.Button, 0, 20, 30, 40),
-            ReplayRect(ReplayType.View, 0, 20, 30, 40),
-        )
+        val listOfRects =
+            listOf(
+                ReplayRect(ReplayType.Label, 1, 2, 3, 4),
+                ReplayRect(ReplayType.Button, 0, 20, 30, 40),
+                ReplayRect(ReplayType.View, 0, 20, 30, 40),
+            )
 
-        val listOfRects2 = listOf(
-            ReplayRect(ReplayType.Label, 1, 2, 3, 4),
-            ReplayRect(ReplayType.Button, 0, 20, 30, 40),
-            ReplayRect(ReplayType.View, 0, 20, 30, 40),
-        )
+        val listOfRects2 =
+            listOf(
+                ReplayRect(ReplayType.Label, 1, 2, 3, 4),
+                ReplayRect(ReplayType.Button, 0, 20, 30, 40),
+                ReplayRect(ReplayType.View, 0, 20, 30, 40),
+            )
 
         val capture = listOf(listOfRects, listOfRects2)
         val replayFilter = ReplayFilter()
@@ -40,18 +41,20 @@ class ReplayFilterTest {
     // Filter out ignored ReplayRect
     @Test
     fun testFilter_removeIgnored() {
-        val listOfRects = listOf(
-            ReplayRect(ReplayType.Label, 1, 2, 3, 4),
-            ReplayRect(ReplayType.Button, 0, 20, 30, 40),
-            ReplayRect(ReplayType.Ignore, 0, 20, 30, 40), // Filtered out
-            ReplayRect(ReplayType.View, 0, 20, 30, 40),
-        )
+        val listOfRects =
+            listOf(
+                ReplayRect(ReplayType.Label, 1, 2, 3, 4),
+                ReplayRect(ReplayType.Button, 0, 20, 30, 40),
+                ReplayRect(ReplayType.Ignore, 0, 20, 30, 40), // Filtered out
+                ReplayRect(ReplayType.View, 0, 20, 30, 40),
+            )
 
-        val listOfRects2 = listOf(
-            ReplayRect(ReplayType.Label, 1, 2, 3, 4),
-            ReplayRect(ReplayType.Button, 0, 20, 30, 40),
-            ReplayRect(ReplayType.View, 0, 20, 30, 40),
-        )
+        val listOfRects2 =
+            listOf(
+                ReplayRect(ReplayType.Label, 1, 2, 3, 4),
+                ReplayRect(ReplayType.Button, 0, 20, 30, 40),
+                ReplayRect(ReplayType.View, 0, 20, 30, 40),
+            )
 
         val capture = listOf(listOfRects, listOfRects2)
         val replayFilter = ReplayFilter()
@@ -64,17 +67,19 @@ class ReplayFilterTest {
     // Sending twice the same list of replay rect through the filter will filter the last one
     @Test
     fun testFilter_filterIdentical() {
-        val listOfRects = listOf(
-            ReplayRect(ReplayType.Label, 1, 2, 3, 4),
-            ReplayRect(ReplayType.Button, 0, 20, 30, 40),
-            ReplayRect(ReplayType.View, 0, 20, 30, 40),
-        )
+        val listOfRects =
+            listOf(
+                ReplayRect(ReplayType.Label, 1, 2, 3, 4),
+                ReplayRect(ReplayType.Button, 0, 20, 30, 40),
+                ReplayRect(ReplayType.View, 0, 20, 30, 40),
+            )
 
-        val listOfRects2 = listOf(
-            ReplayRect(ReplayType.Label, 1, 2, 3, 4),
-            ReplayRect(ReplayType.Button, 0, 20, 30, 40),
-            ReplayRect(ReplayType.View, 0, 20, 30, 40),
-        )
+        val listOfRects2 =
+            listOf(
+                ReplayRect(ReplayType.Label, 1, 2, 3, 4),
+                ReplayRect(ReplayType.Button, 0, 20, 30, 40),
+                ReplayRect(ReplayType.View, 0, 20, 30, 40),
+            )
 
         val capture = listOf(listOfRects, listOfRects2)
         val replayFilter = ReplayFilter()
@@ -89,20 +94,22 @@ class ReplayFilterTest {
 
     @Test
     fun testFilter_filterIdenticalWithIgnore() {
-        val listOfRects = listOf(
-            ReplayRect(ReplayType.Label, 1, 2, 3, 4),
-            ReplayRect(ReplayType.Button, 0, 20, 30, 40),
-            ReplayRect(ReplayType.Ignore, 0, 20, 30, 40), // Filtered out
-            ReplayRect(ReplayType.View, 0, 20, 30, 40),
-        )
+        val listOfRects =
+            listOf(
+                ReplayRect(ReplayType.Label, 1, 2, 3, 4),
+                ReplayRect(ReplayType.Button, 0, 20, 30, 40),
+                ReplayRect(ReplayType.Ignore, 0, 20, 30, 40), // Filtered out
+                ReplayRect(ReplayType.View, 0, 20, 30, 40),
+            )
 
-        val listOfRects2 = listOf(
-            ReplayRect(ReplayType.Label, 1, 2, 3, 4),
-            ReplayRect(ReplayType.Button, 0, 20, 30, 40),
-            ReplayRect(ReplayType.View, 0, 20, 30, 40),
-            ReplayRect(ReplayType.Ignore, 0, 20, 30, 40), // Filtered out
-            ReplayRect(ReplayType.Ignore, 0, 20, 30, 40), // Filtered out
-        )
+        val listOfRects2 =
+            listOf(
+                ReplayRect(ReplayType.Label, 1, 2, 3, 4),
+                ReplayRect(ReplayType.Button, 0, 20, 30, 40),
+                ReplayRect(ReplayType.View, 0, 20, 30, 40),
+                ReplayRect(ReplayType.Ignore, 0, 20, 30, 40), // Filtered out
+                ReplayRect(ReplayType.Ignore, 0, 20, 30, 40), // Filtered out
+            )
 
         val capture = listOf(listOfRects, listOfRects2)
         val replayFilter = ReplayFilter()

@@ -8,11 +8,12 @@
 package io.bitdrift.capture.replay
 
 /**
- * A configuration used to configure Bitdrift session replay feature.
- * @param captureIntervalMs The number of milliseconds between consecutive screen replay captures.
- * @param replayMapperConfiguration Map used to matching third party Android views to Bitdrift view types.
+ * A configuration used to configure bitdrift session replay feature.
+ *
+ * @param categorizers Map used to matching third party Android views to bitdrift view types.
  */
-data class SessionReplayConfiguration @JvmOverloads constructor(
-    val captureIntervalMs: Long = 3000,
-    val replayMapperConfiguration: ReplayMapperConfiguration? = null,
-)
+data class SessionReplayConfiguration
+    @JvmOverloads
+    constructor(
+        val categorizers: Map<ReplayType, List<String>>? = null,
+    )

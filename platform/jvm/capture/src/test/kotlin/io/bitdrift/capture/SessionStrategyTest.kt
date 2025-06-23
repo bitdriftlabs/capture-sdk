@@ -9,7 +9,9 @@ package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.mock
+import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.IFatalIssueReporter
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -23,6 +25,7 @@ import java.util.concurrent.CountDownLatch
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class SessionStrategyTest {
+    private val fatalIssueReporter: IFatalIssueReporter = FakeFatalIssueReporter()
 
     @Before
     fun setUp() {
@@ -32,22 +35,23 @@ class SessionStrategyTest {
 
     @Test
     fun fixedSessionStrategy() {
-        var generatedSessionIds = mutableListOf<String>()
+        val generatedSessionIds = mutableListOf<String>()
 
-        val logger = LoggerImpl(
-            apiKey = "test",
-            apiUrl = testServerUrl(),
-            fieldProviders = listOf(),
-            dateProvider = mock(),
-            sessionStrategy = SessionStrategy.Fixed {
-                val sessionId = UUID.randomUUID().toString()
-                generatedSessionIds.add(sessionId)
-                sessionId
-            },
-            configuration = Configuration(
-                sessionReplayConfiguration = null,
-            ),
-        )
+        val logger =
+            LoggerImpl(
+                apiKey = "test",
+                apiUrl = testServerUrl(),
+                fieldProviders = listOf(),
+                dateProvider = mock(),
+                sessionStrategy =
+                    SessionStrategy.Fixed {
+                        val sessionId = UUID.randomUUID().toString()
+                        generatedSessionIds.add(sessionId)
+                        sessionId
+                    },
+                configuration = Configuration(),
+                fatalIssueReporter = fatalIssueReporter,
+            )
 
         val sessionId = logger.sessionId
 
@@ -67,20 +71,21 @@ class SessionStrategyTest {
         val strategyLatch = CountDownLatch(1)
         var observedSessionId: String? = null
 
-        val logger = LoggerImpl(
-            apiKey = "test",
-            apiUrl = testServerUrl(),
-            fieldProviders = listOf(),
-            dateProvider = mock(),
-            sessionStrategy = SessionStrategy.ActivityBased {
-                observedSessionId = it
-                strategyLatch.countDown()
-            },
-            configuration = Configuration(
-                sessionReplayConfiguration = null,
-            ),
-            preferences = mock(),
-        )
+        val logger =
+            LoggerImpl(
+                apiKey = "test",
+                apiUrl = testServerUrl(),
+                fieldProviders = listOf(),
+                dateProvider = mock(),
+                sessionStrategy =
+                    SessionStrategy.ActivityBased {
+                        observedSessionId = it
+                        strategyLatch.countDown()
+                    },
+                configuration = Configuration(),
+                preferences = mock(),
+                fatalIssueReporter = fatalIssueReporter,
+            )
 
         val sessionId = logger.sessionId
         strategyLatch.await()
@@ -93,7 +98,10 @@ class SessionStrategyTest {
         assertThat(sessionId).isNotEqualTo(newSessionId)
     }
 
-    private fun testServerUrl(): HttpUrl {
-        return HttpUrl.Builder().scheme("http").host("test.bitdrift.com").build()
-    }
+    private fun testServerUrl(): HttpUrl =
+        HttpUrl
+            .Builder()
+            .scheme("http")
+            .host("test.bitdrift.com")
+            .build()
 }

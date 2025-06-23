@@ -1,5 +1,5 @@
-load("@io_bazel_rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
 load("@rules_jvm_external//:defs.bzl", "artifact")
+load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
 load("//bazel/android:build.bzl", "bitdrift_kt_android_library", "bitdrift_kt_android_local_test")
 
 # export proguard library rules
@@ -26,6 +26,7 @@ bitdrift_kt_android_library(
         artifact("androidx.startup:startup-runtime"),
         artifact("androidx.core:core"),
         artifact("com.google.guava:listenablefuture"),
+        artifact("com.google.flatbuffers:flatbuffers-java"),
         artifact("com.michael-bull.kotlin-result:kotlin-result-jvm"),
         artifact("com.squareup.okhttp3:okhttp"),
     ],
@@ -42,6 +43,8 @@ bitdrift_kt_android_library(
         artifact("com.squareup.okhttp3:okhttp"),
         artifact("com.google.code.findbugs:jsr305"),
         artifact("com.google.code.gson:gson"),
+        artifact("com.google.flatbuffers:flatbuffers-java"),
+        artifact("androidx.metrics:metrics-performance"),
     ],
 )
 
@@ -51,6 +54,7 @@ bitdrift_kt_android_local_test(
         ":capture_logger_lib_kt",
     ],
     data = [
+        "//platform/jvm/capture/src/test/resources:test_resources",
         "//test/platform/jvm:capture",
     ],
     jvm_flags = [
@@ -63,12 +67,11 @@ bitdrift_kt_android_local_test(
         "//platform/jvm/capture:capture_logger_lib",
         artifact("junit:junit"),
         artifact("org.robolectric:robolectric"),
-        "@robolectric//bazel:android-all",
+        "@rules_robolectric//bazel:android-all",
         artifact("androidx.test:core"),
         artifact("org.mockito:mockito-core"),
         artifact("org.mockito:mockito-inline"),
         artifact("com.nhaarman.mockitokotlin2:mockito-kotlin"),
         artifact("com.squareup.okhttp3:mockwebserver"),
-        artifact("net.bytebuddy:byte-buddy"),
     ],
 )

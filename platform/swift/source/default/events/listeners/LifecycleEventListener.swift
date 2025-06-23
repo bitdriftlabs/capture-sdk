@@ -52,11 +52,7 @@ final class LifecycleEventListener {
                 return
             }
 
-            var notifications: [NSNotification.Name] = if #available(iOS 13.0, *) {
-                [UIScene.didActivateNotification]
-            } else {
-                [UIApplication.didBecomeActiveNotification]
-            }
+            var notifications: [NSNotification.Name] = [UIScene.didActivateNotification]
 
             notifications.append(contentsOf: [UIApplication.didFinishLaunchingNotification])
 
@@ -77,10 +73,8 @@ final class LifecycleEventListener {
         let message: String
         var fields = [String: String]()
 
-        if #available(iOS 13.0, *) {
-            if let scene = notification.object as? UIScene, let title = scene.title {
-                fields[Constants.sceneKey] = title
-            }
+        if let scene = notification.object as? UIScene, let title = scene.title {
+            fields[Constants.sceneKey] = title
         }
 
         if notification.name == UIApplication.didFinishLaunchingNotification {
@@ -95,48 +89,27 @@ final class LifecycleEventListener {
 
             message = Constants.applicationLaunchedMessage
         } else {
-            if #available(iOS 13.0, *) {
-                switch notification.name {
-                case UIScene.willConnectNotification:
-                    message = Constants.sceneWillConnectMessage
-                case UIScene.didDisconnectNotification:
-                    message = Constants.sceneDidDisconnectMessage
-                case UIScene.didActivateNotification:
-                    message = Constants.sceneDidActivateMessage
-                case UIScene.willDeactivateNotification:
-                    message = Constants.sceneWillDeactivateMessage
-                case UIScene.didEnterBackgroundNotification:
-                    message = Constants.sceneDidEnterBackgroundMessage
-                case UIScene.willEnterForegroundNotification:
-                    message = Constants.sceneWillEnterForegroundMessage
-                default:
-                    self.logger.log(
-                        level: .warning,
-                        message: "Unhandled Lifecycle notification! [\(notification.name.rawValue)]",
-                        error: nil,
-                        type: .lifecycle
-                    )
-                    return
-                }
-            } else {
-                switch notification.name {
-                case UIApplication.didBecomeActiveNotification:
-                    message = Constants.sceneDidActivateMessage
-                case UIApplication.willResignActiveNotification:
-                    message = Constants.sceneWillDeactivateMessage
-                case UIApplication.didEnterBackgroundNotification:
-                    message = Constants.sceneDidEnterBackgroundMessage
-                case UIApplication.willEnterForegroundNotification:
-                    message = Constants.sceneWillEnterForegroundMessage
-                default:
-                    self.logger.log(
-                        level: .warning,
-                        message: "Unhandled Lifecycle notification! [\(notification.name.rawValue)]",
-                        error: nil,
-                        type: .lifecycle
-                    )
-                    return
-                }
+            switch notification.name {
+            case UIScene.willConnectNotification:
+                message = Constants.sceneWillConnectMessage
+            case UIScene.didDisconnectNotification:
+                message = Constants.sceneDidDisconnectMessage
+            case UIScene.didActivateNotification:
+                message = Constants.sceneDidActivateMessage
+            case UIScene.willDeactivateNotification:
+                message = Constants.sceneWillDeactivateMessage
+            case UIScene.didEnterBackgroundNotification:
+                message = Constants.sceneDidEnterBackgroundMessage
+            case UIScene.willEnterForegroundNotification:
+                message = Constants.sceneWillEnterForegroundMessage
+            default:
+                self.logger.log(
+                    level: .warning,
+                    message: "Unhandled Lifecycle notification! [\(notification.name.rawValue)]",
+                    error: nil,
+                    type: .lifecycle
+                )
+                return
             }
         }
 
@@ -183,21 +156,13 @@ extension LifecycleEventListener: EventListener {
                 return
             }
 
-            let notifications = if #available(iOS 13.0, *) {
-                [
-                    UIScene.willConnectNotification,
-                    UIScene.didDisconnectNotification,
-                    UIScene.willDeactivateNotification,
-                    UIScene.didEnterBackgroundNotification,
-                    UIScene.willEnterForegroundNotification,
-                ]
-            } else {
-                [
-                    UIApplication.willResignActiveNotification,
-                    UIApplication.didEnterBackgroundNotification,
-                    UIApplication.willEnterForegroundNotification,
-                ]
-            }
+            let notifications = [
+                UIScene.willConnectNotification,
+                UIScene.didDisconnectNotification,
+                UIScene.willDeactivateNotification,
+                UIScene.didEnterBackgroundNotification,
+                UIScene.willEnterForegroundNotification,
+            ]
 
             var newTokens = notifications.map { notification in
                 return NotificationCenter

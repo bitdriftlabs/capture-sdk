@@ -8,6 +8,6 @@
 import Foundation
 
 // Used to log Session Replay Screen Capture data.
-struct SessionReplayScreenCapture: Encodable {
+struct SessionReplayCapture: Encodable {
     let data: Data
 }

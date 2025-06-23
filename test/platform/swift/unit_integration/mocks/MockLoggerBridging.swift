@@ -10,56 +10,62 @@ import CaptureLoggerBridge
 import Foundation
 import XCTest
 
-final class MockLoggerBridging {
-    struct HandledError {
-        let context: String
-        let error: Error
+public final class MockLoggerBridging {
+    public struct HandledError {
+        public let context: String
+        public let error: Error
     }
 
-    struct Log {
-        let level: LogLevel
-        let message: String
-        let fields: InternalFields?
-        let matchingFields: InternalFields?
-        let type: Logger.LogType
-        let blocking: Bool
+    public struct Log {
+        public let level: LogLevel
+        public let message: String
+        public let fields: InternalFields?
+        public let matchingFields: InternalFields?
+        public let type: Capture.Logger.LogType
+        public let blocking: Bool
+        public let occurredAtOverride: Date?
     }
 
-    private(set) var mockedRuntimeVariables = [String: Any]()
+    public private(set) var mockedRuntimeVariables = [String: Any]()
 
-    private(set) var underlyingLogs = Atomic([Log]())
-    var logs: [Log] {
+    public private(set) var underlyingLogs = Atomic([Log]())
+    public var logs: [Log] {
         return self.underlyingLogs.load()
     }
 
-    private(set) var errors: [HandledError] = []
+    public private(set) var startLog: Atomic<([Field], TimeInterval)?> = Atomic(nil)
 
-    var shouldLogAppUpdateEvent = false
+    public private(set) var errors: [HandledError] = []
 
-    var logAppUpdateExpectation: XCTestExpectation?
+    public var shouldLogAppUpdateEvent = false
 
-    func mockRuntimeVariable<T: RuntimeValue>(_ variable: RuntimeVariable<T>, with value: T) {
+    public var logAppUpdateExpectation: XCTestExpectation?
+
+    public init() {}
+
+    public func mockRuntimeVariable<T: RuntimeValue>(_ variable: RuntimeVariable<T>, with value: T) {
         let values = [variable.name: value]
         self.mockedRuntimeVariables.mergeOverwritingConflictingKeys(values)
     }
 }
 
 extension MockLoggerBridging: LoggerBridging {
-    func start() {}
+    public func start() {}
 
-    func getSessionID() -> String { "foo" }
+    public func getSessionID() -> String { "foo" }
 
-    func startNewSession() {}
+    public func startNewSession() {}
 
-    func getDeviceID() -> String { "deviceID" }
+    public func getDeviceID() -> String { "deviceID" }
 
-    func log(
+    public func log(
         level: LogLevel,
         message: @autoclosure () -> String,
         fields: InternalFields?,
         matchingFields: InternalFields?,
-        type: Logger.LogType,
-        blocking: Bool
+        type: Capture.Logger.LogType,
+        blocking: Bool,
+        occurredAtOverride: Date?
     ) {
         self.underlyingLogs.update {
             $0.append(
@@ -69,23 +75,28 @@ extension MockLoggerBridging: LoggerBridging {
                     fields: fields,
                     matchingFields: matchingFields,
                     type: type,
-                    blocking: blocking
+                    blocking: blocking,
+                    occurredAtOverride: occurredAtOverride
                 )
             )
         }
     }
 
-    func logSessionReplay(fields _: [Field], duration _: TimeInterval) {}
+    public func logSessionReplayScreen(fields _: [Field], duration _: TimeInterval) {}
 
-    func logResourceUtilization(fields _: [Field], duration _: TimeInterval) {}
+    public func logSessionReplayScreenshot(fields _: [Field], duration _: TimeInterval) {}
 
-    func logSDKConfigured(fields _: [Field], duration _: TimeInterval) {}
+    public func logResourceUtilization(fields _: [Field], duration _: TimeInterval) {}
 
-    func shouldLogAppUpdate(appVersion _: String, buildNumber _: String) -> Bool {
+    public func logSDKStart(fields: [Field], duration: TimeInterval) {
+        startLog.update({ log in log = (fields, duration) })
+    }
+
+    public func shouldLogAppUpdate(appVersion _: String, buildNumber _: String) -> Bool {
         self.shouldLogAppUpdateEvent
     }
 
-    func logAppUpdate(
+    public func logAppUpdate(
         appVersion _: String,
         buildNumber _: String,
         appSizeBytes _: UInt64,
@@ -94,15 +105,17 @@ extension MockLoggerBridging: LoggerBridging {
         self.logAppUpdateExpectation?.fulfill()
     }
 
-    func logAppLaunchTTI(_: TimeInterval) {}
+    public func logAppLaunchTTI(_: TimeInterval) {}
 
-    func addField(withKey _: String, value _: String) {}
+    public func logScreenView(screenName _: String) {}
 
-    func removeField(withKey _: String) {}
+    public func addField(withKey _: String, value _: String) {}
 
-    func flush(blocking _: Bool) {}
+    public func removeField(withKey _: String) {}
 
-    func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
+    public func flush(blocking _: Bool) {}
+
+    public func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
         if let value = self.mockedRuntimeVariables[variable.name] {
             // swiftlint:disable:next force_cast
             value as! T
@@ -111,9 +124,9 @@ extension MockLoggerBridging: LoggerBridging {
         }
     }
 
-    func handleError(context: String, error: Error) {
+    public func handleError(context: String, error: Error) {
         self.errors.append(HandledError(context: context, error: error))
     }
 
-    func enableBlockingShutdown() {}
+    public func enableBlockingShutdown() {}
 }

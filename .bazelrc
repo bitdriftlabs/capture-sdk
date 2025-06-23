@@ -1,13 +1,7 @@
-common --experimental_allow_tags_propagation
+common --enable_bzlmod
+common --incompatible_disable_native_android_rules
 
 mobile-install --config=android
-
-build --enable_platform_specific_config
-# https://github.com/bazelbuild/bazel/issues/18958
-build --noenable_bzlmod
-build:macos --apple_crosstool_top=@local_config_apple_cc//:toolchain
-build:macos --crosstool_top=@local_config_apple_cc//:toolchain
-build:macos --host_crosstool_top=@local_config_apple_cc//:toolchain
 
 # We need access to ld in order to build libunwind on Linux
 build:libunwind --action_env=PATH=/usr/bin
@@ -30,19 +24,11 @@ build --features=swift.use_global_module_cache
 
 # Gate the references to androidndk behind a flag to support building on arm linux.
 build:android --android_crosstool_top=@androidndk//:toolchain
-build:android --extra_toolchains=@androidndk//...
-build --platform_mappings=bazel/platform_mappings
 
-build --@rules_rust//:rustfmt.toml=//:rustfmt.toml
-build --@rules_rust//:clippy.toml=//:.clippy.toml
+build --@rules_rust//rust/settings:rustfmt.toml=//:rustfmt.toml
+build --@rules_rust//rust/settings:clippy.toml=//:.clippy.toml
 
-build --macos_minimum_os=12.5
-build --host_macos_minimum_os=12.5
-
-build --ios_minimum_os=12.0
-build --ios_simulator_device="iPhone 13"
-build --ios_simulator_version=17.5
-build --xcode_version=15.4
+build --ios_minimum_os=15.0
 
 build:clippy --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
 build:clippy --output_groups=+clippy_checks
@@ -56,7 +42,8 @@ test --test_env=RUST_BACKTRACE=full --java_runtime_version=remotejdk_11
 
 # Shared configuration for all CI tasks.
 build:ci --config=clippy
-build:ci --swiftcopt=-warnings-as-errors
+build:ci --config=force-xcode-version
+build:ci --define build_config=ci
 
 # Common debug configuration for iOS/Android. Used when building examples apps.
 build:dbg-common --compilation_mode=opt
@@ -82,12 +69,15 @@ build:release-common --config=abort-panic
 
 # Size optimizations, codegen-units=1 go along side LTO, which accounts for
 # about 10% reduction; -z has a non-zero smaller impact (a few pp).
-build:release-common --@rules_rust//:extra_rustc_flag='-Ccodegen-units=1'
-build:release-common --@rules_rust//:extra_rustc_flag='-Clto=fat'
-build:release-common --@rules_rust//:extra_rustc_flag='-Copt-level=s'
+build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Ccodegen-units=1'
+build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Copt-level=s'
+build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Clto=fat'
+# Without the next line, rules_rust will add -Clinker-plugin-lto which would be amazing
+# but the ndk's lld won't support the output
+build:release-common --@rules_rust//rust/settings:lto='manual'
 
 build:release-android --define android_strip_symbols=true
-build:release-android --fat_apk_cpu=x86,x86_64,armeabi-v7a,arm64-v8a
+build:release-android --android_platforms=@rules_android//:armeabi-v7a,@rules_android//:arm64-v8a,@rules_android//:x86,@rules_android//:x86_64
 build:release-android --config=release-common
 build:release-android --copt=-flto=thin --linkopt=-flto=thin
 build:release-android --config=android
@@ -98,7 +88,10 @@ build:release-android --config=android
 # build:release-android --linkopt=-Wl,--use-android-relr-tags
 
 # Custom iOS release configuration
-build:release-ios --config=release-common
+build:force-xcode-version --ios_simulator_device="iPhone 15"
+build:force-xcode-version --ios_simulator_version=18.2
+build:force-xcode-version --xcode_version=16.2
+build:release-ios --config=release-common --config=force-xcode-version
 
 # Allows disabling the cache for cases where the cache might be slow, e.g. slow networks.
 build:nocache --remote_accept_cached=false
@@ -113,24 +106,24 @@ build:nomacos --test_tag_filters=-macos_only --build_tag_filters=-macos_only
 # We run this with release-common to be as indicative of production as possible, and add in as much debug information we
 # can to allow using perf to generate flamegraphs.
 build:benchmark --config=release-common
-build:benchmark-profile --config=benchmark --@rules_rust//:extra_rustc_flag='-Cdebuginfo=2' --force_pic
+build:benchmark-profile --config=benchmark --@rules_rust//rust/settings:extra_rustc_flag='-Cdebuginfo=2' --force_pic
 
 # Specifies that panics should automatically be treated as a panic.
-build:abort-panic --@rules_rust//:extra_rustc_flag=-C
-build:abort-panic --@rules_rust//:extra_rustc_flag=panic=abort
+build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=-C
+build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=panic=abort
 
 # This attempts to match what cargo-fuzz does, but it's likely a moving target with many options.
 # Occasionally check back to see if anything has changed over there.
 # https://github.com/rust-fuzz/cargo-fuzz/blob/fa18f0d77aef036302d9f948e80aa12c6b95d57b/src/project.rs#L163
 build:fuzz --config=release-common
-build:fuzz --@rules_rust//:extra_rustc_flag=-Cpasses=sancov-module
-build:fuzz --@rules_rust//:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-level=4
-build:fuzz --@rules_rust//:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-inline-8bit-counters
-build:fuzz --@rules_rust//:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-pc-table
-build:fuzz --@rules_rust//:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-trace-compares
-build:fuzz --@rules_rust//:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-stack-depth
-build:fuzz --@rules_rust//:extra_rustc_flag=-Zsanitizer=address
-build:fuzz --@rules_rust//:extra_rustc_flag=--cfg=fuzzing
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Cpasses=sancov-module
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-level=4
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-inline-8bit-counters
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-pc-table
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-trace-compares
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Cllvm-args=-sanitizer-coverage-stack-depth
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=address
+build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=--cfg=fuzzing
 build:fuzz --@rules_rust//rust/toolchain/channel=nightly
 
 build:fake-nightly --action_env=RUSTC_BOOTSTRAP=1
@@ -138,13 +131,13 @@ build:fake-nightly --action_env=RUSTC_BOOTSTRAP=1
 # Enables TSAN for all targets. This does not currently work when targeting platforms where TSAN is not enabled in the Rust toolchain (e.g. ios-sim).
 build:tsan --config=fake-nightly
 build:tsan --features=tsan
-build:tsan --@rules_rust//:extra_rustc_flag=-Zsanitizer=thread
+build:tsan --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=thread
 
 # Enables using TSAN with iOS tests. This does not enable tsan in Rust and may therefore result in false positivies.
 build:ios-tsan --features=tsan
 
 build:asan --config=fake-nightly
 build:asan --features=address
-build:tsan --@rules_rust//:extra_rustc_flag=-Zsanitizer=address
+build:asan --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=address
 
 try-import %workspace%/tmp/ci-bazelrc

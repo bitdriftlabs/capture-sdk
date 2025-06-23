@@ -13,15 +13,26 @@ import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.annotation.VisibleForTesting
+import androidx.annotation.WorkerThread
 import io.bitdrift.capture.InternalFieldsMap
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.ErrorHandler
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.FatalIssueMechanism
+import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
+import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
+import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
+import io.bitdrift.capture.reports.jvmcrash.JvmCrashListener
+import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
@@ -31,25 +42,42 @@ internal class AppExitLogger(
     private val activityManager: ActivityManager,
     private val runtime: Runtime,
     private val errorHandler: ErrorHandler,
-    private val crashHandler: CaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler(),
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
-) {
-
+    private val memoryMetricsProvider: IMemoryMetricsProvider,
+    private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
+    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
+    private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
+    private val fatalIssueMechanism: FatalIssueMechanism,
+) : JvmCrashListener {
     companion object {
-        const val APP_EXIT_EVENT_NAME = "AppExit"
+        private const val APP_EXIT_EVENT_NAME = "AppExit"
+        private const val APP_EXIT_SOURCE_KEY = "_app_exit_source"
+        private const val APP_EXIT_REASON_KEY = "_app_exit_reason"
+        private const val APP_EXIT_INFO_KEY = "_app_exit_info"
+        private const val APP_EXIT_DETAILS_KEY = "_app_exit_details"
+        private const val APP_EXIT_THREAD_KEY = "_app_exit_thread"
+        private const val APP_EXIT_PROCESS_NAME_KEY = "_app_exit_process_name"
+        private const val APP_EXIT_IMPORTANCE_KEY = "_app_exit_importance"
+        private const val APP_EXIT_STATUS_KEY = "_app_exit_status"
+        private const val APP_EXIT_PSS_KEY = "_app_exit_pss"
+        private const val APP_EXIT_RSS_KEY = "_app_exit_rss"
+        private const val APP_EXIT_DESCRIPTION_KEY = "_app_exit_description"
     }
 
+    @WorkerThread
     fun installAppExitLogger() {
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)) {
             return
         }
-        crashHandler.install(this)
-        saveCurrentSessionId()
-        logPreviousExitReasonIfAny()
+        backgroundThreadHandler.runAsync {
+            captureUncaughtExceptionHandler.install(this)
+            saveCurrentSessionId()
+            logPreviousExitReasonIfAny()
+        }
     }
 
     fun uninstallAppExitLogger() {
-        crashHandler.uninstall()
+        captureUncaughtExceptionHandler.uninstall()
     }
 
     @TargetApi(Build.VERSION_CODES.R)
@@ -75,48 +103,47 @@ internal class AppExitLogger(
             return
         }
 
-        val exits = try {
-            // a null packageName means match all packages belonging to the caller's process (UID)
-            // pid should be 0, a value of 0 means to ignore this parameter and return all matching records
-            // maxNum should be 1, The maximum number of results to be returned, as we need only the last one
-            activityManager.getHistoricalProcessExitReasons(null, 0, 1)
-        } catch (error: Throwable) {
-            errorHandler.handleError("Failed to retrieve ProcessExitReasons from ActivityManager", error)
-            emptyList()
-        }
-        if (exits.isEmpty()) {
-            return
-        }
+        when (val lastExitInfoResult = latestAppExitInfoProvider.get(activityManager)) {
+            is LatestAppExitReasonResult.Error ->
+                errorHandler.handleError(lastExitInfoResult.message, lastExitInfoResult.throwable)
 
-        val lastExitInfo = exits.first()
-        // extract stored id from previous session in order to override the log, bail if not present
-        val sessionId = lastExitInfo.processStateSummary?.toString(StandardCharsets.UTF_8) ?: return
-        val timestampMs = lastExitInfo.timestamp
-        logger.log(
-            LogType.LIFECYCLE,
-            lastExitInfo.reason.toLogLevel(),
-            lastExitInfo.toFields(),
-            attributesOverrides = LogAttributesOverrides(sessionId, timestampMs),
-        ) { APP_EXIT_EVENT_NAME }
+            is LatestAppExitReasonResult.Valid -> {
+                val lastExitInfo = lastExitInfoResult.applicationExitInfo
+                // extract stored id from previous session in order to override the log,
+                // bail and report error if not present
+                val sessionId =
+                    lastExitInfo.processStateSummary?.toString(StandardCharsets.UTF_8)
+                if (sessionId == null) {
+                    val errorMessage = "AppExitLogger: processStateSummary from ${lastExitInfo.processName} is null."
+                    errorHandler.handleError(errorMessage)
+                    return
+                }
+
+                val timestampMs = lastExitInfo.timestamp
+                logger.log(
+                    LogType.LIFECYCLE,
+                    lastExitInfo.reason.toLogLevel(),
+                    buildAppExitInternalFieldsMap(lastExitInfo),
+                    attributesOverrides = LogAttributesOverrides.SessionID(sessionId, timestampMs),
+                ) { APP_EXIT_EVENT_NAME }
+            }
+        }
     }
 
-    fun logCrash(thread: Thread, throwable: Throwable) {
-        if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)) {
+    override fun onJvmCrash(
+        thread: Thread,
+        throwable: Throwable,
+    ) {
+        // When FatalIssueMechanism.BuiltIn is configured will rely on shared-core to emit the related JVM crash log
+        if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) || fatalIssueMechanism == FatalIssueMechanism.BuiltIn) {
             return
         }
 
         // explicitly letting it run in the caller thread
-        val rootCause = throwable.getRootCause()
         logger.log(
             LogType.LIFECYCLE,
             LogLevel.ERROR,
-            mapOf(
-                "_app_exit_source" to "UncaughtExceptionHandler",
-                "_app_exit_reason" to "Crash",
-                "_app_exit_info" to rootCause.javaClass.name,
-                "_app_exit_details" to rootCause.message.orEmpty(),
-                "_app_exit_thread" to thread.name,
-            ).toFields(),
+            buildCrashAndMemoryFieldsMap(thread, throwable),
             blocking = true, // this ensures we block until the log has been persisted to disk
         ) {
             APP_EXIT_EVENT_NAME
@@ -138,24 +165,45 @@ internal class AppExitLogger(
         return error
     }
 
-    @TargetApi(Build.VERSION_CODES.R)
-    private fun ApplicationExitInfo.toFields(): InternalFieldsMap {
-        // https://developer.android.com/reference/kotlin/android/app/ApplicationExitInfo
-        return mapOf(
-            "_app_exit_source" to "ApplicationExitInfo",
-            "_app_exit_process_name" to this.processName,
-            "_app_exit_reason" to this.reason.toReasonText(),
-            "_app_exit_importance" to this.importance.toImportanceText(),
-            "_app_exit_status" to this.status.toString(),
-            "_app_exit_pss" to this.pss.toString(),
-            "_app_exit_rss" to this.rss.toString(),
-            "_app_exit_description" to this.description.orEmpty(),
-            // TODO(murki): Extract getTraceInputStream() for REASON_ANR or REASON_CRASH_NATIVE
-        ).toFields()
+    private fun buildCrashAndMemoryFieldsMap(
+        thread: Thread,
+        throwable: Throwable,
+    ): InternalFieldsMap {
+        val rootCause = throwable.getRootCause()
+        return buildMap {
+            put(APP_EXIT_SOURCE_KEY, "UncaughtExceptionHandler")
+            put(APP_EXIT_REASON_KEY, "Crash")
+            put(APP_EXIT_INFO_KEY, rootCause.javaClass.name)
+            put(APP_EXIT_DETAILS_KEY, rootCause.message.orEmpty())
+            put(APP_EXIT_THREAD_KEY, thread.name)
+            putAll(memoryMetricsProvider.getMemoryAttributes())
+        }.toFields()
     }
 
-    private fun Int.toReasonText(): String {
-        return when (this) {
+    @TargetApi(Build.VERSION_CODES.R)
+    private fun buildAppExitInternalFieldsMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap =
+        buildMap {
+            putAll(applicationExitInfo.toMap().toFields())
+            putAll(memoryMetricsProvider.getMemoryClass().toFields())
+        }
+
+    @TargetApi(Build.VERSION_CODES.R)
+    private fun ApplicationExitInfo.toMap(): Map<String, String> {
+        // https://developer.android.com/reference/kotlin/android/app/ApplicationExitInfo
+        return mapOf(
+            APP_EXIT_SOURCE_KEY to "ApplicationExitInfo",
+            APP_EXIT_PROCESS_NAME_KEY to this.processName,
+            APP_EXIT_REASON_KEY to this.reason.toReasonText(),
+            APP_EXIT_IMPORTANCE_KEY to this.importance.toImportanceText(),
+            APP_EXIT_STATUS_KEY to this.status.toString(),
+            APP_EXIT_PSS_KEY to this.pss.toString(),
+            APP_EXIT_RSS_KEY to this.rss.toString(),
+            APP_EXIT_DESCRIPTION_KEY to this.description.orEmpty(),
+        )
+    }
+
+    private fun Int.toReasonText(): String =
+        when (this) {
             ApplicationExitInfo.REASON_EXIT_SELF -> "EXIT_SELF"
             ApplicationExitInfo.REASON_SIGNALED -> "SIGNALED"
             ApplicationExitInfo.REASON_LOW_MEMORY -> "LOW_MEMORY"
@@ -172,10 +220,9 @@ internal class AppExitLogger(
             ApplicationExitInfo.REASON_FREEZER -> "FREEZER"
             else -> "UNKNOWN"
         }
-    }
 
-    private fun Int.toImportanceText(): String {
-        return when (this) {
+    private fun Int.toImportanceText(): String =
+        when (this) {
             RunningAppProcessInfo.IMPORTANCE_CACHED -> "CACHED"
             RunningAppProcessInfo.IMPORTANCE_CANT_SAVE_STATE -> "CANT_SAVE_STATE"
             RunningAppProcessInfo.IMPORTANCE_FOREGROUND -> "FOREGROUND"
@@ -187,19 +234,19 @@ internal class AppExitLogger(
             RunningAppProcessInfo.IMPORTANCE_VISIBLE -> "VISIBLE"
             else -> "UNKNOWN"
         }
-    }
 
     @TargetApi(Build.VERSION_CODES.R)
-    private fun Int.toLogLevel(): LogLevel {
-        return when (this) {
-            in listOf(
+    private fun Int.toLogLevel(): LogLevel =
+        when (this) {
+            in
+            listOf(
                 ApplicationExitInfo.REASON_CRASH,
                 ApplicationExitInfo.REASON_CRASH_NATIVE,
                 ApplicationExitInfo.REASON_ANR,
                 ApplicationExitInfo.REASON_LOW_MEMORY,
             ),
             -> LogLevel.ERROR
+
             else -> LogLevel.INFO
         }
-    }
 }

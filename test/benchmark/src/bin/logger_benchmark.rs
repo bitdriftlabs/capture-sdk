@@ -5,7 +5,6 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use bd_api::Platform;
 use bd_buffer::{AggregateRingBuffer, PerRecordCrc32Check, RingBuffer, RingBufferStats};
 use bd_logger::{log_level, InitParams, LogType, LoggerHandle};
 use bd_noop_network::NoopNetwork;
@@ -33,8 +32,8 @@ fn do_log(logger: &LoggerHandle) {
     log_level::TRACE,
     LogType::Normal,
     "hello".into(),
-    vec![],
-    vec![],
+    [].into(),
+    [].into(),
     None,
     false,
   );
@@ -57,16 +56,17 @@ fn simple_log(c: &mut Criterion) {
       Arc::new(UUIDCallbacks),
     ))),
     metadata_provider: Arc::new(LogMetadata {
-      timestamp: time::OffsetDateTime::now_utc(),
-      fields: Vec::new(),
+      timestamp: time::OffsetDateTime::now_utc().into(),
+      ..Default::default()
     }),
     resource_utilization_target: Box::new(bd_test_helpers::resource_utilization::EmptyTarget),
+    session_replay_target: Box::new(bd_test_helpers::session_replay::NoOpTarget),
     events_listener_target: Box::new(bd_test_helpers::events::NoOpListenerTarget),
     device,
     store,
     network: Box::new(NoopNetwork {}),
-    platform: Platform::Other("benchmark", "benchmark"),
     static_metadata: Arc::new(EmptyMetadata),
+    start_in_sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
   })
   .build()
   .unwrap()
@@ -101,16 +101,17 @@ fn with_matcher_and_buffer(c: &mut Criterion) {
       Arc::new(UUIDCallbacks),
     ))),
     metadata_provider: Arc::new(LogMetadata {
-      timestamp: time::OffsetDateTime::now_utc(),
-      fields: Vec::new(),
+      timestamp: time::OffsetDateTime::now_utc().into(),
+      ..Default::default()
     }),
     resource_utilization_target: Box::new(bd_test_helpers::resource_utilization::EmptyTarget),
+    session_replay_target: Box::new(bd_test_helpers::session_replay::NoOpTarget),
     events_listener_target: Box::new(bd_test_helpers::events::NoOpListenerTarget),
     device,
     store,
     network: Box::new(NoopNetwork {}),
-    platform: Platform::Other("benchmark", "benchmark"),
     static_metadata: Arc::new(EmptyMetadata),
+    start_in_sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
   })
   .build()
   .unwrap()

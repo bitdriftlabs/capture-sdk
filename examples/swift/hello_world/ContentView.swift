@@ -24,6 +24,7 @@ struct ContentView: View {
 
     var body: some View {
         VStack {
+            NavigationLink("Configuration") { ConfigurationView() }
             Spacer()
             VStack {
                 Text("ACTIONS")
@@ -45,14 +46,23 @@ struct ContentView: View {
                 }) {
                     Text("Simulate Span Event").frame(maxWidth: .infinity)
                 }
+                Button(action: {
+                    self.loggerCustomer.simulateNavigation()
+                }) {
+                    Text("Simulate Navigation to Screen").frame(maxWidth: .infinity)
+                }
                 Button(action: { Thread.sleep(forTimeInterval: 5.0) }) {
                     Text("Simulate ANR (5s)").frame(maxWidth: .infinity)
                 }
+                Button(action: {
+                    let items = [1, 2, 3]
+                    print("the fourth item: \(items[3])")
+                }) {
+                    Text("Swift Assertion Failure").frame(maxWidth: .infinity)
+                }
             }
             .modify { view in
-                if #available(iOS 15, *) {
-                    view.buttonStyle(.bordered)
-                }
+                view.buttonStyle(.bordered)
             }
             Spacer()
             VStack {
@@ -71,9 +81,7 @@ struct ContentView: View {
                         Text("Generate Temporary Device Code").frame(maxWidth: .infinity)
                     }
                     .modify { view in
-                        if #available(iOS 15, *) {
-                            view.buttonStyle(.borderedProminent)
-                        }
+                        view.buttonStyle(.borderedProminent)
                     }
                     Text(self.createdDeviceCode)
                 }
@@ -83,9 +91,7 @@ struct ContentView: View {
                         Text("Copy Session URL").frame(maxWidth: .infinity)
                     }
                     .modify { view in
-                        if #available(iOS 15, *) {
-                            view.buttonStyle(.borderedProminent)
-                        }
+                        view.buttonStyle(.borderedProminent)
                     }
                     Button(action: {
                         self.loggerCustomer.startNewSession()
@@ -94,9 +100,7 @@ struct ContentView: View {
                         Text("Start New Session").frame(maxWidth: .infinity)
                     }
                     .modify { view in
-                        if #available(iOS 15, *) {
-                            view.buttonStyle(.borderedProminent)
-                        }
+                        view.buttonStyle(.borderedProminent)
                     }
                 }
                 Text(self.currentSessionID)

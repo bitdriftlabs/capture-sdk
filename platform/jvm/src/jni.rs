@@ -10,6 +10,7 @@ use crate::executor::{self};
 use crate::key_value_storage::PreferencesHandle;
 use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
 use crate::session::SessionStrategyConfigurationHandle;
+use crate::session_replay::{self, TargetHandler as SessionReplayTargetHandler};
 use crate::{
   define_object_wrapper,
   events,
@@ -26,14 +27,7 @@ use bd_client_common::error::{
   MetadataErrorReporter,
   UnexpectedErrorHandler,
 };
-use bd_logger::{
-  AnnotatedLogField,
-  AnnotatedLogFields,
-  LogAttributesOverridesPreviousRunSessionID,
-  LogField,
-  LogFieldKind,
-  LogType,
-};
+use bd_logger::{LogAttributesOverrides, LogFieldKind, LogFields, LogType};
 use jni::descriptors::Desc;
 use jni::objects::{
   GlobalRef,
@@ -77,7 +71,6 @@ fn initialize_logging() {
       .unwrap_or_else(|_| "info".to_string())
       .parse::<LevelFilter>()
       .unwrap_or(LevelFilter::Info);
-
 
     // This can be called only once.
     android_logger::init_once(Config::default().with_max_level(level));
@@ -324,6 +317,7 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _: *mut c_void) -> jint {
   ffi::initialize(&mut env);
   session::initialize(&mut env);
   resource_utilization::initialize(&mut env);
+  session_replay::initialize(&mut env);
 
   env.get_version().unwrap().into()
 }
@@ -368,28 +362,25 @@ impl bd_api::PlatformNetworkManager<bd_runtime::runtime::ConfigLoader> for Netwo
       active_streams: self.active_streams.clone(),
     }));
 
-    let res = self
-      .handle
-      .execute(|e, network| {
-        let headers = ffi::map_to_jmap(e, headers)?;
+    let res = self.handle.execute(|e, network| {
+      let headers = ffi::map_to_jmap(e, headers)?;
 
-        let handle = NETWORK_START_STREAM
-          .get()
-          .unwrap()
-          .call_method(
-            e,
-            network,
-            ReturnType::Object,
-            &[
-              JValueWrapper::I64(stream_event as i64).into(),
-              JValueWrapper::Object(headers).into(),
-            ],
-          )
-          .and_then(|v| JValueGen::l(v).map_err(|e| anyhow!(e)))?;
+      let handle = NETWORK_START_STREAM
+        .get()
+        .unwrap()
+        .call_method(
+          e,
+          network,
+          ReturnType::Object,
+          &[
+            JValueWrapper::I64(stream_event as i64).into(),
+            JValueWrapper::Object(headers).into(),
+          ],
+        )
+        .and_then(|v| JValueGen::l(v).map_err(|e| anyhow!(e)))?;
 
-        Ok(Box::new(new_global!(StreamHandle, e, handle)?) as Box<dyn PlatformNetworkStream>)
-      })
-      .map_err(Into::into);
+      Ok(Box::new(new_global!(StreamHandle, e, handle)?) as Box<dyn PlatformNetworkStream>)
+    });
 
     // At this point we should have allocated a new one but also deallocated the previous one. This
     // failing would indicate a leak.
@@ -551,35 +542,23 @@ impl bd_logger::MetadataProvider for MetadataProvider {
     })
   }
 
-  fn fields(&self) -> anyhow::Result<AnnotatedLogFields> {
+  fn fields(&self) -> anyhow::Result<(LogFields, LogFields)> {
     self.execute(|e, provider| {
       let ootb_fields = METADATA_PROVIDER_OOTB_FIELDS
         .get()
         .unwrap()
         .call_method(e, provider, ReturnType::Object, &[])?
         .l()?;
-      let ootb_fields = ffi::jobject_list_to_vec(e, &ootb_fields)?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        });
+      let ootb_fields = ffi::jobject_list_to_fields(e, &ootb_fields)?;
 
       let custom_fields = METADATA_PROVIDER_CUSTOM_FIELDS
         .get()
         .unwrap()
         .call_method(e, provider, ReturnType::Object, &[])?
         .l()?;
-      let custom_fields = ffi::jobject_list_to_vec(e, &custom_fields)?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Custom,
-        });
+      let custom_fields = ffi::jobject_list_to_fields(e, &custom_fields)?;
 
-      // The SDK internally assumes that Out-of-the-Box (OOTB) fields are at the beginning of the
-      // list, followed by any custom logs (if present).
-      Ok(ootb_fields.chain(custom_fields).collect())
+      Ok((custom_fields, ootb_fields))
     })
   }
 }
@@ -593,9 +572,11 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   session_strategy: JObject<'_>,
   metadata_provider: JObject<'_>,
   resource_utilization_target: JObject<'_>,
+  session_replay_target: JObject<'_>,
   events_listener_target: JObject<'_>,
   application_id: JString<'_>,
   application_version: JString<'_>,
+  model: JString<'_>,
   network: JObject<'_>,
   preferences: JObject<'_>,
   error_reporter: JObject<'_>,
@@ -629,7 +610,13 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         app_id: Some(unsafe { env.get_string_unchecked(&application_id) }?.into()),
         app_version: Some(unsafe { env.get_string_unchecked(&application_version) }?.into()),
         platform: Platform::Android,
+        // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
+        // Further, "os" as sent as a log tag is hard coded as "Android" so we have a casing
+        // mismatch. We need to untangle all of this but we can do that when we send all fixed
+        // fields as metadata and only use the fixed fields on logs for matching.
+        os: "android".to_string(),
         device: device.clone(),
+        model: unsafe { env.get_string_unchecked(&model) }?.into(),
       });
 
       let error_reporter = Arc::new(new_global!(ErrorReporterHandle, &mut env, error_reporter)?);
@@ -645,6 +632,12 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         ResourceUtilizationTargetHandler,
         &mut env,
         resource_utilization_target
+      )?);
+
+      let session_replay_target = Box::new(new_global!(
+        SessionReplayTargetHandler,
+        &mut env,
+        session_replay_target
       )?);
 
       let events_listener_target = Box::new(new_global!(
@@ -664,17 +657,17 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         session_strategy,
         metadata_provider: Arc::new(new_global!(MetadataProvider, &mut env, metadata_provider)?),
         resource_utilization_target,
+        session_replay_target,
         events_listener_target,
         device,
         store,
         network: network_manager,
-        platform: Platform::Android,
         static_metadata,
+        start_in_sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
       })
-      .with_mobile_features(true)
       .with_internal_logger(true)
       .build()
-      .map(|(logger, _, future)| LoggerHolder::new(logger, future))?;
+      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future))?;
 
       Ok(logger.into_raw().into())
     },
@@ -755,10 +748,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_addLogField(
         .to_string();
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.add_log_field(LogField {
-        key,
-        value: value.into(),
-      });
+      logger.add_log_field(key, value.into());
 
       Ok(())
     },
@@ -807,33 +797,30 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   // This should only fail if the JVM is in a bad state.
   bd_client_common::error::with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = ffi::jobject_map_to_vec(&mut env, &fields)?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
-      let matching_fields = ffi::jobject_map_to_vec(&mut env, &matching_fields)?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = ffi::jobject_map_to_fields(&mut env, &fields, LogFieldKind::Ootb)?;
+      let matching_fields =
+        ffi::jobject_map_to_fields(&mut env, &matching_fields, LogFieldKind::Ootb)?;
 
-      let attributes_overrides = if override_expected_previous_process_session_id.is_null() {
+      let attributes_overrides = if override_expected_previous_process_session_id.is_null()
+        && override_occurred_at_unix_milliseconds <= 0
+      {
         None
+      } else if override_expected_previous_process_session_id.is_null()
+        && override_occurred_at_unix_milliseconds > 0
+      {
+        Some(LogAttributesOverrides::OccurredAt(
+          unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
+        ))
       } else {
         let expected_previous_process_session_id =
           unsafe { env.get_string_unchecked(&override_expected_previous_process_session_id) }?
             .to_string_lossy()
             .to_string();
 
-        Some(LogAttributesOverridesPreviousRunSessionID {
+        Some(LogAttributesOverrides::PreviousRunSessionID(
           expected_previous_process_session_id,
-          occurred_at: unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
-        })
+          unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
+        ))
       };
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
@@ -857,7 +844,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionReplayLog(
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionReplayScreenLog(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
@@ -866,20 +853,35 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
 ) {
   bd_client_common::error::with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = ffi::jobject_map_to_vec(&mut env, &fields)?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = ffi::jobject_map_to_fields(&mut env, &fields, LogFieldKind::Ootb)?;
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.log_session_replay(fields, Duration::seconds_f64(duration_s));
+      logger.log_session_replay_screen(fields, Duration::seconds_f64(duration_s));
 
       Ok(())
     },
-    "jni write resource utilization log",
+    "jni write replay screen log",
+  );
+}
+
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionReplayScreenshotLog(
+  mut env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  fields: JObject<'_>,
+  duration_s: jdouble,
+) {
+  bd_client_common::error::with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let fields = ffi::jobject_map_to_fields(&mut env, &fields, LogFieldKind::Ootb)?;
+
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.log_session_replay_screenshot(fields, Duration::seconds_f64(duration_s));
+
+      Ok(())
+    },
+    "jni write replay screenshot log",
   );
 }
 
@@ -893,13 +895,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeResourceU
 ) {
   bd_client_common::error::with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = ffi::jobject_map_to_vec(&mut env, &fields)?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = ffi::jobject_map_to_fields(&mut env, &fields, LogFieldKind::Ootb)?;
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
       logger.log_resource_utilization(fields, Duration::seconds_f64(duration_s));
@@ -911,7 +907,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeResourceU
 }
 
 #[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSDKConfiguredLog(
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSDKStartLog(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
@@ -920,16 +916,10 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSDKConfig
 ) {
   bd_client_common::error::with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = ffi::jobject_map_to_vec(&mut env, &fields)?
-        .into_iter()
-        .map(|field| AnnotatedLogField {
-          field,
-          kind: LogFieldKind::Ootb,
-        })
-        .collect();
+      let fields = ffi::jobject_map_to_fields(&mut env, &fields, LogFieldKind::Ootb)?;
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.log_sdk_configured(fields, Duration::seconds_f64(duration_s));
+      logger.log_sdk_start(fields, Duration::seconds_f64(duration_s));
 
       Ok(())
     },
@@ -985,7 +975,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppUpdate
         app_version,
         bd_logger::AppVersionExtra::AppVersionCode(app_version_code),
         Some(app_install_size_bytes as u64),
-        vec![],
+        [].into(),
         Duration::seconds_f64(duration_s),
       );
 
@@ -1013,6 +1003,26 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppLaunch
   );
 }
 
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeScreenViewLog(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  screen_name: JString<'_>,
+) {
+  bd_client_common::error::with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let screen_name = unsafe { env.get_string_unchecked(&screen_name)? }
+        .to_string_lossy()
+        .to_string();
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.log_screen_view(screen_name);
+
+      Ok(())
+    },
+    "jni write screen view log",
+  );
+}
 
 #[no_mangle]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_flush(
@@ -1115,6 +1125,32 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_isRuntimeEnabled(
     "jni isFeatureEnabled",
   )
   .into()
+}
+
+#[no_mangle]
+// Java/Kotlin types are always signed, but get_integer is unsigned.
+#[allow(clippy::cast_sign_loss)]
+pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeValue(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  variable_name: JString<'_>,
+  default_value: jint,
+) -> jint {
+  bd_client_common::error::with_handle_unexpected_or(
+    || {
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let binding = unsafe { env.get_string_unchecked(&variable_name) }?;
+      let variable_name = binding.to_str()?;
+      let integer_value = logger
+        .runtime_snapshot()
+        .get_integer(variable_name, default_value as u32);
+
+      Ok(jint::try_from(integer_value).map_or(default_value, |value| value))
+    },
+    default_value,
+    "jni runtimeValue",
+  )
 }
 
 fn unix_milliseconds_to_date(millis_since_utc_epoch: i64) -> anyhow::Result<OffsetDateTime> {

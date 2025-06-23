@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import Foundation
+import SpriteKit
 import UIKit
 
 private typealias CategorizerFunction = (UIView, CGRect) -> AnnotatedView?
@@ -13,7 +14,7 @@ private let kIgnoredWindows = Set(["UIRemoteKeyboardWindow"])
 
 /// Main replay logic. This class can traverse UIWindow(s) as well as serialize view informations into a
 /// byte array.
-public final class Replay {
+package final class Replay {
     /// The last known rendering time, expressed in seconds.
     private(set) var renderTime: CFAbsoluteTime = 0
 
@@ -32,7 +33,7 @@ public final class Replay {
     ///
     /// - parameter type:       The annotated view which defines the position and traverse behavior,
     ///                         see `AnnotatedViewType` for more information.
-    public func add(knownClass: String, type: AnnotatedView) {
+    func add(knownClass: String, type: AnnotatedView) {
         ReplayCommonCategorizer.knownTypes[knownClass] = type
     }
 
@@ -81,6 +82,11 @@ public final class Replay {
     private func traverse(into buffer: inout Data, parent: UIView, parentPosition: CGPoint, clipTo: CGRect,
                           ignoreViewType: Bool = false)
     {
+        // Traverse SKView as a SpriteKit tree if parent view is SpriteKit
+        if let view = parent as? SKView {
+            self.traverse(into: &buffer, view: view, clipTo: clipTo)
+        }
+
         for view in parent.subviews {
             if view.isHidden || view.alpha < 0.1 {
                 continue
@@ -141,10 +147,6 @@ public final class Replay {
 
 extension UIApplication {
     func sessionReplayWindows() -> [UIWindow] {
-        if #available(iOS 13.0, *) {
-            self.connectedScenes.flatMap { ($0 as? UIWindowScene)?.windows ?? [] }
-        } else {
-            self.windows
-        }
+        self.connectedScenes.flatMap { ($0 as? UIWindowScene)?.windows ?? [] }
     }
 }

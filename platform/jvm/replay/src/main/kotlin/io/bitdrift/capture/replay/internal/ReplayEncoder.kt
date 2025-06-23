@@ -11,7 +11,6 @@ import java.io.ByteArrayOutputStream
 
 // Encode a screen capture to an output stream
 internal class ReplayEncoder {
-
     fun encode(scanResult: FilteredCapture): ByteArray {
         val outputStream = ByteArrayOutputStream()
         outputStream.use { output ->

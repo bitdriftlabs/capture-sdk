@@ -12,10 +12,12 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.bitdrift.capture.error.ErrorReportRequest
 import io.bitdrift.capture.error.ErrorReporterService
+import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.IFatalIssueReporter
 import okhttp3.HttpUrl
 import okhttp3.mockwebserver.MockWebServer
 import org.assertj.core.api.Assertions.assertThat
@@ -33,6 +35,7 @@ import java.util.concurrent.TimeUnit
 class ErrorReporterTest {
     private lateinit var server: MockWebServer
     private lateinit var reporter: ErrorReporterService
+    private val fatalIssueReporter: IFatalIssueReporter = FakeFatalIssueReporter()
 
     init {
         CaptureJniLibrary.load()
@@ -45,10 +48,11 @@ class ErrorReporterTest {
 
         val apiClient = OkHttpApiClient(server.url(""), "api-key")
 
-        reporter = ErrorReporterService(
-            listOf(FieldProvider { mapOf("foo" to "bar") }),
-            apiClient,
-        )
+        reporter =
+            ErrorReporterService(
+                listOf(FieldProvider { mapOf("foo" to "bar") }),
+                apiClient,
+            )
 
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
@@ -96,15 +100,17 @@ class ErrorReporterTest {
     @Test
     fun verifyStacktraceSent() {
         @Suppress("UNUSED_VARIABLE")
-        val logger = LoggerImpl(
-            apiKey = "test",
-            apiUrl = testServerUrl(),
-            fieldProviders = listOf(),
-            dateProvider = SystemDateProvider(),
-            sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-            configuration = Configuration(),
-            errorReporter = reporter,
-        )
+        val logger =
+            LoggerImpl(
+                apiKey = "test",
+                apiUrl = testServerUrl(),
+                fieldProviders = listOf(),
+                dateProvider = SystemDateProvider(),
+                sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
+                configuration = Configuration(),
+                errorReporter = reporter,
+                fatalIssueReporter = fatalIssueReporter,
+            )
 
         val errorHandler = ErrorHandler()
 
@@ -123,6 +129,9 @@ class ErrorReporterTest {
     }
 }
 
-private fun testServerUrl(): HttpUrl {
-    return HttpUrl.Builder().scheme("http").host("test.bitdrift.com").build()
-}
+private fun testServerUrl(): HttpUrl =
+    HttpUrl
+        .Builder()
+        .scheme("http")
+        .host("test.bitdrift.com")
+        .build()

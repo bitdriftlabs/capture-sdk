@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@_implementationOnly import CaptureLoggerBridge
+internal import CaptureLoggerBridge
 import Foundation
 
 /// A layer of abstraction used as a thin wrapper around Rust logger bridge. It introduces easy-to-use
@@ -38,8 +38,9 @@ extension CoreLogger: CoreLogging {
         fields: Fields? = nil,
         matchingFields: Fields? = nil,
         error: Error? = nil,
-        type: Logger.LogType,
-        blocking: Bool = false
+        type: Capture.Logger.LogType,
+        blocking: Bool = false,
+        occurredAtOverride: Date? = nil
     )
     {
         if type == .internalsdk && !self.runtimeValue(.internalLogs) {
@@ -76,13 +77,22 @@ extension CoreLogger: CoreLogging {
             fields: fieldsOrNil,
             matchingFields: matchingFields.flatMap(self.convertFields),
             type: type,
-            blocking: blocking
+            blocking: blocking,
+            occurredAtOverride: occurredAtOverride
         )
     }
 
-    func logSessionReplay(screen: SessionReplayScreenCapture, duration: TimeInterval) {
-        self.underlyingLogger.logSessionReplay(
+    func logSessionReplayScreen(screen: SessionReplayCapture, duration: TimeInterval) {
+        self.underlyingLogger.logSessionReplayScreen(
             fields: self.convertFields(fields: ["screen": screen]),
+            duration: duration
+        )
+    }
+
+    func logSessionReplayScreenshot(screen: SessionReplayCapture?, duration: TimeInterval) {
+        let fields = screen.flatMap { screen in self.convertFields(fields: ["screen_px": screen]) } ?? []
+        self.underlyingLogger.logSessionReplayScreenshot(
+            fields: fields,
             duration: duration
         )
     }
@@ -94,8 +104,8 @@ extension CoreLogger: CoreLogging {
         )
     }
 
-    func logSDKConfigured(fields: Fields, duration: TimeInterval) {
-        self.underlyingLogger.logSDKConfigured(
+    func logSDKStart(fields: Fields, duration: TimeInterval) {
+        self.underlyingLogger.logSDKStart(
             fields: self.convertFields(fields: fields),
             duration: duration
         )
@@ -122,6 +132,10 @@ extension CoreLogger: CoreLogging {
 
     func logAppLaunchTTI(_ duration: TimeInterval) {
         self.underlyingLogger.logAppLaunchTTI(duration)
+    }
+
+    func logScreenView(screenName: String) {
+        self.underlyingLogger.logScreenView(screenName: screenName)
     }
 
     func startNewSession() {

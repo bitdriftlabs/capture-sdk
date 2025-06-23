@@ -5,11 +5,20 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+import AVFoundation
 @testable import Capture
+import CaptureMocks
 import Foundation
 import XCTest
 
 // swiftlint:disable file_length
+private final class URLSessionIncompleteDelegate: NSObject, URLSessionTaskDelegate {
+    var didCompleteExpectation: XCTestExpectation?
+
+    func urlSession(_: URLSession, task _: URLSessionTask, didCompleteWithError _: Error?) {
+        self.didCompleteExpectation?.fulfill()
+    }
+}
 
 private final class URLSessionDelegate: NSObject, URLSessionTaskDelegate {
     var didCreateTaskExpectation: XCTestExpectation?
@@ -44,7 +53,7 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        self.customSetUp()
+        self.customSetUp(swizzle: true)
     }
 
     override func tearDown() {
@@ -52,17 +61,18 @@ final class URLSessionIntegrationTests: XCTestCase {
         self.customTearDown()
     }
 
-    private func customSetUp() {
+    private func customSetUp(swizzle: Bool) {
         self.logger = MockLogging()
+        URLSessionIntegration.shared.disableURLSessionTaskSwizzling()
+
         Logger.resetShared(logger: self.logger)
         Logger
-            .configure(withAPIKey: "123", sessionStrategy: .fixed())
-            .enableIntegrations([
-                .urlSession(),
-            ])
+            .start(withAPIKey: "123", sessionStrategy: .fixed())?
+            .enableIntegrations([.urlSession()], disableSwizzling: !swizzle)
     }
 
     private func customTearDown() {
+        URLSessionIntegration.shared.disableURLSessionTaskSwizzling()
         Logger.resetShared()
     }
 
@@ -82,11 +92,30 @@ final class URLSessionIntegrationTests: XCTestCase {
         XCTAssertTrue(self.logger.logs.isEmpty)
     }
 
+    func testResumeDataTaskUnswizzled() throws {
+        self.customSetUp(swizzle: false)
+
+        let requestExpectation = self.expectation(description: "request not logged")
+        requestExpectation.isInverted = true
+        let responseExpectation = self.expectation(description: "response not logged")
+        responseExpectation.isInverted = true
+
+        let task = URLSession.shared.dataTask(with: self.makeURLRequest()) { _, _, _ in }
+        task.resume()
+
+        XCTAssertEqual(
+            .completed,
+            XCTWaiter().wait(for: [requestExpectation, responseExpectation], timeout: 2)
+        )
+
+        XCTAssertTrue(self.logger.logs.isEmpty)
+    }
+
     // MARK: - Tasks
 
     func testCustomSessionTasks() throws {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
-            self.customSetUp()
+            self.customSetUp(swizzle: true)
 
             let expectation = self.expectation(description: "delegate callbacks are called")
             expectation.expectedFulfillmentCount = 2
@@ -111,9 +140,65 @@ final class URLSessionIntegrationTests: XCTestCase {
         }
     }
 
+    func testCreateInvalidTask() throws {
+        self.customSetUp(swizzle: true)
+
+        let requestExpectation = self.expectation(description: "request not logged")
+        requestExpectation.isInverted = true
+        let responseExpectation = self.expectation(description: "response not logged")
+        responseExpectation.isInverted = true
+
+        let session = AVAssetDownloadURLSession(configuration: .background(withIdentifier: "w00t"),
+                                                assetDownloadDelegate: nil,
+                                                delegateQueue: nil)
+
+        let task = session
+            .makeAssetDownloadTask(downloadConfiguration: .init(asset: .init(url: self.makeURL()),
+                                                                title: "we"))
+        task.resume()
+
+        XCTAssertEqual(
+            .completed,
+            XCTWaiter().wait(for: [requestExpectation, responseExpectation], timeout: 2)
+        )
+
+        XCTAssertTrue(self.logger.logs.isEmpty)
+    }
+
+    func testBackgroundSessionTasks() throws {
+        self.customSetUp(swizzle: true)
+
+        let session = URLSession(configuration: .background(withIdentifier: "w00t"))
+        let task = session.dataTask(with: self.makeURL())
+
+        let logRequestExpectation = self.expectation(description: "request logged")
+        self.logger.logRequestExpectation = logRequestExpectation
+        task.resume()
+
+        XCTAssertEqual(.completed, XCTWaiter().wait(for: [logRequestExpectation], timeout: 3, enforceOrder: false))
+        XCTAssertEqual(1, self.logger.logs.count)
+
+        let requestInfo = try XCTUnwrap(self.logger.logs[0].request())
+        var requestInfoFields = try XCTUnwrap(requestInfo.toFields() as? [String: String])
+        requestInfoFields["_span_id"] = nil
+
+        XCTAssertEqual(
+            [
+                "_host": "api-fe.bitdrift.io",
+                "_method": "GET",
+                "_path": "/fe/ping",
+                "_query": "q=test",
+            ],
+            requestInfoFields
+        )
+
+        self.customTearDown()
+        session.finishTasksAndInvalidate()
+    }
+
     func testCustomCaptureSessionTasks() throws {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
-            self.customSetUp()
+            self.customSetUp(swizzle: false)
 
             let expectation = self.expectation(description: "delegate callbacks are called")
             expectation.expectedFulfillmentCount = 2
@@ -140,9 +225,31 @@ final class URLSessionIntegrationTests: XCTestCase {
         }
     }
 
+    func testCustomDelegateWithoutAllMethods() throws {
+        for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
+            self.customSetUp(swizzle: false)
+
+            let taskCompletionExpectation = self.expectation(description: "task completed")
+
+            let delegate = URLSessionIncompleteDelegate()
+            delegate.didCompleteExpectation = taskCompletionExpectation
+
+            let session = URLSession(
+                instrumentedSessionWithConfiguration: .default,
+                delegate: delegate
+            )
+            let task = try taskTestCase(session)
+
+            try self.runCompletedRequestTest(with: task, completionExpectation: taskCompletionExpectation)
+
+            session.invalidateAndCancel()
+            self.customTearDown()
+        }
+    }
+
     func testSharedSessionTasks() throws {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
-            self.customSetUp()
+            self.customSetUp(swizzle: true)
 
             let task = try taskTestCase(.shared)
 
@@ -154,10 +261,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     // MARK: - Tasks With Task Delegates
 
-    @available(iOS 15.0, *)
     func testCustomSessionTasksWithTaskDelegates() throws {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
-            self.customSetUp()
+            self.customSetUp(swizzle: true)
 
             let expectation = self.expectation(description: "delegate callback is called")
             let taskCompletionExpectation = self.expectation(description: "task completed")
@@ -180,10 +286,9 @@ final class URLSessionIntegrationTests: XCTestCase {
         }
     }
 
-    @available(iOS 15.0, *)
     func testSharedSessionTasksWithTaskDelegates() throws {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
-            self.customSetUp()
+            self.customSetUp(swizzle: true)
 
             let expectation = self.expectation(description: "delegate callback is called")
             let taskCompletionExpectation = self.expectation(description: "task completed")
@@ -207,7 +312,7 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     func testSharedSessionTasksWithCompletionClosures() throws {
         for taskTestCase in self.makeTaskWithCompletionClosureTestCases() {
-            self.customSetUp()
+            self.customSetUp(swizzle: true)
 
             let testCaseInput = try taskTestCase(.shared)
 
@@ -222,7 +327,7 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     func testCustomSessionTasksWithCompletionClosures() throws {
         for taskTestCase in self.makeTaskWithCompletionClosureTestCases() {
-            self.customSetUp()
+            self.customSetUp(swizzle: true)
 
             let expectation = self.expectation(description: "delegate callbacks are called")
             expectation.expectedFulfillmentCount = 2
@@ -251,7 +356,7 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     func testCancelRequestsSharedSession() throws {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
-            self.customSetUp()
+            self.customSetUp(swizzle: true)
 
             let task = try taskTestCase(.shared)
             try self.runCanceledRequestTest(with: task, taskCompletionExpectation: nil)
@@ -260,7 +365,7 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     func testCancelRequestsCustomSession() throws {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
-            self.customSetUp()
+            self.customSetUp(swizzle: true)
 
             let session = URLSession(configuration: .default)
 
@@ -274,10 +379,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     // MARK: - Cancelling Tasks With Task Delegates
 
-    @available(iOS 15.0, *)
     func testCancelRequestsSharedSessionWithTaskDelegates() throws {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
-            self.customSetUp()
+            self.customSetUp(swizzle: true)
 
             let expectation = self.expectation(description: "task completes")
             let delegate = URLSessionDelegate()
@@ -292,10 +396,9 @@ final class URLSessionIntegrationTests: XCTestCase {
         }
     }
 
-    @available(iOS 15.0, *)
     func testCancelRequestsCustomSessionWithTaskDelegates() throws {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
-            self.customSetUp()
+            self.customSetUp(swizzle: true)
 
             let session = URLSession(configuration: .default)
 
@@ -317,7 +420,7 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     func testCancelRequestsSharedSessionWithCompletionClosures() throws {
         for taskTestCase in self.makeTaskWithCompletionClosureTestCases() {
-            self.customSetUp()
+            self.customSetUp(swizzle: true)
 
             let testCaseInput = try taskTestCase(.shared)
 
@@ -332,7 +435,7 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     func testCancelRequestsCustomSessionWithCompletionClosures() throws {
         for taskTestCase in self.makeTaskWithCompletionClosureTestCases() {
-            self.customSetUp()
+            self.customSetUp(swizzle: true)
 
             let session = URLSession(configuration: .default)
             let testCaseInput = try taskTestCase(session)
@@ -349,10 +452,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     // MARK: - Cancelling Tasks With Task Delegates And Completion Closures
 
-    @available(iOS 15.0, *)
     func testCancelRequestsSharedSessionWithTaskDelegatesAndCompletionClosures() throws {
         for taskTestCase in self.makeTaskWithCompletionClosureTestCases() {
-            self.customSetUp()
+            self.customSetUp(swizzle: true)
 
             let expectation = self.expectation(description: "task did collect metrics")
             let delegate = URLSessionDelegate()
@@ -372,10 +474,9 @@ final class URLSessionIntegrationTests: XCTestCase {
         }
     }
 
-    @available(iOS 15.0, *)
     func testCancelRequestsCustomSessionWithTaskDelegatesAndCompletionClosures() throws {
         for taskTestCase in self.makeTaskWithCompletionClosureTestCases() {
-            self.customSetUp()
+            self.customSetUp(swizzle: true)
 
             let session = URLSession(configuration: .default)
 
@@ -485,35 +586,6 @@ final class URLSessionIntegrationTests: XCTestCase {
         task.cancel()
     }
 
-    func testDoesNotEmitLogsForCaptureSDKNetworkRequests() {
-        let session = URLSession(configuration: .default)
-        var urlRequest = self.makeURLRequest()
-        urlRequest.addValue("true", forHTTPHeaderField: "x-capture-api")
-
-        let taskCompletionExpectation = self.expectation(description: "request completes")
-        let task = session.dataTask(with: urlRequest) { _, _, _ in taskCompletionExpectation.fulfill() }
-
-        let logRequestExpectation = self.expectation(description: "request is not logged")
-        logRequestExpectation.isInverted = true
-        let logResponseExpectation = self.expectation(description: "response is not logged")
-        logResponseExpectation.isInverted = true
-
-        self.logger.logRequestExpectation = logRequestExpectation
-        self.logger.logResponseExpectation = logResponseExpectation
-
-        task.resume()
-
-        XCTAssertEqual(
-            .completed,
-            XCTWaiter().wait(
-                for: [logRequestExpectation, logResponseExpectation, taskCompletionExpectation],
-                timeout: 10
-            )
-        )
-
-        session.invalidateAndCancel()
-    }
-
     // MARK: - Parametrized Test Methods
 
     private func runCompletedRequestTest(
@@ -538,7 +610,7 @@ final class URLSessionIntegrationTests: XCTestCase {
             expectations.append(completionExpectation)
         }
 
-        XCTAssertEqual(.completed, XCTWaiter().wait(for: expectations, timeout: 10, enforceOrder: false))
+        XCTAssertEqual(.completed, XCTWaiter().wait(for: expectations, timeout: 3, enforceOrder: false))
 
         XCTAssertEqual(2, self.logger.logs.count)
 
@@ -551,9 +623,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         XCTAssertEqual(
             [
-                "_host": "www.google.com",
+                "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
-                "_path": "/search",
+                "_path": "/fe/ping",
                 "_query": "q=test",
             ],
             requestInfoFields
@@ -572,9 +644,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         XCTAssertEqual(
             [
-                "_host": "www.google.com",
+                "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
-                "_path": "/search",
+                "_path": "/fe/ping",
                 "_query": "q=test",
                 "_result": "success",
                 "_status_code": "200",
@@ -618,9 +690,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         XCTAssertEqual(
             [
-                "_host": "www.google.com",
+                "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
-                "_path": "/search",
+                "_path": "/fe/ping",
                 "_query": "q=test",
             ],
             requestInfoFields
@@ -639,9 +711,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         XCTAssertEqual(
             [
-                "_host": "www.google.com",
+                "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
-                "_path": "/search",
+                "_path": "/fe/ping",
                 "_query": "q=test",
                 "_result": "canceled",
             ],
@@ -768,6 +840,11 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         let expectedOptionalFields = [
             "_dns_resolution_duration_ms",
+            "_tls_duration_ms",
+            "_tcp_duration_ms",
+            "_fetch_init_duration_ms",
+            "_response_latency_ms",
+            "_protocol",
         ]
 
         for field in expectedOptionalFields {
@@ -786,7 +863,7 @@ final class URLSessionIntegrationTests: XCTestCase {
         // significantly more time when ran on the CI.
         // TODO(Augustyniak): Move to using bitdrift ping.
         // swiftlint:disable:next force_unwrapping
-        return URL(string: "http://www.google.com/search?q=test")!
+        return URL(string: "https://api-fe.bitdrift.io/fe/ping?q=test")!
     }
 
     private func makeTempFileURL(name: String) throws -> URL {

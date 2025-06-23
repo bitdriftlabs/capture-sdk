@@ -60,6 +60,10 @@
    public <methods>;
 }
 
+-keep, includedescriptorclasses class io.bitdrift.capture.ISessionReplayTarget {
+   public <methods>;
+}
+
 -keepclasseswithmembernames,includedescriptorclasses class * {
     native <methods>;
 }
@@ -83,6 +87,7 @@
 
 -keep class io.bitdrift.capture.providers.** { *; }
 
+-dontwarn android.app.ApplicationStartInfo
 -dontwarn kotlin.time.LongSaturatedMathKt
 -dontwarn kotlin.time.TimeSource$Monotonic$ValueTimeMark
 -dontwarn kotlin.jvm.internal.SourceDebugExtension

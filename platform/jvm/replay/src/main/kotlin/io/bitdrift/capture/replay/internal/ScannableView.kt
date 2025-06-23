@@ -22,14 +22,16 @@ import io.bitdrift.capture.replay.internal.compose.ComposeTreeParser.mightBeComp
  * represents the concept of a logical "view" ([ComposeView]).
  */
 internal sealed class ScannableView {
-
     /** The string that be used to identify the type of the view in the rendered output. */
     abstract val displayName: String
 
     /** The children of this view. */
     abstract val children: Sequence<ScannableView>
 
-    class AndroidView(val view: View, private val skipReplayComposeViews: Boolean) : ScannableView() {
+    class AndroidView(
+        val view: View,
+        skipReplayComposeViews: Boolean,
+    ) : ScannableView() {
         override val displayName: String get() = view::class.java.simpleName
         override val children: Sequence<ScannableView> =
             view.scannableChildren(skipReplayComposeViews)

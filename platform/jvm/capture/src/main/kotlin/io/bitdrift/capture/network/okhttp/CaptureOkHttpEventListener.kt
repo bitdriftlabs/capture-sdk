@@ -55,12 +55,37 @@ internal class CaptureOkHttpEventListener internal constructor(
      */
     private var dnsResolutionDurationMs: Long? = null
 
-    private var callStartTimeMs: Long = 0
+    /**
+     * The cumulative duration of all TLS handshakes performed during the execution of a given HTTP
+     * request. Due to retries of different routes or redirects a single pair of
+     * `callStart` and `callEnd`/`callFailed` may include multiple TLS handshakes.
+     */
+    private var tlsDurationMs: Long? = null
 
     /**
-     * The start time of the last DNS query.
+     * The cumulative duration of all TCP handshakes performed during the execution of a given
+     * HTTP request. Due to retries of different routes or redirects a single pair of
+     * `callStart` and `callEnd`/`callFailed` may include multiple TCP handshakes.
      */
+    private var tcpDurationMs: Long? = null
+
+    /**
+     * The duration between the `callStart` and the first DNS resolution.
+     */
+    private var fetchInitializationMs: Long? = null
+
+    /**
+     * The cumulative duration of all responses from the time the request is sent to the time we get
+     * the first byte from the server. Due to retries of different routes or redirects a single pair
+     * of `callStart` and `callEnd`/`callFailed` may include multiple request/responses.
+     */
+    private var responseLatencyMs: Long? = null
+
+    private var connectStartTimeMs: Long? = null
     private var dnsStartTimeMs: Long? = null
+    private var callStartTimeMs: Long = 0
+    private var tlsStartTimeMs: Long? = null
+    private var requestEndTimeMs: Long? = null
 
     private var requestInfo: HttpRequestInfo? = null
     private var lastResponse: Response? = null
@@ -73,63 +98,114 @@ internal class CaptureOkHttpEventListener internal constructor(
         val request = call.request()
 
         val pathTemplateHeaderValues = request.headers.values("x-capture-path-template")
-        val pathTemplate = if (pathTemplateHeaderValues.isEmpty()) { null } else pathTemplateHeaderValues.joinToString(",")
+        val pathTemplate =
+            if (pathTemplateHeaderValues.isEmpty()) {
+                null
+            } else {
+                pathTemplateHeaderValues.joinToString(",")
+            }
 
-        val bytesExpectedToSendCount = if (request.body == null) {
-            // If there is no body set the number of body bytes to send to 0
-            0
-        } else {
-            request.body?.contentLength().validateLength()
-        }
+        val bytesExpectedToSendCount =
+            if (request.body == null) {
+                // If there is no body set the number of body bytes to send to 0
+                0
+            } else {
+                request.body?.contentLength().validateLength()
+            }
 
-        val requestInfo = HttpRequestInfo(
-            host = request.url.host,
-            method = request.method,
-            path = HttpUrlPath(
-                request.url.encodedPath,
-                pathTemplate,
-            ),
-            query = request.url.query,
-            headers = request.headers.toMap(),
-            bytesExpectedToSendCount = bytesExpectedToSendCount,
-        )
+        val requestInfo =
+            HttpRequestInfo(
+                host = request.url.host,
+                method = request.method,
+                path =
+                    HttpUrlPath(
+                        request.url.encodedPath,
+                        pathTemplate,
+                    ),
+                query = request.url.query,
+                headers = request.headers.toMap(),
+                bytesExpectedToSendCount = bytesExpectedToSendCount,
+            )
 
         this.requestInfo = requestInfo
         logger?.log(requestInfo)
     }
 
-    override fun proxySelectStart(call: Call, url: HttpUrl) {
+    override fun proxySelectStart(
+        call: Call,
+        url: HttpUrl,
+    ) {
         runCatching { targetEventListener?.proxySelectStart(call, url) }
     }
 
-    override fun proxySelectEnd(call: Call, url: HttpUrl, proxies: List<Proxy>) {
+    override fun proxySelectEnd(
+        call: Call,
+        url: HttpUrl,
+        proxies: List<Proxy>,
+    ) {
         runCatching { targetEventListener?.proxySelectEnd(call, url, proxies) }
     }
 
-    override fun dnsStart(call: Call, domainName: String) {
+    override fun dnsStart(
+        call: Call,
+        domainName: String,
+    ) {
         runCatching { targetEventListener?.dnsStart(call, domainName) }
+        val elapsed = clock.elapsedRealtime()
 
-        dnsStartTimeMs = clock.elapsedRealtime()
+        // Calculate initialization time as the first dnsStart - callStart
+        if (fetchInitializationMs == null) {
+            fetchInitializationMs = (elapsed - callStartTimeMs)
+        }
+
+        dnsStartTimeMs = elapsed
     }
 
-    override fun dnsEnd(call: Call, domainName: String, inetAddressList: List<InetAddress>) {
+    override fun dnsEnd(
+        call: Call,
+        domainName: String,
+        inetAddressList: List<InetAddress>,
+    ) {
         runCatching { targetEventListener?.dnsEnd(call, domainName, inetAddressList) }
+        val elapsed = clock.elapsedRealtime()
 
         val dnsStartTimeMs = dnsStartTimeMs ?: return
-        val currentDnsDurationMs = (clock.elapsedRealtime() - dnsStartTimeMs)
+        val currentDnsDurationMs = (elapsed - dnsStartTimeMs)
         dnsResolutionDurationMs = (dnsResolutionDurationMs ?: 0) + currentDnsDurationMs
     }
 
-    override fun connectStart(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
+    override fun connectStart(
+        call: Call,
+        inetSocketAddress: InetSocketAddress,
+        proxy: Proxy,
+    ) {
         runCatching { targetEventListener?.connectStart(call, inetSocketAddress, proxy) }
+
+        connectStartTimeMs = clock.elapsedRealtime()
     }
 
     override fun secureConnectStart(call: Call) {
         runCatching { targetEventListener?.secureConnectStart(call) }
+        val elapsed = clock.elapsedRealtime()
+
+        // If this is an https request, we measure the tcp time as tlsStart - connectStart
+        val connectStartTimeMs = connectStartTimeMs ?: return
+        val currentTCPDurationMs = (elapsed - connectStartTimeMs)
+        tcpDurationMs = (tcpDurationMs ?: 0) + currentTCPDurationMs
+
+        tlsStartTimeMs = elapsed
     }
 
-    override fun secureConnectEnd(call: Call, handshake: Handshake?) {
+    override fun secureConnectEnd(
+        call: Call,
+        handshake: Handshake?,
+    ) {
         runCatching { targetEventListener?.secureConnectEnd(call, handshake) }
+        val elapsed = clock.elapsedRealtime()
+
+        val tlsStartTimeMs = tlsStartTimeMs ?: return
+        val currentTLSDurationMs = (elapsed - tlsStartTimeMs)
+        tlsDurationMs = (tlsDurationMs ?: 0) + currentTLSDurationMs
     }
 
     override fun connectEnd(
@@ -139,6 +215,15 @@ internal class CaptureOkHttpEventListener internal constructor(
         protocol: Protocol?,
     ) {
         runCatching { targetEventListener?.connectEnd(call, inetSocketAddress, proxy, protocol) }
+        val elapsed = clock.elapsedRealtime()
+
+        // If this is not an https request (ie there wasn't a handshake), we measure the tcp time as
+        // connectEnd - connectStart.
+        if (tlsStartTimeMs == null) {
+            val connectStartTimeMs = connectStartTimeMs ?: return
+            val currentTCPDurationMs = (elapsed - connectStartTimeMs)
+            tcpDurationMs = (tcpDurationMs ?: 0) + currentTCPDurationMs
+        }
     }
 
     override fun connectFailed(
@@ -151,11 +236,17 @@ internal class CaptureOkHttpEventListener internal constructor(
         runCatching { targetEventListener?.connectFailed(call, inetSocketAddress, proxy, protocol, ioe) }
     }
 
-    override fun connectionAcquired(call: Call, connection: Connection) {
+    override fun connectionAcquired(
+        call: Call,
+        connection: Connection,
+    ) {
         runCatching { targetEventListener?.connectionAcquired(call, connection) }
     }
 
-    override fun connectionReleased(call: Call, connection: Connection) {
+    override fun connectionReleased(
+        call: Call,
+        connection: Connection,
+    ) {
         runCatching { targetEventListener?.connectionReleased(call, connection) }
     }
 
@@ -163,9 +254,14 @@ internal class CaptureOkHttpEventListener internal constructor(
         runCatching { targetEventListener?.requestHeadersStart(call) }
     }
 
-    override fun requestHeadersEnd(call: Call, request: Request) {
+    override fun requestHeadersEnd(
+        call: Call,
+        request: Request,
+    ) {
         runCatching { targetEventListener?.requestHeadersEnd(call, request) }
 
+        // Measure it here too in case the request has no body
+        requestEndTimeMs = clock.elapsedRealtime()
         requestHeadersBytesCount += request.headers.byteCount()
     }
 
@@ -173,21 +269,35 @@ internal class CaptureOkHttpEventListener internal constructor(
         runCatching { targetEventListener?.requestBodyStart(call) }
     }
 
-    override fun requestBodyEnd(call: Call, byteCount: Long) {
+    override fun requestBodyEnd(
+        call: Call,
+        byteCount: Long,
+    ) {
         runCatching { targetEventListener?.requestBodyEnd(call, byteCount) }
 
+        requestEndTimeMs = clock.elapsedRealtime()
         requestBodyBytesSentCount += byteCount
     }
 
-    override fun requestFailed(call: Call, ioe: IOException) {
+    override fun requestFailed(
+        call: Call,
+        ioe: IOException,
+    ) {
         runCatching { targetEventListener?.requestFailed(call, ioe) }
     }
 
     override fun responseHeadersStart(call: Call) {
         runCatching { targetEventListener?.responseHeadersStart(call) }
+
+        val requestEndTimeMs = requestEndTimeMs ?: return
+        val currentResponseLatencyMs = (clock.elapsedRealtime() - requestEndTimeMs)
+        responseLatencyMs = (responseLatencyMs ?: 0) + currentResponseLatencyMs
     }
 
-    override fun responseHeadersEnd(call: Call, response: Response) {
+    override fun responseHeadersEnd(
+        call: Call,
+        response: Response,
+    ) {
         runCatching { targetEventListener?.responseHeadersEnd(call, response) }
 
         responseHeadersBytesCount += response.headers.byteCount()
@@ -199,13 +309,19 @@ internal class CaptureOkHttpEventListener internal constructor(
         runCatching { targetEventListener?.responseBodyStart(call) }
     }
 
-    override fun responseBodyEnd(call: Call, byteCount: Long) {
+    override fun responseBodyEnd(
+        call: Call,
+        byteCount: Long,
+    ) {
         runCatching { targetEventListener?.responseBodyEnd(call, byteCount) }
 
         responseBodyBytesReceivedCount += byteCount
     }
 
-    override fun responseFailed(call: Call, ioe: IOException) {
+    override fun responseFailed(
+        call: Call,
+        ioe: IOException,
+    ) {
         runCatching { targetEventListener?.responseFailed(call, ioe) }
     }
 
@@ -228,30 +344,36 @@ internal class CaptureOkHttpEventListener internal constructor(
         // Capture response URL attributes in case there was a redirect and attributes such as host,
         // path, and query have different values for the original request and the response.
         // https://square.github.io/okhttp/features/interceptors/#application-interceptors
-        val httpResponse = HttpResponse(
-            host = request.url.host,
-            path = HttpUrlPath(request.url.encodedPath),
-            query = request.url.query,
-            result = if (isSuccess) {
-                HttpResponse.HttpResult.SUCCESS
-            } else {
-                HttpResponse.HttpResult.FAILURE
-            },
-            statusCode = statusCode,
-            headers = response.headers.toMap(),
-        )
+        val httpResponse =
+            HttpResponse(
+                host = request.url.host,
+                path = HttpUrlPath(request.url.encodedPath),
+                query = request.url.query,
+                result =
+                    if (isSuccess) {
+                        HttpResponse.HttpResult.SUCCESS
+                    } else {
+                        HttpResponse.HttpResult.FAILURE
+                    },
+                statusCode = statusCode,
+                headers = response.headers.toMap(),
+            )
 
-        val httpResponseInfo = HttpResponseInfo(
-            request = requestInfo,
-            response = httpResponse,
-            durationMs = (clock.elapsedRealtime() - callStartTimeMs),
-            metrics = getMetrics(),
-        )
+        val httpResponseInfo =
+            HttpResponseInfo(
+                request = requestInfo,
+                response = httpResponse,
+                durationMs = (clock.elapsedRealtime() - callStartTimeMs),
+                metrics = getMetrics(),
+            )
 
         logger?.log(httpResponseInfo)
     }
 
-    override fun callFailed(call: Call, ioe: IOException) {
+    override fun callFailed(
+        call: Call,
+        ioe: IOException,
+    ) {
         runCatching { targetEventListener?.callFailed(call, ioe) }
 
         val requestInfo = requestInfo ?: return
@@ -263,23 +385,26 @@ internal class CaptureOkHttpEventListener internal constructor(
         // Capture response URL attributes in case there was a redirect and attributes such as host,
         // path, and query have different values for the original request and the response.
         // https://square.github.io/okhttp/features/interceptors/#application-interceptors
-        val httpResponse = HttpResponse(
-            host = request.url.host,
-            path = HttpUrlPath(request.url.encodedPath),
-            query = request.url.query,
-            result = if (isInterruptedException(ioe)) {
-                HttpResponse.HttpResult.CANCELED
-            } else {
-                HttpResponse.HttpResult.FAILURE
-            },
-            error = ioe,
-        )
-        val httpResponseInfo = HttpResponseInfo(
-            request = requestInfo,
-            response = httpResponse,
-            durationMs = (clock.elapsedRealtime() - callStartTimeMs),
-            metrics = getMetrics(),
-        )
+        val httpResponse =
+            HttpResponse(
+                host = request.url.host,
+                path = HttpUrlPath(request.url.encodedPath),
+                query = request.url.query,
+                result =
+                    if (isInterruptedException(ioe)) {
+                        HttpResponse.HttpResult.CANCELED
+                    } else {
+                        HttpResponse.HttpResult.FAILURE
+                    },
+                error = ioe,
+            )
+        val httpResponseInfo =
+            HttpResponseInfo(
+                request = requestInfo,
+                response = httpResponse,
+                durationMs = (clock.elapsedRealtime() - callStartTimeMs),
+                metrics = getMetrics(),
+            )
         logger?.log(httpResponseInfo)
     }
 
@@ -287,11 +412,17 @@ internal class CaptureOkHttpEventListener internal constructor(
         runCatching { targetEventListener?.canceled(call) }
     }
 
-    override fun satisfactionFailure(call: Call, response: Response) {
+    override fun satisfactionFailure(
+        call: Call,
+        response: Response,
+    ) {
         runCatching { targetEventListener?.satisfactionFailure(call, response) }
     }
 
-    override fun cacheHit(call: Call, response: Response) {
+    override fun cacheHit(
+        call: Call,
+        response: Response,
+    ) {
         runCatching { targetEventListener?.cacheHit(call, response) }
     }
 
@@ -299,19 +430,26 @@ internal class CaptureOkHttpEventListener internal constructor(
         runCatching { targetEventListener?.cacheMiss(call) }
     }
 
-    override fun cacheConditionalHit(call: Call, cachedResponse: Response) {
+    override fun cacheConditionalHit(
+        call: Call,
+        cachedResponse: Response,
+    ) {
         runCatching { targetEventListener?.cacheConditionalHit(call, cachedResponse) }
     }
 
-    private fun getMetrics(): HttpRequestMetrics {
-        return HttpRequestMetrics(
+    private fun getMetrics(): HttpRequestMetrics =
+        HttpRequestMetrics(
             requestBodyBytesSentCount = requestBodyBytesSentCount,
             responseBodyBytesReceivedCount = responseBodyBytesReceivedCount,
             requestHeadersBytesCount = requestHeadersBytesCount,
             responseHeadersBytesCount = responseHeadersBytesCount,
             dnsResolutionDurationMs = dnsResolutionDurationMs,
+            tlsDurationMs = tlsDurationMs,
+            tcpDurationMs = tcpDurationMs,
+            fetchInitializationMs = fetchInitializationMs,
+            responseLatencyMs = responseLatencyMs,
+            protocolName = lastResponse?.protocol.toString(),
         )
-    }
 
     private fun isInterruptedException(e: Throwable): Boolean {
         val cause = (if (e.cause == null) e else e.cause) ?: return false

@@ -5,8 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@_implementationOnly import CaptureLoggerBridge
-@_implementationOnly import CapturePassable
+internal import CaptureLoggerBridge
+internal import CapturePassable
 import Foundation
 
 extension Field {
@@ -32,7 +32,7 @@ extension Field {
     ///
     /// - returns: The created `Field` instance .
     static func make(key: String, value: FieldValue) throws -> Field {
-        if let value = value as? SessionReplayScreenCapture {
+        if let value = value as? SessionReplayCapture {
             return Field(key: key, data: value.data as NSData, type: .data)
         } else {
             let stringValue = try value.encodeToString()

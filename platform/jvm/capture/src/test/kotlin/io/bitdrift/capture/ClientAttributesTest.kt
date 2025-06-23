@@ -8,12 +8,16 @@
 package io.bitdrift.capture
 
 import android.content.Context
+import android.content.pm.InstallSourceInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
+import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.attributes.ClientAttributes
+import junit.framework.TestCase.assertEquals
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,6 +28,7 @@ import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -31,7 +36,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class ClientAttributesTest {
-
     @Test
     fun foreground() {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -164,6 +168,76 @@ class ClientAttributesTest {
         verify(packageManager).getPackageInfo(anyString(), any(PackageManager.PackageInfoFlags::class.java))
     }
 
+    @Test
+    @Config(sdk = [31])
+    fun checkInstallationSource_viaInstallSourceInfo_shouldReturnValidInstaller() {
+        val hasValidInstallationSource = true
+        val expectedInstallationSource = DEFAULT_INSTALLER_PACKAGE_NAME
+
+        assertInstallationSource(hasValidInstallationSource, expectedInstallationSource)
+    }
+
+    @Test
+    @Config(sdk = [21])
+    fun checkInstallationSource_viaInstallerPackageName_shouldReturnValidInstaller() {
+        val hasValidInstallationSource = true
+        val expectedInstallationSource = DEFAULT_INSTALLER_PACKAGE_NAME
+
+        assertInstallationSource(hasValidInstallationSource, expectedInstallationSource)
+    }
+
+    @Test
+    @Config(sdk = [21])
+    fun checkInstallationSource_withDebugBuilds_shouldReturnDebugBuildMessage() {
+        val hasValidInstallationSource = true
+        val expectedInstallationSource = "Debug build installation"
+        val isDebugBuild = true
+
+        assertInstallationSource(
+            hasValidInstallationSource,
+            expectedInstallationSource,
+            isDebugBuild,
+        )
+    }
+
+    @Test
+    fun checkInstallationSource_viaInstallerPackageName_shouldReturnDefaultPlaceHolder() {
+        val hasValidInstallationSource = false
+        val expectedInstallationSource = "unknown"
+
+        assertInstallationSource(hasValidInstallationSource, expectedInstallationSource)
+    }
+
+    private fun assertInstallationSource(
+        hasValidInstallationSource: Boolean,
+        expectedInstallationSource: String,
+        isDebugBuild: Boolean = false,
+    ) {
+        val errorHandler: ErrorHandler = mock()
+
+        val context = spy(ApplicationProvider.getApplicationContext<Context>())
+        val installerSourceName =
+            if (isDebugBuild) {
+                "Debug build installation"
+            } else {
+                context.applicationInfo.flags = 0
+                DEFAULT_INSTALLER_PACKAGE_NAME
+            }
+
+        val packageManager =
+            obtainMockedPackageManager(context).apply {
+                if (hasValidInstallationSource) addInstallationSource(context, installerSourceName)
+            }
+        doReturn(packageManager).`when`(context).packageManager
+
+        val attributes =
+            ClientAttributes(
+                context,
+                obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED),
+            )
+        assertEquals(attributes.getInstallationSource(context, errorHandler), expectedInstallationSource)
+    }
+
     private fun obtainMockedLifecycleOwnerWith(state: Lifecycle.State): LifecycleOwner {
         val mockedLifecycle = mock(Lifecycle::class.java)
         doReturn(state).`when`(mockedLifecycle).currentState
@@ -183,5 +257,28 @@ class ClientAttributesTest {
         val mockedPackageManager: PackageManager = mock(PackageManager::class.java)
         doReturn(mockedPackageManager).`when`(context).packageManager
         return mockedPackageManager
+    }
+
+    private fun PackageManager.addInstallationSource(
+        context: Context,
+        installerSourceName: String,
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val mockSourceInfo = mock(InstallSourceInfo::class.java)
+            `when`(mockSourceInfo.installingPackageName)
+                .thenReturn(
+                    installerSourceName,
+                )
+            `when`(getInstallSourceInfo(context.packageName)).thenReturn(
+                mockSourceInfo,
+            )
+        } else {
+            `when`(getInstallerPackageName(context.packageName))
+                .thenReturn(installerSourceName)
+        }
+    }
+
+    private companion object {
+        private const val DEFAULT_INSTALLER_PACKAGE_NAME = "com.android.vending"
     }
 }

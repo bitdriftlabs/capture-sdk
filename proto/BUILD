@@ -1,10 +1,17 @@
-load("@com_github_google_flatbuffers//:build_defs.bzl", "flatbuffer_library_public")
+# capture-sdk - bitdrift's client SDK
+# Copyright Bitdrift, Inc. All rights reserved.
+#
+# Use of this source code is governed by a source available license that can be found in the
+# LICENSE file or at:
+# https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+
+load("@flatbuffers//:build_defs.bzl", "flatbuffer_library_public")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_binary")
 
 flatbuffer_library_public(
     name = "descriptor",
     srcs = [
-        "@bitdrift_api//:all_fbs",
+        "@bitdrift_api//:buffer_log",
     ],
     outs = [
         "buffer_log.schema.json",

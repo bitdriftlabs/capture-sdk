@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@_implementationOnly import CaptureLoggerBridge
+internal import CaptureLoggerBridge
 import Foundation
 
 let kCapturePathTemplateHeaderKey = "x-capture-path-template"
@@ -15,6 +15,9 @@ enum HTTPFieldKey: String {
     case path = "_path"
     case pathTemplate = "_path_template"
     case query = "_query"
+    case graphQLOperationName = "_operation_name"
+    case graphQLOperationType = "_operation_type"
+    case graphQLOperationID = "_operation_id"
 }
 
 /// An object representing an HTTP request.
@@ -78,6 +81,23 @@ public struct HTTPRequestInfo {
             // measurement of request' body count anyway.
             fields["_request_body_bytes_expected_to_send_count"] =
                 String(describing: bytesExpectedToSendCount)
+        }
+
+        // Best effort to extract graphQL operation name from the headers, this is specific
+        // to Apollo iOS client.
+        if let headers = self.headers {
+            if let operationName = headers["X-APOLLO-OPERATION-NAME"] {
+                fields[HTTPFieldKey.graphQLOperationName.rawValue] = operationName
+                fields[HTTPFieldKey.pathTemplate.rawValue] = "gql-\(operationName)"
+            }
+
+            if let operationType = headers["X-APOLLO-OPERATION-TYPE"] {
+                fields[HTTPFieldKey.graphQLOperationType.rawValue] = operationType
+            }
+
+            if let operationID = headers["X-APOLLO-OPERATION-ID"] {
+                fields[HTTPFieldKey.graphQLOperationID.rawValue] = operationID
+            }
         }
 
         return fields

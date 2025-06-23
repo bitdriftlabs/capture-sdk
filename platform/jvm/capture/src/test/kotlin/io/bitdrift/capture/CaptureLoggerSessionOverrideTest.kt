@@ -12,16 +12,20 @@ import android.app.ActivityManager
 import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.test.core.app.ApplicationProvider
+import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.FatalIssueReporter
+import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito
@@ -39,20 +43,22 @@ private const val TEST_DATE_TIMESTAMP: Long = 1657047358123
 class CaptureLoggerSessionOverrideTest {
     private val activityManager: ActivityManager = mock()
 
-    private val systemDateProvider = DateProvider {
-        Date(TEST_DATE_TIMESTAMP)
-    }
+    private val systemDateProvider =
+        DateProvider {
+            Date(TEST_DATE_TIMESTAMP)
+        }
 
     private lateinit var logger: LoggerImpl
     private var testServerPort: Int? = null
+    private val fatalIssueReporter = FatalIssueReporter()
 
     @Before
     fun setUp() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
 
+        CaptureDispatchers.setTestExecutorService(MoreExecutors.newDirectExecutorService())
         CaptureJniLibrary.load()
-
         testServerPort = CaptureTestJniLibrary.startTestApiServer(-1)
     }
 
@@ -65,23 +71,24 @@ class CaptureLoggerSessionOverrideTest {
      *  Verify that upon the launch of the SDK it's possible to emit logs with session Id
      *  equal to the last active session ID from the previous run of the SDK.
      */
+    @Ignore("TODO(FranAguilera): BIT-5484. This works on gradle with Roboelectric. Fix on bazel")
     @Test
     fun testSessionIdOverride() {
         // Start the logger and process one log with it just so that
         // it generates a session Id that's stored in passed `Preferences` instance.
         val preferences = MockPreferences()
 
-        logger = LoggerImpl(
-            apiKey = "test",
-            apiUrl = testServerUrl(),
-            fieldProviders = listOf(),
-            dateProvider = systemDateProvider,
-            sessionStrategy = SessionStrategy.Fixed { "foo" },
-            configuration = Configuration(
-                sessionReplayConfiguration = null,
-            ),
-            preferences = preferences,
-        )
+        logger =
+            LoggerImpl(
+                apiKey = "test",
+                apiUrl = testServerUrl(),
+                fieldProviders = listOf(),
+                dateProvider = systemDateProvider,
+                sessionStrategy = SessionStrategy.Fixed { "foo" },
+                configuration = Configuration(),
+                preferences = preferences,
+                fatalIssueReporter = fatalIssueReporter,
+            )
 
         CaptureTestJniLibrary.stopTestApiServer()
 
@@ -103,18 +110,18 @@ class CaptureLoggerSessionOverrideTest {
 
         // Start another logger instance. Notice how its session strategy specifies "bar"
         // session Id.
-        logger = LoggerImpl(
-            apiKey = "test",
-            apiUrl = testServerUrl(),
-            fieldProviders = listOf(),
-            dateProvider = systemDateProvider,
-            sessionStrategy = SessionStrategy.Fixed { "bar" },
-            configuration = Configuration(
-                sessionReplayConfiguration = null,
-            ),
-            preferences = preferences,
-            activityManager = activityManager,
-        )
+        logger =
+            LoggerImpl(
+                apiKey = "test",
+                apiUrl = testServerUrl(),
+                fieldProviders = listOf(),
+                dateProvider = systemDateProvider,
+                sessionStrategy = SessionStrategy.Fixed { "bar" },
+                configuration = Configuration(),
+                preferences = preferences,
+                activityManager = activityManager,
+                fatalIssueReporter = fatalIssueReporter,
+            )
 
         val newStreamId = CaptureTestJniLibrary.awaitNextApiStream()
         assertThat(newStreamId).isNotEqualTo(-1)
@@ -131,7 +138,11 @@ class CaptureLoggerSessionOverrideTest {
         assertThat(sdkConfigured.message).isEqualTo("SDKConfigured")
     }
 
-    private fun testServerUrl(): HttpUrl {
-        return HttpUrl.Builder().scheme("http").host("localhost").port(testServerPort!!).build()
-    }
+    private fun testServerUrl(): HttpUrl =
+        HttpUrl
+            .Builder()
+            .scheme("http")
+            .host("localhost")
+            .port(testServerPort!!)
+            .build()
 }

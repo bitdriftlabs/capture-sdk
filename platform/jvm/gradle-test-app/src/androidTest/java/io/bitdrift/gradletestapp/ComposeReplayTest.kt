@@ -8,6 +8,7 @@
 package io.bitdrift.gradletestapp
 
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.TextView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -41,9 +42,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.ReplayPreviewClient
 import io.bitdrift.capture.replay.ReplayType
-import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
+import io.bitdrift.capture.replay.compose.CaptureModifier.captureIgnore
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import io.bitdrift.capture.replay.internal.ReplayRect
 import org.junit.Before
@@ -68,7 +70,7 @@ class ComposeReplayTest {
     @get:Rule
     val composeRule = createComposeRule()
     private lateinit var replayClient: ReplayPreviewClient
-    private val replay: AtomicReference<Pair<FilteredCapture, EncodedScreenMetrics>?> = AtomicReference(null)
+    private val replay: AtomicReference<Pair<FilteredCapture, ReplayCaptureMetrics>?> = AtomicReference(null)
     private lateinit var latch: CountDownLatch
 
     @Before
@@ -314,7 +316,49 @@ class ComposeReplayTest {
 
         val capture = verifyReplayScreen(viewCount = 13)
         assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 109, 351, 126))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 28, 144, 295, 57))
         assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 277, 224, 126))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 45, 312, 135, 57))
+    }
+
+    @Test
+    fun textButtonIgnoreOneButtonOnly() {
+        composeRule.setContentWithExplicitRoot {
+            Column(Modifier.wrapContentWidth()) {
+                TextButton(onClick = {}) {
+                    Text("Button Text")
+                }
+                TextButton(onClick = {}, modifier = Modifier.captureIgnore(ignoreSubTree = false)) {
+                    Text("short")
+                }
+            }
+        }
+
+        val capture = verifyReplayScreen(viewCount = 13)
+        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 109, 351, 126))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 28, 144, 295, 57))
+        assertThat(capture).doesNotContain(ReplayRect(ReplayType.Button, 0, 277, 224, 126))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 45, 312, 135, 57))
+    }
+
+    @Test
+    fun textButtonIgnoreOneFullTextButton() {
+        composeRule.setContentWithExplicitRoot {
+            Column(Modifier.wrapContentWidth()) {
+                TextButton(onClick = {}) {
+                    Text("Button Text")
+                }
+                TextButton(onClick = {}, modifier = Modifier.captureIgnore(ignoreSubTree = true)) {
+                    Text("short")
+                }
+            }
+        }
+
+        val capture = verifyReplayScreen(viewCount = 13)
+        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 109, 351, 126))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 28, 144, 295, 57))
+        assertThat(capture).doesNotContain(ReplayRect(ReplayType.Button, 0, 277, 224, 126))
+        assertThat(capture).doesNotContain(ReplayRect(ReplayType.Label, 45, 312, 135, 57))
     }
 
     @Test
@@ -324,9 +368,9 @@ class ComposeReplayTest {
                 Column {
                     AndroidView(::TextView) {
                         it.layoutParams = ViewGroup.LayoutParams(200, 80)
-                        it.text = "Baguette Avec Fromage"
+                        it.text = "hi"
                     }
-                    AndroidView(::TextView) {
+                    AndroidView(::Button) {
                         it.layoutParams = ViewGroup.LayoutParams(200, 80)
                         it.text = "short"
                     }
@@ -337,12 +381,10 @@ class ComposeReplayTest {
         val capture = verifyReplayScreen(viewCount = 10)
         // Column
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 160))
-        // AndroidView Top
-        // TODO(murki): The ReplayRect should be a Label
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 80))
-        // AndroidView Bottom
-        // TODO(murki): The ReplayRect should be a Label
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 168, 200, 80))
+        // AndroidView w/TextView Top (width reflects the text length
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 3, 88, 33, 37))
+        // AndroidView w/Button Bottom
+        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 168, 200, 80))
     }
 
     @Test

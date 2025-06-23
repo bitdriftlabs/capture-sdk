@@ -17,5 +17,8 @@ interface ErrorHandler {
      * @param detail a string identifying the action that resulted in an error.
      * @param e the throwable associated with the error.
      */
-    fun handleError(detail: String, e: Throwable?)
+    fun handleError(
+        detail: String,
+        e: Throwable? = null,
+    )
 }

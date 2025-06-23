@@ -14,23 +14,23 @@ import io.bitdrift.capture.replay.internal.ReplayRect
 
 @Suppress("DEPRECATION")
 internal class BackgroundMapper : Mapper() {
-
     override fun map(view: View): MutableList<ReplayRect> {
         val list = super.map(view)
 
         view.background?.let { drawable ->
-            val type = when (drawable.opacity) {
-                PixelFormat.OPAQUE -> {
-                    ReplayType.BackgroundImage
+            val type =
+                when (drawable.opacity) {
+                    PixelFormat.OPAQUE -> {
+                        ReplayType.BackgroundImage
+                    }
+                    PixelFormat.TRANSLUCENT -> {
+                        ReplayType.TransparentView
+                    }
+                    else -> {
+                        // is Transparent or unknown
+                        ReplayType.Ignore
+                    }
                 }
-                PixelFormat.TRANSLUCENT -> {
-                    ReplayType.TransparentView
-                }
-                else -> {
-                    // is Transparent or unknown
-                    ReplayType.Ignore
-                }
-            }
             list.add(ReplayRect(type, viewOriginX, viewOriginY, view.width, view.height))
         }
         return list

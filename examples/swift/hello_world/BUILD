@@ -1,6 +1,7 @@
-load("@build_bazel_rules_apple//apple:apple.bzl", "apple_static_xcframework_import")
-load("@build_bazel_rules_apple//apple:ios.bzl", "ios_application")
-load("@build_bazel_rules_swift//swift:swift.bzl", "swift_library")
+load("@rules_apple//apple:apple.bzl", "apple_static_xcframework_import")
+load("@rules_apple//apple:ios.bzl", "ios_application")
+load("@rules_swift//swift:swift.bzl", "swift_library")
+load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")
 
 genrule(
     name = "expanded_xcframework",
@@ -36,12 +37,13 @@ swift_library(
 ios_application(
     name = "ios_app",
     bundle_id = "io.bitdrift.example.helloworld",
+    entitlements = "Protected.entitlements",
     families = [
         "iphone",
         "ipad",
     ],
     infoplists = ["Info.plist"],
-    minimum_os_version = "13.0",
+    minimum_os_version = MINIMUM_IOS_VERSION,
     provisioning_profile = select({
         "//bazel:ios_device_build": "//bazel/ios:ios_provisioning_profile",
         "//conditions:default": None,
@@ -66,12 +68,13 @@ swift_library(
 ios_application(
     name = "hello_world_app",
     bundle_id = "io.bitdrift.example.helloworld",
+    entitlements = "Protected.entitlements",
     families = [
         "iphone",
         "ipad",
     ],
     infoplists = ["Info.plist"],
-    minimum_os_version = "13.0",
+    minimum_os_version = MINIMUM_IOS_VERSION,
     provisioning_profile = select({
         "//bazel:ios_device_build": "//bazel/ios:ios_provisioning_profile",
         "//conditions:default": None,

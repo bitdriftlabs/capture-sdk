@@ -8,8 +8,10 @@
 package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
+import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.IFatalIssueReporter
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -21,6 +23,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class SessionUrlTest {
+    private val fatalIssueReporter: IFatalIssueReporter = FakeFatalIssueReporter()
 
     @Before
     fun setUp() {
@@ -64,14 +67,14 @@ class SessionUrlTest {
         assertThat(logger.sessionUrl).isEqualTo("https://mycustomapiurl.com/s/${logger.sessionId}?utm_source=sdk")
     }
 
-    private fun createLogger(apiUrl: String): LoggerImpl {
-        return LoggerImpl(
+    private fun createLogger(apiUrl: String): LoggerImpl =
+        LoggerImpl(
             apiKey = "test",
             apiUrl = apiUrl.toHttpUrl(),
             configuration = Configuration(),
             fieldProviders = listOf(),
             dateProvider = SystemDateProvider(),
             sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
+            fatalIssueReporter = fatalIssueReporter,
         )
-    }
 }

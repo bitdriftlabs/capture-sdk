@@ -1,8 +1,8 @@
-load("@build_bazel_rules_apple//apple:apple.bzl", "apple_static_xcframework")
-load("@build_bazel_rules_apple//apple:docc.bzl", "docc_archive")
-load("@build_bazel_rules_apple//apple:ios.bzl", "ios_static_framework")
-load("@build_bazel_rules_swift//swift:swift.bzl", "swift_library")
+load("@rules_apple//apple:apple.bzl", "apple_static_xcframework")
+load("@rules_apple//apple:docc.bzl", "docc_archive")
+load("@rules_apple//apple:ios.bzl", "ios_static_framework")
 load("@rules_cc//cc:defs.bzl", "objc_library")
+load("@rules_swift//swift:swift.bzl", "swift_library")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
 load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")
 load("//bazel:swift_header_collector.bzl", "swift_header_collector")
@@ -23,7 +23,10 @@ swift_library(
         "-Xclang",
         "-Xcc",
         "--linker-option=-lz",
-    ],
+    ] + select({
+        "//bazel:is_ci": ["-warnings-as-errors"],
+        "//conditions:default": [],
+    }),
     data = [
         "//platform/swift/resources:maybe_info_plist",
         "//platform/swift/resources:privacy_manifest",
@@ -35,7 +38,7 @@ swift_library(
     module_name = "Capture",
     private_deps = [
         ":CapturePassable",
-        ":rust_bridge",
+        ":objc_bridge",
     ],
     tags = [
         "macos_only",
@@ -47,6 +50,10 @@ swift_library(
 swift_library(
     name = "CapturePassable",
     srcs = glob(["bridging/**/*.swift"]),
+    copts = select({
+        "//bazel:is_ci": ["-warnings-as-errors"],
+        "//conditions:default": [],
+    }),
     features = [
         "swift.enable_library_evolution",
     ],
@@ -71,9 +78,16 @@ bitdrift_rust_library(
 )
 
 objc_library(
-    name = "rust_bridge",
+    name = "objc_bridge",
+    srcs = [
+        "ObjCWrapper.mm",
+        "reports/DiagnosticEventReporter.m",
+    ],
     hdrs = [
         "CaptureRustBridge.h",
+        "ObjCWrapper.h",
+        "reports/DiagnosticEventReporter.h",
+        "reports/bd-report-writer/ffi.h",
     ],
     module_name = "CaptureLoggerBridge",
     tags = ["macos_only"],

@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@_implementationOnly import CaptureLoggerBridge
+internal import CaptureLoggerBridge
 
 /// Responsible for creating logger bridging.
 protocol LoggerBridgingFactoryProvider {
@@ -16,9 +16,11 @@ protocol LoggerBridgingFactoryProvider {
     /// - parameter sessionStrategy:           The session strategy to use.
     /// - parameter metadataProvider:          The metadata provider to use.
     /// - parameter resourceUtilizationTarget: The resource utilization target to use.
+    /// - parameter sessionReplayTarget:       The session replay target to use.
     /// - parameter eventsListenerTarget:      The events listener target to use.
     /// - parameter appID:                     The host application application identifier.
     /// - parameter releaseVersion:            The host application release version.
+    /// - parameter model:                     The host device model.
     /// - parameter network:                   The interface to use for network operations.
     /// - parameter errorReporting:            The interface to use for reporting errors.
     ///
@@ -29,10 +31,12 @@ protocol LoggerBridgingFactoryProvider {
         sessionStrategy: SessionStrategy,
         metadataProvider: CaptureLoggerBridge.MetadataProvider,
         resourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget,
+        sessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget,
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
         appID: String,
         releaseVersion: String,
+        model: String,
         network: Network?,
         errorReporting: RemoteErrorReporting
-    ) -> LoggerBridging
+    ) -> LoggerBridging?
 }

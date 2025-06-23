@@ -104,6 +104,11 @@ public protocol Logging {
     ///                       interactive. Calls with a negative duration are ignored.
     func logAppLaunchTTI(_ duration: TimeInterval)
 
+    /// Logs a screen view event.
+    ///
+    /// - parameter screenName: The name of the screen.
+    func logScreenView(screenName: String)
+
     // MARK: - Spans
 
     /// Signals that an operation has started at this point in time. Each operation consists of start and
@@ -111,17 +116,30 @@ public protocol Logging {
     /// while the corresponding end event is emitted when the `end(...)` method is called on the `Span`
     /// returned from the method. Refer to `Span` for more details.
     ///
-    /// - parameter name:     The name of the operation.
-    /// - parameter level:    The severity of the log to use when emitting logs for the operation.
-    /// - parameter file:     The unique file identifier that has the form module/file.
-    /// - parameter line:     The line number where the log is emitted.
-    /// - parameter function: The name of the function from which the log is emitted.
-    /// - parameter fields:   The extra fields to send as part of start and end logs for the operation.
+    /// - parameter name:              The name of the operation.
+    /// - parameter level:             The severity of the log to use when emitting logs for the operation.
+    /// - parameter file:              The unique file identifier that has the form module/file.
+    /// - parameter line:              The line number where the log is emitted.
+    /// - parameter function:          The name of the function from which the log is emitted.
+    /// - parameter fields:            The extra fields to send as part of start and end logs for the
+    ///                                operation.
+    /// - parameter startTimeInterval: An optional custom start time in milliseconds since the Unix epoch.
+    ///                                This can be
+    ///                                used to override the default start time of the span. If provided, it
+    ///                                needs
+    ///                                to be used in combination with an `endTimeMs`. Providing one and not
+    ///                                the other is
+    ///                                considered an error and in that scenario, the default clock will be
+    ///                                used instead.
+    /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hierarchies. A
+    ///                                span without a
+    ///                                parentSpanID is considered a root span.
     ///
     /// - returns: A span that can be used to signal the end of the operation if the Capture SDK has been
     ///            configured.
     func startSpan(
-        name: String, level: LogLevel, file: String?, line: Int?, function: String?, fields: Fields?
+        name: String, level: LogLevel, file: String?, line: Int?, function: String?,
+        fields: Fields?, startTimeInterval: TimeInterval?, parentSpanID: UUID?
     ) -> Span
 }
 
@@ -321,30 +339,5 @@ extension Logging {
         function: String? = #function
     ) {
         self.log(response, file: file, line: line, function: function)
-    }
-
-    /// Signals that an operation has started at this point in time. Each operation consists of start and
-    /// end event logs. The start event is emitted immediately upon calling the `startSpan(...)` method,
-    /// while the corresponding end event is emitted when the `end(...)` method is called on the Span
-    /// returned from the method. Refer to `Span` for more details.
-    ///
-    /// - parameter name:     The name of the operation.
-    /// - parameter level:    The severity of the log to use when emitting logs for the operation.
-    /// - parameter file:     The unique file identifier that has the form module/file.
-    /// - parameter line:     The line number where the log is emitted.
-    /// - parameter function: The name of the function from which the log is emitted.
-    /// - parameter fields:   The extra fields to include with the log.
-    ///
-    /// - returns: A span that can be used to signal the end of the operation if the Capture SDK has been
-    ///            configured.
-    func startSpan(
-        name: String,
-        level: LogLevel,
-        file: String? = nil,
-        line: Int? = nil,
-        function: String? = nil,
-        fields: Fields? = nil
-    ) -> Span {
-        self.startSpan(name: name, level: level, file: file, line: line, function: function, fields: fields)
     }
 }

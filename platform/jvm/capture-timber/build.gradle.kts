@@ -6,6 +6,7 @@ plugins {
     // Publish
     alias(libs.plugins.dokka) // Must be applied here for publish plugin.
     alias(libs.plugins.maven.publish)
+    signing
 
     id("dependency-license-config")
 }
@@ -14,7 +15,7 @@ group = "io.bitdrift"
 
 android {
     namespace = "io.bitdrift.capture.timber"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 21
@@ -63,7 +64,7 @@ dependencies {
 
     testImplementation(libs.truth)
     testImplementation(libs.junit)
-    testImplementation(libs.kotlin.mockito.kotlin) // last version with Java 8 support
+    testImplementation(libs.kotlin.mockito.kotlin)
 }
 
 mavenPublishing {
@@ -102,6 +103,11 @@ mavenPublishing {
                 url.set("https://github.com/murki")
                 email.set("miguel@bitdrift.io")
             }
+            scm {
+                connection.set("scm:git:git://github.com/bitdriftlabs/capture-sdk.git")
+                developerConnection.set("scm:git:ssh://git@github.com:bitdriftlabs/capture-sdk.git")
+                url.set("https://github.com/bitdriftlabs/capture-sdk")
+            }
         }
     }
 }
@@ -113,3 +119,8 @@ publishing {
         }
     }
 }
+
+// TODO(murki): Using this requires further setup in CI and local (e.g. signing entries in the local gradle.properties file)
+// signing {
+//     sign(publishing.publications)
+// }

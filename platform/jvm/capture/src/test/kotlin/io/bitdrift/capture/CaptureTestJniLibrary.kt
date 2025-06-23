@@ -50,7 +50,10 @@ object CaptureTestJniLibrary {
     // for a total of waitTimeMs milliseconds. Returns true if the stream has already been
     // closed or is closed within the deadline.
     @CheckReturnValue
-    external fun awaitApiServerStreamClosed(streamId: Int, waitTimeMs: Int): Boolean
+    external fun awaitApiServerStreamClosed(
+        streamId: Int,
+        waitTimeMs: Int,
+    ): Boolean
 
     // Triggers a configuration push on the specified stream ID.
     external fun sendConfigurationUpdate(streamId: Int)
@@ -58,10 +61,16 @@ object CaptureTestJniLibrary {
     // Blocks until the specified stream receives a configuration ack, for a total of
     // waitTimeMs milliseconds. Returns true if the stream has already been closed or is
     // closed within the deadline.
-    external fun awaitConfigurationAck(streamId: Int, waitTimeMs: Int): Boolean
+    external fun awaitConfigurationAck(
+        streamId: Int,
+        waitTimeMs: Int,
+    ): Boolean
 
     // Exercises the error reporting logic against the provided reporter object by passing the provided String to it.
-    external fun sendErrorMessage(message: String?, errorReporter: IErrorReporter)
+    external fun sendErrorMessage(
+        message: String?,
+        errorReporter: IErrorReporter,
+    )
 
     // Exercises a test which invokes a Java function via ObjectHandle, verifying that the current
     // exception is cleared and does not bubble up to the Java layer.
@@ -73,12 +82,18 @@ object CaptureTestJniLibrary {
     // Runs key value storage tests.
     external fun runKeyValueStorageTest(preferences: Any)
 
-    // Runs resource utilization target tests.
+    // Runs resource utilization target test.
     external fun runResourceUtilizationTargetTest(target: Any)
 
-    // Runs events listener target tests.
+    // Runs session replay target test.
+    external fun runSessionReplayTargetTest(target: Any)
+
+    // Runs events listener target test.
     external fun runEventsListenerTargetTest(target: Any)
 
     // Issues a runtime update causing the specified feature to be marked as disabled.
-    external fun disableRuntimeFeature(streamId: Int, feature: String)
+    external fun disableRuntimeFeature(
+        streamId: Int,
+        feature: String,
+    )
 }

@@ -9,34 +9,34 @@
 import CapturePassable
 import Foundation
 
-final class MockConnection: NSObject, Connection, NetworkStream {
+public final class MockConnection: NSObject, Connection, NetworkStream {
     // MARK: - Connection
 
     var onConnect: (() -> Void)?
     var onOpenAndProvideStream: (() -> Void)?
     var onEnd: (() -> Void)?
 
-    func connect() {
+    public func connect() {
         self.onConnect?()
     }
 
-    func openAndProvideStream(_: (InputStream?) -> Void) {
+    public func openAndProvideStream(_: (InputStream?) -> Void) {
         self.onOpenAndProvideStream?()
     }
 
-    func end() {
+    public func end() {
         self.onEnd?()
     }
 
     // MARK: - NetworkStream
 
-    var handler: ConnectionDataHandler = StreamHandle(streamID: 0)
-    var onSendData: ((UnsafePointer<UInt8>, Int) -> Void)?
+    public var handler: ConnectionDataHandler = StreamHandle(streamID: 0)
+    public var onSendData: ((UnsafePointer<UInt8>, Int) -> Void)?
 
-    func sendData(_ baseAddress: UnsafePointer<UInt8>, count: Int) -> Int {
+    public func sendData(_ baseAddress: UnsafePointer<UInt8>, count: Int) -> Int {
         self.onSendData?(baseAddress, count)
         return count
     }
 
-    func shutdown() {}
+    public func shutdown() {}
 }

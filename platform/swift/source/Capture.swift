@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@_implementationOnly import CaptureLoggerBridge
+internal import CaptureLoggerBridge
 import Foundation
 import UIKit
 
@@ -14,20 +14,26 @@ public typealias Fields = [String: FieldValue]
 /// The value of a log field.
 public typealias FieldValue = Encodable & Sendable
 
+public enum IssueReporterType {
+    case builtIn
+    case customConfig
+}
+
 extension Logger {
-    struct SDKNotConfiguredError: Swift.Error {}
+    struct SDKNotStartedfError: Swift.Error {}
 
     // MARK: - General
 
-    /// An instance of an underlying logger, if the Capture SDK has been configured. Returns `nil` only if
-    /// `configure(...)` method has not been called.
+    /// An instance of the underlying logger, if the Capture SDK is started. Returns `nil` if the
+    /// `start(...)` method has not been called or if starting the logger process failed due to an internal
+    /// error.
     public static var shared: Logging? {
-        self.getShared(assert: false)
+        self.getShared()
     }
 
-    /// Configures Capture with the given API key, providers, and configuration.
-    /// This call is required at least once before invoking any log functions.
-    /// Subsequent calls to this function do nothing.
+    /// Initializes the Capture SDK with the specified API key, providers, and configuration.
+    /// Calling other SDK methods has no effect unless the logger has been initialized.
+    /// Subsequent calls to this function will have no effect.
     ///
     /// - parameter apiKey:          The API key provided by bitdrift.
     /// - parameter sessionStrategy: A session strategy for the management of session ID.
@@ -40,10 +46,9 @@ extension Logger {
     ///                              instructed otherwise during discussions with bitdrift. Defaults to
     ///                              bitdrift's hosted Compose API base URL.
     ///
-    /// - returns: A logger integrator that can be used to enable various SDK integration and get access
-    ///            to non-optional `Logging` instance.
+    /// - returns: A logger integrator that can be used to enable various SDK integration.
     @discardableResult
-    public static func configure(
+    public static func start(
         withAPIKey apiKey: String,
         sessionStrategy: SessionStrategy,
         configuration: Configuration = .init(),
@@ -51,7 +56,29 @@ extension Logger {
         dateProvider: DateProvider? = nil,
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
         apiURL: URL = URL(string: "https://api.bitdrift.io")!
-    ) -> LoggerIntegrator
+    ) -> LoggerIntegrator?
+    {
+        return self.start(
+            withAPIKey: apiKey,
+            sessionStrategy: sessionStrategy,
+            configuration: configuration,
+            fieldProviders: fieldProviders,
+            dateProvider: dateProvider,
+            apiURL: apiURL,
+            loggerBridgingFactoryProvider: LoggerBridgingFactory()
+        )
+    }
+
+    @discardableResult
+    static func start(
+        withAPIKey apiKey: String,
+        sessionStrategy: SessionStrategy,
+        configuration: Configuration,
+        fieldProviders: [FieldProvider],
+        dateProvider: DateProvider?,
+        apiURL: URL,
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider
+    ) -> LoggerIntegrator?
     {
         return self.createOnce {
             return Logger(
@@ -60,23 +87,61 @@ extension Logger {
                 configuration: configuration,
                 sessionStrategy: sessionStrategy,
                 dateProvider: dateProvider,
-                fieldProviders: fieldProviders
+                fieldProviders: fieldProviders,
+                loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
             )
         }
     }
 
-    /// Retrieves the session ID. It is nil before the Capture SDK is configured.
+    /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
+    /// This API is experimental and subject to change
+    ///
+    /// - parameter type: mechanism for crash detection
+    public static func initFatalIssueReporting(_ type: IssueReporterType = .builtIn) {
+        if issueReporterInitResult.0 != .notInitialized {
+            log(level: .warning, message: "Fatal issue reporting already being initialized")
+            return
+        }
+
+        issueReporterInitResult = (.initializing, 0)
+        guard let outputDir = Logger.reportCollectionDirectory() else {
+            log(level: .warning, message: "Fatal issue reporting output directory not defined, cannot enable reporting")
+            issueReporterInitResult = (.initialized(.missingReportsDirectory), 0)
+            return
+        }
+
+        issueReporterInitResult = measureTime {
+            switch type {
+            case .builtIn:
+                #if targetEnvironment(simulator)
+                log(level: .info, message: "Fatal issue reporting disabled for simulated devices")
+                return .initialized(.unsupportedHardware)
+                #else
+                let reporter = DiagnosticEventReporter(outputDir: outputDir, sdkVersion: capture_get_sdk_version())
+                diagnosticReporter.update { val in
+                    val = reporter
+                }
+                MXMetricManager.shared.add(reporter)
+                return .initialized(.monitoring)
+                #endif
+            case .customConfig:
+                return CustomConfigIssueReporter.processFiles()
+            }
+        }
+    }
+
+    /// Retrieves the session ID. It is nil before the Capture SDK is started.
     public static var sessionID: String? {
         return Self.getShared()?.sessionID
     }
 
-    /// Retrieves the session URL. It is `nil` before the Capture SDK is configured.
+    /// Retrieves the session URL. It is `nil` before the Capture SDK is started.
     public static var sessionURL: String? {
         return Self.getShared()?.sessionURL
     }
 
     /// Initializes a new session within the currently configured logger.
-    /// If no logger is configured, this operation has no effect.
+    /// The logger must be started before this operation for it to take effect.
     public static func startNewSession() {
         Self.getShared()?.startNewSession()
     }
@@ -85,9 +150,9 @@ extension Logger {
     /// is not reinstalled.
     ///
     /// The value of this property is different for apps from the same vendor running on
-    /// the same device. It is equal to `nil` prior to the configuration of bitdrift Capture SDK.
+    /// the same device. It is equal to `nil` prior to the start of bitdrift Capture SDK.
     public static var deviceID: String? {
-        return Self.getShared(assert: false)?.deviceID
+        return Self.getShared()?.deviceID
     }
 
     // MARK: - Logging
@@ -263,13 +328,21 @@ extension Logger {
 
     // MARK: - Predefined Logs
 
-    /// Writes an app launch TTI log event. This event should be logged only once per Logger configuration.
+    /// Writes an app launch TTI log event. This event should be logged only once per Logger start.
     /// Consecutive calls have no effect.
     ///
     /// - parameter duration: The time between a user's intent to launch the app and when the app becomes
     ///                       interactive. Calls with a negative duration are ignored.
     public static func logAppLaunchTTI(_ duration: TimeInterval) {
         Self.getShared()?.logAppLaunchTTI(duration)
+    }
+
+    /// Writes a log that indicates that a "screen" has been presented. This is useful for snakeys and other
+    /// journeys visualization.
+    ///
+    /// - parameter screenName: The human readable unique identifier of the screen being presented.
+    public static func logScreenView(screenName: String) {
+        Self.getShared()?.logScreenView(screenName: screenName)
     }
 
     // MARK: - Network Activity Logging
@@ -311,25 +384,40 @@ extension Logger {
     /// while the corresponding end event is emitted when the `end(...)` method is called on the `Span`
     /// returned from the method. Refer to `Span` for more details.
     ///
-    /// - parameter name:     The name of the operation.
-    /// - parameter level:    The severity of the log to use when emitting logs for the operation.
-    /// - parameter file:     The unique file identifier that has the form module/file.
-    /// - parameter line:     The line number where the log is emitted.
-    /// - parameter function: The name of the function from which the log is emitted.
-    /// - parameter fields:   The extra fields to send as part of start and end logs for the operation.
+    /// - parameter name:              The name of the operation.
+    /// - parameter level:             The severity of the log to use when emitting logs for the operation.
+    /// - parameter file:              The unique file identifier that has the form module/file.
+    /// - parameter line:              The line number where the log is emitted.
+    /// - parameter function:          The name of the function from which the log is emitted.
+    /// - parameter fields:            The extra fields to send as part of start and end logs for the
+    ///                                operation.
+    /// - parameter startTimeInterval: An optional custom start time in milliseconds since the Unix epoch.
+    ///                                This can be
+    ///                                used to override the default start time of the span. If provided, it
+    ///                                needs
+    ///                                to be used in combination with an `endTimeMs`. Providing one and not
+    ///                                the other is
+    ///                                considered an error and in that scenario, the default clock will be
+    ///                                used instead.
+    /// - parameter parentSpanID:      An optional ID of the parent span, used to build span hierarchies. A
+    ///                                span without a
+    ///                                parentSpanID is considered a root span.
     ///
     /// - returns: A span that can be used to signal the end of the operation if the Capture SDK has been
-    ///            configured. Returns `nil` only if the `configure(...)` method has not been called.
+    ///            started. Returns `nil` if the `start(...)` method has not been called.
     public static func startSpan(
         name: String,
         level: LogLevel,
         file: String? = #file,
         line: Int? = #line,
         function: String? = #function,
-        fields: Fields? = nil
+        fields: Fields? = nil,
+        startTimeInterval: TimeInterval? = nil,
+        parentSpanID: UUID? = nil
     ) -> Span? {
-        Self.getShared(assert: false)?.startSpan(
-            name: name, level: level, file: file, line: line, function: function, fields: fields
+        Self.getShared()?.startSpan(
+            name: name, level: level, file: file, line: line, function: function, fields: fields,
+            startTimeInterval: startTimeInterval, parentSpanID: parentSpanID
         )
     }
 
@@ -371,7 +459,7 @@ extension Logger {
             }
         } else {
             DispatchQueue.main.async {
-                completion(.failure(SDKNotConfiguredError()))
+                completion(.failure(SDKNotStartedfError()))
             }
         }
     }

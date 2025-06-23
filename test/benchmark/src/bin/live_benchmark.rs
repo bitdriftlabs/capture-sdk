@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use bd_logger::{log_level, AnnotatedLogField, InitParams, LogField, LogFieldValue, LogType};
+use bd_logger::{log_level, AnnotatedLogField, InitParams, LogType};
 use bd_session::fixed::UUIDCallbacks;
 use bd_session::{fixed, Strategy};
 use bd_shutdown::ComponentShutdownTrigger;
@@ -27,8 +27,8 @@ fn test_live_match_performance(c: &mut Criterion) {
     bd_hyper_network::HyperNetwork::run_on_thread(&bitdrift_api_url(), shutdown.make_shutdown());
 
   let metadata_provider = Arc::new(LogMetadata {
-    timestamp: time::OffsetDateTime::now_utc(),
-    fields: Vec::new(),
+    timestamp: time::OffsetDateTime::now_utc().into(),
+    ..Default::default()
   });
 
   let store = Arc::new(bd_key_value::Store::new(Box::<InMemoryStorage>::default()));
@@ -37,7 +37,6 @@ fn test_live_match_performance(c: &mut Criterion) {
   let logger = bd_logger::LoggerBuilder::new(InitParams {
     api_key: "replace me with a real auth token".to_string(),
     network: Box::new(network),
-    platform: bd_api::Platform::Other("benchmark", "benchmark"),
     static_metadata: Arc::new(EmptyMetadata),
     sdk_directory: ".".into(),
     session_strategy: Arc::new(Strategy::Fixed(fixed::Strategy::new(
@@ -47,8 +46,10 @@ fn test_live_match_performance(c: &mut Criterion) {
     store,
     metadata_provider,
     resource_utilization_target: Box::new(bd_test_helpers::resource_utilization::EmptyTarget),
+    session_replay_target: Box::new(bd_test_helpers::session_replay::NoOpTarget),
     events_listener_target: Box::new(bd_test_helpers::events::NoOpListenerTarget),
     device,
+    start_in_sleep_mode: false, // TODO(kattrali): Will be handled as part of BIT-5425
   })
   .build()
   .unwrap()
@@ -64,8 +65,8 @@ fn test_live_match_performance(c: &mut Criterion) {
         log_level::TRACE,
         LogType::Normal,
         "hello".into(),
-        vec![],
-        vec![],
+        [].into(),
+        [].into(),
         None,
         false,
       );
@@ -73,8 +74,8 @@ fn test_live_match_performance(c: &mut Criterion) {
         log_level::DEBUG,
         LogType::Normal,
         "hello".into(),
-        vec![],
-        vec![],
+        [].into(),
+        [].into(),
         None,
         false,
       );
@@ -82,8 +83,8 @@ fn test_live_match_performance(c: &mut Criterion) {
         log_level::INFO,
         LogType::Normal,
         "hello".into(),
-        vec![],
-        vec![],
+        [].into(),
+        [].into(),
         None,
         false,
       );
@@ -91,8 +92,8 @@ fn test_live_match_performance(c: &mut Criterion) {
         log_level::WARNING,
         LogType::Normal,
         "hello".into(),
-        vec![],
-        vec![],
+        [].into(),
+        [].into(),
         None,
         false,
       );
@@ -100,8 +101,8 @@ fn test_live_match_performance(c: &mut Criterion) {
         log_level::ERROR,
         LogType::Normal,
         "hello".into(),
-        vec![],
-        vec![],
+        [].into(),
+        [].into(),
         None,
         false,
       );
@@ -113,18 +114,17 @@ fn test_live_match_performance(c: &mut Criterion) {
         log_level::INFO,
         LogType::Normal,
         "analytics event: action.action_name".into(),
-        vec![AnnotatedLogField {
-          field: LogField {
-            key: "log_arg".into(),
-            value: LogFieldValue::String(
-              "{\"auth\":{\"driver_dispatchable\":1,\"session_id\": \
-               \"5B2CB91F-9C1F-4F16-9054-25D2DDE04B4F\"}}"
-                .into(),
-            ),
+        [(
+          "log_arg".into(),
+          AnnotatedLogField {
+            value: "{\"auth\":{\"driver_dispatchable\":1,\"session_id\": \
+                    \"5B2CB91F-9C1F-4F16-9054-25D2DDE04B4F\"}}"
+              .into(),
+            kind: bd_logger::LogFieldKind::Ootb,
           },
-          kind: bd_logger::LogFieldKind::Ootb,
-        }],
-        vec![],
+        )]
+        .into(),
+        [].into(),
         None,
         false,
       );

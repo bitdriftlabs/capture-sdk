@@ -15,4 +15,7 @@ package io.bitdrift.capture.network
  * @param template The path template (i.e., "/path/<id>"). If the template is not specified, the SDK
  *                 detects and replaces high-cardinality path portions with the "<id>" placeholder.
  */
-data class HttpUrlPath(val value: String, val template: String? = null)
+data class HttpUrlPath(
+    val value: String,
+    val template: String? = null,
+)

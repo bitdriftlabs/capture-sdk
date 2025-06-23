@@ -25,8 +25,7 @@ interface StackTraceProvider {
 }
 
 @Suppress("UndocumentedPublicClass")
-internal object CaptureJniLibrary {
-
+internal object CaptureJniLibrary : IBridge {
     /**
      * Loads the shared library. This is safe to call multiple times.
      */
@@ -42,22 +41,26 @@ internal object CaptureJniLibrary {
      * @param sessionStrategy the session strategy to use.
      * @param metadataProvider used to provide metadata for emitted logs.
      * @param resourceUtilizationTarget used to inform platform layer about a need to emit a resource log.
+     * @param sessionReplayTarget used to inform platform layer about a need to emit session replay logs.
      * @param eventsListenerTarget responsible for listening to platform events and emitting logs in response to them.
      * @param applicationId the application ID of the current app, used to identify with the backend
      * @param applicationVersion the version of the current app, used to identify with the backend
+     * @param model the host device model, used to identify with the backend
      * @param network the network implementation to use to communicate with the backend
      * @param preferences the preferences storage to use for persistent storage of simple settings and configuration.
      * @param errorReporter the error reporter to use for reporting error to bitdrift services.
      */
-    external fun createLogger(
+    external override fun createLogger(
         sdkDirectory: String,
         apiKey: String,
         sessionStrategy: SessionStrategyConfiguration,
         metadataProvider: IMetadataProvider,
         resourceUtilizationTarget: IResourceUtilizationTarget,
+        sessionReplayTarget: ISessionReplayTarget,
         eventsListenerTarget: IEventsListenerTarget,
         applicationId: String,
         applicationVersion: String,
+        model: String,
         network: ICaptureNetwork,
         preferences: IPreferences,
         errorReporter: IErrorReporter,
@@ -69,9 +72,7 @@ internal object CaptureJniLibrary {
      *
      * @param loggerId the ID of the logger to start.
      */
-    external fun startLogger(
-        loggerId: Long,
-    )
+    external fun startLogger(loggerId: Long)
 
     /**
      * Destroys the logger associated with the provided logger id. If called more than once for a
@@ -165,9 +166,22 @@ internal object CaptureJniLibrary {
      *
      * @param loggerId the ID of the logger to write to.
      * @param fields the fields to include with the log.
-     * @param durationMs the duration of time the preparation of the session replay log took.
+     * @param duration the duration of time the preparation of the session replay log took, in seconds.
      */
-    external fun writeSessionReplayLog(
+    external fun writeSessionReplayScreenLog(
+        loggerId: Long,
+        fields: Map<String, FieldValue>,
+        duration: Double,
+    )
+
+    /**
+     * Writes a session replay screenshot log.
+     *
+     * @param loggerId the ID of the logger to write to.
+     * @param fields the fields to include with the log.
+     * @param duration the duration of time the preparation of the session replay log took, in seconds.
+     */
+    external fun writeSessionReplayScreenshotLog(
         loggerId: Long,
         fields: Map<String, FieldValue>,
         duration: Double,
@@ -178,7 +192,7 @@ internal object CaptureJniLibrary {
      *
      * @param loggerId the ID of the logger to write to.
      * @param fields the fields to include with the log.
-     * @param durationMs the duration of time the preparation of the resource log took.
+     * @param duration the duration of time the preparation of the resource log took, in seconds.
      */
     external fun writeResourceUtilizationLog(
         loggerId: Long,
@@ -187,13 +201,13 @@ internal object CaptureJniLibrary {
     )
 
     /**
-     * Writes an SDK configured log.
+     * Writes an SDK started log.
      *
      * @param loggerId the ID of the logger to write to.
      * @param fields the fields to include with the log.
      * @param durationMs the duration of time the SDK configuration took.
      */
-    external fun writeSDKConfiguredLog(
+    external fun writeSDKStartLog(
         loggerId: Long,
         fields: Map<String, FieldValue>,
         duration: Double,
@@ -243,6 +257,17 @@ internal object CaptureJniLibrary {
     )
 
     /**
+     * Writes a screen view log.
+     *
+     * @param loggerId the ID of the logger to write to.
+     * @param screenName the name of the screen.
+     */
+    external fun writeScreenViewLog(
+        loggerId: Long,
+        screenName: String,
+    )
+
+    /**
      * Flushes logger's state to disk.
      *
      * @param blocking Whether the method should return only after the flushing completes.
@@ -275,5 +300,8 @@ internal object CaptureJniLibrary {
      * Called to report an error via the ErrorReporter. This is preferred over calling the ErrorReporter
      * directly as it allows for centralized control over error flood controls.
      */
-    external fun reportError(message: String, stackTraceProvider: StackTraceProvider)
+    external fun reportError(
+        message: String,
+        stackTraceProvider: StackTraceProvider,
+    )
 }

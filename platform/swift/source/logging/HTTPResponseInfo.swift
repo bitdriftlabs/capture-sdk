@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@_implementationOnly import CaptureLoggerBridge
+internal import CaptureLoggerBridge
 import Foundation
 
 /// An object representing a HTTP response. Must be created from a corresponding `HTTPRequestLog` object.
@@ -118,18 +118,25 @@ public struct HTTPResponseInfo {
         }
 
         if let metrics = self.metrics {
-            if #available(iOS 13.0, *) {
-                fields["_request_body_bytes_sent_count"] = metrics.requestBodyBytesSentCount
-                    .flatMap(String.init)
-                fields["_response_body_bytes_received_count"] = metrics.responseBodyBytesReceivedCount
-                    .flatMap(String.init)
-                fields["_request_headers_bytes_count"] = metrics.requestHeadersBytesCount
-                    .flatMap(String.init)
-                fields["_response_headers_bytes_count"] = metrics.responseHeadersBytesCount
-                    .flatMap(String.init)
-                fields["_dns_resolution_duration_ms"] = metrics.dnsResolutionDuration
-                    .flatMap { "\($0.toMilliseconds())" }
-            }
+            fields["_request_body_bytes_sent_count"] = metrics.requestBodyBytesSentCount
+                .flatMap(String.init)
+            fields["_response_body_bytes_received_count"] = metrics.responseBodyBytesReceivedCount
+                .flatMap(String.init)
+            fields["_request_headers_bytes_count"] = metrics.requestHeadersBytesCount
+                .flatMap(String.init)
+            fields["_response_headers_bytes_count"] = metrics.responseHeadersBytesCount
+                .flatMap(String.init)
+            fields["_dns_resolution_duration_ms"] = metrics.dnsResolutionDuration
+                .flatMap { "\($0.toMilliseconds())" }
+            fields["_tls_duration_ms"] = metrics.tlsDuration
+                .flatMap { "\($0.toMilliseconds())" }
+            fields["_tcp_duration_ms"] = metrics.tcpDuration
+                .flatMap { "\($0.toMilliseconds())" }
+            fields["_fetch_init_duration_ms"] = metrics.fetchInitializationDuration
+                .flatMap { "\($0.toMilliseconds())" }
+            fields["_response_latency_ms"] = metrics.responseLatency
+                .flatMap { "\($0.toMilliseconds())" }
+            fields["_protocol"] = metrics.protocolName
         }
 
         return fields

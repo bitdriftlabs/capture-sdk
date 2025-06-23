@@ -17,7 +17,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [23])
 class ProvidersTest {
-
     @Test
     fun system_date_provider() {
         // Just exercise the codepath to make sure we're not using invalid APIs for version 23

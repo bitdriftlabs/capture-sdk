@@ -58,12 +58,9 @@ class CaptureOkHttpEventListenerFactory internal constructor(
         targetEventListenerCreator = { targetEventListenerFactory.create(it) },
     )
 
-    override fun create(call: Call): EventListener {
-        return CaptureOkHttpEventListener(getLogger(), clock, targetEventListenerCreator?.invoke(call))
-    }
+    override fun create(call: Call): EventListener =
+        CaptureOkHttpEventListener(getLogger(), clock, targetEventListenerCreator?.invoke(call))
 
     // attempts to get the latest logger if one wasn't found at construction time
-    private fun getLogger(): ILogger? {
-        return logger ?: Capture.logger()
-    }
+    private fun getLogger(): ILogger? = logger ?: Capture.logger()
 }

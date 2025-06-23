@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::jni::{initialize_class, initialize_method_handle, CachedClass, CachedMethod};
-use bd_logger::{LogField, LogFieldValue, LogFields};
+use bd_logger::{AnnotatedLogField, AnnotatedLogFields, LogFieldKind, LogFieldValue, LogFields};
 use jni::objects::{AutoLocal, JList, JMap, JObject, JPrimitiveArray};
 use jni::signature::{Primitive, ReturnType};
 use jni::JNIEnv;
@@ -82,7 +82,7 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) {
   );
 }
 
-pub(crate) fn jobject_list_to_vec(
+pub(crate) fn jobject_list_to_fields(
   env: &mut JNIEnv<'_>,
   object: &JObject<'_>,
 ) -> anyhow::Result<LogFields> {
@@ -90,7 +90,7 @@ pub(crate) fn jobject_list_to_vec(
   let size = list.size(env)?;
 
   // SAFETY: the size of an array should always be >= 0.
-  let mut fields = Vec::with_capacity(size.try_into().unwrap());
+  let mut fields = LogFields::with_capacity(size.try_into().unwrap());
 
   let mut iter = list.iter(env)?;
   while let Some(obj) = iter.next(env)? {
@@ -140,17 +140,21 @@ pub(crate) fn jobject_list_to_vec(
       _ => panic!("unknown field value type {value_type:?}"),
     };
 
-    fields.push(LogField { key, value });
+    fields.insert(key.into(), value);
   }
 
   Ok(fields)
 }
 
-/// Returns a vec of `LogField`s copied from the provided `JMap`.
+/// Returns `AnnotatedLogFields` copied from the provided `JMap`.
 /// Internally does a lossy conversion into UTF-8 per [`to_string_lossy`](
 /// https://docs.rs/jni/latest/jni/strings/struct.JNIStr.html#method.to_string_lossy).
-pub fn jobject_map_to_vec(env: &mut JNIEnv<'_>, object: &JObject<'_>) -> anyhow::Result<LogFields> {
-  let mut fields = Vec::new();
+pub fn jobject_map_to_fields(
+  env: &mut JNIEnv<'_>,
+  object: &JObject<'_>,
+  kind: LogFieldKind,
+) -> anyhow::Result<AnnotatedLogFields> {
+  let mut fields = AnnotatedLogFields::new();
 
   let map = JMap::from_env(env, object)?;
   let mut iter = map.iter(env)?;
@@ -185,7 +189,7 @@ pub fn jobject_map_to_vec(env: &mut JNIEnv<'_>, object: &JObject<'_>) -> anyhow:
       )
     };
 
-    fields.push(LogField { key, value });
+    fields.insert(key.into(), AnnotatedLogField { value, kind });
   }
 
   Ok(fields)

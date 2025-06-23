@@ -12,7 +12,7 @@ import android.content.Context
 import androidx.startup.Initializer
 
 /**
- * Allows Bitdrift to be initialized with the host ApplicationContext instance
+ * Allows Capture SDK to be initialized with the host ApplicationContext instance
  */
 class ContextHolder : Initializer<ContextHolder> {
     override fun create(context: Context): ContextHolder {
@@ -21,14 +21,13 @@ class ContextHolder : Initializer<ContextHolder> {
         return this
     }
 
-    override fun dependencies(): List<Class<out Initializer<*>>> {
-        return emptyList()
-    }
+    override fun dependencies(): List<Class<out Initializer<*>>> = emptyList()
 
     /**
      * A way to access the Context and Initializer status for the Bitdrift SDK.
      */
     companion object {
+        @Suppress("ktlint:standard:property-naming")
         @SuppressLint("StaticFieldLeak")
         @Volatile
         internal lateinit var APP_CONTEXT: Context

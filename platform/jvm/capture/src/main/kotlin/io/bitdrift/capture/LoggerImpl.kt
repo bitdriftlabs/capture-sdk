@@ -9,8 +9,8 @@ package io.bitdrift.capture
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
+import android.app.Application
 import android.content.Context
-import android.content.pm.ApplicationInfo
 import android.system.Os
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -18,20 +18,22 @@ import com.github.michaelbull.result.Err
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
+import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.error.ErrorReporterService
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.events.AppUpdateListenerLogger
-import io.bitdrift.capture.events.ReplayScreenLogger
+import io.bitdrift.capture.events.SessionReplayTarget
 import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.events.device.DeviceStateListenerLogger
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.AppLifecycleListenerLogger
 import io.bitdrift.capture.events.lifecycle.EventsListenerTarget
-import io.bitdrift.capture.events.performance.AppMemoryPressureListenerLogger
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
-import io.bitdrift.capture.events.performance.MemoryMonitor
+import io.bitdrift.capture.events.performance.JankStatsMonitor
+import io.bitdrift.capture.events.performance.MemoryMetricsProvider
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
@@ -44,11 +46,14 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.IFatalIssueReporter
+import io.bitdrift.capture.threading.CaptureDispatchers
+import io.bitdrift.capture.utils.BuildTypeChecker
+import io.bitdrift.capture.utils.SdkDirectory
 import okhttp3.HttpUrl
-import java.io.File
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
@@ -65,26 +70,30 @@ internal class LoggerImpl(
     fieldProviders: List<FieldProvider>,
     dateProvider: DateProvider,
     private val errorHandler: ErrorHandler = ErrorHandler(),
-    processingQueue: ExecutorService = Executors.newSingleThreadExecutor(),
     sessionStrategy: SessionStrategy,
     context: Context = ContextHolder.APP_CONTEXT,
-    clientAttributes: ClientAttributes = ClientAttributes(
-        context,
-        ProcessLifecycleOwner.get(),
-    ),
+    clientAttributes: ClientAttributes =
+        ClientAttributes(
+            context,
+            ProcessLifecycleOwner.get(),
+        ),
     preferences: IPreferences = Preferences(context),
     private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey),
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
+    private val bridge: IBridge = CaptureJniLibrary,
+    private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
+    windowManager: IWindowManager = WindowManager(errorHandler),
+    private val fatalIssueReporter: IFatalIssueReporter,
 ) : ILogger {
-
     private val metadataProvider: MetadataProvider
-    private val memoryMonitor = MemoryMonitor(context)
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
     private val diskUsageMonitor: DiskUsageMonitor
+    private val memoryMetricsProvider: MemoryMetricsProvider
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
+    private var jankStatsMonitor: JankStatsMonitor? = null
 
     // we can assume a properly formatted api url is being used, so we can follow the same pattern
     // making sure we only replace the first occurrence
@@ -93,163 +102,181 @@ internal class LoggerImpl(
     private val resourceUtilizationTarget: ResourceUtilizationTarget
     private val eventsListenerTarget = EventsListenerTarget()
 
-    private val replayScreenLogger: ReplayScreenLogger?
+    private val sessionReplayTarget: SessionReplayTarget?
 
     @VisibleForTesting
     internal val loggerId: LoggerId
 
     init {
-        val duration = measureTime {
-            setUpInternalLogging()
+        val duration =
+            measureTime {
+                setUpInternalLogging()
 
-            CaptureJniLibrary.load()
+                CaptureJniLibrary.load()
 
-            this.sessionUrlBase = HttpUrl.Builder()
-                .scheme("https")
-                .host(apiUrl.host.replaceFirst("api.", "timeline."))
-                .addQueryParameter("utm_source", "sdk")
-                .build()
+                this.sessionUrlBase =
+                    HttpUrl
+                        .Builder()
+                        .scheme("https")
+                        .host(apiUrl.host.replaceFirst("api.", "timeline."))
+                        .addQueryParameter("utm_source", "sdk")
+                        .build()
 
-            metadataProvider = MetadataProvider(
-                dateProvider = dateProvider,
-                // order of providers matters in here, the earlier in the list the higher their priority in
-                // case of key conflicts.
-                ootbFieldProviders = defaultFieldProviders(),
-                customFieldProviders = fieldProviders,
-            )
+                val networkAttributes = NetworkAttributes(ContextHolder.APP_CONTEXT)
+                val deviceAttributes = DeviceAttributes(ContextHolder.APP_CONTEXT)
 
-            val network = OkHttpNetwork(
-                apiBaseUrl = apiUrl,
-            )
+                metadataProvider =
+                    MetadataProvider(
+                        dateProvider = dateProvider,
+                        // order of providers matters in here, the earlier in the list the higher their priority in
+                        // case of key conflicts.
+                        ootbFieldProviders =
+                            listOf(
+                                clientAttributes,
+                                networkAttributes,
+                                deviceAttributes,
+                            ),
+                        errorHandler = errorHandler,
+                        customFieldProviders = fieldProviders,
+                    )
 
-            val sdkDirectory = getSdkDirectoryPath(context)
+                val network =
+                    OkHttpNetwork(
+                        apiBaseUrl = apiUrl,
+                    )
 
-            val localErrorReporter = errorReporter ?: ErrorReporterService(
-                listOf(clientAttributes),
-                apiClient,
-            )
+                val sdkDirectory = SdkDirectory.getPath(context)
 
-            diskUsageMonitor = DiskUsageMonitor(
-                preferences,
-                context,
-            )
+                val localErrorReporter =
+                    errorReporter ?: ErrorReporterService(
+                        listOf(clientAttributes),
+                        apiClient,
+                    )
 
-            resourceUtilizationTarget = ResourceUtilizationTarget(
-                memoryMonitor,
-                batteryMonitor,
-                powerMonitor,
-                diskUsageMonitor,
-                errorHandler,
-                this,
-                processingQueue,
-            )
+                diskUsageMonitor =
+                    DiskUsageMonitor(
+                        preferences,
+                        context,
+                    )
+                memoryMetricsProvider = MemoryMetricsProvider(activityManager)
 
-            this.loggerId = CaptureJniLibrary.createLogger(
-                sdkDirectory,
-                apiKey,
-                sessionStrategy.createSessionStrategyConfiguration { appExitSaveCurrentSessionId(it) },
-                metadataProvider,
-                // TODO(Augustyniak): Pass `resourceUtilizationTarget` and `eventsListenerTarget`
-                // as part of `startLogger` method call instead.
-                // Pass the event listener target here and finish setting up
-                // before the logger is actually started.
-                resourceUtilizationTarget,
-                // Pass the event listener target here and finish setting up
-                // before the logger is actually started.
-                eventsListenerTarget,
-                clientAttributes.appId,
-                clientAttributes.appVersion,
-                network,
-                preferences,
-                localErrorReporter,
-            )
+                resourceUtilizationTarget =
+                    ResourceUtilizationTarget(
+                        memoryMetricsProvider,
+                        batteryMonitor,
+                        powerMonitor,
+                        diskUsageMonitor,
+                        errorHandler,
+                        this,
+                        eventListenerDispatcher.executorService,
+                    )
 
-            runtime = JniRuntime(this.loggerId)
-            diskUsageMonitor.runtime = runtime
+                this.sessionReplayTarget =
+                    SessionReplayTarget(
+                        configuration = configuration.sessionReplayConfiguration,
+                        errorHandler,
+                        context,
+                        logger = this,
+                        windowManager = windowManager,
+                    )
 
-            eventsListenerTarget.add(
-                AppLifecycleListenerLogger(
-                    this,
-                    ProcessLifecycleOwner.get(),
-                    runtime,
-                    processingQueue,
-                ),
-            )
+                val loggerId =
+                    bridge.createLogger(
+                        sdkDirectory,
+                        apiKey,
+                        sessionStrategy.createSessionStrategyConfiguration { appExitSaveCurrentSessionId(it) },
+                        metadataProvider,
+                        // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
+                        //  and `eventsListenerTarget` as part of `startLogger` method call instead.
+                        // Pass the event listener target here and finish setting up
+                        // before the logger is actually started.
+                        resourceUtilizationTarget,
+                        sessionReplayTarget,
+                        // Pass the event listener target here and finish setting up
+                        // before the logger is actually started.
+                        eventsListenerTarget,
+                        clientAttributes.appId,
+                        clientAttributes.appVersion,
+                        deviceAttributes.model(),
+                        network,
+                        preferences,
+                        localErrorReporter,
+                    )
 
-            eventsListenerTarget.add(
-                DeviceStateListenerLogger(
-                    this,
-                    context,
-                    batteryMonitor,
-                    powerMonitor,
-                    runtime,
-                    processingQueue,
-                ),
-            )
+                check(loggerId != -1L) { "initialization of the rust logger failed" }
 
-            eventsListenerTarget.add(
-                AppMemoryPressureListenerLogger(
-                    this,
-                    context,
-                    memoryMonitor,
-                    runtime,
-                    processingQueue,
-                ),
-            )
+                this.loggerId = loggerId
 
-            eventsListenerTarget.add(
-                AppUpdateListenerLogger(
-                    this,
-                    clientAttributes,
-                    context,
-                    runtime,
-                    processingQueue,
-                ),
-            )
+                runtime = JniRuntime(this.loggerId)
+                sessionReplayTarget.runtime = runtime
+                diskUsageMonitor.runtime = runtime
+                memoryMetricsProvider.runtime = runtime
 
-            appExitLogger = AppExitLogger(
-                logger = this,
-                activityManager,
-                runtime,
-                errorHandler,
-            )
-
-            // Install the app exit logger before the Capture logger is started to ensure
-            // that logs emitted during the installation are the first logs emitted by the
-            // Capture logger.
-            appExitLogger.installAppExitLogger()
-
-            CaptureJniLibrary.startLogger(this.loggerId)
-
-            this.replayScreenLogger = configuration.sessionReplayConfiguration?.let {
-                ReplayScreenLogger(
-                    errorHandler,
-                    context,
-                    logger = this,
-                    processLifecycleOwner = ProcessLifecycleOwner.get(),
-                    configuration = it,
-                    runtime = runtime,
+                eventsListenerTarget.add(
+                    AppLifecycleListenerLogger(
+                        this,
+                        ProcessLifecycleOwner.get(),
+                        activityManager,
+                        runtime,
+                        eventListenerDispatcher.executorService,
+                    ),
                 )
-            }
-            this.replayScreenLogger?.start()
-        }
 
-        CaptureJniLibrary.writeSDKConfiguredLog(
-            this.loggerId,
-            mapOf(),
-            duration.toDouble(DurationUnit.SECONDS),
-        )
+                eventsListenerTarget.add(
+                    DeviceStateListenerLogger(
+                        this,
+                        context,
+                        batteryMonitor,
+                        powerMonitor,
+                        runtime,
+                        eventListenerDispatcher.executorService,
+                    ),
+                )
+
+                eventsListenerTarget.add(
+                    AppUpdateListenerLogger(
+                        this,
+                        clientAttributes,
+                        context,
+                        runtime,
+                        eventListenerDispatcher.executorService,
+                    ),
+                )
+
+                addJankStatsMonitorTarget(windowManager, context)
+
+                appExitLogger =
+                    AppExitLogger(
+                        logger = this,
+                        activityManager,
+                        runtime,
+                        errorHandler,
+                        memoryMetricsProvider = memoryMetricsProvider,
+                        fatalIssueMechanism = fatalIssueReporter.getReportingMechanism(),
+                    )
+
+                // Install the app exit logger before the Capture logger is started to ensure
+                // that logs emitted during the installation are the first logs emitted by the
+                // Capture logger.
+                appExitLogger.installAppExitLogger()
+
+                CaptureJniLibrary.startLogger(this.loggerId)
+            }
+
+        writeSdkStartLog(context, clientAttributes, initDuration = duration)
     }
 
     override val sessionId: String
         get() = CaptureJniLibrary.getSessionId(this.loggerId) ?: "unknown"
 
     override val sessionUrl: String
-        get() = sessionUrlBase.newBuilder()
-            .addPathSegment("s")
-            .addPathSegment(sessionId)
-            .build()
-            .toString()
+        get() =
+            sessionUrlBase
+                .newBuilder()
+                .addPathSegment("s")
+                .addPathSegment(sessionId)
+                .build()
+                .toString()
 
     override val deviceId: String
         get() = CaptureJniLibrary.getDeviceId(this.loggerId) ?: "unknown"
@@ -269,28 +296,29 @@ internal class LoggerImpl(
              *  `SharedPreferences`.
              */
             deviceCodeService.createTemporaryDeviceCode(deviceId, completion)
-        } ?: completion(Err(SdkNotConfiguredError))
+        } ?: completion(Err(SdkNotStartedError))
     }
 
     private fun appExitSaveCurrentSessionId(sessionId: String? = null) {
         appExitLogger.saveCurrentSessionId(sessionId)
     }
 
-    private fun defaultFieldProviders(): List<FieldProvider> {
-        return listOf(
-            ClientAttributes(ContextHolder.APP_CONTEXT, ProcessLifecycleOwner.get()),
-            NetworkAttributes(ContextHolder.APP_CONTEXT),
-            DeviceAttributes(ContextHolder.APP_CONTEXT),
-        )
-    }
-
     override fun logAppLaunchTTI(duration: Duration) {
         CaptureJniLibrary.writeAppLaunchTTILog(this.loggerId, duration.toDouble(DurationUnit.SECONDS))
     }
 
-    override fun startSpan(name: String, level: LogLevel, fields: Map<String, String>?): Span {
-        return Span(this, name, level, fields)
+    override fun logScreenView(screenName: String) {
+        jankStatsMonitor?.trackScreenNameChanged(screenName)
+        CaptureJniLibrary.writeScreenViewLog(this.loggerId, screenName)
     }
+
+    override fun startSpan(
+        name: String,
+        level: LogLevel,
+        fields: Map<String, String>?,
+        startTimeMs: Long?,
+        parentSpanId: UUID?,
+    ): Span = Span(this, name, level, fields, startTimeMs, parentSpanId)
 
     override fun log(httpRequestInfo: HttpRequestInfo) {
         log(
@@ -327,7 +355,10 @@ internal class LoggerImpl(
         )
     }
 
-    override fun addField(key: String, value: String) {
+    override fun addField(
+        key: String,
+        value: String,
+    ) {
         CaptureJniLibrary.addLogField(this.loggerId, key, value)
     }
 
@@ -350,6 +381,19 @@ internal class LoggerImpl(
             return
         }
         try {
+            val expectedPreviousProcessSessionId =
+                when (attributesOverrides) {
+                    is LogAttributesOverrides.SessionID -> attributesOverrides.expectedPreviousProcessSessionId
+                    is LogAttributesOverrides.OccurredAt -> null
+                    else -> null
+                }
+            val occurredAtTimestampMs: Long =
+                when (attributesOverrides) {
+                    is LogAttributesOverrides.SessionID -> attributesOverrides.occurredAtTimestampMs
+                    is LogAttributesOverrides.OccurredAt -> attributesOverrides.occurredAtTimestampMs
+                    else -> 0
+                }
+
             CaptureJniLibrary.writeLog(
                 this.loggerId,
                 type.value,
@@ -357,8 +401,8 @@ internal class LoggerImpl(
                 message(),
                 fields ?: mapOf(),
                 matchingFields ?: mapOf(),
-                attributesOverrides?.expectedPreviousProcessSessionId,
-                attributesOverrides?.occurredAtTimestampMs ?: 0,
+                expectedPreviousProcessSessionId,
+                occurredAtTimestampMs,
                 blocking,
             )
         } catch (e: Throwable) {
@@ -366,15 +410,32 @@ internal class LoggerImpl(
         }
     }
 
-    internal fun logSessionReplay(fields: Map<String, FieldValue>, duration: Duration) {
-        CaptureJniLibrary.writeSessionReplayLog(
+    internal fun logSessionReplayScreen(
+        fields: Map<String, FieldValue>,
+        duration: Duration,
+    ) {
+        CaptureJniLibrary.writeSessionReplayScreenLog(
             this.loggerId,
             fields,
             duration.toDouble(DurationUnit.SECONDS),
         )
     }
 
-    internal fun logResourceUtilization(fields: Map<String, String>, duration: Duration) {
+    internal fun logSessionReplayScreenshot(
+        fields: Map<String, FieldValue>,
+        duration: Duration,
+    ) {
+        CaptureJniLibrary.writeSessionReplayScreenshotLog(
+            this.loggerId,
+            fields,
+            duration.toDouble(DurationUnit.SECONDS),
+        )
+    }
+
+    internal fun logResourceUtilization(
+        fields: Map<String, String>,
+        duration: Duration,
+    ) {
         CaptureJniLibrary.writeResourceUtilizationLog(
             this.loggerId,
             fields.toFields(),
@@ -382,16 +443,25 @@ internal class LoggerImpl(
         )
     }
 
-    internal fun shouldLogAppUpdate(appVersion: String, appVersionCode: Long): Boolean {
-        return CaptureJniLibrary.shouldWriteAppUpdateLog(this.loggerId, appVersion, appVersionCode)
-    }
+    internal fun shouldLogAppUpdate(
+        appVersion: String,
+        appVersionCode: Long,
+    ): Boolean = CaptureJniLibrary.shouldWriteAppUpdateLog(this.loggerId, appVersion, appVersionCode)
 
-    internal fun logAppUpdate(appVersion: String, appVersionCode: Long, appSizeBytes: Long, durationS: Double) {
+    internal fun logAppUpdate(
+        appVersion: String,
+        appVersionCode: Long,
+        appSizeBytes: Long,
+        durationS: Double,
+    ) {
         CaptureJniLibrary.writeAppUpdateLog(this.loggerId, appVersion, appVersionCode, appSizeBytes, durationS)
     }
 
-    internal fun extractFields(fields: Map<String, String>?, throwable: Throwable?): InternalFieldsMap? {
-        return buildMap {
+    internal fun extractFields(
+        fields: Map<String, String>?,
+        throwable: Throwable?,
+    ): InternalFieldsMap? =
+        buildMap {
             fields?.let {
                 putAll(it)
             }
@@ -400,22 +470,42 @@ internal class LoggerImpl(
                 put("_error_details", it.message.orEmpty())
             }
         }.toFields()
-    }
 
     internal fun flush(blocking: Boolean) {
         CaptureJniLibrary.flush(this.loggerId, blocking)
     }
 
-    private fun getSdkDirectoryPath(context: Context): String {
-        val directory = context.applicationContext.filesDir
-        val sdkDirectory = File(directory.absolutePath, "bitdrift_capture")
-        return sdkDirectory.absolutePath
-    }
-
     @Suppress("UnusedPrivateMember")
     private fun stopLoggingDefaultEvents() {
         appExitLogger.uninstallAppExitLogger()
-        replayScreenLogger?.stop()
+    }
+
+    private fun writeSdkStartLog(
+        appContext: Context,
+        clientAttributes: ClientAttributes,
+        initDuration: Duration,
+    ) {
+        val installationSource =
+            clientAttributes
+                .getInstallationSource(appContext, errorHandler)
+                .toFieldValue()
+
+        val sdkStartFields =
+            buildMap {
+                putAll(
+                    mapOf(
+                        "_app_installation_source" to installationSource,
+                        "_capture_start_thread" to Thread.currentThread().name.toFieldValue(),
+                    ),
+                )
+                putAll(fatalIssueReporter.getLogStatusFieldsMap())
+            }
+
+        CaptureJniLibrary.writeSDKStartLog(
+            this.loggerId,
+            sdkStartFields,
+            initDuration.toDouble(DurationUnit.SECONDS),
+        )
     }
 
     /**
@@ -427,15 +517,15 @@ internal class LoggerImpl(
     @Suppress("SpreadOperator")
     @SuppressLint("PrivateApi")
     private fun setUpInternalLogging() {
-        // Determine if app is debuggable using this bitwise operation
-        if (ContextHolder.APP_CONTEXT.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+        if (BuildTypeChecker.isDebuggable(ContextHolder.APP_CONTEXT)) {
             val defaultLevel = "info"
             runCatching {
                 // TODO(murki): Alternatively we could use JVM -D arg to pass properties
                 //  that can be read via System.getProperty() but that's less Android-idiomatic
                 // We follow the firebase approach https://firebase.google.com/docs/analytics/debugview#android
                 // We call the internal API android.os.SystemProperties.get(key, default) using reflection
-                Class.forName("android.os.SystemProperties")
+                Class
+                    .forName("android.os.SystemProperties")
                     .getMethod("get", *arrayOf(String::class.java, String::class.java))
                     .invoke(null, *arrayOf("debug.bitdrift.internal_log_level", defaultLevel)) as? String
             }.getOrNull().let {
@@ -446,9 +536,37 @@ internal class LoggerImpl(
             }
         }
     }
+
+    private fun addJankStatsMonitorTarget(
+        windowManager: IWindowManager,
+        context: Context,
+    ) {
+        if (context is Application) {
+            jankStatsMonitor =
+                JankStatsMonitor(
+                    context,
+                    this,
+                    ProcessLifecycleOwner.get(),
+                    runtime,
+                    windowManager,
+                    errorHandler,
+                )
+            jankStatsMonitor?.let {
+                eventsListenerTarget.add(it)
+            }
+        } else {
+            errorHandler.handleError("Couldn't start JankStatsMonitor. Invalid application provided")
+        }
+    }
 }
 
-internal data class LogAttributesOverrides(
-    val expectedPreviousProcessSessionId: String,
-    val occurredAtTimestampMs: Long,
-)
+internal sealed class LogAttributesOverrides {
+    data class SessionID(
+        val expectedPreviousProcessSessionId: String,
+        val occurredAtTimestampMs: Long,
+    ) : LogAttributesOverrides()
+
+    data class OccurredAt(
+        val occurredAtTimestampMs: Long,
+    ) : LogAttributesOverrides()
+}

@@ -7,15 +7,17 @@
 
 @testable import Capture
 
-final class MockErrorHandler {
-    struct ErrorReport {
-        let context: String
-        let error: Error
+public final class MockErrorHandler {
+    public struct ErrorReport {
+        public let context: String
+        public let error: Error
     }
 
-    private(set) var errors: [ErrorReport] = []
+    public private(set) var errors: [ErrorReport] = []
 
-    func handleError(context: String, error: Error) {
+    public init() {}
+
+    public func handleError(context: String, error: Error) {
         self.errors.append(ErrorReport(context: context, error: error))
     }
 }

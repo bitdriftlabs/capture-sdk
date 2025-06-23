@@ -9,6 +9,7 @@ package io.bitdrift.capture
 
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.test.core.app.ApplicationProvider
+import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.argThat
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
@@ -19,6 +20,7 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
@@ -30,6 +32,8 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.IFatalIssueReporter
+import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
@@ -51,32 +55,26 @@ private const val TEST_DATE_TIMESTAMP: Long = 1657047358123
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class CaptureLoggerTest {
-
-    private val systemDateProvider = DateProvider {
-        Date(TEST_DATE_TIMESTAMP)
-    }
+    private val systemDateProvider =
+        DateProvider {
+            Date(TEST_DATE_TIMESTAMP)
+        }
 
     private lateinit var logger: LoggerImpl
     private var testServerPort: Int? = null
+    private val fatalIssueReporter: IFatalIssueReporter = FakeFatalIssueReporter()
 
     @Before
     fun setUp() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
 
+        CaptureDispatchers.setTestExecutorService(MoreExecutors.newDirectExecutorService())
         CaptureJniLibrary.load()
 
         testServerPort = CaptureTestJniLibrary.startTestApiServer(-1)
 
-        logger = LoggerImpl(
-            apiKey = "test",
-            apiUrl = testServerUrl(),
-            fieldProviders = listOf(),
-            dateProvider = systemDateProvider,
-            sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-            configuration = Configuration(sessionReplayConfiguration = null),
-            preferences = MockPreferences(),
-        )
+        logger = buildLogger(dateProvider = systemDateProvider)
     }
 
     @After
@@ -96,45 +94,40 @@ class CaptureLoggerTest {
     // Verifies how top level typed helpers map to a typed logging call.
     @Test
     fun typedLogging() {
-        val logger = spy(
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServerUrl(),
-                fieldProviders = listOf(),
-                dateProvider = SystemDateProvider(),
-                sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-                configuration = Configuration(),
-            ),
-        )
+        val logger =
+            spy(buildLogger(dateProvider = SystemDateProvider()))
 
         val spanId = UUID.randomUUID()
 
-        val requestInfo = HttpRequestInfo(
-            host = "api.bitdrift.io",
-            method = "GET",
-            path = HttpUrlPath("/my_path/12345"),
-            query = "my=query",
-            headers = mapOf("request_header" to "request_value"),
-            spanId = spanId,
-            extraFields = mapOf("my_extra_key_1" to "my_extra_value_1"),
-        )
+        val requestInfo =
+            HttpRequestInfo(
+                host = "api.bitdrift.io",
+                method = "GET",
+                path = HttpUrlPath("/my_path/12345"),
+                query = "my=query",
+                headers = mapOf("request_header" to "request_value"),
+                spanId = spanId,
+                extraFields = mapOf("my_extra_key_1" to "my_extra_value_1"),
+            )
 
         logger.log(requestInfo)
 
-        val expectedRequestFields = mapOf(
-            "_host" to "api.bitdrift.io",
-            "_method" to "GET",
-            "_path" to "/my_path/12345",
-            "_query" to "my=query",
-            "_span_id" to spanId.toString(),
-            "_span_name" to "_http",
-            "_span_type" to "start",
-            "my_extra_key_1" to "my_extra_value_1",
-        ).toFields()
+        val expectedRequestFields =
+            mapOf(
+                "_host" to "api.bitdrift.io",
+                "_method" to "GET",
+                "_path" to "/my_path/12345",
+                "_query" to "my=query",
+                "_span_id" to spanId.toString(),
+                "_span_name" to "_http",
+                "_span_type" to "start",
+                "my_extra_key_1" to "my_extra_value_1",
+            ).toFields()
 
-        val expectedRequestMatchingFields = mapOf(
-            "_headers.request_header" to "request_value",
-        ).toFields()
+        val expectedRequestMatchingFields =
+            mapOf(
+                "_headers.request_header" to "request_value",
+            ).toFields()
 
         Mockito.verify(logger).log(
             eq(LogType.SPAN),
@@ -146,47 +139,51 @@ class CaptureLoggerTest {
             argThat { i -> i.invoke() == requestInfo.name },
         )
 
-        val responseInfo = HttpResponseInfo(
-            request = requestInfo,
-            response = HttpResponse(
-                result = HttpResponse.HttpResult.SUCCESS,
-                error = RuntimeException("my_error"),
-                headers = mapOf("response_header" to "response_value"),
-            ),
-            durationMs = 60L,
-            extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
-        )
+        val responseInfo =
+            HttpResponseInfo(
+                request = requestInfo,
+                response =
+                    HttpResponse(
+                        result = HttpResponse.HttpResult.SUCCESS,
+                        error = RuntimeException("my_error"),
+                        headers = mapOf("response_header" to "response_value"),
+                    ),
+                durationMs = 60L,
+                extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
+            )
 
         logger.log(responseInfo)
 
-        val expectedResponseFields = mapOf(
-            "_host" to "api.bitdrift.io",
-            "_method" to "GET",
-            "_path" to "/my_path/12345",
-            "_query" to "my=query",
-            "_span_id" to spanId.toString(),
-            "_span_name" to "_http",
-            "_span_type" to "end",
-            "_duration_ms" to "60",
-            "_result" to "success",
-            "_error_type" to "RuntimeException",
-            "_error_message" to "my_error",
-            "my_extra_key_1" to "my_extra_value_1",
-            "my_extra_key_2" to "my_extra_value_2",
-        ).toFields()
+        val expectedResponseFields =
+            mapOf(
+                "_host" to "api.bitdrift.io",
+                "_method" to "GET",
+                "_path" to "/my_path/12345",
+                "_query" to "my=query",
+                "_span_id" to spanId.toString(),
+                "_span_name" to "_http",
+                "_span_type" to "end",
+                "_duration_ms" to "60",
+                "_result" to "success",
+                "_error_type" to "RuntimeException",
+                "_error_message" to "my_error",
+                "my_extra_key_1" to "my_extra_value_1",
+                "my_extra_key_2" to "my_extra_value_2",
+            ).toFields()
 
-        val expectedResponseMatchingFields = mapOf(
-            "_request._host" to "api.bitdrift.io",
-            "_request._method" to "GET",
-            "_request._path" to "/my_path/12345",
-            "_request._span_id" to spanId.toString(),
-            "_request._span_name" to "_http",
-            "_request._span_type" to "start",
-            "_request._query" to "my=query",
-            "_request.my_extra_key_1" to "my_extra_value_1",
-            "_request._headers.request_header" to "request_value",
-            "_headers.response_header" to "response_value",
-        ).toFields()
+        val expectedResponseMatchingFields =
+            mapOf(
+                "_request._host" to "api.bitdrift.io",
+                "_request._method" to "GET",
+                "_request._path" to "/my_path/12345",
+                "_request._span_id" to spanId.toString(),
+                "_request._span_name" to "_http",
+                "_request._span_type" to "start",
+                "_request._query" to "my=query",
+                "_request.my_extra_key_1" to "my_extra_value_1",
+                "_request._headers.request_header" to "request_value",
+                "_headers.response_header" to "response_value",
+            ).toFields()
 
         Mockito.verify(logger).log(
             eq(LogType.SPAN),
@@ -201,24 +198,17 @@ class CaptureLoggerTest {
 
     @Test
     fun normalLogExtractsThrowableInfo() {
-        val logger = spy(
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServerUrl(),
-                fieldProviders = listOf(),
-                sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-                dateProvider = SystemDateProvider(),
-                configuration = Configuration(),
-            ),
-        )
+        val logger =
+            spy(buildLogger(dateProvider = SystemDateProvider()))
 
         val msg = "my_message"
         logger.log(LogLevel.ERROR, throwable = IOException("my_error")) { msg }
 
-        val expectedFields = mapOf(
-            "_error" to "java.io.IOException",
-            "_error_details" to "my_error",
-        ).toFields()
+        val expectedFields =
+            mapOf(
+                "_error" to "java.io.IOException",
+                "_error_details" to "my_error",
+            ).toFields()
 
         verify(logger).log(
             eq(LogType.NORMAL),
@@ -247,7 +237,8 @@ class CaptureLoggerTest {
                     "app_version" to "?.?.?",
                     "os" to "android",
                     "device_id" to deviceId,
-                    "kind" to "mobile",
+                    "platform" to "android",
+                    "model" to "robolectric",
                 ),
                 listOf("sdk_version", "config_version"),
             ),
@@ -277,17 +268,21 @@ class CaptureLoggerTest {
 
         logger.log(LogLevel.DEBUG, fields = mapOf("fields" to "passed_in")) { "test log" }
 
-        val expectedFields = mapOf(
-            "bar" to "value_bar".toFieldValue(),
-            "fields" to "passed_in".toFieldValue(),
-            "foo" to "value_foo".toFieldValue(),
-        ) + getDefaultFields()
+        val expectedFields =
+            mapOf(
+                "bar" to "value_bar".toFieldValue(),
+                "fields" to "passed_in".toFieldValue(),
+                "foo" to "value_foo".toFieldValue(),
+            ) + getDefaultFields()
 
         val sdkConfiguredLog = CaptureTestJniLibrary.nextUploadedLog()
         assertThat(sdkConfiguredLog.message).isEqualTo("SDKConfigured")
 
         val resourceLog = CaptureTestJniLibrary.nextUploadedLog()
         assertThat(resourceLog.message).isEqualTo("")
+
+        val memPressureLog = CaptureTestJniLibrary.nextUploadedLog()
+        assertThat(memPressureLog.message).isEqualTo("AppMemPressure")
 
         val log = CaptureTestJniLibrary.nextUploadedLog()
         assertThat(log.level).isEqualTo(LogLevel.DEBUG.value)
@@ -307,20 +302,28 @@ class CaptureLoggerTest {
 
         logger.log(LogLevel.DEBUG, fields = mapOf("fields" to "passed_in")) { "test log" }
 
-        val expectedFields = mapOf(
-            "fields" to "passed_in".toFieldValue(),
-        ) + getDefaultFields()
+        val expectedFields =
+            mapOf(
+                "fields" to "passed_in".toFieldValue(),
+            ) + getDefaultFields()
 
         val sdkConfigured = CaptureTestJniLibrary.nextUploadedLog()
         assertThat(sdkConfigured.message).isEqualTo("SDKConfigured")
 
-        val resourceLog = CaptureTestJniLibrary.nextUploadedLog()
-        assertThat(resourceLog.message).isEqualTo("")
+        var log = CaptureTestJniLibrary.nextUploadedLog()
 
-        val log = CaptureTestJniLibrary.nextUploadedLog()
+        // Sometimes a resource log is sent before the actual log, so skip it to make the tests more
+        // stable.
+        if (log.fields.containsKey("_battery_val")) {
+            log = CaptureTestJniLibrary.nextUploadedLog()
+        }
+        // skip "AppMemPressure" log
+        if (log.fields.containsKey("_is_memory_low")) {
+            log = CaptureTestJniLibrary.nextUploadedLog()
+        }
         assertThat(log.level).isEqualTo(LogLevel.DEBUG.value)
-        assertThat(log.message).isEqualTo("test log")
         assertThat(log.fields).isEqualTo(expectedFields)
+        assertThat(log.message).isEqualTo("test log")
         assertThat(log.sessionId).isEqualTo("SESSION_ID")
         assertThat(log.rfc3339Timestamp).isEqualTo("2022-07-05T18:55:58.123Z")
     }
@@ -328,25 +331,17 @@ class CaptureLoggerTest {
     @Test
     fun thread_local_recursive_logging() {
         // Set a provider which would perform recursive logging.
-        val dateProvider = DateProvider {
-            logger.log(LogLevel.DEBUG) { "should never be logged" }
-            Date()
-        }
+        val dateProvider =
+            DateProvider {
+                logger.log(LogLevel.DEBUG) { "should never be logged" }
+                Date()
+            }
 
         // Mock one of the providers so we can tell how many times we're logging.
         val fieldProvider = mock<FieldProvider>()
         Mockito.`when`(fieldProvider.invoke()).thenReturn(mapOf("test_key" to "test_value"))
 
-        resetLogger(
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServerUrl(),
-                fieldProviders = listOf(fieldProvider),
-                sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-                dateProvider = dateProvider,
-                configuration = Configuration(null),
-            ),
-        )
+        resetLogger(buildLogger(fieldProvider, dateProvider))
 
         // Log twice, then verify that the grouping provider is hit exactly twice. If we recursed,
         // we'd have hit a stack overflow or >2 calls to the grouping provider.
@@ -368,16 +363,13 @@ class CaptureLoggerTest {
         Mockito.`when`(fieldProvider.invoke()).thenReturn(emptyMap())
 
         resetLogger(
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServerUrl(),
-                fieldProviders = listOf(fieldProvider),
-                sessionStrategy = SessionStrategy.Fixed {
+            buildLogger(
+                fieldProvider,
+                dateProvider,
+                SessionStrategy.Fixed {
                     providerLatch.countDown()
                     throw RuntimeException()
                 },
-                dateProvider = dateProvider,
-                configuration = Configuration(),
             ),
         )
 
@@ -390,26 +382,18 @@ class CaptureLoggerTest {
     fun exceptions_thrown_by_date_provider_are_ignored() {
         val providerLatch = CountDownLatch(1)
 
-        val dateProvider = DateProvider {
-            // providers are called on a background thread. `countDown` on a latch
-            // to inform the test that the provider has been called into.
-            providerLatch.countDown()
-            throw RuntimeException("test")
-        }
+        val dateProvider =
+            DateProvider {
+                // providers are called on a background thread. `countDown` on a latch
+                // to inform the test that the provider has been called into.
+                providerLatch.countDown()
+                throw RuntimeException("test")
+            }
 
         val fieldProvider = mock<FieldProvider>()
         Mockito.`when`(fieldProvider.invoke()).thenReturn(emptyMap())
 
-        resetLogger(
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServerUrl(),
-                fieldProviders = listOf(fieldProvider),
-                sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-                dateProvider = dateProvider,
-                configuration = Configuration(),
-            ),
-        )
+        resetLogger(buildLogger(fieldProvider, dateProvider))
 
         logger.log(LogLevel.DEBUG) { "logging..." }
         assert(providerLatch.await(1, TimeUnit.SECONDS))
@@ -423,22 +407,14 @@ class CaptureLoggerTest {
         Mockito.`when`(dateProvider.invoke()).thenReturn(Date())
 
         val fieldProvider =
-            FieldProvider { // providers are called on a background thread. `countDown` on a latch
+            FieldProvider {
+                // providers are called on a background thread. `countDown` on a latch
                 // to inform the test that the provider has been called into.
                 providerLatch.countDown()
                 throw RuntimeException("test")
             }
 
-        resetLogger(
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServerUrl(),
-                fieldProviders = listOf(fieldProvider),
-                sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
-                dateProvider = dateProvider,
-                configuration = Configuration(),
-            ),
-        )
+        resetLogger(buildLogger(fieldProvider, dateProvider))
 
         logger.log(LogLevel.DEBUG) { "logging..." }
         assert(providerLatch.await(1, TimeUnit.SECONDS))
@@ -452,7 +428,7 @@ class CaptureLoggerTest {
 
     @Test
     fun jni_runtime() {
-        assertThat(JniRuntime(logger.loggerId).isEnabled(RuntimeFeature.SESSION_REPLAY)).isTrue
+        assertThat(JniRuntime(logger.loggerId).isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)).isTrue
 
         val streamId = CaptureTestJniLibrary.awaitNextApiStream()
         assertThat(streamId).isNotEqualTo(-1)
@@ -461,26 +437,46 @@ class CaptureLoggerTest {
 
         CaptureTestJniLibrary.disableRuntimeFeature(
             streamId,
-            RuntimeFeature.SESSION_REPLAY.featureName,
+            RuntimeFeature.SESSION_REPLAY_COMPOSE.featureName,
         )
 
-        assertThat(JniRuntime(logger.loggerId).isEnabled(RuntimeFeature.SESSION_REPLAY)).isFalse
+        assertThat(JniRuntime(logger.loggerId).isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)).isFalse
     }
 
-    private fun testServerUrl(): HttpUrl {
-        return HttpUrl.Builder().scheme("http").host("localhost").port(testServerPort!!).build()
-    }
+    private fun testServerUrl(): HttpUrl =
+        HttpUrl
+            .Builder()
+            .scheme("http")
+            .host("localhost")
+            .port(testServerPort!!)
+            .build()
 
     private fun resetLogger(logger: LoggerImpl) {
         this.logger = logger
     }
 
-    private fun getDefaultFields(): Map<String, FieldValue> {
-        return ClientAttributes(
+    private fun buildLogger(
+        fieldProvider: FieldProvider? = null,
+        dateProvider: DateProvider = mock<DateProvider>(),
+        sessionStrategy: SessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
+    ): LoggerImpl {
+        val fieldProviders = fieldProvider?.let { listOf(it) }.orEmpty()
+        return LoggerImpl(
+            apiKey = "test",
+            apiUrl = testServerUrl(),
+            fieldProviders = fieldProviders,
+            sessionStrategy = sessionStrategy,
+            dateProvider = dateProvider,
+            configuration = Configuration(),
+            fatalIssueReporter = fatalIssueReporter,
+        )
+    }
+
+    private fun getDefaultFields(): Map<String, FieldValue> =
+        ClientAttributes(
             ContextHolder.APP_CONTEXT,
             ProcessLifecycleOwner.get(),
         ).invoke().toFields() +
             NetworkAttributes(ContextHolder.APP_CONTEXT).invoke().toFields() +
             DeviceAttributes(ContextHolder.APP_CONTEXT).invoke().toFields()
-    }
 }

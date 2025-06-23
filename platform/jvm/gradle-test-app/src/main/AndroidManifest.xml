@@ -12,7 +12,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication"
-        tools:targetApi="34">
+        tools:targetApi="35">
+
+        <meta-data android:name="io.sentry.auto-init" android:value="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -28,6 +31,13 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+
+        <!-- WebView will run into separate process like
+        com.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0-->
+        <meta-data
+            android:name="android.webkit.WebView.Multiprocess"
+            android:value="true"/>
+
     </application>
 
 </manifest>

@@ -1,15 +1,7 @@
-load("@build_bazel_rules_apple//apple:apple.bzl", "apple_static_framework_import")
-load(
-    "@io_bazel_rules_kotlin//kotlin:core.bzl",
-    "define_kt_toolchain",
-    "kt_compiler_plugin",
-    "kt_kotlinc_options",
-)
-load(
-    "@io_bazel_rules_kotlin//kotlin:jvm.bzl",
-    "kt_javac_options",
-)
+load("@rules_apple//apple:apple.bzl", "apple_static_framework_import")
 load("@rules_java//java:defs.bzl", "java_binary")
+load("@rules_kotlin//kotlin:core.bzl", "define_kt_toolchain", "kt_compiler_plugin", "kt_kotlinc_options")
+load("@rules_kotlin//kotlin:jvm.bzl", "kt_javac_options")
 load("@rules_pkg//:pkg.bzl", "pkg_zip")
 load(
     "@rules_xcodeproj//xcodeproj:defs.bzl",
@@ -160,7 +152,7 @@ kt_compiler_plugin(
     target_embedded_compiler = True,
     visibility = ["//visibility:public"],
     deps = [
-        "@maven//:androidx_compose_compiler_compiler",
+        "@maven//:org_jetbrains_kotlin_kotlin_compose_compiler_plugin_embeddable",
     ],
 )
 
@@ -192,7 +184,8 @@ xcodeproj(
             ],
         ),
         # Tests
-        "//test/platform/swift/unit_integration:test",
+        "//test/platform/swift/unit_integration/core:test",
+        "//test/platform/swift/unit_integration/integrations:test",
     ],
     xcode_configurations = {
         "Debug": {
@@ -233,7 +226,15 @@ xcodeproj(
             name = "iOS Capture Unit Integration Tests",
             test = xcschemes.test(
                 test_targets = [
-                    "//test/platform/swift/unit_integration:test",
+                    "//test/platform/swift/unit_integration/core:test",
+                ],
+            ),
+        ),
+        xcschemes.scheme(
+            name = "iOS Capture URLSession Integration Tests",
+            test = xcschemes.test(
+                test_targets = [
+                    "//test/platform/swift/unit_integration/integrations:test",
                 ],
             ),
         ),

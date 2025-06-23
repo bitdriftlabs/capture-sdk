@@ -31,14 +31,11 @@ import com.github.michaelbull.result.onSuccess
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.common.Runtime
-import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
-import io.bitdrift.capture.replay.ReplayLogger
-import io.bitdrift.capture.replay.ReplayModule
+import io.bitdrift.capture.replay.IReplayLogger
+import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.ReplayPreviewClient
 import io.bitdrift.capture.replay.SessionReplayConfiguration
-import io.bitdrift.capture.replay.internal.EncodedScreenMetrics
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import okhttp3.Call
 import okhttp3.Callback
@@ -48,26 +45,25 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
 import kotlin.system.exitProcess
-import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 class MainActivity : ComponentActivity() {
 
     private val replayPreviewClient: ReplayPreviewClient by lazy {
-        ReplayPreviewClient(ReplayModule(
+        ReplayPreviewClient(
             object: ErrorHandler {
                 override fun handleError(detail: String, e: Throwable?) {
                     Log.e("HelloWorldApp", "Replay handleError: $detail $e")
                 }
             },
-            object: ReplayLogger {
+            object: IReplayLogger {
                 override fun onScreenCaptured(
                     encodedScreen: ByteArray,
                     screen: FilteredCapture,
-                    metrics: EncodedScreenMetrics
+                    metrics: ReplayCaptureMetrics
                 ) {
-                    Log.i("HelloWorldApp", "Replay onScreenCaptured: took=${metrics.captureTimeMs}ms")
+                    Log.i("HelloWorldApp", "Replay onScreenCaptured: took=${metrics.parseDuration.inWholeMilliseconds}ms")
                     Log.i("HelloWorldApp", "Replay onScreenCaptured: screen=${screen}")
                     Log.i("HelloWorldApp", "Replay onScreenCaptured: encodedScreen=${Base64.encodeToString(encodedScreen, 0)}")
                 }
@@ -84,13 +80,8 @@ class MainActivity : ComponentActivity() {
                     Log.e("HelloWorldApp", message, e)
                 }
             },
-            SessionReplayConfiguration(),
-            object: Runtime {
-                override fun isEnabled(feature: RuntimeFeature): Boolean {
-                    return true
-                }
-            }
-        ), this.applicationContext)
+            this.applicationContext,
+        )
     }
     private lateinit var clipboardManager: ClipboardManager
     private lateinit var client: OkHttpClient

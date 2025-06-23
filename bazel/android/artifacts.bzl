@@ -1,8 +1,8 @@
 """Rules for creating an aar for distribution including native libraries"""
 # Copied from https://github.com/envoyproxy/envoy-mobile/blob/main/bazel/android_artifacts.bzl
 
-load("@build_bazel_rules_android//android:rules.bzl", "android_binary")
 load("@google_bazel_common//tools/maven:pom_file.bzl", "pom_file")
+load("@rules_android//android:rules.bzl", "android_binary")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@rules_java//java:defs.bzl", "java_binary")
 load("//bazel/android:dokka.bzl", "sources_javadocs")
@@ -312,6 +312,6 @@ def _manifest(package_name):
 
     <uses-sdk
             android:minSdkVersion="21"
-            android:targetSdkVersion="34"/>
+            android:targetSdkVersion="35"/>
 </manifest>
 """.format(package_name)

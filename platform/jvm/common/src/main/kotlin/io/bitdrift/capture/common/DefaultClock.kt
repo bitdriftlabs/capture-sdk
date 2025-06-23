@@ -13,7 +13,6 @@ import android.os.SystemClock
  * A clock that returns the current time in milliseconds since the system was booted.
  */
 object DefaultClock : IClock {
-
     /**
      * Returns the singleton instance of the DefaultClock.
      */
@@ -25,7 +24,5 @@ object DefaultClock : IClock {
      * so is the recommended basis for general purpose interval timing.
      * @return the time since the system was booted, including deep sleep.
      */
-    override fun elapsedRealtime(): Long {
-        return SystemClock.elapsedRealtime()
-    }
+    override fun elapsedRealtime(): Long = SystemClock.elapsedRealtime()
 }

@@ -5,26 +5,40 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@_implementationOnly import CaptureLoggerBridge
-@_implementationOnly import CapturePassable
+internal import CaptureLoggerBridge
+internal import CapturePassable
 import Foundation
 
 // swiftlint:disable file_length
 public final class Logger {
+    enum State {
+        // The logger has not yet been started.
+        case notStarted
+        // The logger has been successfully started and is ready for use.
+        // Subsequent attempts to start the logger will be ignored.
+        case started(LoggerIntegrator)
+        // An attempt to start the logger was made but failed.
+        // Subsequent attempts to start the logger will be ignored.
+        case startFailure
+    }
+
     private let underlyingLogger: CoreLogging
     private let timeProvider: TimeProvider
 
     private let remoteErrorReporter: RemoteErrorReporting
     private let deviceCodeController: DeviceCodeController
 
-    private(set) var replayController: ReplayController?
+    private(set) var sessionReplayTarget: SessionReplayTarget
     private(set) var dispatchSourceMemoryMonitor: DispatchSourceMemoryMonitor?
     private(set) var resourceUtilizationTarget: ResourceUtilizationTarget
     private(set) var eventsListenerTarget: EventsListenerTarget
 
     private let sessionURLBase: URL
 
-    private static let syncedShared = Atomic<LoggerIntegrator?>(nil)
+    static var issueReporterInitResult: IssueReporterInitResult = (.notInitialized, 0)
+    static var diagnosticReporter = Atomic<DiagnosticEventReporter?>(nil)
+
+    private static let syncedShared = Atomic<State>(.notStarted)
 
     private let network: URLSessionNetworkClient?
     // Used for benchmarking purposes.
@@ -46,7 +60,7 @@ public final class Logger {
     ///                                            attributes to attach to emitted logs.
     /// - parameter loggerBridgingFactoryProvider: A class to use for Rust bridging. Used for testing
     ///                                            purposes.
-    convenience init(
+    convenience init?(
         withAPIKey apiKey: String,
         apiURL: URL,
         configuration: Configuration,
@@ -94,7 +108,7 @@ public final class Logger {
     /// - parameter timeProvider:                  The time source to use by the logger.
     /// - parameter loggerBridgingFactoryProvider: A class to use for Rust bridging. Used for testing
     ///                                            purposes.
-    init(
+    init?(
         withAPIKey apiKey: String,
         bufferDirectory: URL?,
         apiURL: URL,
@@ -111,10 +125,6 @@ public final class Logger {
     {
         self.timeProvider = timeProvider
         let start = timeProvider.uptime()
-        defer {
-            let duration = timeProvider.timeIntervalSince(start)
-            self.underlyingLogger.logSDKConfigured(fields: [:], duration: duration)
-        }
 
         // Order of providers matters in here, the latter in the list the higher their priority in
         // case of key conflicts.
@@ -157,26 +167,42 @@ public final class Logger {
         )
         self.eventsListenerTarget = EventsListenerTarget()
 
-        self.underlyingLogger = CoreLogger(
-            logger: loggerBridgingFactoryProvider.makeLogger(
-                apiKey: apiKey,
-                bufferDirectoryPath: directoryURL?.path,
-                sessionStrategy: sessionStrategy,
-                metadataProvider: metadataProvider,
-                // TODO(Augustyniak): Pass `resourceUtilizationTarget` and `eventsListenerTarget` as part of
-                // the `self.underlyingLogger.start()` method call instead.
-                // Pass the event listener target here and finish setting up
-                // before the logger is actually started.
-                resourceUtilizationTarget: self.resourceUtilizationTarget,
-                // Pass the event listener target here and finish setting up
-                // before the logger is actually started.
-                eventsListenerTarget: self.eventsListenerTarget,
-                appID: clientAttributes.appID,
-                releaseVersion: clientAttributes.appVersion,
-                network: network,
-                errorReporting: self.remoteErrorReporter
-            )
-        )
+        let sessionReplayTarget = SessionReplayTarget(configuration: configuration.sessionReplayConfiguration)
+        self.sessionReplayTarget = sessionReplayTarget
+
+        guard let logger = loggerBridgingFactoryProvider.makeLogger(
+            apiKey: apiKey,
+            bufferDirectoryPath: directoryURL?.path,
+            sessionStrategy: sessionStrategy,
+            metadataProvider: metadataProvider,
+            // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
+            // and `eventsListenerTarget` as part of the `self.underlyingLogger.start()` method call instead.
+            // Pass the event listener target here and finish setting up
+            // before the logger is actually started.
+            resourceUtilizationTarget: self.resourceUtilizationTarget,
+            sessionReplayTarget: self.sessionReplayTarget,
+            // Pass the event listener target here and finish setting up
+            // before the logger is actually started.
+            eventsListenerTarget: self.eventsListenerTarget,
+            appID: clientAttributes.appID,
+            releaseVersion: clientAttributes.appVersion,
+            model: deviceAttributes.hardwareVersion,
+            network: network,
+            errorReporting: self.remoteErrorReporter
+        ) else {
+            return nil
+        }
+
+        self.underlyingLogger = CoreLogger(logger: logger)
+
+        defer {
+            let duration = timeProvider.timeIntervalSince(start)
+            let fields: Fields = [
+                "_fatal_issue_reporting_state": "\(Logger.issueReporterInitResult.0)",
+                "_fatal_issue_reporting_duration_ms": Logger.issueReporterInitResult.1 * Double(MSEC_PER_SEC),
+            ]
+            self.underlyingLogger.logSDKStart(fields: fields, duration: duration)
+        }
 
         self.eventsListenerTarget.setUp(
             logger: self.underlyingLogger,
@@ -190,6 +216,7 @@ public final class Logger {
         metadataProvider.errorHandler = { [weak underlyingLogger] context, error in
             underlyingLogger?.handleError(context: context, error: error)
         }
+        self.sessionReplayTarget.logger = self.underlyingLogger
 
         // Start attributes before the underlying logger is running to increase the chances
         // of out-of-the-box attributes being ready by the time logs emitted as a result of the logger start
@@ -199,14 +226,12 @@ public final class Logger {
 
         self.underlyingLogger.start()
 
-        self.replayController = Self.setUpSessionReplay(
-            with: configuration.sessionReplayConfiguration,
-            logger: self.underlyingLogger
-        )
         self.dispatchSourceMemoryMonitor = Self.setUpMemoryStateMonitoring(logger: self.underlyingLogger)
 
         self.deviceCodeController = DeviceCodeController(client: client)
     }
+
+    // swiftlint:enable function_body_length
 
     /// Enables blocking shutdown operation. In practice, it makes the receiver's deinit wait for the complete
     /// shutdown of the underlying logger.
@@ -216,8 +241,6 @@ public final class Logger {
         self.underlyingLogger.enableBlockingShutdown()
     }
 
-    // swiftlint:enable function_body_length
-
     deinit {
         self.stop()
     }
@@ -225,9 +248,9 @@ public final class Logger {
     func log(
         level: LogLevel,
         message: @autoclosure () -> String,
-        file _: String? = #file,
-        line _: Int? = #line,
-        function _: String? = #function,
+        file: String? = #file,
+        line: Int? = #line,
+        function: String? = #function,
         fields: Fields? = nil,
         matchingFields: Fields? = nil,
         error: Error? = nil,
@@ -237,6 +260,9 @@ public final class Logger {
         self.underlyingLogger.log(
             level: level,
             message: message(),
+            file: file,
+            line: line,
+            function: function,
             fields: fields,
             matchingFields: matchingFields,
             error: error,
@@ -247,48 +273,52 @@ public final class Logger {
 
     // MARK: - Static
 
-    static func createOnce(_ createLogger: () -> Logger) -> LoggerIntegrator {
-        let logger = self.syncedShared.update { logger in
-            guard logger == nil else {
+    static func createOnce(_ createLogger: () -> Logger?) -> LoggerIntegrator? {
+        let state = self.syncedShared.update { state in
+            guard case .notStarted = state else {
                 return
             }
 
-            logger = LoggerIntegrator(logger: createLogger())
+            if let createdLogger = createLogger() {
+                state = .started(LoggerIntegrator(logger: createdLogger))
+            } else {
+                state = .startFailure
+            }
         }
 
-        // Safety:
-        // The logger instance is guaranteed to be created after the first call to createOnce method.
-        // swiftlint:disable force_unwrapping
-        return logger!
+        return switch state {
+        case .started(let logger):
+            logger
+        case .notStarted, .startFailure:
+            nil
+        }
     }
 
-    /// Retrieves a shared instance of logger if one has been configured.
-    ///
-    /// - parameter assert: Whether the method should assert if shared logger has not been configured.
+    /// Retrieves a shared instance of logger if one has been started.
     ///
     /// - returns: The shared instance of logger.
-    static func getShared(assert: Bool = true) -> Logging? {
-        guard let integrator = Self.syncedShared.load() else {
-            if assert {
-                assertionFailure(
-                    """
-                    Default logger is not set up! Did you attempt to log with the default logger without \
-                    calling `configure(withAPIKey:)` first?
-                    """
-                )
-            }
-
-            return nil
+    static func getShared() -> Logging? {
+        return switch Self.syncedShared.load() {
+        case .notStarted:
+            nil
+        case .started(let integrator):
+            integrator.logger
+        case .startFailure:
+            nil
         }
-
-        return integrator.logger
     }
 
     /// Internal for testing purposes only.
     ///
     /// - parameter logger: The logger to use.
     static func resetShared(logger: Logging? = nil) {
-        Self.syncedShared.update { $0 = logger.flatMap(LoggerIntegrator.init(logger:)) }
+        Self.syncedShared.update { state in
+            if let logger {
+                state = .started(LoggerIntegrator(logger: logger))
+            } else {
+                state = .notStarted
+            }
+        }
     }
 
     // Returns the location to use for storing files related to the Capture SDK, including the disk persisted
@@ -302,6 +332,16 @@ public final class Logger {
                 create: false
             )
             .appendingPathComponent("bitdrift_capture")
+    }
+
+    static func reportConfigPath() -> URL? {
+        return captureSDKDirectory()?
+            .appendingPathComponent("reports/config", isDirectory: false)
+    }
+
+    static func reportCollectionDirectory() -> URL? {
+        return captureSDKDirectory()?
+            .appendingPathComponent("reports/new", isDirectory: true)
     }
 
     // MARK: - Private
@@ -328,10 +368,8 @@ public final class Logger {
     }
 
     private func stop() {
-        self.replayController?.stop()
         self.dispatchSourceMemoryMonitor?.stop()
 
-        self.replayController = nil
         self.dispatchSourceMemoryMonitor = nil
     }
 }
@@ -446,13 +484,19 @@ extension Logger: Logging {
         self.underlyingLogger.logAppLaunchTTI(duration)
     }
 
+    public func logScreenView(screenName: String) {
+        self.underlyingLogger.logScreenView(screenName: screenName)
+    }
+
     public func startSpan(
         name: String,
         level: LogLevel,
-        file: String? = #file,
-        line: Int? = #line,
-        function: String? = #function,
-        fields: Fields?
+        file: String?,
+        line: Int?,
+        function: String?,
+        fields: Fields?,
+        startTimeInterval: TimeInterval?,
+        parentSpanID: UUID?
     ) -> Span
     {
         Span(
@@ -463,7 +507,9 @@ extension Logger: Logging {
             line: line,
             function: function,
             fields: fields,
-            timeProvider: self.timeProvider
+            timeProvider: self.timeProvider,
+            customStartTimeInterval: startTimeInterval,
+            parentSpanID: parentSpanID
         )
     }
 }
@@ -471,20 +517,6 @@ extension Logger: Logging {
 // MARK: - Features
 
 extension Logger {
-    private static func setUpSessionReplay(
-        with configuration: SessionReplayConfiguration?,
-        logger: CoreLogging
-    ) -> ReplayController?
-    {
-        guard let configuration else {
-            return nil
-        }
-
-        let controller = ReplayController(logger: logger)
-        controller.start(with: configuration)
-        return controller
-    }
-
     static func setUpMemoryStateMonitoring(
         logger: CoreLogging
     ) -> DispatchSourceMemoryMonitor

@@ -26,21 +26,25 @@ void capture_report_error(const char *message);
  * @param session_strategy_provider the session strategy provider.
  * @param metadata_provider used to provide the internal logger with logging metadata.
  * @param resource_utilization_target responsible for emitting resource utilization logs in response to provided ticks.
+ * @param session_replay_target responsible for emitting session replay logs in response to callbacks.
  * @param events_listener_target responsible for listening to platform events and emitting logs in response to them.
  * @param app_id the app id to identify the client as a null terminated C string.
  * @param app_version the app version to identify the client as a null terminated C string.
+ * @param model the model of the device to identify the client as a null terminated C string.
  * @param network the Capture Network protocol to use for performing network requests.
  * @param error_reporter the error reported protocol to use for reporting errors.
  */
 logger_id capture_create_logger(
-    const char *_Nullable path, 
+    const char *_Nullable path,
     const char *api_key,
     id<SessionStrategyProvider> session_strategy_provider,
     id<MetadataProvider> metadata_provider,
     id<ResourceUtilizationTarget> resource_utilization_target,
+    id<SessionReplayTarget> session_replay_target,
     id<EventsListenerTarget> events_listener_target,
     const char *app_id,
-    const char *app_version, 
+    const char *app_version,
+    const char *model,
     _Nullable id<Network> network,
     _Nullable id<RemoteErrorReporting> error_reporter
 );
@@ -66,7 +70,7 @@ void capture_start_logger(logger_id logger_id);
  *        remote services.
  * @param matching_fields The list of matching fields that can be read when processing a given log but are
  *        not a part of the log itself.
- * @Param blocking whether the method should return only after the log is processed. 
+ * @Param blocking whether the method should return only after the log is processed.
  */
 void capture_write_log(
     logger_id logger_id,
@@ -75,17 +79,31 @@ void capture_write_log(
     const char *message,
     const NSArray<const Field *> *_Nullable fields,
     const NSArray<const Field *> *_Nullable matching_fields,
-    bool blocking
+    bool blocking,
+    int64_t occurred_at_override
 );
 
 /*
- * Writes a session replay log.
+ * Writes a session replay screen log.
  *
  * @param logger_id the ID of the logger to write to.
  * @param fields the fields to include with the log.
  * @param duration_s the duration of time the preparation of the session replay log took.
  */
-void capture_write_session_replay_log(
+void capture_write_session_replay_screen_log(
+    logger_id logger_id,
+    const NSArray<const Field *> *fields,
+    double duration_s
+);
+
+/*
+ * Writes a session replay screenshot log.
+ *
+ * @param logger_id the ID of the logger to write to.
+ * @param fields the fields to include with the log.
+ * @param duration_s the duration of time the preparation of the session replay log took.
+ */
+void capture_write_session_replay_screenshot_log(
     logger_id logger_id,
     const NSArray<const Field *> *fields,
     double duration_s
@@ -105,13 +123,13 @@ void capture_write_resource_utilization_log(
 );
 
 /*
- * Writes an SDK configured log.
+ * Writes an SDK started log.
  *
  * @param logger_id the ID of the logger to write to.
  * @param fields the fields to include with the log.
  * @param duration_s the duration of time the SDK configuration took.
  */
-void capture_write_sdk_configured_log(
+void capture_write_sdk_start_log(
     logger_id logger_id,
     const NSArray<const Field *> *fields,
     double duration_s
@@ -152,12 +170,23 @@ void capture_write_app_update_log(
  * have no effect.
  *
  * @param loggerId the ID of the logger to write to.
- * @param duration_s the duration of time between a user's intent to launch an app and the point in time 
- *        when the app became interactive.
+ * @param duration_s the duration of time between a user's intent to launch an app and the point in time
+ *        when the app became interactive. Calls with a negative duration are ignored.
  */
 void capture_write_app_launch_tti_log(
     logger_id logger_id,
     double duration_s
+);
+
+/*
+* Writes a screen view log.
+*
+* @param loggerId the ID of the logger to write to.
+* @param screen_name the name of the screen.
+*/
+void capture_write_screen_view_log(
+    logger_id logger_id,
+    NSString *screen_name
 );
 
 /*
@@ -181,6 +210,11 @@ NSString *capture_get_session_id(logger_id logger_id);
  * @param logger_id the logger to use.
  */
 NSString *capture_get_device_id(logger_id logger_id);
+
+/**
+ * Returns the version of the Capture SDK
+ */
+NSString *capture_get_sdk_version();
 
 /*
  * Adds a field that should be attached to all logs emitted by the logger going forward.
@@ -215,7 +249,7 @@ void capture_flush(logger_id logger_id, bool blocking);
 
 /**
  * Signals the specified logger to shut down.
- * 
+ *
  * @param blocking whether the method should return only after shutdown is complete.
  */
 void capture_shutdown_logger(logger_id logger_id, bool blocking);
@@ -250,11 +284,11 @@ bool capture_runtime_bool_variable_value(logger_id logger_id, const char *variab
 
 /*
  * Returns the value of an integer runtime variable via client runtime configuration.
- * 
+ *
  * @param logger_id the logger to check the variable value for.
  * @param variable_name the name of the int variable to check.
  * @param default_value the default value to use when the relevant configuration entry is missing.
- * 
+ *
  * @returns the value of the uin32_t variable.
  */
 uint32_t capture_runtime_uint32_variable_value(logger_id logger_id, const char *variable_name, uint32_t default_value);

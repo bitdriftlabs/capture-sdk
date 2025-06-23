@@ -9,7 +9,7 @@ pub mod error;
 pub mod metadata;
 
 use bd_client_common::error::handle_unexpected;
-use bd_logger::{log_level, AnnotatedLogField, LogField, LogFieldKind, LogType};
+use bd_logger::{log_level, AnnotatedLogField, LogFieldKind, LogType};
 use bd_runtime::runtime::Snapshot;
 use parking_lot::Once;
 use std::future::Future;
@@ -169,31 +169,47 @@ impl LoggerHolder {
     self.app_launch_tti_log.call_once(|| {
       let duration_ms = duration.as_seconds_f64() * 1_000f64;
       if duration_ms < 0.0 {
-        log::warn!(
-          "dropping app launch TTI log: reported TTI is negative: {}",
-          duration_ms
-        );
+        log::warn!("dropping app launch TTI log: reported TTI is negative: {duration_ms}");
         return;
       }
 
-      let fields = vec![AnnotatedLogField {
-        field: LogField {
-          key: "_duration_ms".into(),
+      let fields = [(
+        "_duration_ms".into(),
+        AnnotatedLogField {
           value: duration_ms.to_string().into(),
+          kind: LogFieldKind::Ootb,
         },
-        kind: LogFieldKind::Ootb,
-      }];
+      )]
+      .into();
 
       self.log(
         log_level::INFO,
         LogType::Lifecycle,
         "AppLaunchTTI".into(),
         fields,
-        vec![],
+        [].into(),
         None,
         false,
       );
     });
+  }
+
+  pub fn log_screen_view(&self, screen_name: String) {
+    let fields = [(
+      "_screen_name".into(),
+      AnnotatedLogField::new_ootb(screen_name),
+    )]
+    .into();
+
+    self.log(
+      log_level::INFO,
+      LogType::UX,
+      "ScreenView".into(),
+      fields,
+      [].into(),
+      None,
+      false,
+    );
   }
 }
 
