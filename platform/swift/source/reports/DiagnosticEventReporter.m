@@ -128,12 +128,17 @@ static uint64_t count_frames(NSDictionary *rootFrame) {
 static uint32_t crashed_thread_index(NSArray *stacks) {
   for (uint32_t index = 0; index < stacks.count; index++) {
     if ([number_for_key(stacks[index], @"threadAttributed") boolValue]) {
-      return index;
+      if (count_frames(thread_root_frame(stacks[index])) > 0) {
+        // match only if thread contains frames (FB18302500)
+        return index;
+      }
+      break;
     }
   }
   for (uint32_t index = 0; index < stacks.count; index++) {
     if (count_frames(thread_root_frame(stacks[index])) > 0) {
-      return index; // grab first thread with frames if none attributed
+      // grab first thread with frames if none attributed or attributed to empty
+      return index;
     }
   }
 
