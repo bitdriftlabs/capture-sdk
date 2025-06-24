@@ -28,11 +28,6 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Allows to capture the screen and send the binary data over a persistent websocket connection
- * @param replayManager The replay module to use for screen capture
- * @param context The context of the app to capture
- * @param protocol The protocol to use for the websocket connection (default is ws)
- * @param host The host to connect to (default is Android's emulator loopback IP: 10.0.2.2)
- * @param port The port to connect to (default is 3001)
  */
 class ReplayPreviewClient(
     errorHandler: ErrorHandler,
@@ -47,7 +42,7 @@ class ReplayPreviewClient(
         ReplayCaptureEngine(
             sessionReplayConfiguration,
             errorHandler,
-            logger,
+            this,
             MainThreadHandler(),
             WindowManager(errorHandler),
             DisplayManagers(context),
