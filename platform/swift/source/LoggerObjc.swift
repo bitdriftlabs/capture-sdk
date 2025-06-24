@@ -5,6 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+internal import CaptureLoggerBridge
 import Foundation
 
 @objc(CAPIssueReporterType)
@@ -122,6 +123,14 @@ public final class LoggerObjc: NSObject {
     @objc
     public static func setSleepMode(_ mode: SleepMode) {
         Capture.Logger.setSleepMode(mode)
+    }
+
+    /// Get the current version of the Capture library
+    ///
+    /// - returns: the version as a String
+    @objc
+    public static func sdkVersion() -> String {
+        return capture_get_sdk_version()
     }
 
     /// Defines the initialization of a new session within the current configured logger.

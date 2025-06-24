@@ -106,6 +106,16 @@ object Capture {
         private val mainThreadHandler by lazy { MainThreadHandler() }
 
         /**
+         * Get the current version of the Capture library
+         *
+         * @return the version as a String
+         */
+        @JvmStatic
+        val sdkVersion: String get() {
+            return BuildConstants.SDK_VERSION
+        }
+
+        /**
          * WARNING: For now this API is not exposed to customers. If there is a request for this
          * will open visibility again
          *
