@@ -77,7 +77,7 @@ class OkHttpEventListenerMethodInstrumentable(
         apiVersion = apiVersion,
         originalVisitor = originalVisitor,
         instrumentableContext = instrumentableContext,
-        proxyEventListener = parameters.proxyOkHttpEventListener.get()
+        okHttpInstrumentationType = parameters.okHttpInstrumentationType.get()
     )
 
     override fun isInstrumentable(data: MethodContext): Boolean {

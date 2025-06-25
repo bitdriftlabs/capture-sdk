@@ -38,6 +38,7 @@ import com.android.build.api.instrumentation.ClassContext
 import com.android.build.api.instrumentation.ClassData
 import com.android.build.api.instrumentation.InstrumentationParameters
 import io.bitdrift.capture.CapturePlugin
+import io.bitdrift.capture.extension.InstrumentationExtension.OkHttpInstrumentationType
 import io.bitdrift.capture.instrumentation.okhttp.OkHttpEventListener
 import io.bitdrift.capture.instrumentation.util.findClassReader
 import io.bitdrift.capture.instrumentation.util.findClassWriter
@@ -55,7 +56,7 @@ abstract class SpanAddingClassVisitorFactory : AsmClassVisitorFactory<SpanAdding
         val debug: Property<Boolean>
 
         @get:Input
-        val proxyOkHttpEventListener: Property<Boolean>
+        val okHttpInstrumentationType: Property<OkHttpInstrumentationType>
 
         @get:Internal
         val tmpDir: Property<File>

@@ -62,7 +62,7 @@ fun AndroidComponentsExtension<*, *, *>.configure(
             ) { params ->
                 params.tmpDir.set(tmpDir)
                 params.debug.set(extension.instrumentation.debug)
-                params.proxyOkHttpEventListener.set(extension.instrumentation.proxyOkHttpEventListener)
+                params.okHttpInstrumentationType.set(extension.instrumentation.okHttpInstrumentationType)
             }
         }
     }

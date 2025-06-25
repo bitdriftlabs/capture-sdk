@@ -21,5 +21,14 @@ open class InstrumentationExtension @Inject constructor(project: Project) {
             false
     )
 
-    val proxyOkHttpEventListener: Property<Boolean> = objects.property(Boolean::class.java).convention(false)
+    val okHttpInstrumentationType: Property<OkHttpInstrumentationType> = objects.property(OkHttpInstrumentationType::class.java).convention(OkHttpInstrumentationType.OVERWRITE)
+
+    enum class OkHttpInstrumentationType {
+        PROXY,
+        OVERWRITE,
+    }
+
+    // Helpers so that these values can be used directly in the DSL
+    val PROXY = OkHttpInstrumentationType.PROXY
+    val OVERWRITE = OkHttpInstrumentationType.OVERWRITE
 }
