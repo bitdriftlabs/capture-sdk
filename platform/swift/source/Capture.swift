@@ -129,7 +129,12 @@ extension Logger {
                 log(level: .info, message: "Fatal issue reporting disabled for simulated devices")
                 return .initialized(.unsupportedHardware)
                 #else
-                let reporter = DiagnosticEventReporter(outputDir: outputDir, sdkVersion: capture_get_sdk_version())
+                let hangDuration = RuntimeVariable.applicationANRReporterThresholdMs.defaultValue
+                let reporter = DiagnosticEventReporter(
+                    outputDir: outputDir,
+                    sdkVersion: capture_get_sdk_version(),
+                    minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC)
+                )
                 diagnosticReporter.update { val in
                     val = reporter
                 }
