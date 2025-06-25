@@ -8,13 +8,14 @@
 package io.bitdrift.capture.extension
 
 import javax.inject.Inject
-import org.gradle.api.model.ObjectFactory
+import org.gradle.api.Project
 import org.gradle.api.provider.Property
 
-open class InstrumentationExtension @Inject constructor(objects: ObjectFactory) {
+open class InstrumentationExtension @Inject constructor(project: Project) {
+    private val objects = project.objects
 
-    val enabled: Property<Boolean> = objects.property(Boolean::class.java)
-            .convention(true)
+    val automaticOkHttpInstrumentation: Property<Boolean> = objects.property(Boolean::class.java)
+            .convention(false)
 
     val debug: Property<Boolean> = objects.property(Boolean::class.java).convention(
             false

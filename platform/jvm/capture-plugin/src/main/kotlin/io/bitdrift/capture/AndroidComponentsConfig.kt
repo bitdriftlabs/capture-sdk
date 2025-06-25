@@ -54,7 +54,7 @@ fun AndroidComponentsExtension<*, *, *>.configure(
     tmpDir.mkdirs()
 
     onVariants { variant ->
-        if (extension.instrumentation.enabled.get()) {
+        if (extension.instrumentation.automaticOkHttpInstrumentation.get()) {
             variant.configureInstrumentation(
                     SpanAddingClassVisitorFactory::class.java,
                     InstrumentationScope.ALL,
