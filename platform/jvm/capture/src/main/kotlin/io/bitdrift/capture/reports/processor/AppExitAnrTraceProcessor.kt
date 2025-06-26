@@ -227,8 +227,8 @@ internal object AppExitAnrTraceProcessor {
                 val sanitizedDescription = description.lowercase()
 
                 return when {
-                    UserPerceivedAnr.matches(sanitizedDescription) -> UserPerceivedAnr
                     BackgroundAnr.matches(sanitizedDescription) -> BackgroundAnr
+                    UserPerceivedAnr.matches(sanitizedDescription) -> UserPerceivedAnr
                     BroadcastReceiver.matches(sanitizedDescription) -> BroadcastReceiver
                     ServiceAnr.matches(sanitizedDescription) -> ServiceAnr
                     ContentProvider.matches(sanitizedDescription) -> ContentProvider
