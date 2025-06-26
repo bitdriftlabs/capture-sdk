@@ -31,16 +31,7 @@ internal object JvmCrashProcessor {
         callerThread: Thread,
         allThreads: Map<Thread, Array<StackTraceElement>>?,
     ): Int {
-        val trace = throwable.stackTrace.map { e -> getFrameDetails(builder, e) }.toIntArray()
-        val message = throwable.message?.let { builder.createString(it) } ?: 0
-        val error =
-            Error.createError(
-                builder,
-                builder.createString(throwable.javaClass.name),
-                message,
-                Error.createStackTraceVector(builder, trace),
-                ErrorRelation.CausedBy,
-            )
+        val errors = buildErrors(builder, throwable)
         val threadList =
             allThreads?.map { (thread, frames) ->
                 val threadStack = frames.map { e -> getFrameDetails(builder, e) }.toIntArray()
@@ -56,13 +47,14 @@ internal object JvmCrashProcessor {
                         .createStackTraceVector(builder, threadStack),
                 )
             } ?: listOf()
+
         return Report.createReport(
             builder,
             sdk,
             ReportType.JVMCrash,
             appMetrics,
             deviceMetrics,
-            Report.createErrorsVector(builder, intArrayOf(error)),
+            Report.createErrorsVector(builder, errors.toIntArray()),
             ThreadDetails.createThreadDetails(
                 builder,
                 threadList.size.toUShort(),
@@ -71,6 +63,24 @@ internal object JvmCrashProcessor {
             0,
         )
     }
+
+    private fun buildErrors(
+        builder: FlatBufferBuilder,
+        throwable: Throwable,
+    ): List<Int> =
+        generateSequence(throwable) { it.cause }
+            .map { error ->
+                val frames = error.stackTrace.map { getFrameDetails(builder, it) }.toIntArray()
+                val className = builder.createString(error.javaClass.name)
+                val message = error.message?.let { msg -> builder.createString(msg) } ?: 0
+                Error.createError(
+                    builder,
+                    className,
+                    message,
+                    Error.createStackTraceVector(builder, frames),
+                    ErrorRelation.CausedBy,
+                )
+            }.toList()
 
     private fun getFrameDetails(
         builder: FlatBufferBuilder,
