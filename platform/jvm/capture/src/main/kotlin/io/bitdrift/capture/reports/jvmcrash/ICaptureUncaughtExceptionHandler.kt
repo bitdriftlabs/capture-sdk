@@ -7,14 +7,14 @@
 package io.bitdrift.capture.reports.jvmcrash
 
 /**
- * [java.lang.Thread.UncaughtExceptionHandler] that will notify crashes into the added [io.bitdrift.capture.reports.jvmcrash.JvmCrashListener]
+ * [java.lang.Thread.UncaughtExceptionHandler] that will notify crashes into the added [io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener]
  */
 interface ICaptureUncaughtExceptionHandler : Thread.UncaughtExceptionHandler {
     /**
-     * Installs the [java.lang.Thread.UncaughtExceptionHandler] and notifies [io.bitdrift.capture.reports.jvmcrash.JvmCrashListener] when
+     * Installs the [java.lang.Thread.UncaughtExceptionHandler] and notifies [io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener] when
      * a JVM crash occurs
      */
-    fun install(jvmCrashListener: JvmCrashListener)
+    fun install(crashListener: IJvmCrashListener)
 
     /**
      * Uninstalls [java.lang.Thread.UncaughtExceptionHandler]

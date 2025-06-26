@@ -10,6 +10,7 @@ package io.bitdrift.capture.reports.jvmcrash
 import androidx.annotation.VisibleForTesting
 import java.lang.Thread.UncaughtExceptionHandler
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Concrete implementation of [io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler]
@@ -17,22 +18,21 @@ import java.util.concurrent.CopyOnWriteArrayList
  */
 internal object CaptureUncaughtExceptionHandler : ICaptureUncaughtExceptionHandler {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    var crashing = false
-    private var installed: Boolean = false
+    val crashing = AtomicBoolean(false)
+    private val installed = AtomicBoolean(false)
     private var prevExceptionHandler: UncaughtExceptionHandler? = null
-    private val crashListeners = CopyOnWriteArrayList<JvmCrashListener>()
+    private val crashListeners = CopyOnWriteArrayList<IJvmCrashListener>()
 
     override fun uncaughtException(
         thread: Thread,
         throwable: Throwable,
     ) {
         // avoid re-entry
-        if (crashing) {
+        if (!crashing.compareAndSet(false, true)) {
             return
         }
 
         try {
-            crashing = true
             crashListeners.forEach {
                 it.onJvmCrash(thread, throwable)
             }
@@ -47,12 +47,11 @@ internal object CaptureUncaughtExceptionHandler : ICaptureUncaughtExceptionHandl
     /**
      * Installs and adds the specified listener
      */
-    override fun install(jvmCrashListener: JvmCrashListener) {
-        crashListeners.add(jvmCrashListener)
-        if (!installed) {
+    override fun install(crashListener: IJvmCrashListener) {
+        crashListeners.add(crashListener)
+        if (installed.compareAndSet(false, true)) {
             prevExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
             Thread.setDefaultUncaughtExceptionHandler(this)
-            installed = true
         }
     }
 
@@ -63,6 +62,6 @@ internal object CaptureUncaughtExceptionHandler : ICaptureUncaughtExceptionHandl
     override fun uninstall() {
         crashListeners.clear()
         Thread.setDefaultUncaughtExceptionHandler(prevExceptionHandler)
-        installed = false
+        installed.set(false)
     }
 }

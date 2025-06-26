@@ -13,14 +13,14 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
-import io.bitdrift.capture.reports.jvmcrash.JvmCrashListener
+import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
 class CaptureUncaughtExceptionHandlerTest {
-    private val jvmCrashListener: JvmCrashListener = mock()
+    private val crashListener: IJvmCrashListener = mock()
     private val handler = CaptureUncaughtExceptionHandler
     private lateinit var otherHandler: OtherCrashHandler
 
@@ -28,13 +28,13 @@ class CaptureUncaughtExceptionHandlerTest {
     fun setUp() {
         otherHandler = OtherCrashHandler()
         Thread.setDefaultUncaughtExceptionHandler(otherHandler)
-        handler.install(jvmCrashListener)
+        handler.install(crashListener)
     }
 
     @After
     fun cleanUp() {
         handler.uninstall()
-        handler.crashing = false
+        handler.crashing.set(false)
         Thread.setDefaultUncaughtExceptionHandler(null)
     }
 
@@ -48,7 +48,7 @@ class CaptureUncaughtExceptionHandlerTest {
         handler.uncaughtException(currentThread, appException)
 
         // ASSERT
-        verify(jvmCrashListener).onJvmCrash(eq(currentThread), eq(appException))
+        verify(crashListener).onJvmCrash(eq(currentThread), eq(appException))
         assertThat(otherHandler.callArgs.size).isEqualTo(1)
         assertThat(otherHandler.callArgs[0]["thread"]).isEqualTo(currentThread)
         assertThat(otherHandler.callArgs[0]["throwable"]).isEqualTo(appException)
@@ -57,7 +57,7 @@ class CaptureUncaughtExceptionHandlerTest {
     @Test
     fun testErrorsAreForwardedToOtherHandlerOnBitdriftFailure() {
         // ARRANGE
-        whenever(jvmCrashListener.onJvmCrash(any(), any())).thenThrow(RuntimeException("capture logger crash"))
+        whenever(crashListener.onJvmCrash(any(), any())).thenThrow(RuntimeException("capture logger crash"))
 
         val currentThread = Thread.currentThread()
         val appException = RuntimeException("app crash")
@@ -69,6 +69,29 @@ class CaptureUncaughtExceptionHandlerTest {
         assertThat(otherHandler.callArgs.size).isEqualTo(1)
         assertThat(otherHandler.callArgs[0]["thread"]).isEqualTo(currentThread)
         assertThat(otherHandler.callArgs[0]["throwable"]).isEqualTo(appException)
+    }
+
+    @Test
+    fun uncaughtException_calledFromMultipleThreads_shouldCallOnJvmCrashOnce() {
+        // ARRANGE
+        val appException = RuntimeException("concurrent crash")
+
+        val threadCount = 3
+        val threads = mutableListOf<Thread>()
+
+        // ACT
+        repeat(threadCount) {
+            val thread =
+                Thread {
+                    handler.uncaughtException(Thread.currentThread(), appException)
+                }
+            threads.add(thread)
+            thread.start()
+        }
+        threads.forEach { it.join() }
+
+        // ASSERT
+        verify(crashListener).onJvmCrash(any(), eq(appException))
     }
 }
 
