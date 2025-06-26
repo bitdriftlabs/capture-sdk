@@ -11,9 +11,12 @@ plugins {
     alias(libs.plugins.maven.publish)
 
     id("dependency-license-config")
+    id("com.google.protobuf") version "0.9.1"
 }
 
 group = "io.bitdrift"
+
+version = "local-2"
 
 dependencies {
     api(project(":replay"))
@@ -29,6 +32,7 @@ dependencies {
     implementation(libs.jsr305)
     implementation(libs.gson)
     implementation(libs.performance)
+    implementation(libs.protobuf.kotlinlite)
 
     testImplementation(libs.junit)
     testImplementation(libs.assertj.core)
@@ -38,6 +42,21 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.robolectric)
     testImplementation(libs.mockwebserver)
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.24.2"
+    }
+    generateProtoTasks {
+        all().configureEach {
+            builtins {
+                create("java") {
+                    option("lite")
+                }
+            }
+        }
+    }
 }
 
 android {
