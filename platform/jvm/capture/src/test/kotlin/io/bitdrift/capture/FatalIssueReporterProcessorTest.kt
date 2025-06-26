@@ -277,6 +277,17 @@ class FatalIssueReporterProcessorTest {
     }
 
     @Test
+    fun persistAppExitReport_whenBgAnrAndInputDispatchingTimeout_shouldMatchAnrReason() {
+        assertAnrReason(
+            descriptionFromAppExit =
+                "bg anr: Input dispatching timed out (85a07c0 " +
+                    "com.acme.app/com.acme.app.MainActivity is not responding. " +
+                    "Waited 5001ms for MotionEvent)\n",
+            expectedMessage = "Background ANR",
+        )
+    }
+
+    @Test
     fun persistAppExitReport_whenNativeCrash_shouldCreateEmptyErrorModel() {
         val description = "Native crash"
         val traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.txt")
