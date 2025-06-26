@@ -12,7 +12,7 @@ package io.bitdrift.capture.reports.jvmcrash
  * Classes implementing this interface will be notified when a JVM crash occurs,
  * enabling them to perform custom logic such as logging or reporting the crash.
  */
-interface JvmCrashListener {
+interface IJvmCrashListener {
     /**
      * Called when a JVM crash is detected.
      *

@@ -31,7 +31,7 @@ import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
-import io.bitdrift.capture.reports.jvmcrash.JvmCrashListener
+import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.lang.reflect.InvocationTargetException
@@ -48,7 +48,7 @@ internal class AppExitLogger(
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
     private val fatalIssueMechanism: FatalIssueMechanism,
-) : JvmCrashListener {
+) : IJvmCrashListener {
     companion object {
         private const val APP_EXIT_EVENT_NAME = "AppExit"
         private const val APP_EXIT_SOURCE_KEY = "_app_exit_source"

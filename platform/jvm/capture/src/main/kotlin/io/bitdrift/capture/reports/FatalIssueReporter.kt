@@ -24,7 +24,7 @@ import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.mapToFatal
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
-import io.bitdrift.capture.reports.jvmcrash.JvmCrashListener
+import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
 import io.bitdrift.capture.reports.parser.FatalIssueConfigParser.getFatalIssueConfigDetails
 import io.bitdrift.capture.reports.persistence.FatalIssueReporterStorage
 import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor
@@ -43,7 +43,7 @@ internal class FatalIssueReporter(
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
 ) : IFatalIssueReporter,
-    JvmCrashListener {
+    IJvmCrashListener {
     @VisibleForTesting
     internal var fatalIssueReporterStatus: FatalIssueReporterStatus = buildDefaultReporterStatus()
         private set
