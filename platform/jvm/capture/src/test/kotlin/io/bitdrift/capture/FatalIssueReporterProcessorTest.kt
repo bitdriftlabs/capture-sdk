@@ -88,6 +88,36 @@ class FatalIssueReporterProcessorTest {
     }
 
     @Test
+    fun persistJvmCrash_withChainedException_shouldBuildErrors() {
+        val exception =
+            RuntimeException(
+                "OnErrorNotImplementedException",
+                IllegalArgumentException("Artificial exception"),
+            )
+        fatalIssueReporterProcessor.persistJvmCrash(
+            FAKE_TIME_STAMP,
+            Thread("crashing-thread"),
+            exception,
+            null,
+        )
+
+        verify(fatalIssueReporterStorage).persistFatalIssue(
+            eq(FAKE_TIME_STAMP),
+            fatalIssueReportCaptor.capture(),
+            reportTypeCaptor.capture(),
+        )
+
+        val buffer = ByteBuffer.wrap(fatalIssueReportCaptor.firstValue)
+        val report = Report.getRootAsReport(buffer)
+        val mainError = report.errors(0)!!
+        val rootCause = report.errors(1)!!
+        assertThat(mainError.name).isEqualTo("java.lang.RuntimeException")
+        assertThat(mainError.reason).isEqualTo("OnErrorNotImplementedException")
+        assertThat(rootCause.name).isEqualTo("java.lang.IllegalArgumentException")
+        assertThat(rootCause.reason).isEqualTo("Artificial exception")
+    }
+
+    @Test
     fun persistAppExitReport_whenAnr_shouldCreateNonEmptyErrorModel() {
         val description = APP_EXIT_DESCRIPTION_ANR
         val traceInputStream = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt")
