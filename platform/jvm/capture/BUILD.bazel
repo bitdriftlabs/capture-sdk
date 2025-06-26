@@ -49,6 +49,7 @@ bitdrift_kt_android_library(
         artifact("com.google.code.findbugs:jsr305"),
         artifact("com.google.code.gson:gson"),
         artifact("com.google.flatbuffers:flatbuffers-java"),
+        artifact("com.google.protobuf:protobuf-kotlin-lite"),
         artifact("androidx.metrics:metrics-performance"),
     ],
 )

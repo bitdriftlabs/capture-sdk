@@ -15,7 +15,6 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.reports.binformat.v1.AppBuildNumber
 import io.bitdrift.capture.reports.binformat.v1.DeviceMetrics
 import io.bitdrift.capture.reports.binformat.v1.Platform
-import io.bitdrift.capture.reports.binformat.v1.Report
 import io.bitdrift.capture.reports.binformat.v1.ReportType
 import io.bitdrift.capture.reports.binformat.v1.SDKInfo
 import io.bitdrift.capture.reports.binformat.v1.Timestamp
@@ -66,16 +65,13 @@ internal class FatalIssueReporterProcessor(
                 }
 
                 ReportType.NativeCrash -> {
-                    // TODO(FranAguilera): BIT-5144 Handle model for native crash
-                    Report.createReport(
+                    NativeCrashProcessor.process(
                         builder,
                         sdk,
-                        ReportType.NativeCrash,
                         appMetrics,
                         deviceMetrics,
-                        0,
-                        0,
-                        0,
+                        description,
+                        traceInputStream,
                     )
                 }
 
