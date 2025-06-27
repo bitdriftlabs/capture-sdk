@@ -36,6 +36,7 @@ mod test {
       "com.michael-bull.kotlin-result:kotlin-result-jvm",
       "com.squareup.okhttp3:okhttp",
       "org.jetbrains.kotlin:kotlin-stdlib",
+      "com.google.protobuf:protobuf-kotlin-lite",
       "androidx.metrics:metrics-performance",
     ];
 
