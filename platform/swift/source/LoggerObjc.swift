@@ -8,10 +8,32 @@
 internal import CaptureLoggerBridge
 import Foundation
 
-@objc(CAPIssueReporterType)
-public enum IssueReporterTypeObjc: Int8 {
-    case builtIn
-    case customConfig
+/// A configuration representing the feature set enabled for Capture via Objective-C.
+@objc
+public final class CAPConfiguration: NSObject {
+    let underlyingConfig: Configuration
+    public let enableURLSessionIntegration: Bool
+
+    /// Initializes a new instance of the Capture configuration.
+    ///
+    /// - parameter enableFatalIssueReporting:   true if Capture should enable Fatal Issue Reporting
+    /// - parameter enableURLSessionIntegration: true if Capture should enable Fatal Issue Reporting
+    @objc
+    public init(enableFatalIssueReporting: Bool, enableURLSessionIntegration: Bool) {
+        self.underlyingConfig = Configuration(enableFatalIssueReporting: enableFatalIssueReporting)
+        self.enableURLSessionIntegration = enableURLSessionIntegration
+    }
+
+    /// Initializes a new instance of the Capture configuration.
+    ///
+    /// - parameter enableFatalIssueReporting:   true if Capture should enable Fatal Issue Reporting
+    /// - parameter enableURLSessionIntegration: true if Capture should enable Fatal Issue Reporting
+    /// - parameter sleepMode:                   CAPSleepModeActive if Capture should initialize in minimal activity mode
+    @objc
+    public init(enableFatalIssueReporting: Bool, enableURLSessionIntegration: Bool, sleepMode: SleepMode) {
+        self.underlyingConfig = Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting)
+        self.enableURLSessionIntegration = enableURLSessionIntegration
+    }
 }
 
 // Make this class not available to Swift code. It should be used by Objective-c code only.
@@ -21,6 +43,82 @@ public final class LoggerObjc: NSObject {
     @available(*, unavailable)
     override public init() {
         fatalError("init() is not available. Use static methods instead.")
+    }
+
+    /// Initializes the Capture SDK with the specified API key and session strategy.
+    /// Calling other SDK methods has no effect unless the logger has been initialized.
+    /// Subsequent calls to this function will have no effect.
+    ///
+    /// - parameter apiKey:          The API key provided by bitdrift.
+    /// - parameter sessionStrategy: A session strategy for the management of session IDs.
+    @objc
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionStrategy: SessionStrategyObjc
+    ) {
+        Capture.Logger
+            .start(
+                withAPIKey: apiKey,
+                sessionStrategy: sessionStrategy.underlyingSessionStrategy,
+                // swiftlint:disable:next force_unwrapping use_static_string_url_init
+                apiURL: URL(string: "https://api.bitdrift.io")!
+            )
+    }
+
+    /// Initializes the Capture SDK with the specified API key and session strategy.
+    /// Calling other SDK methods has no effect unless the logger has been initialized.
+    /// Subsequent calls to this function will have no effect.
+    ///
+    /// - parameter apiKey:          The API key provided by bitdrift.
+    /// - parameter sessionStrategy: A session strategy for the management of session IDs.
+    /// - parameter configuration:   Additional options for the Capture Logger
+    @objc
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionStrategy: SessionStrategyObjc,
+        configuration: CAPConfiguration
+    ) {
+        let logger = Capture.Logger
+            .start(
+                withAPIKey: apiKey,
+                sessionStrategy: sessionStrategy.underlyingSessionStrategy,
+                configuration: configuration.underlyingConfig,
+                // swiftlint:disable:next force_unwrapping use_static_string_url_init
+                apiURL: URL(string: "https://api.bitdrift.io")!
+            )
+
+        if let logger, configuration.enableURLSessionIntegration {
+            logger.enableIntegrations([.urlSession()], disableSwizzling: false)
+        }
+    }
+
+    /// Initializes the Capture SDK with the specified API key and session strategy.
+    /// Calling other SDK methods has no effect unless the logger has been initialized.
+    /// Subsequent calls to this function will have no effect.
+    ///
+    /// - parameter apiKey:          The API key provided by bitdrift.
+    /// - parameter sessionStrategy: A session strategy for the management of session IDs.
+    /// - parameter configuration:   Additional options for the Capture Logger
+    /// - parameter apiURL:          The base URL of Capture API.
+    @objc
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionStrategy: SessionStrategyObjc,
+        configuration: CAPConfiguration,
+        // swiftlint:disable:next force_unwrapping use_static_string_url_init
+        apiURL: URL = URL(string: "https://api.bitdrift.io")!
+    ) {
+        let logger = Capture.Logger
+            .start(
+                withAPIKey: apiKey,
+                sessionStrategy: sessionStrategy.underlyingSessionStrategy,
+                configuration: configuration.underlyingConfig,
+                apiURL: apiURL
+            )
+
+        if let logger, configuration.enableURLSessionIntegration {
+            logger.enableIntegrations([.urlSession()], disableSwizzling: false)
+        }
     }
 
     /// Initializes the Capture SDK with the specified API key and session strategy.
@@ -89,30 +187,6 @@ public final class LoggerObjc: NSObject {
 
         if let logger, enableURLSessionIntegration {
             logger.enableIntegrations([.urlSession()], disableSwizzling: false)
-        }
-    }
-
-    /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
-    /// This API is experimental and subject to change
-    /// WARNING: For now this API is not exposed to customers. If there is a request for this will open visibility again
-    @objc
-    static func initFatalIssueReporting() {
-        Capture.Logger.initFatalIssueReporting(.builtIn)
-    }
-
-    /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
-    /// This API is experimental and subject to change
-    ///
-    /// WARNING: For now this API is not exposed to customers. If there is a request for this will open visibility again
-    ///
-    /// - parameter type: mechanism for crash detection
-    @objc
-    static func initFatalIssueReporting(withType type: IssueReporterTypeObjc) {
-        switch type {
-        case .builtIn:
-            Capture.Logger.initFatalIssueReporting(.builtIn)
-        case .customConfig:
-            Capture.Logger.initFatalIssueReporting(.customConfig)
         }
     }
 
