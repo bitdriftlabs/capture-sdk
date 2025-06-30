@@ -109,6 +109,40 @@ final class DiagnosticEventReporterTests: XCTestCase {
         XCTAssertEqual("NSRangeException: index 5 out of range [0..2]", error.reason!)
     }
 
+    func testWatchdogTermination() throws {
+        let termContext = """
+<RBSTerminateContext| domain:10 code:0x8BADF00D explanation:[app<com.example.myapp>:123] Failed to terminate gracefully after 5.0s
+ProcessVisibility: Foreground
+ProcessState: Running
+WatchdogEvent: process-exit
+WatchdogVisibility: Background
+WatchdogCPUStatistics: (
+"Elapsed total CPU time (seconds): 9.680 (user 8.060, system 1.620), 30% CPU",
+"Elapsed application CPU time (seconds): 5.035, 17% CPU"
+)
+ThermalInfo: (
+"Thermal Level:   11",
+"Thermal State:   critical"
+) reportType:CrashLog maxTerminationResistance:Interactive>
+"""
+        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
+        let crash = try MockCrashDiagnostic(signal: 9, exceptionType: 10, exceptionCode: 0, terminationReason: termContext)
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        let path = reportDir!.path
+        let files = try FileManager.default.contentsOfDirectory(atPath: path)
+        XCTAssertEqual(1, files.count)
+        XCTAssertTrue(files[0].contains("_anr_"))
+
+        let contents = FileManager.default.contents(atPath: "\(path)/\(files[0])")!
+        var buf = ByteBuffer(data: contents)
+        let report: Report = try! getCheckedRoot(byteBuffer: &buf)
+
+        let error = report.errors(at: 0)!
+        XCTAssertEqual("App Hang", error.name!)
+        XCTAssertEqual(termContext, error.reason!)
+    }
+
     func testSendAttributedEmptyStack() throws {
         let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
         let imageOffset: UInt64 = 165304
@@ -355,11 +389,13 @@ final class MockCrashDiagnostic: MXCrashDiagnostic {
     let mockExceptionType: NSNumber?
     let mockExceptionCode: NSNumber?
     let mockExceptionReason: Any?
+    let mockTerminationReason: String?
 
     override var callStackTree: MXCallStackTree { get { return mockCallStackTree! } }
     override var signal: NSNumber? { get { return mockSignal } }
     override var exceptionType: NSNumber? { get { return mockExceptionType  } }
     override var exceptionCode: NSNumber? { get { return mockExceptionCode } }
+    override var terminationReason: String? { get { return mockTerminationReason } }
 
     @available(iOS 17.0, *)
     override var exceptionReason: MXCrashDiagnosticObjectiveCExceptionReason? {
@@ -378,6 +414,7 @@ final class MockCrashDiagnostic: MXCrashDiagnostic {
     init(signal: NSNumber? = nil,
          exceptionType: NSNumber? = nil,
          exceptionCode: NSNumber? = nil,
+         terminationReason: String? = nil,
          callStacks: [[String: Any]] = []
     ) throws {
         self.mockCallStackTree = try MockCallStackTree(callStacks)
@@ -385,6 +422,7 @@ final class MockCrashDiagnostic: MXCrashDiagnostic {
         self.mockExceptionType = exceptionType
         self.mockExceptionCode = exceptionCode
         self.mockExceptionReason = nil
+        self.mockTerminationReason = terminationReason
         super.init()
     }
 
@@ -393,6 +431,7 @@ final class MockCrashDiagnostic: MXCrashDiagnostic {
          exceptionType: NSNumber? = nil,
          exceptionCode: NSNumber? = nil,
          exceptionReason: MockObjectiveCReason? = nil,
+         terminationReason: String? = nil,
          callStacks: [[String: Any]] = []
     ) throws {
         self.mockCallStackTree = try MockCallStackTree(callStacks)
@@ -400,6 +439,7 @@ final class MockCrashDiagnostic: MXCrashDiagnostic {
         self.mockExceptionType = exceptionType
         self.mockExceptionCode = exceptionCode
         self.mockExceptionReason = exceptionReason
+        self.mockTerminationReason = terminationReason
         super.init()
     }
 
@@ -409,6 +449,7 @@ final class MockCrashDiagnostic: MXCrashDiagnostic {
         self.mockExceptionCode = nil
         self.mockExceptionType = nil
         self.mockExceptionReason = nil
+        self.mockTerminationReason = nil
         super.init(coder: coder)
     }
 }
