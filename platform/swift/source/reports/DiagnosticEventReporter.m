@@ -45,15 +45,18 @@ static const char *name_for_diagnostic_type(MXDiagnostic *event);
 @property (nonnull, strong) NSURL *dir;
 @property (nonnull, strong) NSString *sdkVersion;
 @property (nonnull, strong, nonatomic) NSMeasurement <NSUnitDuration *> *minimumHangDuration;
+@property CAPDiagnosticType diagnosticTypes;
 @end
 
 @implementation DiagnosticEventReporter
 - (instancetype _Nonnull)initWithOutputDir:(NSURL *_Nonnull)dir
                                 sdkVersion:(NSString *_Nonnull)sdkVersion
+                                eventTypes:(CAPDiagnosticType)types
                         minimumHangSeconds:(NSTimeInterval)seconds {
   if (self = [super init]) {
     self.dir = dir;
     self.sdkVersion = sdkVersion;
+    self.diagnosticTypes = types;
     [self setMinimumHangSeconds:seconds];
   }
   return self;
@@ -72,16 +75,20 @@ static const char *name_for_diagnostic_type(MXDiagnostic *event);
 
   for (MXDiagnosticPayload *payload in payloads) {
     NSTimeInterval timestamp = [payload.timeStampEnd timeIntervalSince1970];
-    for (MXCrashDiagnostic *event in payload.crashDiagnostics) {
-      [self processDiagnostic:event atTimestamp:timestamp];
+    if ((self.diagnosticTypes & CAPDiagnosticTypeCrash) > 0) {
+      for (MXCrashDiagnostic *event in payload.crashDiagnostics) {
+        [self processDiagnostic:event atTimestamp:timestamp];
+      }
     }
 
-    for (MXHangDiagnostic *event in payload.hangDiagnostics) {
-      NSMeasurement *duration = ((MXHangDiagnostic *)event).hangDuration;
-      if ([duration measurementBySubtractingMeasurement:self.minimumHangDuration].doubleValue < 0) {
-        continue;
+    if ((self.diagnosticTypes & CAPDiagnosticTypeHang) > 0) {
+      for (MXHangDiagnostic *event in payload.hangDiagnostics) {
+        NSMeasurement *duration = ((MXHangDiagnostic *)event).hangDuration;
+        if ([duration measurementBySubtractingMeasurement:self.minimumHangDuration].doubleValue < 0) {
+          continue;
+        }
+        [self processDiagnostic:event atTimestamp:timestamp];
       }
-      [self processDiagnostic:event atTimestamp:timestamp];
     }
   }
 }

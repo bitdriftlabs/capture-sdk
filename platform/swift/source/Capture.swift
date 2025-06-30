@@ -130,6 +130,7 @@ extension Logger {
                 let reporter = DiagnosticEventReporter(
                     outputDir: outputDir,
                     sdkVersion: capture_get_sdk_version(),
+                    eventTypes: .crash,
                     minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC)
                 )
                 diagnosticReporter.update { val in

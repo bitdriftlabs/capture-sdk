@@ -31,7 +31,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
     }
 
     func testSdkAttributes() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", minimumHangSeconds: 2.5)
+        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
         let crash = try MockCrashDiagnostic(signal: 9, exceptionType: nil, exceptionCode: nil, callStacks: [])
         reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
 
@@ -49,7 +49,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
     }
 
     func testDeviceTime() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", minimumHangSeconds: 2.5)
+        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
         let crash = try MockCrashDiagnostic(signal: 9, exceptionType: nil, exceptionCode: nil, callStacks: [])
         let timestamp = dateFormatter.date(from: "1995-03-11")!
         reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash], timestamp: timestamp)])
@@ -67,7 +67,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
     }
 
     func testMachExceptionNameInError() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", minimumHangSeconds: 2.5)
+        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
         let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1)
         reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
 
@@ -88,7 +88,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
 
     @available(iOS 17.0, *)
     func testNSExceptionNameInError() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", minimumHangSeconds: 2.5)
+        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
         let crashReason = MockObjectiveCReason("NSRangeException", message: "index 5 out of range [0..2]")
         let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1, exceptionReason: crashReason)
 
@@ -110,7 +110,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
     }
 
     func testSendAttributedEmptyStack() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", minimumHangSeconds: 2.5)
+        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
         let imageOffset: UInt64 = 165304
         let imageOffset2: UInt64 = 126721
         let crash = try MockCrashDiagnostic(signal: 9, callStacks: [
@@ -165,7 +165,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
     }
 
     func testDiscardInvalidFrame() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", minimumHangSeconds: 2.5)
+        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
         let imageOffset: UInt64 = 165304
         let imageOffset2: UInt64 = 126721
         let crash = try MockCrashDiagnostic(signal: 6, callStacks: [
@@ -182,7 +182,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
                                     "offsetIntoBinaryTextSegment": imageOffset2,
                                     "sampleCount": 1,
                                     "binaryName": "Proc",
-                                    "address": 23786237891,],
+                                    "address": 23786237891, ],
                     ],
                     ],
                  ],
@@ -217,7 +217,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
     }
 
     func testHangUnderThreshold() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", minimumHangSeconds: 1)
+        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: [.hang, .crash], minimumHangSeconds: 1)
         let timestamp = dateFormatter.date(from: "2022-04-07")!
         let hang = try MockHangDiagnostic(duration: 0.7, type: "Main Runloop Hang", callStacks: [
             ["threadAttributed": true, "callStackRootFrames": [["binaryUUID":
@@ -236,7 +236,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
     }
 
     func testHangOverThreshold() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", minimumHangSeconds: 1)
+        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: [.hang, .crash], minimumHangSeconds: 1)
         let timestamp = dateFormatter.date(from: "2008-11-25")!
         let imageOffset: UInt64 = 165304
         let imageOffset2: UInt64 = 126721
