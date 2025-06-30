@@ -33,6 +33,7 @@
 
 package io.bitdrift.capture.instrumentation.okhttp.visitor
 
+import io.bitdrift.capture.extension.InstrumentationExtension.OkHttpInstrumentationType
 import io.bitdrift.capture.instrumentation.MethodContext
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
@@ -42,7 +43,7 @@ class OkHttpEventListenerMethodVisitor(
     apiVersion: Int,
     originalVisitor: MethodVisitor,
     instrumentableContext: MethodContext,
-    val proxyEventListener: Boolean
+    val okHttpInstrumentationType: OkHttpInstrumentationType
 ) : AdviceAdapter(
     apiVersion,
     originalVisitor,
@@ -57,10 +58,9 @@ class OkHttpEventListenerMethodVisitor(
     override fun onMethodEnter() {
         super.onMethodEnter()
 
-        if (proxyEventListener) {
-            addProxyingEventListener()
-        } else {
-            addOverwritingEventListener()
+        when (okHttpInstrumentationType) {
+            OkHttpInstrumentationType.PROXY -> addProxyingEventListener()
+            OkHttpInstrumentationType.OVERWRITE -> addOverwritingEventListener()
         }
     }
 
