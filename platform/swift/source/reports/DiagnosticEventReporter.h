@@ -13,5 +13,8 @@
  * include in the generated files
  */
 - (instancetype _Nonnull)initWithOutputDir:(NSURL *_Nonnull)path
-                                sdkVersion:(NSString *_Nonnull)sdkVersion;
+                                sdkVersion:(NSString *_Nonnull)sdkVersion
+                        minimumHangSeconds:(NSTimeInterval)seconds;
+
+- (void)setMinimumHangSeconds:(NSTimeInterval)seconds;
 @end

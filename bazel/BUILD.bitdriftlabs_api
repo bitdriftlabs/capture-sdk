@@ -15,3 +15,9 @@ filegroup(
   srcs = ["src/bitdrift_public/fbs/logging/v1/buffer_log.fbs"],
   visibility = ["//visibility:public"],
 )
+
+filegroup(
+  name = "report",
+  srcs = ["src/bitdrift_public/fbs/issue-reporting/v1/report.fbs"],
+  visibility = ["//visibility:public"],
+)

@@ -230,6 +230,14 @@ public final class Logger {
         self.dispatchSourceMemoryMonitor = Self.setUpMemoryStateMonitoring(logger: self.underlyingLogger)
 
         self.deviceCodeController = DeviceCodeController(client: client)
+
+        // Update hang duration with runtime value
+        let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
+        if let reporter = Logger.diagnosticReporter.load(),
+           hangDuration > 0 {
+            let seconds = Double(hangDuration) / Double(MSEC_PER_SEC)
+            reporter.setMinimumHangSeconds(TimeInterval(seconds))
+        }
     }
 
     // swiftlint:enable function_body_length
