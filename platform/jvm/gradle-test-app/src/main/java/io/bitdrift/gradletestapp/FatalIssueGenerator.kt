@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.util.UUID
 
 
 /**
@@ -92,17 +93,12 @@ internal object FatalIssueGenerator {
     }
 
     fun forceCoroutinesAnr() {
-        CoroutineScope(Dispatchers.Main).launch {
-            (1..Int.MAX_VALUE).asFlow()
-                .onEach {
-                    Thread.sleep(1)
-                }
-                .collect {
-                    Log.i(TAG_NAME, "Item received: $it")
-                }
+        callOnMainThread {
+            Log.i(TAG_NAME, "forceCoroutinesAnr. Getting device")
+            val deviceId = DeviceFetcher.getDeviceId()
+            Log.d(TAG_NAME, "forceCoroutinesAnr. Device ID: $deviceId")
         }
     }
-
 
     fun forceCoroutinesCrash(){
         CoroutineScope(Dispatchers.IO).launch {
@@ -193,6 +189,24 @@ internal object FatalIssueGenerator {
             val endTime = System.currentTimeMillis()
             val duration = (endTime - startTime)
             return "Task ID [$id] completed with a $duration of milliseconds"
+        }
+    }
+
+    object DeviceFetcher {
+
+        private suspend fun fetchDeviceId(): String {
+            delay(20000)
+            return "Device ID: ${UUID.randomUUID()}"
+        }
+
+        /**
+         * This call will block caller thread until fetchDeviceId completes
+         */
+        fun getDeviceId(): String {
+            return runBlocking {
+                Log.i("DeviceScopeRegistry", "getDevice")
+                fetchDeviceId()
+            }
         }
     }
 }
