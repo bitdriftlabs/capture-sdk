@@ -258,6 +258,10 @@ public final class Logger {
         self.underlyingLogger.setSleepMode(mode)
     }
 
+    public func recordAppOpen() {
+        self.underlyingLogger.recordAppOpen()
+    }
+
     deinit {
         self.stop()
     }

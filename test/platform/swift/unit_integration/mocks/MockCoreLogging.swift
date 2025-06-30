@@ -83,6 +83,8 @@ extension MockCoreLogging: CoreLogging {
 
     public func getDeviceID() -> String { "deviceID" }
 
+    public func recordAppOpen() {}
+
     public func log(
         level: LogLevel,
         message: @autoclosure () -> String,

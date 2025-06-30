@@ -68,6 +68,8 @@ extension MockLogging: Logging {
 
     public func startNewSession() {}
 
+    public func recordAppOpen() {}
+
     public var deviceID: String { "deviceID" }
 
     public func log(

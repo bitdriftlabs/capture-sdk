@@ -174,6 +174,11 @@ extension Logger {
         Self.getShared()?.setSleepMode(mode)
     }
 
+    /// Record a metric for a new app open event
+    public static func recordAppOpen() {
+        Self.getShared()?.recordAppOpen()
+    }
+
     // MARK: - Logging
 
     /// Logs a message at a specified level to the default logger instance.

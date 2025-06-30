@@ -117,6 +117,11 @@ public protocol Logging {
     /// - parameter mode: the mode to use
     func setSleepMode(_ mode: SleepMode)
 
+    // MARK: - Metrics
+
+    /// Records the app being opened
+    func recordAppOpen()
+
     // MARK: - Spans
 
     /// Signals that an operation has started at this point in time. Each operation consists of start and
