@@ -153,6 +153,16 @@ object Capture {
          * @param context an optional context reference. You should provide the context if called from
          * a [android.content.ContentProvider]
          */
+        @Deprecated(
+            message = "start is deprecated, please use startAsync",
+            replaceWith =
+                ReplaceWith(
+                    expression =
+                        "startAsync(apiKey, sessionStrategy, completion, configuration, " +
+                            "fieldProviders, completion, dateProvider, apiUrl, context)",
+                ),
+            level = DeprecationLevel.WARNING,
+        )
         @Synchronized
         @JvmStatic
         @JvmOverloads
@@ -165,7 +175,7 @@ object Capture {
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             context: Context? = null,
         ) {
-            start(
+            performStart(
                 apiKey,
                 sessionStrategy,
                 configuration,
@@ -177,10 +187,58 @@ object Capture {
             )
         }
 
+        /**
+         * Initializes the Capture SDK in a dedicated background thread with the specified API key, providers, and configuration.
+         *
+         * Will emit a completion of [io.bitdrift.capture.CaptureResult] when is startAsync is done.
+         *
+         * Calling other SDK methods has no effect unless the logger has been initialized.
+         * Subsequent calls to this function will have no effect.
+         *
+         * @param apiKey The API key provided by bitdrift. This is required.
+         * @param sessionStrategy session strategy for the management of session id.
+         * @param completion The callback that is called when the start async operation is complete. Called on the main
+         *                   thread.
+         * @param configuration A configuration that is used to set up Capture features.
+         * @param fieldProviders list of extra field providers to apply to all logs.
+         * @param dateProvider optional date provider used to override how the current timestamp is computed.
+         * @param apiUrl The base URL of Capture API. Depend on its default value unless specifically
+         *               instructed otherwise during discussions with bitdrift. Defaults to bitdrift's hosted
+         *               Compose API base URL.
+         * @param context an optional context reference. You should provide the context if called from
+         * a [android.content.ContentProvider]
+         */
         @Synchronized
         @JvmStatic
         @JvmOverloads
-        internal fun start(
+        fun startAsync(
+            apiKey: String,
+            sessionStrategy: SessionStrategy,
+            completionResult: (CaptureResult<Unit>) -> Unit,
+            configuration: Configuration = Configuration(),
+            fieldProviders: List<FieldProvider> = listOf(),
+            dateProvider: DateProvider? = null,
+            apiUrl: HttpUrl = defaultCaptureApiUrl,
+            context: Context? = null,
+        ) {
+            performStart(
+                apiKey,
+                sessionStrategy,
+                configuration,
+                fieldProviders,
+                dateProvider,
+                apiUrl,
+                CaptureJniLibrary,
+                context,
+                CaptureDispatchers.CommonBackground,
+                completionResult,
+            )
+        }
+
+        @Synchronized
+        @JvmStatic
+        @JvmOverloads
+        internal fun performStart(
             apiKey: String,
             sessionStrategy: SessionStrategy,
             configuration: Configuration = Configuration(),
@@ -189,23 +247,23 @@ object Capture {
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             bridge: IBridge,
             context: Context? = null,
-            backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
+            backgroundThreadHandler: IBackgroundThreadHandler? = null,
+            completionResult: ((CaptureResult<Unit>) -> Unit)? = null,
         ) {
             // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
             // while subsequent logger access relies on volatile reads.
 
             // There's nothing we can do if we don't have yet access to the application context.
             if (context == null && !ContextHolder.isInitialized) {
-                Log.w(
-                    LOG_TAG,
-                    "Attempted to initialize Capture with a null context",
-                )
+                val errorMessage = "Attempted to initialize Capture with a null context"
+                Log.w(LOG_TAG, errorMessage)
+                completionResult.reportFailure(errorMessage)
                 return
             }
 
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
             if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting(preInitInMemoryLogger))) {
-                backgroundThreadHandler.runAsync {
+                val initBlock: () -> Unit = {
                     try {
                         val unwrappedContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
                         if (configuration.enableFatalIssueReporting) {
@@ -225,11 +283,21 @@ object Capture {
                                 preInitLogFlusher = preInitInMemoryLogger,
                             )
                         default.set(LoggerState.Started(loggerImpl))
-                    } catch (e: Throwable) {
-                        Log.w(LOG_TAG, "Failed to start Capture", e)
+                        completionResult.reportSuccess()
+                    } catch (throwable: Throwable) {
+                        val throwableMessage = throwable.message?.let { ". $it" } ?: ""
+                        val errorDetails = "Failed to start Capture$throwableMessage"
+                        Log.w(LOG_TAG, errorDetails, throwable)
                         preInitInMemoryLogger.clear()
+                        completionResult.reportFailure(errorDetails)
                         default.set(LoggerState.StartFailure)
                     }
+                }
+
+                if (backgroundThreadHandler != null) {
+                    backgroundThreadHandler.runAsync(initBlock)
+                } else {
+                    initBlock()
                 }
             } else {
                 Log.w(LOG_TAG, "Multiple attempts to start Capture")
@@ -242,7 +310,7 @@ object Capture {
          */
         @JvmStatic
         val sessionId: String?
-            get() = logger()?.sessionId
+            get() = (logger() as? LoggerImpl)?.sessionId
 
         /**
          * The URL for the current ongoing session.
@@ -250,7 +318,7 @@ object Capture {
          */
         @JvmStatic
         val sessionUrl: String?
-            get() = logger()?.sessionUrl
+            get() = (logger() as? LoggerImpl)?.sessionUrl
 
         /**
          * A canonical identifier for a device that remains consistent as long as an application
@@ -261,7 +329,7 @@ object Capture {
          */
         @JvmStatic
         val deviceId: String?
-            get() = logger()?.deviceId
+            get() = (logger() as? LoggerImpl)?.deviceId
 
         /**
          * Defines the initialization of a new session within the currently running logger
@@ -287,7 +355,7 @@ object Capture {
                     mainThreadHandler.run { completion(it) }
                 }
             } ?: run {
-                mainThreadHandler.run { completion(CaptureResult.Failure(SdkNotStartedError)) }
+                mainThreadHandler.run { completion(CaptureResult.Failure(SdkNotStartedError())) }
             }
         }
 
@@ -536,6 +604,22 @@ object Capture {
          */
         internal fun resetShared() {
             default.set(LoggerState.NotStarted)
+        }
+
+        private fun ((CaptureResult<Unit>) -> Unit)?.reportSuccess() {
+            this?.let {
+                mainThreadHandler.run {
+                    it.invoke(CaptureResult.Success(Unit))
+                }
+            }
+        }
+
+        private fun ((CaptureResult<Unit>) -> Unit)?.reportFailure(message: String) {
+            this?.let {
+                mainThreadHandler.run {
+                    it.invoke(CaptureResult.Failure(SdkNotStartedError(message)))
+                }
+            }
         }
     }
 }

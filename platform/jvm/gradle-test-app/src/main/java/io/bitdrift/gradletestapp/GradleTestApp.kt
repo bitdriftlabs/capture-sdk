@@ -44,7 +44,6 @@ import android.app.ApplicationStartInfo.START_TYPE_UNSET
 import android.app.ApplicationStartInfo.START_TYPE_WARM
 import android.content.Context
 import android.content.SharedPreferences
-import android.graphics.Paint.Cap
 import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
@@ -52,14 +51,13 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import com.bugsnag.android.Bugsnag
-import com.bugsnag.android.Logger
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
-import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.timber.CaptureTree
@@ -76,6 +74,8 @@ import papa.AppLaunchType
 import papa.PapaEvent
 import papa.PapaEventListener
 import timber.log.Timber
+import java.util.Hashtable
+import java.util.UUID
 import java.util.concurrent.Executors
 import kotlin.random.Random
 import kotlin.time.DurationUnit
@@ -103,20 +103,34 @@ class GradleTestApp : Application() {
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         val fatalIssueMechanism = getFatalIssueSourceConfig(sharedPreferences)
         val stringApiUrl = sharedPreferences.getString("apiUrl", null)
+        val apiKey = sharedPreferences.getString(BITDRIFT_API_KEY, "")
         val apiUrl = stringApiUrl?.toHttpUrlOrNull()
-        if (apiUrl == null) {
-            Log.e("GradleTestApp", "Failed to initialize bitdrift logger due to invalid API URL: $stringApiUrl")
+        if (apiKey == null || apiUrl == null) {
+            Log.e("GradleTestApp", "Failed to initialize bitdrift logger due to invalid parameters: $stringApiUrl. $apiKey")
             return
         }
 
         val enableFatalIssueReporting = fatalIssueMechanism == FatalIssueMechanism.BuiltIn.displayName
         val configuration = Configuration(enableFatalIssueReporting = enableFatalIssueReporting)
-        BitdriftInit.initBitdriftCaptureInJava(
-            apiUrl,
-            sharedPreferences.getString(BITDRIFT_API_KEY, ""),
+
+        val userID = UUID.randomUUID().toString()
+        val fieldProviders: MutableList<FieldProvider> = ArrayList()
+        fieldProviders.add(FieldProvider {
+            val fields: MutableMap<String, String> = Hashtable()
+            fields["user_id"] = userID
+            fields
+        })
+
+        Capture.Logger.startAsync(
+            apiKey,
             getSessionStrategy(),
+            {
+                CaptureResultRepository.updateResult(it)
+            },
             configuration,
+            fieldProviders
         )
+
         // Timber
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())

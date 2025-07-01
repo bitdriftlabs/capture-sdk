@@ -8,13 +8,16 @@
 package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
+import com.google.common.util.concurrent.MoreExecutors
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.threading.CaptureDispatchers
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.Before
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,6 +29,11 @@ import org.robolectric.annotation.Config
 @Config(sdk = [21])
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class CaptureTest {
+    @Before
+    fun setUp() {
+        CaptureDispatchers.setTestExecutorService(MoreExecutors.newDirectExecutorService())
+    }
+
     // This Test needs to run first since the following tests need to initialize
     // the ContextHolder before they can run.
     @Test
@@ -89,6 +97,21 @@ class CaptureTest {
         )
 
         // Calling reconfigure a second time does not change the static logger.
+        assertThat(logger).isEqualTo(Capture.logger())
+    }
+
+    @Test
+    fun startAsync_shouldReturnNonNullLogger() {
+        val initializer = ContextHolder()
+        initializer.create(ApplicationProvider.getApplicationContext())
+
+        Logger.startAsync(
+            apiKey = "test2",
+            sessionStrategy = SessionStrategy.Fixed(),
+            {},
+        )
+
+        val logger = Capture.logger()
         assertThat(logger).isEqualTo(Capture.logger())
     }
 }
