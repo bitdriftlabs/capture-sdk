@@ -283,22 +283,11 @@ object Capture {
         @JvmStatic
         fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {
             logger()?.also {
-                it.createTemporaryDeviceCode { result ->
-                    mainThreadHandler.run {
-                        when (result) {
-                            is CaptureResult.Success -> {
-                                completion(CaptureResult.Success(result.value))
-                            }
-                            is CaptureResult.Failure -> {
-                                completion(CaptureResult.Failure(result.error))
-                            }
-                        }
-                    }
+                it.createTemporaryDeviceCode {
+                    mainThreadHandler.run { completion(it) }
                 }
             } ?: run {
-                mainThreadHandler.run {
-                    completion(CaptureResult.Failure(SdkNotStartedError))
-                }
+                mainThreadHandler.run { completion(CaptureResult.Failure(SdkNotStartedError)) }
             }
         }
 
