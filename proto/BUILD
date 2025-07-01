@@ -19,6 +19,17 @@ flatbuffer_library_public(
     language_flag = "--jsonschema",
 )
 
+flatbuffer_library_public(
+    name = "gen_report_swift",
+    srcs = [
+        "@bitdrift_api//:report",
+    ],
+    outs = [
+        "report_generated.swift",
+    ],
+    language_flag = "--swift",
+)
+
 bitdrift_rust_binary(
     name = "log_enum_codegen",
 )
@@ -38,5 +49,15 @@ genrule(
     outs = ["LogType.swift"],
     cmd = "$(location :log_enum_codegen) $(location :descriptor) swift > $(OUTS)",
     tools = [":log_enum_codegen"],
+    visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "report_swift_source",
+    srcs = [":gen_report_swift"],
+    outs = ["Report.swift"],
+    # you'd think that the generated file would include all of the imports
+    # needed, and you would be wrong.
+    cmd = "echo import FlatBuffers > $(OUTS) && cat $(location :gen_report_swift) >> $(OUTS)",
     visibility = ["//visibility:public"],
 )

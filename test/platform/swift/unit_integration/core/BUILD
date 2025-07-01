@@ -2,7 +2,7 @@ load("//bazel:bitdrift_swift_test.bzl", "bitdrift_mobile_swift_test")
 
 bitdrift_mobile_swift_test(
     name = "test",
-    srcs = glob(["**/*.swift"]),
+    srcs = glob(["**/*.swift"]) + ["//proto:report_swift_source"],
     repository = "@capture",
     tags = ["macos_only"],
     visibility = ["//visibility:public"],
@@ -14,5 +14,6 @@ bitdrift_mobile_swift_test(
         "//test/platform/swift/unit_integration/mocks",
         "@Difference//:difference",
         "@SwiftBenchmark//:swift_benchmark",
+        "@flatbuffers//swift",
     ],
 )
