@@ -8,8 +8,6 @@
 package io.bitdrift.capture.network.okhttp
 
 import android.util.Log
-import com.github.michaelbull.result.Err
-import com.github.michaelbull.result.Ok
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.bitdrift.capture.ApiError
@@ -52,19 +50,19 @@ internal class OkHttpApiClient(
             try {
                 gson.toJson(body)
             } catch (e: Exception) {
-                completion(Err(e.toSerializationError()))
+                completion(CaptureResult.Failure(e.toSerializationError()))
                 return
             }
+
         val url = apiBaseUrl.newBuilder().addPathSegments(endpoint.path).build()
         val requestBuilder =
             Request
                 .Builder()
                 .url(url)
                 .method("POST", jsonBody.toRequestBody(jsonContentType))
-        headers?.let {
-            requestBuilder.headers(it.toHeaders())
-        }
+        headers?.let { requestBuilder.headers(it.toHeaders()) }
         requestBuilder.header("x-bitdrift-api-key", apiKey)
+
         client.newCall(requestBuilder.build()).enqueue(
             object : Callback {
                 override fun onResponse(
@@ -74,15 +72,14 @@ internal class OkHttpApiClient(
                     response.use {
                         if (response.isSuccessful) {
                             try {
-                                val typedResponse =
-                                    gson.fromTypedJson<Rp>(response.body?.string().orEmpty())
-                                completion(Ok(typedResponse))
+                                val typedResponse = gson.fromTypedJson<Rp>(response.body?.string().orEmpty())
+                                completion(CaptureResult.Success(typedResponse))
                             } catch (e: Exception) {
-                                completion(Err(e.toSerializationError()))
+                                completion(CaptureResult.Failure(e.toSerializationError()))
                             }
                         } else {
                             val responseBody = response.body?.string()
-                            completion(Err(ApiError.ServerError(response.code, responseBody)))
+                            completion(CaptureResult.Failure(ApiError.ServerError(response.code, responseBody)))
                         }
                         Log.e("bitdrift", "done")
                     }
@@ -92,7 +89,7 @@ internal class OkHttpApiClient(
                     call: Call,
                     e: IOException,
                 ) {
-                    completion(Err(e.toNetworkError()))
+                    completion(CaptureResult.Failure(e.toNetworkError()))
                 }
             },
         )

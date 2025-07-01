@@ -9,7 +9,6 @@ package io.bitdrift.capture
 
 import android.content.Context
 import android.util.Log
-import com.github.michaelbull.result.Err
 import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
@@ -288,7 +287,7 @@ object Capture {
                     mainThreadHandler.run { completion(it) }
                 }
             } ?: run {
-                mainThreadHandler.run { completion(Err(SdkNotStartedError)) }
+                mainThreadHandler.run { completion(CaptureResult.Failure(SdkNotStartedError)) }
             }
         }
 

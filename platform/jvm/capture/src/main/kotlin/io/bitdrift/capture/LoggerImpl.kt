@@ -14,7 +14,6 @@ import android.content.Context
 import android.system.Os
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
-import com.github.michaelbull.result.Err
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
@@ -300,7 +299,7 @@ internal class LoggerImpl(
              *  `SharedPreferences`.
              */
             deviceCodeService.createTemporaryDeviceCode(deviceId, completion)
-        } ?: completion(Err(SdkNotStartedError))
+        } ?: completion(CaptureResult.Failure(SdkNotStartedError))
     }
 
     private fun appExitSaveCurrentSessionId(sessionId: String? = null) {

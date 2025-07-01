@@ -30,9 +30,8 @@ import com.apollographql.apollo.network.okHttpClient
 import com.example.rocketreserver.BookTripsMutation
 import com.example.rocketreserver.LaunchListQuery
 import com.example.rocketreserver.LoginMutation
-import com.github.michaelbull.result.onFailure
-import com.github.michaelbull.result.onSuccess
 import io.bitdrift.capture.Capture.Logger
+import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.Error
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.apollo.CaptureApolloInterceptor
@@ -174,14 +173,12 @@ class FirstFragment : Fragment() {
 
     private fun getTempDeviceCode(view: View) {
         Logger.trackSpan("createTemporaryDeviceCode", LogLevel.INFO) {
-            Logger.createTemporaryDeviceCode(completion = { result ->
-                result.onSuccess {
-                    updateDeviceCodeValue(it)
+            Logger.createTemporaryDeviceCode { result ->
+                when (result) {
+                    is CaptureResult.Success -> updateDeviceCodeValue(result.value)
+                    is CaptureResult.Failure -> displayDeviceCodeError(result.error)
                 }
-                result.onFailure {
-                    displayDeviceCodeError(it)
-                }
-            })
+            }
         }
     }
 

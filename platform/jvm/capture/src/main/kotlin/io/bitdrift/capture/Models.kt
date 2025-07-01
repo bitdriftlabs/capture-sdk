@@ -10,7 +10,26 @@ package io.bitdrift.capture
 /**
  * A monad for modeling success or failure operations in the Capture SDK.
  */
-typealias CaptureResult<V> = com.github.michaelbull.result.Result<V, Error>
+sealed class CaptureResult<out V> {
+    /**
+     * Represents a successful operation result within the Capture SDK.
+     *
+     * @param V the type of value returned upon success.
+     * @property value the result value produced by the operation.
+     */
+    data class Success<V>(
+        val value: V,
+    ) : CaptureResult<V>()
+
+    /**
+     * Represents a failed operation result within the Capture SDK.
+     *
+     * @property error the [Error] describing the reason for the failure.
+     */
+    data class Failure(
+        val error: Error,
+    ) : CaptureResult<Nothing>()
+}
 
 /**
  * Represents a failed operation in the Capture SDK.

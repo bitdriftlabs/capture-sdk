@@ -8,10 +8,9 @@
 package io.bitdrift.capture.error
 
 import android.util.Log
-import com.github.michaelbull.result.onFailure
-import com.github.michaelbull.result.onSuccess
 import com.google.gson.annotations.SerializedName
 import io.bitdrift.capture.ApiError
+import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.network.okhttp.HttpApiEndpoint
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.providers.FieldProvider
@@ -46,19 +45,29 @@ internal class ErrorReporterService(
                 putAll(fields)
             }
 
-        apiClient.perform<ErrorReportRequest, Unit>(HttpApiEndpoint.ReportSdkError, typedRequest, allFields) { result ->
-            result.onSuccess {
-                Log.i("capture", "Successfully reported error to bitdrift service")
-            }
-            result.onFailure { error ->
-                when (error) {
-                    is ApiError.ServerError -> {
-                        Log.w("capture", "Failed to report error to bitdrift service, got ${error.statusCode} response")
-                    }
-                    else -> {
-                        Log.e("capture", "Failed to report error to bitdrift service: ${error.message}")
-                    }
+        apiClient.perform<ErrorReportRequest, Unit>(
+            HttpApiEndpoint.ReportSdkError,
+            typedRequest,
+            allFields,
+        ) { result ->
+            when (result) {
+                is CaptureResult.Success -> {
+                    Log.i("capture", "Successfully reported error to bitdrift service")
                 }
+
+                is CaptureResult.Failure ->
+                    when (val error = result.error) {
+                        is ApiError.ServerError -> {
+                            Log.w(
+                                "capture",
+                                "Failed to report error to bitdrift service, got ${error.statusCode} response",
+                            )
+                        }
+
+                        else -> {
+                            Log.e("capture", "Failed to report error to bitdrift service: ${error.message}")
+                        }
+                    }
             }
         }
     }

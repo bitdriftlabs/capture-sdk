@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture
 
-import com.github.michaelbull.result.map
 import com.google.gson.annotations.SerializedName
 import io.bitdrift.capture.network.okhttp.HttpApiEndpoint
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
@@ -21,8 +20,16 @@ internal class DeviceCodeService(
     ) {
         val typedRequest = DeviceCodeRequest(deviceId)
 
-        apiClient.perform<DeviceCodeRequest, DeviceCodeResponse>(HttpApiEndpoint.GetTemporaryDeviceCode, typedRequest) { result ->
-            completion(result.map { it.code })
+        apiClient.perform<DeviceCodeRequest, DeviceCodeResponse>(
+            HttpApiEndpoint.GetTemporaryDeviceCode,
+            typedRequest,
+        ) { result ->
+            val mappedResult =
+                when (result) {
+                    is CaptureResult.Success -> CaptureResult.Success(result.value.code)
+                    is CaptureResult.Failure -> CaptureResult.Failure(result.error)
+                }
+            completion(mappedResult)
         }
     }
 }
