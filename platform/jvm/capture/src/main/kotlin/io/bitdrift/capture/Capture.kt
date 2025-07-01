@@ -9,7 +9,6 @@ package io.bitdrift.capture
 
 import android.content.Context
 import android.util.Log
-import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
@@ -22,7 +21,6 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.reports.FatalIssueReporter
-import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -36,17 +34,14 @@ internal sealed class LoggerState {
 
     /**
      * The logger is in the process of being started. Subsequent attempts to start the logger will be ignored.
-     * Any calls to Logger.log() meanwhile Logger.start() is in process will be cached in memory
      */
-    class Starting(
-        val preInitInMemoryLogger: PreInitInMemoryLogger,
-    ) : LoggerState()
+    data object Starting : LoggerState()
 
     /**
      * The logger has been successfully started and is ready for use. Subsequent attempts to start the logger will be ignored.
      */
     class Started(
-        val loggerImpl: LoggerImpl,
+        val logger: LoggerImpl,
     ) : LoggerState()
 
     /**
@@ -62,7 +57,6 @@ object Capture {
     internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
     private val fatalIssueReporter = FatalIssueReporter()
-    private val preInitInMemoryLogger by lazy { PreInitInMemoryLogger() }
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -72,8 +66,8 @@ object Capture {
     fun logger(): ILogger? =
         when (val state = default.get()) {
             is LoggerState.NotStarted -> null
-            is LoggerState.Starting -> state.preInitInMemoryLogger
-            is LoggerState.Started -> state.loggerImpl
+            is LoggerState.Starting -> null
+            is LoggerState.Started -> state.logger
             is LoggerState.StartFailure -> null
         }
 
@@ -163,7 +157,6 @@ object Capture {
             fieldProviders: List<FieldProvider> = listOf(),
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
-            context: Context? = null,
         ) {
             start(
                 apiKey,
@@ -173,7 +166,6 @@ object Capture {
                 dateProvider,
                 apiUrl,
                 CaptureJniLibrary,
-                context,
             )
         }
 
@@ -188,14 +180,12 @@ object Capture {
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             bridge: IBridge,
-            context: Context? = null,
-            backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
         ) {
             // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
             // while subsequent logger access relies on volatile reads.
 
             // There's nothing we can do if we don't have yet access to the application context.
-            if (context == null && !ContextHolder.isInitialized) {
+            if (!ContextHolder.isInitialized) {
                 Log.w(
                     LOG_TAG,
                     "Attempted to initialize Capture with a null context",
@@ -204,32 +194,26 @@ object Capture {
             }
 
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
-            if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting(preInitInMemoryLogger))) {
-                backgroundThreadHandler.runAsync {
-                    try {
-                        val unwrappedContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
-                        if (configuration.enableFatalIssueReporting) {
-                            fatalIssueReporter.initBuiltInMode(unwrappedContext)
-                        }
-                        val loggerImpl =
-                            LoggerImpl(
-                                apiKey = apiKey,
-                                apiUrl = apiUrl,
-                                context = unwrappedContext,
-                                fieldProviders = fieldProviders,
-                                dateProvider = dateProvider ?: SystemDateProvider(),
-                                configuration = configuration,
-                                sessionStrategy = sessionStrategy,
-                                bridge = bridge,
-                                fatalIssueReporter = fatalIssueReporter,
-                                preInitLogFlusher = preInitInMemoryLogger,
-                            )
-                        default.set(LoggerState.Started(loggerImpl))
-                    } catch (e: Throwable) {
-                        Log.w(LOG_TAG, "Failed to start Capture", e)
-                        preInitInMemoryLogger.clear()
-                        default.set(LoggerState.StartFailure)
+            if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
+                try {
+                    if (configuration.enableFatalIssueReporting) {
+                        fatalIssueReporter.initBuiltInMode(ContextHolder.APP_CONTEXT)
                     }
+                    val loggerImpl =
+                        LoggerImpl(
+                            apiKey = apiKey,
+                            apiUrl = apiUrl,
+                            fieldProviders = fieldProviders,
+                            dateProvider = dateProvider ?: SystemDateProvider(),
+                            configuration = configuration,
+                            sessionStrategy = sessionStrategy,
+                            bridge = bridge,
+                            fatalIssueReporter = fatalIssueReporter,
+                        )
+                    default.set(LoggerState.Started(loggerImpl))
+                } catch (e: Throwable) {
+                    Log.w(LOG_TAG, "Failed to start Capture", e)
+                    default.set(LoggerState.StartFailure)
                 }
             } else {
                 Log.w(LOG_TAG, "Multiple attempts to start Capture")

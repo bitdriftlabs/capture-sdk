@@ -70,7 +70,7 @@ internal class LoggerImpl(
     dateProvider: DateProvider,
     private val errorHandler: ErrorHandler = ErrorHandler(),
     sessionStrategy: SessionStrategy,
-    context: Context,
+    context: Context = ContextHolder.APP_CONTEXT,
     clientAttributes: ClientAttributes =
         ClientAttributes(
             context,
@@ -84,7 +84,6 @@ internal class LoggerImpl(
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
     private val fatalIssueReporter: IFatalIssueReporter,
-    private val preInitLogFlusher: IPreInitLogFlusher,
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val batteryMonitor = BatteryMonitor(context)
@@ -262,8 +261,6 @@ internal class LoggerImpl(
                 appExitLogger.installAppExitLogger()
 
                 CaptureJniLibrary.startLogger(this.loggerId)
-
-                preInitLogFlusher.flushToNative(this)
             }
 
         writeSdkStartLog(context, clientAttributes, initDuration = duration)
