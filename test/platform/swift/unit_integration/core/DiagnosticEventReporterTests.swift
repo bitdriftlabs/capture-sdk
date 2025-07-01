@@ -344,6 +344,113 @@ ThermalInfo: (
         XCTAssertEqual("D366A690-4127-4BB6-B6A9-019A2ACD0D8D", image2.id!)
         XCTAssertEqual(frame.frameAddress - imageOffset2, image2.loadAddress)
     }
+
+    func testManyThreadCrashReport() throws {
+        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: [.crash], minimumHangSeconds: 1)
+        let timestamp = dateFormatter.date(from: "2008-11-25")!
+        let imageOffset: UInt64 = 165304
+        let imageOffset2: UInt64 = 126721
+        let imageOffset3: UInt64 = 100415
+        let crash = try MockCrashDiagnostic(signal: 5, callStacks: [
+            ["callStackRootFrames": [["binaryUUID": "E41D0413-92D1-4B00-9B62-43D57A1B0CC5",
+                                      "offsetIntoBinaryTextSegment": imageOffset3,
+                                      "sampleCount": 1,
+                                      "binaryName": "Camp",
+                                      "address": 7170701375,
+            ], ], ],
+            ["threadAttributed": true, "callStackRootFrames": [["binaryUUID":
+                                                                    "70B89F27-1634-3580-A695-57CDB41D7743",
+                                                                "offsetIntoBinaryTextSegment": imageOffset,
+                                                                "sampleCount": 1,
+                                                                "binaryName": "MyApp",
+                                                                "address": 7170766264,
+                                                                "subFrames": [["binaryUUID":
+                                                                                "D366A690-4127-4BB6-B6A9-019A2ACD0D8D",
+                                                                               "offsetIntoBinaryTextSegment": imageOffset2,
+                                                                               "sampleCount": 1,
+                                                                               "binaryName": "Proc",
+                                                                               "address": 23786237891,
+                                                                ], ],
+            ],
+            ], ],
+            ["callStackRootFrames": [["binaryUUID": "70B89F27-1634-3580-A695-57CDB41D7743",
+                                      "offsetIntoBinaryTextSegment": 100415,
+                                      "sampleCount": 1,
+                                      "binaryName": "MyApp",
+                                      "address": 9283737662,
+                                      "subFrames": [["binaryUUID":
+                                                        "D366A690-4127-4BB6-B6A9-019A2ACD0D8D",
+                                                     "offsetIntoBinaryTextSegment": imageOffset2,
+                                                     "sampleCount": 1,
+                                                     "binaryName": "Proc",
+                                                     "address": 23786237891,
+                                      ], ],
+            ], ], ],
+        ])
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash], timestamp: timestamp)])
+
+        let path = reportDir!.path
+        let files = try FileManager.default.contentsOfDirectory(atPath: path)
+        XCTAssertEqual(1, files.count)
+        XCTAssertTrue(files[0].contains("_crash_"))
+
+        let contents = FileManager.default.contents(atPath: "\(path)/\(files[0])")!
+        var buf = ByteBuffer(data: contents)
+        let report: Report = try! getCheckedRoot(byteBuffer: &buf)
+        XCTAssertEqual(2, report.threadDetails!.threadsCount) // # of items in threads array
+        XCTAssertEqual(3, report.threadDetails!.count) // total system threads
+        XCTAssertEqual(ReportType.nativecrash, report.type)
+
+        var thread = report.threadDetails!.threads(at: 0)!
+        XCTAssertEqual(1, thread.stackTraceCount)
+        XCTAssertEqual(0, thread.index)
+
+        var frame = thread.stackTrace(at: 0)!
+        XCTAssertEqual("E41D0413-92D1-4B00-9B62-43D57A1B0CC5", frame.imageId)
+        XCTAssertEqual(7170701375, frame.frameAddress)
+
+        thread = report.threadDetails!.threads(at: 1)!
+        XCTAssertEqual(2, thread.stackTraceCount)
+        XCTAssertEqual(2, thread.index) // error is thread 1
+
+        frame = thread.stackTrace(at: 0)!
+        XCTAssertEqual("70B89F27-1634-3580-A695-57CDB41D7743", frame.imageId)
+        XCTAssertEqual(9283737662, frame.frameAddress)
+
+        frame = thread.stackTrace(at: 1)!
+        XCTAssertEqual("D366A690-4127-4BB6-B6A9-019A2ACD0D8D", frame.imageId)
+        XCTAssertEqual(23786237891, frame.frameAddress)
+
+        let error = report.errors(at: 0)!
+        XCTAssertEqual("SIGTRAP", error.name!)
+        XCTAssertEqual(2, error.stackTraceCount)
+
+        // frame order is the opposite of crashes (FB18377370)
+        frame = error.stackTrace(at: 0)!
+        XCTAssertEqual("70B89F27-1634-3580-A695-57CDB41D7743", frame.imageId)
+        XCTAssertEqual(7170766264, frame.frameAddress)
+
+        let frame2 = error.stackTrace(at: 1)!
+        XCTAssertEqual("D366A690-4127-4BB6-B6A9-019A2ACD0D8D", frame2.imageId)
+        XCTAssertEqual(23786237891, frame2.frameAddress)
+
+        XCTAssertEqual(3, report.binaryImagesCount)
+
+        let image0 = report.binaryImages(at: 0)!
+        XCTAssertEqual("Camp", image0.path!)
+        XCTAssertEqual("E41D0413-92D1-4B00-9B62-43D57A1B0CC5", image0.id!)
+        XCTAssertEqual(7170701375 - imageOffset3, image0.loadAddress)
+
+        let image1 = report.binaryImages(at: 1)!
+        XCTAssertEqual("MyApp", image1.path!)
+        XCTAssertEqual("70B89F27-1634-3580-A695-57CDB41D7743", image1.id!)
+        XCTAssertEqual(frame.frameAddress - imageOffset, image1.loadAddress)
+
+        let image2 = report.binaryImages(at: 2)!
+        XCTAssertEqual("Proc", image2.path!)
+        XCTAssertEqual("D366A690-4127-4BB6-B6A9-019A2ACD0D8D", image2.id!)
+        XCTAssertEqual(frame2.frameAddress - imageOffset2, image2.loadAddress)
+    }
 }
 
 // MARK: - utility functions
