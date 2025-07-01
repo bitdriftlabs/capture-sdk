@@ -45,6 +45,7 @@ import java.io.IOException
 import kotlin.system.exitProcess
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
+import io.bitdrift.capture.CaptureResult
 
 class MainActivity : ComponentActivity() {
 
@@ -176,13 +177,13 @@ class MainActivity : ComponentActivity() {
     }
 
     fun generateTmpDeviceCode(view: View) {
-        Logger.createTemporaryDeviceCode(completion = { result ->
-            result.fold(
-                onSuccess = { updateDeviceCodeValue(it) },
-                onFailure = { updateDeviceCodeValue(it.message ?: "Unknown error") }
-            )
-        })
-    }    
+        Logger.createTemporaryDeviceCode { result ->
+            when (result) {
+                is CaptureResult.Success -> updateDeviceCodeValue(result.value)
+                is CaptureResult.Failure -> updateDeviceCodeValue(result.error.message)
+            }
+        }
+    }  
 
     private fun updateDeviceCodeValue(deviceCode: String) {
         deviceCodeTextView.text = deviceCode
