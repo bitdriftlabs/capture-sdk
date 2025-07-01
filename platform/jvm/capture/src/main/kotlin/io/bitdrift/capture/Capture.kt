@@ -285,14 +285,20 @@ object Capture {
             logger()?.also {
                 it.createTemporaryDeviceCode { result ->
                     mainThreadHandler.run {
-                        result.fold(
-                            onSuccess = { completion(Result.success(it)) },
-                            onFailure = { completion(Result.failure(it)) },
-                        )
+                        when (result) {
+                            is CaptureResult.Success -> {
+                                completion(CaptureResult.Success(result.value))
+                            }
+                            is CaptureResult.Failure -> {
+                                completion(CaptureResult.Failure(result.error))
+                            }
+                        }
                     }
                 }
             } ?: run {
-                mainThreadHandler.run { completion(Result.failure(SdkNotStartedError)) }
+                mainThreadHandler.run {
+                    completion(CaptureResult.Failure(SdkNotStartedError()))
+                }
             }
         }
 

@@ -50,7 +50,7 @@ internal class OkHttpApiClient(
             try {
                 gson.toJson(body)
             } catch (e: Exception) {
-                completion(Result.failure(e.toSerializationError()))
+                completion(CaptureResult.Failure(e.toSerializationError()))
                 return
             }
 
@@ -73,13 +73,13 @@ internal class OkHttpApiClient(
                         if (response.isSuccessful) {
                             try {
                                 val typedResponse = gson.fromTypedJson<Rp>(response.body?.string().orEmpty())
-                                completion(Result.success(typedResponse))
+                                completion(CaptureResult.Success(typedResponse))
                             } catch (e: Exception) {
-                                completion(Result.failure(e.toSerializationError()))
+                                completion(CaptureResult.Failure(e.toSerializationError()))
                             }
                         } else {
                             val responseBody = response.body?.string()
-                            completion(Result.failure(ApiError.ServerError(response.code, responseBody)))
+                            completion(CaptureResult.Failure(ApiError.ServerError(response.code, responseBody)))
                         }
                         Log.e("bitdrift", "done")
                     }
@@ -89,7 +89,7 @@ internal class OkHttpApiClient(
                     call: Call,
                     e: IOException,
                 ) {
-                    completion(Result.failure(e.toNetworkError()))
+                    completion(CaptureResult.Failure(e.toNetworkError()))
                 }
             },
         )
