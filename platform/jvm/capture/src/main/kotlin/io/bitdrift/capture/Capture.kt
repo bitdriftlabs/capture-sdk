@@ -297,7 +297,7 @@ object Capture {
                 }
             } ?: run {
                 mainThreadHandler.run {
-                    completion(CaptureResult.Failure(SdkNotStartedError()))
+                    completion(CaptureResult.Failure(SdkNotStartedError))
                 }
             }
         }

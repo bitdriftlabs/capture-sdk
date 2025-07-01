@@ -36,8 +36,8 @@ sealed class CaptureResult<out V> {
  * @param message A message describing the error.
  */
 sealed class Error(
-    override val message: String,
-) : Throwable()
+    open val message: String,
+)
 
 /**
  * Represents a failed operation due to an API error.
@@ -76,4 +76,4 @@ sealed class ApiError(
 /**
  * Represents a failed operation due to the SDK not being started
  */
-class SdkNotStartedError : Error("SDK not started")
+data object SdkNotStartedError : Error("SDK not started")
