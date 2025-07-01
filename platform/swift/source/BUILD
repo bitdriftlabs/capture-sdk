@@ -80,11 +80,13 @@ bitdrift_rust_library(
 objc_library(
     name = "objc_bridge",
     srcs = [
+        "InternalAPI.m",
         "ObjCWrapper.mm",
         "reports/DiagnosticEventReporter.m",
     ],
     hdrs = [
         "CaptureRustBridge.h",
+        "InternalAPI.h",
         "ObjCWrapper.h",
         "reports/DiagnosticEventReporter.h",
         "reports/bd-report-writer/ffi.h",
