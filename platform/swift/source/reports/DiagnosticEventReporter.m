@@ -241,7 +241,7 @@ static void serialize_error_threads(BDProcessorHandle handle, NSDictionary *cras
     if (thread_index == crashed_index) {
       bdrw_add_error(handle, cstring_from(name), cstring_from(reason), 0, frame_index, stack);
     } else {
-      BDThread thread = { .quality_of_service = -1 };
+      BDThread thread = { .index = thread_index, .quality_of_service = -1 };
       bdrw_add_thread(handle, [call_stacks count], &thread, frame_index, stack);
     }
     free(stack);
