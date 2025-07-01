@@ -4,7 +4,6 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-
 package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
@@ -13,7 +12,6 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.providers.session.SessionStrategy
 import org.assertj.core.api.Assertions
 import org.junit.After
@@ -25,8 +23,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21])
 class ConfigurationTest {
-    private val fakeBackgroundThreadHandler = FakeBackgroundThreadHandler()
-
     @Test
     fun configurationFailure() {
         val initializer = ContextHolder()
@@ -60,7 +56,6 @@ class ConfigurationTest {
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,
             bridge = bridge,
-            backgroundThreadHandler = fakeBackgroundThreadHandler,
         )
 
         // The configuration failed so the logger is still `null`.
@@ -91,7 +86,6 @@ class ConfigurationTest {
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,
             bridge = bridge,
-            backgroundThreadHandler = fakeBackgroundThreadHandler,
         )
 
         Assertions.assertThat(Capture.logger()).isNull()

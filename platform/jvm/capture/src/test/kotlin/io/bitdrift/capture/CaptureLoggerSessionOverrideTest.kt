@@ -17,7 +17,6 @@ import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
-import io.bitdrift.capture.fakes.FakePreInitLogFlusher
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.FatalIssueReporter
@@ -52,7 +51,6 @@ class CaptureLoggerSessionOverrideTest {
     private lateinit var logger: LoggerImpl
     private var testServerPort: Int? = null
     private val fatalIssueReporter = FatalIssueReporter()
-    private val preInitLogFlusher = FakePreInitLogFlusher()
 
     @Before
     fun setUp() {
@@ -91,7 +89,6 @@ class CaptureLoggerSessionOverrideTest {
                 context = ContextHolder.APP_CONTEXT,
                 preferences = preferences,
                 fatalIssueReporter = fatalIssueReporter,
-                preInitLogFlusher = preInitLogFlusher,
             )
 
         CaptureTestJniLibrary.stopTestApiServer()
@@ -126,7 +123,6 @@ class CaptureLoggerSessionOverrideTest {
                 preferences = preferences,
                 activityManager = activityManager,
                 fatalIssueReporter = fatalIssueReporter,
-                preInitLogFlusher = preInitLogFlusher,
             )
         val newStreamId = CaptureTestJniLibrary.awaitNextApiStream()
         assertThat(newStreamId).isNotEqualTo(-1)

@@ -13,7 +13,6 @@ import com.google.gson.reflect.TypeToken
 import io.bitdrift.capture.error.ErrorReportRequest
 import io.bitdrift.capture.error.ErrorReporterService
 import io.bitdrift.capture.fakes.FakeFatalIssueReporter
-import io.bitdrift.capture.fakes.FakePreInitLogFlusher
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
@@ -37,7 +36,6 @@ class ErrorReporterTest {
     private lateinit var server: MockWebServer
     private lateinit var reporter: ErrorReporterService
     private val fatalIssueReporter: IFatalIssueReporter = FakeFatalIssueReporter()
-    private val preInitLogFlusher = FakePreInitLogFlusher()
 
     init {
         CaptureJniLibrary.load()
@@ -113,7 +111,6 @@ class ErrorReporterTest {
                 configuration = Configuration(),
                 errorReporter = reporter,
                 fatalIssueReporter = fatalIssueReporter,
-                preInitLogFlusher = preInitLogFlusher,
             )
 
         val errorHandler = ErrorHandler()

@@ -130,11 +130,4 @@ class Span internal constructor(
         }
         logger = null
     }
-
-    /**
-     * This is only needed during [io.bitdrift.capture.PreInitInMemoryLogger]
-     */
-    internal fun setLoggerImpl(loggerImpl: LoggerImpl) {
-        this.logger = loggerImpl
-    }
 }
