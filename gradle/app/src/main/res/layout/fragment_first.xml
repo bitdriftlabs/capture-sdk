@@ -17,14 +17,24 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/button_crash"
+        android:id="@+id/button_crash_jvm"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/crash"
+        android:text="@string/crash_jvm"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/textview_first" />
+
+    <Button
+        android:id="@+id/button_crash_native"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/crash_native"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/button_crash_jvm" />
 
     <Button
         android:id="@+id/button_first"
@@ -34,5 +44,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/button_crash" />
+        app:layout_constraintTop_toBottomOf="@id/button_crash_native" />
 </androidx.constraintlayout.widget.ConstraintLayout>

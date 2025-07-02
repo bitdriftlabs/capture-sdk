@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'io.bitdrift.capture-plugin'
 }
 
 android {
@@ -16,10 +17,9 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
-
     buildTypes {
         debug {
-            minifyEnabled true
+            minifyEnabled false // Set to true if you want to test minification in debug builds
             debuggable true // Note: Most logs will be stripped when this is false!
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -27,6 +27,19 @@ android {
             minifyEnabled true
             debuggable false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
+        }
+    }
+    signingConfigs {
+        // Important: change the keystore for a production deployment
+        def userKeystore = new File(System.getProperty("user.home"), ".android/debug.keystore")
+        def localKeystore = rootProject.file("debug_2.keystore")
+        def hasKeyInfo = userKeystore.exists()
+        create("release") {
+            storeFile = hasKeyInfo ? userKeystore : localKeystore
+            storePassword = hasKeyInfo ? "android" : System.getenv("compose_store_password")
+            keyAlias = hasKeyInfo ? "androiddebugkey" : System.getenv("compose_key_alias")
+            keyPassword = hasKeyInfo ? "android" : System.getenv("compose_key_password")
         }
     }
     externalNativeBuild {
@@ -52,8 +65,8 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.3'
     implementation 'androidx.navigation:navigation-fragment-ktx:2.4.1'
     implementation 'androidx.navigation:navigation-ui-ktx:2.4.1'
-    implementation 'io.bitdrift:capture:0.16.7'
-    implementation 'io.bitdrift:capture-timber:0.16.7'
+    implementation 'io.bitdrift:capture:0.17.28'
+    implementation 'io.bitdrift:capture-timber:0.17.28'
     implementation 'com.jakewharton.timber:timber:5.0.1'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
