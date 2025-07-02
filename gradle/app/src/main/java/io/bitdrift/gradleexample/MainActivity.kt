@@ -35,7 +35,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Logger.start(
-            apiKey = "",
+            apiKey = "<YOUR API KEY GOES HERE>",
             apiUrl = "https://api.bitdrift.io".toHttpUrl(),
             sessionStrategy = SessionStrategy.Fixed(),
             configuration = Configuration(enableFatalIssueReporting = true),

@@ -19,7 +19,7 @@ android {
     }
     buildTypes {
         debug {
-            minifyEnabled false // Set to tru if you want to test minification in crashes
+            minifyEnabled false // Set to true if you want to test minification in debug builds
             debuggable true // Note: Most logs will be stripped when this is false!
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
