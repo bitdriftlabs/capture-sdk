@@ -17,10 +17,9 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
-
     buildTypes {
         debug {
-            minifyEnabled true
+            minifyEnabled false // Set to tru if you want to test minification in crashes
             debuggable true // Note: Most logs will be stripped when this is false!
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -28,6 +27,19 @@ android {
             minifyEnabled true
             debuggable false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
+        }
+    }
+    signingConfigs {
+        // Important: change the keystore for a production deployment
+        def userKeystore = new File(System.getProperty("user.home"), ".android/debug.keystore")
+        def localKeystore = rootProject.file("debug_2.keystore")
+        def hasKeyInfo = userKeystore.exists()
+        create("release") {
+            storeFile = hasKeyInfo ? userKeystore : localKeystore
+            storePassword = hasKeyInfo ? "android" : System.getenv("compose_store_password")
+            keyAlias = hasKeyInfo ? "androiddebugkey" : System.getenv("compose_key_alias")
+            keyPassword = hasKeyInfo ? "android" : System.getenv("compose_key_password")
         }
     }
     externalNativeBuild {

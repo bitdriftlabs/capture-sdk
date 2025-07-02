@@ -11,10 +11,10 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import io.bitdrift.capture.Capture
 import io.bitdrift.gradleexample.databinding.FragmentFirstBinding
@@ -51,13 +51,19 @@ class FirstFragment : Fragment() {
             val data = ClipData.newPlainText("sessionUrl", Capture.Logger.sessionUrl)
             clipboardManager.setPrimaryClip(data)
         }
-
-        binding.buttonCrash.setOnClickListener {
+        binding.buttonCrashJvm.setOnClickListener {
+            throwException()
+        }
+        binding.buttonCrashNative.setOnClickListener {
             triggerSegfault()
         }
         binding.buttonFirst.setOnClickListener {
             findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
         }
+    }
+
+    private fun throwException() {
+        throw RuntimeException("Nested Exception", IllegalStateException("Root Exception"))
     }
 
     override fun onDestroyView() {

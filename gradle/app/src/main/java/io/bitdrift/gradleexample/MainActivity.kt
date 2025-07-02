@@ -18,6 +18,7 @@ import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import com.google.android.material.snackbar.Snackbar
 import io.bitdrift.capture.Capture.Logger
+import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradleexample.databinding.ActivityMainBinding
@@ -34,9 +35,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Logger.start(
-            apiKey = "<YOUR API KEY GOES HERE>",
+            apiKey = "",
             apiUrl = "https://api.bitdrift.io".toHttpUrl(),
             sessionStrategy = SessionStrategy.Fixed(),
+            configuration = Configuration(enableFatalIssueReporting = true),
         )
 
         if (BuildConfig.DEBUG) {
