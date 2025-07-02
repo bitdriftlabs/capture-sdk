@@ -35,6 +35,7 @@ mod test {
       "com.google.flatbuffers:flatbuffers-java",
       "com.squareup.okhttp3:okhttp",
       "org.jetbrains.kotlin:kotlin-stdlib",
+      "com.google.protobuf:protobuf-kotlin-lite",
       "androidx.metrics:metrics-performance",
     ];
 
