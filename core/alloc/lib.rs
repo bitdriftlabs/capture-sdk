@@ -18,7 +18,7 @@ pub static __rust_no_alloc_shim_is_unstable: u8 = 0;
 #[linkage = "weak"]
 pub unsafe fn __rust_alloc_error_handler(_layout: Layout) -> ! {
   // Abort by default, same as System allocator's default
-  panic!("Allocation error")
+  std::process::abort()
 }
 
 /// Required by the allocator ABI. Determines panic behavior on OOM.

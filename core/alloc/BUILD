@@ -5,7 +5,7 @@ rust_library(
     srcs = ["lib.rs"],
     edition = "2021",
     rustc_env = {
-        # We pretend like we are bootstrping the compiler so rust allows us to use unstable
+        # We pretend like we are bootstraping the compiler so rust allows us to use unstable
         # features while building with the stable compiler.
         "RUSTC_BOOTSTRAP": "1",
     },
