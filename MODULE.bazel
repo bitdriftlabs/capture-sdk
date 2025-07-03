@@ -271,8 +271,16 @@ use_repo(maven, "maven")
 # Rust extensions
 ####################
 
+single_version_override(
+    module_name = "rules_rust",
+    patches = ["//bazel/third_party/patches:rules_rust.patch"],
+)
+
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
+    # Rules rust defaults to using an allocator library that is outdated. One would hope you can set your own here
+    # but I couldn't find a way to pass it in, since all lables here are local to rules_rust (ie you can't pass //core/alloc).
+    allocator_library = "@rules_rust//ffi/cc/allocator_library:noop",
     extra_target_triples = [
         "aarch64-apple-ios-sim",
         "aarch64-apple-ios",
