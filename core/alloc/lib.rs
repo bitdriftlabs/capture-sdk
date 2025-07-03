@@ -1,3 +1,4 @@
+#![feature(linkage)]
 #![feature(rustc_attrs)]
 #![allow(internal_features)]
 
@@ -14,6 +15,7 @@ pub static __rust_no_alloc_shim_is_unstable: u8 = 0;
 
 /// Required by the allocator ABI. Called on allocation failure.
 #[rustc_std_internal_symbol]
+#[linkage = "weak"]
 pub unsafe fn __rust_alloc_error_handler(_layout: Layout) -> ! {
   // Abort by default, same as System allocator's default
   panic!("Allocation error")
@@ -22,4 +24,6 @@ pub unsafe fn __rust_alloc_error_handler(_layout: Layout) -> ! {
 /// Required by the allocator ABI. Determines panic behavior on OOM.
 /// Returning 0 means "do not panic, just abort".
 #[rustc_std_internal_symbol]
+#[allow(non_upper_case_globals)]
+#[linkage = "weak"]
 pub static __rust_alloc_error_handler_should_panic: u8 = 0;
