@@ -5,10 +5,6 @@ rust_library(
     srcs = ["lib.rs"],
     crate_root = "lib.rs",
     edition = "2021",
-    deps = [
-#        "@crates//:alloc",
-#        "@crates//:core",
-#        "@crates//:std",
-    ],
     visibility = ["//visibility:public"],
+    deps = [],
 )
