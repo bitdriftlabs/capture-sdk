@@ -129,6 +129,9 @@ internal class JankStatsMonitor(
         source: LifecycleOwner,
         event: Lifecycle.Event,
     ) {
+        if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
+            return
+        }
         if (event == Lifecycle.Event.ON_CREATE) {
             windowManager.getCurrentWindow()?.let {
                 setJankStatsForCurrentWindow(it)
@@ -139,6 +142,9 @@ internal class JankStatsMonitor(
     }
 
     override fun onActivityResumed(activity: Activity) {
+        if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
+            return
+        }
         setJankStatsForCurrentWindow(activity.window)
     }
 
