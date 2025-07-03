@@ -65,6 +65,7 @@ dependencies {
     testImplementation(libs.truth)
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.mockito.kotlin)
+    testImplementation(libs.robolectric)
 }
 
 mavenPublishing {

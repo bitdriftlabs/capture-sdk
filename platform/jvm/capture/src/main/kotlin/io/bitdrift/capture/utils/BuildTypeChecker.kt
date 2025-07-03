@@ -15,4 +15,16 @@ internal object BuildTypeChecker {
      * Determine if app is debuggable using this bitwise operation
      */
     fun isDebuggable(appContext: Context): Boolean = appContext.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+
+    /**
+     * Determines whether the current runtime environment is running unit tests by checking
+     * for the presence of the JUnit annotation class.
+     */
+    fun isRunningUnitTests(): Boolean =
+        try {
+            Class.forName("org.junit.Test")
+            true
+        } catch (ignoredException: ClassNotFoundException) {
+            false
+        }
 }

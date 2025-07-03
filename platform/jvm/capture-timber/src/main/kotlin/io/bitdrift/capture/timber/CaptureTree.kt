@@ -15,18 +15,12 @@ import timber.log.Timber
 
 /**
  * Capture's implementation of a [Timber.Tree]. It forwards all the logs to [Capture.Logger]
- * if the Logger is initialized.
+ * after initialization via [Capture.Logger.startAsync]
  */
-class CaptureTree internal constructor(private val internalLogger: ILogger?) : Timber.Tree() {
-
-    constructor() : this(Capture.logger())
-
-    // attempts to get the latest logger if one wasn't found at construction time
-    private val logger: ILogger?
-        get() = internalLogger ?: Capture.logger()
+class CaptureTree : Timber.Tree() {
 
     override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
-        logger?.log(toCaptureLogLevel(priority), extractFields(tag), t) { message }
+        Capture.Logger.log(toCaptureLogLevel(priority), extractFields(tag), t) { message }
     }
 
     private fun toCaptureLogLevel(priority: Int): LogLevel {

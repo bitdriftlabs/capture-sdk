@@ -71,7 +71,7 @@ internal class LoggerImpl(
     private val errorHandler: ErrorHandler = ErrorHandler(),
     sessionStrategy: SessionStrategy,
     context: Context,
-    clientAttributes: ClientAttributes =
+    private val clientAttributes: ClientAttributes =
         ClientAttributes(
             context,
             ProcessLifecycleOwner.get(),
@@ -84,6 +84,8 @@ internal class LoggerImpl(
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
     private val fatalIssueReporter: IFatalIssueReporter,
+    // TODO:(FranAguilera) BIT-5746 Remove isAsyncStart param once Logger.start is fully removed
+    isAsyncStart: Boolean = false,
 ) : ILogger {
     private val metadataProvider: MetadataProvider
     private val batteryMonitor = BatteryMonitor(context)
@@ -263,7 +265,9 @@ internal class LoggerImpl(
                 CaptureJniLibrary.startLogger(this.loggerId)
             }
 
-        writeSdkStartLog(context, clientAttributes, initDuration = duration)
+        if (!isAsyncStart) {
+            writeSdkStartLog(context, initDuration = duration)
+        }
     }
 
     override val sessionId: String
@@ -484,9 +488,8 @@ internal class LoggerImpl(
         appExitLogger.uninstallAppExitLogger()
     }
 
-    private fun writeSdkStartLog(
+    internal fun writeSdkStartLog(
         appContext: Context,
-        clientAttributes: ClientAttributes,
         initDuration: Duration,
     ) {
         val installationSource =

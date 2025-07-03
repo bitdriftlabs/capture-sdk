@@ -24,6 +24,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.network.okHttpClient
@@ -31,6 +32,7 @@ import com.example.rocketreserver.BookTripsMutation
 import com.example.rocketreserver.LaunchListQuery
 import com.example.rocketreserver.LoginMutation
 import io.bitdrift.capture.Capture.Logger
+import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.Error
 import io.bitdrift.capture.LogLevel
@@ -39,6 +41,7 @@ import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.gradletestapp.databinding.FragmentFirstBinding
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import okhttp3.Call
@@ -138,7 +141,20 @@ class FirstFragment : Fragment() {
             findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
         }
 
-        binding.textviewFirst.text = Logger.sessionId
+        binding.textviewFirst.text = "SDK starting..."
+
+        lifecycleScope.launch(Dispatchers.Main) {
+            CaptureResultRepository.captureResult.collect { result ->
+                when (result) {
+                    is CaptureResult.Success ->{
+                        binding.textviewFirst.text = result.value.sessionId
+                    }
+                    is CaptureResult.Failure -> {
+                        binding.textviewFirst.text = result.error.message
+                    }
+                }
+            }
+        }
 
         setSpinnerAdapter(binding.spnAppExitOptions, AppExitReason.entries)
         setSpinnerAdapter(binding.logLevelItems, LogLevel.entries.map { it.name }.toList())

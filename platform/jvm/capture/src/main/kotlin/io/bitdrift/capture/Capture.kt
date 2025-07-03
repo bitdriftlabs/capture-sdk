@@ -9,6 +9,7 @@ package io.bitdrift.capture
 
 import android.content.Context
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
@@ -21,10 +22,13 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.reports.FatalIssueReporter
+import io.bitdrift.capture.threading.CaptureDispatchers
+import io.bitdrift.capture.utils.BuildTypeChecker
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
+import kotlin.time.measureTimedValue
 
 internal sealed class LoggerState {
     /**
@@ -34,6 +38,7 @@ internal sealed class LoggerState {
 
     /**
      * The logger is in the process of being started. Subsequent attempts to start the logger will be ignored.
+     * If Logger.startAsync is used, any calls to Logger.log() meanwhile LoggerImpl creation is undergoing will be cached in memory.
      */
     data object Starting : LoggerState()
 
@@ -41,7 +46,7 @@ internal sealed class LoggerState {
      * The logger has been successfully started and is ready for use. Subsequent attempts to start the logger will be ignored.
      */
     class Started(
-        val logger: LoggerImpl,
+        val logger: ILogger,
     ) : LoggerState()
 
     /**
@@ -57,9 +62,14 @@ object Capture {
     internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
     private val fatalIssueReporter = FatalIssueReporter()
+    private val preInitInMemoryLoggerRef: AtomicReference<PreInitInMemoryLogger?> =
+        AtomicReference()
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
+     *
+     * NOTE: The [completionResult] callback from [startAsync] provides a non-nullable
+     * [ILogger] upon a successful start
      *
      * @return ILogger a logger handle
      */
@@ -147,6 +157,16 @@ object Capture {
          * @param context an optional context reference. You should provide the context if called from
          * a [android.content.ContentProvider]
          */
+        @Deprecated(
+            message = "Please use startAsync instead",
+            replaceWith =
+                ReplaceWith(
+                    expression =
+                        "startAsync(apiKey, sessionStrategy, configuration, completionResult, " +
+                            "fieldProviders, dateProvider, apiUrl)",
+                ),
+            level = DeprecationLevel.WARNING,
+        )
         @Synchronized
         @JvmStatic
         @JvmOverloads
@@ -226,8 +246,105 @@ object Capture {
         }
 
         /**
+         * Initializes the Capture SDK in a dedicated background thread with the specified API key,
+         * providers, and configuration.
+         *
+         * Calling other SDK methods has no effect unless the logger has been initialized (this will
+         * be indicated upon [completionResult] callback)
+         *
+         * Subsequent calls to this function will have no effect.
+         *
+         * @param apiKey The API key provided by bitdrift. This is required.
+         * @param sessionStrategy session strategy for the management of session id.
+         * @param configuration A configuration that is used to set up Capture features.
+         * @param fieldProviders list of extra field providers to apply to all logs.
+         * @param dateProvider optional date provider used to override how the current timestamp is computed.
+         * @param apiUrl The base URL of Capture API. Depend on its default value unless specifically
+         *               instructed otherwise during discussions with bitdrift. Defaults to bitdrift's hosted
+         *               Compose API base URL.
+         * @param context An optional context reference. You should provide the context if called from
+         *                a [android.content.ContentProvider]
+         * @param completionResult A callback invoked when the asynchronous start operation completes,
+         *                         providing the [io.bitdrift.capture.CaptureResult].
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun startAsync(
+            apiKey: String,
+            sessionStrategy: SessionStrategy,
+            configuration: Configuration = Configuration(),
+            fieldProviders: List<FieldProvider> = listOf(),
+            dateProvider: DateProvider? = null,
+            apiUrl: HttpUrl = defaultCaptureApiUrl,
+            context: Context? = null,
+            completionResult: (CaptureResult<ILogger>) -> Unit,
+        ) {
+            CaptureDispatchers.CommonBackground.runAsync {
+                if (!default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
+                    Log.w(LOG_TAG, "Multiple attempts to start Capture")
+                    return@runAsync
+                }
+
+                if (hasInvalidContext(context)) {
+                    val sdkStartContextError = SdkStartContextError
+                    Log.w(LOG_TAG, sdkStartContextError.message)
+                    completionResult(CaptureResult.Failure(sdkStartContextError))
+                    return@runAsync
+                }
+
+                val unwrappedContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
+
+                preInitInMemoryLoggerRef.compareAndSet(null, PreInitInMemoryLogger())
+
+                if (configuration.enableFatalIssueReporting) {
+                    fatalIssueReporter.initBuiltInMode(unwrappedContext)
+                }
+
+                try {
+                    val (loggerImpl, elapsedTime) =
+                        measureTimedValue {
+                            LoggerImpl(
+                                apiKey = apiKey,
+                                apiUrl = apiUrl,
+                                context = unwrappedContext,
+                                fieldProviders = fieldProviders,
+                                dateProvider = dateProvider ?: SystemDateProvider(),
+                                configuration = configuration,
+                                sessionStrategy = sessionStrategy,
+                                fatalIssueReporter = fatalIssueReporter,
+                                isAsyncStart = true,
+                            )
+                        }
+
+                    default.set(LoggerState.Started(loggerImpl))
+
+                    preInitInMemoryLoggerRef.getAndSet(null)?.let { preInitLogger ->
+                        preInitLogger.flushToNative(loggerImpl)
+                        preInitLogger.clear()
+                    }
+
+                    loggerImpl.writeSdkStartLog(unwrappedContext, elapsedTime)
+
+                    completionResult(CaptureResult.Success(loggerImpl))
+                } catch (throwable: Throwable) {
+                    default.set(LoggerState.StartFailure)
+
+                    val errorDetails = buildStartErrorDetails(throwable)
+                    Log.w(LOG_TAG, errorDetails, throwable)
+
+                    completionResult(CaptureResult.Failure(SdkStartExceptionError(errorDetails)))
+                } finally {
+                    preInitInMemoryLoggerRef.getAndSet(null)?.clear()
+                }
+            }
+        }
+
+        /**
          * The Id for the current ongoing session.
          * It's equal to `null` prior to the start of Capture SDK.
+         *
+         * NOTE: For a guaranteed non-null [sessionId] you can rely on [completionResult] callback
+         * passed into [startAsync] call, which returns a ILogger ref with access to this field
          */
         @JvmStatic
         val sessionId: String?
@@ -236,6 +353,9 @@ object Capture {
         /**
          * The URL for the current ongoing session.
          * It's equal to `null` prior to the start of Capture SDK.
+         *
+         * NOTE: For a guaranteed non-null [sessionUrl] you can rely on [completionResult] callback
+         * passed into [startAsync] call, which returns a ILogger ref with access to this field
          */
         @JvmStatic
         val sessionUrl: String?
@@ -247,6 +367,9 @@ object Capture {
          *
          * The value of this property is different for apps from the same vendor running on
          * the same device. It is equal to null prior to the start of bitdrift Capture SDK.
+         *
+         * NOTE: For a guaranteed non-null [deviceId] you can rely on [completionResult] callback
+         * passed into [startAsync] call, which returns a ILogger ref with access to this field
          */
         @JvmStatic
         val deviceId: String?
@@ -258,7 +381,7 @@ object Capture {
          */
         @JvmStatic
         fun startNewSession() {
-            logger()?.startNewSession()
+            getInternalLogger()?.startNewSession()
         }
 
         /**
@@ -271,7 +394,7 @@ object Capture {
          */
         @JvmStatic
         fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {
-            logger()?.also {
+            getInternalLogger()?.also {
                 it.createTemporaryDeviceCode {
                     mainThreadHandler.run { completion(it) }
                 }
@@ -296,9 +419,7 @@ object Capture {
             key: String,
             value: String,
         ) {
-            logger()?.let {
-                it.addField(key, value)
-            }
+            getInternalLogger()?.addField(key, value)
         }
 
         /**
@@ -309,7 +430,7 @@ object Capture {
          */
         @JvmStatic
         fun removeField(key: String) {
-            logger()?.removeField(key)
+            getInternalLogger()?.removeField(key)
         }
 
         /**
@@ -326,7 +447,12 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.TRACE, fields = fields, throwable = throwable, message = message)
+            getInternalLogger()?.log(
+                level = LogLevel.TRACE,
+                fields = fields,
+                throwable = throwable,
+                message = message,
+            )
         }
 
         /**
@@ -343,7 +469,12 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.DEBUG, fields = fields, throwable = throwable, message = message)
+            getInternalLogger()?.log(
+                level = LogLevel.DEBUG,
+                fields = fields,
+                throwable = throwable,
+                message = message,
+            )
         }
 
         /**
@@ -360,7 +491,12 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.INFO, fields = fields, throwable = throwable, message = message)
+            getInternalLogger()?.log(
+                level = LogLevel.INFO,
+                fields = fields,
+                throwable = throwable,
+                message = message,
+            )
         }
 
         /**
@@ -377,7 +513,12 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.WARNING, fields = fields, throwable = throwable, message = message)
+            getInternalLogger()?.log(
+                level = LogLevel.WARNING,
+                fields = fields,
+                throwable = throwable,
+                message = message,
+            )
         }
 
         /**
@@ -394,7 +535,12 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.ERROR, fields = fields, throwable = throwable, message = message)
+            getInternalLogger()?.log(
+                level = LogLevel.ERROR,
+                fields = fields,
+                throwable = throwable,
+                message = message,
+            )
         }
 
         /**
@@ -413,7 +559,12 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = level, fields = fields, throwable = throwable, message = message)
+            getInternalLogger()?.log(
+                level = level,
+                fields = fields,
+                throwable = throwable,
+                message = message,
+            )
         }
 
         /**
@@ -425,7 +576,7 @@ object Capture {
          */
         @JvmStatic
         fun logAppLaunchTTI(duration: Duration) {
-            logger()?.logAppLaunchTTI(duration)
+            getInternalLogger()?.logAppLaunchTTI(duration)
         }
 
         /**
@@ -435,7 +586,7 @@ object Capture {
          */
         @JvmStatic
         fun logScreenView(screenName: String) {
-            logger()?.logScreenView(screenName)
+            getInternalLogger()?.logScreenView(screenName)
         }
 
         /**
@@ -459,7 +610,7 @@ object Capture {
             fields: Map<String, String>? = null,
             startTimeMs: Long? = null,
             parentSpanId: UUID? = null,
-        ): Span? = logger()?.startSpan(name, level, fields, startTimeMs, parentSpanId)
+        ): Span? = getInternalLogger()?.startSpan(name, level, fields, startTimeMs, parentSpanId)
 
         /**
          * Wrap the specified [block] in calls to [startSpan] (with the supplied params)
@@ -495,7 +646,7 @@ object Capture {
          */
         @JvmStatic
         fun log(httpRequestInfo: HttpRequestInfo) {
-            logger()?.log(httpRequestInfo)
+            getInternalLogger()?.log(httpRequestInfo)
         }
 
         /**
@@ -506,7 +657,7 @@ object Capture {
          */
         @JvmStatic
         fun log(httpResponseInfo: HttpResponseInfo) {
-            logger()?.log(httpResponseInfo)
+            getInternalLogger()?.log(httpResponseInfo)
         }
 
         /**
@@ -517,16 +668,40 @@ object Capture {
          */
         @JvmStatic
         fun setSleepMode(sleepMode: SleepMode) {
-            logger()?.setSleepMode(sleepMode)
+            getInternalLogger()?.setSleepMode(sleepMode)
+        }
+
+        /**
+         * Ease testing of Capture.Logger calls
+         *
+         * @param logger The ILogger instance to be verified
+         *
+         */
+        @VisibleForTesting
+        @JvmStatic
+        fun setLoggerForTesting(logger: ILogger) {
+            if (BuildTypeChecker.isRunningUnitTests()) {
+                default.set(LoggerState.Started(logger))
+            } else {
+                error("setLoggerForTesting called from a non-test environment")
+            }
         }
 
         /**
          * Used for testing purposes.
          */
+        @VisibleForTesting
         internal fun resetShared() {
             default.set(LoggerState.NotStarted)
         }
 
         private fun hasInvalidContext(context: Context? = null) = context == null && !ContextHolder.isInitialized
+
+        private fun getInternalLogger(): ILogger? = logger() ?: preInitInMemoryLoggerRef.get()
+
+        private fun buildStartErrorDetails(throwable: Throwable): String {
+            val message = throwable.message?.takeIf { it.isNotBlank() }?.let { ". $it" } ?: ""
+            return "Failed to start Capture$message"
+        }
     }
 }

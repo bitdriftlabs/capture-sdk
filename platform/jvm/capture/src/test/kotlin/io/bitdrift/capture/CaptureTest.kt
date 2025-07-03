@@ -8,12 +8,14 @@
 package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
+import com.google.common.util.concurrent.MoreExecutors
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.threading.CaptureDispatchers
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.FixMethodOrder
 import org.junit.Test
@@ -21,6 +23,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.util.concurrent.CountDownLatch
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
@@ -66,29 +69,42 @@ class CaptureTest {
     }
 
     @Test
-    fun cIdempotentConfigure() {
+    fun startAsync_withMultipleCalls_shouldSetLoggerOnce() {
+        CaptureDispatchers.setTestExecutorService(MoreExecutors.newDirectExecutorService())
+        val latch = CountDownLatch(1)
+
+        var completionResult: CaptureResult<ILogger>? = null
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
-
+        // Expected null ILogger since there is no startAsync call yet
         assertThat(Capture.logger()).isNull()
 
-        Logger.start(
+        Logger.startAsync(
             apiKey = "test1",
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,
-        )
+        ) {
+            completionResult = it
+            latch.countDown()
+        }
+        latch.await()
 
-        val logger = Capture.logger()
-        assertThat(logger).isNotNull()
-        assertThat(Logger.deviceId).isNotNull()
+        // After initial startAsync call, logger from completionResult
+        // should match the one exposed directly from Capture
+        assertThat(completionResult is CaptureResult.Success).isTrue()
+        val initialLogger = Capture.logger()
+        assertThat(initialLogger).isNotNull()
+        assertThat(Logger.sessionId).isEqualTo(initialLogger?.sessionId)
+        assertThat((completionResult as CaptureResult.Success<ILogger>).value).isEqualTo(initialLogger)
 
-        Logger.start(
+        Logger.startAsync(
             apiKey = "test2",
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,
+            completionResult = {},
         )
 
         // Calling reconfigure a second time does not change the static logger.
-        assertThat(logger).isEqualTo(Capture.logger())
+        assertThat(initialLogger).isEqualTo(Capture.logger())
     }
 }

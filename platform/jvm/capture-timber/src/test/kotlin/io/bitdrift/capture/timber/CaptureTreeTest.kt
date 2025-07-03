@@ -8,22 +8,33 @@
 package io.bitdrift.capture.timber
 
 import com.google.common.truth.Truth.assertThat
+import io.bitdrift.capture.Capture
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.LogLevel
+import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
+import org.robolectric.RobolectricTestRunner
 import timber.log.Timber
 import java.io.IOException
 
+@RunWith(RobolectricTestRunner::class)
 class CaptureTreeTest {
     private val mockLogger: ILogger = mock()
-    private val captureTree = CaptureTree(mockLogger)
+    private val captureTree = CaptureTree()
     private val message = "my_message"
+
+    @Before
+    fun setUp() {
+        Timber.uprootAll()
+        Capture.Logger.setLoggerForTesting(mockLogger)
+    }
 
     @Test
     fun `tree logs error with all fields`() {
