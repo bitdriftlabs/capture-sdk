@@ -77,3 +77,16 @@ sealed class ApiError(
  * Represents a failed operation due to the SDK not being started
  */
 data object SdkNotStartedError : Error("SDK not started")
+
+/**
+ * Represents a Sdk Start due to having an invalid context
+ */
+data object StartAsyncWithNullContext :
+    Error("SDK not started due to null context upon startAsync call")
+
+/**
+ * Represents a Sdk Start due to having an exception thrown while calling startAsync
+ */
+class StartAsyncExceptionThrown(
+    override val message: String,
+) : Error(message)
