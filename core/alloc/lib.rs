@@ -22,6 +22,4 @@ pub unsafe fn __rust_alloc_error_handler(_layout: Layout) -> ! {
 /// Required by the allocator ABI. Determines panic behavior on OOM.
 /// Returning 0 means "do not panic, just abort".
 #[rustc_std_internal_symbol]
-pub fn __rust_alloc_error_handler_should_panic() -> u8 {
-  0
-}
+pub static __rust_alloc_error_handler_should_panic: u8 = 0;
