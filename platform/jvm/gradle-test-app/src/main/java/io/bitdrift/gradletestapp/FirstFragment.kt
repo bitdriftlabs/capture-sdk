@@ -24,6 +24,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.network.okHttpClient
@@ -31,6 +32,7 @@ import com.example.rocketreserver.BookTripsMutation
 import com.example.rocketreserver.LaunchListQuery
 import com.example.rocketreserver.LoginMutation
 import io.bitdrift.capture.Capture.Logger
+import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.Error
 import io.bitdrift.capture.LogLevel
@@ -138,7 +140,23 @@ class FirstFragment : Fragment() {
             findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
         }
 
-        binding.textviewFirst.text = Logger.sessionId
+        binding.textviewFirst.text = "SDK starting..."
+
+        lifecycleScope.launch {
+            CaptureResultRepository.captureResult.collect { result ->
+                when (result) {
+                    is CaptureResult.Success ->{
+                        val sessionId = result.value.logger.sessionId
+                        Timber.i("Bitdrift Logger initialized with session_url=${sessionId}")
+                        binding.textviewFirst.text = Logger.sessionId
+                    }
+                    is CaptureResult.Failure -> {
+                        Timber.i("Bitdrift Logger failed to initialize. ${result.error.message}")
+                        binding.textviewFirst.text = result.error.message
+                    }
+                }
+            }
+        }
 
         setSpinnerAdapter(binding.spnAppExitOptions, AppExitReason.entries)
         setSpinnerAdapter(binding.logLevelItems, LogLevel.entries.map { it.name }.toList())
