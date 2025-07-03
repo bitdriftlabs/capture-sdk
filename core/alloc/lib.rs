@@ -14,6 +14,12 @@ static GLOBAL: System = System;
 pub static __rust_no_alloc_shim_is_unstable: u8 = 0;
 
 /// Required by the allocator ABI. Called on allocation failure.
+///
+/// # Safety
+///
+/// It might be safe to call panic!() but to avoid a circular dependency in case that's
+/// allocating memory itself, and to avoid potential issues with unwinding,
+/// we use the safer `std::process::abort()` here.
 #[rustc_std_internal_symbol]
 #[linkage = "weak"]
 pub unsafe fn __rust_alloc_error_handler(_layout: Layout) -> ! {
