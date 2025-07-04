@@ -67,12 +67,11 @@ object Capture {
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
      *
-     * NOTE: On non test environments please use [completionResult] callback from [startAsync] to
-     * get a valid non-nullable ILogger instance
+     * NOTE: The [completionResult] callback from [startAsync] provides a non-nullable
+     * [ILogger] upon a successful start
      *
      * @return ILogger a logger handle
      */
-    @VisibleForTesting
     fun logger(): ILogger? =
         when (val state = default.get()) {
             is LoggerState.NotStarted -> null
@@ -229,7 +228,6 @@ object Capture {
                             sessionStrategy = sessionStrategy,
                             bridge = bridge,
                             fatalIssueReporter = fatalIssueReporter,
-                            preInitLogFlusher = null,
                         )
                     default.set(LoggerState.Started(loggerImpl))
                 } catch (e: Throwable) {
@@ -269,7 +267,7 @@ object Capture {
             apiKey: String,
             sessionStrategy: SessionStrategy,
             configuration: Configuration = Configuration(),
-            completionResult: (CaptureResult<StartedSdk>) -> Unit,
+            completionResult: (CaptureResult<ILogger>) -> Unit,
             fieldProviders: List<FieldProvider> = listOf(),
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
@@ -293,7 +291,7 @@ object Capture {
             apiKey: String,
             sessionStrategy: SessionStrategy,
             configuration: Configuration = Configuration(),
-            completionResult: (CaptureResult<StartedSdk>) -> Unit,
+            completionResult: (CaptureResult<ILogger>) -> Unit,
             fieldProviders: List<FieldProvider> = listOf(),
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
@@ -316,7 +314,7 @@ object Capture {
                             LOG_TAG,
                             "Attempted to initialize Capture with a null context",
                         )
-                        completionResult.invoke(CaptureResult.Failure(StartAsyncWithNullContext))
+                        completionResult.invoke(CaptureResult.Failure(InvalidStartContextError))
                         return@runAsync
                     }
 
@@ -335,21 +333,24 @@ object Capture {
                                 sessionStrategy = sessionStrategy,
                                 bridge = bridge,
                                 fatalIssueReporter = fatalIssueReporter,
-                                preInitLogFlusher = preInitInMemoryLoggerRef.get(),
                             )
                         default.set(LoggerState.Started(loggerImpl))
-                        val startedSdkInfo = StartedSdk(loggerImpl)
-                        completionResult.invoke(CaptureResult.Success(startedSdkInfo))
+
+                        val preInitLogger = preInitInMemoryLoggerRef.getAndSet(null)
+
+                        preInitLogger?.flushToNative(loggerImpl)
+                        preInitLogger?.clear()
+
+                        completionResult.invoke(CaptureResult.Success(loggerImpl))
                     } catch (throwable: Throwable) {
-                        val throwableMessage = throwable.message?.let { ". $it" } ?: ""
-                        val errorDetails = "Failed to start Capture$throwableMessage"
-                        val error = StartAsyncExceptionThrown(errorDetails)
+                        val errorDetails = buildStartErrorDetails(throwable)
                         default.set(LoggerState.StartFailure)
-                        completionResult.invoke(CaptureResult.Failure(error))
+                        val captureResult =
+                            CaptureResult.Failure(SdkStartExceptionError(errorDetails))
                         Log.w(LOG_TAG, errorDetails, throwable)
+                        completionResult.invoke(captureResult)
                     } finally {
-                        preInitInMemoryLoggerRef.get()?.clear()
-                        preInitInMemoryLoggerRef.set(null)
+                        preInitInMemoryLoggerRef.getAndSet(null)?.clear()
                     }
                 }
             } else {
@@ -360,36 +361,24 @@ object Capture {
         /**
          * The Id for the current ongoing session.
          * It's equal to `null` prior to the start of Capture SDK.
+         *
+         * NOTE: For a guaranteed non-null session Id you can rely on [completionResult] callback
+         * passed into [startAsync] call, which returns a ILogger ref with access to these fields
          */
-        @Deprecated(
-            message = "sessionId",
-            replaceWith =
-                ReplaceWith(
-                    expression =
-                        "Use the completion callback passed into startAsync call",
-                ),
-            level = DeprecationLevel.WARNING,
-        )
         @JvmStatic
         val sessionId: String?
-            get() = getInternalLogger()?.sessionId
+            get() = (logger() as? LoggerImpl)?.sessionId
 
         /**
          * The URL for the current ongoing session.
          * It's equal to `null` prior to the start of Capture SDK.
+         *
+         * NOTE: For a guaranteed non-null sessionUrl you can rely on [completionResult] callback
+         * passed into [startAsync] call, which returns a ILogger ref with access to these fields
          */
-        @Deprecated(
-            message = "sessionUrl",
-            replaceWith =
-                ReplaceWith(
-                    expression =
-                        "Use the completion callback passed into startAsync call",
-                ),
-            level = DeprecationLevel.WARNING,
-        )
         @JvmStatic
         val sessionUrl: String?
-            get() = getInternalLogger()?.sessionUrl
+            get() = (logger() as? LoggerImpl)?.sessionUrl
 
         /**
          * A canonical identifier for a device that remains consistent as long as an application
@@ -397,19 +386,13 @@ object Capture {
          *
          * The value of this property is different for apps from the same vendor running on
          * the same device. It is equal to null prior to the start of bitdrift Capture SDK.
+         *
+         * NOTE: For a guaranteed non-null deviceId you can rely on [completionResult] callback
+         * passed into [startAsync] call, which returns a ILogger ref with access to these fields
          */
-        @Deprecated(
-            message = "deviceId",
-            replaceWith =
-                ReplaceWith(
-                    expression =
-                        "Use the completion callback passed into startAsync call",
-                ),
-            level = DeprecationLevel.WARNING,
-        )
         @JvmStatic
         val deviceId: String?
-            get() = getInternalLogger()?.deviceId
+            get() = (logger() as? LoggerImpl)?.deviceId
 
         /**
          * Defines the initialization of a new session within the currently running logger
@@ -716,5 +699,10 @@ object Capture {
         }
 
         private fun getInternalLogger(): ILogger? = preInitInMemoryLoggerRef.get() ?: logger()
+
+        private fun buildStartErrorDetails(throwable: Throwable): String {
+            val message = throwable.message?.takeIf { it.isNotBlank() }?.let { ". $it" } ?: ""
+            return "Failed to start Capture$message"
+        }
     }
 }

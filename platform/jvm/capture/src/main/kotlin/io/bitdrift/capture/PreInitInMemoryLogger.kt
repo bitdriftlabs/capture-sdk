@@ -21,9 +21,7 @@ import kotlin.time.Duration
  *
  * When Logger.start() is completed will flush the in memory calls to the native layer
  */
-internal class PreInitInMemoryLogger :
-    ILogger,
-    IPreInitLogFlusher {
+internal class PreInitInMemoryLogger : ILogger {
     private val _bufferedLoggerCalls = ConcurrentLinkedQueue<(ILogger) -> Unit>()
 
     @get:OpenForTesting
@@ -35,12 +33,6 @@ internal class PreInitInMemoryLogger :
     override val sessionUrl: String = DEFAULT_NOT_SETUP_MESSAGE
 
     override val deviceId: String = DEFAULT_NOT_SETUP_MESSAGE
-
-    /** Flush all in memory Logger calls into the Native `LoggerImpl` **/
-    override fun flushToNative(loggerImpl: ILogger) {
-        _bufferedLoggerCalls.forEach { it(loggerImpl) }
-        _bufferedLoggerCalls.clear()
-    }
 
     override fun startNewSession() {
         addLoggerCall { it.startNewSession() }
@@ -103,6 +95,12 @@ internal class PreInitInMemoryLogger :
 
     override fun log(httpResponseInfo: HttpResponseInfo) {
         addLoggerCall { it.log(httpResponseInfo) }
+    }
+
+    /** Flush all in memory Logger calls into the Native `LoggerImpl` **/
+    fun flushToNative(loggerImpl: LoggerImpl) {
+        _bufferedLoggerCalls.forEach { it(loggerImpl) }
+        _bufferedLoggerCalls.clear()
     }
 
     /** Clear stored Logger calls **/

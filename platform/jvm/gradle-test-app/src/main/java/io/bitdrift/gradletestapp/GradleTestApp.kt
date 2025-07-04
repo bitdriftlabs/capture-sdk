@@ -125,13 +125,14 @@ class GradleTestApp : Application() {
         })
         
         Capture.Logger.startAsync(
-            apiKey,
-            getSessionStrategy(),
-            configuration,
-            {
+            apiKey = apiKey,
+            apiUrl = apiUrl,
+            sessionStrategy = getSessionStrategy(),
+            configuration = configuration,
+            completionResult = {
                 CaptureResultRepository.updateResult(it)
             },
-            fieldProviders
+            fieldProviders = fieldProviders,
         )
 
         // Timber
