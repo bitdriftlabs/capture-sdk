@@ -9,15 +9,15 @@ package io.bitdrift.gradletestapp
 
 import androidx.lifecycle.ViewModel
 import io.bitdrift.capture.CaptureResult
-import io.bitdrift.capture.StartedSdk
+import io.bitdrift.capture.ILogger
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 
 object CaptureResultRepository : ViewModel() {
-    private val _captureResult = MutableSharedFlow<CaptureResult<StartedSdk>>(replay = 1)
-    val captureResult: SharedFlow<CaptureResult<StartedSdk>> = _captureResult
+    private val _captureResult = MutableSharedFlow<CaptureResult<ILogger>>(replay = 1)
+    val captureResult: SharedFlow<CaptureResult<ILogger>> = _captureResult
 
-    fun updateResult(newResult: CaptureResult<StartedSdk>) {
+    fun updateResult(newResult: CaptureResult<ILogger>) {
         _captureResult.tryEmit(newResult)
     }
 }

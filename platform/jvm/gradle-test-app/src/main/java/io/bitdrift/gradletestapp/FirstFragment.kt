@@ -146,7 +146,7 @@ class FirstFragment : Fragment() {
             CaptureResultRepository.captureResult.collect { result ->
                 when (result) {
                     is CaptureResult.Success ->{
-                        val sessionId = result.value.logger.sessionId
+                        val sessionId = result.value.sessionId
                         Timber.i("Bitdrift Logger initialized with session_url=${sessionId}")
                         binding.textviewFirst.text = Logger.sessionId
                     }
