@@ -255,7 +255,7 @@ object Capture {
          * @param sessionStrategy session strategy for the management of session id.
          * @param configuration A configuration that is used to set up Capture features.
          * @param completionResult A callback called when the start async operation is completed.
-         *
+         *                         Called on the main thread.
          * @param fieldProviders list of extra field providers to apply to all logs.
          * @param dateProvider optional date provider used to override how the current timestamp is computed.
          * @param apiUrl The base URL of Capture API. Depend on its default value unless specifically
@@ -270,10 +270,10 @@ object Capture {
             apiKey: String,
             sessionStrategy: SessionStrategy,
             configuration: Configuration = Configuration(),
-            completionResult: (CaptureResult<ILogger>) -> Unit,
             fieldProviders: List<FieldProvider> = listOf(),
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
+            completionResult: (CaptureResult<ILogger>) -> Unit,
         ) {
             startAsync(
                 apiKey,
@@ -310,17 +310,18 @@ object Capture {
                     LoggerState.Starting,
                 )
             ) {
-                backgroundThreadHandler.runAsync {
-                    // There's nothing we can do if we don't have yet access to the application context.
-                    if (!ContextHolder.isInitialized) {
-                        Log.w(
-                            LOG_TAG,
-                            "Attempted to initialize Capture with a null context",
-                        )
-                        completionResult.invoke(CaptureResult.Failure(InvalidStartContextError))
-                        return@runAsync
+                // There's nothing we can do if we don't have yet access to the application context.
+                if (!ContextHolder.isInitialized) {
+                    Log.w(
+                        LOG_TAG,
+                        "Attempted to initialize Capture with a null context",
+                    )
+                    mainThreadHandler.run {
+                        completionResult.invoke(CaptureResult.Failure(SdkStartContextError))
                     }
+                }
 
+                backgroundThreadHandler.runAsync {
                     try {
                         val appContext = ContextHolder.APP_CONTEXT
                         val clientAttributes =
@@ -353,14 +354,18 @@ object Capture {
                         preInitLogger?.clear()
 
                         loggerImpl.writeSdkStartLog(appContext, clientAttributes, elapsedTime)
-                        completionResult.invoke(CaptureResult.Success(loggerImpl))
+                        mainThreadHandler.run {
+                            completionResult.invoke(CaptureResult.Success(loggerImpl))
+                        }
                     } catch (throwable: Throwable) {
                         val errorDetails = buildStartErrorDetails(throwable)
                         default.set(LoggerState.StartFailure)
                         val captureResult =
                             CaptureResult.Failure(SdkStartExceptionError(errorDetails))
                         Log.w(LOG_TAG, errorDetails, throwable)
-                        completionResult.invoke(captureResult)
+                        mainThreadHandler.run {
+                            completionResult.invoke(captureResult)
+                        }
                     } finally {
                         preInitInMemoryLoggerRef.getAndSet(null)?.clear()
                     }

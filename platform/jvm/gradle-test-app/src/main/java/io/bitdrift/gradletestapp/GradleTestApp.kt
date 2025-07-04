@@ -123,20 +123,19 @@ class GradleTestApp : Application() {
             fields["user_id"] = userID
             fields
         })
-        
+
         Capture.Logger.startAsync(
             apiKey = apiKey,
             apiUrl = apiUrl,
             sessionStrategy = getSessionStrategy(),
             configuration = configuration,
-            completionResult = {
-                if(it is CaptureResult.Success){
-                    Timber.i("Bitdrift Logger initialized with session_url=${it.value.sessionId}")
-                }
-                CaptureResultRepository.updateResult(it)
-            },
-            fieldProviders = fieldProviders,
-        )
+            fieldProviders = fieldProviders
+        ) {
+            if (it is CaptureResult.Success) {
+                Timber.i("Bitdrift Logger initialized with session_url=${it.value.sessionId}")
+            }
+            CaptureResultRepository.updateResult(it)
+        }
 
         // Timber
         if (BuildConfig.DEBUG) {
