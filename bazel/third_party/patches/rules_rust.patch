@@ -1,0 +1,15 @@
+diff --git ffi/cc/allocator_library/BUILD.bazel ffi/cc/allocator_library/BUILD.bazel
+index 570a8af09..5d54eaec5 100644
+--- ffi/cc/allocator_library/BUILD.bazel
++++ ffi/cc/allocator_library/BUILD.bazel
+@@ -12,3 +12,10 @@
+     tags = ["manual"],
+     visibility = ["//visibility:public"],
+ )
++
++cc_library(
++    name = "noop",
++    srcs = ["empty.cc"],
++    tags = ["manual"],
++    visibility = ["//visibility:public"],
++)
