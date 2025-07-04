@@ -123,7 +123,7 @@ class GradleTestApp : Application() {
             fields["user_id"] = userID
             fields
         })
-        
+
         Capture.Logger.startAsync(
             apiKey,
             getSessionStrategy(),

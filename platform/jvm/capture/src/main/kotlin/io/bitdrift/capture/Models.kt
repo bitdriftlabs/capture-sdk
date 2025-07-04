@@ -81,7 +81,7 @@ data object SdkNotStartedError : Error("SDK not started")
 /**
  * Represents a failed SDK start operation caused by a null or invalid context.
  */
-data object InvalidStartContextError :
+data object SdkStartContextError :
     Error("SDK not started due to null context upon startAsync call")
 
 /**

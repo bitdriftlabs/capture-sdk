@@ -79,7 +79,9 @@ internal class PreInitInMemoryLogger : ILogger {
     ): Span {
         val span = Span(null, name, level, fields, startTimeMs, parentSpanId)
         addLoggerCall {
-            span.setLoggerImpl(it as LoggerImpl)
+            if (it is LoggerImpl) {
+                span.setLoggerImpl(it)
+            }
             it.startSpan(name, level, fields, startTimeMs, parentSpanId)
         }
         return span

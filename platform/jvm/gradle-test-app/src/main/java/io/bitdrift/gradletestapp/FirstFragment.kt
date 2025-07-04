@@ -41,6 +41,7 @@ import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.gradletestapp.databinding.FragmentFirstBinding
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import okhttp3.Call
@@ -142,16 +143,13 @@ class FirstFragment : Fragment() {
 
         binding.textviewFirst.text = "SDK starting..."
 
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.Main) {
             CaptureResultRepository.captureResult.collect { result ->
                 when (result) {
                     is CaptureResult.Success ->{
-                        val sessionId = result.value.sessionId
-                        Timber.i("Bitdrift Logger initialized with session_url=${sessionId}")
-                        binding.textviewFirst.text = Logger.sessionId
+                        binding.textviewFirst.text = result.value.sessionId
                     }
                     is CaptureResult.Failure -> {
-                        Timber.i("Bitdrift Logger failed to initialize. ${result.error.message}")
                         binding.textviewFirst.text = result.error.message
                     }
                 }

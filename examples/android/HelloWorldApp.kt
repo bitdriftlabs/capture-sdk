@@ -37,7 +37,16 @@ class HelloWorldApp : Application() {
             apiKey = bitdriftAPIKey,
             apiUrl = BITDRIFT_URL,
             sessionStrategy = SessionStrategy.Fixed { UUID.randomUUID().toString() },
-            completionResult = { result ->
+            configuration = Configuration(enableFatalIssueReporting = true),
+            fieldProviders = listOf(
+                FieldProvider {
+                    mapOf(
+                        "foo" to "bar",
+                        "user_id" to userID
+                    )
+                }
+            )
+        ){ result ->
                 when (result) {
                     is CaptureResult.Success -> {
                         Log.i(
@@ -52,17 +61,7 @@ class HelloWorldApp : Application() {
                         )
                     }
                 }
-            },
-            configuration = Configuration(enableFatalIssueReporting = true),
-            fieldProviders = listOf(
-                FieldProvider {
-                    mapOf(
-                        "foo" to "bar",
-                        "user_id" to userID
-                    )
-                }
-            )
-        )
+            }
 
         Handler(Looper.getMainLooper()).postDelayed({
             Log.i("HelloWorldApp", "Capture Logger has been running for $kLoggerRunningDurationThreshold ms")
