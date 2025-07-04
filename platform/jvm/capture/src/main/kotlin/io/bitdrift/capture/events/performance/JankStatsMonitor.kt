@@ -106,8 +106,7 @@ internal class JankStatsMonitor(
             return
         }
 
-        if (durationMillis < runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS)
-        ) {
+        if (durationMillis < runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS)) {
             // The Frame is considered as Jank but it didn't reached the min
             // threshold defined by MIN_JANK_FRAME_THRESHOLD_MS config
             return

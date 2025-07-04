@@ -45,7 +45,7 @@ bazel_dep(name = "rules_apple", version = "4.0.1")
 git_override(
     module_name = "rules_apple",
     commit = "a9fcb1c3ae6382534d773d73c035035e9764eadb",
-    remote = "https://github.com/bazelbuild/rules_apple"
+    remote = "https://github.com/bazelbuild/rules_apple",
 )
 
 bazel_dep(name = "rules_pkg", version = "1.0.1")
