@@ -130,6 +130,9 @@ class GradleTestApp : Application() {
             sessionStrategy = getSessionStrategy(),
             configuration = configuration,
             completionResult = {
+                if(it is CaptureResult.Success){
+                    Timber.i("Bitdrift Logger initialized with session_url=${it.value.sessionId}")
+                }
                 CaptureResultRepository.updateResult(it)
             },
             fieldProviders = fieldProviders,

@@ -10,6 +10,8 @@ package io.bitdrift.capture
 import android.content.Context
 import android.util.Log
 import androidx.annotation.VisibleForTesting
+import androidx.lifecycle.ProcessLifecycleOwner
+import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
@@ -28,6 +30,7 @@ import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
+import kotlin.time.measureTimedValue
 
 internal sealed class LoggerState {
     /**
@@ -319,21 +322,29 @@ object Capture {
                     }
 
                     try {
+                        val appContext = ContextHolder.APP_CONTEXT
+                        val clientAttributes =
+                            ClientAttributes(appContext, ProcessLifecycleOwner.get())
                         preInitInMemoryLoggerRef.compareAndSet(null, PreInitInMemoryLogger())
                         if (configuration.enableFatalIssueReporting) {
-                            fatalIssueReporter.initBuiltInMode(ContextHolder.APP_CONTEXT)
+                            fatalIssueReporter.initBuiltInMode(appContext)
                         }
-                        val loggerImpl =
-                            LoggerImpl(
-                                apiKey = apiKey,
-                                apiUrl = apiUrl,
-                                fieldProviders = fieldProviders,
-                                dateProvider = dateProvider ?: SystemDateProvider(),
-                                configuration = configuration,
-                                sessionStrategy = sessionStrategy,
-                                bridge = bridge,
-                                fatalIssueReporter = fatalIssueReporter,
-                            )
+
+                        val (loggerImpl, elapsedTime) =
+                            measureTimedValue {
+                                LoggerImpl(
+                                    apiKey = apiKey,
+                                    apiUrl = apiUrl,
+                                    fieldProviders = fieldProviders,
+                                    clientAttributes = clientAttributes,
+                                    dateProvider = dateProvider ?: SystemDateProvider(),
+                                    configuration = configuration,
+                                    sessionStrategy = sessionStrategy,
+                                    bridge = bridge,
+                                    fatalIssueReporter = fatalIssueReporter,
+                                    isAsyncStart = true,
+                                )
+                            }
                         default.set(LoggerState.Started(loggerImpl))
 
                         val preInitLogger = preInitInMemoryLoggerRef.getAndSet(null)
@@ -341,6 +352,7 @@ object Capture {
                         preInitLogger?.flushToNative(loggerImpl)
                         preInitLogger?.clear()
 
+                        loggerImpl.writeSdkStartLog(appContext, clientAttributes, elapsedTime)
                         completionResult.invoke(CaptureResult.Success(loggerImpl))
                     } catch (throwable: Throwable) {
                         val errorDetails = buildStartErrorDetails(throwable)
