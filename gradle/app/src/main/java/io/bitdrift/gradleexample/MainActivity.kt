@@ -34,6 +34,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        // TODO(Fran): BIT-5745 To update when startAsync is publicly available
         Logger.start(
             apiKey = "<YOUR API KEY GOES HERE>",
             apiUrl = "https://api.bitdrift.io".toHttpUrl(),
