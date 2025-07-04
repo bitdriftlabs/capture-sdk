@@ -37,7 +37,6 @@ bazel_dep(name = "rules_multirun", version = "0.10.0")
 bazel_dep(name = "apple_support", version = "1.22.0", repo_name = "build_bazel_apple_support")
 bazel_dep(name = "rules_swift", version = "2.8.2")
 
-# See https://github.com/bazelbuild/apple_support/pull/411
 git_override(
     module_name = "apple_support",
     commit = "017ad5dbc25cc4c5d345a5e7e3c9e9b6b7414b3a",
@@ -46,26 +45,26 @@ git_override(
 
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
 bazel_dep(name = "rules_xcodeproj", version = "2.12.1")
-bazel_dep(name = "rules_apple", version = "4.0.1")
-
-# TODO(fz): Remove this once rules_apple releases 4.0.2
-# This fixes test runners in Xcode 16.3+
-git_override(
-    module_name = "rules_apple",
-    commit = "a9fcb1c3ae6382534d773d73c035035e9764eadb",
-    remote = "https://github.com/bazelbuild/rules_apple"
-)
-
+bazel_dep(name = "rules_apple", version = "3.21.1")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
-bazel_dep(name = "rules_cc", version = "0.1.1")
-bazel_dep(name = "rules_java", version = "8.11.0")
+bazel_dep(name = "rules_cc", version = "0.1.0")
+bazel_dep(name = "rules_java", version = "8.6.3")
 bazel_dep(name = "rules_android", version = "0.6.4")
 bazel_dep(name = "rules_android_ndk", version = "0.1.3")
 bazel_dep(name = "rules_jvm_external", version = "6.6")
 bazel_dep(name = "rules_detekt", version = "0.8.1.2")
 bazel_dep(name = "flatbuffers", version = "25.2.10")
 bazel_dep(name = "platforms", version = "0.0.11")
-bazel_dep(name = "rules_kotlin", version = "2.1.8")
+bazel_dep(name = "rules_kotlin", version = "2.1.3")
+
+# Tagged version of rules_kotlin (2.1.3) is broken in Bazel 8.x.
+# TODO(fz): Remove once a new release is out
+git_override(
+    module_name = "rules_kotlin",
+    commit = "9ea77be8fe56096123c821e5cd858906249c6e31",
+    remote = "https://github.com/bazelbuild/rules_kotlin.git",
+)
+
 bazel_dep(name = "rules_rust", version = "0.61.0")
 bazel_dep(name = "rules_shell", version = "0.4.0")
 
