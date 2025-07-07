@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 // These tests run via github actions using a Nexus 6 API 24 which has a screen size of 1440 x 2560
-// emulator -avd Nexus_6_API_21 \
+// emulator -avd Nexus_6_API_24 \
 // -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
 class AndroidViewReplayTest {
 
@@ -62,8 +62,12 @@ class AndroidViewReplayTest {
             assertThat(metrics.exceptionCausingViewCount).isEqualTo(0)
 
             // AppCompatTextView multiline label
-            assertThat(screen).contains(ReplayRect(type = ReplayType.Label, x = 35, y = 387, width = 539, height = 84))
-            assertThat(screen).contains(ReplayRect(type = ReplayType.Label, x = 36, y = 499, width = 758, height = 47))
+            assertThat(screen).contains(
+                ReplayRect(type = ReplayType.Label, x = 35, y = 383, width = 539, height = 84)
+            )
+            assertThat(screen).contains(
+                ReplayRect(type = ReplayType.Label, x = 36, y = 495, width = 761, height = 47)
+            )
         }
     }
 }
