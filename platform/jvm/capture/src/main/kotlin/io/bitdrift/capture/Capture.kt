@@ -124,7 +124,7 @@ object Capture {
         @ExperimentalBitdriftApi
         @JvmStatic
         private fun initIntegrationFatalIssueReporting(context: Context? = null) {
-            if (context == null && !ContextHolder.isInitialized) {
+            if (hasInvalidContext(context)) {
                 Log.w(LOG_TAG, "Attempted to initialize Fatal Issue Reporting with a null context. Skipping enabling crash tracking.")
                 return
             }
@@ -157,6 +157,7 @@ object Capture {
             fieldProviders: List<FieldProvider> = listOf(),
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
+            context: Context? = null,
         ) {
             start(
                 apiKey,
@@ -166,6 +167,7 @@ object Capture {
                 dateProvider,
                 apiUrl,
                 CaptureJniLibrary,
+                context,
             )
         }
 
@@ -180,12 +182,13 @@ object Capture {
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             bridge: IBridge,
+            context: Context? = null,
         ) {
             // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
             // while subsequent logger access relies on volatile reads.
 
             // There's nothing we can do if we don't have yet access to the application context.
-            if (!ContextHolder.isInitialized) {
+            if (hasInvalidContext(context)) {
                 Log.w(
                     LOG_TAG,
                     "Attempted to initialize Capture with a null context",
@@ -196,13 +199,15 @@ object Capture {
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
             if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
                 try {
+                    val unWrappedContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
                     if (configuration.enableFatalIssueReporting) {
-                        fatalIssueReporter.initBuiltInMode(ContextHolder.APP_CONTEXT)
+                        fatalIssueReporter.initBuiltInMode(unWrappedContext)
                     }
                     val loggerImpl =
                         LoggerImpl(
                             apiKey = apiKey,
                             apiUrl = apiUrl,
+                            context = unWrappedContext,
                             fieldProviders = fieldProviders,
                             dateProvider = dateProvider ?: SystemDateProvider(),
                             configuration = configuration,
@@ -521,5 +526,7 @@ object Capture {
         internal fun resetShared() {
             default.set(LoggerState.NotStarted)
         }
+
+        private fun hasInvalidContext(context: Context? = null) = context == null && !ContextHolder.isInitialized
     }
 }

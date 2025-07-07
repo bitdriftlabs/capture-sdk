@@ -7,6 +7,8 @@
 
 package io.bitdrift.gradletestapp;
 
+import android.content.Context;
+
 import io.bitdrift.capture.Capture;
 import io.bitdrift.capture.Configuration;
 import io.bitdrift.capture.providers.FieldProvider;
@@ -24,7 +26,8 @@ public class BitdriftInit {
             HttpUrl apiUrl,
             String apiKey,
             SessionStrategy sessionStrategy,
-            Configuration configuration) {
+            Configuration configuration,
+            Context context) {
         String userID = UUID.randomUUID().toString();
         List<FieldProvider> fieldProviders = new ArrayList<>();
         fieldProviders.add(() -> {
@@ -39,7 +42,8 @@ public class BitdriftInit {
             configuration,
             fieldProviders,
             null,
-            apiUrl
+            apiUrl,
+            context
         );
     }
 }
