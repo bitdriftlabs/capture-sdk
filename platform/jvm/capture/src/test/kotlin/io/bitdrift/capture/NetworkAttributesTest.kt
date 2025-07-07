@@ -11,7 +11,6 @@ import android.Manifest
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
-import android.net.NetworkRequest
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.attributes.NetworkAttributes
@@ -29,7 +28,7 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [23])
+@Config(sdk = [24])
 class NetworkAttributesTest {
     @Test
     fun carrier() {
@@ -48,17 +47,6 @@ class NetworkAttributesTest {
         val networkAttributes = NetworkAttributes(context).invoke()
 
         assertThat(networkAttributes).containsEntry("network_type", "wwan")
-    }
-
-    @Test
-    @Config(sdk = [24])
-    fun network_type_access_network_state_granted_android_lollipop() {
-        grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
-        val context = ApplicationProvider.getApplicationContext<Context>()
-
-        val networkAttributes = NetworkAttributes(context).invoke()
-
-        assertThat(networkAttributes).containsEntry("network_type", "other")
     }
 
     @Test
@@ -91,8 +79,7 @@ class NetworkAttributesTest {
 
         NetworkAttributes(context).invoke()
 
-        verify(mockedConnectivityManager).registerNetworkCallback(
-            any(NetworkRequest::class.java),
+        verify(mockedConnectivityManager).registerDefaultNetworkCallback(
             any(ConnectivityManager.NetworkCallback::class.java),
         )
     }
