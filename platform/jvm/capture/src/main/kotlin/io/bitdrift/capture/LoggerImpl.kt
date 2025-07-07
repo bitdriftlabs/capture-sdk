@@ -70,7 +70,7 @@ internal class LoggerImpl(
     dateProvider: DateProvider,
     private val errorHandler: ErrorHandler = ErrorHandler(),
     sessionStrategy: SessionStrategy,
-    context: Context = ContextHolder.APP_CONTEXT,
+    context: Context,
     clientAttributes: ClientAttributes =
         ClientAttributes(
             context,
@@ -109,7 +109,7 @@ internal class LoggerImpl(
     init {
         val duration =
             measureTime {
-                setUpInternalLogging()
+                setUpInternalLogging(context)
 
                 CaptureJniLibrary.load()
 
@@ -121,8 +121,8 @@ internal class LoggerImpl(
                         .addQueryParameter("utm_source", "sdk")
                         .build()
 
-                val networkAttributes = NetworkAttributes(ContextHolder.APP_CONTEXT)
-                val deviceAttributes = DeviceAttributes(ContextHolder.APP_CONTEXT)
+                val networkAttributes = NetworkAttributes(context)
+                val deviceAttributes = DeviceAttributes(context)
 
                 metadataProvider =
                     MetadataProvider(
@@ -520,8 +520,8 @@ internal class LoggerImpl(
      */
     @Suppress("SpreadOperator")
     @SuppressLint("PrivateApi")
-    private fun setUpInternalLogging() {
-        if (BuildTypeChecker.isDebuggable(ContextHolder.APP_CONTEXT)) {
+    private fun setUpInternalLogging(context: Context) {
+        if (BuildTypeChecker.isDebuggable(context)) {
             val defaultLevel = "info"
             runCatching {
                 // TODO(murki): Alternatively we could use JVM -D arg to pass properties

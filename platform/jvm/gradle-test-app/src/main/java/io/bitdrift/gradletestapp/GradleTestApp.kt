@@ -116,6 +116,7 @@ class GradleTestApp : Application() {
             sharedPreferences.getString(BITDRIFT_API_KEY, ""),
             getSessionStrategy(),
             configuration,
+            this
         )
         // Timber
         if (BuildConfig.DEBUG) {
