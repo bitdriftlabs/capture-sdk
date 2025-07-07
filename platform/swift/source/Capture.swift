@@ -114,6 +114,15 @@ extension Logger {
             return
         }
 
+        if !bitdrift_install_crash_handler() {
+            print("Could not install KSCrash")
+        } else {
+            let report = bitdrift_getLastReport()
+            if report != nil {
+                print("KSCrash: \(report!)")
+            }
+        }
+
         issueReporterInitResult = (.initializing, 0)
         guard let outputDir = Logger.reportCollectionDirectory() else {
             issueReporterInitResult = (.initialized(.missingReportsDirectory), 0)

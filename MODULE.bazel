@@ -32,6 +32,8 @@ http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "ht
 
 new_git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 
+new_local_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:local.bzl", "new_local_repository")
+
 bazel_dep(name = "rules_robolectric", version = "4.14.1.2")
 bazel_dep(name = "rules_multirun", version = "0.10.0")
 bazel_dep(name = "apple_support", version = "1.22.0", repo_name = "build_bazel_apple_support")
@@ -85,6 +87,26 @@ new_git_repository(
     build_file = "//bazel:BUILD.bitdriftlabs_api",
     remote = "https://github.com/bitdriftlabs/api.git",
 )
+
+new_git_repository(
+    name = "ksbonjson",
+    branch = "main",
+    build_file = "//bazel:BUILD.ksbonjson",
+    remote = "https://github.com/kstenerud/ksbonjson.git",
+)
+
+new_git_repository(
+    name = "kscrash",
+    branch = "karl/mach-exception-forwarding",
+    build_file = "//bazel:BUILD.kscrash",
+    remote = "https://github.com/kstenerud/KSCrash.git",
+)
+
+##new_local_repository(
+##    name = "kscrash_fixups",
+##    build_file = "//bazel:BUILD.kscrash_fixups",
+##    path = "platform/swift/fixups/KSCrash",
+##)
 
 git_override(
     module_name = "google_bazel_common",
