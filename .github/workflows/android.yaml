@@ -225,7 +225,7 @@ jobs:
         path: |
           ~/.android/avd/*
           ~/.android/adb*
-        key: ${{ runner.os }}-avd-api-21-2
+        key: ${{ runner.os }}-avd-api-24-2
     - name: Create AVD and generate snapshot for caching
       if: steps.avd-cache.outputs.cache-hit != 'true'
       timeout-minutes: 30
@@ -233,7 +233,7 @@ jobs:
       with:
         channel: stable
         force-avd-creation: false
-        api-level: 21
+        api-level: 24
         target: default
         ram-size: 2048M
         arch: x86_64
@@ -253,7 +253,7 @@ jobs:
       with:
         channel: stable
         force-avd-creation: false
-        api-level: 21
+        api-level: 24
         target: default
         ram-size: 2048M
         arch: x86_64
@@ -268,7 +268,7 @@ jobs:
     runs-on: ubuntu-latest-8-cores
     strategy:
       matrix:
-        api-level: [21, 35]
+        api-level: [24, 35]
     steps:
       # Checkout repo to Github Actions runner
       - name: Checkout

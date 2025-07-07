@@ -28,7 +28,6 @@ import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.JankStatsMonitor
 import io.bitdrift.capture.events.performance.JankStatsMonitor.JankFrameType
-import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.providers.toFieldValue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -41,7 +40,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [21])
+@Config(sdk = [24])
 class JankStatsMonitorTest {
     private val logger: LoggerImpl = mock()
     private val runtime: Runtime = mock()
@@ -83,7 +82,6 @@ class JankStatsMonitorTest {
                 windowManager,
                 errorHandler,
                 mainThreadHandler,
-                FakeBackgroundThreadHandler(),
             )
     }
 

@@ -20,7 +20,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [21])
+@Config(sdk = [24])
 class SessionReplayTargetTest {
     private val logger: LoggerImpl = mock()
     private val errorHandler: ErrorHandler = mock()
