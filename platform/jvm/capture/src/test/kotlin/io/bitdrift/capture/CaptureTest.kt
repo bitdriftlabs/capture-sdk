@@ -23,7 +23,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [21])
+@Config(sdk = [24])
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class CaptureTest {
     // This Test needs to run first since the following tests need to initialize

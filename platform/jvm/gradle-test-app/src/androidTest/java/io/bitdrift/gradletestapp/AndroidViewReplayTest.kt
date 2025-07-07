@@ -24,7 +24,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
-// These tests run via github actions using a Nexus 6 API 21 which has a screen size of 1440 x 2560
+// These tests run via github actions using a Nexus 6 API 24 which has a screen size of 1440 x 2560
 // emulator -avd Nexus_6_API_21 \
 // -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
 class AndroidViewReplayTest {

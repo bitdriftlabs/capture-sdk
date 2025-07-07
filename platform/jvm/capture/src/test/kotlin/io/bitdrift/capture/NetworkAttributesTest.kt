@@ -51,7 +51,7 @@ class NetworkAttributesTest {
     }
 
     @Test
-    @Config(sdk = [21])
+    @Config(sdk = [24])
     fun network_type_access_network_state_granted_android_lollipop() {
         grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         val context = ApplicationProvider.getApplicationContext<Context>()
