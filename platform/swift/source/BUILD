@@ -81,13 +81,23 @@ objc_library(
     name = "objc_bridge",
     srcs = [
         "ObjCWrapper.mm",
+        "crash_handling/CrashHandling.m",
         "reports/DiagnosticEventReporter.m",
+        "reports/kscrash/BONJSONReportWriter.c",
+        "reports/kscrash/ReportReader.m",
+        "reports/kscrash/ReportWriter.c",
     ],
     hdrs = [
         "CaptureRustBridge.h",
         "ObjCWrapper.h",
+        "crash_handling/CrashHandling.h",
         "reports/DiagnosticEventReporter.h",
         "reports/bd-report-writer/ffi.h",
+        "reports/kscrash/BONJSONReportWriter.h",
+        "reports/kscrash/KSThreadCache.h",
+        "reports/kscrash/ReportContext.h",
+        "reports/kscrash/ReportReader.h",
+        "reports/kscrash/ReportWriter.h",
     ],
     module_name = "CaptureLoggerBridge",
     tags = ["macos_only"],
@@ -95,6 +105,8 @@ objc_library(
     deps = [
         ":CapturePassable",
         ":swift_bridge",
+        "@ksbonjson",
+        "@kscrash//:kscrash_mini",
     ],
 )
 
