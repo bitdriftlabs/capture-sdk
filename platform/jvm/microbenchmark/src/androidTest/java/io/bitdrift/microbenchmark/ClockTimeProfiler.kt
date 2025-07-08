@@ -9,20 +9,25 @@
 
 package io.bitdrift.microbenchmark
 
+import android.content.Context
 import androidx.benchmark.junit4.BenchmarkRule
 import androidx.benchmark.junit4.measureRepeated
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.FatalIssueMechanism
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.FatalIssueReporterStatus
+import io.bitdrift.capture.reports.IFatalIssueReporter
 
 private const val LOG_MESSAGE = "50 characters long test message - 0123456789012345"
 
@@ -52,12 +57,21 @@ class ClockTimeProfiler {
             LoggerImpl(
                 apiKey = "android-benchmark-test",
                 apiUrl = "https://api-tests.bitdrift.io".toHttpUrl(),
+                context = InstrumentationRegistry.getInstrumentation().targetContext,
                 fieldProviders = listOf(),
                 dateProvider = SystemDateProvider(),
                 configuration = Configuration(),
                 sessionStrategy = SessionStrategy.Fixed(),
-                fatalIssueReporterStatus = FatalIssueReporterStatus(FatalIssueReporterState.NotInitialized),
-                )
+                fatalIssueReporter = object : IFatalIssueReporter {
+                    override fun getReportingMechanism(): FatalIssueMechanism = FatalIssueMechanism.BuiltIn
+
+                    override fun getLogStatusFieldsMap(): Map<String, FieldValue> = emptyMap()
+
+                    override fun initIntegrationMode(appContext: Context) { /*no-op*/ }
+
+                    override fun initBuiltInMode(appContext: Context)  { /*no-op*/ }
+                }
+            )
         }
     }
 
