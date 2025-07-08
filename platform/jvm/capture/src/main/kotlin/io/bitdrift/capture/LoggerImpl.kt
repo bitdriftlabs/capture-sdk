@@ -12,8 +12,10 @@ import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
 import android.system.Os
+import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
+import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
@@ -28,6 +30,7 @@ import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.events.device.DeviceStateListenerLogger
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.AppLifecycleListenerLogger
+import io.bitdrift.capture.events.lifecycle.ColdStartWatcher
 import io.bitdrift.capture.events.lifecycle.EventsListenerTarget
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
@@ -47,6 +50,7 @@ import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
@@ -261,6 +265,13 @@ internal class LoggerImpl(
                 appExitLogger.installAppExitLogger()
 
                 CaptureJniLibrary.startLogger(this.loggerId)
+
+                // Tracking cold app launch OR alternatively we could call directly recordAppOpen
+                // here given that LoggerImpl will be created once per whole app lifecycle
+                ColdStartWatcher.observe(ProcessLifecycleOwner.get()) {
+                    Log.i(LOG_TAG, "Cold app launch")
+                    // This is causing native crash atm. -> CaptureJniLibrary.recordAppOpen(this.loggerId)
+                }
             }
 
         writeSdkStartLog(context, clientAttributes, initDuration = duration)
@@ -368,10 +379,6 @@ internal class LoggerImpl(
 
     override fun setSleepMode(sleepMode: SleepMode) {
         CaptureJniLibrary.setSleepModeEnabled(this.loggerId, sleepMode == SleepMode.ACTIVE)
-    }
-
-    override fun recordAppOpen() {
-        CaptureJniLibrary.recordAppOpen(this.loggerId)
     }
 
     @JvmName("logFields")

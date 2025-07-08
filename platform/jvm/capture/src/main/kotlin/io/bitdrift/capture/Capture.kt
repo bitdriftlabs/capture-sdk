@@ -521,14 +521,6 @@ object Capture {
         }
 
         /**
-         * Records a metric for the app being opened
-         */
-        @JvmStatic
-        fun recordAppOpen() {
-            logger()?.recordAppOpen()
-        }
-
-        /**
          * Used for testing purposes.
          */
         internal fun resetShared() {
