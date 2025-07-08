@@ -317,4 +317,9 @@ internal object CaptureJniLibrary : IBridge {
         loggerId: Long,
         enabled: Boolean,
     )
+
+    /**
+     * Records a metric for the app being opened
+     */
+    external fun recordAppOpen(loggerId: Long)
 }

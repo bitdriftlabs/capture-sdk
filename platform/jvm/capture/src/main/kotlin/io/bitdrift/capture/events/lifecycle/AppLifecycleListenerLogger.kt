@@ -67,6 +67,8 @@ internal class AppLifecycleListenerLogger(
                 return@execute
             }
 
+            emitMetricsForEvent(event)
+
             val fields =
                 if (event == Lifecycle.Event.ON_CREATE && (versionChecker.isAtLeast(Build.VERSION_CODES.VANILLA_ICE_CREAM))) {
                     runCatching { extractAppStartInfoFields() }.getOrElse { null }
@@ -101,6 +103,12 @@ internal class AppLifecycleListenerLogger(
                 // TODO(murki) BIT-4720: Call Logger.logAppLaunchTTI() if this value turns out to be reliable
                 put("startup_time_to_initial_display_ms", ts.timeToInitialDisplayMs.toString())
             }
+        }
+    }
+
+    private fun emitMetricsForEvent(event: Lifecycle.Event) {
+        if (event == Lifecycle.Event.ON_START || event == Lifecycle.Event.ON_RESUME) {
+            logger.recordAppOpen()
         }
     }
 
