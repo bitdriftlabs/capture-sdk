@@ -154,4 +154,9 @@ interface ILogger {
      * @param sleepMode mode to use
      */
     fun setSleepMode(sleepMode: SleepMode)
+
+    /**
+     * Records a metric for the app being opened
+     */
+    fun recordAppOpen()
 }

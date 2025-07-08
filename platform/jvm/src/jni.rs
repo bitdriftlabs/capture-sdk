@@ -1109,6 +1109,22 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setSleepModeEn
   );
 }
 
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_recordAppOpen(
+  _env: JNIEnv<'_>,
+  logger_id: jlong,
+) {
+  bd_client_common::error::with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.record_app_open();
+
+      Ok(())
+    },
+    "jni record app open",
+  );
+}
+
 fn exception_stacktrace(
   env: &mut JNIEnv<'_>,
   stack_trace_provider: &JObject<'_>,
