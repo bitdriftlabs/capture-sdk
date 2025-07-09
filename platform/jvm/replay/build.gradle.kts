@@ -14,7 +14,6 @@ dependencies {
     implementation(libs.okhttp)
 
     testImplementation(libs.mockito.core)
-    testImplementation(libs.mockito.inline)
     testImplementation(libs.mockito.kotlin)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.robolectric)
