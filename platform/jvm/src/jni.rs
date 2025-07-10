@@ -1095,6 +1095,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_reportError(
 #[no_mangle]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setSleepModeEnabled(
   _env: JNIEnv<'_>,
+  _class: JClass<'_>,
   logger_id: jlong,
   enabled: jboolean,
 ) {
