@@ -18,6 +18,7 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl
 import java.util.UUID
+import io.bitdrift.capture.CaptureResult
 
 private const val bitdriftAPIKey = "<YOUR API KEY GOES HERE>"
 private val BITDRIFT_URL = HttpUrl.Builder().scheme("https").host("api.bitdrift.io").build()
@@ -32,7 +33,7 @@ class HelloWorldApp : Application() {
 
         val userID = UUID.randomUUID().toString();
 
-        Logger.start(
+        Logger.startAsync(
             apiKey = bitdriftAPIKey,
             apiUrl = BITDRIFT_URL,
             sessionStrategy = SessionStrategy.Fixed { UUID.randomUUID().toString() },
@@ -45,9 +46,22 @@ class HelloWorldApp : Application() {
                     )
                 }
             )
-        )
-
-        Log.v("HelloWorldApp", "Android Bitdrift app launched with session url=${Logger.sessionUrl}")
+        ){ result ->
+                when (result) {
+                    is CaptureResult.Success -> {
+                        Log.i(
+                            "HelloWorldApp",
+                            "Android Bitdrift app launched with session url=${result.value.sessionUrl}"
+                        )
+                    }
+                    is CaptureResult.Failure -> {
+                        Log.i(
+                            "HelloWorldApp",
+                            "Android Bitdrift failed to start due to error=${result.error.message}"
+                        )
+                    }
+                }
+            }
 
         Handler(Looper.getMainLooper()).postDelayed({
             Log.i("HelloWorldApp", "Capture Logger has been running for $kLoggerRunningDurationThreshold ms")
