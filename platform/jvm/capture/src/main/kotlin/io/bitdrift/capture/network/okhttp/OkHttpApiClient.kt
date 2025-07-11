@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.network.okhttp
 
-import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.bitdrift.capture.ApiError
@@ -81,7 +80,6 @@ internal class OkHttpApiClient(
                             val responseBody = response.body?.string()
                             completion(CaptureResult.Failure(ApiError.ServerError(response.code, responseBody)))
                         }
-                        Log.e("bitdrift", "done")
                     }
                 }
 
