@@ -46,6 +46,9 @@ import kotlin.system.exitProcess
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 import io.bitdrift.capture.CaptureResult
+import android.system.Os
+import android.system.OsConstants
+import android.system.ErrnoException
 
 class MainActivity : ComponentActivity() {
 
@@ -220,6 +223,9 @@ class MainActivity : ComponentActivity() {
             AppExitReason.SYSTEM_EXIT -> {
                 exitProcess(0)
             }
+            AppExitReason.NATIVE_CRASH -> {
+                Os.kill(Os.getpid(), OsConstants.SIGSEGV)
+            }
         }
     }
 
@@ -227,6 +233,7 @@ class MainActivity : ComponentActivity() {
         APP_CRASH_EXCEPTION_MAIN,
         APP_CRASH_EXCEPTION_BG,
         SYSTEM_EXIT,
+        NATIVE_CRASH,
         ANR
     }
 }

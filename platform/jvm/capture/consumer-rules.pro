@@ -87,6 +87,9 @@
 
 -keep class io.bitdrift.capture.providers.** { *; }
 
+# Keep the generated tombstone for parsing native crash
+-keep class io.bitdrift.capture.** extends com.google.protobuf.GeneratedMessageLite { *; }
+
 -dontwarn android.app.ApplicationStartInfo
 -dontwarn kotlin.time.LongSaturatedMathKt
 -dontwarn kotlin.time.TimeSource$Monotonic$ValueTimeMark

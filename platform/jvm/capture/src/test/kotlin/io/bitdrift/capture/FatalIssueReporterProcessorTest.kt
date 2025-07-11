@@ -336,7 +336,25 @@ class FatalIssueReporterProcessorTest {
         )
         val buffer = ByteBuffer.wrap(fatalIssueReportCaptor.firstValue)
         val report = Report.getRootAsReport(buffer)
-        assertThat(report.errorsLength).isEqualTo(0)
+        assertThat(report.errorsLength).isEqualTo(1)
+
+        val capturedError = report.errors(0)!!
+        assertThat(capturedError.reason).isEqualTo("Native crash")
+        assertThat(capturedError.name).isEqualTo("SIGSEGV")
+        val errorStackTrace = capturedError.stackTrace(0)
+        assertThat(errorStackTrace).isNotNull
+        assertThat(errorStackTrace?.type).isEqualTo(3) // AndroidNative
+        assertThat(errorStackTrace?.className).isNull()
+        assertThat(errorStackTrace?.sourceFile?.path)
+            .isEqualTo("/data/app/~~6DwYIGSAHjTRvcBZtp3_0g==/io.bitdrift.gradletestapp-joRhUJveogoZdK0R76S-vQ==/lib/arm64/libcapture.so")
+        assertThat(errorStackTrace?.sourceFile?.line).isEqualTo(0)
+        assertThat(errorStackTrace?.sourceFile?.column).isEqualTo(0)
+
+        val activeThread = report.threadDetails?.threads(36)
+        assertThat(activeThread).isNotNull
+        assertThat(activeThread?.active).isEqualTo(true)
+        assertThat(activeThread?.name).isEqualTo("Thread-3")
+        assertThat(activeThread?.stackTrace(0)?.frameAddress).isEqualTo(512588718688UL)
     }
 
     @Test
@@ -387,9 +405,7 @@ class FatalIssueReporterProcessorTest {
                     "platform/jvm/capture/src/test/resources",
                     rawFilePath,
                 ).toFile()
-        val resourceStream = file.inputStream()
-        val anrRawTrace = resourceStream.bufferedReader().use { it.readText() }
-        return createTraceInputStream(anrRawTrace)
+        return file.inputStream()
     }
 
     private companion object {
