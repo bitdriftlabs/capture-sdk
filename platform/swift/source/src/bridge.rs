@@ -745,6 +745,17 @@ extern "C" fn capture_write_app_launch_tti_log(logger_id: LoggerId<'_>, duration
 }
 
 #[no_mangle]
+extern "C" fn capture_record_app_open(logger_id: LoggerId<'_>) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      logger_id.record_app_open();
+      Ok(())
+    },
+    "swift record app open",
+  );
+}
+
+#[no_mangle]
 extern "C" fn capture_write_screen_view_log(logger_id: LoggerId<'_>, screen_name: *const Object) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {

@@ -370,6 +370,10 @@ internal class LoggerImpl(
         CaptureJniLibrary.setSleepModeEnabled(this.loggerId, sleepMode == SleepMode.ACTIVE)
     }
 
+    internal fun recordAppOpen() {
+        CaptureJniLibrary.recordAppOpen(this.loggerId)
+    }
+
     @JvmName("logFields")
     @Suppress("TooGenericExceptionCaught")
     internal fun log(
