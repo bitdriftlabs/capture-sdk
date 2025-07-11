@@ -18,7 +18,6 @@ import android.net.NetworkCapabilities
 import android.net.NetworkCapabilities.TRANSPORT_CELLULAR
 import android.net.NetworkCapabilities.TRANSPORT_ETHERNET
 import android.net.NetworkCapabilities.TRANSPORT_WIFI
-import android.net.NetworkRequest
 import android.telephony.TelephonyManager
 import android.telephony.TelephonyManager.NETWORK_TYPE_1xRTT
 import android.telephony.TelephonyManager.NETWORK_TYPE_CDMA
@@ -94,13 +93,10 @@ internal class NetworkAttributes(
         //  changes and adding in the callback when available.
         if (ContextCompat.checkSelfPermission(context, ACCESS_NETWORK_STATE) == PackageManager.PERMISSION_GRANTED) {
             try {
-                // TODO(murki): Figure out how to query this data on api level < 23
                 connectivityManager.activeNetwork?.let { network ->
                     updateNetworkType(connectivityManager.getNetworkCapabilities(network))
                 }
-
-                // TODO(snowp): Use registerDefaultNetworkCallback once we have a min api level of 24+
-                connectivityManager.registerNetworkCallback(NetworkRequest.Builder().build(), this)
+                connectivityManager.registerDefaultNetworkCallback(this)
             } catch (e: Throwable) {
                 // Issue with some versions of Android: https://issuetracker.google.com/issues/175055271
                 // can sometime throw an exception: "package does not belong to 10006"

@@ -124,7 +124,7 @@ class ComposeReplayTest {
             ReplayRect(
                 ReplayType.View,
                 0,
-                88,
+                84,
                 30,
                 40
             )
@@ -154,8 +154,8 @@ class ComposeReplayTest {
 
         val capture = verifyReplayScreen(viewCount = 7)
         // different widths reflect text length
-        assertThat(capture).contains(ReplayRect(ReplayType.Label, 0, 88, 521, 57))
-        assertThat(capture).contains(ReplayRect(ReplayType.Label, 0, 145, 114, 57))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 0, 84, 522, 57))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 0, 141, 114, 57))
     }
 
     @Test
@@ -179,8 +179,8 @@ class ComposeReplayTest {
 
         val capture = verifyReplayScreen(viewCount = 8)
         // different widths reflect text length
-        assertThat(capture).contains(ReplayRect(ReplayType.Label, 0, 88, 521, 57))
-        assertThat(capture).contains(ReplayRect(ReplayType.Label, 0, 145, 114, 57))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 0, 84, 522, 57))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 0, 141, 114, 57))
     }
 
     @Test
@@ -193,8 +193,8 @@ class ComposeReplayTest {
             ReplayRect(
                 ReplayType.Label,
                 0,
-                88,
-                521,
+                84,
+                522,
                 57
             )
         )
@@ -211,8 +211,8 @@ class ComposeReplayTest {
 
         val capture = verifyReplayScreen(viewCount = 9)
         // TODO(snowp): We currently aren't able to reflect the true text size within the text field.
-        assertThat(capture).contains(ReplayRect(ReplayType.TextInput, 0, 88, 980, 196))
-        assertThat(capture).contains(ReplayRect(ReplayType.TextInput, 0, 284, 980, 196))
+        assertThat(capture).contains(ReplayRect(ReplayType.TextInput, 0, 84, 980, 196))
+        assertThat(capture).contains(ReplayRect(ReplayType.TextInput, 0, 280, 980, 196))
     }
 
     @Test
@@ -225,8 +225,8 @@ class ComposeReplayTest {
         }
 
         val capture = verifyReplayScreen(viewCount = 7)
-        assertThat(capture).contains(ReplayRect(ReplayType.SwitchOff, 42, 130, 84, 84))
-        assertThat(capture).contains(ReplayRect(ReplayType.SwitchOn, 42, 298, 84, 84))
+        assertThat(capture).contains(ReplayRect(ReplayType.SwitchOff, 42, 126, 84, 84))
+        assertThat(capture).contains(ReplayRect(ReplayType.SwitchOn, 42, 294, 84, 84))
     }
 
     @Test
@@ -239,7 +239,7 @@ class ComposeReplayTest {
             ReplayRect(
                 ReplayType.Image,
                 0,
-                88,
+                84,
                 84,
                 84
             )
@@ -256,7 +256,7 @@ class ComposeReplayTest {
             ReplayRect(
                 ReplayType.Image,
                 0,
-                88,
+                84,
                 84,
                 84
             )
@@ -275,7 +275,7 @@ class ComposeReplayTest {
             ReplayRect(
                 ReplayType.Button,
                 0,
-                102,
+                98,
                 224,
                 140
             )
@@ -291,13 +291,7 @@ class ComposeReplayTest {
         }
 
         assertThat(verifyReplayScreen(viewCount = 11)).contains(
-            ReplayRect(
-                ReplayType.Button,
-                42,
-                130,
-                84,
-                84
-            )
+            ReplayRect(ReplayType.Button, 42, 126, 84, 84)
         )
     }
 
@@ -315,10 +309,10 @@ class ComposeReplayTest {
         }
 
         val capture = verifyReplayScreen(viewCount = 13)
-        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 109, 351, 126))
-        assertThat(capture).contains(ReplayRect(ReplayType.Label, 28, 144, 295, 57))
-        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 277, 224, 126))
-        assertThat(capture).contains(ReplayRect(ReplayType.Label, 45, 312, 135, 57))
+        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 105, 350, 126))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 28, 140, 294, 57))
+        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 273, 224, 126))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 45, 308, 135, 57))
     }
 
     @Test
@@ -335,10 +329,10 @@ class ComposeReplayTest {
         }
 
         val capture = verifyReplayScreen(viewCount = 13)
-        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 109, 351, 126))
-        assertThat(capture).contains(ReplayRect(ReplayType.Label, 28, 144, 295, 57))
-        assertThat(capture).doesNotContain(ReplayRect(ReplayType.Button, 0, 277, 224, 126))
-        assertThat(capture).contains(ReplayRect(ReplayType.Label, 45, 312, 135, 57))
+        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 105, 350, 126))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 28, 140, 294, 57))
+        assertThat(capture).doesNotContain(ReplayRect(ReplayType.Button, 0, 273, 224, 126))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 45, 308, 135, 57))
     }
 
     @Test
@@ -355,8 +349,8 @@ class ComposeReplayTest {
         }
 
         val capture = verifyReplayScreen(viewCount = 13)
-        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 109, 351, 126))
-        assertThat(capture).contains(ReplayRect(ReplayType.Label, 28, 144, 295, 57))
+        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 105, 350, 126))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 28, 140, 294, 57))
         assertThat(capture).doesNotContain(ReplayRect(ReplayType.Button, 0, 277, 224, 126))
         assertThat(capture).doesNotContain(ReplayRect(ReplayType.Label, 45, 312, 135, 57))
     }
@@ -380,11 +374,11 @@ class ComposeReplayTest {
 
         val capture = verifyReplayScreen(viewCount = 10)
         // Column
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 160))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 200, 160))
         // AndroidView w/TextView Top (width reflects the text length
-        assertThat(capture).contains(ReplayRect(ReplayType.Label, 3, 88, 33, 37))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 3, 84, 33, 37))
         // AndroidView w/Button Bottom
-        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 168, 200, 80))
+        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 164, 200, 80))
     }
 
     @Test
@@ -410,7 +404,7 @@ class ComposeReplayTest {
 
         val capture = verifyReplayScreen(viewCount = 9)
         // Parent Box
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 300, 400))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 300, 400))
         // Dialog - Child Box
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 0, 150, 200))
     }
@@ -443,7 +437,7 @@ class ComposeReplayTest {
 
         val capture = verifyReplayScreen(viewCount = 9)
         // Parent Box
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 300, 400))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 300, 400))
         // Dialog - Child Box
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 0, 150, 200))
     }
@@ -467,9 +461,9 @@ class ComposeReplayTest {
 
         val capture = verifyReplayScreen(viewCount = 7)
         // Parent Box
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 400))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 200, 400))
         // Child Box
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 400))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 200, 400))
     }
 
     @Test
@@ -496,11 +490,11 @@ class ComposeReplayTest {
 
         val capture = verifyReplayScreen(viewCount = 8)
         // Parent Box
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 800))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 200, 800))
         // Child Box 1
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 400))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 200, 400))
         // Child Box 1
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 488, 200, 400))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 484, 200, 400))
     }
 
     @Test
@@ -540,15 +534,15 @@ class ComposeReplayTest {
 
         val capture = verifyReplayScreen(viewCount = 10)
         // Parent Box
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 1600))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 200, 1600))
         // First Children - Box 1
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 400))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 200, 400))
         // First Children - Box 2
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 488, 200, 400))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 484, 200, 400))
         // Second Children - Box 1
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 888, 200, 400))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 884, 200, 400))
         // Second Children - Box 2
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 1288, 200, 400))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 1284, 200, 400))
     }
 
     @Test
@@ -557,7 +551,7 @@ class ComposeReplayTest {
             val (width, height) = with(LocalDensity.current) {
                 Pair(200.toDp(), 400.toDp())
             }
-            Box(Modifier.testTag("parent")) {
+            Column(Modifier.testTag("parent")) {
                 SingleSubcompositionLayout(Modifier.testTag("subcompose-layout1")) {
                     Box(
                         Modifier
@@ -576,12 +570,10 @@ class ComposeReplayTest {
         }
 
         val capture = verifyReplayScreen(viewCount = 8)
-        // Parent Box
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 400))
         // Child Box 1
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 400))
-        // Child Box 1
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 400))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 200, 400))
+        // Child Box 2
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 484, 200, 400))
     }
 
     @Test
@@ -637,13 +629,13 @@ class ComposeReplayTest {
 
         val capture = verifyReplayScreen(viewCount = 9)
         // Parent Box
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 1200))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 200, 1200))
         // First Children - Box 1
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 88, 200, 400))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 200, 400))
         // First Children - Box 2
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 488, 200, 400))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 484, 200, 400))
         // Second Children - Box 1
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 888, 200, 400))
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 884, 200, 400))
     }
 
     /**

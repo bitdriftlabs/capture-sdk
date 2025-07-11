@@ -53,7 +53,7 @@ import java.util.concurrent.TimeUnit
 private const val TEST_DATE_TIMESTAMP: Long = 1657047358123
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [21])
+@Config(sdk = [24])
 class CaptureLoggerTest {
     private val systemDateProvider =
         DateProvider {

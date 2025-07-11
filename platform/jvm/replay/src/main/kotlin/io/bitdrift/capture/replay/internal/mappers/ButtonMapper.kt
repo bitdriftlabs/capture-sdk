@@ -12,7 +12,6 @@ import android.widget.Button
 import android.widget.CompoundButton
 import android.widget.ImageButton
 import androidx.appcompat.widget.SwitchCompat
-import androidx.core.widget.CompoundButtonCompat
 import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.internal.ReplayRect
 
@@ -70,8 +69,7 @@ internal class ButtonMapper(
                         )
                     }
                 }
-                // TODO(murki): Use Drawable.getButtonDrawable() once we increase min api level to 23+
-                CompoundButtonCompat.getButtonDrawable(view)?.bounds?.let { bounds ->
+                view.buttonDrawable?.bounds?.let { bounds ->
                     val type =
                         if (view.isChecked) {
                             ReplayType.Button

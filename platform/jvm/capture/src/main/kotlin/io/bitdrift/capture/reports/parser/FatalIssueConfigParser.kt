@@ -8,7 +8,6 @@
 package io.bitdrift.capture.reports.parser
 
 import android.content.Context
-import android.os.Build
 import java.io.File
 
 /**
@@ -49,18 +48,11 @@ internal object FatalIssueConfigParser {
         } else if (sanitizedPath.contains(FILES_DIR_PLACE_HOLDER)) {
             sanitizedPath.replace(FILES_DIR_PLACE_HOLDER, appContext.filesDir.absolutePath)
         } else if (sanitizedPath.contains(DATA_DIR_PLACE_HOLDER)) {
-            sanitizedPath.replace(DATA_DIR_PLACE_HOLDER, getDataDirectoryPath(appContext))
+            sanitizedPath.replace(DATA_DIR_PLACE_HOLDER, appContext.dataDir.absolutePath)
         } else {
             sanitizedPath
         }
     }
-
-    private fun getDataDirectoryPath(appContext: Context): String =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            appContext.dataDir.absolutePath
-        } else {
-            appContext.applicationInfo.dataDir
-        }
 }
 
 /**
