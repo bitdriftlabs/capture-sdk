@@ -151,6 +151,10 @@ bool bitdrift_install_crash_handler(void) {
     return true;
 }
 
+void bitdrift_uninstall_crash_handler(void) {
+    kscm_disableAllMonitors();
+}
+
 NSDictionary *bitdrift_getLastReport(void) {
     NSDictionary *report = bitdrift_readReport(getNextCrashReportPath());
     [NSFileManager.defaultManager removeItemAtPath:getNextCrashReportPath() error:nil];

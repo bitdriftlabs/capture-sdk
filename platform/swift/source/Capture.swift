@@ -154,6 +154,11 @@ extension Logger {
         }
     }
 
+    /// Internal for testing purposes only.
+    static func disableFatalIssueReporting() {
+        bitdrift_uninstall_crash_handler()
+    }
+
     /// Retrieves the session ID. It is nil before the Capture SDK is started.
     public static var sessionID: String? {
         return Self.getShared()?.sessionID
