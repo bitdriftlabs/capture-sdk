@@ -155,8 +155,17 @@ void bitdrift_uninstall_crash_handler(void) {
     kscm_disableAllMonitors();
 }
 
+static void fixupReport(NSMutableDictionary* report) {
+    NSMutableDictionary* diagnosticMetadata = report[@"diagnosticMetaData"];
+    NSNumber* secsSince1970 = diagnosticMetadata[@"crashedAt"];
+    if(secsSince1970 != nil) {
+        diagnosticMetadata[@"crashedAt"] = [NSDate dateWithTimeIntervalSince1970:secsSince1970.longLongValue];
+    }
+}
+
 NSDictionary *bitdrift_getLastReport(void) {
-    NSDictionary *report = bitdrift_readReport(getNextCrashReportPath());
+    NSMutableDictionary *report = bitdrift_readReport(getNextCrashReportPath());
     [NSFileManager.defaultManager removeItemAtPath:getNextCrashReportPath() error:nil];
+    fixupReport(report);
     return report;
 }
