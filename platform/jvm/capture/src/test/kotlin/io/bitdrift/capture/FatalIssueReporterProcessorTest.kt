@@ -320,7 +320,7 @@ class FatalIssueReporterProcessorTest {
     @Test
     fun persistAppExitReport_whenNativeCrash_shouldCreateEmptyErrorModel() {
         val description = "Native crash"
-        val traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.txt")
+        val traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.bin")
 
         fatalIssueReporterProcessor.persistAppExitReport(
             ReportType.NativeCrash,
