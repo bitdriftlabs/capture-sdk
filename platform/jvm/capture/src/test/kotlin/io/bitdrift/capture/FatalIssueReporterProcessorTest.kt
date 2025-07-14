@@ -320,7 +320,7 @@ class FatalIssueReporterProcessorTest {
     @Test
     fun persistAppExitReport_whenNativeCrash_shouldCreateEmptyErrorModel() {
         val description = "Native crash"
-        val traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.txt")
+        val traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.bin")
 
         fatalIssueReporterProcessor.persistAppExitReport(
             ReportType.NativeCrash,
@@ -336,7 +336,27 @@ class FatalIssueReporterProcessorTest {
         )
         val buffer = ByteBuffer.wrap(fatalIssueReportCaptor.firstValue)
         val report = Report.getRootAsReport(buffer)
-        assertThat(report.errorsLength).isEqualTo(0)
+        assertThat(report.errorsLength).isEqualTo(1)
+
+        val capturedError = report.errors(0)!!
+        assertThat(capturedError.reason).isEqualTo("Native crash")
+        assertThat(capturedError.name).isEqualTo("SIGSEGV")
+        val errorStackTrace = capturedError.stackTrace(0)
+        assertThat(errorStackTrace).isNotNull
+        assertThat(errorStackTrace?.type).isEqualTo(3) // AndroidNative
+        assertThat(errorStackTrace?.className).isNull()
+        assertThat(errorStackTrace?.sourceFile).isNull()
+
+        val activeThread = report.threadDetails?.threads(36)
+        assertThat(activeThread).isNotNull
+        assertThat(activeThread?.active).isEqualTo(true)
+        assertThat(activeThread?.name).isEqualTo("Thread-3")
+        assertThat(activeThread?.stackTrace(0)?.frameAddress).isEqualTo(512588718688UL)
+
+        val binaryImage = report.binaryImages(0)
+        assertThat(binaryImage).isNotNull
+        assertThat(binaryImage?.path).isEqualTo("/apex/com.android.runtime/lib64/bionic/libc.so")
+        assertThat(binaryImage?.id).isEqualTo("a87908b48b368e6282bcc9f34bcfc28c")
     }
 
     @Test
@@ -387,9 +407,7 @@ class FatalIssueReporterProcessorTest {
                     "platform/jvm/capture/src/test/resources",
                     rawFilePath,
                 ).toFile()
-        val resourceStream = file.inputStream()
-        val anrRawTrace = resourceStream.bufferedReader().use { it.readText() }
-        return createTraceInputStream(anrRawTrace)
+        return file.inputStream()
     }
 
     private companion object {
