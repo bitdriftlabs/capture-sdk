@@ -97,7 +97,7 @@ new_git_repository(
 
 new_git_repository(
     name = "kscrash",
-    branch = "karl/mach-exception-forwarding",
+    branch = "karl/missing-stddef-header",
     build_file = "//bazel:BUILD.kscrash",
     remote = "https://github.com/kstenerud/KSCrash.git",
 )

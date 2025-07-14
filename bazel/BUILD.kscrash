@@ -9,6 +9,9 @@ objc_library(
         "Sources/KSCrashRecording/Monitors",
         "Sources/KSCrashRecordingCore/include",
         ],
+    hdrs = glob(
+        include = ["Sources/KSCrashRecording*/**/*.h", "Sources/KSCrashCore/**/*.h"]
+    ),
     srcs = [
         "Sources/KSCrashRecording/KSThreadCache.c",
         "Sources/KSCrashRecording/Monitors/KSCrashMonitor_CPPException.cpp",

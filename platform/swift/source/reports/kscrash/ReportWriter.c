@@ -111,9 +111,9 @@ static void writeAllThreads(const KSCrashReportWriter *const writer, const Repor
         if (thread == offendingThread) {
             writeThread(writer, NULL, i, ctx, offendingMachineContext);
         } else {
-            KSMC_NEW_CONTEXT(machineContext);
-            ksmc_getContextForThread(thread, machineContext, false);
-            writeThread(writer, NULL, i, ctx, machineContext);
+            KSMachineContext machineContext = { 0 };
+            ksmc_getContextForThread(thread, &machineContext, false);
+            writeThread(writer, NULL, i, ctx, &machineContext);
         }
     }
 }
