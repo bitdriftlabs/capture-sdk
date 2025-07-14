@@ -97,6 +97,7 @@ objc_library(
         "reports/kscrash/ReportContext.h",
         "reports/kscrash/ReportReader.h",
         "reports/kscrash/ReportWriter.h",
+        "reports/kscrash/ReportWriterPrivate.h",
     ],
     module_name = "CaptureLoggerBridge",
     tags = ["macos_only"],

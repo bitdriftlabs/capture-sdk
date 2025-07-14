@@ -71,19 +71,10 @@ static NSString *getOsBuild(void) {
     return sysctl_nsstring("kern.osversion");
 }
 
-static NSString *getNextCrashReportPath(void)
+static NSString *getNextCrashReportPath(NSURL *basePath)
 {
-    NSArray *directories = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
-    if ([directories count] == 0) {
-        return nil;
-    }
-    NSString *cachePath = [directories objectAtIndex:0];
-    if ([cachePath length] == 0) {
-        return nil;
-    }
-    NSString *path = [cachePath stringByAppendingPathComponent:@"bitdrift"];
-    path = [path stringByAppendingPathComponent:NSBundle.mainBundle.bundleIdentifier];
-    path = [path stringByAppendingPathComponent:@"crashes"];
+    NSString *path = [NSString stringWithUTF8String:basePath.fileSystemRepresentation];
+    path = [path stringByAppendingPathComponent:@"kscrash"];
     return [path stringByAppendingPathComponent:@"lastCrash.bjn"];
 }
 
@@ -129,14 +120,14 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext)
     bitdrift_writeStandardReport(&context);
 }
 
-bool bitdrift_install_crash_handler(void) {
+bool bitdrift_install_crash_handler(NSURL *basePath) {
     ksbic_init();
     kstc_init(10);
     initReportContext(&g_baseContext);
 
 #define RETURN_IF_FALSE(A) if(!(A)) return false
 
-    g_baseContext.reportPath = strdup(getNextCrashReportPath().UTF8String);
+    g_baseContext.reportPath = strdup(getNextCrashReportPath(basePath).UTF8String);
     RETURN_IF_FALSE(mkdirs(g_baseContext.reportPath));
 
     kscm_setEventCallback(onCrash);
@@ -145,7 +136,7 @@ bool bitdrift_install_crash_handler(void) {
     RETURN_IF_FALSE(kscm_addMonitor(kscm_nsexception_getAPI()));
     RETURN_IF_FALSE(kscm_addMonitor(kscm_signal_getAPI()));
     if (kscm_activateMonitors() == false) {
-        NSLog(@"No crash monitors are active\n");
+        NSLog(@"Error: No crash monitors were installed\n");
         return false;
     }
     return true;
@@ -163,9 +154,9 @@ static void fixupReport(NSMutableDictionary* report) {
     }
 }
 
-NSDictionary *bitdrift_getLastReport(void) {
-    NSMutableDictionary *report = bitdrift_readReport(getNextCrashReportPath());
-    [NSFileManager.defaultManager removeItemAtPath:getNextCrashReportPath() error:nil];
+NSDictionary *bitdrift_getLastReport(NSURL *basePath) {
+    NSMutableDictionary *report = bitdrift_readReport(getNextCrashReportPath(basePath));
+    [NSFileManager.defaultManager removeItemAtPath:getNextCrashReportPath(basePath) error:nil];
     fixupReport(report);
     return report;
 }

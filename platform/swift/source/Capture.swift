@@ -114,21 +114,13 @@ extension Logger {
             return
         }
 
-        if !bitdrift_install_crash_handler() {
-            print("Could not install KSCrash")
-        } else {
-            let report = bitdrift_getLastReport()
-            if report != nil {
-                // TODO: Something with this report
-                print("KSCrash: \(report!)")
-            }
-        }
-
         issueReporterInitResult = (.initializing, 0)
         guard let outputDir = Logger.reportCollectionDirectory() else {
             issueReporterInitResult = (.initialized(.missingReportsDirectory), 0)
             return
         }
+
+        let kscrashReport = bitdrift_install_crash_handler(outputDir) ? bitdrift_getLastReport(outputDir) : nil
 
         issueReporterInitResult = measureTime {
             switch type {
@@ -141,7 +133,8 @@ extension Logger {
                     outputDir: outputDir,
                     sdkVersion: capture_get_sdk_version(),
                     eventTypes: .crash,
-                    minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC)
+                    minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC),
+                    kscrashReport: kscrashReport
                 )
                 diagnosticReporter.update { val in
                     val = reporter
