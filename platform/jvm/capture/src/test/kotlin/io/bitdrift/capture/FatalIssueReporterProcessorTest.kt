@@ -345,10 +345,7 @@ class FatalIssueReporterProcessorTest {
         assertThat(errorStackTrace).isNotNull
         assertThat(errorStackTrace?.type).isEqualTo(3) // AndroidNative
         assertThat(errorStackTrace?.className).isNull()
-        assertThat(errorStackTrace?.sourceFile?.path)
-            .isEqualTo("/data/app/~~6DwYIGSAHjTRvcBZtp3_0g==/io.bitdrift.gradletestapp-joRhUJveogoZdK0R76S-vQ==/lib/arm64/libcapture.so")
-        assertThat(errorStackTrace?.sourceFile?.line).isEqualTo(0)
-        assertThat(errorStackTrace?.sourceFile?.column).isEqualTo(0)
+        assertThat(errorStackTrace?.sourceFile).isNull()
 
         val activeThread = report.threadDetails?.threads(36)
         assertThat(activeThread).isNotNull

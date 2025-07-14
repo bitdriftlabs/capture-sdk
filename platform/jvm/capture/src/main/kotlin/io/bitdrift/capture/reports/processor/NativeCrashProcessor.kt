@@ -42,10 +42,8 @@ internal object NativeCrashProcessor {
             val frameOffsets =
                 thread.currentBacktraceList
                     .map { frame ->
-
                         val frameAddress = frame.pc.toULong()
                         val functionOffset = frame.functionOffset.toULong()
-                        val fileName: String? = frame.fileName
                         val isNativeFrame = frame.pc != 0L
                         val imageId: String? = if (isNativeFrame) frame.buildId else null
 
@@ -54,16 +52,15 @@ internal object NativeCrashProcessor {
                                 BinaryImage.createBinaryImage(
                                     builder,
                                     builder.toOffset(imageId),
-                                    builder.toOffset(fileName),
+                                    builder.toOffset(frame.fileName),
                                     frameAddress,
                                 ),
                             )
                         }
-
                         val frameData =
                             FrameData(
                                 symbolName = frame.functionName,
-                                fileName = fileName,
+                                fileName = if (!isNativeFrame) frame.fileName else null,
                                 imageId = imageId,
                                 frameAddress = frameAddress,
                                 symbolAddress = frameAddress - functionOffset,
