@@ -46,6 +46,13 @@ internal object ReportFrameBuilder {
         )
     }
 
+    /**
+     * Builds offset from a nullable string.
+     *
+     * NOTE: Defaults to 0 if nullable string
+     */
+    fun FlatBufferBuilder.toOffset(originalValue: String?): Int = originalValue?.let { createString(it) } ?: 0
+
     private fun buildSourceFile(
         builder: FlatBufferBuilder,
         fileName: String?,

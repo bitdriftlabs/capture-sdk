@@ -9,13 +9,8 @@ package io.bitdrift.capture.reports.processor
 
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.TombstoneProtos.Tombstone
-import io.bitdrift.capture.reports.binformat.v1.Error
-import io.bitdrift.capture.reports.binformat.v1.ErrorRelation
-import io.bitdrift.capture.reports.binformat.v1.FrameType
-import io.bitdrift.capture.reports.binformat.v1.Report
-import io.bitdrift.capture.reports.binformat.v1.ReportType
-import io.bitdrift.capture.reports.binformat.v1.Thread
-import io.bitdrift.capture.reports.binformat.v1.ThreadDetails
+import io.bitdrift.capture.reports.binformat.v1.*
+import io.bitdrift.capture.reports.processor.ReportFrameBuilder.toOffset
 import java.io.InputStream
 
 /**
@@ -34,22 +29,43 @@ internal object NativeCrashProcessor {
         val tombstone = Tombstone.parseFrom(traceInputStream)
         val nativeErrors = mutableListOf<Int>()
         val threadOffsets = mutableListOf<Int>()
+        val binaryImageOffsets = mutableListOf<Int>()
 
         tombstone.threadsMap.forEach { (tid, thread) ->
             val frameOffsets =
                 thread.currentBacktraceList
                     .map { frame ->
+
                         val frameAddress = frame.pc.toULong()
                         val functionOffset = frame.functionOffset.toULong()
+                        val fileName: String? = frame.fileName
+                        val isLibrary = isLibrary(fileName)
+                        val imageId: String? = if (isLibrary) frame.buildId else null
+
+                        if (isLibrary(fileName)) {
+                            binaryImageOffsets.add(
+                                BinaryImage.createBinaryImage(
+                                    builder,
+                                    builder.toOffset(imageId),
+                                    builder.toOffset(fileName),
+                                    frameAddress,
+                                ),
+                            )
+                        }
+
                         val frameData =
                             FrameData(
                                 symbolName = frame.functionName,
-                                fileName = frame.fileName,
-                                imageId = frame.buildId,
-                                frameAddress = frame.pc.toULong(),
+                                fileName = fileName,
+                                imageId = imageId,
+                                frameAddress = frameAddress,
                                 symbolAddress = frameAddress - functionOffset,
                             )
-                        ReportFrameBuilder.build(FrameType.AndroidNative, builder, frameData)
+                        ReportFrameBuilder.build(
+                            FrameType.AndroidNative,
+                            builder,
+                            frameData,
+                        )
                     }.toIntArray()
 
             val threadOffset =
@@ -58,7 +74,7 @@ internal object NativeCrashProcessor {
                     builder.createString(thread.name.ifEmpty { "native-thread-${thread.id}" }),
                     isCrashingThread(tid, tombstone),
                     thread.id.toUInt(),
-                    builder.createString(""),
+                    0,
                     0f,
                     0,
                     Thread.createStackTraceVector(builder, frameOffsets),
@@ -85,7 +101,7 @@ internal object NativeCrashProcessor {
             deviceMetrics,
             Report.createErrorsVector(builder, nativeErrors.toIntArray()),
             threadDetailsOffset,
-            0,
+            Report.createBinaryImagesVector(builder, binaryImageOffsets.toIntArray()),
         )
     }
 
@@ -114,4 +130,6 @@ internal object NativeCrashProcessor {
         threadId: Int,
         tombstone: Tombstone,
     ): Boolean = threadId == tombstone.tid
+
+    private fun isLibrary(fileName: String?): Boolean = fileName?.lowercase()?.endsWith(".so") == true
 }

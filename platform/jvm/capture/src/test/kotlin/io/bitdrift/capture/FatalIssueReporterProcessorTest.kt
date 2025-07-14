@@ -355,6 +355,11 @@ class FatalIssueReporterProcessorTest {
         assertThat(activeThread?.active).isEqualTo(true)
         assertThat(activeThread?.name).isEqualTo("Thread-3")
         assertThat(activeThread?.stackTrace(0)?.frameAddress).isEqualTo(512588718688UL)
+
+        val binaryImage = report.binaryImages(0)
+        assertThat(binaryImage).isNotNull
+        assertThat(binaryImage?.path).isEqualTo("/apex/com.android.runtime/lib64/bionic/libc.so")
+        assertThat(binaryImage?.id).isEqualTo("a87908b48b368e6282bcc9f34bcfc28c")
     }
 
     @Test
