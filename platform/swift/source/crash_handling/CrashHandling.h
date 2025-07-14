@@ -16,7 +16,7 @@
 extern "C" {
 #endif
 
-bool bitdrift_install_crash_handler(void);
+bool bitdrift_install_crash_handler(NSURL *basePath);
 void bitdrift_uninstall_crash_handler(void);
 
 /**
@@ -25,7 +25,7 @@ void bitdrift_uninstall_crash_handler(void);
  */
 bool bitdrift_begin_handling_crash(void);
 
-NSDictionary *bitdrift_getLastReport(void);
+NSDictionary *bitdrift_getLastReport(NSURL *basePath);
 
 #ifdef __cplusplus
 }
