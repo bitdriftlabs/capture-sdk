@@ -17,6 +17,7 @@ extern "C" {
 #endif
 
 bool bitdrift_install_crash_handler(void);
+void bitdrift_uninstall_crash_handler(void);
 
 /**
  * Attempt to begin handling a crash.
