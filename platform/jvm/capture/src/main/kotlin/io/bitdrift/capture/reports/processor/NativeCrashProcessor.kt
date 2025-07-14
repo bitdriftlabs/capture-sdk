@@ -9,7 +9,14 @@ package io.bitdrift.capture.reports.processor
 
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.TombstoneProtos.Tombstone
-import io.bitdrift.capture.reports.binformat.v1.*
+import io.bitdrift.capture.reports.binformat.v1.BinaryImage
+import io.bitdrift.capture.reports.binformat.v1.Error
+import io.bitdrift.capture.reports.binformat.v1.ErrorRelation
+import io.bitdrift.capture.reports.binformat.v1.FrameType
+import io.bitdrift.capture.reports.binformat.v1.Report
+import io.bitdrift.capture.reports.binformat.v1.ReportType
+import io.bitdrift.capture.reports.binformat.v1.Thread
+import io.bitdrift.capture.reports.binformat.v1.ThreadDetails
 import io.bitdrift.capture.reports.processor.ReportFrameBuilder.toOffset
 import java.io.InputStream
 
@@ -39,10 +46,10 @@ internal object NativeCrashProcessor {
                         val frameAddress = frame.pc.toULong()
                         val functionOffset = frame.functionOffset.toULong()
                         val fileName: String? = frame.fileName
-                        val isLibrary = isLibrary(fileName)
-                        val imageId: String? = if (isLibrary) frame.buildId else null
+                        val isNativeFrame = frame.pc != 0L
+                        val imageId: String? = if (isNativeFrame) frame.buildId else null
 
-                        if (isLibrary(fileName)) {
+                        if (isNativeFrame) {
                             binaryImageOffsets.add(
                                 BinaryImage.createBinaryImage(
                                     builder,
@@ -130,6 +137,4 @@ internal object NativeCrashProcessor {
         threadId: Int,
         tombstone: Tombstone,
     ): Boolean = threadId == tombstone.tid
-
-    private fun isLibrary(fileName: String?): Boolean = fileName?.lowercase()?.endsWith(".so") == true
 }

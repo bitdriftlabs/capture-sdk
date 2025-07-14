@@ -5,6 +5,9 @@ exports_files([
 
 filegroup(
     name = "test_resources",
-    srcs = glob(["*.txt","*.bin"]),
+    srcs = glob([
+        "*.txt",
+        "*.bin",
+    ]),
     visibility = ["//visibility:public"],
 )
