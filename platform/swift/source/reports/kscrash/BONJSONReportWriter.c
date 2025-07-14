@@ -7,26 +7,27 @@
 
 #include "BONJSONReportWriter.h"
 #include "ReportContext.h"
+#include "KSLogger.h"
 
 #include <string.h>
 
-static BonjsonWriterContext* getCtx(const KSCrashReportWriter *const writer) {
+static BonjsonWriterContext* getCtx(const BitdriftReportWriter *const writer) {
     ReportContext* ctx = (ReportContext*)writer->context;
     return ctx->writerContext;
 }
 
-static KSBONJSONEncodeContext* getEncodeCtx(const KSCrashReportWriter *const writer) {
+static KSBONJSONEncodeContext* getEncodeCtx(const BitdriftReportWriter *const writer) {
     ReportContext* ctx = (ReportContext*)writer->context;
     return &ctx->writerContext->bonjsonContext;
 }
 
-static void increaseDepth(const KSCrashReportWriter *const writer, bool isArray) {
+static void increaseDepth(const BitdriftReportWriter *const writer, bool isArray) {
     BonjsonWriterContext* ctx = getCtx(writer);
     ctx->indentLevel++;
     ctx->isArray[ctx->indentLevel] = isArray;
 }
 
-static bool decreaseDepth(const KSCrashReportWriter *const writer) {
+static bool decreaseDepth(const BitdriftReportWriter *const writer) {
     BonjsonWriterContext* ctx = getCtx(writer);
     bool wasArray = ctx->isArray[ctx->indentLevel];
     if(ctx->indentLevel > 0) {
@@ -35,92 +36,79 @@ static bool decreaseDepth(const KSCrashReportWriter *const writer) {
     return wasArray;
 }
 
-static void addKey(const KSCrashReportWriter *const writer, const char* key) {
+static ksbonjson_encodeStatus addKey(const BitdriftReportWriter *const writer, const char* key) {
     BonjsonWriterContext* ctx = getCtx(writer);
     if(ctx->indentLevel > 0 && !ctx->isArray[ctx->indentLevel]) {
         if(key == NULL) {
             key = "<null>";
         }
-        ksbonjson_addString(&ctx->bonjsonContext, key, strlen(key));
+        return ksbonjson_addString(&ctx->bonjsonContext, key, strlen(key));
     }
+    return KSBONJSON_ENCODE_OK;
 }
 
+#define RETURN_ON_FAIL(A) do { \
+    ksbonjson_encodeStatus RETURN_ON_FAIL_status = (A); \
+    if(RETURN_ON_FAIL_status != KSBONJSON_ENCODE_OK) { \
+        KSLOG_ERROR("Failed to " # A ": %s", ksbonjson_describeEncodeStatus(RETURN_ON_FAIL_status)); \
+        return false; \
+    } \
+} while(0)
 
-static void addBooleanElement(const KSCrashReportWriter *const writer, const char *const key, const bool value)
+#define RETURN_RESULT(A) do { \
+    RETURN_ON_FAIL(A); \
+    return true; \
+} while(0)
+
+static bool addBooleanElement(const BitdriftReportWriter *const writer, const char *const key, const bool value)
 {
     BonjsonWriterContext* ctx = getCtx(writer);
-    addKey(writer, key);
-    ksbonjson_addBoolean(&ctx->bonjsonContext, value);
+    RETURN_ON_FAIL(addKey(writer, key));
+    RETURN_RESULT(ksbonjson_addBoolean(&ctx->bonjsonContext, value));
 }
 
-static void addFloatingPointElement(const KSCrashReportWriter *const writer, const char *const key, const double value)
+static bool addFloatingPointElement(const BitdriftReportWriter *const writer, const char *const key, const double value)
 {
     BonjsonWriterContext* ctx = getCtx(writer);
-    addKey(writer, key);
-    ksbonjson_addFloat(&ctx->bonjsonContext, value);
+    RETURN_ON_FAIL(addKey(writer, key));
+    RETURN_RESULT(ksbonjson_addFloat(&ctx->bonjsonContext, value));
 }
 
-static void addIntegerElement(const KSCrashReportWriter *const writer, const char *const key, const int64_t value)
+static bool addIntegerElement(const BitdriftReportWriter *const writer, const char *const key, const int64_t value)
 {
     BonjsonWriterContext* ctx = getCtx(writer);
-    addKey(writer, key);
-    ksbonjson_addSignedInteger(&ctx->bonjsonContext, value);
+    RETURN_ON_FAIL(addKey(writer, key));
+    RETURN_RESULT(ksbonjson_addSignedInteger(&ctx->bonjsonContext, value));
 }
 
-static void addUIntegerElement(const KSCrashReportWriter *const writer, const char *const key, const uint64_t value)
+static bool addUIntegerElement(const BitdriftReportWriter *const writer, const char *const key, const uint64_t value)
 {
     BonjsonWriterContext* ctx = getCtx(writer);
-    addKey(writer, key);
-    ksbonjson_addUnsignedInteger(&ctx->bonjsonContext, value);
+    RETURN_ON_FAIL(addKey(writer, key));
+    RETURN_RESULT(ksbonjson_addUnsignedInteger(&ctx->bonjsonContext, value));
 }
 
-static void addStringElement(const KSCrashReportWriter *const writer, const char *const key, const char *const value)
+static bool addStringElement(const BitdriftReportWriter *const writer, const char *const key, const char *const value)
 {
     BonjsonWriterContext* ctx = getCtx(writer);
-    addKey(writer, key);
+    RETURN_ON_FAIL(addKey(writer, key));
     if(value == NULL)
     {
-        ksbonjson_addNull(&ctx->bonjsonContext);
+        return ksbonjson_addNull(&ctx->bonjsonContext);
     }
-    else
-    {
-        ksbonjson_addString(&ctx->bonjsonContext, value, strlen(value));
-    }
-}
-
-static void addTextFileElement(const KSCrashReportWriter *const writer, const char *const key,
-                               const char *const filePath)
-{
-}
-
-static void addDataElement(const KSCrashReportWriter *const writer, const char *const key, const char *const value,
-                           const int length)
-{
-}
-
-static void beginDataElement(const KSCrashReportWriter *const writer, const char *const key)
-{
-}
-
-static void appendDataElement(const KSCrashReportWriter *const writer, const char *const value, const int length)
-{
-}
-
-static void endDataElement(const KSCrashReportWriter *const writer)
-{
+    RETURN_RESULT(ksbonjson_addString(&ctx->bonjsonContext, value, strlen(value)));
 }
 
 static const char g_hexNybbles[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
-static void addUUIDElement(const KSCrashReportWriter *const writer, const char *const key,
+static bool addUUIDElement(const BitdriftReportWriter *const writer, const char *const key,
                            const unsigned char *const value)
 {
     BonjsonWriterContext* ctx = getCtx(writer);
-    addKey(writer, key);
+    RETURN_ON_FAIL(addKey(writer, key));
 
     if (value == NULL) {
-        ksbonjson_addNull(&ctx->bonjsonContext);
-        return;
+        return ksbonjson_addNull(&ctx->bonjsonContext);
     }
 
     char uuidBuffer[38];
@@ -151,73 +139,69 @@ static void addUUIDElement(const KSCrashReportWriter *const writer, const char *
         *dst++ = g_hexNybbles[(*src++) & 15];
     }
     *dst = 0;
-    ksbonjson_addString(&ctx->bonjsonContext, uuidBuffer, strlen(uuidBuffer));
+    RETURN_RESULT(ksbonjson_addString(&ctx->bonjsonContext, uuidBuffer, strlen(uuidBuffer)));
 }
 
-static void addJSONElement(const KSCrashReportWriter *const writer, const char *const key,
-                           const char *const jsonElement, bool closeLastContainer)
-{
-}
-
-static void addJSONElementFromFile(const KSCrashReportWriter *const writer, const char *const key,
-                                   const char *const filePath, bool closeLastContainer)
-{
-}
-
-static void beginObject(const KSCrashReportWriter *const writer, const char *const key)
+static bool beginObject(const BitdriftReportWriter *const writer, const char *const key)
 {
     BonjsonWriterContext* ctx = getCtx(writer);
-    addKey(writer, key);
-    ksbonjson_beginObject(&ctx->bonjsonContext);
-    increaseDepth(writer, false);
+    RETURN_ON_FAIL(addKey(writer, key));
+    ksbonjson_encodeStatus status = ksbonjson_beginObject(&ctx->bonjsonContext);
+    if(status == KSBONJSON_ENCODE_OK)
+    {
+        increaseDepth(writer, false);
+    } else {
+        KSLOG_ERROR("Failed to ksbonjson_beginObject(): %s", ksbonjson_describeEncodeStatus(status));
+    }
+    return status == KSBONJSON_ENCODE_OK;
 }
 
-static void beginArray(const KSCrashReportWriter *const writer, const char *const key)
+static bool beginArray(const BitdriftReportWriter *const writer, const char *const key)
 {
     BonjsonWriterContext* ctx = getCtx(writer);
-    addKey(writer, key);
-    ksbonjson_beginArray(&ctx->bonjsonContext);
-    increaseDepth(writer, true);
+    RETURN_ON_FAIL(addKey(writer, key));
+    ksbonjson_encodeStatus status = ksbonjson_beginArray(&ctx->bonjsonContext);
+    if(status == KSBONJSON_ENCODE_OK)
+    {
+        increaseDepth(writer, true);
+    } else {
+        KSLOG_ERROR("Failed to ksbonjson_beginArray(): %s", ksbonjson_describeEncodeStatus(status));
+    }
+    return status == KSBONJSON_ENCODE_OK;
 }
 
-static void endContainer(const KSCrashReportWriter *const writer) {
+static bool endContainer(const BitdriftReportWriter *const writer) {
     BonjsonWriterContext* ctx = getCtx(writer);
-    ksbonjson_endContainer(&ctx->bonjsonContext);
-    decreaseDepth(writer);
-}
-
-static void addTextLinesFromFile(const KSCrashReportWriter *const writer, const char *const key,
-                                 const char *const filePath)
-{
-    return;
+    ksbonjson_encodeStatus status = ksbonjson_endContainer(&ctx->bonjsonContext);
+    if(status == KSBONJSON_ENCODE_OK)
+    {
+        decreaseDepth(writer);
+    } else {
+        KSLOG_ERROR("Failed to ksbonjson_endContainer(): %s", ksbonjson_describeEncodeStatus(status));
+    }
+    return status == KSBONJSON_ENCODE_OK;
 }
 
 static ksbonjson_encodeStatus addEncodedData(const uint8_t* KSBONJSON_RESTRICT data,
-                                             size_t dataLength,
-                                             void* KSBONJSON_RESTRICT userData)
+                           size_t dataLength,
+                           void* KSBONJSON_RESTRICT userData)
 {
     ReportContext* ctx = (ReportContext*)userData;
-    ksfu_writeBufferedWriter(&ctx->bufferedWriter, (const char*)data, (int)dataLength);
-    ksfu_flushBufferedWriter(&ctx->bufferedWriter);
-    return 0;
+    if (!ksfu_writeBufferedWriter(&ctx->bufferedWriter, (const char*)data, (int)dataLength))
+    {
+        return KSBONJSON_ENCODE_COULD_NOT_ADD_DATA;
+    }
+    return KSBONJSON_ENCODE_OK;
 }
 
-void bitdrift_initBONJSONReportWriter(KSCrashReportWriter *const writer, void* ctx)
+void bitdrift_beginBONJSONReport(BitdriftReportWriter *const writer, void* ctx)
 {
     writer->addBooleanElement = addBooleanElement;
     writer->addFloatingPointElement = addFloatingPointElement;
     writer->addIntegerElement = addIntegerElement;
     writer->addUIntegerElement = addUIntegerElement;
     writer->addStringElement = addStringElement;
-    writer->addTextFileElement = addTextFileElement;
-    writer->addTextFileLinesElement = addTextLinesFromFile;
-    writer->addJSONFileElement = addJSONElementFromFile;
-    writer->addDataElement = addDataElement;
-    writer->beginDataElement = beginDataElement;
-    writer->appendDataElement = appendDataElement;
-    writer->endDataElement = endDataElement;
     writer->addUUIDElement = addUUIDElement;
-    writer->addJSONElement = addJSONElement;
     writer->beginObject = beginObject;
     writer->beginArray = beginArray;
     writer->endContainer = endContainer;
@@ -225,7 +209,7 @@ void bitdrift_initBONJSONReportWriter(KSCrashReportWriter *const writer, void* c
     ksbonjson_beginEncode(getEncodeCtx(writer), addEncodedData, ctx);
 }
 
-void bitdrift_endBONJSONReport(KSCrashReportWriter *const writer)
+bool bitdrift_endBONJSONReport(BitdriftReportWriter *const writer)
 {
-    ksbonjson_endEncode(getEncodeCtx(writer));
+    RETURN_RESULT(ksbonjson_endEncode(getEncodeCtx(writer)));
 }

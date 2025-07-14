@@ -13,7 +13,7 @@ extern "C" {
 
 #include "ReportContext.h"
 
-void bitdrift_writeStandardReport(ReportContext *context);
+bool bitdrift_writeStandardReport(ReportContext *context);
 
 #ifdef __cplusplus
 }

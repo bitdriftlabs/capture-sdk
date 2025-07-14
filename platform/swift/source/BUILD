@@ -94,7 +94,6 @@ objc_library(
         "reports/DiagnosticEventReporter.h",
         "reports/bd-report-writer/ffi.h",
         "reports/kscrash/BONJSONReportWriter.h",
-        "reports/kscrash/KSThreadCache.h",
         "reports/kscrash/ReportContext.h",
         "reports/kscrash/ReportReader.h",
         "reports/kscrash/ReportWriter.h",
