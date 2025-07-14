@@ -6,19 +6,17 @@
 //
 
 #include "ReportWriter.h"
+#include "ReportWriterPrivate.h"
 
 #include "KSCrashMonitorContext.h"
 #include "KSMachineContext.h"
 #include "KSLogger.h"
 #include "KSStackCursor.h"
 #include "KSStackCursor_MachineContext.h"
-#include "KSCrashReportWriter.h"
 #include "KSCrashReportFields.h"
 #include "KSThreadCache.h"
 #include "KSFileUtils.h"
 #include "KSDynamicLinker.h"
-
-//#include "PrintReportWriter.h"
 #include "BONJSONReportWriter.h"
 #include "ReportContext.h"
 
@@ -35,38 +33,39 @@ static bool getStackCursor(const ReportContext *const ctx,
     return true;
 }
 
+#define RETURN_ON_FAIL(A) if(!(A)) return false
 
-static void writeBacktrace(const KSCrashReportWriter *const writer, const char *const key, KSStackCursor *stackCursor)
+static bool writeBacktrace(const BitdriftReportWriter *const writer, const char *const key, KSStackCursor *stackCursor)
 {
-    writer->beginObject(writer, key);
+    RETURN_ON_FAIL(writer->beginObject(writer, key));
     {
-        writer->beginArray(writer, KSCrashField_Contents);
+        RETURN_ON_FAIL(writer->beginArray(writer, KSCrashField_Contents));
         {
             while (stackCursor->advanceCursor(stackCursor)) {
-                writer->beginObject(writer, NULL);
+                RETURN_ON_FAIL(writer->beginObject(writer, NULL));
                 {
-                    writer->addUIntegerElement(writer, "address", stackCursor->stackEntry.address);
+                    RETURN_ON_FAIL(writer->addUIntegerElement(writer, "address", stackCursor->stackEntry.address));
                     Dl_info info = {0};
                     if(ksdl_dladdr(stackCursor->stackEntry.address, &info))
                     {
-                        writer->addStringElement(writer, "binaryName", ksfu_lastPathEntry(info.dli_fname));
-                        writer->addUIntegerElement(writer, "offsetIntoBinaryTextSegment", info.dli_saddr - info.dli_fbase);
+                        RETURN_ON_FAIL(writer->addStringElement(writer, "binaryName", ksfu_lastPathEntry(info.dli_fname)));
+                        RETURN_ON_FAIL(writer->addUIntegerElement(writer, "offsetIntoBinaryTextSegment", info.dli_saddr - info.dli_fbase));
                         KSBinaryImage img = {0};
                         if(ksdl_getBinaryImageForHeader(info.dli_fbase, info.dli_fname, &img)) {
-                            writer->addUUIDElement(writer, "binaryUUID", img.uuid);
+                            RETURN_ON_FAIL(writer->addUUIDElement(writer, "binaryUUID", img.uuid));
                         }
                     }
                 }
-                writer->endContainer(writer);
+                RETURN_ON_FAIL(writer->endContainer(writer));
             }
         }
-        writer->endContainer(writer);
-        writer->addIntegerElement(writer, KSCrashField_Skipped, 0);
+        RETURN_ON_FAIL(writer->endContainer(writer));
+        RETURN_ON_FAIL(writer->addIntegerElement(writer, KSCrashField_Skipped, 0));
     }
-    writer->endContainer(writer);
+    return writer->endContainer(writer);
 }
 
-static void writeThread(const KSCrashReportWriter *const writer,
+static bool writeThread(const BitdriftReportWriter *const writer,
                         const char *const key,
                         const int threadIndex,
                         const ReportContext* ctx,
@@ -79,27 +78,28 @@ static void writeThread(const KSCrashReportWriter *const writer,
     KSStackCursor stackCursor;
     bool hasBacktrace = getStackCursor(ctx, machineContext, &stackCursor);
     
-    writer->beginObject(writer, key);
+    RETURN_ON_FAIL(writer->beginObject(writer, key));
     {
         if (hasBacktrace) {
             writeBacktrace(writer, KSCrashField_Backtrace, &stackCursor);
         }
-        writer->addIntegerElement(writer, KSCrashField_Index, threadIndex);
+        RETURN_ON_FAIL(writer->addIntegerElement(writer, KSCrashField_Index, threadIndex));
         const char *name = kstc_getThreadName(thread);
         if (name != NULL) {
-            writer->addStringElement(writer, KSCrashField_Name, name);
+            RETURN_ON_FAIL(writer->addStringElement(writer, KSCrashField_Name, name));
         }
         name = kstc_getQueueName(thread);
         if (name != NULL) {
-            writer->addStringElement(writer, KSCrashField_DispatchQueue, name);
+            RETURN_ON_FAIL(writer->addStringElement(writer, KSCrashField_DispatchQueue, name));
         }
-        writer->addBooleanElement(writer, KSCrashField_Crashed, isCrashedThread);
-        writer->addBooleanElement(writer, KSCrashField_CurrentThread, thread == ksthread_self());
+        RETURN_ON_FAIL(writer->addBooleanElement(writer, KSCrashField_Crashed, isCrashedThread));
+        RETURN_ON_FAIL(writer->addBooleanElement(writer, KSCrashField_CurrentThread, thread == ksthread_self()));
     }
-    writer->endContainer(writer);
+    RETURN_ON_FAIL(writer->endContainer(writer));
+    return true;
 }
 
-static void writeAllThreads(const KSCrashReportWriter *const writer, const ReportContext* ctx)
+static bool writeAllThreads(const BitdriftReportWriter *const writer, const ReportContext* ctx)
 {
     const struct KSMachineContext *const offendingMachineContext = ctx->monitorContext->offendingMachineContext;
     KSThread offendingThread = ksmc_getThreadFromContext(offendingMachineContext);
@@ -109,61 +109,65 @@ static void writeAllThreads(const KSCrashReportWriter *const writer, const Repor
     for (int i = 0; i < threadCount; i++) {
         KSThread thread = ksmc_getThreadAtIndex(offendingMachineContext, i);
         if (thread == offendingThread) {
-            writeThread(writer, NULL, i, ctx, offendingMachineContext);
+            RETURN_ON_FAIL(writeThread(writer, NULL, i, ctx, offendingMachineContext));
         } else {
             KSMachineContext machineContext = { 0 };
             ksmc_getContextForThread(thread, &machineContext, false);
-            writeThread(writer, NULL, i, ctx, &machineContext);
+            RETURN_ON_FAIL(writeThread(writer, NULL, i, ctx, &machineContext));
         }
     }
+    return true;
 }
 
-static void writeMetadata(KSCrashReportWriter *writer, const ReportContext* ctx) {
-    writer->addUIntegerElement(writer, "crashedAt", ctx->metadata.time);
-    writer->addStringElement(writer, "appBuildVersion", ctx->metadata.appBuildVersion);
-    writer->addStringElement(writer, "appVersion", ctx->metadata.appVersion);
-    writer->addStringElement(writer, "bundleIdentifier", ctx->metadata.bundleIdentifier);
-    writer->addStringElement(writer, "deviceType", ctx->metadata.deviceType);
-    writer->addStringElement(writer, "machine", ctx->metadata.machine);
-    writer->addStringElement(writer, "osVersion", ctx->metadata.osVersion);
-    writer->addStringElement(writer, "osBuild", ctx->metadata.osBuild);
-    writer->addUIntegerElement(writer, "pid", ctx->metadata.pid);
-    writer->addStringElement(writer, "regionFormat", ctx->metadata.regionFormat);
+static bool writeMetadata(BitdriftReportWriter *writer, const ReportContext* ctx) {
+    RETURN_ON_FAIL(writer->addUIntegerElement(writer, "crashedAt", ctx->metadata.time));
+    RETURN_ON_FAIL(writer->addStringElement(writer, "appBuildVersion", ctx->metadata.appBuildVersion));
+    RETURN_ON_FAIL(writer->addStringElement(writer, "appVersion", ctx->metadata.appVersion));
+    RETURN_ON_FAIL(writer->addStringElement(writer, "bundleIdentifier", ctx->metadata.bundleIdentifier));
+    RETURN_ON_FAIL(writer->addStringElement(writer, "deviceType", ctx->metadata.deviceType));
+    RETURN_ON_FAIL(writer->addStringElement(writer, "machine", ctx->metadata.machine));
+    RETURN_ON_FAIL(writer->addStringElement(writer, "osVersion", ctx->metadata.osVersion));
+    RETURN_ON_FAIL(writer->addStringElement(writer, "osBuild", ctx->metadata.osBuild));
+    RETURN_ON_FAIL(writer->addUIntegerElement(writer, "pid", ctx->metadata.pid));
+    RETURN_ON_FAIL(writer->addStringElement(writer, "regionFormat", ctx->metadata.regionFormat));
+    return true;
 }
 
-static void writeReport(KSCrashReportWriter *writer, ReportContext* ctx) {
-    writer->beginObject(writer, NULL);
+static bool writeReport(BitdriftReportWriter *writer, ReportContext* ctx) {
+    RETURN_ON_FAIL(writer->beginObject(writer, NULL));
     {
-        writer->beginObject(writer, "diagnosticMetaData");
-        writeMetadata(writer, ctx);
-        writer->endContainer(writer);
+        RETURN_ON_FAIL(writer->beginObject(writer, "diagnosticMetaData"));
+        RETURN_ON_FAIL(writeMetadata(writer, ctx));
+        RETURN_ON_FAIL(writer->endContainer(writer));
 
-        writer->beginArray(writer, "threads");
-        writeAllThreads(writer, ctx);
-        writer->endContainer(writer);
+        RETURN_ON_FAIL(writer->beginArray(writer, "threads"));
+        RETURN_ON_FAIL(writeAllThreads(writer, ctx));
+        RETURN_ON_FAIL(writer->endContainer(writer));
     }
-    writer->endContainer(writer);
+    RETURN_ON_FAIL(writer->endContainer(writer));
+    return true;
 }
 
-#include <stdio.h>
-
-void bitdrift_writeStandardReport(ReportContext *ctx) {
-    printf("Writing report at path: %s\n", ctx->reportPath);
+bool bitdrift_writeStandardReport(ReportContext *ctx) {
+    KSLOG_DEBUG("Writing report at path: %s\n", ctx->reportPath);
     
-    KSCrashReportWriter writer;
+    BitdriftReportWriter writer;
+    bool result = true;
 
     char writeBuffer[1024];
     ksfu_removeFile(ctx->reportPath, false);
     if (!ksfu_openBufferedWriter(&ctx->bufferedWriter, ctx->reportPath, writeBuffer, sizeof(writeBuffer))) {
-        return;
+        KSLOG_ERROR("Could not open report file %s", ctx->reportPath);
+        return false;
     }
     BonjsonWriterContext writerContext = {0};
     ctx->writerContext = &writerContext;
-    bitdrift_initBONJSONReportWriter(&writer, ctx);
-    writeReport(&writer, ctx);
+    bitdrift_beginBONJSONReport(&writer, ctx);
+    if(!writeReport(&writer, ctx)) {
+        KSLOG_ERROR("Error encountered while writing report to file %s", ctx->reportPath);
+        result = false;
+    }
     bitdrift_endBONJSONReport(&writer);
     ksfu_closeBufferedWriter(&ctx->bufferedWriter);
-    
-//    initPrintReportWriter(&writer);
-//    writeReport(&writer, ctx);
+    return result;
 }

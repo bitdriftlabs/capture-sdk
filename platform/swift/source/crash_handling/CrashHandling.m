@@ -13,7 +13,7 @@
 #include "KSCrashMonitor_Signal.h"
 #include "KSCrashMonitor_MachException.h"
 #include "KSBinaryImageCache.h"
-#include "../reports/kscrash/KSThreadCache.h"
+#include "KSThreadCache.h"
 #include "../reports/kscrash/ReportWriter.h"
 #include "../reports/kscrash/ReportContext.h"
 #include "../reports/kscrash/ReportReader.h"

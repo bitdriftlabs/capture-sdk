@@ -259,7 +259,19 @@ NSDictionary *bitdrift_readReport(NSString* path) {
     KSBONJSONDecodeCallbacks callbacks = getCallbacks();
     size_t decodedOffset = 0;
     DecoderContext *context = [DecoderContext new];
-    ksbonjson_decode(data.bytes, data.length, &callbacks, (__bridge void *)(context), &decodedOffset);
-
-    return [context decoded];
+    ksbonjson_decodeStatus status = ksbonjson_decode(data.bytes,
+                                                     data.length,
+                                                     &callbacks,
+                                                     (__bridge void *)(context),
+                                                     &decodedOffset);
+    switch(status) {
+        case KSBONJSON_DECODE_OK:
+            return [context decoded];
+        case KSBONJSON_DECODE_INCOMPLETE:
+            // We likely crashed while writing the report. Keep whatever it managed to write.
+            return [context decoded];
+        default:
+            NSLog(@"Failed to read crash report at [%@]: %s", path, ksbonjson_describeDecodeStatus(status));
+            return nil;
+    }
 }

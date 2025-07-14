@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#include "KSCrashReportWriter.h"
+#include "ReportWriterPrivate.h"
 #include "KSBONJSONEncoder.h"
 
 typedef struct {
@@ -20,8 +20,8 @@ typedef struct {
     KSBONJSONEncodeContext bonjsonContext;
 } BonjsonWriterContext;
 
-void bitdrift_initBONJSONReportWriter(KSCrashReportWriter *const writer, void* ctx);
-void bitdrift_endBONJSONReport(KSCrashReportWriter *const writer);
+void bitdrift_beginBONJSONReport(BitdriftReportWriter *const writer, void* ctx);
+bool bitdrift_endBONJSONReport(BitdriftReportWriter *const writer);
 
 #ifdef __cplusplus
 }

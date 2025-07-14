@@ -119,6 +119,7 @@ extension Logger {
         } else {
             let report = bitdrift_getLastReport()
             if report != nil {
+                // TODO: Something with this report
                 print("KSCrash: \(report!)")
             }
         }
