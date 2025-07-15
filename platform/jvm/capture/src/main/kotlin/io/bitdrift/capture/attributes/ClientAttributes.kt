@@ -39,6 +39,14 @@ internal class ClientAttributes(
             }
         }
 
+    val supportedAbis: List<String>
+        get() = Build.SUPPORTED_ABIS.toList()
+
+    val architecture: String
+        get() {
+            return supportedAbis.firstOrNull() ?: "unknown"
+        }
+
     @Suppress("SwallowedException")
     private val packageInfo: PackageInfo? =
         try {
@@ -63,6 +71,8 @@ internal class ClientAttributes(
             // A positive integer used as an internal version number.
             // This number helps determine whether one version is more recent than another.
             "_app_version_code" to appVersionCode.toString(),
+            // The current architecture e.g. (arm64-v8a)
+            "_architecture" to architecture,
         )
 
     private fun isForeground(): String {
