@@ -34,7 +34,7 @@ import org.robolectric.annotation.Config
 
 @Suppress("DEPRECATION")
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [21])
+@Config(sdk = [24])
 class ClientAttributesTest {
     @Test
     fun foreground() {
@@ -178,7 +178,7 @@ class ClientAttributesTest {
     }
 
     @Test
-    @Config(sdk = [21])
+    @Config(sdk = [24])
     fun checkInstallationSource_viaInstallerPackageName_shouldReturnValidInstaller() {
         val hasValidInstallationSource = true
         val expectedInstallationSource = DEFAULT_INSTALLER_PACKAGE_NAME
@@ -187,7 +187,7 @@ class ClientAttributesTest {
     }
 
     @Test
-    @Config(sdk = [21])
+    @Config(sdk = [24])
     fun checkInstallationSource_withDebugBuilds_shouldReturnDebugBuildMessage() {
         val hasValidInstallationSource = true
         val expectedInstallationSource = "Debug build installation"

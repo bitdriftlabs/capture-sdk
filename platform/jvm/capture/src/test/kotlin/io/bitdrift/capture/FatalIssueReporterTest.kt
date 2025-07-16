@@ -33,7 +33,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [21])
+@Config(sdk = [24])
 class FatalIssueReporterTest {
     private lateinit var fatalIssueReporter: FatalIssueReporter
     private lateinit var reportsDir: File

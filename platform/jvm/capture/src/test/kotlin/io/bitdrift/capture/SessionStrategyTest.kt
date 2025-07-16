@@ -23,7 +23,7 @@ import java.util.UUID
 import java.util.concurrent.CountDownLatch
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [21])
+@Config(sdk = [24])
 class SessionStrategyTest {
     private val fatalIssueReporter: IFatalIssueReporter = FakeFatalIssueReporter()
 
