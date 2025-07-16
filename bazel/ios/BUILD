@@ -30,8 +30,8 @@ PROFILE_NAME = "Wildcard"
 xcode_provisioning_profile(
     name = "ios_provisioning_profile",
     managed_by_xcode = False,
-    provisioning_profile = ":xcode_managed_profile",
     profile_name = PROFILE_NAME,
+    provisioning_profile = ":xcode_managed_profile",
     tags = ["manual"],
     visibility = ["//visibility:public"],
 )
