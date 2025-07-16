@@ -25,12 +25,13 @@ TEAM_ID = "33XQXT255C"
 
 # If needed, change to the name shown by clicking the (i) next to
 # "Xcode Managed Profile" in the "Signing and Capabilities" tab
-PROFILE_NAME = "iOS Team Provisioning Profile: *"
+PROFILE_NAME = "Wildcard"
 
 xcode_provisioning_profile(
     name = "ios_provisioning_profile",
-    managed_by_xcode = True,
+    managed_by_xcode = False,
     provisioning_profile = ":xcode_managed_profile",
+    profile_name = PROFILE_NAME,
     tags = ["manual"],
     visibility = ["//visibility:public"],
 )
