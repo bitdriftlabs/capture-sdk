@@ -30,6 +30,7 @@ internal object CaptureJniLibrary : IBridge {
      * Loads the shared library. This is safe to call multiple times.
      */
     fun load() {
+        // Just testing ci. Will remove
         System.loadLibrary("capture")
     }
 
