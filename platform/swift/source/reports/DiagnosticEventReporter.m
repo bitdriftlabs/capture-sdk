@@ -42,7 +42,8 @@ static const char *const SDK_ID = "io.bitdrift.capture-apple";
 static ReportType serialize_diagnostic(BDProcessorHandle handle,
                                        NSString *_Nonnull sdk_version,
                                        MXDiagnostic *_Nonnull event,
-                                       NSTimeInterval timestamp)
+                                       NSTimeInterval timestamp,
+                                       NSDictionary *kscrashReport)
                                        API_AVAILABLE(ios(14.0), macos(12.0));
 
 static const char *name_for_diagnostic_type(ReportType type);
@@ -51,6 +52,7 @@ static const char *name_for_diagnostic_type(ReportType type);
 @property (nonnull, strong) NSURL *dir;
 @property (nonnull, strong) NSString *sdkVersion;
 @property (nonnull, strong, nonatomic) NSMeasurement <NSUnitDuration *> *minimumHangDuration;
+@property (nonnull, strong) NSDictionary *kscrashReport;
 @property CAPDiagnosticType diagnosticTypes;
 @end
 
@@ -58,12 +60,14 @@ static const char *name_for_diagnostic_type(ReportType type);
 - (instancetype _Nonnull)initWithOutputDir:(NSURL *_Nonnull)dir
                                 sdkVersion:(NSString *_Nonnull)sdkVersion
                                 eventTypes:(CAPDiagnosticType)types
-                        minimumHangSeconds:(NSTimeInterval)seconds {
+                        minimumHangSeconds:(NSTimeInterval)seconds
+                             kscrashReport:(NSDictionary *_Nullable)kscrashReport {
   if (self = [super init]) {
     self.dir = dir;
     self.sdkVersion = sdkVersion;
     self.diagnosticTypes = types;
     [self setMinimumHangSeconds:seconds];
+    self.kscrashReport = kscrashReport;
   }
   return self;
 }
@@ -101,7 +105,7 @@ static const char *name_for_diagnostic_type(ReportType type);
 
 - (void)processDiagnostic:(MXDiagnostic *)event atTimestamp:(NSTimeInterval)timestamp {
   const void *handle = 0;
-  ReportType report_type = serialize_diagnostic(&handle, self.sdkVersion, event, timestamp);
+  ReportType report_type = serialize_diagnostic(&handle, self.sdkVersion, event, timestamp, self.kscrashReport);
   if (report_type != ReportTypeNone && handle != 0) {
     uint64_t length = 0;
     const uint8_t *contents = bdrw_get_completed_buffer(&handle, &length);
@@ -324,7 +328,19 @@ static BOOL crash_is_hang_termination(MXCrashDiagnostic *event) {
       || (event.terminationReason == nil && [event.exceptionCode isEqualToNumber:@0]));
 }
 
-static ReportType serialize_diagnostic(BDProcessorHandle handle, NSString *sdk_version, MXDiagnostic *event, NSTimeInterval timestamp) {
+static bool diagnosticsMatch(NSDictionary *metricKitReport, NSDictionary *kscrashReport) {
+  return false;
+}
+
+static NSDictionary *possiblyMerged(NSDictionary *metricKitReport, NSDictionary *kscrashReport) {
+  if(!diagnosticsMatch(metricKitReport, kscrashReport)) {
+    return metricKitReport;
+  }
+
+  return metricKitReport;
+}
+
+static ReportType serialize_diagnostic(BDProcessorHandle handle, NSString *sdk_version, MXDiagnostic *event, NSTimeInterval timestamp, NSDictionary *kscrashReport) {
   ReportType report_type = ReportTypeNone;
   if ([event isKindOfClass:[MXCrashDiagnostic class]]) {
     MXCrashDiagnostic *crash = (MXCrashDiagnostic *)event;
@@ -333,7 +349,8 @@ static ReportType serialize_diagnostic(BDProcessorHandle handle, NSString *sdk_v
     bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(sdk_version));
     NSString *name = is_hang ? DEFAULT_HANG_NAME : name_for_crash(crash);
     NSString *reason = reason_for_crash(crash, name);
-    serialize_error_threads(handle, event.dictionaryRepresentation, name, reason, FrameOrderInnerToOuter);
+    NSDictionary *asDict = possiblyMerged(event.dictionaryRepresentation, kscrashReport);
+    serialize_error_threads(handle, asDict, name, reason, FrameOrderInnerToOuter);
   } else if ([event isKindOfClass:[MXHangDiagnostic class]]) {
     report_type = ReportTypeAppNotResponding;
     bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(sdk_version));

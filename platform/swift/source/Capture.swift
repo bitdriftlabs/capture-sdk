@@ -120,6 +120,8 @@ extension Logger {
             return
         }
 
+        let kscrashReport = bitdrift_install_crash_handler(outputDir) ? bitdrift_getLastReport(outputDir) : nil
+
         issueReporterInitResult = measureTime {
             switch type {
             case .builtIn:
@@ -131,7 +133,8 @@ extension Logger {
                     outputDir: outputDir,
                     sdkVersion: capture_get_sdk_version(),
                     eventTypes: .crash,
-                    minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC)
+                    minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC),
+                    kscrashReport: kscrashReport
                 )
                 diagnosticReporter.update { val in
                     val = reporter
@@ -143,6 +146,11 @@ extension Logger {
                 return CustomConfigIssueReporter.processFiles()
             }
         }
+    }
+
+    /// Internal for testing purposes only.
+    static func disableFatalIssueReporting() {
+        bitdrift_uninstall_crash_handler()
     }
 
     /// Retrieves the session ID. It is nil before the Capture SDK is started.
