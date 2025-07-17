@@ -130,11 +130,11 @@ internal class LoggerImpl(
                         // order of providers matters in here, the earlier in the list the higher their priority in
                         // case of key conflicts.
                         ootbFieldProviders =
-                        listOf(
-                            clientAttributes,
-                            networkAttributes,
-                            deviceAttributes,
-                        ),
+                            listOf(
+                                clientAttributes,
+                                networkAttributes,
+                                deviceAttributes,
+                            ),
                         errorHandler = errorHandler,
                         customFieldProviders = fieldProviders,
                     )
@@ -389,15 +389,15 @@ internal class LoggerImpl(
         try {
             val expectedPreviousProcessSessionId =
                 when (attributesOverrides) {
-                    is LogAttributesOverrides.SessionID  -> attributesOverrides.expectedPreviousProcessSessionId
+                    is LogAttributesOverrides.SessionID -> attributesOverrides.expectedPreviousProcessSessionId
                     is LogAttributesOverrides.OccurredAt -> null
-                    else                                 -> null
+                    else -> null
                 }
             val occurredAtTimestampMs: Long =
                 when (attributesOverrides) {
-                    is LogAttributesOverrides.SessionID  -> attributesOverrides.occurredAtTimestampMs
+                    is LogAttributesOverrides.SessionID -> attributesOverrides.occurredAtTimestampMs
                     is LogAttributesOverrides.OccurredAt -> attributesOverrides.occurredAtTimestampMs
-                    else                                 -> 0
+                    else -> 0
                 }
 
             CaptureJniLibrary.writeLog(
