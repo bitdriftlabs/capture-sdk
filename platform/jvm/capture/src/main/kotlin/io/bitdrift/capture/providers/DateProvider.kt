@@ -13,5 +13,3 @@ import java.util.Date
  * Used to specify how the Bitdrift SDK should retrieve the current time.
  */
 fun interface DateProvider : () -> Date
-
-
