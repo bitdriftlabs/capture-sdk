@@ -121,7 +121,7 @@ internal class LoggerImpl(
                         .addQueryParameter("utm_source", "sdk")
                         .build()
 
-                val networkAttributes = NetworkAttributes(context, eventListenerDispatcher.executorService)
+                val networkAttributes = NetworkAttributes(context)
                 val deviceAttributes = DeviceAttributes(context)
 
                 metadataProvider =

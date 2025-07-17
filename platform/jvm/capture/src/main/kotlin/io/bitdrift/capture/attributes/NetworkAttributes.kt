@@ -41,13 +41,14 @@ import android.telephony.TelephonyManager.NETWORK_TYPE_UNKNOWN
 import androidx.core.content.ContextCompat
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.threading.CaptureDispatchers
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicReference
 
 @SuppressLint("MissingPermission")
 internal class NetworkAttributes(
     private val context: Context,
-    executor: ExecutorService,
+    executor: ExecutorService = CaptureDispatchers.CommonBackground.executorService,
 ) : ConnectivityManager.NetworkCallback(),
     FieldProvider {
     @SuppressLint("InlinedApi")
