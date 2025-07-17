@@ -121,7 +121,7 @@ internal class LoggerImpl(
                         .addQueryParameter("utm_source", "sdk")
                         .build()
 
-                val networkAttributes = NetworkAttributes(context)
+                val networkAttributes = NetworkAttributes(context, eventListenerDispatcher.executorService)
                 val deviceAttributes = DeviceAttributes(context)
 
                 metadataProvider =
@@ -130,11 +130,11 @@ internal class LoggerImpl(
                         // order of providers matters in here, the earlier in the list the higher their priority in
                         // case of key conflicts.
                         ootbFieldProviders =
-                            listOf(
-                                clientAttributes,
-                                networkAttributes,
-                                deviceAttributes,
-                            ),
+                        listOf(
+                            clientAttributes,
+                            networkAttributes,
+                            deviceAttributes,
+                        ),
                         errorHandler = errorHandler,
                         customFieldProviders = fieldProviders,
                     )
@@ -263,7 +263,9 @@ internal class LoggerImpl(
                 CaptureJniLibrary.startLogger(this.loggerId)
             }
 
-        writeSdkStartLog(context, clientAttributes, initDuration = duration)
+        eventListenerDispatcher.executorService.execute {
+            writeSdkStartLog(context, clientAttributes, initDuration = duration)
+        }
     }
 
     override val sessionId: String
@@ -387,15 +389,15 @@ internal class LoggerImpl(
         try {
             val expectedPreviousProcessSessionId =
                 when (attributesOverrides) {
-                    is LogAttributesOverrides.SessionID -> attributesOverrides.expectedPreviousProcessSessionId
+                    is LogAttributesOverrides.SessionID  -> attributesOverrides.expectedPreviousProcessSessionId
                     is LogAttributesOverrides.OccurredAt -> null
-                    else -> null
+                    else                                 -> null
                 }
             val occurredAtTimestampMs: Long =
                 when (attributesOverrides) {
-                    is LogAttributesOverrides.SessionID -> attributesOverrides.occurredAtTimestampMs
+                    is LogAttributesOverrides.SessionID  -> attributesOverrides.occurredAtTimestampMs
                     is LogAttributesOverrides.OccurredAt -> attributesOverrides.occurredAtTimestampMs
-                    else -> 0
+                    else                                 -> 0
                 }
 
             CaptureJniLibrary.writeLog(
