@@ -10,10 +10,12 @@
 package io.bitdrift.gradletestapp
 
 import android.annotation.SuppressLint
+import android.app.ActivityManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -26,12 +28,7 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.UUID
@@ -63,6 +60,18 @@ internal object FatalIssueGenerator {
         callOnMainThread {
             val aResultWillNeverGet = uuidSubject.blockingFirst()
             Log.e(TAG_NAME, aResultWillNeverGet)
+        }
+    }
+
+    fun forceGenericAnr(context: Context) {
+        callOnMainThread {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val activityManager: ActivityManager =
+                    context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                activityManager.appNotResponding("Generic ANR triggered")
+            }else{
+                Log.e(TAG_NAME, "Triggering generic ANR not available on this API level")
+            }
         }
     }
 
