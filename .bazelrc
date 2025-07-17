@@ -81,6 +81,7 @@ build:release-android --android_platforms=@rules_android//:armeabi-v7a,@rules_an
 build:release-android --config=release-common
 build:release-android --copt=-flto=thin --linkopt=-flto=thin
 build:release-android --config=android
+build:release-android --linkopt=-Wl,--dead_strip
 build:release-android --linkopt=-Wl,--pack-dyn-relocs=android
 # build:release-android --linkopt=-Wl,--use-android-relr-tags
 
