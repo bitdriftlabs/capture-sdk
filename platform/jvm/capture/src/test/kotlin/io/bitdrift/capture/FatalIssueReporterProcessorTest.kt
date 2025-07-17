@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 package io.bitdrift.capture
 
+import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.argumentCaptor
@@ -14,6 +15,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
+import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.fakes.FakeJvmException
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.createTraceInputStream
 import io.bitdrift.capture.reports.binformat.v1.Architecture
@@ -42,6 +44,7 @@ import java.nio.file.Paths
 class FatalIssueReporterProcessorTest {
     private lateinit var fatalIssueReporterProcessor: FatalIssueReporterProcessor
     private val fatalIssueReporterStorage: IFatalIssueReporterStorage = mock()
+    private val lifecycleOwner: LifecycleOwner = mock()
     private val fatalIssueReportCaptor = argumentCaptor<ByteArray>()
     private val reportTypeCaptor = argumentCaptor<Byte>()
 
@@ -50,7 +53,7 @@ class FatalIssueReporterProcessorTest {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
         fatalIssueReporterProcessor =
-            FatalIssueReporterProcessor(APP_CONTEXT, fatalIssueReporterStorage)
+            FatalIssueReporterProcessor(fatalIssueReporterStorage, ClientAttributes(APP_CONTEXT, lifecycleOwner))
     }
 
     @Test
@@ -86,7 +89,7 @@ class FatalIssueReporterProcessorTest {
             "persistJvmCrash_withFakeException_shouldCreateNonEmptyErrorModel",
         )
         assertThat(error.stackTrace(0)!!.sourceFile!!.path).isEqualTo("FatalIssueReporterProcessorTest.kt")
-        assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(59)
+        assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(62)
         assertThat(error.stackTrace(0)!!.sourceFile!!.column).isEqualTo(0)
     }
 

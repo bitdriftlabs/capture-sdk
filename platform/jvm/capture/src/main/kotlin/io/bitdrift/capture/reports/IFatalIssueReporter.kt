@@ -8,6 +8,7 @@
 package io.bitdrift.capture.reports
 
 import android.content.Context
+import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.providers.FieldValue
 
 /**
@@ -15,14 +16,12 @@ import io.bitdrift.capture.providers.FieldValue
  */
 interface IFatalIssueReporter {
     /**
-     * Initializes the Integration mode reporter
-     */
-    fun initIntegrationMode(appContext: Context)
-
-    /**
      * Initializes the BuiltIn reporter
      */
-    fun initBuiltInMode(appContext: Context)
+    fun initBuiltInMode(
+        appContext: Context,
+        clientAttributes: IClientAttributes,
+    )
 
     /**
      * Returns the configured [io.bitdrift.capture.reports.FatalIssueMechanism]

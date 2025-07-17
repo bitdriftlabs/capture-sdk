@@ -17,17 +17,16 @@ import androidx.test.platform.app.InstrumentationRegistry
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.FatalIssueMechanism
+import io.bitdrift.capture.reports.IFatalIssueReporter
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import io.bitdrift.capture.reports.FatalIssueReporterState
-import io.bitdrift.capture.reports.FatalIssueReporterStatus
-import io.bitdrift.capture.reports.IFatalIssueReporter
 
 private const val LOG_MESSAGE = "50 characters long test message - 0123456789012345"
 
@@ -67,9 +66,9 @@ class ClockTimeProfiler {
 
                     override fun getLogStatusFieldsMap(): Map<String, FieldValue> = emptyMap()
 
-                    override fun initIntegrationMode(appContext: Context) { /*no-op*/ }
-
-                    override fun initBuiltInMode(appContext: Context)  { /*no-op*/ }
+                    override fun initBuiltInMode(appContext: Context, clientAttributes: IClientAttributes) {
+                        /*no-op*/
+                    }
                 }
             )
         }

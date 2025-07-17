@@ -20,7 +20,6 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
@@ -32,6 +31,7 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
@@ -62,7 +62,7 @@ class CaptureLoggerTest {
 
     private lateinit var logger: LoggerImpl
     private var testServerPort: Int? = null
-    private val fatalIssueReporter: IFatalIssueReporter = FakeFatalIssueReporter()
+    private val fatalIssueReporter: IFatalIssueReporter = FatalIssueReporter()
 
     @Before
     fun setUp() {
