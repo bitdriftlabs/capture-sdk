@@ -263,7 +263,10 @@ internal class LoggerImpl(
                 CaptureJniLibrary.startLogger(this.loggerId)
             }
 
-        writeSdkStartLog(context, clientAttributes, initDuration = duration)
+        val captureStartThread = Thread.currentThread().name
+        eventListenerDispatcher.executorService.execute {
+            writeSdkStartLog(context, clientAttributes, duration, captureStartThread)
+        }
     }
 
     override val sessionId: String
@@ -488,6 +491,7 @@ internal class LoggerImpl(
         appContext: Context,
         clientAttributes: ClientAttributes,
         initDuration: Duration,
+        captureStartThread: String,
     ) {
         val installationSource =
             clientAttributes
@@ -499,7 +503,7 @@ internal class LoggerImpl(
                 putAll(
                     mapOf(
                         "_app_installation_source" to installationSource,
-                        "_capture_start_thread" to Thread.currentThread().name.toFieldValue(),
+                        "_capture_start_thread" to captureStartThread.toFieldValue(),
                     ),
                 )
                 putAll(fatalIssueReporter.getLogStatusFieldsMap())
