@@ -263,6 +263,7 @@ class FirstFragment : Fragment() {
             AppExitReason.ANR_BROADCAST_RECEIVER -> FatalIssueGenerator.forceBroadcastReceiverAnr(view.context)
             AppExitReason.ANR_COROUTINES -> FatalIssueGenerator.forceCoroutinesAnr()
             AppExitReason.ANR_DEADLOCK -> FatalIssueGenerator.forceDeadlockAnr()
+            AppExitReason.ANR_GENERIC -> FatalIssueGenerator.forceGenericAnr(view.context)
             AppExitReason.ANR_SLEEP_MAIN_THREAD -> FatalIssueGenerator.forceThreadSleepAnr()
             AppExitReason.APP_CRASH_COROUTINE_EXCEPTION -> FatalIssueGenerator.forceCoroutinesCrash()
             AppExitReason.APP_CRASH_REGULAR_JVM_EXCEPTION -> FatalIssueGenerator.forceUnhandledException()
@@ -286,6 +287,7 @@ class FirstFragment : Fragment() {
         ANR_BROADCAST_RECEIVER,
         ANR_COROUTINES,
         ANR_DEADLOCK,
+        ANR_GENERIC,
         ANR_SLEEP_MAIN_THREAD,
         APP_CRASH_COROUTINE_EXCEPTION,
         APP_CRASH_REGULAR_JVM_EXCEPTION,
