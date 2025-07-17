@@ -165,6 +165,9 @@ protocol CoreLogging: AnyObject {
     ///
     /// - parameter mode: The mode to use
     func setSleepMode(_ mode: SleepMode)
+
+    /// Records an app-open metric
+    func recordAppOpen()
 }
 
 extension CoreLogging {

@@ -66,6 +66,8 @@ final class LifecycleEventListener {
 
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     private func didReceiveNotification(_ notification: Notification) {
+        emitMetricsForEvent(notification)
+
         guard self.logger.runtimeValue(.applicationLifecycleReporting) == true else {
             return
         }
@@ -197,6 +199,15 @@ extension LifecycleEventListener: EventListener {
             }
 
             tokens = []
+        }
+    }
+
+    func emitMetricsForEvent(_ note: Notification) {
+        switch note.name {
+        case UIApplication.didFinishLaunchingNotification, UIScene.willEnterForegroundNotification:
+            self.logger.recordAppOpen()
+        default:
+            break
         }
     }
 }

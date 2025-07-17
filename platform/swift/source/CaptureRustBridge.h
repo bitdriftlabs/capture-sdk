@@ -318,4 +318,9 @@ NSString * capture_normalize_url_path(const char *url_path);
  */
 void capture_set_sleep_mode(logger_id logger_id, bool enabled);
 
+/**
+ * Increment app-open metric
+ */
+void capture_record_app_open(logger_id logger_id);
+
 NS_ASSUME_NONNULL_END
