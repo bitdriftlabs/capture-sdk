@@ -11,10 +11,9 @@ import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
 import android.util.Log
-import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.Capture.LOG_TAG
-import io.bitdrift.capture.common.MainThreadHandler
+import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.reports.FatalIssueReporterState.NotInitialized
@@ -25,13 +24,10 @@ import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
-import io.bitdrift.capture.reports.parser.FatalIssueConfigParser.getFatalIssueConfigDetails
 import io.bitdrift.capture.reports.persistence.FatalIssueReporterStorage
 import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor
 import io.bitdrift.capture.utils.SdkDirectory
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.attribute.FileTime
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
 
@@ -39,7 +35,6 @@ import kotlin.time.measureTime
  * Handles internal reporting of crashes
  */
 internal class FatalIssueReporter(
-    private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
 ) : IFatalIssueReporter,
@@ -52,22 +47,13 @@ internal class FatalIssueReporter(
     private var initializationCallerThread: String = NotInitialized.readableType
 
     /**
-     * Initializes integration fatal issue mechanism (a.k.a vendor)
-     */
-    override fun initIntegrationMode(appContext: Context) {
-        if (fatalIssueReporterStatus.state is NotInitialized) {
-            initializationCallerThread = Thread.currentThread().name
-            fatalIssueReporterStatus = setupIntegrationReporting(appContext)
-        } else {
-            Log.e(LOG_TAG, "Fatal issue reporting already being initialized")
-        }
-    }
-
-    /**
      * Initializes a BuiltIn Fatal Issue reporting mechanism that doesn't depend on any 3rd party
      * libraries
      */
-    override fun initBuiltInMode(appContext: Context) {
+    override fun initBuiltInMode(
+        appContext: Context,
+        clientAttributes: IClientAttributes,
+    ) {
         if (fatalIssueReporterStatus.state is NotInitialized) {
             runCatching {
                 initializationCallerThread = Thread.currentThread().name
@@ -77,8 +63,8 @@ internal class FatalIssueReporter(
                         val destinationDirectory = getFatalIssueDirectories(appContext)
                         fatalIssueReporterProcessor =
                             FatalIssueReporterProcessor(
-                                appContext,
                                 FatalIssueReporterStorage(destinationDirectory.destinationDirectory),
+                                clientAttributes,
                             )
                         captureUncaughtExceptionHandler.install(this)
                         persistLastExitReasonIfNeeded(appContext)
@@ -142,36 +128,6 @@ internal class FatalIssueReporter(
                     .toFieldValue(),
         )
 
-    private fun setupIntegrationReporting(appContext: Context): FatalIssueReporterStatus {
-        val mechanism = FatalIssueMechanism.Integration
-        return runCatching {
-            val (fatalIssueReporterState, duration) =
-                mainThreadHandler.runAndReturnResult {
-                    var fatalIssueReporterState: FatalIssueReporterState
-                    val duration =
-                        measureTime {
-                            val fatalIssueDirectories = getFatalIssueDirectories(appContext)
-                            fatalIssueReporterState =
-                                verifyDirectoriesAndCopyFiles(appContext, fatalIssueDirectories)
-                        }
-                    fatalIssueReporterState to duration
-                }
-            FatalIssueReporterStatus(
-                state = fatalIssueReporterState,
-                duration = duration,
-                mechanism = mechanism,
-            )
-        }.getOrElse {
-            val errorMessage =
-                "Error while initializing reporter for $mechanism mode. ${it.message}"
-            Log.e(LOG_TAG, errorMessage)
-            FatalIssueReporterStatus(
-                FatalIssueReporterState.ProcessingFailure(mechanism, errorMessage),
-                mechanism = mechanism,
-            )
-        }
-    }
-
     private fun persistLastExitReasonIfNeeded(appContext: Context) {
         val activityManager: ActivityManager =
             appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -193,97 +149,6 @@ internal class FatalIssueReporter(
         }
     }
 
-    @UiThread
-    private fun verifyDirectoriesAndCopyFiles(
-        appContext: Context,
-        fatalIssueDirectories: FatalIssueDirectories,
-    ): FatalIssueReporterState {
-        val fatalIssueConfigFile = File(fatalIssueDirectories.sdkDirectoryPath, CONFIGURATION_FILE_PATH)
-        if (!fatalIssueConfigFile.exists()) {
-            return FatalIssueReporterState.Integration.MissingConfigFile
-        }
-
-        val fatalIssueConfigFileContents = fatalIssueConfigFile.readText()
-        val fatalIssueConfigDetails =
-            getFatalIssueConfigDetails(appContext, fatalIssueConfigFileContents) ?: let {
-                return FatalIssueReporterState.Integration.MalformedConfigFile
-            }
-        if (fatalIssueConfigDetails.sourceDirectory.isInvalidDirectory()) {
-            return FatalIssueReporterState.Integration.InvalidConfigDirectory
-        }
-
-        return runCatching {
-            findAndCopyPriorReportFile(
-                fatalIssueConfigDetails.sourceDirectory,
-                fatalIssueDirectories.destinationDirectory,
-                fatalIssueConfigDetails.extensionFileName,
-            )
-        }.getOrElse {
-            return FatalIssueReporterState.ProcessingFailure(
-                FatalIssueMechanism.Integration,
-                "Couldn't process crash files. ${it.message}",
-            )
-        }
-    }
-
-    @UiThread
-    private fun findAndCopyPriorReportFile(
-        sourceDirectory: File,
-        destinationDirectory: File,
-        fileExtension: String,
-    ): FatalIssueReporterState {
-        val crashFile =
-            findCrashFile(sourceDirectory, fileExtension)
-                ?: let {
-                    return FatalIssueReporterState.Integration.WithoutPriorFatalIssue
-                }
-
-        verifyDirectoryIsEmpty(destinationDirectory)
-        val destinationFile = File(destinationDirectory, crashFile.toFilenameWithTimeStamp())
-        crashFile.copyTo(destinationFile, overwrite = true)
-
-        return if (destinationFile.exists()) {
-            FatalIssueReporterState.Integration.FatalIssueReportSent
-        } else {
-            FatalIssueReporterState.Integration.WithoutPriorFatalIssue
-        }
-    }
-
-    private fun verifyDirectoryIsEmpty(directory: File) {
-        val files = directory.listFiles()
-        if (files.isNullOrEmpty()) {
-            return
-        }
-        files.forEach {
-            it.delete()
-        }
-    }
-
-    private fun findCrashFile(
-        sourceFile: File,
-        fileExtension: String,
-    ): File? =
-        sourceFile
-            .walk()
-            .filter { it.isFile && it.extension == fileExtension }
-            .maxByOrNull { it.lastModified() }
-
-    private fun File.toFilenameWithTimeStamp(): String {
-        val fileCreationEpochTime = getFileCreationTimeEpochInMillis(this)
-        return fileCreationEpochTime.toString() + "_" + this.name
-    }
-
-    private fun getFileCreationTimeEpochInMillis(file: File): Long =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val fileTime =
-                Files.getAttribute(file.toPath(), LAST_MODIFIED_TIME_ATTRIBUTE) as FileTime
-            fileTime.toMillis()
-        } else {
-            file.lastModified()
-        }
-
-    private fun File.isInvalidDirectory(): Boolean = !exists() || !isDirectory
-
     private fun buildDefaultReporterStatus(): FatalIssueReporterStatus =
         FatalIssueReporterStatus(
             FatalIssueReporterState.NotInitialized,
@@ -302,12 +167,10 @@ internal class FatalIssueReporter(
     )
 
     internal companion object {
-        private const val CONFIGURATION_FILE_PATH = "/reports/config"
         private const val FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY = "_fatal_issue_reporting_duration_ms"
         private const val FATAL_ISSUE_REPORTING_STATE_KEY = "_fatal_issue_reporting_state"
         private const val FATAL_ISSUE_REPORTING_INIT_THREAD_KEY = "_fatal_reporter_init_thread"
         private const val DESTINATION_FILE_PATH = "/reports/new"
-        private const val LAST_MODIFIED_TIME_ATTRIBUTE = "lastModifiedTime"
 
         /**
          * Returns the fields map with latest [FatalIssueReporterStatus]

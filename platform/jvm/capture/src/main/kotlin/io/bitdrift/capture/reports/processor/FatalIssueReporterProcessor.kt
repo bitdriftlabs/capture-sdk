@@ -7,11 +7,10 @@
 
 package io.bitdrift.capture.reports.processor
 
-import android.content.Context
-import androidx.lifecycle.ProcessLifecycleOwner
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.BuildConstants
 import io.bitdrift.capture.attributes.ClientAttributes
+import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.reports.binformat.v1.AppBuildNumber
 import io.bitdrift.capture.reports.binformat.v1.Architecture
 import io.bitdrift.capture.reports.binformat.v1.DeviceMetrics
@@ -29,16 +28,9 @@ import kotlin.time.toDuration
  * Process reports into a packed format
  */
 internal class FatalIssueReporterProcessor(
-    appContext: Context,
     private val fatalIssueReporterStorage: IFatalIssueReporterStorage,
+    private val clientAttributes: IClientAttributes,
 ) {
-    // Initial size for file builder buffer
-    private val builderDefaultSize = 1024
-    private val clientAttributes by lazy {
-        // TODO(FranAguilera): BIT-5148 Refactor to avoid recreating ClientAttributes
-        ClientAttributes(appContext, ProcessLifecycleOwner.get())
-    }
-
     /**
      * Process AppTerminations due to ANRs and native crashes into packed format
      */
@@ -48,7 +40,7 @@ internal class FatalIssueReporterProcessor(
         description: String? = null,
         traceInputStream: InputStream,
     ) {
-        val builder = FlatBufferBuilder(builderDefaultSize)
+        val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
         val sdk = createSDKInfo(builder)
         val appMetrics = createAppMetrics(builder)
         val deviceMetrics = createDeviceMetrics(builder, timestamp)
@@ -90,7 +82,7 @@ internal class FatalIssueReporterProcessor(
         throwable: Throwable,
         allThreads: Map<Thread, Array<StackTraceElement>>?,
     ) {
-        val builder = FlatBufferBuilder(builderDefaultSize)
+        val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
         val sdk = createSDKInfo(builder)
         val appMetrics = createAppMetrics(builder)
         val deviceMetrics = createDeviceMetrics(builder, timestamp)
@@ -153,7 +145,7 @@ internal class FatalIssueReporterProcessor(
             )
         DeviceMetrics.startDeviceMetrics(builder)
         DeviceMetrics.addPlatform(builder, Platform.Android)
-        DeviceMetrics.addArch(builder, clientAttributes.architectureAsFbs())
+        DeviceMetrics.addArch(builder, architectureAsFbs(clientAttributes.architecture))
         DeviceMetrics.addCpuAbis(
             builder,
             cpuAbis,
@@ -167,7 +159,7 @@ internal class FatalIssueReporterProcessor(
         return DeviceMetrics.endDeviceMetrics(builder)
     }
 
-    private fun ClientAttributes.architectureAsFbs(): Byte =
+    private fun architectureAsFbs(architecture: String): Byte =
         when (architecture.lowercase()) {
             "armeabi", "armeabi-v7a" -> Architecture.arm32
             "arm64-v8a" -> Architecture.arm64
@@ -175,4 +167,9 @@ internal class FatalIssueReporterProcessor(
             "x86_64" -> Architecture.x86_64
             else -> Architecture.Unknown
         }
+
+    private companion object {
+        // Initial size for file builder buffer
+        private const val FBS_BUILDER_DEFAULT_SIZE = 1024
+    }
 }

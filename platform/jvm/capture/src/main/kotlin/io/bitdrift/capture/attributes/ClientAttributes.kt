@@ -21,15 +21,16 @@ import io.bitdrift.capture.utils.BuildTypeChecker
 internal class ClientAttributes(
     context: Context,
     private val processLifecycleOwner: LifecycleOwner,
-) : FieldProvider {
-    val appId = context.packageName ?: UNKNOWN_FIELD_VALUE
+) : IClientAttributes,
+    FieldProvider {
+    override val appId = context.packageName ?: UNKNOWN_FIELD_VALUE
 
-    val appVersion: String
+    override val appVersion: String
         get() {
             return packageInfo?.versionName ?: "?.?.?"
         }
 
-    val appVersionCode: Long
+    override val appVersionCode: Long
         get() {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 packageInfo?.longVersionCode ?: -1
@@ -39,10 +40,10 @@ internal class ClientAttributes(
             }
         }
 
-    val supportedAbis: List<String>
+    override val supportedAbis: List<String>
         get() = Build.SUPPORTED_ABIS.toList()
 
-    val architecture: String
+    override val architecture: String
         get() {
             return supportedAbis.firstOrNull() ?: "unknown"
         }

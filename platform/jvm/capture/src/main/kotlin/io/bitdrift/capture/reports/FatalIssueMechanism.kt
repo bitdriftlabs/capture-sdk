@@ -18,12 +18,6 @@ sealed class FatalIssueMechanism(
     val displayName: String,
 ) {
     /**
-     * Use this option to integrate with an existing fatal issue reporting mechanism.
-     * This will scan for specific fatal issues on the configured directory.
-     */
-    internal data object Integration : FatalIssueMechanism("INTEGRATION")
-
-    /**
      * Built-in fatal issue reporter implementation that doesn't rely on any 3rd party integration
      */
     data object BuiltIn : FatalIssueMechanism("BUILT_IN")
