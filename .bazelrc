@@ -81,10 +81,7 @@ build:release-android --android_platforms=@rules_android//:armeabi-v7a,@rules_an
 build:release-android --config=release-common
 build:release-android --copt=-flto=thin --linkopt=-flto=thin
 build:release-android --config=android
-# TODO(snowp): Enable relr once we no longer need to support Android 8. The system linker is not
-# able to understand RELR relocations, see https://bugs.chromium.org/p/chromium/issues/detail?id=900049.
-# Enabling relr provides a small binary size decrease.
-# build:release-android --linkopt=-Wl,--pack-dyn-relocs=relr
+build:release-android --linkopt=-Wl,--pack-dyn-relocs=android
 # build:release-android --linkopt=-Wl,--use-android-relr-tags
 
 # Custom iOS release configuration
