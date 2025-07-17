@@ -20,26 +20,38 @@ internal object ReportFrameBuilder {
      * Builds a [io.bitdrift.capture.reports.binformat.v1.Frame]
      */
     fun build(
-        frameType: Byte, // e.g. FrameType.JVM
+        frameType: Byte, // e.g. FrameType.AndroidNative
         builder: FlatBufferBuilder,
         frameData: FrameData,
-    ): Int =
-        Frame.createFrame(
+    ): Int {
+        val classNameOffset = frameData.className?.let { builder.createString(it) } ?: 0
+        val symbolNameOffset = frameData.symbolName?.let { builder.createString(it) } ?: 0
+        val sourceFileOffset = buildSourceFile(builder, frameData.fileName, frameData.lineNumber)
+        val imageIdOffset = frameData.imageId?.let { builder.createString(it) } ?: 0
+        return Frame.createFrame(
             builder,
-            frameType,
-            builder.createString(frameData.className),
-            frameData.symbolName?.let { builder.createString(it) } ?: 0,
-            buildSourceFile(builder, frameData.fileName, frameData.lineNumber),
-            0,
-            0u,
-            0u,
-            0,
-            0,
-            0,
-            0u,
-            false,
-            0,
+            type = frameType,
+            classNameOffset = classNameOffset,
+            symbolNameOffset = symbolNameOffset,
+            sourceFileOffset = sourceFileOffset,
+            imageIdOffset = imageIdOffset,
+            frameAddress = frameData.frameAddress ?: 0u,
+            symbolAddress = frameData.symbolAddress ?: 0u,
+            registersOffset = 0,
+            stateOffset = 0,
+            frameStatus = 0,
+            originalIndex = 0u,
+            inApp = false,
+            symbolicatedNameOffset = 0,
         )
+    }
+
+    /**
+     * Builds offset from a nullable string.
+     *
+     * NOTE: Defaults to 0 if nullable string
+     */
+    fun FlatBufferBuilder.toOffset(originalValue: String?): Int = originalValue?.let { createString(it) } ?: 0
 
     private fun buildSourceFile(
         builder: FlatBufferBuilder,
@@ -60,8 +72,11 @@ internal object ReportFrameBuilder {
 }
 
 internal data class FrameData(
-    val className: String,
+    val className: String? = null,
     val symbolName: String? = null,
     val fileName: String? = null,
     val lineNumber: Long? = null,
+    val imageId: String? = null,
+    val frameAddress: ULong? = null,
+    val symbolAddress: ULong? = null,
 )

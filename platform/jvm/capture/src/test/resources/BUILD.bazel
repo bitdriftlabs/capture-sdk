@@ -1,10 +1,13 @@
 exports_files([
     "app_exit_anr_deadlock_anr.txt",
-    "app_exit_native_crash.txt",
+    "app_exit_native_crash.bin",
 ])
 
 filegroup(
     name = "test_resources",
-    srcs = glob(["*.txt"]),
+    srcs = glob([
+        "*.txt",
+        "*.bin",
+    ]),
     visibility = ["//visibility:public"],
 )

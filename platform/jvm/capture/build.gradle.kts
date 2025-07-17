@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.maven.publish)
 
     id("dependency-license-config")
+    id("com.google.protobuf") version "0.9.1"
 }
 
 group = "io.bitdrift"
@@ -29,6 +30,7 @@ dependencies {
     implementation(libs.jsr305)
     implementation(libs.gson)
     implementation(libs.performance)
+    implementation(libs.protobuf.kotlinlite)
 
     testImplementation(libs.junit)
     testImplementation(libs.assertj.core)
@@ -39,13 +41,28 @@ dependencies {
     testImplementation(libs.mockwebserver)
 }
 
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.24.2"
+    }
+    generateProtoTasks {
+        all().configureEach {
+            builtins {
+                create("java") {
+                    option("lite")
+                }
+            }
+        }
+    }
+}
+
 android {
     namespace = "io.bitdrift.capture"
 
     compileSdk = 35
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 24
         ndkVersion = "27"
         consumerProguardFiles("consumer-rules.pro")
     }

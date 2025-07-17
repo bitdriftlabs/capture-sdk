@@ -13,9 +13,10 @@ import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.BuildConstants
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.reports.binformat.v1.AppBuildNumber
+import io.bitdrift.capture.reports.binformat.v1.Architecture
 import io.bitdrift.capture.reports.binformat.v1.DeviceMetrics
+import io.bitdrift.capture.reports.binformat.v1.DeviceMetrics.Companion.createCpuAbisVector
 import io.bitdrift.capture.reports.binformat.v1.Platform
-import io.bitdrift.capture.reports.binformat.v1.Report
 import io.bitdrift.capture.reports.binformat.v1.ReportType
 import io.bitdrift.capture.reports.binformat.v1.SDKInfo
 import io.bitdrift.capture.reports.binformat.v1.Timestamp
@@ -66,17 +67,8 @@ internal class FatalIssueReporterProcessor(
                 }
 
                 ReportType.NativeCrash -> {
-                    // TODO(FranAguilera): BIT-5144 Handle model for native crash
-                    Report.createReport(
-                        builder,
-                        sdk,
-                        ReportType.NativeCrash,
-                        appMetrics,
-                        deviceMetrics,
-                        0,
-                        0,
-                        0,
-                    )
+                    // TODO(FranAguilera): BIT-5823 use NativeCrashProcessor once async processing is ready
+                    null
                 }
 
                 else -> null
@@ -154,9 +146,18 @@ internal class FatalIssueReporterProcessor(
         timestampMillis: Long,
     ): Int {
         val duration = timestampMillis.toDuration(DurationUnit.MILLISECONDS)
-        // TODO: BIT-5246 Add device info
+        val cpuAbis =
+            createCpuAbisVector(
+                builder,
+                clientAttributes.supportedAbis.map { builder.createString(it) }.toIntArray(),
+            )
         DeviceMetrics.startDeviceMetrics(builder)
         DeviceMetrics.addPlatform(builder, Platform.Android)
+        DeviceMetrics.addArch(builder, clientAttributes.architectureAsFbs())
+        DeviceMetrics.addCpuAbis(
+            builder,
+            cpuAbis,
+        )
         DeviceMetrics.addTime(
             builder,
             duration.toComponents { seconds, nanoseconds ->
@@ -165,4 +166,13 @@ internal class FatalIssueReporterProcessor(
         )
         return DeviceMetrics.endDeviceMetrics(builder)
     }
+
+    private fun ClientAttributes.architectureAsFbs(): Byte =
+        when (architecture.lowercase()) {
+            "armeabi", "armeabi-v7a" -> Architecture.arm32
+            "arm64-v8a" -> Architecture.arm64
+            "x86" -> Architecture.x86
+            "x86_64" -> Architecture.x86_64
+            else -> Architecture.Unknown
+        }
 }
