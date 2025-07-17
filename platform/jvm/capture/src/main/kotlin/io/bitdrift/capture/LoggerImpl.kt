@@ -130,11 +130,11 @@ internal class LoggerImpl(
                         // order of providers matters in here, the earlier in the list the higher their priority in
                         // case of key conflicts.
                         ootbFieldProviders =
-                            listOf(
-                                clientAttributes,
-                                networkAttributes,
-                                deviceAttributes,
-                            ),
+                        listOf(
+                            clientAttributes,
+                            networkAttributes,
+                            deviceAttributes,
+                        ),
                         errorHandler = errorHandler,
                         customFieldProviders = fieldProviders,
                     )
@@ -263,8 +263,9 @@ internal class LoggerImpl(
                 CaptureJniLibrary.startLogger(this.loggerId)
             }
 
+        val captureStartThread = Thread.currentThread().name
         eventListenerDispatcher.executorService.execute {
-            writeSdkStartLog(context, clientAttributes, initDuration = duration)
+            writeSdkStartLog(context, clientAttributes, duration, captureStartThread)
         }
     }
 
@@ -389,15 +390,15 @@ internal class LoggerImpl(
         try {
             val expectedPreviousProcessSessionId =
                 when (attributesOverrides) {
-                    is LogAttributesOverrides.SessionID -> attributesOverrides.expectedPreviousProcessSessionId
+                    is LogAttributesOverrides.SessionID  -> attributesOverrides.expectedPreviousProcessSessionId
                     is LogAttributesOverrides.OccurredAt -> null
-                    else -> null
+                    else                                 -> null
                 }
             val occurredAtTimestampMs: Long =
                 when (attributesOverrides) {
-                    is LogAttributesOverrides.SessionID -> attributesOverrides.occurredAtTimestampMs
+                    is LogAttributesOverrides.SessionID  -> attributesOverrides.occurredAtTimestampMs
                     is LogAttributesOverrides.OccurredAt -> attributesOverrides.occurredAtTimestampMs
-                    else -> 0
+                    else                                 -> 0
                 }
 
             CaptureJniLibrary.writeLog(
@@ -490,6 +491,7 @@ internal class LoggerImpl(
         appContext: Context,
         clientAttributes: ClientAttributes,
         initDuration: Duration,
+        captureStartThread: String,
     ) {
         val installationSource =
             clientAttributes
@@ -501,7 +503,7 @@ internal class LoggerImpl(
                 putAll(
                     mapOf(
                         "_app_installation_source" to installationSource,
-                        "_capture_start_thread" to Thread.currentThread().name.toFieldValue(),
+                        "_capture_start_thread" to captureStartThread.toFieldValue(),
                     ),
                 )
                 putAll(fatalIssueReporter.getLogStatusFieldsMap())
