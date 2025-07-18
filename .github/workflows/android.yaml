@@ -247,7 +247,7 @@ jobs:
       run: ./gradlew capture-timber:testReleaseUnitTest --info
     - name: Check Licenses for modules
       working-directory: ./platform/jvm
-      run: ./gradlew replay:checkLicense common:checkLicense # capture:checkLicense doesn't work at the moment
+      run: ./gradlew replay:checkLicense common:checkLicense capture:checkLicense
     - name: Build Microbenchmark target
       working-directory: ./platform/jvm
       run: ./gradlew microbenchmark:assembleAndroidTest
