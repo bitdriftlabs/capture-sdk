@@ -74,3 +74,9 @@ panic = "abort"
 
 [profile.release]
 panic = "abort"
+
+[profile.release-android]
+codegen-units = 1
+inherits      = "release"
+lto           = "fat"
+opt-level     = "s"
