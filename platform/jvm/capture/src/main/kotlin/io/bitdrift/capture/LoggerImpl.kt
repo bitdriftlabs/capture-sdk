@@ -467,16 +467,21 @@ internal class LoggerImpl(
     internal fun extractFields(
         fields: Map<String, String>?,
         throwable: Throwable?,
-    ): InternalFieldsMap? =
+    ): InternalFieldsMap =
         buildMap {
-            fields?.let {
-                putAll(it)
+            fields?.forEach { (key, value) ->
+                put(key, value.toFieldValue())
             }
             throwable?.let {
-                put("_error", it.javaClass.name.orEmpty())
-                put("_error_details", it.message.orEmpty())
+                put(
+                    "_error",
+                    it.javaClass.name
+                        .orEmpty()
+                        .toFieldValue(),
+                )
+                put("_error_details", it.message.orEmpty().toFieldValue())
             }
-        }.toFields()
+        }
 
     internal fun flush(blocking: Boolean) {
         CaptureJniLibrary.flush(this.loggerId, blocking)
