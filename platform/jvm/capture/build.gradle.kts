@@ -1,3 +1,6 @@
+import com.android.builder.core.apiVersionFromString
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     // The rust android gradle plugin needs to go first
     //  see: https://github.com/mozilla/rust-android-gradle/issues/147
@@ -74,11 +77,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
+    // TODO(murki): consider updating to using kotlin.compilerOptions {} block
     kotlinOptions {
-        apiVersion = "1.9"
         jvmTarget = "1.8"
+        apiVersion = "2.2"
+        languageVersion = "2.2"
         allWarningsAsErrors = true
-        languageVersion = "1.9"
     }
 
     // TODO(murki): Move this common configuration to a reusable buildSrc plugin once it's fully supported for kotlin DSL
