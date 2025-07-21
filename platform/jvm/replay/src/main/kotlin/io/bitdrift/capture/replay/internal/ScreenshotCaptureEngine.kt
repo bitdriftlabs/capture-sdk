@@ -14,6 +14,7 @@ import android.os.Build
 import android.view.PixelCopy
 import android.view.View
 import androidx.annotation.RequiresApi
+import androidx.core.graphics.createBitmap
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
@@ -21,7 +22,6 @@ import io.bitdrift.capture.common.phoneWindow
 import io.bitdrift.capture.replay.IScreenshotLogger
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.ExecutorService
-import androidx.core.graphics.createBitmap
 
 internal class ScreenshotCaptureEngine(
     private val errorHandler: ErrorHandler,

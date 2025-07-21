@@ -10,13 +10,13 @@ package io.bitdrift.capture.replay.internal.mappers
 import android.content.res.Resources
 import android.view.View
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.view.isVisible
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
 import io.bitdrift.capture.replay.internal.ViewMapperConfiguration
-import androidx.core.view.isVisible
 
 internal class ViewMapper(
     sessionReplayConfiguration: SessionReplayConfiguration,
