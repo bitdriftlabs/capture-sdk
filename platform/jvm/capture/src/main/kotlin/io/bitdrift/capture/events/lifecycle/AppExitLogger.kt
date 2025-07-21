@@ -7,11 +7,12 @@
 
 package io.bitdrift.capture.events.lifecycle
 
-import android.annotation.TargetApi
+import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
 import io.bitdrift.capture.InternalFieldsMap
@@ -64,6 +65,7 @@ internal class AppExitLogger(
         private const val APP_EXIT_DESCRIPTION_KEY = "_app_exit_description"
     }
 
+    @SuppressLint("NewApi")
     @WorkerThread
     fun installAppExitLogger() {
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)) {
@@ -80,7 +82,7 @@ internal class AppExitLogger(
         captureUncaughtExceptionHandler.uninstall()
     }
 
-    @TargetApi(Build.VERSION_CODES.R)
+    @RequiresApi(Build.VERSION_CODES.R)
     fun saveCurrentSessionId(sessionId: String? = null) {
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) || !versionChecker.isAtLeast(Build.VERSION_CODES.R)) {
             return
@@ -96,7 +98,7 @@ internal class AppExitLogger(
         }
     }
 
-    @TargetApi(Build.VERSION_CODES.R)
+    @RequiresApi(Build.VERSION_CODES.R)
     @VisibleForTesting
     internal fun logPreviousExitReasonIfAny() {
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) || !versionChecker.isAtLeast(Build.VERSION_CODES.R)) {
@@ -180,14 +182,14 @@ internal class AppExitLogger(
         }.toFields()
     }
 
-    @TargetApi(Build.VERSION_CODES.R)
+    @RequiresApi(Build.VERSION_CODES.R)
     private fun buildAppExitInternalFieldsMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap =
         buildMap {
             putAll(applicationExitInfo.toMap().toFields())
             putAll(memoryMetricsProvider.getMemoryClass().toFields())
         }
 
-    @TargetApi(Build.VERSION_CODES.R)
+    @RequiresApi(Build.VERSION_CODES.R)
     private fun ApplicationExitInfo.toMap(): Map<String, String> {
         // https://developer.android.com/reference/kotlin/android/app/ApplicationExitInfo
         return mapOf(
@@ -235,7 +237,7 @@ internal class AppExitLogger(
             else -> "UNKNOWN"
         }
 
-    @TargetApi(Build.VERSION_CODES.R)
+    @RequiresApi(Build.VERSION_CODES.R)
     private fun Int.toLogLevel(): LogLevel =
         when (this) {
             in

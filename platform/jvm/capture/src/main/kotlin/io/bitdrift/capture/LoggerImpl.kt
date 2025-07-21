@@ -302,6 +302,7 @@ internal class LoggerImpl(
         } ?: completion(CaptureResult.Failure(SdkNotStartedError))
     }
 
+    @SuppressLint("NewApi")
     private fun appExitSaveCurrentSessionId(sessionId: String? = null) {
         appExitLogger.saveCurrentSessionId(sessionId)
     }
