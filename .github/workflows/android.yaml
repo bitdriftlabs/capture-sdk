@@ -11,7 +11,7 @@ concurrency:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
   pull-requests: write
   statuses: write
 
@@ -98,33 +98,50 @@ jobs:
           name: android_app.apk
           path: ./bazel-bin/examples/android/android_app.apk
 
-      - name: Prepare baseline folder (main only)
+      - name: Save APK size baseline and push to branch (main only)
         if: github.ref == 'refs/heads/main' && success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          rm -rf bazel_apk_baseline  # Remove if it exists
-          mkdir -p bazel_apk_baseline
-          cp ./bazel-bin/examples/android/android_app.apk bazel_apk_baseline/
+          APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
+          SIZE_FILE=ci/baseline_binary_size.txt
+          stat -c%s "$APK_PATH" > "$SIZE_FILE"
 
-      - name: Cache baseline APK (main only)
-        if: github.ref == 'refs/heads/main' && success()
-        uses: actions/cache/save@v3
-        with:
-          path: bazel_apk_baseline
-          key: bazel-apk-main-baseline
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          git fetch origin binary-size-baseline
+          git worktree add temp-worktree origin/binary-size-baseline
 
-      - name: Restore baseline APK from main (PR only)
+          cp "$SIZE_FILE" temp-worktree/ci/
+
+          cd temp-worktree
+          git add ci/baseline_binary_size.txt
+
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: update Bazel APK size baseline [skip ci]"
+            git push origin HEAD:binary-size-baseline
+          else
+            echo "No changes to baseline size."
+          fi
+
+          cd ..
+          git worktree remove temp-worktree --force
+
+      - name: Fetch APK size baseline from branch (PR only)
         if: github.event_name == 'pull_request'
-        uses: actions/cache/restore@v3
-        with:
-          path: bazel_apk_baseline
-          key: bazel-apk-main-baseline
+        run: |
+          git fetch origin binary-size-baseline
+          git worktree add temp-baseline origin/binary-size-baseline
+          cp temp-baseline/ci/baseline_binary_size.txt ci/
+          git worktree remove temp-baseline --force
 
       - name: Compute and compare APK size
         if: github.event_name == 'pull_request'
         id: apk_size
         run: |
           APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
-          BAZEL_APK_BASELINE_PATH=$(find bazel_apk_baseline -name "android_app.apk" | head -n 1)
+          BASELINE_PATH=ci/baseline_binary_size.txt
 
           if [ -z "$APK_PATH" ]; then
             echo "❌ Current APK file not found!"
@@ -135,17 +152,15 @@ jobs:
           CURRENT_KB=$((CURRENT_SIZE / 1024))
           echo "current_kb=$CURRENT_KB" >> $GITHUB_OUTPUT
 
-          if [ -z "$BAZEL_APK_BASELINE_PATH" ]; then
+          if [ ! -f "$BASELINE_PATH" ]; then
             echo "baseline_kb=" >> $GITHUB_OUTPUT
             echo "diff_kb=" >> $GITHUB_OUTPUT
           else
-            BASELINE_SIZE=$(stat -c%s "$BAZEL_APK_BASELINE_PATH")
+            BASELINE_SIZE=$(cat "$BASELINE_PATH")
             BASELINE_KB=$((BASELINE_SIZE / 1024))
             DIFF_KB=$((CURRENT_KB - BASELINE_KB))
             echo "baseline_kb=$BASELINE_KB" >> $GITHUB_OUTPUT
             echo "diff_kb=$DIFF_KB" >> $GITHUB_OUTPUT
-            MODIFIED_DATE=$(stat -c %y "$BAZEL_APK_BASELINE_PATH")
-            echo "Baseline APK last modified date: $MODIFIED_DATE"
           fi
 
       - name: Report APK size on PR
@@ -161,11 +176,11 @@ jobs:
             const baseline = process.env.BASELINE_KB;
             const diff = process.env.DIFF_KB;
 
-            let table = '';
+            let body = '';
 
             if (baseline && baseline !== '') {
-              table = `
-              ### 📦 APK Size Report
+              body = `
+              ### 📦 Bazel APK(x86_64) Size Report
 
               | Metric     | Size (KB) |
               |------------|-----------|
@@ -176,21 +191,21 @@ jobs:
               `;
 
               if (parseInt(diff, 10) > 0) {
-                table += `> ❌ APK size increased by ${diff} KB.`;
+                body += `> ❌ Bazel APK(x86_64) size increased by ${diff} KB.`;
               } else if (parseInt(diff, 10) < 0) {
-                table += `> ✅ APK size decreased by ${Math.abs(diff)} KB.`;
+                body += `> ✅ Bazel APK(x86_64) size decreased by ${Math.abs(diff)} KB.`;
               } else {
-                table += `> ✅ APK size unchanged.`;
+                body += `> ✅ Bazel APK(x86_64) size unchanged.`;
               }
             } else {
-              table = `📌 Current APK size: ${current} KB (No baseline available for comparison).`;
+              body = `📌 Current Bazel APK(x86_64) size: ${current} KB (No baseline available for comparison).`;
             }
 
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.pull_request.number,
-              body: table
+              body: body
             });
 
   gradle_tests:
