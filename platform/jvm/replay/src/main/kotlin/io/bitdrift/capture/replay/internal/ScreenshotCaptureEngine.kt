@@ -21,6 +21,7 @@ import io.bitdrift.capture.common.phoneWindow
 import io.bitdrift.capture.replay.IScreenshotLogger
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.ExecutorService
+import androidx.core.graphics.createBitmap
 
 internal class ScreenshotCaptureEngine(
     private val errorHandler: ErrorHandler,
@@ -107,11 +108,7 @@ internal class ScreenshotCaptureEngine(
         }
 
         val resultBitmap =
-            Bitmap.createBitmap(
-                root.width,
-                root.height,
-                Bitmap.Config.RGB_565,
-            )
+            createBitmap(root.width, root.height, Bitmap.Config.RGB_565)
         // TODO(murki): Figure out if there's any benefit from calling this using mainThreadHandler.mainHandler.post{ }
         PixelCopy.request(
             window,
