@@ -80,8 +80,8 @@ android {
     // TODO(murki): consider updating to using kotlin.compilerOptions {} block
     kotlinOptions {
         jvmTarget = "1.8"
-        apiVersion = "2.2"
-        languageVersion = "2.2"
+        apiVersion = "2.1"
+        languageVersion = "2.1"
         allWarningsAsErrors = true
     }
 
