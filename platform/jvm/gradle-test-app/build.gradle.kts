@@ -78,6 +78,7 @@ android {
     }
     lint {
         checkDependencies = true
+        disable.add("GradleDependency")
     }
 
     signingConfigs {
