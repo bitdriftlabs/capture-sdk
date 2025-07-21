@@ -1,6 +1,6 @@
 [versions]
 androidBenchkmarkPlugin = "1.2.4"
-androidGradlePlugin = "8.8.0"
+androidGradlePlugin = "8.11.1"
 apollo = "4.1.0"
 appcompat = "1.7.0"
 assertjCore = "3.22.0"
