@@ -11,7 +11,7 @@ concurrency:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
   pull-requests: write
   statuses: write
 
@@ -79,8 +79,6 @@ jobs:
         run: ./ci/run_tests.sh
 
   build_and_compare_apk:
-    permissions:
-      contents: write
     runs-on: ubuntu-latest
     if: needs.pre_check.outputs.should_run == 'true'
     needs: pre_check
@@ -101,28 +99,28 @@ jobs:
           path: ./bazel-bin/examples/android/android_app.apk
 
       - name: Save APK size baseline and push to branch (main only)
-        #if: github.ref == 'refs/heads/main' && success()
+        if: github.ref == 'refs/heads/main' && success()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
-          SIZE_FILE=ci/hello_world_bazel_x86_64_main_size.txt
+          SIZE_FILE=ci/baseline_binary_size.txt
           stat -c%s "$APK_PATH" > "$SIZE_FILE"
 
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
-          git fetch origin hello-world-bazel-apk-size
-          git worktree add temp-worktree origin/hello-world-bazel-apk-size
+          git fetch origin binary-size-baseline
+          git worktree add temp-worktree origin/binary-size-baseline
 
           cp "$SIZE_FILE" temp-worktree/ci/
 
           cd temp-worktree
-          git add ci/hello_world_bazel_x86_64_main_size.txt
+          git add ci/baseline_binary_size.txt
 
           if ! git diff --cached --quiet; then
             git commit -m "ci: update Bazel APK size baseline [skip ci]"
-            git push origin HEAD:hello-world-bazel-apk-size
+            git push origin HEAD:binary-size-baseline
           else
             echo "No changes to baseline size."
           fi
@@ -131,11 +129,11 @@ jobs:
           git worktree remove temp-worktree --force
 
       - name: Fetch APK size baseline from branch (PR only)
-        #if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         run: |
-          git fetch origin hello-world-bazel-apk-size
-          git worktree add temp-baseline origin/hello-world-bazel-apk-size
-          cp temp-baseline/ci/hello_world_bazel_x86_64_main_size.txt ci/
+          git fetch origin binary-size-baseline
+          git worktree add temp-baseline origin/binary-size-baseline
+          cp temp-baseline/ci/baseline_binary_size.txt ci/
           git worktree remove temp-baseline --force
 
       - name: Compute and compare APK size
@@ -143,7 +141,7 @@ jobs:
         id: apk_size
         run: |
           APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
-          BASELINE_PATH=ci/hello_world_bazel_x86_64_main_size.txt
+          BASELINE_PATH=ci/baseline_binary_size.txt
 
           if [ -z "$APK_PATH" ]; then
             echo "❌ Current APK file not found!"
@@ -203,15 +201,11 @@ jobs:
               body = `📌 Current Bazel APK(x86_64) size: ${current} KB (No baseline available for comparison).`;
             }
 
-            github.rest.pulls.createReviewComment({
+            github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-              body: body,
-              commit_id: context.payload.pull_request.head.sha,
-              path: 'ci/hello_world_bazel_x86_64_main_size.txt',
-              line: 1,
-              side: 'RIGHT'
+              issue_number: context.payload.pull_request.number,
+              body: body
             });
 
   gradle_tests:
