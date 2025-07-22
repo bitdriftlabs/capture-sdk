@@ -10,6 +10,7 @@ package io.bitdrift.capture.replay.internal.mappers
 import android.content.res.Resources
 import android.view.View
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.view.isVisible
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
@@ -39,7 +40,7 @@ internal class ViewMapper(
     fun viewIsVisible(node: ScannableView): Boolean {
         return when (node) {
             is ScannableView.AndroidView -> {
-                (node.view.visibility == View.VISIBLE) && (node.view.width > 0) && (node.view.height > 0)
+                (node.view.isVisible) && (node.view.width > 0) && (node.view.height > 0)
             }
             is ScannableView.ComposeView -> {
                 return node !is ScannableView.IgnoredComposeView

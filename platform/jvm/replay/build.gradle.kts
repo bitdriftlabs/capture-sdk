@@ -14,7 +14,6 @@ dependencies {
     implementation(libs.okhttp)
 
     testImplementation(libs.mockito.core)
-    testImplementation(libs.mockito.inline)
     testImplementation(libs.mockito.kotlin)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.robolectric)
@@ -30,7 +29,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 24
         consumerProguardFiles("consumer-rules.pro")
     }
 
@@ -54,6 +53,7 @@ android {
         abortOnError = true
         checkDependencies = true
         checkReleaseBuilds = true
+        disable.add("GradleDependency")
     }
 }
 

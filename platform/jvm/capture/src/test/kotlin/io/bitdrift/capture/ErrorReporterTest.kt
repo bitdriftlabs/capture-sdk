@@ -12,11 +12,11 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.bitdrift.capture.error.ErrorReportRequest
 import io.bitdrift.capture.error.ErrorReporterService
-import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import okhttp3.HttpUrl
 import okhttp3.mockwebserver.MockWebServer
@@ -31,11 +31,11 @@ import java.nio.charset.Charset
 import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [21])
+@Config(sdk = [24])
 class ErrorReporterTest {
     private lateinit var server: MockWebServer
     private lateinit var reporter: ErrorReporterService
-    private val fatalIssueReporter: IFatalIssueReporter = FakeFatalIssueReporter()
+    private val fatalIssueReporter: IFatalIssueReporter = FatalIssueReporter()
 
     init {
         CaptureJniLibrary.load()

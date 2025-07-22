@@ -79,6 +79,7 @@ import timber.log.Timber
 import java.util.concurrent.Executors
 import kotlin.random.Random
 import kotlin.time.DurationUnit
+import kotlin.time.measureTime
 import kotlin.time.toDuration
 
 /**
@@ -314,14 +315,22 @@ class GradleTestApp : Application() {
 
     private fun setupCrashSdks() {
         val bugSnagApiKey = sharedPreferences.getString(BUG_SNAG_SDK_API_KEY, "")
-        if(!bugSnagApiKey.isNullOrEmpty()){
-            Bugsnag.start(this, bugSnagApiKey)
+        if (!bugSnagApiKey.isNullOrEmpty()) {
+            val bugSnagStartTime = measureTime {
+                Bugsnag.start(this, bugSnagApiKey)
+            }
+            Timber.i("Bugsnag.start() took ${bugSnagStartTime.inWholeMilliseconds} ms")
         }
 
         val sentryKey = sharedPreferences.getString(SENTRY_SDK_DSN_KEY, "")
-        SentryAndroid.init(this) { options: SentryAndroidOptions ->
-            options.dsn = sentryKey
-            options.isEnabled = !sentryKey.isNullOrEmpty();
+        if (!sentryKey.isNullOrEmpty()) {
+            val sentryStartTime = measureTime {
+                SentryAndroid.init(this) { options: SentryAndroidOptions ->
+                    options.dsn = sentryKey
+                    options.isEnabled = true
+                }
+            }
+            Timber.i("SentryAndroid.init() took ${sentryStartTime.inWholeMilliseconds} ms")
         }
     }
 }

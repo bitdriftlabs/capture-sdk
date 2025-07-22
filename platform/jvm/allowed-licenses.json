@@ -4,20 +4,16 @@
       "moduleLicense": "Apache-2.0"
     },
     {
+      "moduleLicense": "Apache License V2.0"
+    },
+    {
+      "moduleLicense": "BSD-3-Clause"
+    },
+    {
+      "moduleLicense": "ISC License"
+    },
+    {
       "moduleLicense": "MIT"
-    },
-    {
-      "moduleLicense": "ISC License",
-    },
-    {
-      "moduleLicense": null,
-      "moduleVersion": "unspecified",
-      "moduleName": "capture-sdk:common"
-    },
-    {
-      "moduleLicense": null,
-      "moduleVersion": "unspecified",
-      "moduleName": "capture-sdk:replay"
     }
   ]
 }

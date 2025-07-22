@@ -11,8 +11,8 @@ import android.Manifest
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
-import android.net.NetworkRequest
 import androidx.test.core.app.ApplicationProvider
+import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.attributes.NetworkAttributes
 import org.assertj.core.api.Assertions.assertThat
@@ -29,13 +29,13 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [23])
+@Config(sdk = [24])
 class NetworkAttributesTest {
     @Test
     fun carrier() {
         val context = ApplicationProvider.getApplicationContext<Context>()
 
-        val networkAttributes = NetworkAttributes(context).invoke()
+        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).invoke()
 
         assertThat(networkAttributes).containsEntry("carrier", "")
     }
@@ -45,27 +45,16 @@ class NetworkAttributesTest {
         grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         val context = ApplicationProvider.getApplicationContext<Context>()
 
-        val networkAttributes = NetworkAttributes(context).invoke()
+        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).invoke()
 
         assertThat(networkAttributes).containsEntry("network_type", "wwan")
-    }
-
-    @Test
-    @Config(sdk = [21])
-    fun network_type_access_network_state_granted_android_lollipop() {
-        grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
-        val context = ApplicationProvider.getApplicationContext<Context>()
-
-        val networkAttributes = NetworkAttributes(context).invoke()
-
-        assertThat(networkAttributes).containsEntry("network_type", "other")
     }
 
     @Test
     fun network_type_access_network_state_not_granted() {
         val context = ApplicationProvider.getApplicationContext<Context>()
 
-        val networkAttributes = NetworkAttributes(context).invoke()
+        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).invoke()
 
         assertThat(networkAttributes).containsEntry("network_type", "unknown")
     }
@@ -78,7 +67,7 @@ class NetworkAttributesTest {
         val mockedActiveNetwork = obtainMockedActiveNetwork(mockedConnectivityManager)
         doReturn(null).`when`(mockedConnectivityManager).getNetworkCapabilities(eq(mockedActiveNetwork))
 
-        val networkAttributes = NetworkAttributes(context).invoke()
+        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).invoke()
 
         assertThat(networkAttributes).containsEntry("network_type", "unknown")
     }
@@ -89,10 +78,9 @@ class NetworkAttributesTest {
         val context = spy(ApplicationProvider.getApplicationContext<Context>())
         val mockedConnectivityManager = obtainMockedConnectivityManager(context)
 
-        NetworkAttributes(context).invoke()
+        NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).invoke()
 
-        verify(mockedConnectivityManager).registerNetworkCallback(
-            any(NetworkRequest::class.java),
+        verify(mockedConnectivityManager).registerDefaultNetworkCallback(
             any(ConnectivityManager.NetworkCallback::class.java),
         )
     }
@@ -102,7 +90,7 @@ class NetworkAttributesTest {
         grantPermissions(Manifest.permission.READ_PHONE_STATE)
         val context = ApplicationProvider.getApplicationContext<Context>()
 
-        val networkAttributes = NetworkAttributes(context).invoke()
+        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).invoke()
 
         assertThat(networkAttributes).containsEntry("radio_type", "unknown")
     }
@@ -111,7 +99,7 @@ class NetworkAttributesTest {
     fun radio_type_read_phone_state_not_granted() {
         val context = ApplicationProvider.getApplicationContext<Context>()
 
-        val networkAttributes = NetworkAttributes(context).invoke()
+        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).invoke()
 
         assertThat(networkAttributes).containsEntry("radio_type", "forbidden")
     }

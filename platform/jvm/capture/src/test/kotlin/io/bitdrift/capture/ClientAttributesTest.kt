@@ -19,6 +19,7 @@ import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.attributes.ClientAttributes
 import junit.framework.TestCase.assertEquals
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.any
@@ -34,24 +35,29 @@ import org.robolectric.annotation.Config
 
 @Suppress("DEPRECATION")
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [21])
+@Config(sdk = [24])
 class ClientAttributesTest {
+    private lateinit var appContext: Context
+
+    @Before
+    fun setUp() {
+        appContext = ApplicationProvider.getApplicationContext()
+    }
+
     @Test
     fun foreground() {
-        val context = ApplicationProvider.getApplicationContext<Context>()
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
-        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted).invoke()
+        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateStarted).invoke()
 
         assertThat(clientAttributes).containsEntry("foreground", "1")
     }
 
     @Test
     fun not_foreground() {
-        val context = ApplicationProvider.getApplicationContext<Context>()
         val mockedLifecycleOwnerLifecycleStateCreated = obtainMockedLifecycleOwnerWith(Lifecycle.State.CREATED)
 
-        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateCreated).invoke()
+        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateCreated).invoke()
 
         assertThat(clientAttributes).containsEntry("foreground", "0")
     }
@@ -59,7 +65,7 @@ class ClientAttributesTest {
     @Test
     fun app_id() {
         val packageName = "my.bitdrift.test"
-        val context = spy(ApplicationProvider.getApplicationContext<Context>())
+        val context = spy(appContext)
         doReturn(packageName).`when`(context).packageName
         val mockedLifecycleOwnerLifecycleStateStarted =
             obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
@@ -71,7 +77,7 @@ class ClientAttributesTest {
 
     @Test
     fun app_id_unknown() {
-        val context = spy(ApplicationProvider.getApplicationContext<Context>())
+        val context = spy(appContext)
         doReturn(null).`when`(context).packageName
         val mockedLifecycleOwnerLifecycleStateStarted =
             obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
@@ -84,7 +90,7 @@ class ClientAttributesTest {
     @Test
     fun app_version() {
         val versionName = "1.2.3.4"
-        val context = spy(ApplicationProvider.getApplicationContext<Context>())
+        val context = spy(appContext)
         val mockedPackageInfo = obtainMockedPackageInfo(context)
         mockedPackageInfo.versionName = versionName
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
@@ -96,10 +102,9 @@ class ClientAttributesTest {
 
     @Test
     fun app_version_unknown() {
-        val context = ApplicationProvider.getApplicationContext<Context>()
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
-        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted).invoke()
+        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateStarted).invoke()
 
         assertThat(clientAttributes).containsEntry("app_version", "?.?.?")
     }
@@ -107,7 +112,7 @@ class ClientAttributesTest {
     @Test
     fun app_version_code() {
         val versionCode = 66
-        val context = spy(ApplicationProvider.getApplicationContext<Context>())
+        val context = spy(appContext)
         val mockedPackageInfo = obtainMockedPackageInfo(context)
         mockedPackageInfo.versionCode = versionCode
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
@@ -119,7 +124,7 @@ class ClientAttributesTest {
 
     @Test
     fun app_version_code_unknown() {
-        val context = spy(ApplicationProvider.getApplicationContext<Context>())
+        val context = spy(appContext)
         val packageManager = obtainMockedPackageManager(context)
         doReturn(null).`when`(packageManager).getPackageInfo(anyString(), eq(0))
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
@@ -133,7 +138,7 @@ class ClientAttributesTest {
     @Config(sdk = [28])
     fun app_version_code_android_pie() {
         val versionCode = 66L
-        val context = spy(ApplicationProvider.getApplicationContext<Context>())
+        val context = spy(appContext)
         val mockedPackageInfo = obtainMockedPackageInfo(context)
         doReturn(versionCode).`when`(mockedPackageInfo).longVersionCode
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
@@ -146,7 +151,7 @@ class ClientAttributesTest {
     @Test
     @Config(sdk = [28])
     fun app_version_code_unknown_android_pie() {
-        val context = spy(ApplicationProvider.getApplicationContext<Context>())
+        val context = spy(appContext)
         val packageManager = obtainMockedPackageManager(context)
         doReturn(null).`when`(packageManager).getPackageInfo(anyString(), eq(0))
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
@@ -159,7 +164,7 @@ class ClientAttributesTest {
     @Test
     @Config(sdk = [33])
     fun package_info_android_tiramisu() {
-        val context = spy(ApplicationProvider.getApplicationContext<Context>())
+        val context = spy(appContext)
         val packageManager = obtainMockedPackageManager(context)
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
@@ -178,7 +183,7 @@ class ClientAttributesTest {
     }
 
     @Test
-    @Config(sdk = [21])
+    @Config(sdk = [24])
     fun checkInstallationSource_viaInstallerPackageName_shouldReturnValidInstaller() {
         val hasValidInstallationSource = true
         val expectedInstallationSource = DEFAULT_INSTALLER_PACKAGE_NAME
@@ -187,7 +192,7 @@ class ClientAttributesTest {
     }
 
     @Test
-    @Config(sdk = [21])
+    @Config(sdk = [24])
     fun checkInstallationSource_withDebugBuilds_shouldReturnDebugBuildMessage() {
         val hasValidInstallationSource = true
         val expectedInstallationSource = "Debug build installation"
@@ -208,6 +213,16 @@ class ClientAttributesTest {
         assertInstallationSource(hasValidInstallationSource, expectedInstallationSource)
     }
 
+    @Test
+    fun architecture_withStartedLifecycle_shouldReturnArm() {
+        val clientAttributes =
+            ClientAttributes(appContext, obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED))
+
+        val fields = clientAttributes.invoke()
+
+        assertThat(fields).containsEntry("_architecture", "armeabi-v7a")
+    }
+
     private fun assertInstallationSource(
         hasValidInstallationSource: Boolean,
         expectedInstallationSource: String,
@@ -215,7 +230,7 @@ class ClientAttributesTest {
     ) {
         val errorHandler: ErrorHandler = mock()
 
-        val context = spy(ApplicationProvider.getApplicationContext<Context>())
+        val context = spy(appContext)
         val installerSourceName =
             if (isDebugBuild) {
                 "Debug build installation"

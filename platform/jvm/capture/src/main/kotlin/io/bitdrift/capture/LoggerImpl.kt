@@ -263,7 +263,10 @@ internal class LoggerImpl(
                 CaptureJniLibrary.startLogger(this.loggerId)
             }
 
-        writeSdkStartLog(context, clientAttributes, initDuration = duration)
+        val captureStartThread = Thread.currentThread().name
+        eventListenerDispatcher.executorService.execute {
+            writeSdkStartLog(context, clientAttributes, duration, captureStartThread)
+        }
     }
 
     override val sessionId: String
@@ -299,6 +302,7 @@ internal class LoggerImpl(
         } ?: completion(CaptureResult.Failure(SdkNotStartedError))
     }
 
+    @SuppressLint("NewApi")
     private fun appExitSaveCurrentSessionId(sessionId: String? = null) {
         appExitLogger.saveCurrentSessionId(sessionId)
     }
@@ -488,6 +492,7 @@ internal class LoggerImpl(
         appContext: Context,
         clientAttributes: ClientAttributes,
         initDuration: Duration,
+        captureStartThread: String,
     ) {
         val installationSource =
             clientAttributes
@@ -496,12 +501,14 @@ internal class LoggerImpl(
 
         val sdkStartFields =
             buildMap {
-                putAll(
-                    mapOf(
-                        "_app_installation_source" to installationSource,
-                        "_capture_start_thread" to Thread.currentThread().name.toFieldValue(),
-                    ),
-                )
+                put("_app_installation_source", installationSource)
+                put("_capture_start_thread", captureStartThread.toFieldValue())
+                CaptureJniLibrary.getLoadDurationInMillis()?.let {
+                    put(
+                        "_native_load_duration_ms",
+                        it.toFieldValue(),
+                    )
+                }
                 putAll(fatalIssueReporter.getLogStatusFieldsMap())
             }
 

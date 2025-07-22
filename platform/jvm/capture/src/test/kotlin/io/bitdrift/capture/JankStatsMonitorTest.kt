@@ -28,20 +28,20 @@ import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.JankStatsMonitor
 import io.bitdrift.capture.events.performance.JankStatsMonitor.JankFrameType
-import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.providers.toFieldValue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.never
+import org.mockito.Mockito.verifyNoInteractions
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [21])
+@Config(sdk = [24])
 class JankStatsMonitorTest {
     private val logger: LoggerImpl = mock()
     private val runtime: Runtime = mock()
@@ -83,7 +83,6 @@ class JankStatsMonitorTest {
                 windowManager,
                 errorHandler,
                 mainThreadHandler,
-                FakeBackgroundThreadHandler(),
             )
     }
 
@@ -101,16 +100,31 @@ class JankStatsMonitorTest {
     }
 
     @Test
-    fun onApplicationActivityResumed_withSlowFrame_shouldNotLogAnyMessage() {
-        val jankDurationInMilli = 200L
-        jankStatsMonitor.onStateChanged(processLifecycleOwner, Lifecycle.Event.ON_RESUME)
+    fun onApplicationCreate_withFlagDisabled_shouldNotInteractWithWindowManager() {
+        whenever(runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)).thenReturn(false)
 
+        jankStatsMonitor.onStateChanged(processLifecycleOwner, Lifecycle.Event.ON_CREATE)
         triggerOnFrame(
             isJankyFrame = true,
-            durationInMilli = jankDurationInMilli,
+            durationInMilli = 5000L,
         )
 
-        verify(logger, never()).log(any(), any(), any(), any())
+        verifyNoInteractions(windowManager)
+        verifyNoInteractions(logger)
+    }
+
+    @Test
+    fun onActivityResumed_withFlagDisabled_shouldNotSetJankStats() {
+        whenever(runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)).thenReturn(false)
+
+        jankStatsMonitor.onActivityResumed(activity)
+        triggerOnFrame(
+            isJankyFrame = true,
+            durationInMilli = 5000L,
+        )
+
+        verify(runtime, never()).getConfigValue(RuntimeConfig.JANK_FRAME_HEURISTICS_MULTIPLIER)
+        verifyNoInteractions(logger)
     }
 
     @Test
@@ -203,7 +217,7 @@ class JankStatsMonitorTest {
             durationInMilli = 4L,
         )
 
-        verify(logger, never()).log(any(), any(), any(), any())
+        verifyNoInteractions(logger)
     }
 
     @Test
@@ -218,7 +232,7 @@ class JankStatsMonitorTest {
             durationInMilli = jankDurationInMilli,
         )
 
-        verify(logger, never()).log(any(), any(), any(), any())
+        verifyNoInteractions(logger)
     }
 
     @Test
@@ -230,7 +244,7 @@ class JankStatsMonitorTest {
             durationInMilli = 1L,
         )
 
-        verify(logger, never()).log(any(), any(), any(), any())
+        verifyNoInteractions(logger)
     }
 
     @Test
@@ -243,7 +257,7 @@ class JankStatsMonitorTest {
             durationInMilli = 5000,
         )
 
-        verify(logger, never()).log(any(), any(), any(), any())
+        verifyNoInteractions(logger)
     }
 
     @Test
@@ -340,7 +354,7 @@ class JankStatsMonitorTest {
     }
 
     private fun assertWrongDuration(expectedMessage: String) {
-        verify(logger, never()).log(any(), any(), any(), any())
+        verifyNoInteractions(logger)
         verify(errorHandler).handleError(
             errorMessageCaptor.capture(),
             eq(null),

@@ -28,7 +28,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [21])
+@Config(sdk = [24])
 class AppUpdateListenerLoggerTest {
     private val logger: LoggerImpl = mock()
     private val clientAttributes: ClientAttributes = mock()

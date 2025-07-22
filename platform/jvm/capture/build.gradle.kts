@@ -1,3 +1,6 @@
+import com.android.builder.core.apiVersionFromString
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     // The rust android gradle plugin needs to go first
     //  see: https://github.com/mozilla/rust-android-gradle/issues/147
@@ -11,6 +14,7 @@ plugins {
     alias(libs.plugins.maven.publish)
 
     id("dependency-license-config")
+    id("com.google.protobuf") version "0.9.1"
 }
 
 group = "io.bitdrift"
@@ -29,15 +33,30 @@ dependencies {
     implementation(libs.jsr305)
     implementation(libs.gson)
     implementation(libs.performance)
+    implementation(libs.protobuf.kotlinlite)
 
     testImplementation(libs.junit)
     testImplementation(libs.assertj.core)
     testImplementation(libs.mockito.core)
-    testImplementation(libs.mockito.inline)
     testImplementation(libs.mockito.kotlin)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.robolectric)
     testImplementation(libs.mockwebserver)
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.24.2"
+    }
+    generateProtoTasks {
+        all().configureEach {
+            builtins {
+                create("java") {
+                    option("lite")
+                }
+            }
+        }
+    }
 }
 
 android {
@@ -46,7 +65,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 24
         ndkVersion = "27"
         consumerProguardFiles("consumer-rules.pro")
     }
@@ -58,11 +77,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
+    // TODO(murki): consider updating to using kotlin.compilerOptions {} block
     kotlinOptions {
-        apiVersion = "1.9"
         jvmTarget = "1.8"
+        apiVersion = "2.1"
+        languageVersion = "2.1"
         allWarningsAsErrors = true
-        languageVersion = "1.9"
     }
 
     // TODO(murki): Move this common configuration to a reusable buildSrc plugin once it's fully supported for kotlin DSL
@@ -75,6 +95,7 @@ android {
         abortOnError = true
         checkDependencies = true
         checkReleaseBuilds = true
+        disable.add("GradleDependency")
     }
 }
 

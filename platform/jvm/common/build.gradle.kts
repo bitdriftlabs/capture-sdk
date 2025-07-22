@@ -31,6 +31,7 @@ android {
         abortOnError = true
         checkDependencies = true
         checkReleaseBuilds = true
+        disable.add("GradleDependency")
     }
 }
 

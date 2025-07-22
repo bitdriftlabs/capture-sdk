@@ -9,17 +9,17 @@ package io.bitdrift.capture
 
 import android.content.Context
 import android.util.Log
+import androidx.lifecycle.ProcessLifecycleOwner
+import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
-import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.reports.FatalIssueReporter
 import okhttp3.HttpUrl
 import java.util.UUID
@@ -109,29 +109,6 @@ object Capture {
         }
 
         /**
-         * WARNING: For now this API is not exposed to customers. If there is a request for this
-         * will open visibility again
-         *
-         * Initializes fatal issue reporting mechanism that integrates
-         * with existing configured crash libraries
-         *
-         * @param fatalIssueMechanism the [FatalIssueMechanism] to use for crash detection
-         * @param context an optional context reference. You should provide the context if called from a [android.content.ContentProvider]
-         *
-         * This should be called prior to Capture.Logger.start()
-         */
-        @Suppress("UnusedPrivateMember")
-        @ExperimentalBitdriftApi
-        @JvmStatic
-        private fun initIntegrationFatalIssueReporting(context: Context? = null) {
-            if (hasInvalidContext(context)) {
-                Log.w(LOG_TAG, "Attempted to initialize Fatal Issue Reporting with a null context. Skipping enabling crash tracking.")
-                return
-            }
-            fatalIssueReporter.initIntegrationMode(context?.applicationContext ?: ContextHolder.APP_CONTEXT)
-        }
-
-        /**
          * Initializes the Capture SDK with the specified API key, providers, and configuration.
          * Calling other SDK methods has no effect unless the logger has been initialized.
          * Subsequent calls to this function will have no effect.
@@ -200,14 +177,21 @@ object Capture {
             if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
                 try {
                     val unWrappedContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
+                    val clientAttributes =
+                        ClientAttributes(
+                            unWrappedContext,
+                            ProcessLifecycleOwner.get(),
+                        )
+
                     if (configuration.enableFatalIssueReporting) {
-                        fatalIssueReporter.initBuiltInMode(unWrappedContext)
+                        fatalIssueReporter.initBuiltInMode(unWrappedContext, clientAttributes)
                     }
                     val loggerImpl =
                         LoggerImpl(
                             apiKey = apiKey,
                             apiUrl = apiUrl,
                             context = unWrappedContext,
+                            clientAttributes = clientAttributes,
                             fieldProviders = fieldProviders,
                             dateProvider = dateProvider ?: SystemDateProvider(),
                             configuration = configuration,

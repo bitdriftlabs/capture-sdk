@@ -1,6 +1,19 @@
+load("@rules_java//java:defs.bzl", "java_lite_proto_library")
 load("@rules_jvm_external//:defs.bzl", "artifact")
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
 load("//bazel/android:build.bzl", "bitdrift_kt_android_library", "bitdrift_kt_android_local_test")
+
+proto_library(
+    name = "tombstone_proto",
+    srcs = ["src/main/proto/tombstone.proto"],
+)
+
+java_lite_proto_library(
+    name = "tombstone_proto_java_lite",
+    visibility = ["//visibility:public"],
+    deps = [":tombstone_proto"],
+)
 
 # export proguard library rules
 exports_files(["consumer-rules.pro"])
@@ -36,6 +49,7 @@ bitdrift_kt_android_library(
     ],
     deps = [
         ":gen_sources",
+        ":tombstone_proto_java_lite",
         "//platform/jvm/common:lib",
         "//platform/jvm/replay:lib",
         artifact("androidx.lifecycle:lifecycle-common"),
@@ -47,6 +61,7 @@ bitdrift_kt_android_library(
         artifact("com.google.code.findbugs:jsr305"),
         artifact("com.google.code.gson:gson"),
         artifact("com.google.flatbuffers:flatbuffers-java"),
+        artifact("com.google.protobuf:protobuf-kotlin-lite"),
         artifact("androidx.metrics:metrics-performance"),
     ],
 )
@@ -73,7 +88,6 @@ bitdrift_kt_android_local_test(
         "@rules_robolectric//bazel:android-all",
         artifact("androidx.test:core"),
         artifact("org.mockito:mockito-core"),
-        artifact("org.mockito:mockito-inline"),
         artifact("com.nhaarman.mockitokotlin2:mockito-kotlin"),
         artifact("com.squareup.okhttp3:mockwebserver"),
     ],

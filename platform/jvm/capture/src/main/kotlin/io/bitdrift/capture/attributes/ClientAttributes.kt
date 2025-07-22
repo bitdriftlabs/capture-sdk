@@ -21,15 +21,16 @@ import io.bitdrift.capture.utils.BuildTypeChecker
 internal class ClientAttributes(
     context: Context,
     private val processLifecycleOwner: LifecycleOwner,
-) : FieldProvider {
-    val appId = context.packageName ?: UNKNOWN_FIELD_VALUE
+) : IClientAttributes,
+    FieldProvider {
+    override val appId = context.packageName ?: UNKNOWN_FIELD_VALUE
 
-    val appVersion: String
+    override val appVersion: String
         get() {
             return packageInfo?.versionName ?: "?.?.?"
         }
 
-    val appVersionCode: Long
+    override val appVersionCode: Long
         get() {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 packageInfo?.longVersionCode ?: -1
@@ -37,6 +38,14 @@ internal class ClientAttributes(
                 @Suppress("DEPRECATION")
                 packageInfo?.versionCode?.toLong() ?: -1
             }
+        }
+
+    override val supportedAbis: List<String>
+        get() = Build.SUPPORTED_ABIS.toList()
+
+    override val architecture: String
+        get() {
+            return supportedAbis.firstOrNull() ?: "unknown"
         }
 
     @Suppress("SwallowedException")
@@ -63,6 +72,8 @@ internal class ClientAttributes(
             // A positive integer used as an internal version number.
             // This number helps determine whether one version is more recent than another.
             "_app_version_code" to appVersionCode.toString(),
+            // The current architecture e.g. (arm64-v8a)
+            "_architecture" to architecture,
         )
 
     private fun isForeground(): String {

@@ -18,7 +18,6 @@ import android.net.NetworkCapabilities
 import android.net.NetworkCapabilities.TRANSPORT_CELLULAR
 import android.net.NetworkCapabilities.TRANSPORT_ETHERNET
 import android.net.NetworkCapabilities.TRANSPORT_WIFI
-import android.net.NetworkRequest
 import android.telephony.TelephonyManager
 import android.telephony.TelephonyManager.NETWORK_TYPE_1xRTT
 import android.telephony.TelephonyManager.NETWORK_TYPE_CDMA
@@ -42,11 +41,14 @@ import android.telephony.TelephonyManager.NETWORK_TYPE_UNKNOWN
 import androidx.core.content.ContextCompat
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.threading.CaptureDispatchers
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicReference
 
 @SuppressLint("MissingPermission")
 internal class NetworkAttributes(
     private val context: Context,
+    executor: ExecutorService = CaptureDispatchers.CommonBackground.executorService,
 ) : ConnectivityManager.NetworkCallback(),
     FieldProvider {
     @SuppressLint("InlinedApi")
@@ -73,11 +75,17 @@ internal class NetworkAttributes(
             NETWORK_TYPE_UNKNOWN to "unknown",
         )
     private val currentNetworkType: AtomicReference<String> = AtomicReference("unknown")
-    private val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-    private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    private val telephonyManager by lazy {
+        context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+    }
+    private val connectivityManager by lazy {
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    }
 
     init {
-        monitorNetworkType()
+        executor.execute {
+            monitorNetworkType()
+        }
     }
 
     override fun invoke(): Fields =
@@ -94,17 +102,13 @@ internal class NetworkAttributes(
         //  changes and adding in the callback when available.
         if (ContextCompat.checkSelfPermission(context, ACCESS_NETWORK_STATE) == PackageManager.PERMISSION_GRANTED) {
             try {
-                // TODO(murki): Figure out how to query this data on api level < 23
                 connectivityManager.activeNetwork?.let { network ->
                     updateNetworkType(connectivityManager.getNetworkCapabilities(network))
                 }
-
-                // TODO(snowp): Use registerDefaultNetworkCallback once we have a min api level of 24+
-                connectivityManager.registerNetworkCallback(NetworkRequest.Builder().build(), this)
+                connectivityManager.registerDefaultNetworkCallback(this)
             } catch (e: Throwable) {
                 // Issue with some versions of Android: https://issuetracker.google.com/issues/175055271
                 // can sometime throw an exception: "package does not belong to 10006"
-                // We'll also exercise this path when api level < 23
                 updateNetworkType(NetworkCapabilities(null))
             }
         }
