@@ -29,7 +29,7 @@ interface StackTraceProvider {
 
 @Suppress("UndocumentedPublicClass")
 internal object CaptureJniLibrary : IBridge {
-    private val loadDuration: AtomicReference<Double?> = AtomicReference(null)
+    private val loadDurationInMilli: AtomicReference<Double?> = AtomicReference(null)
 
     /**
      * Loads the shared library. This is safe to call multiple times.
@@ -39,14 +39,14 @@ internal object CaptureJniLibrary : IBridge {
             measureTime {
                 System.loadLibrary("capture")
             }
-        loadDuration.compareAndSet(null, duration.toDouble(DurationUnit.MILLISECONDS))
+        loadDurationInMilli.compareAndSet(null, duration.toDouble(DurationUnit.MILLISECONDS))
     }
 
     /**
      * Returns the native library duration in milliseconds if previously loaded via
      * CaptureJniLibrary.load() call.
      */
-    fun getLoadDurationInMillis(): String? = loadDuration.get()?.toString()
+    fun getLoadDurationInMillis(): String? = loadDurationInMilli.get()?.toString()
 
     /**
      * Creates a new logger, returning a handle that can be used to interact with the logger.
