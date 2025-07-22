@@ -14,6 +14,7 @@ import android.os.Build
 import android.view.PixelCopy
 import android.view.View
 import androidx.annotation.RequiresApi
+import androidx.core.graphics.createBitmap
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
@@ -107,11 +108,7 @@ internal class ScreenshotCaptureEngine(
         }
 
         val resultBitmap =
-            Bitmap.createBitmap(
-                root.width,
-                root.height,
-                Bitmap.Config.RGB_565,
-            )
+            createBitmap(root.width, root.height, Bitmap.Config.RGB_565)
         // TODO(murki): Figure out if there's any benefit from calling this using mainThreadHandler.mainHandler.post{ }
         PixelCopy.request(
             window,

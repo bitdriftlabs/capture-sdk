@@ -129,12 +129,13 @@ internal class FatalIssueReporter(
         )
 
     private fun persistLastExitReasonIfNeeded(appContext: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return
+        }
         val activityManager: ActivityManager =
             appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val lastReasonResult = latestAppExitInfoProvider.get(activityManager)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-            lastReasonResult is LatestAppExitReasonResult.Valid
-        ) {
+        if (lastReasonResult is LatestAppExitReasonResult.Valid) {
             val lastReason = lastReasonResult.applicationExitInfo
             lastReason.traceInputStream?.let {
                 mapToFatalIssueType(lastReason.reason)?.let { fatalIssueType ->
