@@ -33,8 +33,7 @@ typedef NS_OPTIONS(NSUInteger, CAPDiagnosticType) {
 - (instancetype _Nonnull)initWithOutputDir:(NSURL *_Nonnull)path
                                 sdkVersion:(NSString *_Nonnull)sdkVersion
                                 eventTypes:(CAPDiagnosticType)types
-                        minimumHangSeconds:(NSTimeInterval)seconds
-                             kscrashReport:(NSDictionary *_Nullable)kscrashReport;
+                        minimumHangSeconds:(NSTimeInterval)seconds;
 
 - (void)setMinimumHangSeconds:(NSTimeInterval)seconds;
 @end

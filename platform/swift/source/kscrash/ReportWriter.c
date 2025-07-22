@@ -130,6 +130,9 @@ static bool writeMetadata(BitdriftReportWriter *writer, const ReportContext* ctx
     RETURN_ON_FAIL(writer->addStringElement(writer, "osBuild", ctx->metadata.osBuild));
     RETURN_ON_FAIL(writer->addUIntegerElement(writer, "pid", ctx->metadata.pid));
     RETURN_ON_FAIL(writer->addStringElement(writer, "regionFormat", ctx->metadata.regionFormat));
+    RETURN_ON_FAIL(writer->addUIntegerElement(writer, "exceptionType", ctx->monitorContext->mach.type));
+    RETURN_ON_FAIL(writer->addUIntegerElement(writer, "exceptionCode", ctx->monitorContext->mach.code));
+    RETURN_ON_FAIL(writer->addUIntegerElement(writer, "signal", ctx->monitorContext->signal.signum));
     return true;
 }
 

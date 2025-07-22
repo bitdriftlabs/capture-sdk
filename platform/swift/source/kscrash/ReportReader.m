@@ -152,13 +152,13 @@
     [self.current addValue:entry.value];
 }
 
-- (NSDictionary *)decoded {
+- (NSMutableDictionary *)decoded {
     DecoderArrayEntry *entry = (DecoderArrayEntry *)self.stack[0];
     NSObject *value = entry.array[0];
-    if (![value isKindOfClass:NSDictionary.class]) {
+    if (![value isKindOfClass:NSMutableDictionary.class]) {
         @throw @"Expected a dictionary";
     }
-    return (NSDictionary *)value;
+    return (NSMutableDictionary *)value;
 }
 
 @end
