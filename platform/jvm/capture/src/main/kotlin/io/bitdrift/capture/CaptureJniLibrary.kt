@@ -31,6 +31,8 @@ interface StackTraceProvider {
 @Suppress("UndocumentedPublicClass")
 internal object CaptureJniLibrary : IBridge {
     private val isAlreadyLoaded = AtomicBoolean(false)
+
+    @Volatile
     private var loadDuration: Duration? = null
 
     /**
@@ -50,12 +52,7 @@ internal object CaptureJniLibrary : IBridge {
      * Returns the native library duration in milliseconds if previously loaded via
      * CaptureJniLibrary.load() call.
      */
-    fun getLoadDurationInMillis(): String? =
-        if (!isAlreadyLoaded.get()) {
-            null
-        } else {
-            loadDuration?.toDouble(DurationUnit.MILLISECONDS)?.toString()
-        }
+    fun getLoadDurationInMillis(): String? = loadDuration?.toDouble(DurationUnit.MILLISECONDS)?.toString()
 
     /**
      * Creates a new logger, returning a handle that can be used to interact with the logger.
