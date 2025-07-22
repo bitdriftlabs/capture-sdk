@@ -38,16 +38,7 @@ bazel_dep(name = "apple_support", version = "1.22.1", repo_name = "build_bazel_a
 bazel_dep(name = "rules_swift", version = "2.9.0")
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
 bazel_dep(name = "rules_xcodeproj", version = "2.12.1")
-bazel_dep(name = "rules_apple", version = "4.0.1")
-
-# TODO(fz): Remove this once rules_apple release 4.0.2
-# This fixes test runners in Xcode 16.3+
-git_override(
-    module_name = "rules_apple",
-    commit = "a9fcb1c3ae6382534d773d73c035035e9764eadb",
-    remote = "https://github.com/bazelbuild/rules_apple",
-)
-
+bazel_dep(name = "rules_apple", version = "4.1.1")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
 bazel_dep(name = "rules_cc", version = "0.1.1")
 bazel_dep(name = "rules_java", version = "8.11.0")
