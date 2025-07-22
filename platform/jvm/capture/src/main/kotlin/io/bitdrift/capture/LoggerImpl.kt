@@ -502,10 +502,12 @@ internal class LoggerImpl(
             buildMap {
                 put("_app_installation_source", installationSource)
                 put("_capture_start_thread", captureStartThread.toFieldValue())
-                put(
-                    "_native_load_duration_ms",
-                    CaptureJniLibrary.getLoadDurationInMillis().toFieldValue(),
-                )
+                CaptureJniLibrary.getLoadDurationInMillis()?.let {
+                    put(
+                        "_native_load_duration_ms",
+                        it.toFieldValue(),
+                    )
+                }
                 putAll(fatalIssueReporter.getLogStatusFieldsMap())
             }
 

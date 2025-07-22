@@ -16,8 +16,6 @@ import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
 
-private const val LOAD_DURATION_NOT_AVAILABLE: String = "n/a"
-
 // We use our own type here instead of a builtin function to allow us to avoid proguard-rewriting this class.
 
 /**
@@ -49,15 +47,14 @@ internal object CaptureJniLibrary : IBridge {
     }
 
     /**
-     * Returns the native library duration in milliseconds.
-     *
-     * NOTE: Will return "n/a", if there wasn't any prior call to CaptureJniLibrary.load()
+     * Returns the native library duration in milliseconds if previously loaded via
+     * CaptureJniLibrary.load() call.
      */
-    fun getLoadDurationInMillis(): String =
+    fun getLoadDurationInMillis(): String? =
         if (!isAlreadyLoaded.get()) {
-            LOAD_DURATION_NOT_AVAILABLE
+            null
         } else {
-            loadDuration?.toDouble(DurationUnit.MILLISECONDS)?.toString() ?: LOAD_DURATION_NOT_AVAILABLE
+            loadDuration?.toDouble(DurationUnit.MILLISECONDS)?.toString()
         }
 
     /**
