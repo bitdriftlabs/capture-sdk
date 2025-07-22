@@ -500,12 +500,14 @@ internal class LoggerImpl(
 
         val sdkStartFields =
             buildMap {
-                putAll(
-                    mapOf(
-                        "_app_installation_source" to installationSource,
-                        "_capture_start_thread" to captureStartThread.toFieldValue(),
-                    ),
-                )
+                put("_app_installation_source", installationSource)
+                put("_capture_start_thread", captureStartThread.toFieldValue())
+                CaptureJniLibrary.getLoadDurationInMillis()?.let {
+                    put(
+                        "_native_load_duration_ms",
+                        it.toFieldValue(),
+                    )
+                }
                 putAll(fatalIssueReporter.getLogStatusFieldsMap())
             }
 
