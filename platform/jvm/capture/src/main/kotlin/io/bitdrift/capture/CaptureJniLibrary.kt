@@ -11,6 +11,12 @@ import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
+import kotlin.time.measureTime
+
+private const val LOAD_DURATION_NOT_AVAILABLE: String = "n/a"
 
 // We use our own type here instead of a builtin function to allow us to avoid proguard-rewriting this class.
 
@@ -26,12 +32,33 @@ interface StackTraceProvider {
 
 @Suppress("UndocumentedPublicClass")
 internal object CaptureJniLibrary : IBridge {
+    private val isAlreadyLoaded = AtomicBoolean(false)
+    private var loadDuration: Duration? = null
+
     /**
      * Loads the shared library. This is safe to call multiple times.
      */
     fun load() {
-        System.loadLibrary("capture")
+        if (isAlreadyLoaded.compareAndSet(false, true)) {
+            val duration =
+                measureTime {
+                    System.loadLibrary("capture")
+                }
+            this.loadDuration = duration
+        }
     }
+
+    /**
+     * Returns the native library duration in milliseconds.
+     *
+     * NOTE: Will return "n/a", if there wasn't any prior call to CaptureJniLibrary.load()
+     */
+    fun getLoadDurationInMillis(): String =
+        if (!isAlreadyLoaded.get()) {
+            LOAD_DURATION_NOT_AVAILABLE
+        } else {
+            loadDuration?.toDouble(DurationUnit.MILLISECONDS)?.toString() ?: LOAD_DURATION_NOT_AVAILABLE
+        }
 
     /**
      * Creates a new logger, returning a handle that can be used to interact with the logger.
