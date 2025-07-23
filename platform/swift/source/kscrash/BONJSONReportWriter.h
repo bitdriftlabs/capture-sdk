@@ -7,12 +7,12 @@
 
 #pragma once
 
+#include "ReportWriterPrivate.h"
+#include "KSBONJSONEncoder.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "ReportWriterPrivate.h"
-#include "KSBONJSONEncoder.h"
 
 typedef struct {
     bool isArray[KSBONJSON_MAX_CONTAINER_DEPTH];

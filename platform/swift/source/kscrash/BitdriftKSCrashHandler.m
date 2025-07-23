@@ -305,26 +305,31 @@ static NSString *g_kscrashReportPath;
 static NSDictionary *g_lastKSCrashReport;
 
 + (bool)configureWithBasePath:(NSURL *)basePath {
-    NSString *path = [NSString stringWithUTF8String:basePath.fileSystemRepresentation];
-    path = [path stringByAppendingPathComponent:@"kscrash"];
+    @try {
+        NSString *path = [NSString stringWithUTF8String:basePath.fileSystemRepresentation];
+        path = [path stringByAppendingPathComponent:@"kscrash"];
 
-    NSError *error = nil;
-    if (![NSFileManager.defaultManager createDirectoryAtPath:path
-                                  withIntermediateDirectories:YES
-                                                   attributes:nil
-                                                        error:&error]) {
-        NSLog(@"Error: Could not create directory \"%@\": %@", path, error);
+        NSError *error = nil;
+        if (![NSFileManager.defaultManager createDirectoryAtPath:path
+                                     withIntermediateDirectories:YES
+                                                      attributes:nil
+                                                           error:&error]) {
+            @throw [NSString stringWithFormat:@"Error: Could not create directory \"%@\": %@", path, error];
+        }
+
+        g_kscrashReportPath = [path stringByAppendingPathComponent:@"lastCrash.bjn"];
+
+        NSMutableDictionary *report = bitdrift_readKSCrashReport(g_kscrashReportPath);
+        [NSFileManager.defaultManager removeItemAtPath:g_kscrashReportPath error:nil];
+        [self fixupKSCrashReport:report];
+        g_lastKSCrashReport = report;
+
+        return true;
+    } @catch(id exception) {
+        [NSFileManager.defaultManager removeItemAtPath:g_kscrashReportPath error:nil];
+        NSLog(@"Error configuring BitdriftKSCrashHandler: %@", exception);
         return false;
     }
-
-    g_kscrashReportPath = [path stringByAppendingPathComponent:@"lastCrash.bjn"];
-
-    NSMutableDictionary *report = bitdrift_readKSCrashReport(g_kscrashReportPath);
-    [NSFileManager.defaultManager removeItemAtPath:g_kscrashReportPath error:nil];
-    [self fixupKSCrashReport:report];
-    g_lastKSCrashReport = report;
-
-    return true;
 }
 
 + (bool)startCrashReporter {
@@ -335,7 +340,7 @@ static NSDictionary *g_lastKSCrashReport;
     stopCrashHandler();
 }
 
-+ (void) fixupKSCrashReport:(NSMutableDictionary*) report {
++ (void)fixupKSCrashReport:(NSMutableDictionary*) report {
     NSMutableDictionary* diagnosticMetadata = mutDictForKey(report, @"diagnosticMetaData");
     NSNumber* secsSince1970 = numberForKey(diagnosticMetadata, @"crashedAt");
     if(secsSince1970 != nil) {
@@ -358,7 +363,7 @@ static NSDictionary *g_lastKSCrashReport;
             return metricKitReport;
         }
         return enhancedMetricKitReport(metricKitReport, kscrashReport);
-    } @catch (NSException *exception) {
+    } @catch (id exception) {
         NSLog(@"Error: enhancedMetricKitReport() threw exception %@. Returning original report.", exception);
         return metricKitReport;
     }

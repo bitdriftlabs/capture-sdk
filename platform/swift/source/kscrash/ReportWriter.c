@@ -22,8 +22,7 @@
 
 static bool getStackCursor(const ReportContext *const ctx,
                            const struct KSMachineContext *const machineContext,
-                           KSStackCursor *cursor)
-{
+                           KSStackCursor *cursor) {
     if (ksmc_getThreadFromContext(machineContext) == ksmc_getThreadFromContext(ctx->monitorContext->offendingMachineContext)) {
         *cursor = *((KSStackCursor *)ctx->monitorContext->stackCursor);
         return true;
@@ -35,8 +34,7 @@ static bool getStackCursor(const ReportContext *const ctx,
 
 #define RETURN_ON_FAIL(A) if(!(A)) return false
 
-static bool writeBacktrace(const BitdriftReportWriter *const writer, const char *const key, KSStackCursor *stackCursor)
-{
+static bool writeBacktrace(const BitdriftReportWriter *const writer, const char *const key, KSStackCursor *stackCursor) {
     RETURN_ON_FAIL(writer->beginObject(writer, key));
     {
         RETURN_ON_FAIL(writer->beginArray(writer, KSCrashField_Contents));
@@ -69,8 +67,7 @@ static bool writeThread(const BitdriftReportWriter *const writer,
                         const char *const key,
                         const int threadIndex,
                         const ReportContext* ctx,
-                        const struct KSMachineContext *const machineContext)
-{
+                        const struct KSMachineContext *const machineContext) {
     bool isCrashedThread = ksmc_isCrashedContext(machineContext);
     KSThread thread = ksmc_getThreadFromContext(machineContext);
     KSLOG_DEBUG("Writing thread %x (index %d). is crashed: %d", thread, threadIndex, isCrashedThread);
@@ -99,8 +96,7 @@ static bool writeThread(const BitdriftReportWriter *const writer,
     return true;
 }
 
-static bool writeAllThreads(const BitdriftReportWriter *const writer, const ReportContext* ctx)
-{
+static bool writeAllThreads(const BitdriftReportWriter *const writer, const ReportContext* ctx) {
     const struct KSMachineContext *const offendingMachineContext = ctx->monitorContext->offendingMachineContext;
     KSThread offendingThread = ksmc_getThreadFromContext(offendingMachineContext);
     int threadCount = ksmc_getThreadCount(offendingMachineContext);
@@ -121,15 +117,7 @@ static bool writeAllThreads(const BitdriftReportWriter *const writer, const Repo
 
 static bool writeMetadata(BitdriftReportWriter *writer, const ReportContext* ctx) {
     RETURN_ON_FAIL(writer->addUIntegerElement(writer, "crashedAt", ctx->metadata.time));
-    RETURN_ON_FAIL(writer->addStringElement(writer, "appBuildVersion", ctx->metadata.appBuildVersion));
-    RETURN_ON_FAIL(writer->addStringElement(writer, "appVersion", ctx->metadata.appVersion));
-    RETURN_ON_FAIL(writer->addStringElement(writer, "bundleIdentifier", ctx->metadata.bundleIdentifier));
-    RETURN_ON_FAIL(writer->addStringElement(writer, "deviceType", ctx->metadata.deviceType));
-    RETURN_ON_FAIL(writer->addStringElement(writer, "machine", ctx->metadata.machine));
-    RETURN_ON_FAIL(writer->addStringElement(writer, "osVersion", ctx->metadata.osVersion));
-    RETURN_ON_FAIL(writer->addStringElement(writer, "osBuild", ctx->metadata.osBuild));
     RETURN_ON_FAIL(writer->addUIntegerElement(writer, "pid", ctx->metadata.pid));
-    RETURN_ON_FAIL(writer->addStringElement(writer, "regionFormat", ctx->metadata.regionFormat));
     RETURN_ON_FAIL(writer->addUIntegerElement(writer, "exceptionType", ctx->monitorContext->mach.type));
     RETURN_ON_FAIL(writer->addUIntegerElement(writer, "exceptionCode", ctx->monitorContext->mach.code));
     RETURN_ON_FAIL(writer->addUIntegerElement(writer, "signal", ctx->monitorContext->signal.signum));
@@ -140,11 +128,15 @@ static bool writeReport(BitdriftReportWriter *writer, ReportContext* ctx) {
     RETURN_ON_FAIL(writer->beginObject(writer, NULL));
     {
         RETURN_ON_FAIL(writer->beginObject(writer, "diagnosticMetaData"));
-        RETURN_ON_FAIL(writeMetadata(writer, ctx));
+        {
+            RETURN_ON_FAIL(writeMetadata(writer, ctx));
+        }
         RETURN_ON_FAIL(writer->endContainer(writer));
 
         RETURN_ON_FAIL(writer->beginArray(writer, "threads"));
-        RETURN_ON_FAIL(writeAllThreads(writer, ctx));
+        {
+            RETURN_ON_FAIL(writeAllThreads(writer, ctx));
+        }
         RETURN_ON_FAIL(writer->endContainer(writer));
     }
     RETURN_ON_FAIL(writer->endContainer(writer));

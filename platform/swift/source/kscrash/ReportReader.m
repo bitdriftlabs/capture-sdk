@@ -153,7 +153,13 @@
 }
 
 - (NSMutableDictionary *)decoded {
+    if (self.stack.count == 0) {
+        @throw @"ReportReader.decoded: self.stack.count == 0";
+    }
     DecoderArrayEntry *entry = (DecoderArrayEntry *)self.stack[0];
+    if (entry.array.count == 0) {
+        @throw @"ReportReader.decoded: entry.array.count == 0";
+    }
     NSObject *value = entry.array[0];
     if (![value isKindOfClass:NSMutableDictionary.class]) {
         @throw @"Expected a dictionary";

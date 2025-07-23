@@ -32,8 +32,6 @@ http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "ht
 
 new_git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 
-new_local_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:local.bzl", "new_local_repository")
-
 bazel_dep(name = "rules_robolectric", version = "4.14.1.2")
 bazel_dep(name = "rules_multirun", version = "0.10.0")
 bazel_dep(name = "apple_support", version = "1.22.0", repo_name = "build_bazel_apple_support")

@@ -7,11 +7,11 @@
 
 #pragma once
 
+#include "ReportContext.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "ReportContext.h"
 
 bool bitdrift_writeKSCrashReport(ReportContext *context);
 

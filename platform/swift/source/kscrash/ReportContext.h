@@ -7,28 +7,18 @@
 
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 #include "BONJSONReportWriter.h"
 #include "KSCrashMonitorContext.h"
 #include "KSFileUtils.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct {
     pid_t pid;
     time_t time;
-    int signal;
-    char* deviceType;
-    char* osVersion;
-    char* osBuild;
-    char* machine;
-    char* appBuildVersion;
-    char* appVersion;
-    char* bundleIdentifier;
-    char* regionFormat;
 } ReportMetadata;
 
 typedef struct {

@@ -37,7 +37,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
         return url
     }
 
-    private func getTestBundleFileUrl(_ name: String , subdir: String) -> URL {
+    private func getTestBundleFileUrl(_ name: String, subdir: String) -> URL {
         let testBundle = Bundle(for: type(of: self))
         let url = testBundle.url(forResource: name, withExtension: nil, subdirectory: subdir)!
         XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
@@ -51,7 +51,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
         ) as! Dictionary
     }
 
-    func dictsAreEqual(_ dict1: [String: any Equatable], _ dict2: [String: any Equatable]) -> Bool {
+    private func dictsAreEqual(_ dict1: [String: any Equatable], _ dict2: [String: any Equatable]) -> Bool {
         guard dict1.keys == dict2.keys else {
             return false
         }
@@ -84,8 +84,8 @@ final class DiagnosticEventReporterTests: XCTestCase {
                              "io.bitdrift.capture.buffer.Continuous Buffer",
                              "com.apple.NSURLConnectionLoader",
                              // This won't be found because its stack trace wasn't captured
-                             //"KSCrash Exception Handler (Primary)",
-                            ]
+                             // "KSCrash Exception Handler (Primary)",
+        ]
         let callStackTree = enhancedReport["callStackTree"] as! [String: Any]
         let callStacks = callStackTree["callStacks"] as! [Dictionary<String, any Equatable>]
         var foundNames: [String] = []
