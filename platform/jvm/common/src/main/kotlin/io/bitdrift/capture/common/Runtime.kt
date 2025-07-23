@@ -115,6 +115,16 @@ sealed class RuntimeConfig(
      * ANR Frame: >= ANR_FRAME_THRESHOLD_MS
      */
     data object ANR_FRAME_THRESHOLD_MS : RuntimeConfig("client_feature.android.anr_frame.threshold_ms", 5000)
+
+    /**
+     * The threshold for reporting an error when Capture.Logger.start is called from main thread
+     *
+     * The default value is 500ms
+     */
+    data object CAPTURE_SDK_START_DURATION_ERROR_THRESHOLD_MS : RuntimeConfig(
+        "client_feature.android.capture_sdk_start_duration_threshold_ms",
+        500,
+    )
 }
 
 /**

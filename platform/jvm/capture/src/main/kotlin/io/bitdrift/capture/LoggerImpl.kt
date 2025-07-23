@@ -11,6 +11,7 @@ import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
+import android.os.Looper
 import android.system.Os
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -18,6 +19,7 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.IWindowManager
+import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.error.ErrorReporterService
@@ -263,9 +265,10 @@ internal class LoggerImpl(
                 CaptureJniLibrary.startLogger(this.loggerId)
             }
 
-        val captureStartThread = Thread.currentThread().name
+        val captureStartThread = Thread.currentThread()
         eventListenerDispatcher.executorService.execute {
-            writeSdkStartLog(context, clientAttributes, duration, captureStartThread)
+            reportSlowSdkStartupOnMainThread(duration, captureStartThread)
+            writeSdkStartLog(context, clientAttributes, duration, captureStartThread.name)
         }
     }
 
@@ -567,6 +570,18 @@ internal class LoggerImpl(
             }
         } else {
             errorHandler.handleError("Couldn't start JankStatsMonitor. Invalid application provided")
+        }
+    }
+
+    fun reportSlowSdkStartupOnMainThread(
+        duration: Duration,
+        callingThread: Thread,
+    ) {
+        val durationInMilli = duration.toDouble(DurationUnit.MILLISECONDS)
+        val configuredThresholdInMilli =
+            runtime.getConfigValue(RuntimeConfig.CAPTURE_SDK_START_DURATION_ERROR_THRESHOLD_MS)
+        if (callingThread == Looper.getMainLooper().thread && durationInMilli >= configuredThresholdInMilli) {
+            errorHandler.handleError("Capture SDK start took $durationInMilli ms on the main Thread")
         }
     }
 }
