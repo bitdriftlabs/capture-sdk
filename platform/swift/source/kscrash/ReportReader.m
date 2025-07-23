@@ -251,7 +251,7 @@ static KSBONJSONDecodeCallbacks getCallbacks(void) {
     };
 }
 
-NSMutableDictionary *bitdrift_readReport(NSString* path) {
+NSMutableDictionary *bitdrift_readKSCrashReport(NSString* path) {
     NSData *data = [NSData dataWithContentsOfFile:path];
     if(data == nil) {
         return nil;

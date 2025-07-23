@@ -7,4 +7,4 @@
 
 #import <Foundation/Foundation.h>
 
-NSMutableDictionary *bitdrift_readReport(NSString* path);
+NSMutableDictionary *bitdrift_readKSCrashReport(NSString* path);

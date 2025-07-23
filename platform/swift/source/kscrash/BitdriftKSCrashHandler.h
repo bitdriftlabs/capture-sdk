@@ -13,9 +13,9 @@
 
 + (bool)configureWithBasePath:(NSURL *)basePath;
 
-+ (NSDictionary *)enhancedMetricKitReport:(NSDictionary *)metricKitReport;
++ (bool)startCrashReporter;
++ (void)stopCrashReporter;
 
-+ (bool)start;
-+ (void)stop;
++ (NSDictionary *)enhancedMetricKitReport:(NSDictionary *)metricKitReport;
 
 @end

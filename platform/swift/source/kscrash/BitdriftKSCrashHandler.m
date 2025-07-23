@@ -27,106 +27,31 @@
 // Temporary fix for this dependency in KSCrashMonitor_Signal to KSCrashMonitor_Memory
 void ksmemory_notifyUnhandledFatalSignal(void) {}
 
-static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
-    if ([dict isKindOfClass:[NSDictionary class]]) {
-        id value = dict[key];
-        return [value isKindOfClass:klass] ? value : nil;
-    }
-    return nil;
-}
 
-#define string_for_key(dict, key) object_for_key(dict, key, [NSString class])
-#define number_for_key(dict, key) object_for_key(dict, key, [NSNumber class])
-#define array_for_key(dict, key) object_for_key(dict, key, [NSArray class])
-#define dict_for_key(dict, key) object_for_key(dict, key, [NSDictionary class])
+#pragma mark Crash Handling
 
-#define KEY_NAME @"name"
-#define KEY_STACK_ADDRESSES @"stackAddresses"
-#define KEY_COUNT @"count"
+static ReportContext g_crashHandlerReportContext;
+static atomic_bool g_crashHandlerIsRunning = false;
 
-static NSString* sysctl_nsstring(const char* name) {
-    NSString *str = nil;
-    size_t requiredSize = 0;
-    char* buff = NULL;
-
-    sysctlbyname(name, NULL, &requiredSize, NULL, 0);
-    if(requiredSize == 0) {
-        goto done;
-    }
-    buff = (char*)malloc(requiredSize+1);
-    if(sysctlbyname(name, buff, &requiredSize, NULL, 0) != 0) {
-        goto done;
-    }
-    buff[requiredSize] = 0;
-    str = [NSString stringWithUTF8String:buff];
-
-done:
-    free(buff);
-    return str;
-}
-
-static NSString *getRegionCode(void) {
-    if (@available(iOS 17.0, *)) {
-        return NSLocale.currentLocale.regionCode;
-    } else {
-        return NSLocale.currentLocale.countryCode;
-    }
-}
-
-static NSString *getOsBuild(void) {
-    @try {
-        NSString *str = NSProcessInfo.processInfo.operatingSystemVersionString;
-        NSRegularExpression *exp = [[NSRegularExpression alloc] initWithPattern:@"\\(Build (.*)\\)" options:0 error:nil];
-        NSTextCheckingResult *matched = [exp firstMatchInString:str options:0 range:NSMakeRange(0, str.length)];
-        NSString* matchText = [str substringWithRange:[matched rangeAtIndex:1]];
-        if(matchText.length > 0) {
-            return matchText;
-        }
-    } @catch(NSException *) {
-    }
-    // This gives weird results on simulator and MacOS, but better than nothing
-    return sysctl_nsstring("kern.osversion");
-}
-
-static void initReportContext(ReportContext* context, NSString *reportPath) {
-    UIDevice *dev = UIDevice.currentDevice;
-    NSProcessInfo *proc = NSProcessInfo.processInfo;
-    struct utsname uts;
-    uname(&uts);
-
-    memset(context, 0, sizeof(*context));
-    context->reportPath = strdup(reportPath.UTF8String);
-    context->metadata.pid = proc.processIdentifier;
-    context->metadata.deviceType = strdup(uts.machine);
-    context->metadata.osVersion = strdup(dev.systemVersion.UTF8String);
-    context->metadata.osBuild = strdup(getOsBuild().UTF8String);
-    context->metadata.machine = strdup(dev.model.UTF8String);
-    context->metadata.appBuildVersion = strdup([NSBundle.mainBundle.infoDictionary[@"CFBundleVersion"] UTF8String]);
-    context->metadata.appVersion = strdup([NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"] UTF8String]);
-    context->metadata.bundleIdentifier = strdup(NSBundle.mainBundle.bundleIdentifier.UTF8String);
-    context->metadata.regionFormat = strdup(getRegionCode().UTF8String);
-}
-
-static ReportContext g_baseContext;
-
-static void onCrash(struct KSCrash_MonitorContext *monitorContext)
-{
-    ReportContext context = g_baseContext;
-    context.metadata.time = time(NULL);
-    context.monitorContext = monitorContext;
-    bitdrift_writeStandardReport(&context);
+static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
+    g_crashHandlerReportContext.metadata.time = time(NULL);
+    g_crashHandlerReportContext.monitorContext = monitorContext;
+    bitdrift_writeKSCrashReport(&g_crashHandlerReportContext);
 }
 
 static bool startCrashHandler(NSString *reportPath) {
-    static atomic_bool started = false;
     bool expectStarted = false;
-    if (!atomic_compare_exchange_strong(&started, &expectStarted, true)) {
+    if (!atomic_compare_exchange_strong(&g_crashHandlerIsRunning, &expectStarted, true)) {
         return true; // Already started
     }
-    
+
+    memset(&g_crashHandlerReportContext, 0, sizeof(g_crashHandlerReportContext));
+    g_crashHandlerReportContext.reportPath = strdup(reportPath.UTF8String);
+    g_crashHandlerReportContext.metadata.pid = NSProcessInfo.processInfo.processIdentifier;
+
+    const int threadCachePollIntervalSecs = 10;
     ksbic_init();
-    kstc_init(10);
-    initReportContext(&g_baseContext, reportPath);
+    kstc_init(threadCachePollIntervalSecs);
     kscm_setEventCallback(onCrash);
 
 #define ERROR_IF_FALSE(A) do if(!(A)) { \
@@ -138,178 +63,47 @@ static bool startCrashHandler(NSString *reportPath) {
     ERROR_IF_FALSE(kscm_addMonitor(kscm_nsexception_getAPI()));
     ERROR_IF_FALSE(kscm_addMonitor(kscm_signal_getAPI()));
     ERROR_IF_FALSE(kscm_activateMonitors());
+#undef ERROR_IF_FALSE
     return true;
 }
 
-static void printData(NSString *name, id report) {
-    NSError *error;
-    NSData *data = [NSJSONSerialization dataWithJSONObject:report options:NSJSONWritingPrettyPrinted error:&error];
-    if(data == NULL) {
-        NSLog(@"Error converting %@ data to JSON: %@", name, error);
-    }
-    write(1, name.UTF8String, name.length);
-    write(1, "\n", 1);
-    write(1, data.bytes, data.length);
-    write(1, "\n", 1);
+static void stopCrashHandler(void) {
+    kscm_disableAllMonitors();
+    g_crashHandlerIsRunning = false;
 }
 
-//@interface NamedThread: NSObject
-//@property (nonnull, strong) NSString *name;
-//@property (nonnull, strong) NSMutableArray<NSNumber *> *stackAddresses;
-//@property (assign) NSInteger count;
-//@end
-//@implementation NamedThread
-//- (instancetype)init {
-//    if((self = [super init])) {
-//        _stackAddresses = [NSMutableArray new];
+#pragma mark Report Enhancement
+
+// Used for debugging
+//static void printData(NSString *name, id report) {
+//    NSError *error;
+//    NSData *data = [NSJSONSerialization dataWithJSONObject:report options:NSJSONWritingPrettyPrinted error:&error];
+//    if(data == NULL) {
+//        NSLog(@"Error converting %@ data to JSON: %@", name, error);
 //    }
-//    return self;
+//    write(1, name.UTF8String, name.length);
+//    write(1, "\n", 1);
+//    write(1, data.bytes, data.length);
+//    write(1, "\n", 1);
 //}
-//@end
-//
 
-static bool diagnosticsMatch(NSDictionary *metricKitReport, NSDictionary *kscrashReport) {
-    if(metricKitReport == nil) {
-        NSLog(@"MetricKit report is nil");
-        return false;
-    }
-    if(kscrashReport == nil) {
-        NSLog(@"KSCrash report report is nil");
-        return false;
-    }
+#define KEY_NAME @"name"
+#define KEY_STACK_ADDRESSES @"stackAddresses"
+#define KEY_COUNT @"count"
 
-    NSArray *matchKeys = @[
-        @"exceptionType",
-        @"exceptionCode",
-        @"signal",
-        @"pid",
-    ];
-
-    NSString *diagnosticMetadataString = @"diagnosticMetaData";
-
-    NSDictionary *mkMetadata = metricKitReport[diagnosticMetadataString];
-    NSDictionary *ksMetadata = kscrashReport[diagnosticMetadataString];
-
-    for(NSString *key in matchKeys) {
-        if (![mkMetadata[key] isEqual:ksMetadata[key]]) {
-            return false;
-        }
-    }
-    return true;
-}
-
-static NSMutableDictionary *namedThreadFromDict(NSDictionary *thread) {
-    NSString *name = thread[@"name"];
-    if(![name isKindOfClass:NSString.class]) {
-        return nil;
-    }
-    NSArray *contents = thread[@"backtrace"][@"contents"];
-    if(![contents isKindOfClass:NSArray.class]) {
-        return nil;
-    }
-    NSMutableArray *stackAddresses = [NSMutableArray new];
-    NSMutableDictionary *namedThread = [@{
-        KEY_NAME: name,
-        KEY_STACK_ADDRESSES: stackAddresses,
-        KEY_COUNT: @1,
-    } mutableCopy];
-    for(NSDictionary *frame in contents) {
-        if(![frame isKindOfClass:NSDictionary.class]) {
-            return nil;
-        }
-        NSNumber *address = frame[@"address"];
-        if(![address isKindOfClass:NSNumber.class]) {
-            return nil;
-        }
-        [stackAddresses addObject:address];
-    }
-    return namedThread;
-}
-
-static void filterOutThreads(NSMutableArray *namedThreads, size_t frameIndex, size_t totalFrames, NSNumber *address) {
-    // MetricKit always puts one extra frame.
-    if(frameIndex+1 >= totalFrames) {
-        return;
-    }
-
-    [namedThreads filterUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id  _Nullable evaluatedObject, NSDictionary<NSString *,id> * _Nullable bindings) {
-        NSDictionary *thread = evaluatedObject;
-        int count = [thread[KEY_COUNT] intValue];
-        NSArray<NSNumber *> *stackAddresses = thread[KEY_STACK_ADDRESSES];
-        if(count < 1) {
-            return false;
-        }
-        if (frameIndex >= stackAddresses.count) {
-            return false;
-        }
-        return [stackAddresses[frameIndex] isEqualToNumber:address];
-    }]];
-}
-
-static bool stacksAreEqual(NSArray *a, NSArray *b) {
-    if (a.count != b.count) {
-        return false;
-    }
-
-    for(NSUInteger i = 0; i < a.count; i++) {
-        if(![a[i] isEqual:b[i]]) {
-            return false;
-        }
-    }
-    return true;
-}
-
-static NSMutableDictionary *existingNamedThread(NSMutableDictionary *namedThread, NSArray<NSMutableDictionary *> *list)
-{
-    NSString *thisName = namedThread[KEY_NAME];
-    NSArray *thisStack = namedThread[KEY_STACK_ADDRESSES];
-
-    for(NSMutableDictionary *entry in list) {
-        if([thisName isEqualToString:entry[KEY_NAME]] &&
-           stacksAreEqual(thisStack, entry[KEY_STACK_ADDRESSES])) {
-            return entry;
-        }
+static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
+    if ([dict isKindOfClass:[NSDictionary class]]) {
+        id value = dict[key];
+        return [value isKindOfClass:klass] ? value : nil;
     }
     return nil;
 }
 
-static NSArray *namedThreadsFromReport(NSDictionary *metricKitReport, NSDictionary *kscrashReport) {
-    if(!diagnosticsMatch(metricKitReport, kscrashReport)) {
-        return @[];
-    }
-
-    NSArray *threads = kscrashReport[@"threads"];
-    if (![threads isKindOfClass:NSArray.class]) {
-        return @[];
-    }
-    NSMutableArray *result = [NSMutableArray new];
-    for (NSDictionary *thread in threads) {
-        NSMutableDictionary *namedThread = namedThreadFromDict(thread);
-        if(namedThread != nil) {
-            NSMutableDictionary *existing = existingNamedThread(namedThread, result);
-            if(existing != nil) {
-                existing[KEY_COUNT] = @([existing[KEY_COUNT] intValue] + 1);
-            } else {
-                [result addObject:namedThread];
-            }
-        }
-    }
-    return result;
-}
-
-static NSDictionary *thread_root_frame(NSDictionary *thread) {
-  return [array_for_key(thread, @"callStackRootFrames") firstObject];
-}
-
-static uint64_t count_frames(NSDictionary *rootFrame) {
-  uint64_t count = 0;
-  NSDictionary *frame = rootFrame;
-  while ([frame isKindOfClass:[NSDictionary class]]) {
-    count++;
-    frame = [array_for_key(frame, @"subFrames") firstObject];
-  }
-  return count;
-}
+#define stringForKey(dict, key) object_for_key(dict, key, [NSString class])
+#define numberForKey(dict, key) object_for_key(dict, key, [NSNumber class])
+#define arrayForKey(dict, key) object_for_key(dict, key, [NSArray class])
+#define dictForKey(dict, key) object_for_key(dict, key, [NSDictionary class])
+#define mutDictForKey(dict, key) object_for_key(dict, key, [NSMutableDictionary class])
 
 static id replaceMutableKey(NSMutableDictionary *dict, NSString *key, Class expectedClass) {
     id obj = dict[key];
@@ -331,6 +125,144 @@ static id replaceMutableIndex(NSMutableArray *array, NSUInteger index, Class exp
     return mutable;
 }
 
+static bool diagnosticMetadataMatches(NSDictionary *metricKitReport, NSDictionary *kscrashReport) {
+    NSArray *matchKeys = @[
+        @"exceptionType",
+        @"exceptionCode",
+        @"signal",
+        @"pid",
+    ];
+
+    NSString *diagnosticMetadataString = @"diagnosticMetaData";
+
+    NSDictionary *mkMetadata = dictForKey(metricKitReport, diagnosticMetadataString);
+    NSDictionary *ksMetadata = dictForKey(kscrashReport, diagnosticMetadataString);
+
+    for(NSString *key in matchKeys) {
+        if (![mkMetadata[key] isEqual:ksMetadata[key]]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static NSMutableDictionary *namedThreadFromDict(NSDictionary *thread) {
+    NSString *name = stringForKey(thread, @"name");
+    if(name == nil) {
+        return nil;
+    }
+    NSDictionary *backtrace = dictForKey(thread, @"backtrace");
+    NSArray *contents = arrayForKey(backtrace, @"contents");
+    if(contents == nil) {
+        return nil;
+    }
+    NSMutableArray *stackAddresses = [NSMutableArray new];
+    NSMutableDictionary *namedThread = [@{
+        KEY_NAME: name,
+        KEY_STACK_ADDRESSES: stackAddresses,
+        KEY_COUNT: @1,
+    } mutableCopy];
+    for(NSDictionary *frame in contents) {
+        if(![frame isKindOfClass:NSDictionary.class]) {
+            return nil;
+        }
+        NSNumber *address = numberForKey(frame, @"address");
+        if(address == nil) {
+            return nil;
+        }
+        [stackAddresses addObject:address];
+    }
+    return namedThread;
+}
+
+static void filterOutThreadsNotMatchingAddress(NSMutableArray *namedThreads,
+                                               size_t frameIndex,
+                                               size_t totalFrames,
+                                               NSNumber *address) {
+    // MetricKit always puts one extra frame on each thread, so we skip it.
+    if(frameIndex+1 >= totalFrames) {
+        return;
+    }
+
+    [namedThreads filterUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id  _Nullable evaluatedObject, NSDictionary<NSString *,id> * _Nullable bindings) {
+        NSDictionary *thread = evaluatedObject;
+        int count = [numberForKey(thread, KEY_COUNT) intValue];
+        NSArray<NSNumber *> *stackAddresses = arrayForKey(thread, KEY_STACK_ADDRESSES);
+        if(count < 1) {
+            return false;
+        }
+        if (frameIndex >= stackAddresses.count) {
+            return false;
+        }
+        return [stackAddresses[frameIndex] isEqual:address];
+    }]];
+}
+
+static bool stacksAreEqual(NSArray *a, NSArray *b) {
+    if (a.count != b.count) {
+        return false;
+    }
+
+    for(NSUInteger i = 0; i < a.count; i++) {
+        if(![a[i] isEqual:b[i]]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static NSMutableDictionary *existingNamedThread(NSMutableDictionary *namedThread,
+                                                NSArray<NSMutableDictionary *> *existingList) {
+    NSString *thisName = stringForKey(namedThread, KEY_NAME);
+    NSArray *thisStack = arrayForKey(namedThread, KEY_STACK_ADDRESSES);
+
+    for(NSMutableDictionary *entry in existingList) {
+        if([thisName isEqualToString:stringForKey(entry, KEY_NAME)] &&
+           stacksAreEqual(thisStack, arrayForKey(entry, KEY_STACK_ADDRESSES))) {
+            return entry;
+        }
+    }
+    return nil;
+}
+
+static NSArray *namedThreadsFromReport(NSDictionary *metricKitReport, NSDictionary *kscrashReport) {
+    if(!diagnosticMetadataMatches(metricKitReport, kscrashReport)) {
+        return @[];
+    }
+
+    NSArray *threads = arrayForKey(kscrashReport, @"threads");
+    if (threads == nil) {
+        return @[];
+    }
+    NSMutableArray *result = [NSMutableArray new];
+    for (NSDictionary *thread in threads) {
+        NSMutableDictionary *namedThread = namedThreadFromDict(thread);
+        if(namedThread != nil) {
+            NSMutableDictionary *existing = existingNamedThread(namedThread, result);
+            if(existing != nil) {
+                existing[KEY_COUNT] = @([numberForKey(existing, KEY_COUNT) intValue] + 1);
+            } else {
+                [result addObject:namedThread];
+            }
+        }
+    }
+    return result;
+}
+
+static NSDictionary *threadRootFrame(NSDictionary *thread) {
+  return [arrayForKey(thread, @"callStackRootFrames") firstObject];
+}
+
+static uint64_t frameCount(NSDictionary *rootFrame) {
+  uint64_t count = 0;
+  NSDictionary *frame = rootFrame;
+  while ([frame isKindOfClass:[NSDictionary class]]) {
+    count++;
+    frame = [arrayForKey(frame, @"subFrames") firstObject];
+  }
+  return count;
+}
+
 static NSDictionary *enhancedMetricKitReport(NSDictionary *metrickitReport, NSDictionary *kscrashReport) {
     NSArray *namedThreads = namedThreadsFromReport(metrickitReport, kscrashReport);
     NSMutableDictionary *report = [metrickitReport mutableCopy];
@@ -339,8 +271,8 @@ static NSDictionary *enhancedMetricKitReport(NSDictionary *metrickitReport, NSDi
 
     for (uint32_t thread_index = 0; thread_index < callStacks.count; thread_index++) {
         NSMutableDictionary *thread = replaceMutableIndex(callStacks, thread_index, NSDictionary.class);
-        NSDictionary *frame = thread_root_frame(thread);
-        uint64_t frame_count = count_frames(frame);
+        NSDictionary *frame = threadRootFrame(thread);
+        uint64_t frame_count = frameCount(frame);
         if (frame_count == 0) {
             continue;
         }
@@ -349,25 +281,28 @@ static NSDictionary *enhancedMetricKitReport(NSDictionary *metrickitReport, NSDi
 
         uint32_t frame_index = 0;
         while ([frame isKindOfClass:[NSDictionary class]] && frame_index < frame_count) {
-            NSNumber *address = number_for_key(frame, @"address");
-            filterOutThreads(workingNamedThreads, frame_index, frame_count, address);
-            frame = [array_for_key(frame, @"subFrames") firstObject];
+            NSNumber *address = numberForKey(frame, @"address");
+            filterOutThreadsNotMatchingAddress(workingNamedThreads, frame_index, frame_count, address);
+            frame = [arrayForKey(frame, @"subFrames") firstObject];
             frame_index++;
         }
         if(workingNamedThreads.count > 0 && frame_count > 1) {
             NSMutableDictionary *namedThread = workingNamedThreads[0];
-            int count = [namedThread[KEY_COUNT] intValue];
+            int count = [numberForKey(namedThread, KEY_COUNT) intValue];
             namedThread[KEY_COUNT] = @(count - 1);
-            thread[@"name"] = namedThread[KEY_NAME];
+            thread[@"name"] = stringForKey(namedThread, KEY_NAME);
         }
     }
     return report;
 }
 
+
+#pragma mark API
+
 @implementation BitdriftKSCrashHandler
 
-static NSString *g_reportPath;
-static NSDictionary *g_lastReport;
+static NSString *g_kscrashReportPath;
+static NSDictionary *g_lastKSCrashReport;
 
 + (bool)configureWithBasePath:(NSURL *)basePath {
     NSString *path = [NSString stringWithUTF8String:basePath.fileSystemRepresentation];
@@ -382,19 +317,27 @@ static NSDictionary *g_lastReport;
         return false;
     }
 
-    g_reportPath = [path stringByAppendingPathComponent:@"lastCrash.bjn"];
+    g_kscrashReportPath = [path stringByAppendingPathComponent:@"lastCrash.bjn"];
 
-    NSMutableDictionary *report = bitdrift_readReport(g_reportPath);
-    [NSFileManager.defaultManager removeItemAtPath:g_reportPath error:nil];
-    [self fixupReport:report];
-    g_lastReport = report;
+    NSMutableDictionary *report = bitdrift_readKSCrashReport(g_kscrashReportPath);
+    [NSFileManager.defaultManager removeItemAtPath:g_kscrashReportPath error:nil];
+    [self fixupKSCrashReport:report];
+    g_lastKSCrashReport = report;
 
     return true;
 }
 
-+ (void) fixupReport:(NSMutableDictionary*) report {
-    NSMutableDictionary* diagnosticMetadata = report[@"diagnosticMetaData"];
-    NSNumber* secsSince1970 = diagnosticMetadata[@"crashedAt"];
++ (bool)startCrashReporter {
+    return startCrashHandler(g_kscrashReportPath);
+}
+
++ (void)stopCrashReporter {
+    stopCrashHandler();
+}
+
++ (void) fixupKSCrashReport:(NSMutableDictionary*) report {
+    NSMutableDictionary* diagnosticMetadata = mutDictForKey(report, @"diagnosticMetaData");
+    NSNumber* secsSince1970 = numberForKey(diagnosticMetadata, @"crashedAt");
     if(secsSince1970 != nil) {
         NSDate *asDate = [NSDate dateWithTimeIntervalSince1970:secsSince1970.longLongValue];
         NSISO8601DateFormatOptions opts = NSISO8601DateFormatWithInternetDateTime |
@@ -409,18 +352,16 @@ static NSDictionary *g_lastReport;
 }
 
 + (NSDictionary *)enhancedMetricKitReport:(NSDictionary *)metricKitReport {
-    if(metricKitReport == nil || g_lastReport == nil) {
+    @try {
+        NSDictionary *kscrashReport = g_lastKSCrashReport;
+        if(metricKitReport == nil || kscrashReport == nil) {
+            return metricKitReport;
+        }
+        return enhancedMetricKitReport(metricKitReport, kscrashReport);
+    } @catch (NSException *exception) {
+        NSLog(@"Error: enhancedMetricKitReport() threw exception %@. Returning original report.", exception);
         return metricKitReport;
     }
-    return enhancedMetricKitReport(metricKitReport, g_lastReport);
-}
-
-+ (bool)start {
-    return startCrashHandler(g_reportPath);
-}
-
-+ (void)stop {
-    kscm_disableAllMonitors();
 }
 
 @end

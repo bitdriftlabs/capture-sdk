@@ -151,7 +151,7 @@ static bool writeReport(BitdriftReportWriter *writer, ReportContext* ctx) {
     return true;
 }
 
-bool bitdrift_writeStandardReport(ReportContext *ctx) {
+bool bitdrift_writeKSCrashReport(ReportContext *ctx) {
     KSLOG_DEBUG("Writing report at path: %s\n", ctx->reportPath);
     
     BitdriftReportWriter writer;
