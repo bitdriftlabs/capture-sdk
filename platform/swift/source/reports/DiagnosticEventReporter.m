@@ -14,8 +14,6 @@
 #include <stdint.h>
 #import <signal.h>
 
-
-
 typedef NS_ENUM(int8_t, ReportType) {
   ReportTypeNone = 0,
   ReportTypeAppNotResponding = 1,
@@ -339,8 +337,8 @@ static ReportType serialize_diagnostic(BDProcessorHandle handle, NSString *sdk_v
     bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(sdk_version));
     NSString *name = is_hang ? DEFAULT_HANG_NAME : name_for_crash(crash);
     NSString *reason = reason_for_crash(crash, name);
-    NSDictionary *asDict = [BitdriftKSCrashWrapper enhancedMetricKitReport:event.dictionaryRepresentation];
-    serialize_error_threads(handle, asDict, name, reason, FrameOrderInnerToOuter);
+    NSDictionary *enhancedReport = [BitdriftKSCrashWrapper enhancedMetricKitReport:event.dictionaryRepresentation];
+    serialize_error_threads(handle, enhancedReport, name, reason, FrameOrderInnerToOuter);
   } else if ([event isKindOfClass:[MXHangDiagnostic class]]) {
     report_type = ReportTypeAppNotResponding;
     bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(sdk_version));

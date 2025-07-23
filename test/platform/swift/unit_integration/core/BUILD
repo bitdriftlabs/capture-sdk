@@ -3,6 +3,10 @@ load("//bazel:bitdrift_swift_test.bzl", "bitdrift_mobile_swift_test")
 bitdrift_mobile_swift_test(
     name = "test",
     srcs = glob(["**/*.swift"]) + ["//proto:report_swift_source"],
+    data = [
+        "testdata/kscrash",
+        "testdata/metrickit-example.json",
+    ],
     repository = "@capture",
     tags = ["macos_only"],
     visibility = ["//visibility:public"],

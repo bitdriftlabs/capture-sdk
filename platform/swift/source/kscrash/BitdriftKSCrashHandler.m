@@ -351,7 +351,7 @@ static NSDictionary *g_lastKSCrashReport;
     }
 }
 
-+ (NSDictionary *)enhancedMetricKitReport:(NSDictionary *)metricKitReport {
++ (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport {
     @try {
         NSDictionary *kscrashReport = g_lastKSCrashReport;
         if(metricKitReport == nil || kscrashReport == nil) {

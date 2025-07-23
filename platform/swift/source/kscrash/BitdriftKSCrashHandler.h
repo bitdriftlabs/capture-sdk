@@ -9,6 +9,8 @@
 
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @interface BitdriftKSCrashHandler: NSObject
 
 + (bool)configureWithBasePath:(NSURL *)basePath;
@@ -16,6 +18,8 @@
 + (bool)startCrashReporter;
 + (void)stopCrashReporter;
 
-+ (NSDictionary *)enhancedMetricKitReport:(NSDictionary *)metricKitReport;
++ (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport;
 
 @end
+
+NS_ASSUME_NONNULL_END
