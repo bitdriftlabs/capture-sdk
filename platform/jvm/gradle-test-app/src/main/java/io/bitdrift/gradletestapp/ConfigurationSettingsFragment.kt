@@ -21,7 +21,10 @@ import io.bitdrift.capture.reports.FatalIssueMechanism
 import kotlin.system.exitProcess
 
 class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+    override fun onCreatePreferences(
+        savedInstanceState: Bundle?,
+        rootKey: String?,
+    ) {
         val context = preferenceManager.context
         val screen = preferenceManager.createPreferenceScreen(context)
 
@@ -56,25 +59,27 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
             val restartIntent = Intent.makeRestartActivityTask(launchIntent!!.component)
             // Required for API 34 and later
             // Ref: https://developer.android.com/about/versions/14/behavior-changes-14#safer-intents
-            restartIntent.setPackage(context.packageName);
+            restartIntent.setPackage(context.packageName)
             context.startActivity(restartIntent)
             exitProcess(0)
         }
 
-        val sessionStrategyPref = buildListPreference(
-            SESSION_STRATEGY_PREFS_KEY,
-            SESSION_STRATEGY_TITLE,
-            SESSION_STRATEGY_ENTRIES,
-            SessionStrategyPreferences.FIXED.displayName,
-            context
-        )
-        val fatalIssueReportingSource = buildListPreference(
-            FATAL_ISSUE_SOURCE_PREFS_KEY,
-            FATAL_ISSUE_TYPE_TITLE,
-            FATAL_ISSUE_REPORTING_TYPES,
-            FatalIssueMechanism.BuiltIn.displayName,
-            context
-        )
+        val sessionStrategyPref =
+            buildListPreference(
+                SESSION_STRATEGY_PREFS_KEY,
+                SESSION_STRATEGY_TITLE,
+                SESSION_STRATEGY_ENTRIES,
+                SessionStrategyPreferences.FIXED.displayName,
+                context,
+            )
+        val fatalIssueReportingSource =
+            buildListPreference(
+                FATAL_ISSUE_SOURCE_PREFS_KEY,
+                FATAL_ISSUE_TYPE_TITLE,
+                FATAL_ISSUE_REPORTING_TYPES,
+                FatalIssueMechanism.BuiltIn.displayName,
+                context,
+            )
         backendCategory.addPreference(sessionStrategyPref)
         backendCategory.addPreference(fatalIssueReportingSource)
 
@@ -84,11 +89,12 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     }
 
     private fun buildListPreference(
-        keyName:String,
-        title:String,
+        keyName: String,
+        title: String,
         entries: Array<String>,
         defaultValue: String,
-        context: Context): ListPreference {
+        context: Context,
+    ): ListPreference {
         val listPreference = ListPreference(context)
         listPreference.key = keyName
         listPreference.title = title
@@ -99,15 +105,16 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         return listPreference
     }
 
-
     private fun showApiKeysDialog(context: Context) {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
         SettingsApiKeysDialogFragment(sharedPreferences).show(parentFragmentManager, "")
     }
 
-    enum class SessionStrategyPreferences(val displayName: String) {
+    enum class SessionStrategyPreferences(
+        val displayName: String,
+    ) {
         FIXED("Fixed"),
-        ACTIVITY_BASED("Activity Based")
+        ACTIVITY_BASED("Activity Based"),
     }
 
     companion object {
@@ -119,13 +126,13 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         private val FATAL_ISSUE_REPORTING_TYPES =
             arrayOf(
                 FatalIssueMechanism.BuiltIn.displayName,
-                "NONE")
+                "NONE",
+            )
 
         private val SESSION_STRATEGY_ENTRIES =
             arrayOf(SessionStrategyPreferences.FIXED.displayName, SessionStrategyPreferences.ACTIVITY_BASED.displayName)
 
-        fun getFatalIssueSourceConfig(sharedPreferences: SharedPreferences):String{
-            return sharedPreferences.getString(FATAL_ISSUE_SOURCE_PREFS_KEY, null)?:""
-        }
+        fun getFatalIssueSourceConfig(sharedPreferences: SharedPreferences): String =
+            sharedPreferences.getString(FATAL_ISSUE_SOURCE_PREFS_KEY, null) ?: ""
     }
 }

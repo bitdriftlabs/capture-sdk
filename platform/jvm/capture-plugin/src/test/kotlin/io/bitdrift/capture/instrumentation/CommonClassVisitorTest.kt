@@ -33,30 +33,30 @@
 
 package io.bitdrift.capture.instrumentation
 
-import io.bitdrift.capture.instrumentation.util.CatchingMethodVisitor
 import io.bitdrift.capture.instrumentation.fakes.TestSpanAddingParameters
-import java.io.File
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import io.bitdrift.capture.instrumentation.util.CatchingMethodVisitor
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
+import java.io.File
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class CommonClassVisitorTest {
-
     class Fixture {
-
-        fun getSut(tmpDir: File, debug: Boolean = false) =
-            CommonClassVisitor(
-                Opcodes.ASM7,
-                ParentClassVisitor(),
-                "SomeClass",
-                listOf(TestInstrumentable()),
-                TestSpanAddingParameters(debugOutput = debug, inMemoryDir = tmpDir)
-            )
+        fun getSut(
+            tmpDir: File,
+            debug: Boolean = false,
+        ) = CommonClassVisitor(
+            Opcodes.ASM7,
+            ParentClassVisitor(),
+            "SomeClass",
+            listOf(TestInstrumentable()),
+            TestSpanAddingParameters(debugOutput = debug, inMemoryDir = tmpDir),
+        )
     }
 
     @get:Rule
@@ -74,8 +74,10 @@ class CommonClassVisitorTest {
 
     @Test
     fun `when debug and is instrumentable - prepends with TraceMethodVisitor`() {
-        val mv = fixture.getSut(tmpDir.root, true)
-            .visitMethod(Opcodes.ACC_PUBLIC, "test", null, null, null)
+        val mv =
+            fixture
+                .getSut(tmpDir.root, true)
+                .visitMethod(Opcodes.ACC_PUBLIC, "test", null, null, null)
 
         mv.visitVarInsn(Opcodes.ASTORE, 0)
         mv.visitEnd()
@@ -90,14 +92,16 @@ class CommonClassVisitorTest {
             |    ASTORE 0
             |
             |
-            """.trimMargin()
+            """.trimMargin(),
         )
     }
 
     @Test
     fun `when no debug and is instrumentable - skips TraceMethodVisitor`() {
-        val mv = fixture.getSut(tmpDir.root, true)
-            .visitMethod(Opcodes.ACC_PUBLIC, "other", null, null, null)
+        val mv =
+            fixture
+                .getSut(tmpDir.root, true)
+                .visitMethod(Opcodes.ACC_PUBLIC, "other", null, null, null)
 
         mv.visitVarInsn(Opcodes.ASTORE, 0)
         mv.visitEnd()
@@ -125,7 +129,6 @@ class CommonClassVisitorTest {
 }
 
 class ParentClassVisitor : ClassVisitor(Opcodes.ASM7) {
-
     inner class ParentMethodVisitor : MethodVisitor(Opcodes.ASM7)
 
     override fun visitMethod(
@@ -133,14 +136,14 @@ class ParentClassVisitor : ClassVisitor(Opcodes.ASM7) {
         name: String?,
         descriptor: String?,
         signature: String?,
-        exceptions: Array<out String>?
+        exceptions: Array<out String>?,
     ): MethodVisitor = ParentMethodVisitor()
 }
 
 class TestInstrumentable : MethodInstrumentable {
-
-    inner class TestVisitor(originalVisitor: MethodVisitor) :
-        MethodVisitor(Opcodes.ASM7, originalVisitor)
+    inner class TestVisitor(
+        originalVisitor: MethodVisitor,
+    ) : MethodVisitor(Opcodes.ASM7, originalVisitor)
 
     override val fqName: String get() = "test"
 
@@ -148,6 +151,6 @@ class TestInstrumentable : MethodInstrumentable {
         instrumentableContext: MethodContext,
         apiVersion: Int,
         originalVisitor: MethodVisitor,
-        parameters: SpanAddingClassVisitorFactory.SpanAddingParameters
+        parameters: SpanAddingClassVisitorFactory.SpanAddingParameters,
     ): MethodVisitor = TestVisitor(originalVisitor)
 }

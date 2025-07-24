@@ -35,13 +35,12 @@ package io.bitdrift.capture.instrumentation.util
 
 import io.bitdrift.capture.instrumentation.MethodContext
 import io.bitdrift.capture.instrumentation.fakes.CapturingTestLogger
-import kotlin.test.assertEquals
 import org.junit.Test
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
+import kotlin.test.assertEquals
 
 class CatchingMethodVisitorTest {
-
     class Fixture {
         private val throwingVisitor = ThrowingMethodVisitor()
         val handler = CapturingExceptionHandler()
@@ -50,14 +49,15 @@ class CatchingMethodVisitorTest {
         private val methodContext =
             MethodContext(Opcodes.ACC_PUBLIC, "someMethod", null, null, null)
         val sut
-            get() = CatchingMethodVisitor(
-                Opcodes.ASM7,
-                throwingVisitor,
-                "SomeClass",
-                methodContext,
-                handler,
-                logger
-            )
+            get() =
+                CatchingMethodVisitor(
+                    Opcodes.ASM7,
+                    throwingVisitor,
+                    "SomeClass",
+                    methodContext,
+                    handler,
+                    logger,
+                )
     }
 
     private val fixture = Fixture()
@@ -89,7 +89,7 @@ class CatchingMethodVisitorTest {
                 """
                 Error while instrumenting SomeClass.someMethod null.
                 Please report this issue at https://github.com/bitdriftlabs/capture-sdk/issues
-                """.trimIndent()
+                """.trimIndent(),
             )
         }
     }
@@ -98,14 +98,13 @@ class CatchingMethodVisitorTest {
 class CustomException : RuntimeException("This method throws!")
 
 class ThrowingMethodVisitor : MethodVisitor(Opcodes.ASM7) {
-
-    override fun visitMaxs(maxStack: Int, maxLocals: Int) {
-        throw CustomException()
-    }
+    override fun visitMaxs(
+        maxStack: Int,
+        maxLocals: Int,
+    ): Unit = throw CustomException()
 }
 
 class CapturingExceptionHandler : ExceptionHandler {
-
     var capturedException: Throwable? = null
 
     override fun handle(exception: Throwable) {

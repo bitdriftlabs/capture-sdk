@@ -38,7 +38,6 @@ private const val LOG_MESSAGE = "50 characters long test message - 0123456789012
  */
 @RunWith(AndroidJUnit4::class)
 class ClockTimeProfiler {
-
     @get:Rule
     val benchmarkRule = BenchmarkRule()
 
@@ -61,15 +60,19 @@ class ClockTimeProfiler {
                 dateProvider = SystemDateProvider(),
                 configuration = Configuration(),
                 sessionStrategy = SessionStrategy.Fixed(),
-                fatalIssueReporter = object : IFatalIssueReporter {
-                    override fun getReportingMechanism(): FatalIssueMechanism = FatalIssueMechanism.BuiltIn
+                fatalIssueReporter =
+                    object : IFatalIssueReporter {
+                        override fun getReportingMechanism(): FatalIssueMechanism = FatalIssueMechanism.BuiltIn
 
-                    override fun getLogStatusFieldsMap(): Map<String, FieldValue> = emptyMap()
+                        override fun getLogStatusFieldsMap(): Map<String, FieldValue> = emptyMap()
 
-                    override fun initBuiltInMode(appContext: Context, clientAttributes: IClientAttributes) {
-                        /*no-op*/
-                    }
-                }
+                        override fun initBuiltInMode(
+                            appContext: Context,
+                            clientAttributes: IClientAttributes,
+                        ) {
+                            // no-op
+                        }
+                    },
             )
         }
     }
@@ -93,7 +96,7 @@ class ClockTimeProfiler {
                     "keykeykey3" to "valvalval3",
                     "keykeykey4" to "valvalval4",
                     "keykeykey5" to "valvalval5",
-                )
+                ),
             ) { LOG_MESSAGE }
         }
     }
@@ -114,7 +117,7 @@ class ClockTimeProfiler {
                     "keykeykey8" to "valvalval8",
                     "keykeykey9" to "valvalval9",
                     "keykeykey10" to "valvalval10",
-                )
+                ),
             ) { LOG_MESSAGE }
         }
     }

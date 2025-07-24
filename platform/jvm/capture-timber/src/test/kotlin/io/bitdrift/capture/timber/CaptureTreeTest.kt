@@ -36,10 +36,11 @@ class CaptureTreeTest {
         Timber.tag(tag).e(exception, message)
 
         // ASSERT
-        val fields = mapOf(
-            "source" to "Timber",
-            "tag" to tag,
-        )
+        val fields =
+            mapOf(
+                "source" to "Timber",
+                "tag" to tag,
+            )
         val argCaptor = argumentCaptor<() -> String>()
         verify(mockLogger).log(eq(LogLevel.ERROR), eq(fields), eq(exception), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message + "\n" + exception.stackTraceToString())

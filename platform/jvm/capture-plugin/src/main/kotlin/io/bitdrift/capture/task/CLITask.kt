@@ -8,6 +8,7 @@
 package io.bitdrift.capture.task
 
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.Directory
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.w3c.dom.Document
@@ -15,7 +16,6 @@ import java.io.File
 import java.io.IOException
 import java.net.URI
 import javax.xml.parsers.DocumentBuilderFactory
-import org.gradle.api.file.Directory
 
 abstract class CLIUploadMappingTask : CLITask() {
     @TaskAction
@@ -30,12 +30,19 @@ abstract class CLIUploadMappingTask : CLITask() {
         val versionCode = manifest.getAttribute("android:versionCode")
         val versionName = manifest.getAttribute("android:versionName")
 
-        runBDCLI(listOf(
-            "debug-files", "upload-proguard",
-            "--app-id", appId,
-            "--app-version", versionName,
-            "--version-code", versionCode,
-            mappingTxtFile.absolutePath))
+        runBDCLI(
+            listOf(
+                "debug-files",
+                "upload-proguard",
+                "--app-id",
+                appId,
+                "--app-version",
+                versionName,
+                "--version-code",
+                versionCode,
+                mappingTxtFile.absolutePath,
+            ),
+        )
     }
 }
 
@@ -51,8 +58,10 @@ abstract class CLIUploadSymbolsTask : CLITask() {
 abstract class CLITask : DefaultTask() {
     @Internal
     val buildDir: Directory = project.layout.buildDirectory.get()
+
     @Internal
     val bdcliFile: File = buildDir.dir("bin").file("bd").asFile
+
     @Internal
     val downloader = BDCLIDownloader(bdcliFile)
 
@@ -63,9 +72,10 @@ abstract class CLITask : DefaultTask() {
     }
 
     fun runCommand(command: List<String>) {
-        val process = ProcessBuilder(command)
-            .redirectErrorStream(true)
-            .start()
+        val process =
+            ProcessBuilder(command)
+                .redirectErrorStream(true)
+                .start()
         process.inputStream.transferTo(System.out)
         if (process.waitFor() != 0) {
             throw RuntimeException("Command $command failed")
@@ -74,15 +84,17 @@ abstract class CLITask : DefaultTask() {
 
     private fun checkEnvironment() {
         val apiKeyEnvName = "API_KEY"
-        if(System.getenv(apiKeyEnvName) == null) {
+        if (System.getenv(apiKeyEnvName) == null) {
             throw IllegalStateException("Environment variable $apiKeyEnvName must be set to your Bitdrift API key before running this task")
         }
     }
 }
 
-class BDCLIDownloader(val executableFilePath: File) {
+class BDCLIDownloader(
+    val executableFilePath: File,
+) {
     val bdcliVersion = "0.1.33-rc.1"
-    val bdcliDownloadLoc: URI = URI.create("https://dl.bitdrift.io/bd-cli/${bdcliVersion}/${downloadFilename()}/bd")
+    val bdcliDownloadLoc: URI = URI.create("https://dl.bitdrift.io/bd-cli/$bdcliVersion/${downloadFilename()}/bd")
 
     private enum class OSType {
         MacIntel,
@@ -93,38 +105,40 @@ class BDCLIDownloader(val executableFilePath: File) {
     private fun osType(): OSType {
         val osName = System.getProperty("os.name")
         val arch = System.getProperty("os.arch")
-        return when(osName) {
-            "Mac OS X" -> when(arch) {
-                "aarch64" -> OSType.MacArm
-                else -> OSType.MacIntel
-            }
+        return when (osName) {
+            "Mac OS X" ->
+                when (arch) {
+                    "aarch64" -> OSType.MacArm
+                    else -> OSType.MacIntel
+                }
             "Linux" -> OSType.LinuxIntel
-            else -> throw IllegalStateException("Could not determine running system (got $osName, $arch). Only Mac (Intel, Arm) and linux (Intel) are currently supported")
+            else -> throw IllegalStateException(
+                "Could not determine running system (got $osName, $arch). Only Mac (Intel, Arm) and linux (Intel) are currently supported",
+            )
         }
     }
 
-    private fun downloadFilename(): String {
-        return when(osType()) {
+    private fun downloadFilename(): String =
+        when (osType()) {
             OSType.MacArm -> "bd-cli-mac-arm64.tar.gz"
             OSType.MacIntel -> "bd-cli-mac-x86_64.tar.gz"
             OSType.LinuxIntel -> "bd-cli-linux-x86_64.tar.gz"
         }
-    }
 
     fun downloadIfNeeded() {
-        if(executableFilePath.exists()) {
+        if (executableFilePath.exists()) {
             return
         }
         val parentDir = executableFilePath.parentFile
-        if(!parentDir.exists() && !parentDir.mkdirs()) {
+        if (!parentDir.exists() && !parentDir.mkdirs()) {
             throw IOException("Could not create path '${parentDir.absolutePath}' to contain the downloaded binary")
         }
         try {
             executableFilePath.writeBytes(bdcliDownloadLoc.toURL().readBytes())
-        } catch(e: Exception) {
+        } catch (e: Exception) {
             throw IOException("Failed to download bd cli tool from $bdcliDownloadLoc", e)
         }
-        if(!executableFilePath.setExecutable(true)) {
+        if (!executableFilePath.setExecutable(true)) {
             throw IOException("Could not mark ${executableFilePath.absolutePath} as executable")
         }
     }
@@ -133,7 +147,7 @@ class BDCLIDownloader(val executableFilePath: File) {
 fun File.asXmlDocument(): Document {
     try {
         return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(this)
-    } catch(e: Exception) {
+    } catch (e: Exception) {
         throw IOException("Could not parse XML file $this", e)
     }
 }
@@ -141,27 +155,21 @@ fun File.asXmlDocument(): Document {
 fun File.mostRecentSubfileNamed(name: String): File {
     try {
         return this.subfilesNamed(name).mostRecent()
-    } catch(e: Exception) {
-        throw IOException("Could not find any file named '${name}' in path or subpath of '${this}", e)
+    } catch (e: Exception) {
+        throw IOException("Could not find any file named '$name' in path or subpath of '$this", e)
     }
 }
 
-fun File.subfilesNamed(name: String): Sequence<File> {
-    return this.walkTopDown().filter { it.name == name }
-}
+fun File.subfilesNamed(name: String): Sequence<File> = this.walkTopDown().filter { it.name == name }
 
 fun File.mostRecentSubfileMatching(regex: Regex): File {
     try {
         return this.subfilesMatching(regex).mostRecent()
-    } catch(e: Exception) {
-        throw IOException("Could not find any file matching regex '${regex}' in path or subpath of '${this}", e)
+    } catch (e: Exception) {
+        throw IOException("Could not find any file matching regex '$regex' in path or subpath of '$this", e)
     }
 }
 
-fun File.subfilesMatching(regex: Regex): Sequence<File> {
-    return this.walkTopDown().filter { regex.matches(it.name) }
-}
+fun File.subfilesMatching(regex: Regex): Sequence<File> = this.walkTopDown().filter { regex.matches(it.name) }
 
-fun Sequence<File>.mostRecent(): File {
-    return this.sortedBy { it.lastModified() }.last()
-}
+fun Sequence<File>.mostRecent(): File = this.sortedBy { it.lastModified() }.last()

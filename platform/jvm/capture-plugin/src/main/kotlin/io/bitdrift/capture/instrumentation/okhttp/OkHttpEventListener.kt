@@ -34,53 +34,52 @@
 package io.bitdrift.capture.instrumentation.okhttp
 
 import com.android.build.api.instrumentation.ClassContext
-import io.bitdrift.capture.instrumentation.SpanAddingClassVisitorFactory
 import io.bitdrift.capture.instrumentation.ClassInstrumentable
 import io.bitdrift.capture.instrumentation.CommonClassVisitor
 import io.bitdrift.capture.instrumentation.MethodContext
 import io.bitdrift.capture.instrumentation.MethodInstrumentable
+import io.bitdrift.capture.instrumentation.SpanAddingClassVisitorFactory
 import io.bitdrift.capture.instrumentation.okhttp.visitor.OkHttpEventListenerMethodVisitor
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.MethodVisitor
 
-class OkHttpEventListener(
-) : ClassInstrumentable {
+class OkHttpEventListener : ClassInstrumentable {
     override val fqName: String get() = "okhttp3.OkHttpClient"
 
     override fun getVisitor(
         instrumentableContext: ClassContext,
         apiVersion: Int,
         originalVisitor: ClassVisitor,
-        parameters: SpanAddingClassVisitorFactory.SpanAddingParameters
-    ): ClassVisitor = CommonClassVisitor(
-        apiVersion = apiVersion,
-        classVisitor = originalVisitor,
-        className = fqName.substringAfterLast('.'),
-        methodInstrumentables = listOf(
-            OkHttpEventListenerMethodInstrumentable(
-            )
-        ),
-        parameters = parameters
-    )
+        parameters: SpanAddingClassVisitorFactory.SpanAddingParameters,
+    ): ClassVisitor =
+        CommonClassVisitor(
+            apiVersion = apiVersion,
+            classVisitor = originalVisitor,
+            className = fqName.substringAfterLast('.'),
+            methodInstrumentables =
+                listOf(
+                    OkHttpEventListenerMethodInstrumentable(),
+                ),
+            parameters = parameters,
+        )
 }
 
-class OkHttpEventListenerMethodInstrumentable(
-) : MethodInstrumentable {
+class OkHttpEventListenerMethodInstrumentable : MethodInstrumentable {
     override val fqName: String get() = "<init>"
 
     override fun getVisitor(
         instrumentableContext: MethodContext,
         apiVersion: Int,
         originalVisitor: MethodVisitor,
-        parameters: SpanAddingClassVisitorFactory.SpanAddingParameters
-    ): MethodVisitor = OkHttpEventListenerMethodVisitor(
-        apiVersion = apiVersion,
-        originalVisitor = originalVisitor,
-        instrumentableContext = instrumentableContext,
-        okHttpInstrumentationType = parameters.okHttpInstrumentationType.get()
-    )
+        parameters: SpanAddingClassVisitorFactory.SpanAddingParameters,
+    ): MethodVisitor =
+        OkHttpEventListenerMethodVisitor(
+            apiVersion = apiVersion,
+            originalVisitor = originalVisitor,
+            instrumentableContext = instrumentableContext,
+            okHttpInstrumentationType = parameters.okHttpInstrumentationType.get(),
+        )
 
-    override fun isInstrumentable(data: MethodContext): Boolean {
-        return data.name == fqName && data.descriptor == "(Lokhttp3/OkHttpClient\$Builder;)V"
-    }
+    override fun isInstrumentable(data: MethodContext): Boolean =
+        data.name == fqName && data.descriptor == "(Lokhttp3/OkHttpClient\$Builder;)V"
 }

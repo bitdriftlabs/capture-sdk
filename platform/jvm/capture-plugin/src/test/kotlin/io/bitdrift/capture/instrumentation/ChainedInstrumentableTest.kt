@@ -5,7 +5,6 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-
 /**
  * Adapted from https://github.com/getsentry/sentry-android-gradle-plugin/tree/4.14.1
  *
@@ -38,25 +37,24 @@ import com.android.build.api.instrumentation.ClassContext
 import io.bitdrift.capture.instrumentation.fakes.TestClassContext
 import io.bitdrift.capture.instrumentation.fakes.TestClassData
 import io.bitdrift.capture.instrumentation.fakes.TestSpanAddingParameters
-import java.io.File
-import kotlin.test.assertTrue
 import org.junit.Test
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.Opcodes
+import java.io.File
+import kotlin.test.assertTrue
 
 class ChainedInstrumentableTest {
     class Fixture {
         fun getSut(
             originalVisitor: ClassVisitor,
-            instrumentables: List<ClassInstrumentable> = emptyList()
-        ): ClassVisitor {
-            return ChainedInstrumentable(instrumentables).getVisitor(
+            instrumentables: List<ClassInstrumentable> = emptyList(),
+        ): ClassVisitor =
+            ChainedInstrumentable(instrumentables).getVisitor(
                 TestClassContext(TestClassData("RandomClass")),
                 Opcodes.ASM7,
                 originalVisitor,
-                TestSpanAddingParameters(inMemoryDir = File(""))
+                TestSpanAddingParameters(inMemoryDir = File("")),
             )
-        }
     }
 
     private val fixture = Fixture()
@@ -70,26 +68,28 @@ class ChainedInstrumentableTest {
 
     @Test
     fun `when no isInstrumentable found returns original visitor`() {
-        val sut = fixture.getSut(
-            OriginalVisitor(),
-            listOf(
-                FirstInstrumentable(isInstrumentable = false),
-                SecondInstrumentable(isInstrumentable = false)
+        val sut =
+            fixture.getSut(
+                OriginalVisitor(),
+                listOf(
+                    FirstInstrumentable(isInstrumentable = false),
+                    SecondInstrumentable(isInstrumentable = false),
+                ),
             )
-        )
 
         assertTrue { sut is OriginalVisitor }
     }
 
     @Test
     fun `skip non-instrumentables in the chain`() {
-        val sut = fixture.getSut(
-            OriginalVisitor(),
-            listOf(
-                FirstInstrumentable(isInstrumentable = false),
-                SecondInstrumentable(isInstrumentable = true)
+        val sut =
+            fixture.getSut(
+                OriginalVisitor(),
+                listOf(
+                    FirstInstrumentable(isInstrumentable = false),
+                    SecondInstrumentable(isInstrumentable = true),
+                ),
             )
-        )
 
         assertTrue {
             sut is SecondInstrumentable.SecondVisitor && sut.prevVisitor is OriginalVisitor
@@ -111,8 +111,12 @@ class ChainedInstrumentableTest {
 
 class OriginalVisitor : ClassVisitor(Opcodes.ASM7)
 
-class FirstInstrumentable(val isInstrumentable: Boolean = true) : ClassInstrumentable {
-    class FirstVisitor(prevVisitor: ClassVisitor) : ClassVisitor(Opcodes.ASM7, prevVisitor) {
+class FirstInstrumentable(
+    val isInstrumentable: Boolean = true,
+) : ClassInstrumentable {
+    class FirstVisitor(
+        prevVisitor: ClassVisitor,
+    ) : ClassVisitor(Opcodes.ASM7, prevVisitor) {
         val prevVisitor get() = cv
     }
 
@@ -120,14 +124,18 @@ class FirstInstrumentable(val isInstrumentable: Boolean = true) : ClassInstrumen
         instrumentableContext: ClassContext,
         apiVersion: Int,
         originalVisitor: ClassVisitor,
-        parameters: SpanAddingClassVisitorFactory.SpanAddingParameters
+        parameters: SpanAddingClassVisitorFactory.SpanAddingParameters,
     ): ClassVisitor = FirstVisitor(originalVisitor)
 
     override fun isInstrumentable(data: ClassContext): Boolean = isInstrumentable
 }
 
-class SecondInstrumentable(val isInstrumentable: Boolean = true) : ClassInstrumentable {
-    class SecondVisitor(prevVisitor: ClassVisitor) : ClassVisitor(Opcodes.ASM7, prevVisitor) {
+class SecondInstrumentable(
+    val isInstrumentable: Boolean = true,
+) : ClassInstrumentable {
+    class SecondVisitor(
+        prevVisitor: ClassVisitor,
+    ) : ClassVisitor(Opcodes.ASM7, prevVisitor) {
         val prevVisitor get() = cv
     }
 
@@ -135,7 +143,7 @@ class SecondInstrumentable(val isInstrumentable: Boolean = true) : ClassInstrume
         instrumentableContext: ClassContext,
         apiVersion: Int,
         originalVisitor: ClassVisitor,
-        parameters: SpanAddingClassVisitorFactory.SpanAddingParameters
+        parameters: SpanAddingClassVisitorFactory.SpanAddingParameters,
     ): ClassVisitor = SecondVisitor(originalVisitor)
 
     override fun isInstrumentable(data: ClassContext): Boolean = isInstrumentable

@@ -39,12 +39,18 @@ class CapturingTestLogger : BaseTestLogger() {
     var capturedMessage: String? = null
     var capturedThrowable: Throwable? = null
 
-    override fun error(msg: String, throwable: Throwable?) {
+    override fun error(
+        msg: String,
+        throwable: Throwable?,
+    ) {
         capturedMessage = msg
         capturedThrowable = throwable
     }
 
-    override fun warn(msg: String, throwable: Throwable?) {
+    override fun warn(
+        msg: String,
+        throwable: Throwable?,
+    ) {
         capturedMessage = msg
         capturedThrowable = throwable
     }
@@ -53,12 +59,18 @@ class CapturingTestLogger : BaseTestLogger() {
         capturedMessage = msg
     }
 
-    override fun info(msg: String, throwable: Throwable?) {
+    override fun info(
+        msg: String,
+        throwable: Throwable?,
+    ) {
         capturedMessage = msg
         capturedThrowable = throwable
     }
 
-    override fun debug(msg: String, throwable: Throwable?) {
+    override fun debug(
+        msg: String,
+        throwable: Throwable?,
+    ) {
         capturedMessage = msg
         capturedThrowable = throwable
     }

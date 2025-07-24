@@ -1,8 +1,8 @@
- plugins {
-     alias(libs.plugins.kotlin)
-     alias(libs.plugins.maven.publish)
-     id("dependency-license-config")
-     id("java-gradle-plugin")
+plugins {
+    alias(libs.plugins.kotlin)
+    alias(libs.plugins.maven.publish)
+    id("dependency-license-config")
+    id("java-gradle-plugin")
 }
 
 group = "io.bitdrift"
@@ -30,8 +30,8 @@ gradlePlugin {
     }
 }
 
- mavenPublishing {
-     configureBasedOnAppliedPlugins()
+mavenPublishing {
+    configureBasedOnAppliedPlugins()
 
     pom {
         name.set("CapturePlugin")
@@ -63,7 +63,7 @@ gradlePlugin {
             }
         }
     }
- }
+}
 
 publishing {
     repositories {

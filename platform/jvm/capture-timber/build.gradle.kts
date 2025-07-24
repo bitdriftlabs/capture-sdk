@@ -61,7 +61,7 @@ tasks.preBuild {
 
 dependencies {
     implementation(project(":capture"))
-    implementation (libs.timber)
+    implementation(libs.timber)
 
     testImplementation(libs.truth)
     testImplementation(libs.junit)

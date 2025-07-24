@@ -28,7 +28,6 @@ import java.util.concurrent.atomic.AtomicReference
 // emulator -avd Nexus_6_API_24 \
 // -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
 class AndroidViewReplayTest {
-
     private lateinit var scenario: FragmentScenario<FirstFragment>
 
     private lateinit var replayClient: ReplayPreviewClient
@@ -63,10 +62,10 @@ class AndroidViewReplayTest {
 
             // AppCompatTextView multiline label
             assertThat(screen).contains(
-                ReplayRect(type = ReplayType.Label, x = 35, y = 383, width = 539, height = 84)
+                ReplayRect(type = ReplayType.Label, x = 35, y = 383, width = 539, height = 84),
             )
             assertThat(screen).contains(
-                ReplayRect(type = ReplayType.Label, x = 36, y = 495, width = 761, height = 47)
+                ReplayRect(type = ReplayType.Label, x = 36, y = 495, width = 761, height = 47),
             )
         }
     }
