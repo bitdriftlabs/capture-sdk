@@ -1,5 +1,4 @@
 load("@rules_java//java:defs.bzl", "java_lite_proto_library")
-load("@rules_java//java:java_library.bzl", "java_library")
 load("@rules_jvm_external//:defs.bzl", "artifact")
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
@@ -14,14 +13,6 @@ java_lite_proto_library(
     name = "tombstone_proto_java_lite",
     visibility = ["//visibility:public"],
     deps = [":tombstone_proto"],
-)
-
-java_library(
-    name = "java_test_utils",
-    srcs = glob(
-        include = ["src/test/**/*.java"],
-    ),
-    visibility = ["//visibility:public"],
 )
 
 # export proguard library rules
@@ -91,7 +82,6 @@ bitdrift_kt_android_local_test(
         "exclusive",
     ],
     deps = [
-        ":java_test_utils",
         "//platform/jvm/capture:capture_logger_lib",
         artifact("junit:junit"),
         artifact("org.robolectric:robolectric"),

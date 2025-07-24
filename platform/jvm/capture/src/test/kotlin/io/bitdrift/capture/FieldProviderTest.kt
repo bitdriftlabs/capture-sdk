@@ -7,9 +7,8 @@
 
 package io.bitdrift.capture
 
-import io.bitdrift.capture.providers.FieldValue
-import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.utils.JavaMapInteroptIssue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 
@@ -17,31 +16,10 @@ class FieldProviderTest {
     @Test
     fun toFields_withJavaNullableValueMap_shouldNotCrash() {
         val mapWithNullValue: Map<String, String> =
-            io.bitdrift.capture.utils.JavaMapInteroptIssue
-                .buildMapWithNullableValue()
+            JavaMapInteroptIssue.buildMapWithNullableValue()
 
         val convertedFields = mapWithNullValue.toFields()
 
         assertThat(convertedFields).isEmpty()
     }
-
-    @Test(expected = NullPointerException::class)
-    fun nonSafeToFields_withJavaNullableValueMap_shouldExpectNpe() {
-        val mapWithNullValue: Map<String, String> =
-            io.bitdrift.capture.utils.JavaMapInteroptIssue
-                .buildMapWithNullableValue()
-
-        /**
-         * This should throw NPE. See BIT-5914 for more context on original issue
-         */
-        mapWithNullValue.toFieldsNonSafe()
-    }
-
-    /**
-     * Do not use in prod, only for test purposes
-     */
-    private fun Map<String, String>?.toFieldsNonSafe(): Map<String, FieldValue> =
-        this?.entries?.associate {
-            it.key to it.value.toFieldValue()
-        } ?: emptyMap()
 }
