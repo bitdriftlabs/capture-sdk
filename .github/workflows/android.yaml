@@ -1,3 +1,6 @@
+env:
+  NDK_VERSION: 27.2.12479018
+
 name: android
 on:
   push:
@@ -216,8 +219,36 @@ jobs:
     if: needs.pre_check.outputs.should_run == 'true'
     needs: pre_check
     steps:
+
     - name: Checkout project sources
       uses: actions/checkout@v4
+
+    - name: Cache Android NDK
+      id: ndk-cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.ANDROID_SDK_ROOT }}/ndk/${{ env.NDK_VERSION }}
+        key: ${{ runner.os }}-android-ndk-${{ env.NDK_VERSION }}
+
+    - name: Verify cmdline-tools
+      run: |
+        CMDLINE_TOOLS_DIR="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin"
+        if [ ! -x "$CMDLINE_TOOLS_DIR/sdkmanager" ]; then
+          echo "cmdline-tools not found or incomplete. Installing..."
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          cd $ANDROID_SDK_ROOT/cmdline-tools
+          curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
+          unzip -q cmdline-tools.zip
+          mv cmdline-tools latest
+        else
+          echo "cmdline-tools already installed."
+        fi
+
+    - name: Install Android NDK
+      if: steps.ndk-cache.outputs.cache-hit != 'true'
+      run: |
+        export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
+        yes | sdkmanager "ndk;${NDK_VERSION}"
 
     # See https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/
     - name: Enable KVM group perms
