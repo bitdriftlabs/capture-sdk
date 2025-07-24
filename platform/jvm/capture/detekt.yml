@@ -6,3 +6,6 @@ comments:
     active: true
   UndocumentedPublicClass:
     active: true
+bitdrift-custom-rules:
+  UnsafePutAllUsage:
+    active: true

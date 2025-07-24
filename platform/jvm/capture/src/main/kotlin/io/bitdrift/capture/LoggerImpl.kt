@@ -20,6 +20,7 @@ import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.WindowManager
+import io.bitdrift.capture.common.putAllSafely
 import io.bitdrift.capture.error.ErrorReporterService
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.events.AppUpdateListenerLogger
@@ -465,14 +466,18 @@ internal class LoggerImpl(
         CaptureJniLibrary.writeAppUpdateLog(this.loggerId, appVersion, appVersionCode, appSizeBytes, durationS)
     }
 
+    /**
+     * Suppress warning about null-checks that appear redundant because
+     * Kotlin's compiler assumes non-null keys/values, but in practice,
+     * due to Java interop, null values may still appear in the map.
+     */
+    @Suppress("SENSELESS_COMPARISON")
     internal fun extractFields(
         fields: Map<String, String>?,
         throwable: Throwable?,
     ): InternalFieldsMap? =
         buildMap {
-            fields?.let {
-                putAll(it)
-            }
+            putAllSafely(fields)
             throwable?.let {
                 put("_error", it.javaClass.name.orEmpty())
                 put("_error_details", it.message.orEmpty())
@@ -488,6 +493,7 @@ internal class LoggerImpl(
         appExitLogger.uninstallAppExitLogger()
     }
 
+    @Suppress("UnsafePutAllUsage")
     private fun writeSdkStartLog(
         appContext: Context,
         clientAttributes: ClientAttributes,

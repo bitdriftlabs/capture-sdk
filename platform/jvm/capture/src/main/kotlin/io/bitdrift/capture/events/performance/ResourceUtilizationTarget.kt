@@ -20,6 +20,7 @@ import java.util.concurrent.ExecutorService
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
+@Suppress("UnsafePutAllUsage")
 internal class ResourceUtilizationTarget(
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val batteryMonitor: BatteryMonitor,

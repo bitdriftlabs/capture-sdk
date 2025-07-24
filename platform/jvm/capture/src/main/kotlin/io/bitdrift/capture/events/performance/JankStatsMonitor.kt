@@ -198,6 +198,7 @@ internal class JankStatsMonitor(
         performanceMetricsStateHolder = null
     }
 
+    @Suppress("UnsafePutAllUsage")
     @WorkerThread
     private fun FrameData.sendJankFrameData() {
         val jankFrameType = toJankType()

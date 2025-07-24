@@ -167,6 +167,7 @@ internal class AppExitLogger(
         return error
     }
 
+    @Suppress("UnsafePutAllUsage")
     private fun buildCrashAndMemoryFieldsMap(
         thread: Thread,
         throwable: Throwable,
@@ -182,6 +183,7 @@ internal class AppExitLogger(
         }.toFields()
     }
 
+    @Suppress("UnsafePutAllUsage")
     @RequiresApi(Build.VERSION_CODES.R)
     private fun buildAppExitInternalFieldsMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap =
         buildMap {

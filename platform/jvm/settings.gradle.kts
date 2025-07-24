@@ -20,6 +20,7 @@ include(":gradle-test-app")
 
 include(":microbenchmark")
 
+include(":detekt-custom-rules")
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)

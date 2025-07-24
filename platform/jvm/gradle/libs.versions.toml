@@ -6,6 +6,7 @@ appcompat = "1.7.0"
 assertjCore = "3.22.0"
 androidxCore = "1.13.1"
 androidxTestCore = "1.6.1"
+detektApi = "1.23.8"
 detektPlugin = "1.23.7"
 dokkaPlugin = "1.9.20"
 gson = "2.10.1"
@@ -41,6 +42,7 @@ androidx-test-core = { module = "androidx.test:core", version.ref = "androidxTes
 androidx-ui = { module = "androidx.compose.ui:ui", version.ref = "ui" }
 apollo-runtime = { module = "com.apollographql.apollo:apollo-runtime", version.ref = "apollo" }
 assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertjCore" }
+detekt-api = { module = "io.gitlab.arturbosch.detekt:detekt-api", version.ref = "detektApi" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 jsr305 = { module = "com.google.code.findbugs:jsr305", version.ref = "jsr305" }
 junit = { module = "junit:junit", version.ref = "junit" }

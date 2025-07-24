@@ -32,6 +32,7 @@ internal class ErrorReporterService(
         return map
     }
 
+    @Suppress("UnsafePutAllUsage")
     override fun reportError(
         message: String,
         details: String?,

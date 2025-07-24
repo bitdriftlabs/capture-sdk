@@ -23,6 +23,7 @@ internal object HttpFieldKey {
 /**
  * Class that encapsulates network request information. method param is required, rest are optional
  */
+@Suppress("UnsafePutAllUsage")
 data class HttpRequestInfo
     @JvmOverloads
     constructor(

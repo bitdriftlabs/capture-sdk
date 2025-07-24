@@ -13,6 +13,7 @@ import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
+import io.bitdrift.capture.common.putAllSafely
 import io.bitdrift.capture.providers.toFields
 import java.util.UUID
 
@@ -63,9 +64,7 @@ class Span internal constructor(
     private val startTimeMs: Long = clock.elapsedRealtime()
     private val startFields: Map<String, String> =
         buildMap {
-            fields?.let {
-                putAll(it)
-            }
+            putAllSafely(fields)
             put(SpanField.Key.ID, id.toString())
             put(SpanField.Key.NAME, name)
             put(SpanField.Key.TYPE, SpanField.Value.TYPE_START)
@@ -112,10 +111,8 @@ class Span internal constructor(
 
             val endFields =
                 buildMap {
-                    putAll(startFields)
-                    fields?.let {
-                        putAll(it)
-                    }
+                    putAllSafely(startFields)
+                    putAllSafely(fields)
                     put(SpanField.Key.TYPE, SpanField.Value.TYPE_END)
                     put(SpanField.Key.DURATION, durationMs.toString())
                     put(SpanField.Key.RESULT, result.toString().lowercase())

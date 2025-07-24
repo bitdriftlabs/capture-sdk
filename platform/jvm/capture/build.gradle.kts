@@ -42,6 +42,8 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.robolectric)
     testImplementation(libs.mockwebserver)
+
+    detektPlugins(project(":detekt-custom-rules"))
 }
 
 protobuf {

@@ -66,6 +66,7 @@ internal class SessionReplayTarget(
         sessionReplayController.captureScreen(skipReplayComposeViews)
     }
 
+    @Suppress("UnsafePutAllUsage")
     override fun onScreenCaptured(
         encodedScreen: ByteArray,
         screen: FilteredCapture,
@@ -84,6 +85,7 @@ internal class SessionReplayTarget(
         sessionReplayController.captureScreenshot()
     }
 
+    @Suppress("UnsafePutAllUsage")
     override fun onScreenshotCaptured(
         compressedScreen: ByteArray,
         metrics: ScreenshotCaptureMetrics,
