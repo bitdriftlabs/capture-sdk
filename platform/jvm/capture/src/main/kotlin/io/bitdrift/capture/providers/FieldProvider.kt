@@ -15,7 +15,42 @@ package io.bitdrift.capture.providers
 data class Field(
     val key: String,
     val value: FieldValue,
-)
+) {
+    /**
+     * The String value of the field. The property throws if the underlying
+     * field value is not of a String type.
+     */
+    val stringValue: String
+        get() {
+            return when (value) {
+                is FieldValue.StringField -> value.stringValue
+                is FieldValue.BinaryField -> throw UnsupportedOperationException()
+            }
+        }
+
+    /**
+     * The Byte Array value of the field. The property throws if the underlying
+     * field value is not of a Binary type.
+     */
+    val byteArrayValue: ByteArray
+        get() {
+            return when (value) {
+                is FieldValue.BinaryField -> value.byteArrayValue
+                is FieldValue.StringField -> throw UnsupportedOperationException()
+            }
+        }
+
+    /**
+     * The type of the field value. 0 means Binary field (Byte Array), 1 means String.
+     */
+    val valueType: Int
+        get() {
+            return when (value) {
+                is FieldValue.BinaryField -> 0
+                is FieldValue.StringField -> 1
+            }
+        }
+}
 
 /**
  * A single field value, representing either a string or a binary value.
