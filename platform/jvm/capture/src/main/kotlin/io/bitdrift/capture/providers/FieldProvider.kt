@@ -118,8 +118,19 @@ internal fun Pair<String, String>.toField(): Pair<String, FieldValue> = Pair(thi
 
 /**
  * Converts a Map<String, String> into a List<Field>.
+ *
+ * NOTE: Suppresses null-check warnings due to possible nulls from Java interop.
+ *
  */
-internal fun Map<String, String>?.toFields(): Map<String, FieldValue> =
-    this?.entries?.associate {
-        it.key to it.value.toFieldValue()
-    } ?: emptyMap()
+@Suppress("SENSELESS_COMPARISON")
+internal fun Map<String, String>?.toFields(): Map<String, FieldValue> {
+    if (this == null) return emptyMap()
+
+    val result = HashMap<String, FieldValue>(size)
+    for ((key, value) in this) {
+        if (key != null && value != null) {
+            result[key] = value.toFieldValue()
+        }
+    }
+    return result
+}
