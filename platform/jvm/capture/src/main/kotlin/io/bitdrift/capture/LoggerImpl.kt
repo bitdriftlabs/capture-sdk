@@ -106,7 +106,6 @@ internal class LoggerImpl(
     @VisibleForTesting
     internal val loggerId: LoggerId
 
-    // Comment just to run gradle_test on ci. Won't be merging
     init {
         val duration =
             measureTime {
