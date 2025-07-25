@@ -7,28 +7,39 @@
 
 package io.bitdrift.capture.extension
 
-import javax.inject.Inject
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
+import javax.inject.Inject
 
-open class InstrumentationExtension @Inject constructor(project: Project) {
-    private val objects = project.objects
+open class InstrumentationExtension
+    @Inject
+    constructor(
+        project: Project,
+    ) {
+        private val objects = project.objects
 
-    val automaticOkHttpInstrumentation: Property<Boolean> = objects.property(Boolean::class.java)
-            .convention(false)
+        val automaticOkHttpInstrumentation: Property<Boolean> =
+            objects
+                .property(Boolean::class.java)
+                .convention(false)
 
-    val debug: Property<Boolean> = objects.property(Boolean::class.java).convention(
-            false
-    )
+        val debug: Property<Boolean> =
+            objects.property(Boolean::class.java).convention(
+                false,
+            )
 
-    val okHttpInstrumentationType: Property<OkHttpInstrumentationType> = objects.property(OkHttpInstrumentationType::class.java).convention(OkHttpInstrumentationType.OVERWRITE)
+        val okHttpInstrumentationType: Property<OkHttpInstrumentationType> =
+            objects
+                .property(
+                    OkHttpInstrumentationType::class.java,
+                ).convention(OkHttpInstrumentationType.OVERWRITE)
 
-    enum class OkHttpInstrumentationType {
-        PROXY,
-        OVERWRITE,
+        enum class OkHttpInstrumentationType {
+            PROXY,
+            OVERWRITE,
+        }
+
+        // Helpers so that these values can be used directly in the DSL
+        val PROXY = OkHttpInstrumentationType.PROXY
+        val OVERWRITE = OkHttpInstrumentationType.OVERWRITE
     }
-
-    // Helpers so that these values can be used directly in the DSL
-    val PROXY = OkHttpInstrumentationType.PROXY
-    val OVERWRITE = OkHttpInstrumentationType.OVERWRITE
-}

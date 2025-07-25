@@ -43,15 +43,14 @@ class OkHttpEventListenerMethodVisitor(
     apiVersion: Int,
     originalVisitor: MethodVisitor,
     instrumentableContext: MethodContext,
-    val okHttpInstrumentationType: OkHttpInstrumentationType
+    val okHttpInstrumentationType: OkHttpInstrumentationType,
 ) : AdviceAdapter(
-    apiVersion,
-    originalVisitor,
-    instrumentableContext.access,
-    instrumentableContext.name,
-    instrumentableContext.descriptor
-) {
-
+        apiVersion,
+        originalVisitor,
+        instrumentableContext.access,
+        instrumentableContext.name,
+        instrumentableContext.descriptor,
+    ) {
     private val captureOkHttpEventListenerFactory =
         "io/bitdrift/capture/network/okhttp/CaptureOkHttpEventListenerFactory"
 
@@ -85,7 +84,7 @@ class OkHttpEventListenerMethodVisitor(
             captureOkHttpEventListenerFactory,
             "<init>",
             "()V",
-            false
+            false,
         )
 
         // Call "eventListener" function of OkHttpClient.Builder passing CaptureOkHttpEventListenerFactory
@@ -94,7 +93,7 @@ class OkHttpEventListenerMethodVisitor(
             "okhttp3/OkHttpClient\$Builder",
             "eventListenerFactory",
             "(Lokhttp3/EventListener\$Factory;)Lokhttp3/OkHttpClient\$Builder;",
-            false
+            false,
         )
     }
 
@@ -122,7 +121,7 @@ class OkHttpEventListenerMethodVisitor(
             "okhttp3/OkHttpClient\$Builder",
             "getEventListenerFactory\$okhttp",
             "()Lokhttp3/EventListener\$Factory;",
-            false
+            false,
         )
 
         // Call CaptureOkHttpEventListenerFactory constructor passing "eventListenerFactory" as parameter
@@ -131,7 +130,7 @@ class OkHttpEventListenerMethodVisitor(
             captureOkHttpEventListenerFactory,
             "<init>",
             "(Lokhttp3/EventListener\$Factory;)V",
-            false
+            false,
         )
 
         // Call "eventListener" function of OkHttpClient.Builder passing CaptureOkHttpEventListenerFactory
@@ -140,7 +139,7 @@ class OkHttpEventListenerMethodVisitor(
             "okhttp3/OkHttpClient\$Builder",
             "eventListenerFactory",
             "(Lokhttp3/EventListener\$Factory;)Lokhttp3/OkHttpClient\$Builder;",
-            false
+            false,
         )
     }
 }

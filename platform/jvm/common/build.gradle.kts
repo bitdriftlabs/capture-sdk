@@ -37,6 +37,6 @@ android {
 
 publishing {
     repositories {
-      mavenLocal()
+        mavenLocal()
     }
 }

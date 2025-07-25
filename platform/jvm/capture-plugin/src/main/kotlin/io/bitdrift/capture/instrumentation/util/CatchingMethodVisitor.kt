@@ -43,24 +43,27 @@ interface ExceptionHandler {
 }
 
 class CatchingMethodVisitor(
-        apiVersion: Int,
-        prevVisitor: MethodVisitor,
-        private val className: String,
-        private val methodContext: MethodContext,
-        private val exceptionHandler: ExceptionHandler? = null,
-        private val logger: Logger = CapturePlugin.logger
+    apiVersion: Int,
+    prevVisitor: MethodVisitor,
+    private val className: String,
+    private val methodContext: MethodContext,
+    private val exceptionHandler: ExceptionHandler? = null,
+    private val logger: Logger = CapturePlugin.logger,
 ) : MethodVisitor(apiVersion, prevVisitor) {
-
-    override fun visitMaxs(maxStack: Int, maxLocals: Int) {
+    override fun visitMaxs(
+        maxStack: Int,
+        maxLocals: Int,
+    ) {
         try {
             super.visitMaxs(maxStack, maxLocals)
         } catch (e: Throwable) {
             exceptionHandler?.handle(e)
             logger.error(
-                    """
+                """
                 Error while instrumenting $className.${methodContext.name} ${methodContext.descriptor}.
                 Please report this issue at https://github.com/bitdriftlabs/capture-sdk/issues
-                """.trimIndent(), e
+                """.trimIndent(),
+                e,
             )
             throw e
         }

@@ -56,9 +56,9 @@ fun AndroidComponentsExtension<*, *, *>.configure(
     onVariants { variant ->
         if (extension.instrumentation.automaticOkHttpInstrumentation.get()) {
             variant.configureInstrumentation(
-                    SpanAddingClassVisitorFactory::class.java,
-                    InstrumentationScope.ALL,
-                    FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS,
+                SpanAddingClassVisitorFactory::class.java,
+                InstrumentationScope.ALL,
+                FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS,
             ) { params ->
                 params.tmpDir.set(tmpDir)
                 params.debug.set(extension.instrumentation.debug)
@@ -69,15 +69,15 @@ fun AndroidComponentsExtension<*, *, *>.configure(
 }
 
 private fun <T : InstrumentationParameters> Variant.configureInstrumentation(
-        classVisitorFactoryImplClass: Class<out AsmClassVisitorFactory<T>>,
-        scope: InstrumentationScope,
-        mode: FramesComputationMode,
-        instrumentationParamsConfig: (T) -> Unit,
+    classVisitorFactoryImplClass: Class<out AsmClassVisitorFactory<T>>,
+    scope: InstrumentationScope,
+    mode: FramesComputationMode,
+    instrumentationParamsConfig: (T) -> Unit,
 ) {
     instrumentation.transformClassesWith(
-            classVisitorFactoryImplClass,
-            scope,
-            instrumentationParamsConfig
+        classVisitorFactoryImplClass,
+        scope,
+        instrumentationParamsConfig,
     )
     instrumentation.setAsmFramesComputationMode(mode)
 }

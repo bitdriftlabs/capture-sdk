@@ -17,42 +17,44 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import javax.inject.Inject
 
-abstract class CapturePlugin @Inject constructor() : Plugin<Project> {
-    override fun apply(target: Project) {
-        val extension = target.extensions.create("bitdrift", BitdriftPluginExtension::class.java, target)
+abstract class CapturePlugin
+    @Inject
+    constructor() : Plugin<Project> {
+        override fun apply(target: Project) {
+            val extension = target.extensions.create("bitdrift", BitdriftPluginExtension::class.java, target)
 
-        target.pluginManager.withPlugin("com.android.application") {
-            val androidComponentsExt =
+            target.pluginManager.withPlugin("com.android.application") {
+                val androidComponentsExt =
                     target.extensions.getByType(AndroidComponentsExtension::class.java)
 
-            androidComponentsExt.configure(
+                androidComponentsExt.configure(
                     target,
                     extension,
-            )
+                )
+            }
+
+            target.tasks.register("bdUploadMapping", CLIUploadMappingTask::class.java) { task ->
+                task.description = "Upload mapping to Bitdrift"
+                task.group = "Upload"
+            }
+
+            target.tasks.register("bdUploadSymbols", CLIUploadSymbolsTask::class.java) { task ->
+                task.description = "Upload symbols to Bitdrift"
+                task.group = "Upload"
+            }
+
+            target.tasks.register("bdUpload") { task ->
+                task.description = "Upload all symbol and mapping files to Bitdrift"
+                task.group = "Upload"
+                task.dependsOn("bdUploadMapping", "bdUploadSymbols")
+            }
         }
 
-        target.tasks.register("bdUploadMapping", CLIUploadMappingTask::class.java) { task ->
-            task.description = "Upload mapping to Bitdrift"
-            task.group = "Upload"
-        }
+        companion object {
+            internal val sep = File.separator
 
-        target.tasks.register("bdUploadSymbols", CLIUploadSymbolsTask::class.java) { task ->
-            task.description = "Upload symbols to Bitdrift"
-            task.group = "Upload"
-        }
-
-        target.tasks.register("bdUpload") { task ->
-            task.description = "Upload all symbol and mapping files to Bitdrift"
-            task.group = "Upload"
-            task.dependsOn("bdUploadMapping", "bdUploadSymbols")
+            internal val logger by lazy {
+                LoggerFactory.getLogger(CapturePlugin::class.java)
+            }
         }
     }
-
-    companion object {
-        internal val sep = File.separator
-
-        internal val logger by lazy {
-            LoggerFactory.getLogger(CapturePlugin::class.java)
-        }
-    }
-}

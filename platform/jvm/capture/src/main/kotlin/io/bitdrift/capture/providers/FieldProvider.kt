@@ -112,11 +112,6 @@ internal fun ByteArray.toFieldValue() =
     }
 
 /**
- * Converts a key-value pair into a Field
- */
-internal fun Pair<String, String>.toField(): Pair<String, FieldValue> = Pair(this.first, this.second.toFieldValue())
-
-/**
  * Converts a Map<String, String> into a List<Field>.
  *
  * NOTE: Suppresses null-check warnings due to possible nulls from Java interop.

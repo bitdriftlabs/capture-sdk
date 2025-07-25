@@ -1,6 +1,3 @@
-import com.android.builder.core.apiVersionFromString
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     // The rust android gradle plugin needs to go first
     //  see: https://github.com/mozilla/rust-android-gradle/issues/147
@@ -122,7 +119,7 @@ tasks.whenTaskAdded {
     }
 }
 
-//detekt
+// detekt
 detekt {
     // Define the detekt configuration(s) you want to use.
     // Defaults to the default detekt configuration.
@@ -144,6 +141,6 @@ publishing {
         maven {
             url = uri(layout.buildDirectory.dir("repos/releases"))
         }
-      mavenLocal()
+        mavenLocal()
     }
 }

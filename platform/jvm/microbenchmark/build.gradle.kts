@@ -54,5 +54,4 @@ dependencies {
     // in an app module this way - you will need to move any code you
     // want to benchmark to a library module:
     // https://developer.android.com/studio/projects/android-library#Convert
-
 }

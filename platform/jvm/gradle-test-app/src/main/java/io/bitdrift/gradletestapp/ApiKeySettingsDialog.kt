@@ -38,7 +38,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.colorResource
@@ -49,30 +48,33 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.DialogFragment
 
-class SettingsApiKeysDialogFragment(private val sharedPreferences: SharedPreferences) :
-    DialogFragment() {
-
+class SettingsApiKeysDialogFragment(
+    private val sharedPreferences: SharedPreferences,
+) : DialogFragment() {
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View {
-        return ComposeView(requireContext()).apply {
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View =
+        ComposeView(requireContext()).apply {
             setContent {
                 ApiKeysDialog(
                     onDismiss = { dismiss() },
-                    sharedPreferences = sharedPreferences
+                    sharedPreferences = sharedPreferences,
                 )
             }
         }
-    }
 
     @Composable
-    fun ApiKeysDialog(onDismiss: () -> Unit, sharedPreferences: SharedPreferences) {
-        fun getCurrentApiKeyValue(key:String)
-            = mutableStateOf(TextFieldValue(sharedPreferences.getString(key,"")?:""))
+    fun ApiKeysDialog(
+        onDismiss: () -> Unit,
+        sharedPreferences: SharedPreferences,
+    ) {
+        fun getCurrentApiKeyValue(key: String) = mutableStateOf(TextFieldValue(sharedPreferences.getString(key, "") ?: ""))
 
         var captureSdkApiKey by remember { getCurrentApiKeyValue(BITDRIFT_API_KEY) }
-        var bugSnagSdkApiKey by remember  { getCurrentApiKeyValue(BUG_SNAG_SDK_API_KEY) }
-        var sentrySdkDsnKey by remember  { getCurrentApiKeyValue(SENTRY_SDK_DSN_KEY) }
+        var bugSnagSdkApiKey by remember { getCurrentApiKeyValue(BUG_SNAG_SDK_API_KEY) }
+        var sentrySdkDsnKey by remember { getCurrentApiKeyValue(SENTRY_SDK_DSN_KEY) }
         val localSoftwareKeyboardController = LocalSoftwareKeyboardController.current
 
         fun persistApiKeysAndDismiss() {
@@ -95,49 +97,53 @@ class SettingsApiKeysDialogFragment(private val sharedPreferences: SharedPrefere
                 Text(
                     text = "Enter API Keys",
                     fontSize = 20.sp,
-                    modifier = Modifier
-                        .padding(bottom = 16.dp)
-                        .fillMaxWidth()
+                    modifier =
+                        Modifier
+                            .padding(bottom = 16.dp)
+                            .fillMaxWidth(),
                 )
             },
             text = {
                 Column(
-                    modifier = Modifier
-                        .padding(24.dp)
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
+                    modifier =
+                        Modifier
+                            .padding(24.dp)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
                 ) {
                     ApiKeyTextField(
                         value = captureSdkApiKey,
                         onValueChange = { captureSdkApiKey = it },
                         label = "Bitdrift API key",
-                        onDoneAction = { persistApiKeysAndDismiss() }
+                        onDoneAction = { persistApiKeysAndDismiss() },
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     ApiKeyTextField(
                         value = bugSnagSdkApiKey,
                         onValueChange = { bugSnagSdkApiKey = it },
                         label = "Bugsnag API key",
-                        onDoneAction = { persistApiKeysAndDismiss() }
+                        onDoneAction = { persistApiKeysAndDismiss() },
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     ApiKeyTextField(
                         value = sentrySdkDsnKey,
                         onValueChange = { sentrySdkDsnKey = it },
                         label = "Sentry DSN API key",
-                        onDoneAction = { persistApiKeysAndDismiss() }
+                        onDoneAction = { persistApiKeysAndDismiss() },
                     )
                 }
             },
             confirmButton = {
                 Button(
                     onClick = { persistApiKeysAndDismiss() },
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = colorResource(id = R.color.green)
-                    )) {
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            backgroundColor = colorResource(id = R.color.green),
+                        ),
+                ) {
                     Text("OK")
                 }
-            }
+            },
         )
     }
 
@@ -146,24 +152,27 @@ class SettingsApiKeysDialogFragment(private val sharedPreferences: SharedPrefere
         value: TextFieldValue,
         onValueChange: (TextFieldValue) -> Unit,
         label: String,
-        onDoneAction: () -> Unit
+        onDoneAction: () -> Unit,
     ) {
         TextField(
             value = value,
             onValueChange = onValueChange,
             label = { Text(label) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-                .wrapContentHeight(),
-            keyboardOptions = KeyboardOptions.Default.copy(
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    onDoneAction()
-                }
-            )
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+                    .wrapContentHeight(),
+            keyboardOptions =
+                KeyboardOptions.Default.copy(
+                    imeAction = ImeAction.Done,
+                ),
+            keyboardActions =
+                KeyboardActions(
+                    onDone = {
+                        onDoneAction()
+                    },
+                ),
         )
     }
 

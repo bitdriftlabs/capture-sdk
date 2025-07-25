@@ -17,33 +17,37 @@ import timber.log.Timber
  * Capture's implementation of a [Timber.Tree]. It forwards all the logs to [Capture.Logger]
  * if the Logger is initialized.
  */
-class CaptureTree internal constructor(private val internalLogger: ILogger?) : Timber.Tree() {
-
+class CaptureTree internal constructor(
+    private val internalLogger: ILogger?,
+) : Timber.Tree() {
     constructor() : this(Capture.logger())
 
     // attempts to get the latest logger if one wasn't found at construction time
     private val logger: ILogger?
         get() = internalLogger ?: Capture.logger()
 
-    override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+    override fun log(
+        priority: Int,
+        tag: String?,
+        message: String,
+        t: Throwable?,
+    ) {
         logger?.log(toCaptureLogLevel(priority), extractFields(tag), t) { message }
     }
 
-    private fun toCaptureLogLevel(priority: Int): LogLevel {
-        return when (priority) {
+    private fun toCaptureLogLevel(priority: Int): LogLevel =
+        when (priority) {
             Log.VERBOSE -> LogLevel.TRACE
-            Log.DEBUG   -> LogLevel.DEBUG
-            Log.INFO    -> LogLevel.INFO
-            Log.WARN    -> LogLevel.WARNING
-            Log.ERROR   -> LogLevel.ERROR
-            else        -> LogLevel.DEBUG // default level
+            Log.DEBUG -> LogLevel.DEBUG
+            Log.INFO -> LogLevel.INFO
+            Log.WARN -> LogLevel.WARNING
+            Log.ERROR -> LogLevel.ERROR
+            else -> LogLevel.DEBUG // default level
         }
-    }
 
-    private fun extractFields(tag: String?): Map<String, String> {
-        return buildMap {
+    private fun extractFields(tag: String?): Map<String, String> =
+        buildMap {
             put("source", "Timber")
             tag?.let { put("tag", it) }
         }
-    }
 }

@@ -36,20 +36,19 @@ package io.bitdrift.capture.instrumentation
 import io.bitdrift.capture.instrumentation.util.CatchingMethodVisitor
 import io.bitdrift.capture.instrumentation.util.ExceptionHandler
 import io.bitdrift.capture.instrumentation.util.FileLogTextifier
-import java.io.File
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.util.TraceMethodVisitor
+import java.io.File
 
 @Suppress("UnstableApiUsage")
 class CommonClassVisitor(
-        apiVersion: Int,
-        classVisitor: ClassVisitor,
-        private val className: String,
-        private val methodInstrumentables: List<MethodInstrumentable>,
-        private val parameters: SpanAddingClassVisitorFactory.SpanAddingParameters
+    apiVersion: Int,
+    classVisitor: ClassVisitor,
+    private val className: String,
+    private val methodInstrumentables: List<MethodInstrumentable>,
+    private val parameters: SpanAddingClassVisitorFactory.SpanAddingParameters,
 ) : ClassVisitor(apiVersion, classVisitor) {
-
     private lateinit var log: File
 
     init {
@@ -70,11 +69,11 @@ class CommonClassVisitor(
     }
 
     override fun visitMethod(
-            access: Int,
-            name: String?,
-            descriptor: String?,
-            signature: String?,
-            exceptions: Array<out String>?
+        access: Int,
+        name: String?,
+        descriptor: String?,
+        signature: String?,
+        exceptions: Array<out String>?,
     ): MethodVisitor {
         var mv = super.visitMethod(access, name, descriptor, signature, exceptions)
         val methodContext = MethodContext(access, name, descriptor, signature, exceptions?.toList())
@@ -89,11 +88,11 @@ class CommonClassVisitor(
         val instrumentableVisitor = instrumentable?.getVisitor(methodContext, api, mv, parameters)
         return if (instrumentableVisitor != null) {
             CatchingMethodVisitor(
-                    api,
-                    instrumentableVisitor,
-                    className,
-                    methodContext,
-                    textifier
+                api,
+                instrumentableVisitor,
+                className,
+                methodContext,
+                textifier,
             )
         } else {
             mv
