@@ -70,7 +70,9 @@ class FatalIssueReporterTest {
         assertThat(state).isInstanceOf(expectedType)
         val expectedMap: Map<String, FieldValue> =
             buildMap {
-                put("_fatal_issue_reporting_duration_ms", getDuration().toFieldValue())
+                getDuration()?.let {
+                    put("_fatal_issue_reporting_duration_ms", it)
+                }
                 put("_fatal_issue_reporting_state", state.readableType.toFieldValue())
             }
         assertThat(duration).isNotNull()
