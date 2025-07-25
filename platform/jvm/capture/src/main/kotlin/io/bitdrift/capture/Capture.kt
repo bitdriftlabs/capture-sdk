@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ProcessLifecycleOwner
+import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
@@ -25,6 +26,9 @@ import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
+import kotlin.time.TimeSource
+import kotlin.time.measureTime
+import kotlin.time.measureTimedValue
 
 internal sealed class LoggerState {
     /**
@@ -175,35 +179,16 @@ object Capture {
 
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
             if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
-                try {
-                    val unWrappedContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
-                    val clientAttributes =
-                        ClientAttributes(
-                            unWrappedContext,
-                            ProcessLifecycleOwner.get(),
-                        )
-
-                    if (configuration.enableFatalIssueReporting) {
-                        fatalIssueReporter.initBuiltInMode(unWrappedContext, clientAttributes)
-                    }
-                    val loggerImpl =
-                        LoggerImpl(
-                            apiKey = apiKey,
-                            apiUrl = apiUrl,
-                            context = unWrappedContext,
-                            clientAttributes = clientAttributes,
-                            fieldProviders = fieldProviders,
-                            dateProvider = dateProvider ?: SystemDateProvider(),
-                            configuration = configuration,
-                            sessionStrategy = sessionStrategy,
-                            bridge = bridge,
-                            fatalIssueReporter = fatalIssueReporter,
-                        )
-                    default.set(LoggerState.Started(loggerImpl))
-                } catch (e: Throwable) {
-                    Log.w(LOG_TAG, "Failed to start Capture", e)
-                    default.set(LoggerState.StartFailure)
-                }
+                initSdk(
+                    apiKey = apiKey,
+                    sessionStrategy = sessionStrategy,
+                    configuration = configuration,
+                    fieldProviders = fieldProviders,
+                    dateProvider = dateProvider,
+                    apiUrl = apiUrl,
+                    bridge = bridge,
+                    context = context,
+                )
             } else {
                 Log.w(LOG_TAG, "Multiple attempts to start Capture")
             }
@@ -512,5 +497,71 @@ object Capture {
         }
 
         private fun hasInvalidContext(context: Context? = null) = context == null && !ContextHolder.isInitialized
+    }
+
+    private fun initSdk(
+        apiKey: String,
+        sessionStrategy: SessionStrategy,
+        configuration: Configuration,
+        fieldProviders: List<FieldProvider>,
+        dateProvider: DateProvider? = null,
+        apiUrl: HttpUrl,
+        bridge: IBridge,
+        context: Context?,
+    ) {
+        try {
+            val appContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
+
+            val wholeDurationTimer = TimeSource.Monotonic.markNow()
+
+            val clientAttributes =
+                ClientAttributes(
+                    appContext,
+                    ProcessLifecycleOwner.get(),
+                )
+
+            val nativeLoadDuration =
+                measureTime {
+                    CaptureJniLibrary.load()
+                }
+
+            if (configuration.enableFatalIssueReporting) {
+                fatalIssueReporter.initBuiltInMode(appContext, clientAttributes)
+            }
+
+            val (loggerImpl, loggerImplBuildDuration) =
+                measureTimedValue {
+                    LoggerImpl(
+                        apiKey = apiKey,
+                        apiUrl = apiUrl,
+                        context = appContext,
+                        clientAttributes = clientAttributes,
+                        fieldProviders = fieldProviders,
+                        dateProvider = dateProvider ?: SystemDateProvider(),
+                        configuration = configuration,
+                        sessionStrategy = sessionStrategy,
+                        bridge = bridge,
+                        fatalIssueReporter = fatalIssueReporter,
+                    )
+                }
+
+            default.set(LoggerState.Started(loggerImpl))
+
+            val sdkConfiguredDuration =
+                SdkConfiguredDuration(
+                    wholeStartDuration = wholeDurationTimer.elapsedNow(),
+                    nativeLoadDuration = nativeLoadDuration,
+                    loggerImplBuildDuration = loggerImplBuildDuration,
+                )
+
+            loggerImpl.writeSdkStartLog(
+                appContext = appContext,
+                sdkConfiguredDuration = sdkConfiguredDuration,
+                captureStartThread = Thread.currentThread().name,
+            )
+        } catch (e: Throwable) {
+            Log.w(LOG_TAG, "Failed to start Capture", e)
+            default.set(LoggerState.StartFailure)
+        }
     }
 }

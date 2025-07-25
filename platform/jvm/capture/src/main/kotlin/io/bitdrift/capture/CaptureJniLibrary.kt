@@ -11,9 +11,6 @@ import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
-import java.util.concurrent.atomic.AtomicReference
-import kotlin.time.DurationUnit
-import kotlin.time.measureTime
 
 // We use our own type here instead of a builtin function to allow us to avoid proguard-rewriting this class.
 
@@ -29,24 +26,12 @@ interface StackTraceProvider {
 
 @Suppress("UndocumentedPublicClass")
 internal object CaptureJniLibrary : IBridge {
-    private val loadDurationInMilli: AtomicReference<Double?> = AtomicReference(null)
-
     /**
      * Loads the shared library. This is safe to call multiple times.
      */
     fun load() {
-        val duration =
-            measureTime {
-                System.loadLibrary("capture")
-            }
-        loadDurationInMilli.compareAndSet(null, duration.toDouble(DurationUnit.MILLISECONDS))
+        System.loadLibrary("capture")
     }
-
-    /**
-     * Returns the native library duration in milliseconds if previously loaded via
-     * CaptureJniLibrary.load() call.
-     */
-    fun getLoadDurationInMillis(): String? = loadDurationInMilli.get()?.toString()
 
     /**
      * Creates a new logger, returning a handle that can be used to interact with the logger.

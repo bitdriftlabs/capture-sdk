@@ -48,6 +48,7 @@ import java.util.Date
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration
 
 // This should return "2022-07-05T18:55:58.123Z" when formatted.
 private const val TEST_DATE_TIMESTAMP: Long = 1657047358123
@@ -461,16 +462,29 @@ class CaptureLoggerTest {
         sessionStrategy: SessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
     ): LoggerImpl {
         val fieldProviders = fieldProvider?.let { listOf(it) }.orEmpty()
-        return LoggerImpl(
-            apiKey = "test",
-            apiUrl = testServerUrl(),
-            fieldProviders = fieldProviders,
-            sessionStrategy = sessionStrategy,
-            context = ContextHolder.APP_CONTEXT,
-            dateProvider = dateProvider,
-            configuration = Configuration(),
-            fatalIssueReporter = fatalIssueReporter,
+        val loggerImpl =
+            LoggerImpl(
+                apiKey = "test",
+                apiUrl = testServerUrl(),
+                fieldProviders = fieldProviders,
+                sessionStrategy = sessionStrategy,
+                context = ContextHolder.APP_CONTEXT,
+                dateProvider = dateProvider,
+                configuration = Configuration(),
+                fatalIssueReporter = fatalIssueReporter,
+            )
+        val sdkConfiguredDuration =
+            LoggerImpl.SdkConfiguredDuration(
+                wholeStartDuration = Duration.ZERO,
+                nativeLoadDuration = Duration.ZERO,
+                loggerImplBuildDuration = Duration.ZERO,
+            )
+        loggerImpl.writeSdkStartLog(
+            appContext = ContextHolder.APP_CONTEXT,
+            sdkConfiguredDuration = sdkConfiguredDuration,
+            captureStartThread = Thread.currentThread().name,
         )
+        return loggerImpl
     }
 
     private fun getDefaultFields(): Map<String, FieldValue> =
