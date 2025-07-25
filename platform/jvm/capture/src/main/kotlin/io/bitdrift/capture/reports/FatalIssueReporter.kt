@@ -44,7 +44,6 @@ internal class FatalIssueReporter(
         private set
 
     private lateinit var fatalIssueReporterProcessor: FatalIssueReporterProcessor
-    private var initializationCallerThread: String = NotInitialized.readableType
 
     /**
      * Initializes a BuiltIn Fatal Issue reporting mechanism that doesn't depend on any 3rd party
@@ -56,7 +55,6 @@ internal class FatalIssueReporter(
     ) {
         if (fatalIssueReporterStatus.state is NotInitialized) {
             runCatching {
-                initializationCallerThread = Thread.currentThread().name
                 var fatalIssueReporterState: FatalIssueReporterState
                 val duration =
                     measureTime {
@@ -119,14 +117,12 @@ internal class FatalIssueReporter(
     }
 
     override fun getLogStatusFieldsMap(): Map<String, FieldValue> =
-        mapOf(
-            FATAL_ISSUE_REPORTING_INIT_THREAD_KEY to initializationCallerThread.toFieldValue(),
-            FATAL_ISSUE_REPORTING_STATE_KEY to fatalIssueReporterStatus.state.readableType.toFieldValue(),
-            FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY to
-                fatalIssueReporterStatus
-                    .getDuration()
-                    .toFieldValue(),
-        )
+        buildMap {
+            put(FATAL_ISSUE_REPORTING_STATE_KEY, fatalIssueReporterStatus.state.readableType.toFieldValue())
+            fatalIssueReporterStatus.getDuration()?.let { duration ->
+                put(FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY, duration)
+            }
+        }
 
     private fun persistLastExitReasonIfNeeded(appContext: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
@@ -170,7 +166,6 @@ internal class FatalIssueReporter(
     internal companion object {
         private const val FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY = "_fatal_issue_reporting_duration_ms"
         private const val FATAL_ISSUE_REPORTING_STATE_KEY = "_fatal_issue_reporting_state"
-        private const val FATAL_ISSUE_REPORTING_INIT_THREAD_KEY = "_fatal_reporter_init_thread"
         private const val DESTINATION_FILE_PATH = "/reports/new"
 
         /**
@@ -179,10 +174,12 @@ internal class FatalIssueReporter(
         internal fun FatalIssueReporterStatus.buildFieldsMap(): Map<String, FieldValue> =
             buildMap {
                 put(FATAL_ISSUE_REPORTING_STATE_KEY, state.readableType.toFieldValue())
-                put(FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY, getDuration().toFieldValue())
+                getDuration()?.let {
+                    put(FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY, it)
+                }
             }
 
         @VisibleForTesting
-        fun FatalIssueReporterStatus.getDuration(): String = duration?.toDouble(DurationUnit.MILLISECONDS)?.toString() ?: "n/a"
+        fun FatalIssueReporterStatus.getDuration(): FieldValue? = duration?.toFieldValue(DurationUnit.MILLISECONDS)
     }
 }
