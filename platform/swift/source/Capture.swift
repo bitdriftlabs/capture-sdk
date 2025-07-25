@@ -120,6 +120,9 @@ extension Logger {
             return
         }
 
+        BitdriftKSCrashWrapper.configure(withBasePath: outputDir.deletingLastPathComponent().appendingPathComponent("kscrash"))
+        BitdriftKSCrashWrapper.startCrashReporter()
+
         issueReporterInitResult = measureTime {
             switch type {
             case .builtIn:
@@ -143,6 +146,11 @@ extension Logger {
                 return CustomConfigIssueReporter.processFiles()
             }
         }
+    }
+
+    /// Internal for testing purposes only.
+    static func disableFatalIssueReporting() {
+        BitdriftKSCrashWrapper.stopCrashReporter()
     }
 
     /// Retrieves the session ID. It is nil before the Capture SDK is started.

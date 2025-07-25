@@ -36,6 +36,7 @@ final class FatalIssueReporterTests: XCTestCase {
     }
 
     override func tearDown() {
+        Logger.disableFatalIssueReporting()
         if FileManager.default.fileExists(atPath: reportDir.path) {
             try! FileManager.default.removeItem(at: reportDir)
         }

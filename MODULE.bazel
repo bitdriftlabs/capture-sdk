@@ -86,6 +86,20 @@ new_git_repository(
     remote = "https://github.com/bitdriftlabs/api.git",
 )
 
+new_git_repository(
+    name = "ksbonjson",
+    branch = "main",
+    build_file = "//bazel:BUILD.ksbonjson",
+    remote = "https://github.com/kstenerud/ksbonjson.git",
+)
+
+new_git_repository(
+    name = "kscrash",
+    branch = "66eb948d9c2f8d2c46e818f62b6a4e016035aef8",
+    build_file = "//bazel:BUILD.kscrash",
+    remote = "https://github.com/kstenerud/KSCrash.git",
+)
+
 git_override(
     module_name = "google_bazel_common",
     commit = "c35b0339ae7d7ac95761f69f4a0eed033163cc80",
