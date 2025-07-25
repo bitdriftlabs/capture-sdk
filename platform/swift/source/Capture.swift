@@ -88,6 +88,7 @@ extension Logger {
     ) -> LoggerIntegrator?
     {
         return self.createOnce {
+            // Just to trigger build on c.i. pre 1.88 POST bump. Won't be merging
             if configuration.enableFatalIssueReporting {
                 Capture.Logger.initFatalIssueReporting(.builtIn)
             }
