@@ -87,6 +87,9 @@
 
 -keep class io.bitdrift.capture.providers.** { *; }
 
+# Keep source file and line number to be able to fully deobfuscate fatal issue info
+-keepattributes SourceFile,LineNumberTable
+
 # Keep the generated tombstone for parsing native crash
 -keep class io.bitdrift.capture.** extends com.google.protobuf.GeneratedMessageLite { *; }
 
