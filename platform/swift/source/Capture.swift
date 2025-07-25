@@ -88,7 +88,7 @@ extension Logger {
     ) -> LoggerIntegrator?
     {
         return self.createOnce {
-            // Just to trigger build on c.i. Won't be merging
+            // Just to trigger build on c.i. pre 1.88 rust bump. Won't be merging
             if configuration.enableFatalIssueReporting {
                 Capture.Logger.initFatalIssueReporting(.builtIn)
             }
