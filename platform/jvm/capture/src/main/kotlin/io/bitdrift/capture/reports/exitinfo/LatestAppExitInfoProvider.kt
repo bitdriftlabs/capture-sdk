@@ -6,11 +6,11 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 package io.bitdrift.capture.reports.exitinfo
 
-import android.annotation.TargetApi
 import android.app.ActivityManager
 import android.app.Application
 import android.app.ApplicationExitInfo
 import android.os.Build
+import androidx.annotation.RequiresApi
 import io.bitdrift.capture.reports.binformat.v1.ReportType
 
 /**
@@ -24,7 +24,7 @@ internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
     internal const val EXIT_REASON_EXCEPTION_MESSAGE =
         "LatestAppExitInfoProvider: Failed to retrieve LatestAppExitReasonResult"
 
-    @TargetApi(Build.VERSION_CODES.R)
+    @RequiresApi(Build.VERSION_CODES.R)
     override fun get(activityManager: ActivityManager): LatestAppExitReasonResult =
         try {
             // a null packageName means match all packages belonging to the caller's process (UID)

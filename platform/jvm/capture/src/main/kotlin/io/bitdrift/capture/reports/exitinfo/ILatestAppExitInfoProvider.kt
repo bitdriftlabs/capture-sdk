@@ -7,10 +7,10 @@
 
 package io.bitdrift.capture.reports.exitinfo
 
-import android.annotation.TargetApi
 import android.app.ActivityManager
 import android.app.ApplicationExitInfo
 import android.os.Build
+import androidx.annotation.RequiresApi
 
 /**
  * Retrieves the latest [ApplicationExitInfo] if available
@@ -19,7 +19,7 @@ fun interface ILatestAppExitInfoProvider {
     /**
      * Returns the latest [ApplicationExitInfo] when present
      */
-    @TargetApi(Build.VERSION_CODES.R)
+    @RequiresApi(Build.VERSION_CODES.R)
     fun get(activityManager: ActivityManager): LatestAppExitReasonResult
 }
 

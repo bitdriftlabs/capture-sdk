@@ -10,10 +10,12 @@
 package io.bitdrift.gradletestapp
 
 import android.annotation.SuppressLint
+import android.app.ActivityManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -26,23 +28,16 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.UUID
-
 
 /**
  * Artificially creates different types of Fatal issues (ANR, JVM Crash, Native Crash,etc)
  */
 internal object FatalIssueGenerator {
-
-    private val uuidSubject: BehaviorSubject<String> = BehaviorSubject.create();
+    private val uuidSubject: BehaviorSubject<String> = BehaviorSubject.create()
     private val oomList = mutableListOf<ByteArray>()
     private val mainThreadHandler = Handler(Looper.getMainLooper())
 
@@ -66,6 +61,18 @@ internal object FatalIssueGenerator {
         }
     }
 
+    fun forceGenericAnr(context: Context) {
+        callOnMainThread {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val activityManager: ActivityManager =
+                    context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                activityManager.appNotResponding("Generic ANR triggered")
+            } else {
+                Log.e(TAG_NAME, "Triggering generic ANR not available on this API level")
+            }
+        }
+    }
+
     fun forceBroadcastReceiverAnr(context: Context) {
         callOnMainThread {
             val filter = IntentFilter(TRIGGER_BROADCAST_RECEIVER_ANR)
@@ -73,23 +80,21 @@ internal object FatalIssueGenerator {
                 context,
                 AnrBroadcastReceiver(),
                 filter,
-                ContextCompat.RECEIVER_NOT_EXPORTED
+                ContextCompat.RECEIVER_NOT_EXPORTED,
             )
             val intent = Intent(TRIGGER_BROADCAST_RECEIVER_ANR).setPackage(context.packageName)
             context.sendBroadcast(intent)
         }
     }
 
-    fun forceUnhandledException() {
-        throw RuntimeException("Forced unhandled exception")
-    }
+    fun forceUnhandledException(): Unit = throw RuntimeException("Forced unhandled exception")
 
     @SuppressLint("CheckResult")
     fun forceRxJavaException() {
-        Observable.error<String>(Throwable("Artificial exception"))
+        Observable
+            .error<String>(Throwable("Artificial exception"))
             .subscribe { item -> Log.i(TAG_NAME, "Item received: $item") }
         // Missing error explicitly in order to crash
-
     }
 
     fun forceCoroutinesAnr() {
@@ -100,7 +105,7 @@ internal object FatalIssueGenerator {
         }
     }
 
-    fun forceCoroutinesCrash(){
+    fun forceCoroutinesCrash() {
         CoroutineScope(Dispatchers.IO).launch {
             throw RuntimeException("Coroutine background thread crash")
         }
@@ -125,18 +130,19 @@ internal object FatalIssueGenerator {
     }
 
     private fun initializeInBackground() {
-        val backgroundThread: Thread = object : Thread() {
-            override fun run() {
-                synchronized(SECOND_LOCK_RESOURCE) {
-                    logThreadStatus("waiting on second lock")
-                    try {
-                        sleep(THREAD_DELAY_IN_MILLI)
-                    } catch (_: InterruptedException) {
+        val backgroundThread: Thread =
+            object : Thread() {
+                override fun run() {
+                    synchronized(SECOND_LOCK_RESOURCE) {
+                        logThreadStatus("waiting on second lock")
+                        try {
+                            sleep(THREAD_DELAY_IN_MILLI)
+                        } catch (_: InterruptedException) {
+                        }
+                        synchronized(FIRST_LOCK_RESOURCE) { logThreadStatus("waiting on first lock") }
                     }
-                    synchronized(FIRST_LOCK_RESOURCE) { logThreadStatus("waiting on first lock") }
                 }
             }
-        }
         backgroundThread.name = "background_thread_for_deadlock_demo"
         backgroundThread.start()
     }
@@ -163,12 +169,16 @@ internal object FatalIssueGenerator {
     private const val SLEEP_DURATION_MILLI = 15000L
     private const val TRIGGER_BROADCAST_RECEIVER_ANR =
         "io.bitdrift.gradletestapp.broadcastreceiver.ANR_TRIGGER"
+
     private fun logThreadStatus(lockInfo: String) {
         Log.d("DEADLOCK_TAG", "Thread [" + Thread.currentThread().name + "] " + lockInfo)
     }
 
     private class AnrBroadcastReceiver : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
+        override fun onReceive(
+            context: Context?,
+            intent: Intent?,
+        ) {
             if (TRIGGER_BROADCAST_RECEIVER_ANR == intent?.action) {
                 repeat(1000) {
                     val result = fetchResult(it)
@@ -193,7 +203,6 @@ internal object FatalIssueGenerator {
     }
 
     object DeviceFetcher {
-
         private suspend fun fetchDeviceId(): String {
             delay(20000)
             return "Device ID: ${UUID.randomUUID()}"
@@ -202,11 +211,10 @@ internal object FatalIssueGenerator {
         /**
          * This call will block caller thread until fetchDeviceId completes
          */
-        fun getDeviceId(): String {
-            return runBlocking {
+        fun getDeviceId(): String =
+            runBlocking {
                 Log.i("DeviceScopeRegistry", "getDevice")
                 fetchDeviceId()
             }
-        }
     }
 }

@@ -38,35 +38,37 @@ fun SecondScreen() {
         val smallSpacing = Dp(value = 5f)
         val normalSpacing = Dp(value = 10f)
         Column(Modifier.padding(normalSpacing)) {
-            val centerWithPaddingModifier = Modifier
-                .padding(horizontal = smallSpacing)
-                .align(Alignment.CenterHorizontally)
+            val centerWithPaddingModifier =
+                Modifier
+                    .padding(horizontal = smallSpacing)
+                    .align(Alignment.CenterHorizontally)
             Text(
                 text = "Hello Compose",
                 style = MaterialTheme.typography.h6,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(all = Dp(value = 20f))
-                    .wrapContentWidth(Alignment.CenterHorizontally)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(all = Dp(value = 20f))
+                        .wrapContentWidth(Alignment.CenterHorizontally),
             )
             Column(Modifier.fillMaxWidth()) {
                 Text(
                     text = "This is Text inside a Column",
                     color = MaterialTheme.colors.primaryVariant,
                     fontWeight = FontWeight.Bold,
-                    modifier = centerWithPaddingModifier.padding(top = normalSpacing)
+                    modifier = centerWithPaddingModifier.padding(top = normalSpacing),
                 )
                 Text(
                     text = "This is a separate Text component",
-                    modifier = centerWithPaddingModifier.padding(bottom = normalSpacing)
+                    modifier = centerWithPaddingModifier.padding(bottom = normalSpacing),
                 )
             }
             HtmlDescription(
-                description = "HTML Content inside an AndroidView<br/><br/><a href=\"https://developer.android.com\">Android Developers</a>"
+                description = "HTML Content inside an AndroidView<br/><br/><a href=\"https://developer.android.com\">Android Developers</a>",
             )
             ElevatedButton(
                 onClick = { Timber.w("Warning logged from Compose Screen") },
-                modifier = centerWithPaddingModifier.padding(top = normalSpacing).captureIgnore(ignoreSubTree = false)
+                modifier = centerWithPaddingModifier.padding(top = normalSpacing).captureIgnore(ignoreSubTree = false),
             ) {
                 Text("Log-a-log (Warning)")
             }
@@ -78,9 +80,10 @@ fun SecondScreen() {
 @Composable
 private fun HtmlDescription(description: String) {
     // Remembers the HTML formatted description. Re-executes on a new description
-    val htmlDescription = remember(description) {
-        HtmlCompat.fromHtml(description, HtmlCompat.FROM_HTML_MODE_COMPACT)
-    }
+    val htmlDescription =
+        remember(description) {
+            HtmlCompat.fromHtml(description, HtmlCompat.FROM_HTML_MODE_COMPACT)
+        }
 
     // Displays the TextView on the screen and updates with the HTML description when inflated
     // Updates to htmlDescription will make AndroidView recompose and update the text
@@ -92,6 +95,6 @@ private fun HtmlDescription(description: String) {
         },
         update = {
             it.text = htmlDescription
-        }
+        },
     )
 }

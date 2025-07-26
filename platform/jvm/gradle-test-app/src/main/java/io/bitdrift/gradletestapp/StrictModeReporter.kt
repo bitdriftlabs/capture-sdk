@@ -18,27 +18,30 @@ import io.bitdrift.capture.Capture
  */
 @RequiresApi(Build.VERSION_CODES.P)
 internal class StrictModeReporter {
-
-    fun onViolation(violationType: ViolationType, violation: Violation) {
+    fun onViolation(
+        violationType: ViolationType,
+        violation: Violation,
+    ) {
         val cause = violation.toString()
         val stackTrace = Log.getStackTraceString(violation)
         if (KNOWN_ISSUES_LIST.any { stackTrace.contains(it) }) {
             return
         }
-        val strictModeFields = mapOf(
-            "strict_mode_reason" to violation.toString(),
-            "strict_mode_stack_trace" to stackTrace
-        )
+        val strictModeFields =
+            mapOf(
+                "strict_mode_reason" to violation.toString(),
+                "strict_mode_stack_trace" to stackTrace,
+            )
         val details = "StrictMode ${violationType.name} violation. " + cause
-        Capture.Logger.logWarning (strictModeFields) { details }
+        Capture.Logger.logWarning(strictModeFields) { details }
     }
 
     internal enum class ViolationType {
         VM,
-        THREAD
+        THREAD,
     }
 
-    private companion object{
-        val KNOWN_ISSUES_LIST  = listOf("Sentry", "BugSnag")
+    private companion object {
+        val KNOWN_ISSUES_LIST = listOf("Sentry", "BugSnag")
     }
 }

@@ -53,11 +53,12 @@ android {
         abortOnError = true
         checkDependencies = true
         checkReleaseBuilds = true
+        disable.add("GradleDependency")
     }
 }
 
 publishing {
     repositories {
-      mavenLocal()
+        mavenLocal()
     }
 }

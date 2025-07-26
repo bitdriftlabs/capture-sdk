@@ -12,9 +12,9 @@ LIFECYCLE_VERSION = "2.8.7"
 
 COMPOSE_VERSION = "1.7.0"
 
-KOTLIN_COMPILE_VERSION = "2.0.0"
+KOTLIN_COMPILE_VERSION = "2.1.21"
 
-KOTLIN_COMPILER_SHA = "ef578730976154fd2c5968d75af8c2703b3de84a78dffe913f670326e149da3b"
+KOTLIN_COMPILER_SHA = "1ba08a8b45da99339a0601134cc037b54cf85e9bc0edbe76dcbd27c2d684a977"
 
 KOTLIN_STD_VERSION = KOTLIN_COMPILE_VERSION
 
@@ -56,8 +56,6 @@ bazel_dep(name = "rules_detekt", version = "0.8.1.2")
 bazel_dep(name = "flatbuffers", version = "25.2.10")
 bazel_dep(name = "platforms", version = "0.0.11")
 bazel_dep(name = "rules_kotlin", version = "2.1.3")
-bazel_dep(name = "rules_proto", version = "7.1.0")
-bazel_dep(name = "protobuf", version = "29.3")
 
 # Tagged version of rules_kotlin (2.1.3) is broken in Bazel 8.x.
 # TODO(fz): Remove once a new release is out
@@ -67,6 +65,8 @@ git_override(
     remote = "https://github.com/bazelbuild/rules_kotlin.git",
 )
 
+bazel_dep(name = "rules_proto", version = "7.1.0")
+bazel_dep(name = "protobuf", version = "29.3")
 bazel_dep(name = "rules_rust", version = "0.61.0")
 bazel_dep(name = "rules_shell", version = "0.4.0")
 

@@ -113,9 +113,10 @@ class ComposeReplayTest {
     @Test
     fun capturesSizeOfInnerView() {
         composeRule.setContentWithExplicitRoot {
-            val (width, height) = with(LocalDensity.current) {
-                Pair(30.toDp(), 40.toDp())
-            }
+            val (width, height) =
+                with(LocalDensity.current) {
+                    Pair(30.toDp(), 40.toDp())
+                }
             Box(modifier = Modifier.size(width, height))
         }
 
@@ -126,9 +127,9 @@ class ComposeReplayTest {
                 0,
                 84,
                 30,
-                40
-            )
-        );
+                40,
+            ),
+        )
     }
 
     @Test
@@ -195,8 +196,8 @@ class ComposeReplayTest {
                 0,
                 84,
                 522,
-                57
-            )
+                57,
+            ),
         )
     }
 
@@ -241,8 +242,8 @@ class ComposeReplayTest {
                 0,
                 84,
                 84,
-                84
-            )
+                84,
+            ),
         )
     }
 
@@ -258,8 +259,8 @@ class ComposeReplayTest {
                 0,
                 84,
                 84,
-                84
-            )
+                84,
+            ),
         )
     }
 
@@ -277,8 +278,8 @@ class ComposeReplayTest {
                 0,
                 98,
                 224,
-                140
-            )
+                140,
+            ),
         )
     }
 
@@ -291,7 +292,7 @@ class ComposeReplayTest {
         }
 
         assertThat(verifyReplayScreen(viewCount = 11)).contains(
-            ReplayRect(ReplayType.Button, 42, 126, 84, 84)
+            ReplayRect(ReplayType.Button, 42, 126, 84, 84),
         )
     }
 
@@ -384,19 +385,20 @@ class ComposeReplayTest {
     @Test
     fun scanningHandlesDialog() {
         composeRule.setContent {
-            val (width, height) = with(LocalDensity.current) {
-                Pair(300.toDp(), 400.toDp())
-            }
+            val (width, height) =
+                with(LocalDensity.current) {
+                    Pair(300.toDp(), 400.toDp())
+                }
             Box(
                 Modifier
                     .testTag("parent")
-                    .size(width, height)
+                    .size(width, height),
             ) {
                 Dialog(onDismissRequest = {}) {
                     Box(
                         Modifier
                             .testTag("child")
-                            .size(width / 2, height / 2)
+                            .size(width / 2, height / 2),
                     )
                 }
             }
@@ -417,19 +419,20 @@ class ComposeReplayTest {
         }
 
         composeRule.setContent {
-            val (width, height) = with(LocalDensity.current) {
-                Pair(300.toDp(), 400.toDp())
-            }
+            val (width, height) =
+                with(LocalDensity.current) {
+                    Pair(300.toDp(), 400.toDp())
+                }
             Box(
                 Modifier
                     .testTag("parent")
-                    .size(width, height)
+                    .size(width, height),
             ) {
                 CustomTestDialog {
                     Box(
                         Modifier
                             .testTag("child")
-                            .size(width / 2, height / 2)
+                            .size(width / 2, height / 2),
                     )
                 }
             }
@@ -445,15 +448,16 @@ class ComposeReplayTest {
     @Test
     fun scanningHandlesSingleSubcomposeLayout_withSingleChild() {
         composeRule.setContent {
-            val (width, height) = with(LocalDensity.current) {
-                Pair(200.toDp(), 400.toDp())
-            }
+            val (width, height) =
+                with(LocalDensity.current) {
+                    Pair(200.toDp(), 400.toDp())
+                }
             Box(Modifier.testTag("parent")) {
                 SingleSubcompositionLayout(Modifier.testTag("subcompose-layout")) {
                     Box(
                         Modifier
                             .testTag("child")
-                            .size(width, height)
+                            .size(width, height),
                     )
                 }
             }
@@ -469,20 +473,21 @@ class ComposeReplayTest {
     @Test
     fun scanningHandlesSingleSubcomposeLayout_withMultipleChildren() {
         composeRule.setContent {
-            val (width, height) = with(LocalDensity.current) {
-                Pair(200.toDp(), 400.toDp())
-            }
+            val (width, height) =
+                with(LocalDensity.current) {
+                    Pair(200.toDp(), 400.toDp())
+                }
             Box(Modifier.testTag("parent")) {
                 SingleSubcompositionLayout(Modifier.testTag("subcompose-layout")) {
                     Box(
                         Modifier
                             .testTag("child1")
-                            .size(width, height)
+                            .size(width, height),
                     )
                     Box(
                         Modifier
                             .testTag("child2")
-                            .size(width, height)
+                            .size(width, height),
                     )
                 }
             }
@@ -500,35 +505,38 @@ class ComposeReplayTest {
     @Test
     fun scanningHandlesSingleSubcomposeLayout_withMultipleSubcompositionsAndChildren() {
         composeRule.setContent {
-            val (width, height) = with(LocalDensity.current) {
-                Pair(200.toDp(), 400.toDp())
-            }
+            val (width, height) =
+                with(LocalDensity.current) {
+                    Pair(200.toDp(), 400.toDp())
+                }
             Box(Modifier.testTag("parent")) {
-                MultipleSubcompositionLayout(Modifier.testTag("subcompose-layout"),
+                MultipleSubcompositionLayout(
+                    Modifier.testTag("subcompose-layout"),
                     firstChildren = {
                         Box(
                             Modifier
                                 .testTag("child1.1")
-                                .size(width, height)
+                                .size(width, height),
                         )
                         Box(
                             Modifier
                                 .testTag("child1.2")
-                                .size(width, height)
+                                .size(width, height),
                         )
                     },
                     secondChildren = {
                         Box(
                             Modifier
                                 .testTag("child2.1")
-                                .size(width, height)
+                                .size(width, height),
                         )
                         Box(
                             Modifier
                                 .testTag("child2.2")
-                                .size(width, height)
+                                .size(width, height),
                         )
-                    })
+                    },
+                )
             }
         }
 
@@ -548,22 +556,23 @@ class ComposeReplayTest {
     @Test
     fun scanningHandlesSiblingSubcomposeLayouts() {
         composeRule.setContent {
-            val (width, height) = with(LocalDensity.current) {
-                Pair(200.toDp(), 400.toDp())
-            }
+            val (width, height) =
+                with(LocalDensity.current) {
+                    Pair(200.toDp(), 400.toDp())
+                }
             Column(Modifier.testTag("parent")) {
                 SingleSubcompositionLayout(Modifier.testTag("subcompose-layout1")) {
                     Box(
                         Modifier
                             .testTag("child1")
-                            .size(width, height)
+                            .size(width, height),
                     )
                 }
                 SingleSubcompositionLayout(Modifier.testTag("subcompose-layout2")) {
                     Box(
                         Modifier
                             .testTag("child2")
-                            .size(width, height)
+                            .size(width, height),
                     )
                 }
             }
@@ -598,31 +607,33 @@ class ComposeReplayTest {
     @Test
     fun scanningSubcomposition_includesSize() {
         composeRule.setContent {
-            val (width, height) = with(LocalDensity.current) {
-                Pair(200.toDp(), 400.toDp())
-            }
+            val (width, height) =
+                with(LocalDensity.current) {
+                    Pair(200.toDp(), 400.toDp())
+                }
 
             Box(Modifier.testTag("parent")) {
-                MultipleSubcompositionLayout(Modifier.testTag("subcompose-layout"),
+                MultipleSubcompositionLayout(
+                    Modifier.testTag("subcompose-layout"),
                     firstChildren = {
                         Box(
                             Modifier
                                 .testTag("child1")
-                                .size(width, height)
+                                .size(width, height),
                         )
                         Box(
                             Modifier
                                 .testTag("child2")
-                                .size(width, height)
+                                .size(width, height),
                         )
                     },
                     secondChildren = {
                         Box(
                             Modifier
                                 .testTag("child3")
-                                .size(width, height)
+                                .size(width, height),
                         )
-                    }
+                    },
                 )
             }
         }
@@ -645,15 +656,16 @@ class ComposeReplayTest {
     @Composable
     private fun SingleSubcompositionLayout(
         modifier: Modifier,
-        children: @Composable () -> Unit
+        children: @Composable () -> Unit,
     ) {
         SubcomposeLayout(modifier) { constraints ->
-            val placeables = subcompose(Unit, children)
-                .map { it.measure(constraints) }
+            val placeables =
+                subcompose(Unit, children)
+                    .map { it.measure(constraints) }
 
             layout(
                 width = placeables.maxOfOrNull { it.width } ?: 0,
-                height = placeables.sumOf { it.height }
+                height = placeables.sumOf { it.height },
             ) {
                 placeables.fold(0) { y, placeable ->
                     placeable.placeRelative(0, y)
@@ -671,17 +683,18 @@ class ComposeReplayTest {
     private fun MultipleSubcompositionLayout(
         modifier: Modifier,
         firstChildren: @Composable () -> Unit,
-        secondChildren: @Composable () -> Unit
+        secondChildren: @Composable () -> Unit,
     ) {
         SubcomposeLayout(modifier) { constraints ->
-            val placeables = listOf(
-                subcompose(0, firstChildren),
-                subcompose(1, secondChildren),
-            ).flatten().map { it.measure(constraints) }
+            val placeables =
+                listOf(
+                    subcompose(0, firstChildren),
+                    subcompose(1, secondChildren),
+                ).flatten().map { it.measure(constraints) }
 
             layout(
                 width = placeables.maxOfOrNull { it.width } ?: 0,
-                height = placeables.sumOf { it.height }
+                height = placeables.sumOf { it.height },
             ) {
                 placeables.fold(0) { y, placeable ->
                     placeable.placeRelative(0, y)

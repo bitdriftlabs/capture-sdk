@@ -39,7 +39,6 @@ import org.objectweb.asm.MethodVisitor
 import java.io.Serializable
 
 interface Instrumentable<Visitor, InstrumentableContext> : Serializable {
-
     /**
      * Fully-qualified name of the instrumentable. Examples:
      * Class: androidx.sqlite.db.framework.FrameworkSQLiteDatabase
@@ -57,10 +56,10 @@ interface Instrumentable<Visitor, InstrumentableContext> : Serializable {
      * @param parameters Parameters that are configured by users and passed via the Sentry gradle plugin
      */
     fun getVisitor(
-            instrumentableContext: InstrumentableContext,
-            apiVersion: Int,
-            originalVisitor: Visitor,
-            parameters: SpanAddingClassVisitorFactory.SpanAddingParameters
+        instrumentableContext: InstrumentableContext,
+        apiVersion: Int,
+        originalVisitor: Visitor,
+        parameters: SpanAddingClassVisitorFactory.SpanAddingParameters,
     ): Visitor
 
     /**
@@ -68,13 +67,11 @@ interface Instrumentable<Visitor, InstrumentableContext> : Serializable {
      */
     fun isInstrumentable(data: InstrumentableContext): Boolean
 }
-interface ClassInstrumentable : Instrumentable<ClassVisitor, ClassContext> {
 
-    override fun isInstrumentable(data: ClassContext): Boolean =
-            fqName == data.currentClassData.className
+interface ClassInstrumentable : Instrumentable<ClassVisitor, ClassContext> {
+    override fun isInstrumentable(data: ClassContext): Boolean = fqName == data.currentClassData.className
 }
 
 interface MethodInstrumentable : Instrumentable<MethodVisitor, MethodContext> {
-
     override fun isInstrumentable(data: MethodContext): Boolean = fqName == data.name
 }

@@ -66,7 +66,7 @@ To install without Homebrew you can follow these instructions: [https://docs.azu
 
 ### 2. Import demo app project into Android Studio
 
-- Install [Android Studio](https://developer.android.com/studio/archive/). The latest verified-to-work version is **Android Studio Ladybug Feature Drop | 2024.2.2 (January 9, 2025)**. When asked to choose between default or custom installation selecting standard works fine.
+- Install [Android Studio](https://developer.android.com/studio/archive/). The latest verified-to-work version is **Android Studio Narwhal Feature Drop | 2025.1.2 RC 1 (July 18, 2025)**. When asked to choose between default or custom installation selecting standard works fine.
 
 #### Gradle: Open Capture SDK project in Android Studio
 

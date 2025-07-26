@@ -9,21 +9,12 @@
 
 package io.bitdrift.capture.reports.binformat.v1
 
-import com.google.flatbuffers.BaseVector
-import com.google.flatbuffers.BooleanVector
-import com.google.flatbuffers.ByteVector
 import com.google.flatbuffers.Constants
-import com.google.flatbuffers.DoubleVector
 import com.google.flatbuffers.FlatBufferBuilder
-import com.google.flatbuffers.FloatVector
-import com.google.flatbuffers.LongVector
-import com.google.flatbuffers.StringVector
 import com.google.flatbuffers.Struct
 import com.google.flatbuffers.Table
-import com.google.flatbuffers.UnionVector
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import kotlin.math.sign
 
 @Suppress("unused")
 class ReportType private constructor() {
@@ -37,6 +28,7 @@ class ReportType private constructor() {
         const val StrictModeViolation: Byte = 6
     }
 }
+
 @Suppress("unused")
 class Platform private constructor() {
     companion object {
@@ -46,6 +38,7 @@ class Platform private constructor() {
         const val macOS: Byte = 3
     }
 }
+
 @Suppress("unused")
 class Architecture private constructor() {
     companion object {
@@ -56,6 +49,7 @@ class Architecture private constructor() {
         const val x86_64: Byte = 4
     }
 }
+
 @Suppress("unused")
 class FrameType private constructor() {
     companion object {
@@ -65,12 +59,14 @@ class FrameType private constructor() {
         const val AndroidNative: Byte = 3
     }
 }
+
 @Suppress("unused")
 class ErrorRelation private constructor() {
     companion object {
         const val CausedBy: Byte = 1
     }
 }
+
 @Suppress("unused")
 class PowerState private constructor() {
     companion object {
@@ -81,6 +77,7 @@ class PowerState private constructor() {
         const val PluggedInCharged: Byte = 4
     }
 }
+
 @Suppress("unused")
 class NetworkState private constructor() {
     companion object {
@@ -90,6 +87,7 @@ class NetworkState private constructor() {
         const val WiFi: Byte = 3
     }
 }
+
 @Suppress("unused")
 class Rotation private constructor() {
     companion object {
@@ -100,6 +98,7 @@ class Rotation private constructor() {
         const val PortraitUpsideDown: Byte = 4
     }
 }
+
 @Suppress("unused")
 class FrameStatus private constructor() {
     companion object {
@@ -110,20 +109,33 @@ class FrameStatus private constructor() {
         const val Malformed: Byte = 4
     }
 }
+
 @Suppress("unused")
 class Timestamp : Struct() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : Timestamp {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): Timestamp {
         __init(_i, _bb)
         return this
     }
-    val seconds : ULong get() = bb.getLong(bb_pos + 0).toULong()
-    val nanos : UInt get() = bb.getInt(bb_pos + 8).toUInt()
+
+    val seconds: ULong get() = bb.getLong(bb_pos + 0).toULong()
+    val nanos: UInt get() = bb.getInt(bb_pos + 8).toUInt()
+
     companion object {
-        fun createTimestamp(builder: FlatBufferBuilder, seconds: ULong, nanos: UInt) : Int {
+        fun createTimestamp(
+            builder: FlatBufferBuilder,
+            seconds: ULong,
+            nanos: UInt,
+        ): Int {
             builder.prep(8, 16)
             builder.pad(4)
             builder.putInt(nanos.toInt())
@@ -132,21 +144,35 @@ class Timestamp : Struct() {
         }
     }
 }
+
 @Suppress("unused")
 class Memory : Struct() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : Memory {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): Memory {
         __init(_i, _bb)
         return this
     }
-    val total : ULong get() = bb.getLong(bb_pos + 0).toULong()
-    val free : ULong get() = bb.getLong(bb_pos + 8).toULong()
-    val used : ULong get() = bb.getLong(bb_pos + 16).toULong()
+
+    val total: ULong get() = bb.getLong(bb_pos + 0).toULong()
+    val free: ULong get() = bb.getLong(bb_pos + 8).toULong()
+    val used: ULong get() = bb.getLong(bb_pos + 16).toULong()
+
     companion object {
-        fun createMemory(builder: FlatBufferBuilder, total: ULong, free: ULong, used: ULong) : Int {
+        fun createMemory(
+            builder: FlatBufferBuilder,
+            total: ULong,
+            free: ULong,
+            used: ULong,
+        ): Int {
             builder.prep(8, 24)
             builder.putLong(used.toLong())
             builder.putLong(free.toLong())
@@ -155,22 +181,30 @@ class Memory : Struct() {
         }
     }
 }
+
 @Suppress("unused")
 class AppBuildNumber : Table() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : AppBuildNumber {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): AppBuildNumber {
         __init(_i, _bb)
         return this
     }
-    val versionCode : Long
+
+    val versionCode: Long
         get() {
             val o = __offset(4)
-            return if(o != 0) bb.getLong(o + bb_pos) else 0L
+            return if (o != 0) bb.getLong(o + bb_pos) else 0L
         }
-    val cfBundleVersion : String?
+    val cfBundleVersion: String?
         get() {
             val o = __offset(6)
             return if (o != 0) {
@@ -179,41 +213,71 @@ class AppBuildNumber : Table() {
                 null
             }
         }
-    val cfBundleVersionAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(6, 1)
-    fun cfBundleVersionInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
+    val cfBundleVersionAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(6, 1)
+
+    fun cfBundleVersionInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
+
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
+
         fun getRootAsAppBuildNumber(_bb: ByteBuffer): AppBuildNumber = getRootAsAppBuildNumber(_bb, AppBuildNumber())
-        fun getRootAsAppBuildNumber(_bb: ByteBuffer, obj: AppBuildNumber): AppBuildNumber {
+
+        fun getRootAsAppBuildNumber(
+            _bb: ByteBuffer,
+            obj: AppBuildNumber,
+        ): AppBuildNumber {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-        fun createAppBuildNumber(builder: FlatBufferBuilder, versionCode: Long, cfBundleVersionOffset: Int) : Int {
+
+        fun createAppBuildNumber(
+            builder: FlatBufferBuilder,
+            versionCode: Long,
+            cfBundleVersionOffset: Int,
+        ): Int {
             builder.startTable(2)
             addVersionCode(builder, versionCode)
             addCfBundleVersion(builder, cfBundleVersionOffset)
             return endAppBuildNumber(builder)
         }
+
         fun startAppBuildNumber(builder: FlatBufferBuilder) = builder.startTable(2)
-        fun addVersionCode(builder: FlatBufferBuilder, versionCode: Long) = builder.addLong(0, versionCode, 0L)
-        fun addCfBundleVersion(builder: FlatBufferBuilder, cfBundleVersion: Int) = builder.addOffset(1, cfBundleVersion, 0)
-        fun endAppBuildNumber(builder: FlatBufferBuilder) : Int {
+
+        fun addVersionCode(
+            builder: FlatBufferBuilder,
+            versionCode: Long,
+        ) = builder.addLong(0, versionCode, 0L)
+
+        fun addCfBundleVersion(
+            builder: FlatBufferBuilder,
+            cfBundleVersion: Int,
+        ) = builder.addOffset(1, cfBundleVersion, 0)
+
+        fun endAppBuildNumber(builder: FlatBufferBuilder): Int {
             val o = builder.endTable()
             return o
         }
     }
 }
+
 @Suppress("unused")
 class AppMetrics : Table() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : AppMetrics {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): AppMetrics {
         __init(_i, _bb)
         return this
     }
-    val appId : String?
+
+    val appId: String?
         get() {
             val o = __offset(4)
             return if (o != 0) {
@@ -222,10 +286,17 @@ class AppMetrics : Table() {
                 null
             }
         }
-    val appIdAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(4, 1)
-    fun appIdInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
-    val memory : io.bitdrift.capture.reports.binformat.v1.Memory? get() = memory(io.bitdrift.capture.reports.binformat.v1.Memory())
-    fun memory(obj: io.bitdrift.capture.reports.binformat.v1.Memory) : io.bitdrift.capture.reports.binformat.v1.Memory? {
+    val appIdAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(4, 1)
+
+    fun appIdInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
+
+    val memory: io.bitdrift.capture.reports.binformat.v1.Memory? get() =
+        memory(
+            io.bitdrift.capture.reports.binformat.v1
+                .Memory(),
+        )
+
+    fun memory(obj: io.bitdrift.capture.reports.binformat.v1.Memory): io.bitdrift.capture.reports.binformat.v1.Memory? {
         val o = __offset(6)
         return if (o != 0) {
             obj.__assign(o + bb_pos, bb)
@@ -233,7 +304,8 @@ class AppMetrics : Table() {
             null
         }
     }
-    val version : String?
+
+    val version: String?
         get() {
             val o = __offset(8)
             return if (o != 0) {
@@ -242,10 +314,19 @@ class AppMetrics : Table() {
                 null
             }
         }
-    val versionAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(8, 1)
-    fun versionInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 8, 1)
-    val buildNumber : io.bitdrift.capture.reports.binformat.v1.AppBuildNumber? get() = buildNumber(io.bitdrift.capture.reports.binformat.v1.AppBuildNumber())
-    fun buildNumber(obj: io.bitdrift.capture.reports.binformat.v1.AppBuildNumber) : io.bitdrift.capture.reports.binformat.v1.AppBuildNumber? {
+    val versionAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(8, 1)
+
+    fun versionInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 8, 1)
+
+    val buildNumber: io.bitdrift.capture.reports.binformat.v1.AppBuildNumber? get() =
+        buildNumber(
+            io.bitdrift.capture.reports.binformat.v1
+                .AppBuildNumber(),
+        )
+
+    fun buildNumber(
+        obj: io.bitdrift.capture.reports.binformat.v1.AppBuildNumber,
+    ): io.bitdrift.capture.reports.binformat.v1.AppBuildNumber? {
         val o = __offset(10)
         return if (o != 0) {
             obj.__assign(__indirect(o + bb_pos), bb)
@@ -253,7 +334,8 @@ class AppMetrics : Table() {
             null
         }
     }
-    val runningState : String?
+
+    val runningState: String?
         get() {
             val o = __offset(12)
             return if (o != 0) {
@@ -262,38 +344,75 @@ class AppMetrics : Table() {
                 null
             }
         }
-    val runningStateAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(12, 1)
-    fun runningStateInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 12, 1)
+    val runningStateAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(12, 1)
+
+    fun runningStateInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 12, 1)
+
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
+
         fun getRootAsAppMetrics(_bb: ByteBuffer): AppMetrics = getRootAsAppMetrics(_bb, AppMetrics())
-        fun getRootAsAppMetrics(_bb: ByteBuffer, obj: AppMetrics): AppMetrics {
+
+        fun getRootAsAppMetrics(
+            _bb: ByteBuffer,
+            obj: AppMetrics,
+        ): AppMetrics {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
+
         fun startAppMetrics(builder: FlatBufferBuilder) = builder.startTable(5)
-        fun addAppId(builder: FlatBufferBuilder, appId: Int) = builder.addOffset(0, appId, 0)
-        fun addMemory(builder: FlatBufferBuilder, memory: Int) = builder.addStruct(1, memory, 0)
-        fun addVersion(builder: FlatBufferBuilder, version: Int) = builder.addOffset(2, version, 0)
-        fun addBuildNumber(builder: FlatBufferBuilder, buildNumber: Int) = builder.addOffset(3, buildNumber, 0)
-        fun addRunningState(builder: FlatBufferBuilder, runningState: Int) = builder.addOffset(4, runningState, 0)
-        fun endAppMetrics(builder: FlatBufferBuilder) : Int {
+
+        fun addAppId(
+            builder: FlatBufferBuilder,
+            appId: Int,
+        ) = builder.addOffset(0, appId, 0)
+
+        fun addMemory(
+            builder: FlatBufferBuilder,
+            memory: Int,
+        ) = builder.addStruct(1, memory, 0)
+
+        fun addVersion(
+            builder: FlatBufferBuilder,
+            version: Int,
+        ) = builder.addOffset(2, version, 0)
+
+        fun addBuildNumber(
+            builder: FlatBufferBuilder,
+            buildNumber: Int,
+        ) = builder.addOffset(3, buildNumber, 0)
+
+        fun addRunningState(
+            builder: FlatBufferBuilder,
+            runningState: Int,
+        ) = builder.addOffset(4, runningState, 0)
+
+        fun endAppMetrics(builder: FlatBufferBuilder): Int {
             val o = builder.endTable()
             return o
         }
     }
 }
+
 @Suppress("unused")
 class OSBuild : Table() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : OSBuild {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): OSBuild {
         __init(_i, _bb)
         return this
     }
-    val version : String?
+
+    val version: String?
         get() {
             val o = __offset(4)
             return if (o != 0) {
@@ -302,9 +421,11 @@ class OSBuild : Table() {
                 null
             }
         }
-    val versionAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(4, 1)
-    fun versionInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
-    val brand : String?
+    val versionAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(4, 1)
+
+    fun versionInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
+
+    val brand: String?
         get() {
             val o = __offset(6)
             return if (o != 0) {
@@ -313,9 +434,11 @@ class OSBuild : Table() {
                 null
             }
         }
-    val brandAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(6, 1)
-    fun brandInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
-    val fingerprint : String?
+    val brandAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(6, 1)
+
+    fun brandInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
+
+    val fingerprint: String?
         get() {
             val o = __offset(8)
             return if (o != 0) {
@@ -324,9 +447,11 @@ class OSBuild : Table() {
                 null
             }
         }
-    val fingerprintAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(8, 1)
-    fun fingerprintInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 8, 1)
-    val kernOsversion : String?
+    val fingerprintAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(8, 1)
+
+    fun fingerprintInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 8, 1)
+
+    val kernOsversion: String?
         get() {
             val o = __offset(10)
             return if (o != 0) {
@@ -335,16 +460,30 @@ class OSBuild : Table() {
                 null
             }
         }
-    val kernOsversionAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(10, 1)
-    fun kernOsversionInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 10, 1)
+    val kernOsversionAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(10, 1)
+
+    fun kernOsversionInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 10, 1)
+
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
+
         fun getRootAsOSBuild(_bb: ByteBuffer): OSBuild = getRootAsOSBuild(_bb, OSBuild())
-        fun getRootAsOSBuild(_bb: ByteBuffer, obj: OSBuild): OSBuild {
+
+        fun getRootAsOSBuild(
+            _bb: ByteBuffer,
+            obj: OSBuild,
+        ): OSBuild {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-        fun createOSBuild(builder: FlatBufferBuilder, versionOffset: Int, brandOffset: Int, fingerprintOffset: Int, kernOsversionOffset: Int) : Int {
+
+        fun createOSBuild(
+            builder: FlatBufferBuilder,
+            versionOffset: Int,
+            brandOffset: Int,
+            fingerprintOffset: Int,
+            kernOsversionOffset: Int,
+        ): Int {
             builder.startTable(4)
             addKernOsversion(builder, kernOsversionOffset)
             addFingerprint(builder, fingerprintOffset)
@@ -352,120 +491,214 @@ class OSBuild : Table() {
             addVersion(builder, versionOffset)
             return endOSBuild(builder)
         }
+
         fun startOSBuild(builder: FlatBufferBuilder) = builder.startTable(4)
-        fun addVersion(builder: FlatBufferBuilder, version: Int) = builder.addOffset(0, version, 0)
-        fun addBrand(builder: FlatBufferBuilder, brand: Int) = builder.addOffset(1, brand, 0)
-        fun addFingerprint(builder: FlatBufferBuilder, fingerprint: Int) = builder.addOffset(2, fingerprint, 0)
-        fun addKernOsversion(builder: FlatBufferBuilder, kernOsversion: Int) = builder.addOffset(3, kernOsversion, 0)
-        fun endOSBuild(builder: FlatBufferBuilder) : Int {
+
+        fun addVersion(
+            builder: FlatBufferBuilder,
+            version: Int,
+        ) = builder.addOffset(0, version, 0)
+
+        fun addBrand(
+            builder: FlatBufferBuilder,
+            brand: Int,
+        ) = builder.addOffset(1, brand, 0)
+
+        fun addFingerprint(
+            builder: FlatBufferBuilder,
+            fingerprint: Int,
+        ) = builder.addOffset(2, fingerprint, 0)
+
+        fun addKernOsversion(
+            builder: FlatBufferBuilder,
+            kernOsversion: Int,
+        ) = builder.addOffset(3, kernOsversion, 0)
+
+        fun endOSBuild(builder: FlatBufferBuilder): Int {
             val o = builder.endTable()
             return o
         }
     }
 }
+
 @Suppress("unused")
 class PowerMetrics : Table() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : PowerMetrics {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): PowerMetrics {
         __init(_i, _bb)
         return this
     }
-    val powerState : Byte
+
+    val powerState: Byte
         get() {
             val o = __offset(4)
-            return if(o != 0) bb.get(o + bb_pos) else 0
+            return if (o != 0) bb.get(o + bb_pos) else 0
         }
-    val chargePercent : UByte
+    val chargePercent: UByte
         get() {
             val o = __offset(6)
-            return if(o != 0) bb.get(o + bb_pos).toUByte() else 0u
+            return if (o != 0) bb.get(o + bb_pos).toUByte() else 0u
         }
+
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
+
         fun getRootAsPowerMetrics(_bb: ByteBuffer): PowerMetrics = getRootAsPowerMetrics(_bb, PowerMetrics())
-        fun getRootAsPowerMetrics(_bb: ByteBuffer, obj: PowerMetrics): PowerMetrics {
+
+        fun getRootAsPowerMetrics(
+            _bb: ByteBuffer,
+            obj: PowerMetrics,
+        ): PowerMetrics {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-        fun createPowerMetrics(builder: FlatBufferBuilder, powerState: Byte, chargePercent: UByte) : Int {
+
+        fun createPowerMetrics(
+            builder: FlatBufferBuilder,
+            powerState: Byte,
+            chargePercent: UByte,
+        ): Int {
             builder.startTable(2)
             addChargePercent(builder, chargePercent)
             addPowerState(builder, powerState)
             return endPowerMetrics(builder)
         }
+
         fun startPowerMetrics(builder: FlatBufferBuilder) = builder.startTable(2)
-        fun addPowerState(builder: FlatBufferBuilder, powerState: Byte) = builder.addByte(0, powerState, 0)
-        fun addChargePercent(builder: FlatBufferBuilder, chargePercent: UByte) = builder.addByte(1, chargePercent.toByte(), 0)
-        fun endPowerMetrics(builder: FlatBufferBuilder) : Int {
+
+        fun addPowerState(
+            builder: FlatBufferBuilder,
+            powerState: Byte,
+        ) = builder.addByte(0, powerState, 0)
+
+        fun addChargePercent(
+            builder: FlatBufferBuilder,
+            chargePercent: UByte,
+        ) = builder.addByte(1, chargePercent.toByte(), 0)
+
+        fun endPowerMetrics(builder: FlatBufferBuilder): Int {
             val o = builder.endTable()
             return o
         }
     }
 }
+
 @Suppress("unused")
 class Display : Table() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : Display {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): Display {
         __init(_i, _bb)
         return this
     }
-    val height : UInt
+
+    val height: UInt
         get() {
             val o = __offset(4)
-            return if(o != 0) bb.getInt(o + bb_pos).toUInt() else 0u
+            return if (o != 0) bb.getInt(o + bb_pos).toUInt() else 0u
         }
-    val width : UInt
+    val width: UInt
         get() {
             val o = __offset(6)
-            return if(o != 0) bb.getInt(o + bb_pos).toUInt() else 0u
+            return if (o != 0) bb.getInt(o + bb_pos).toUInt() else 0u
         }
-    val densityDpi : UInt
+    val densityDpi: UInt
         get() {
             val o = __offset(8)
-            return if(o != 0) bb.getInt(o + bb_pos).toUInt() else 0u
+            return if (o != 0) bb.getInt(o + bb_pos).toUInt() else 0u
         }
+
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
+
         fun getRootAsDisplay(_bb: ByteBuffer): Display = getRootAsDisplay(_bb, Display())
-        fun getRootAsDisplay(_bb: ByteBuffer, obj: Display): Display {
+
+        fun getRootAsDisplay(
+            _bb: ByteBuffer,
+            obj: Display,
+        ): Display {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-        fun createDisplay(builder: FlatBufferBuilder, height: UInt, width: UInt, densityDpi: UInt) : Int {
+
+        fun createDisplay(
+            builder: FlatBufferBuilder,
+            height: UInt,
+            width: UInt,
+            densityDpi: UInt,
+        ): Int {
             builder.startTable(3)
             addDensityDpi(builder, densityDpi)
             addWidth(builder, width)
             addHeight(builder, height)
             return endDisplay(builder)
         }
+
         fun startDisplay(builder: FlatBufferBuilder) = builder.startTable(3)
-        fun addHeight(builder: FlatBufferBuilder, height: UInt) = builder.addInt(0, height.toInt(), 0)
-        fun addWidth(builder: FlatBufferBuilder, width: UInt) = builder.addInt(1, width.toInt(), 0)
-        fun addDensityDpi(builder: FlatBufferBuilder, densityDpi: UInt) = builder.addInt(2, densityDpi.toInt(), 0)
-        fun endDisplay(builder: FlatBufferBuilder) : Int {
+
+        fun addHeight(
+            builder: FlatBufferBuilder,
+            height: UInt,
+        ) = builder.addInt(0, height.toInt(), 0)
+
+        fun addWidth(
+            builder: FlatBufferBuilder,
+            width: UInt,
+        ) = builder.addInt(1, width.toInt(), 0)
+
+        fun addDensityDpi(
+            builder: FlatBufferBuilder,
+            densityDpi: UInt,
+        ) = builder.addInt(2, densityDpi.toInt(), 0)
+
+        fun endDisplay(builder: FlatBufferBuilder): Int {
             val o = builder.endTable()
             return o
         }
     }
 }
+
 @Suppress("unused")
 class DeviceMetrics : Table() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : DeviceMetrics {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): DeviceMetrics {
         __init(_i, _bb)
         return this
     }
-    val time : io.bitdrift.capture.reports.binformat.v1.Timestamp? get() = time(io.bitdrift.capture.reports.binformat.v1.Timestamp())
-    fun time(obj: io.bitdrift.capture.reports.binformat.v1.Timestamp) : io.bitdrift.capture.reports.binformat.v1.Timestamp? {
+
+    val time: io.bitdrift.capture.reports.binformat.v1.Timestamp? get() =
+        time(
+            io.bitdrift.capture.reports.binformat.v1
+                .Timestamp(),
+        )
+
+    fun time(obj: io.bitdrift.capture.reports.binformat.v1.Timestamp): io.bitdrift.capture.reports.binformat.v1.Timestamp? {
         val o = __offset(4)
         return if (o != 0) {
             obj.__assign(o + bb_pos, bb)
@@ -473,7 +706,8 @@ class DeviceMetrics : Table() {
             null
         }
     }
-    val timezone : String?
+
+    val timezone: String?
         get() {
             val o = __offset(6)
             return if (o != 0) {
@@ -482,10 +716,17 @@ class DeviceMetrics : Table() {
                 null
             }
         }
-    val timezoneAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(6, 1)
-    fun timezoneInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
-    val powerMetrics : io.bitdrift.capture.reports.binformat.v1.PowerMetrics? get() = powerMetrics(io.bitdrift.capture.reports.binformat.v1.PowerMetrics())
-    fun powerMetrics(obj: io.bitdrift.capture.reports.binformat.v1.PowerMetrics) : io.bitdrift.capture.reports.binformat.v1.PowerMetrics? {
+    val timezoneAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(6, 1)
+
+    fun timezoneInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
+
+    val powerMetrics: io.bitdrift.capture.reports.binformat.v1.PowerMetrics? get() =
+        powerMetrics(
+            io.bitdrift.capture.reports.binformat.v1
+                .PowerMetrics(),
+        )
+
+    fun powerMetrics(obj: io.bitdrift.capture.reports.binformat.v1.PowerMetrics): io.bitdrift.capture.reports.binformat.v1.PowerMetrics? {
         val o = __offset(8)
         return if (o != 0) {
             obj.__assign(__indirect(o + bb_pos), bb)
@@ -493,23 +734,29 @@ class DeviceMetrics : Table() {
             null
         }
     }
-    val networkState : Byte
+
+    val networkState: Byte
         get() {
             val o = __offset(10)
-            return if(o != 0) bb.get(o + bb_pos) else 0
+            return if (o != 0) bb.get(o + bb_pos) else 0
         }
-    val rotation : Byte
+    val rotation: Byte
         get() {
             val o = __offset(12)
-            return if(o != 0) bb.get(o + bb_pos) else 0
+            return if (o != 0) bb.get(o + bb_pos) else 0
         }
-    val arch : Byte
+    val arch: Byte
         get() {
             val o = __offset(14)
-            return if(o != 0) bb.get(o + bb_pos) else 0
+            return if (o != 0) bb.get(o + bb_pos) else 0
         }
-    val display : io.bitdrift.capture.reports.binformat.v1.Display? get() = display(io.bitdrift.capture.reports.binformat.v1.Display())
-    fun display(obj: io.bitdrift.capture.reports.binformat.v1.Display) : io.bitdrift.capture.reports.binformat.v1.Display? {
+    val display: io.bitdrift.capture.reports.binformat.v1.Display? get() =
+        display(
+            io.bitdrift.capture.reports.binformat.v1
+                .Display(),
+        )
+
+    fun display(obj: io.bitdrift.capture.reports.binformat.v1.Display): io.bitdrift.capture.reports.binformat.v1.Display? {
         val o = __offset(16)
         return if (o != 0) {
             obj.__assign(__indirect(o + bb_pos), bb)
@@ -517,7 +764,8 @@ class DeviceMetrics : Table() {
             null
         }
     }
-    val manufacturer : String?
+
+    val manufacturer: String?
         get() {
             val o = __offset(18)
             return if (o != 0) {
@@ -526,9 +774,11 @@ class DeviceMetrics : Table() {
                 null
             }
         }
-    val manufacturerAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(18, 1)
-    fun manufacturerInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 18, 1)
-    val model : String?
+    val manufacturerAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(18, 1)
+
+    fun manufacturerInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 18, 1)
+
+    val model: String?
         get() {
             val o = __offset(20)
             return if (o != 0) {
@@ -537,10 +787,17 @@ class DeviceMetrics : Table() {
                 null
             }
         }
-    val modelAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(20, 1)
-    fun modelInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 20, 1)
-    val osBuild : io.bitdrift.capture.reports.binformat.v1.OSBuild? get() = osBuild(io.bitdrift.capture.reports.binformat.v1.OSBuild())
-    fun osBuild(obj: io.bitdrift.capture.reports.binformat.v1.OSBuild) : io.bitdrift.capture.reports.binformat.v1.OSBuild? {
+    val modelAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(20, 1)
+
+    fun modelInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 20, 1)
+
+    val osBuild: io.bitdrift.capture.reports.binformat.v1.OSBuild? get() =
+        osBuild(
+            io.bitdrift.capture.reports.binformat.v1
+                .OSBuild(),
+        )
+
+    fun osBuild(obj: io.bitdrift.capture.reports.binformat.v1.OSBuild): io.bitdrift.capture.reports.binformat.v1.OSBuild? {
         val o = __offset(22)
         return if (o != 0) {
             obj.__assign(__indirect(o + bb_pos), bb)
@@ -548,12 +805,14 @@ class DeviceMetrics : Table() {
             null
         }
     }
-    val platform : Byte
+
+    val platform: Byte
         get() {
             val o = __offset(24)
-            return if(o != 0) bb.get(o + bb_pos) else 0
+            return if (o != 0) bb.get(o + bb_pos) else 0
         }
-    fun cpuAbis(j: Int) : String? {
+
+    fun cpuAbis(j: Int): String? {
         val o = __offset(26)
         return if (o != 0) {
             __string(__vector(o) + j * 4)
@@ -561,55 +820,129 @@ class DeviceMetrics : Table() {
             null
         }
     }
-    val cpuAbisLength : Int
+
+    val cpuAbisLength: Int
         get() {
-            val o = __offset(26); return if (o != 0) __vector_len(o) else 0
+            val o = __offset(26)
+            return if (o != 0) __vector_len(o) else 0
         }
+
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
+
         fun getRootAsDeviceMetrics(_bb: ByteBuffer): DeviceMetrics = getRootAsDeviceMetrics(_bb, DeviceMetrics())
-        fun getRootAsDeviceMetrics(_bb: ByteBuffer, obj: DeviceMetrics): DeviceMetrics {
+
+        fun getRootAsDeviceMetrics(
+            _bb: ByteBuffer,
+            obj: DeviceMetrics,
+        ): DeviceMetrics {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
+
         fun startDeviceMetrics(builder: FlatBufferBuilder) = builder.startTable(12)
-        fun addTime(builder: FlatBufferBuilder, time: Int) = builder.addStruct(0, time, 0)
-        fun addTimezone(builder: FlatBufferBuilder, timezone: Int) = builder.addOffset(1, timezone, 0)
-        fun addPowerMetrics(builder: FlatBufferBuilder, powerMetrics: Int) = builder.addOffset(2, powerMetrics, 0)
-        fun addNetworkState(builder: FlatBufferBuilder, networkState: Byte) = builder.addByte(3, networkState, 0)
-        fun addRotation(builder: FlatBufferBuilder, rotation: Byte) = builder.addByte(4, rotation, 0)
-        fun addArch(builder: FlatBufferBuilder, arch: Byte) = builder.addByte(5, arch, 0)
-        fun addDisplay(builder: FlatBufferBuilder, display: Int) = builder.addOffset(6, display, 0)
-        fun addManufacturer(builder: FlatBufferBuilder, manufacturer: Int) = builder.addOffset(7, manufacturer, 0)
-        fun addModel(builder: FlatBufferBuilder, model: Int) = builder.addOffset(8, model, 0)
-        fun addOsBuild(builder: FlatBufferBuilder, osBuild: Int) = builder.addOffset(9, osBuild, 0)
-        fun addPlatform(builder: FlatBufferBuilder, platform: Byte) = builder.addByte(10, platform, 0)
-        fun addCpuAbis(builder: FlatBufferBuilder, cpuAbis: Int) = builder.addOffset(11, cpuAbis, 0)
-        fun createCpuAbisVector(builder: FlatBufferBuilder, data: IntArray) : Int {
+
+        fun addTime(
+            builder: FlatBufferBuilder,
+            time: Int,
+        ) = builder.addStruct(0, time, 0)
+
+        fun addTimezone(
+            builder: FlatBufferBuilder,
+            timezone: Int,
+        ) = builder.addOffset(1, timezone, 0)
+
+        fun addPowerMetrics(
+            builder: FlatBufferBuilder,
+            powerMetrics: Int,
+        ) = builder.addOffset(2, powerMetrics, 0)
+
+        fun addNetworkState(
+            builder: FlatBufferBuilder,
+            networkState: Byte,
+        ) = builder.addByte(3, networkState, 0)
+
+        fun addRotation(
+            builder: FlatBufferBuilder,
+            rotation: Byte,
+        ) = builder.addByte(4, rotation, 0)
+
+        fun addArch(
+            builder: FlatBufferBuilder,
+            arch: Byte,
+        ) = builder.addByte(5, arch, 0)
+
+        fun addDisplay(
+            builder: FlatBufferBuilder,
+            display: Int,
+        ) = builder.addOffset(6, display, 0)
+
+        fun addManufacturer(
+            builder: FlatBufferBuilder,
+            manufacturer: Int,
+        ) = builder.addOffset(7, manufacturer, 0)
+
+        fun addModel(
+            builder: FlatBufferBuilder,
+            model: Int,
+        ) = builder.addOffset(8, model, 0)
+
+        fun addOsBuild(
+            builder: FlatBufferBuilder,
+            osBuild: Int,
+        ) = builder.addOffset(9, osBuild, 0)
+
+        fun addPlatform(
+            builder: FlatBufferBuilder,
+            platform: Byte,
+        ) = builder.addByte(10, platform, 0)
+
+        fun addCpuAbis(
+            builder: FlatBufferBuilder,
+            cpuAbis: Int,
+        ) = builder.addOffset(11, cpuAbis, 0)
+
+        fun createCpuAbisVector(
+            builder: FlatBufferBuilder,
+            data: IntArray,
+        ): Int {
             builder.startVector(4, data.size, 4)
             for (i in data.size - 1 downTo 0) {
                 builder.addOffset(data[i])
             }
             return builder.endVector()
         }
-        fun startCpuAbisVector(builder: FlatBufferBuilder, numElems: Int) = builder.startVector(4, numElems, 4)
-        fun endDeviceMetrics(builder: FlatBufferBuilder) : Int {
+
+        fun startCpuAbisVector(
+            builder: FlatBufferBuilder,
+            numElems: Int,
+        ) = builder.startVector(4, numElems, 4)
+
+        fun endDeviceMetrics(builder: FlatBufferBuilder): Int {
             val o = builder.endTable()
             return o
         }
     }
 }
+
 @Suppress("unused")
 class SourceFile : Table() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : SourceFile {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): SourceFile {
         __init(_i, _bb)
         return this
     }
-    val path : String?
+
+    val path: String?
         get() {
             val o = __offset(4)
             return if (o != 0) {
@@ -618,53 +951,89 @@ class SourceFile : Table() {
                 null
             }
         }
-    val pathAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(4, 1)
-    fun pathInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
-    val line : Long
+    val pathAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(4, 1)
+
+    fun pathInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
+
+    val line: Long
         get() {
             val o = __offset(6)
-            return if(o != 0) bb.getLong(o + bb_pos) else 0L
+            return if (o != 0) bb.getLong(o + bb_pos) else 0L
         }
-    val column : Long
+    val column: Long
         get() {
             val o = __offset(8)
-            return if(o != 0) bb.getLong(o + bb_pos) else 0L
+            return if (o != 0) bb.getLong(o + bb_pos) else 0L
         }
+
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
+
         fun getRootAsSourceFile(_bb: ByteBuffer): SourceFile = getRootAsSourceFile(_bb, SourceFile())
-        fun getRootAsSourceFile(_bb: ByteBuffer, obj: SourceFile): SourceFile {
+
+        fun getRootAsSourceFile(
+            _bb: ByteBuffer,
+            obj: SourceFile,
+        ): SourceFile {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-        fun createSourceFile(builder: FlatBufferBuilder, pathOffset: Int, line: Long, column: Long) : Int {
+
+        fun createSourceFile(
+            builder: FlatBufferBuilder,
+            pathOffset: Int,
+            line: Long,
+            column: Long,
+        ): Int {
             builder.startTable(3)
             addColumn(builder, column)
             addLine(builder, line)
             addPath(builder, pathOffset)
             return endSourceFile(builder)
         }
+
         fun startSourceFile(builder: FlatBufferBuilder) = builder.startTable(3)
-        fun addPath(builder: FlatBufferBuilder, path: Int) = builder.addOffset(0, path, 0)
-        fun addLine(builder: FlatBufferBuilder, line: Long) = builder.addLong(1, line, 0L)
-        fun addColumn(builder: FlatBufferBuilder, column: Long) = builder.addLong(2, column, 0L)
-        fun endSourceFile(builder: FlatBufferBuilder) : Int {
+
+        fun addPath(
+            builder: FlatBufferBuilder,
+            path: Int,
+        ) = builder.addOffset(0, path, 0)
+
+        fun addLine(
+            builder: FlatBufferBuilder,
+            line: Long,
+        ) = builder.addLong(1, line, 0L)
+
+        fun addColumn(
+            builder: FlatBufferBuilder,
+            column: Long,
+        ) = builder.addLong(2, column, 0L)
+
+        fun endSourceFile(builder: FlatBufferBuilder): Int {
             val o = builder.endTable()
             return o
         }
     }
 }
+
 @Suppress("unused")
 class CPURegister : Table() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : CPURegister {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): CPURegister {
         __init(_i, _bb)
         return this
     }
-    val name : String?
+
+    val name: String?
         get() {
             val o = __offset(4)
             return if (o != 0) {
@@ -673,51 +1042,82 @@ class CPURegister : Table() {
                 null
             }
         }
-    val nameAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(4, 1)
-    fun nameInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
-    val value : ULong
+    val nameAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(4, 1)
+
+    fun nameInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
+
+    val value: ULong
         get() {
             val o = __offset(6)
-            return if(o != 0) bb.getLong(o + bb_pos).toULong() else 0UL
+            return if (o != 0) bb.getLong(o + bb_pos).toULong() else 0UL
         }
+
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
+
         fun getRootAsCPURegister(_bb: ByteBuffer): CPURegister = getRootAsCPURegister(_bb, CPURegister())
-        fun getRootAsCPURegister(_bb: ByteBuffer, obj: CPURegister): CPURegister {
+
+        fun getRootAsCPURegister(
+            _bb: ByteBuffer,
+            obj: CPURegister,
+        ): CPURegister {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-        fun createCPURegister(builder: FlatBufferBuilder, nameOffset: Int, value: ULong) : Int {
+
+        fun createCPURegister(
+            builder: FlatBufferBuilder,
+            nameOffset: Int,
+            value: ULong,
+        ): Int {
             builder.startTable(2)
             addValue(builder, value)
             addName(builder, nameOffset)
             return endCPURegister(builder)
         }
+
         fun startCPURegister(builder: FlatBufferBuilder) = builder.startTable(2)
-        fun addName(builder: FlatBufferBuilder, name: Int) = builder.addOffset(0, name, 0)
-        fun addValue(builder: FlatBufferBuilder, value: ULong) = builder.addLong(1, value.toLong(), 0)
-        fun endCPURegister(builder: FlatBufferBuilder) : Int {
+
+        fun addName(
+            builder: FlatBufferBuilder,
+            name: Int,
+        ) = builder.addOffset(0, name, 0)
+
+        fun addValue(
+            builder: FlatBufferBuilder,
+            value: ULong,
+        ) = builder.addLong(1, value.toLong(), 0)
+
+        fun endCPURegister(builder: FlatBufferBuilder): Int {
             val o = builder.endTable()
             return o
         }
     }
 }
+
 @Suppress("unused")
 class Frame : Table() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : Frame {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): Frame {
         __init(_i, _bb)
         return this
     }
-    val type : Byte
+
+    val type: Byte
         get() {
             val o = __offset(4)
-            return if(o != 0) bb.get(o + bb_pos) else 0
+            return if (o != 0) bb.get(o + bb_pos) else 0
         }
-    val className : String?
+    val className: String?
         get() {
             val o = __offset(6)
             return if (o != 0) {
@@ -726,9 +1126,11 @@ class Frame : Table() {
                 null
             }
         }
-    val classNameAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(6, 1)
-    fun classNameInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
-    val symbolName : String?
+    val classNameAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(6, 1)
+
+    fun classNameInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
+
+    val symbolName: String?
         get() {
             val o = __offset(8)
             return if (o != 0) {
@@ -737,10 +1139,17 @@ class Frame : Table() {
                 null
             }
         }
-    val symbolNameAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(8, 1)
-    fun symbolNameInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 8, 1)
-    val sourceFile : io.bitdrift.capture.reports.binformat.v1.SourceFile? get() = sourceFile(io.bitdrift.capture.reports.binformat.v1.SourceFile())
-    fun sourceFile(obj: io.bitdrift.capture.reports.binformat.v1.SourceFile) : io.bitdrift.capture.reports.binformat.v1.SourceFile? {
+    val symbolNameAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(8, 1)
+
+    fun symbolNameInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 8, 1)
+
+    val sourceFile: io.bitdrift.capture.reports.binformat.v1.SourceFile? get() =
+        sourceFile(
+            io.bitdrift.capture.reports.binformat.v1
+                .SourceFile(),
+        )
+
+    fun sourceFile(obj: io.bitdrift.capture.reports.binformat.v1.SourceFile): io.bitdrift.capture.reports.binformat.v1.SourceFile? {
         val o = __offset(10)
         return if (o != 0) {
             obj.__assign(__indirect(o + bb_pos), bb)
@@ -748,7 +1157,8 @@ class Frame : Table() {
             null
         }
     }
-    val imageId : String?
+
+    val imageId: String?
         get() {
             val o = __offset(12)
             return if (o != 0) {
@@ -757,20 +1167,32 @@ class Frame : Table() {
                 null
             }
         }
-    val imageIdAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(12, 1)
-    fun imageIdInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 12, 1)
-    val frameAddress : ULong
+    val imageIdAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(12, 1)
+
+    fun imageIdInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 12, 1)
+
+    val frameAddress: ULong
         get() {
             val o = __offset(14)
-            return if(o != 0) bb.getLong(o + bb_pos).toULong() else 0UL
+            return if (o != 0) bb.getLong(o + bb_pos).toULong() else 0UL
         }
-    val symbolAddress : ULong
+    val symbolAddress: ULong
         get() {
             val o = __offset(16)
-            return if(o != 0) bb.getLong(o + bb_pos).toULong() else 0UL
+            return if (o != 0) bb.getLong(o + bb_pos).toULong() else 0UL
         }
-    fun registers(j: Int) : io.bitdrift.capture.reports.binformat.v1.CPURegister? = registers(io.bitdrift.capture.reports.binformat.v1.CPURegister(), j)
-    fun registers(obj: io.bitdrift.capture.reports.binformat.v1.CPURegister, j: Int) : io.bitdrift.capture.reports.binformat.v1.CPURegister? {
+
+    fun registers(j: Int): io.bitdrift.capture.reports.binformat.v1.CPURegister? =
+        registers(
+            io.bitdrift.capture.reports.binformat.v1
+                .CPURegister(),
+            j,
+        )
+
+    fun registers(
+        obj: io.bitdrift.capture.reports.binformat.v1.CPURegister,
+        j: Int,
+    ): io.bitdrift.capture.reports.binformat.v1.CPURegister? {
         val o = __offset(18)
         return if (o != 0) {
             obj.__assign(__indirect(__vector(o) + j * 4), bb)
@@ -778,11 +1200,14 @@ class Frame : Table() {
             null
         }
     }
-    val registersLength : Int
+
+    val registersLength: Int
         get() {
-            val o = __offset(18); return if (o != 0) __vector_len(o) else 0
+            val o = __offset(18)
+            return if (o != 0) __vector_len(o) else 0
         }
-    fun state(j: Int) : String? {
+
+    fun state(j: Int): String? {
         val o = __offset(20)
         return if (o != 0) {
             __string(__vector(o) + j * 4)
@@ -790,26 +1215,28 @@ class Frame : Table() {
             null
         }
     }
-    val stateLength : Int
+
+    val stateLength: Int
         get() {
-            val o = __offset(20); return if (o != 0) __vector_len(o) else 0
+            val o = __offset(20)
+            return if (o != 0) __vector_len(o) else 0
         }
-    val frameStatus : Byte
+    val frameStatus: Byte
         get() {
             val o = __offset(22)
-            return if(o != 0) bb.get(o + bb_pos) else 0
+            return if (o != 0) bb.get(o + bb_pos) else 0
         }
-    val originalIndex : ULong
+    val originalIndex: ULong
         get() {
             val o = __offset(24)
-            return if(o != 0) bb.getLong(o + bb_pos).toULong() else 0UL
+            return if (o != 0) bb.getLong(o + bb_pos).toULong() else 0UL
         }
-    val inApp : Boolean
+    val inApp: Boolean
         get() {
             val o = __offset(26)
-            return if(o != 0) 0.toByte() != bb.get(o + bb_pos) else false
+            return if (o != 0) 0.toByte() != bb.get(o + bb_pos) else false
         }
-    val symbolicatedName : String?
+    val symbolicatedName: String?
         get() {
             val o = __offset(28)
             return if (o != 0) {
@@ -818,16 +1245,39 @@ class Frame : Table() {
                 null
             }
         }
-    val symbolicatedNameAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(28, 1)
-    fun symbolicatedNameInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 28, 1)
+    val symbolicatedNameAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(28, 1)
+
+    fun symbolicatedNameInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 28, 1)
+
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
+
         fun getRootAsFrame(_bb: ByteBuffer): Frame = getRootAsFrame(_bb, Frame())
-        fun getRootAsFrame(_bb: ByteBuffer, obj: Frame): Frame {
+
+        fun getRootAsFrame(
+            _bb: ByteBuffer,
+            obj: Frame,
+        ): Frame {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-        fun createFrame(builder: FlatBufferBuilder, type: Byte, classNameOffset: Int, symbolNameOffset: Int, sourceFileOffset: Int, imageIdOffset: Int, frameAddress: ULong, symbolAddress: ULong, registersOffset: Int, stateOffset: Int, frameStatus: Byte, originalIndex: ULong, inApp: Boolean, symbolicatedNameOffset: Int) : Int {
+
+        fun createFrame(
+            builder: FlatBufferBuilder,
+            type: Byte,
+            classNameOffset: Int,
+            symbolNameOffset: Int,
+            sourceFileOffset: Int,
+            imageIdOffset: Int,
+            frameAddress: ULong,
+            symbolAddress: ULong,
+            registersOffset: Int,
+            stateOffset: Int,
+            frameStatus: Byte,
+            originalIndex: ULong,
+            inApp: Boolean,
+            symbolicatedNameOffset: Int,
+        ): Int {
             builder.startTable(13)
             addOriginalIndex(builder, originalIndex)
             addSymbolAddress(builder, symbolAddress)
@@ -844,53 +1294,131 @@ class Frame : Table() {
             addType(builder, type)
             return endFrame(builder)
         }
+
         fun startFrame(builder: FlatBufferBuilder) = builder.startTable(13)
-        fun addType(builder: FlatBufferBuilder, type: Byte) = builder.addByte(0, type, 0)
-        fun addClassName(builder: FlatBufferBuilder, className: Int) = builder.addOffset(1, className, 0)
-        fun addSymbolName(builder: FlatBufferBuilder, symbolName: Int) = builder.addOffset(2, symbolName, 0)
-        fun addSourceFile(builder: FlatBufferBuilder, sourceFile: Int) = builder.addOffset(3, sourceFile, 0)
-        fun addImageId(builder: FlatBufferBuilder, imageId: Int) = builder.addOffset(4, imageId, 0)
-        fun addFrameAddress(builder: FlatBufferBuilder, frameAddress: ULong) = builder.addLong(5, frameAddress.toLong(), 0)
-        fun addSymbolAddress(builder: FlatBufferBuilder, symbolAddress: ULong) = builder.addLong(6, symbolAddress.toLong(), 0)
-        fun addRegisters(builder: FlatBufferBuilder, registers: Int) = builder.addOffset(7, registers, 0)
-        fun createRegistersVector(builder: FlatBufferBuilder, data: IntArray) : Int {
+
+        fun addType(
+            builder: FlatBufferBuilder,
+            type: Byte,
+        ) = builder.addByte(0, type, 0)
+
+        fun addClassName(
+            builder: FlatBufferBuilder,
+            className: Int,
+        ) = builder.addOffset(1, className, 0)
+
+        fun addSymbolName(
+            builder: FlatBufferBuilder,
+            symbolName: Int,
+        ) = builder.addOffset(2, symbolName, 0)
+
+        fun addSourceFile(
+            builder: FlatBufferBuilder,
+            sourceFile: Int,
+        ) = builder.addOffset(3, sourceFile, 0)
+
+        fun addImageId(
+            builder: FlatBufferBuilder,
+            imageId: Int,
+        ) = builder.addOffset(4, imageId, 0)
+
+        fun addFrameAddress(
+            builder: FlatBufferBuilder,
+            frameAddress: ULong,
+        ) = builder.addLong(5, frameAddress.toLong(), 0)
+
+        fun addSymbolAddress(
+            builder: FlatBufferBuilder,
+            symbolAddress: ULong,
+        ) = builder.addLong(6, symbolAddress.toLong(), 0)
+
+        fun addRegisters(
+            builder: FlatBufferBuilder,
+            registers: Int,
+        ) = builder.addOffset(7, registers, 0)
+
+        fun createRegistersVector(
+            builder: FlatBufferBuilder,
+            data: IntArray,
+        ): Int {
             builder.startVector(4, data.size, 4)
             for (i in data.size - 1 downTo 0) {
                 builder.addOffset(data[i])
             }
             return builder.endVector()
         }
-        fun startRegistersVector(builder: FlatBufferBuilder, numElems: Int) = builder.startVector(4, numElems, 4)
-        fun addState(builder: FlatBufferBuilder, state: Int) = builder.addOffset(8, state, 0)
-        fun createStateVector(builder: FlatBufferBuilder, data: IntArray) : Int {
+
+        fun startRegistersVector(
+            builder: FlatBufferBuilder,
+            numElems: Int,
+        ) = builder.startVector(4, numElems, 4)
+
+        fun addState(
+            builder: FlatBufferBuilder,
+            state: Int,
+        ) = builder.addOffset(8, state, 0)
+
+        fun createStateVector(
+            builder: FlatBufferBuilder,
+            data: IntArray,
+        ): Int {
             builder.startVector(4, data.size, 4)
             for (i in data.size - 1 downTo 0) {
                 builder.addOffset(data[i])
             }
             return builder.endVector()
         }
-        fun startStateVector(builder: FlatBufferBuilder, numElems: Int) = builder.startVector(4, numElems, 4)
-        fun addFrameStatus(builder: FlatBufferBuilder, frameStatus: Byte) = builder.addByte(9, frameStatus, 0)
-        fun addOriginalIndex(builder: FlatBufferBuilder, originalIndex: ULong) = builder.addLong(10, originalIndex.toLong(), 0)
-        fun addInApp(builder: FlatBufferBuilder, inApp: Boolean) = builder.addBoolean(11, inApp, false)
-        fun addSymbolicatedName(builder: FlatBufferBuilder, symbolicatedName: Int) = builder.addOffset(12, symbolicatedName, 0)
-        fun endFrame(builder: FlatBufferBuilder) : Int {
+
+        fun startStateVector(
+            builder: FlatBufferBuilder,
+            numElems: Int,
+        ) = builder.startVector(4, numElems, 4)
+
+        fun addFrameStatus(
+            builder: FlatBufferBuilder,
+            frameStatus: Byte,
+        ) = builder.addByte(9, frameStatus, 0)
+
+        fun addOriginalIndex(
+            builder: FlatBufferBuilder,
+            originalIndex: ULong,
+        ) = builder.addLong(10, originalIndex.toLong(), 0)
+
+        fun addInApp(
+            builder: FlatBufferBuilder,
+            inApp: Boolean,
+        ) = builder.addBoolean(11, inApp, false)
+
+        fun addSymbolicatedName(
+            builder: FlatBufferBuilder,
+            symbolicatedName: Int,
+        ) = builder.addOffset(12, symbolicatedName, 0)
+
+        fun endFrame(builder: FlatBufferBuilder): Int {
             val o = builder.endTable()
             return o
         }
     }
 }
+
 @Suppress("unused")
 class Thread : Table() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : Thread {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): Thread {
         __init(_i, _bb)
         return this
     }
-    val name : String?
+
+    val name: String?
         get() {
             val o = __offset(4)
             return if (o != 0) {
@@ -899,19 +1427,21 @@ class Thread : Table() {
                 null
             }
         }
-    val nameAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(4, 1)
-    fun nameInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
-    val active : Boolean
+    val nameAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(4, 1)
+
+    fun nameInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
+
+    val active: Boolean
         get() {
             val o = __offset(6)
-            return if(o != 0) 0.toByte() != bb.get(o + bb_pos) else false
+            return if (o != 0) 0.toByte() != bb.get(o + bb_pos) else false
         }
-    val index : UInt
+    val index: UInt
         get() {
             val o = __offset(8)
-            return if(o != 0) bb.getInt(o + bb_pos).toUInt() else 0u
+            return if (o != 0) bb.getInt(o + bb_pos).toUInt() else 0u
         }
-    val state : String?
+    val state: String?
         get() {
             val o = __offset(10)
             return if (o != 0) {
@@ -920,20 +1450,32 @@ class Thread : Table() {
                 null
             }
         }
-    val stateAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(10, 1)
-    fun stateInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 10, 1)
-    val priority : Float
+    val stateAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(10, 1)
+
+    fun stateInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 10, 1)
+
+    val priority: Float
         get() {
             val o = __offset(12)
-            return if(o != 0) bb.getFloat(o + bb_pos) else 0.0f
+            return if (o != 0) bb.getFloat(o + bb_pos) else 0.0f
         }
-    val qualityOfService : Byte
+    val qualityOfService: Byte
         get() {
             val o = __offset(14)
-            return if(o != 0) bb.get(o + bb_pos) else -1
+            return if (o != 0) bb.get(o + bb_pos) else -1
         }
-    fun stackTrace(j: Int) : io.bitdrift.capture.reports.binformat.v1.Frame? = stackTrace(io.bitdrift.capture.reports.binformat.v1.Frame(), j)
-    fun stackTrace(obj: io.bitdrift.capture.reports.binformat.v1.Frame, j: Int) : io.bitdrift.capture.reports.binformat.v1.Frame? {
+
+    fun stackTrace(j: Int): io.bitdrift.capture.reports.binformat.v1.Frame? =
+        stackTrace(
+            io.bitdrift.capture.reports.binformat.v1
+                .Frame(),
+            j,
+        )
+
+    fun stackTrace(
+        obj: io.bitdrift.capture.reports.binformat.v1.Frame,
+        j: Int,
+    ): io.bitdrift.capture.reports.binformat.v1.Frame? {
         val o = __offset(16)
         return if (o != 0) {
             obj.__assign(__indirect(__vector(o) + j * 4), bb)
@@ -941,18 +1483,36 @@ class Thread : Table() {
             null
         }
     }
-    val stackTraceLength : Int
+
+    val stackTraceLength: Int
         get() {
-            val o = __offset(16); return if (o != 0) __vector_len(o) else 0
+            val o = __offset(16)
+            return if (o != 0) __vector_len(o) else 0
         }
+
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
+
         fun getRootAsThread(_bb: ByteBuffer): Thread = getRootAsThread(_bb, Thread())
-        fun getRootAsThread(_bb: ByteBuffer, obj: Thread): Thread {
+
+        fun getRootAsThread(
+            _bb: ByteBuffer,
+            obj: Thread,
+        ): Thread {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-        fun createThread(builder: FlatBufferBuilder, nameOffset: Int, active: Boolean, index: UInt, stateOffset: Int, priority: Float, qualityOfService: Byte, stackTraceOffset: Int) : Int {
+
+        fun createThread(
+            builder: FlatBufferBuilder,
+            nameOffset: Int,
+            active: Boolean,
+            index: UInt,
+            stateOffset: Int,
+            priority: Float,
+            qualityOfService: Byte,
+            stackTraceOffset: Int,
+        ): Int {
             builder.startTable(7)
             addStackTrace(builder, stackTraceOffset)
             addPriority(builder, priority)
@@ -963,45 +1523,101 @@ class Thread : Table() {
             addActive(builder, active)
             return endThread(builder)
         }
+
         fun startThread(builder: FlatBufferBuilder) = builder.startTable(7)
-        fun addName(builder: FlatBufferBuilder, name: Int) = builder.addOffset(0, name, 0)
-        fun addActive(builder: FlatBufferBuilder, active: Boolean) = builder.addBoolean(1, active, false)
-        fun addIndex(builder: FlatBufferBuilder, index: UInt) = builder.addInt(2, index.toInt(), 0)
-        fun addState(builder: FlatBufferBuilder, state: Int) = builder.addOffset(3, state, 0)
-        fun addPriority(builder: FlatBufferBuilder, priority: Float) = builder.addFloat(4, priority, 0.0)
-        fun addQualityOfService(builder: FlatBufferBuilder, qualityOfService: Byte) = builder.addByte(5, qualityOfService, -1)
-        fun addStackTrace(builder: FlatBufferBuilder, stackTrace: Int) = builder.addOffset(6, stackTrace, 0)
-        fun createStackTraceVector(builder: FlatBufferBuilder, data: IntArray) : Int {
+
+        fun addName(
+            builder: FlatBufferBuilder,
+            name: Int,
+        ) = builder.addOffset(0, name, 0)
+
+        fun addActive(
+            builder: FlatBufferBuilder,
+            active: Boolean,
+        ) = builder.addBoolean(1, active, false)
+
+        fun addIndex(
+            builder: FlatBufferBuilder,
+            index: UInt,
+        ) = builder.addInt(2, index.toInt(), 0)
+
+        fun addState(
+            builder: FlatBufferBuilder,
+            state: Int,
+        ) = builder.addOffset(3, state, 0)
+
+        fun addPriority(
+            builder: FlatBufferBuilder,
+            priority: Float,
+        ) = builder.addFloat(4, priority, 0.0)
+
+        fun addQualityOfService(
+            builder: FlatBufferBuilder,
+            qualityOfService: Byte,
+        ) = builder.addByte(5, qualityOfService, -1)
+
+        fun addStackTrace(
+            builder: FlatBufferBuilder,
+            stackTrace: Int,
+        ) = builder.addOffset(6, stackTrace, 0)
+
+        fun createStackTraceVector(
+            builder: FlatBufferBuilder,
+            data: IntArray,
+        ): Int {
             builder.startVector(4, data.size, 4)
             for (i in data.size - 1 downTo 0) {
                 builder.addOffset(data[i])
             }
             return builder.endVector()
         }
-        fun startStackTraceVector(builder: FlatBufferBuilder, numElems: Int) = builder.startVector(4, numElems, 4)
-        fun endThread(builder: FlatBufferBuilder) : Int {
+
+        fun startStackTraceVector(
+            builder: FlatBufferBuilder,
+            numElems: Int,
+        ) = builder.startVector(4, numElems, 4)
+
+        fun endThread(builder: FlatBufferBuilder): Int {
             val o = builder.endTable()
             return o
         }
     }
 }
+
 @Suppress("unused")
 class ThreadDetails : Table() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : ThreadDetails {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): ThreadDetails {
         __init(_i, _bb)
         return this
     }
-    val count : UShort
+
+    val count: UShort
         get() {
             val o = __offset(4)
-            return if(o != 0) bb.getShort(o + bb_pos).toUShort() else 0u
+            return if (o != 0) bb.getShort(o + bb_pos).toUShort() else 0u
         }
-    fun threads(j: Int) : io.bitdrift.capture.reports.binformat.v1.Thread? = threads(io.bitdrift.capture.reports.binformat.v1.Thread(), j)
-    fun threads(obj: io.bitdrift.capture.reports.binformat.v1.Thread, j: Int) : io.bitdrift.capture.reports.binformat.v1.Thread? {
+
+    fun threads(j: Int): io.bitdrift.capture.reports.binformat.v1.Thread? =
+        threads(
+            io.bitdrift.capture.reports.binformat.v1
+                .Thread(),
+            j,
+        )
+
+    fun threads(
+        obj: io.bitdrift.capture.reports.binformat.v1.Thread,
+        j: Int,
+    ): io.bitdrift.capture.reports.binformat.v1.Thread? {
         val o = __offset(6)
         return if (o != 0) {
             obj.__assign(__indirect(__vector(o) + j * 4), bb)
@@ -1009,51 +1625,90 @@ class ThreadDetails : Table() {
             null
         }
     }
-    val threadsLength : Int
+
+    val threadsLength: Int
         get() {
-            val o = __offset(6); return if (o != 0) __vector_len(o) else 0
+            val o = __offset(6)
+            return if (o != 0) __vector_len(o) else 0
         }
+
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
+
         fun getRootAsThreadDetails(_bb: ByteBuffer): ThreadDetails = getRootAsThreadDetails(_bb, ThreadDetails())
-        fun getRootAsThreadDetails(_bb: ByteBuffer, obj: ThreadDetails): ThreadDetails {
+
+        fun getRootAsThreadDetails(
+            _bb: ByteBuffer,
+            obj: ThreadDetails,
+        ): ThreadDetails {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-        fun createThreadDetails(builder: FlatBufferBuilder, count: UShort, threadsOffset: Int) : Int {
+
+        fun createThreadDetails(
+            builder: FlatBufferBuilder,
+            count: UShort,
+            threadsOffset: Int,
+        ): Int {
             builder.startTable(2)
             addThreads(builder, threadsOffset)
             addCount(builder, count)
             return endThreadDetails(builder)
         }
+
         fun startThreadDetails(builder: FlatBufferBuilder) = builder.startTable(2)
-        fun addCount(builder: FlatBufferBuilder, count: UShort) = builder.addShort(0, count.toShort(), 0)
-        fun addThreads(builder: FlatBufferBuilder, threads: Int) = builder.addOffset(1, threads, 0)
-        fun createThreadsVector(builder: FlatBufferBuilder, data: IntArray) : Int {
+
+        fun addCount(
+            builder: FlatBufferBuilder,
+            count: UShort,
+        ) = builder.addShort(0, count.toShort(), 0)
+
+        fun addThreads(
+            builder: FlatBufferBuilder,
+            threads: Int,
+        ) = builder.addOffset(1, threads, 0)
+
+        fun createThreadsVector(
+            builder: FlatBufferBuilder,
+            data: IntArray,
+        ): Int {
             builder.startVector(4, data.size, 4)
             for (i in data.size - 1 downTo 0) {
                 builder.addOffset(data[i])
             }
             return builder.endVector()
         }
-        fun startThreadsVector(builder: FlatBufferBuilder, numElems: Int) = builder.startVector(4, numElems, 4)
-        fun endThreadDetails(builder: FlatBufferBuilder) : Int {
+
+        fun startThreadsVector(
+            builder: FlatBufferBuilder,
+            numElems: Int,
+        ) = builder.startVector(4, numElems, 4)
+
+        fun endThreadDetails(builder: FlatBufferBuilder): Int {
             val o = builder.endTable()
             return o
         }
     }
 }
+
 @Suppress("unused")
 class Error : Table() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : Error {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): Error {
         __init(_i, _bb)
         return this
     }
-    val name : String?
+
+    val name: String?
         get() {
             val o = __offset(4)
             return if (o != 0) {
@@ -1062,9 +1717,11 @@ class Error : Table() {
                 null
             }
         }
-    val nameAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(4, 1)
-    fun nameInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
-    val reason : String?
+    val nameAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(4, 1)
+
+    fun nameInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
+
+    val reason: String?
         get() {
             val o = __offset(6)
             return if (o != 0) {
@@ -1073,10 +1730,21 @@ class Error : Table() {
                 null
             }
         }
-    val reasonAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(6, 1)
-    fun reasonInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
-    fun stackTrace(j: Int) : io.bitdrift.capture.reports.binformat.v1.Frame? = stackTrace(io.bitdrift.capture.reports.binformat.v1.Frame(), j)
-    fun stackTrace(obj: io.bitdrift.capture.reports.binformat.v1.Frame, j: Int) : io.bitdrift.capture.reports.binformat.v1.Frame? {
+    val reasonAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(6, 1)
+
+    fun reasonInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
+
+    fun stackTrace(j: Int): io.bitdrift.capture.reports.binformat.v1.Frame? =
+        stackTrace(
+            io.bitdrift.capture.reports.binformat.v1
+                .Frame(),
+            j,
+        )
+
+    fun stackTrace(
+        obj: io.bitdrift.capture.reports.binformat.v1.Frame,
+        j: Int,
+    ): io.bitdrift.capture.reports.binformat.v1.Frame? {
         val o = __offset(8)
         return if (o != 0) {
             obj.__assign(__indirect(__vector(o) + j * 4), bb)
@@ -1084,23 +1752,38 @@ class Error : Table() {
             null
         }
     }
-    val stackTraceLength : Int
+
+    val stackTraceLength: Int
         get() {
-            val o = __offset(8); return if (o != 0) __vector_len(o) else 0
+            val o = __offset(8)
+            return if (o != 0) __vector_len(o) else 0
         }
-    val relationToNext : Byte
+    val relationToNext: Byte
         get() {
             val o = __offset(10)
-            return if(o != 0) bb.get(o + bb_pos) else 1
+            return if (o != 0) bb.get(o + bb_pos) else 1
         }
+
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
+
         fun getRootAsError(_bb: ByteBuffer): Error = getRootAsError(_bb, Error())
-        fun getRootAsError(_bb: ByteBuffer, obj: Error): Error {
+
+        fun getRootAsError(
+            _bb: ByteBuffer,
+            obj: Error,
+        ): Error {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-        fun createError(builder: FlatBufferBuilder, nameOffset: Int, reasonOffset: Int, stackTraceOffset: Int, relationToNext: Byte) : Int {
+
+        fun createError(
+            builder: FlatBufferBuilder,
+            nameOffset: Int,
+            reasonOffset: Int,
+            stackTraceOffset: Int,
+            relationToNext: Byte,
+        ): Int {
             builder.startTable(4)
             addStackTrace(builder, stackTraceOffset)
             addReason(builder, reasonOffset)
@@ -1108,36 +1791,70 @@ class Error : Table() {
             addRelationToNext(builder, relationToNext)
             return endError(builder)
         }
+
         fun startError(builder: FlatBufferBuilder) = builder.startTable(4)
-        fun addName(builder: FlatBufferBuilder, name: Int) = builder.addOffset(0, name, 0)
-        fun addReason(builder: FlatBufferBuilder, reason: Int) = builder.addOffset(1, reason, 0)
-        fun addStackTrace(builder: FlatBufferBuilder, stackTrace: Int) = builder.addOffset(2, stackTrace, 0)
-        fun createStackTraceVector(builder: FlatBufferBuilder, data: IntArray) : Int {
+
+        fun addName(
+            builder: FlatBufferBuilder,
+            name: Int,
+        ) = builder.addOffset(0, name, 0)
+
+        fun addReason(
+            builder: FlatBufferBuilder,
+            reason: Int,
+        ) = builder.addOffset(1, reason, 0)
+
+        fun addStackTrace(
+            builder: FlatBufferBuilder,
+            stackTrace: Int,
+        ) = builder.addOffset(2, stackTrace, 0)
+
+        fun createStackTraceVector(
+            builder: FlatBufferBuilder,
+            data: IntArray,
+        ): Int {
             builder.startVector(4, data.size, 4)
             for (i in data.size - 1 downTo 0) {
                 builder.addOffset(data[i])
             }
             return builder.endVector()
         }
-        fun startStackTraceVector(builder: FlatBufferBuilder, numElems: Int) = builder.startVector(4, numElems, 4)
-        fun addRelationToNext(builder: FlatBufferBuilder, relationToNext: Byte) = builder.addByte(3, relationToNext, 1)
-        fun endError(builder: FlatBufferBuilder) : Int {
+
+        fun startStackTraceVector(
+            builder: FlatBufferBuilder,
+            numElems: Int,
+        ) = builder.startVector(4, numElems, 4)
+
+        fun addRelationToNext(
+            builder: FlatBufferBuilder,
+            relationToNext: Byte,
+        ) = builder.addByte(3, relationToNext, 1)
+
+        fun endError(builder: FlatBufferBuilder): Int {
             val o = builder.endTable()
             return o
         }
     }
 }
+
 @Suppress("unused")
 class BinaryImage : Table() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : BinaryImage {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): BinaryImage {
         __init(_i, _bb)
         return this
     }
-    val id : String?
+
+    val id: String?
         get() {
             val o = __offset(4)
             return if (o != 0) {
@@ -1146,9 +1863,11 @@ class BinaryImage : Table() {
                 null
             }
         }
-    val idAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(4, 1)
-    fun idInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
-    val path : String?
+    val idAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(4, 1)
+
+    fun idInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
+
+    val path: String?
         get() {
             val o = __offset(6)
             return if (o != 0) {
@@ -1157,48 +1876,84 @@ class BinaryImage : Table() {
                 null
             }
         }
-    val pathAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(6, 1)
-    fun pathInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
-    val loadAddress : ULong
+    val pathAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(6, 1)
+
+    fun pathInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
+
+    val loadAddress: ULong
         get() {
             val o = __offset(8)
-            return if(o != 0) bb.getLong(o + bb_pos).toULong() else 0UL
+            return if (o != 0) bb.getLong(o + bb_pos).toULong() else 0UL
         }
+
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
+
         fun getRootAsBinaryImage(_bb: ByteBuffer): BinaryImage = getRootAsBinaryImage(_bb, BinaryImage())
-        fun getRootAsBinaryImage(_bb: ByteBuffer, obj: BinaryImage): BinaryImage {
+
+        fun getRootAsBinaryImage(
+            _bb: ByteBuffer,
+            obj: BinaryImage,
+        ): BinaryImage {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-        fun createBinaryImage(builder: FlatBufferBuilder, idOffset: Int, pathOffset: Int, loadAddress: ULong) : Int {
+
+        fun createBinaryImage(
+            builder: FlatBufferBuilder,
+            idOffset: Int,
+            pathOffset: Int,
+            loadAddress: ULong,
+        ): Int {
             builder.startTable(3)
             addLoadAddress(builder, loadAddress)
             addPath(builder, pathOffset)
             addId(builder, idOffset)
             return endBinaryImage(builder)
         }
+
         fun startBinaryImage(builder: FlatBufferBuilder) = builder.startTable(3)
-        fun addId(builder: FlatBufferBuilder, id: Int) = builder.addOffset(0, id, 0)
-        fun addPath(builder: FlatBufferBuilder, path: Int) = builder.addOffset(1, path, 0)
-        fun addLoadAddress(builder: FlatBufferBuilder, loadAddress: ULong) = builder.addLong(2, loadAddress.toLong(), 0)
-        fun endBinaryImage(builder: FlatBufferBuilder) : Int {
+
+        fun addId(
+            builder: FlatBufferBuilder,
+            id: Int,
+        ) = builder.addOffset(0, id, 0)
+
+        fun addPath(
+            builder: FlatBufferBuilder,
+            path: Int,
+        ) = builder.addOffset(1, path, 0)
+
+        fun addLoadAddress(
+            builder: FlatBufferBuilder,
+            loadAddress: ULong,
+        ) = builder.addLong(2, loadAddress.toLong(), 0)
+
+        fun endBinaryImage(builder: FlatBufferBuilder): Int {
             val o = builder.endTable()
             return o
         }
     }
 }
+
 @Suppress("unused")
 class SDKInfo : Table() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : SDKInfo {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): SDKInfo {
         __init(_i, _bb)
         return this
     }
-    val id : String?
+
+    val id: String?
         get() {
             val o = __offset(4)
             return if (o != 0) {
@@ -1207,9 +1962,11 @@ class SDKInfo : Table() {
                 null
             }
         }
-    val idAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(4, 1)
-    fun idInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
-    val version : String?
+    val idAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(4, 1)
+
+    fun idInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
+
+    val version: String?
         get() {
             val o = __offset(6)
             return if (o != 0) {
@@ -1218,42 +1975,77 @@ class SDKInfo : Table() {
                 null
             }
         }
-    val versionAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(6, 1)
-    fun versionInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
+    val versionAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(6, 1)
+
+    fun versionInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
+
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
+
         fun getRootAsSDKInfo(_bb: ByteBuffer): SDKInfo = getRootAsSDKInfo(_bb, SDKInfo())
-        fun getRootAsSDKInfo(_bb: ByteBuffer, obj: SDKInfo): SDKInfo {
+
+        fun getRootAsSDKInfo(
+            _bb: ByteBuffer,
+            obj: SDKInfo,
+        ): SDKInfo {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-        fun createSDKInfo(builder: FlatBufferBuilder, idOffset: Int, versionOffset: Int) : Int {
+
+        fun createSDKInfo(
+            builder: FlatBufferBuilder,
+            idOffset: Int,
+            versionOffset: Int,
+        ): Int {
             builder.startTable(2)
             addVersion(builder, versionOffset)
             addId(builder, idOffset)
             return endSDKInfo(builder)
         }
+
         fun startSDKInfo(builder: FlatBufferBuilder) = builder.startTable(2)
-        fun addId(builder: FlatBufferBuilder, id: Int) = builder.addOffset(0, id, 0)
-        fun addVersion(builder: FlatBufferBuilder, version: Int) = builder.addOffset(1, version, 0)
-        fun endSDKInfo(builder: FlatBufferBuilder) : Int {
+
+        fun addId(
+            builder: FlatBufferBuilder,
+            id: Int,
+        ) = builder.addOffset(0, id, 0)
+
+        fun addVersion(
+            builder: FlatBufferBuilder,
+            version: Int,
+        ) = builder.addOffset(1, version, 0)
+
+        fun endSDKInfo(builder: FlatBufferBuilder): Int {
             val o = builder.endTable()
             return o
         }
     }
 }
+
 @Suppress("unused")
 class Report : Table() {
-
-    fun __init(_i: Int, _bb: ByteBuffer)  {
+    fun __init(
+        _i: Int,
+        _bb: ByteBuffer,
+    ) {
         __reset(_i, _bb)
     }
-    fun __assign(_i: Int, _bb: ByteBuffer) : Report {
+
+    fun __assign(
+        _i: Int,
+        _bb: ByteBuffer,
+    ): Report {
         __init(_i, _bb)
         return this
     }
-    val sdk : io.bitdrift.capture.reports.binformat.v1.SDKInfo? get() = sdk(io.bitdrift.capture.reports.binformat.v1.SDKInfo())
-    fun sdk(obj: io.bitdrift.capture.reports.binformat.v1.SDKInfo) : io.bitdrift.capture.reports.binformat.v1.SDKInfo? {
+
+    val sdk: io.bitdrift.capture.reports.binformat.v1.SDKInfo? get() =
+        sdk(
+            io.bitdrift.capture.reports.binformat.v1
+                .SDKInfo(),
+        )
+
+    fun sdk(obj: io.bitdrift.capture.reports.binformat.v1.SDKInfo): io.bitdrift.capture.reports.binformat.v1.SDKInfo? {
         val o = __offset(4)
         return if (o != 0) {
             obj.__assign(__indirect(o + bb_pos), bb)
@@ -1261,13 +2053,19 @@ class Report : Table() {
             null
         }
     }
-    val type : Byte
+
+    val type: Byte
         get() {
             val o = __offset(6)
-            return if(o != 0) bb.get(o + bb_pos) else 0
+            return if (o != 0) bb.get(o + bb_pos) else 0
         }
-    val appMetrics : io.bitdrift.capture.reports.binformat.v1.AppMetrics? get() = appMetrics(io.bitdrift.capture.reports.binformat.v1.AppMetrics())
-    fun appMetrics(obj: io.bitdrift.capture.reports.binformat.v1.AppMetrics) : io.bitdrift.capture.reports.binformat.v1.AppMetrics? {
+    val appMetrics: io.bitdrift.capture.reports.binformat.v1.AppMetrics? get() =
+        appMetrics(
+            io.bitdrift.capture.reports.binformat.v1
+                .AppMetrics(),
+        )
+
+    fun appMetrics(obj: io.bitdrift.capture.reports.binformat.v1.AppMetrics): io.bitdrift.capture.reports.binformat.v1.AppMetrics? {
         val o = __offset(8)
         return if (o != 0) {
             obj.__assign(__indirect(o + bb_pos), bb)
@@ -1275,8 +2073,16 @@ class Report : Table() {
             null
         }
     }
-    val deviceMetrics : io.bitdrift.capture.reports.binformat.v1.DeviceMetrics? get() = deviceMetrics(io.bitdrift.capture.reports.binformat.v1.DeviceMetrics())
-    fun deviceMetrics(obj: io.bitdrift.capture.reports.binformat.v1.DeviceMetrics) : io.bitdrift.capture.reports.binformat.v1.DeviceMetrics? {
+
+    val deviceMetrics: io.bitdrift.capture.reports.binformat.v1.DeviceMetrics? get() =
+        deviceMetrics(
+            io.bitdrift.capture.reports.binformat.v1
+                .DeviceMetrics(),
+        )
+
+    fun deviceMetrics(
+        obj: io.bitdrift.capture.reports.binformat.v1.DeviceMetrics,
+    ): io.bitdrift.capture.reports.binformat.v1.DeviceMetrics? {
         val o = __offset(10)
         return if (o != 0) {
             obj.__assign(__indirect(o + bb_pos), bb)
@@ -1284,8 +2090,18 @@ class Report : Table() {
             null
         }
     }
-    fun errors(j: Int) : io.bitdrift.capture.reports.binformat.v1.Error? = errors(io.bitdrift.capture.reports.binformat.v1.Error(), j)
-    fun errors(obj: io.bitdrift.capture.reports.binformat.v1.Error, j: Int) : io.bitdrift.capture.reports.binformat.v1.Error? {
+
+    fun errors(j: Int): io.bitdrift.capture.reports.binformat.v1.Error? =
+        errors(
+            io.bitdrift.capture.reports.binformat.v1
+                .Error(),
+            j,
+        )
+
+    fun errors(
+        obj: io.bitdrift.capture.reports.binformat.v1.Error,
+        j: Int,
+    ): io.bitdrift.capture.reports.binformat.v1.Error? {
         val o = __offset(12)
         return if (o != 0) {
             obj.__assign(__indirect(__vector(o) + j * 4), bb)
@@ -1293,12 +2109,21 @@ class Report : Table() {
             null
         }
     }
-    val errorsLength : Int
+
+    val errorsLength: Int
         get() {
-            val o = __offset(12); return if (o != 0) __vector_len(o) else 0
+            val o = __offset(12)
+            return if (o != 0) __vector_len(o) else 0
         }
-    val threadDetails : io.bitdrift.capture.reports.binformat.v1.ThreadDetails? get() = threadDetails(io.bitdrift.capture.reports.binformat.v1.ThreadDetails())
-    fun threadDetails(obj: io.bitdrift.capture.reports.binformat.v1.ThreadDetails) : io.bitdrift.capture.reports.binformat.v1.ThreadDetails? {
+    val threadDetails: io.bitdrift.capture.reports.binformat.v1.ThreadDetails? get() =
+        threadDetails(
+            io.bitdrift.capture.reports.binformat.v1
+                .ThreadDetails(),
+        )
+
+    fun threadDetails(
+        obj: io.bitdrift.capture.reports.binformat.v1.ThreadDetails,
+    ): io.bitdrift.capture.reports.binformat.v1.ThreadDetails? {
         val o = __offset(14)
         return if (o != 0) {
             obj.__assign(__indirect(o + bb_pos), bb)
@@ -1306,8 +2131,18 @@ class Report : Table() {
             null
         }
     }
-    fun binaryImages(j: Int) : io.bitdrift.capture.reports.binformat.v1.BinaryImage? = binaryImages(io.bitdrift.capture.reports.binformat.v1.BinaryImage(), j)
-    fun binaryImages(obj: io.bitdrift.capture.reports.binformat.v1.BinaryImage, j: Int) : io.bitdrift.capture.reports.binformat.v1.BinaryImage? {
+
+    fun binaryImages(j: Int): io.bitdrift.capture.reports.binformat.v1.BinaryImage? =
+        binaryImages(
+            io.bitdrift.capture.reports.binformat.v1
+                .BinaryImage(),
+            j,
+        )
+
+    fun binaryImages(
+        obj: io.bitdrift.capture.reports.binformat.v1.BinaryImage,
+        j: Int,
+    ): io.bitdrift.capture.reports.binformat.v1.BinaryImage? {
         val o = __offset(16)
         return if (o != 0) {
             obj.__assign(__indirect(__vector(o) + j * 4), bb)
@@ -1315,18 +2150,36 @@ class Report : Table() {
             null
         }
     }
-    val binaryImagesLength : Int
+
+    val binaryImagesLength: Int
         get() {
-            val o = __offset(16); return if (o != 0) __vector_len(o) else 0
+            val o = __offset(16)
+            return if (o != 0) __vector_len(o) else 0
         }
+
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
+
         fun getRootAsReport(_bb: ByteBuffer): Report = getRootAsReport(_bb, Report())
-        fun getRootAsReport(_bb: ByteBuffer, obj: Report): Report {
+
+        fun getRootAsReport(
+            _bb: ByteBuffer,
+            obj: Report,
+        ): Report {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-        fun createReport(builder: FlatBufferBuilder, sdkOffset: Int, type: Byte, appMetricsOffset: Int, deviceMetricsOffset: Int, errorsOffset: Int, threadDetailsOffset: Int, binaryImagesOffset: Int) : Int {
+
+        fun createReport(
+            builder: FlatBufferBuilder,
+            sdkOffset: Int,
+            type: Byte,
+            appMetricsOffset: Int,
+            deviceMetricsOffset: Int,
+            errorsOffset: Int,
+            threadDetailsOffset: Int,
+            binaryImagesOffset: Int,
+        ): Int {
             builder.startTable(7)
             addBinaryImages(builder, binaryImagesOffset)
             addThreadDetails(builder, threadDetailsOffset)
@@ -1337,35 +2190,89 @@ class Report : Table() {
             addType(builder, type)
             return endReport(builder)
         }
+
         fun startReport(builder: FlatBufferBuilder) = builder.startTable(7)
-        fun addSdk(builder: FlatBufferBuilder, sdk: Int) = builder.addOffset(0, sdk, 0)
-        fun addType(builder: FlatBufferBuilder, type: Byte) = builder.addByte(1, type, 0)
-        fun addAppMetrics(builder: FlatBufferBuilder, appMetrics: Int) = builder.addOffset(2, appMetrics, 0)
-        fun addDeviceMetrics(builder: FlatBufferBuilder, deviceMetrics: Int) = builder.addOffset(3, deviceMetrics, 0)
-        fun addErrors(builder: FlatBufferBuilder, errors: Int) = builder.addOffset(4, errors, 0)
-        fun createErrorsVector(builder: FlatBufferBuilder, data: IntArray) : Int {
+
+        fun addSdk(
+            builder: FlatBufferBuilder,
+            sdk: Int,
+        ) = builder.addOffset(0, sdk, 0)
+
+        fun addType(
+            builder: FlatBufferBuilder,
+            type: Byte,
+        ) = builder.addByte(1, type, 0)
+
+        fun addAppMetrics(
+            builder: FlatBufferBuilder,
+            appMetrics: Int,
+        ) = builder.addOffset(2, appMetrics, 0)
+
+        fun addDeviceMetrics(
+            builder: FlatBufferBuilder,
+            deviceMetrics: Int,
+        ) = builder.addOffset(3, deviceMetrics, 0)
+
+        fun addErrors(
+            builder: FlatBufferBuilder,
+            errors: Int,
+        ) = builder.addOffset(4, errors, 0)
+
+        fun createErrorsVector(
+            builder: FlatBufferBuilder,
+            data: IntArray,
+        ): Int {
             builder.startVector(4, data.size, 4)
             for (i in data.size - 1 downTo 0) {
                 builder.addOffset(data[i])
             }
             return builder.endVector()
         }
-        fun startErrorsVector(builder: FlatBufferBuilder, numElems: Int) = builder.startVector(4, numElems, 4)
-        fun addThreadDetails(builder: FlatBufferBuilder, threadDetails: Int) = builder.addOffset(5, threadDetails, 0)
-        fun addBinaryImages(builder: FlatBufferBuilder, binaryImages: Int) = builder.addOffset(6, binaryImages, 0)
-        fun createBinaryImagesVector(builder: FlatBufferBuilder, data: IntArray) : Int {
+
+        fun startErrorsVector(
+            builder: FlatBufferBuilder,
+            numElems: Int,
+        ) = builder.startVector(4, numElems, 4)
+
+        fun addThreadDetails(
+            builder: FlatBufferBuilder,
+            threadDetails: Int,
+        ) = builder.addOffset(5, threadDetails, 0)
+
+        fun addBinaryImages(
+            builder: FlatBufferBuilder,
+            binaryImages: Int,
+        ) = builder.addOffset(6, binaryImages, 0)
+
+        fun createBinaryImagesVector(
+            builder: FlatBufferBuilder,
+            data: IntArray,
+        ): Int {
             builder.startVector(4, data.size, 4)
             for (i in data.size - 1 downTo 0) {
                 builder.addOffset(data[i])
             }
             return builder.endVector()
         }
-        fun startBinaryImagesVector(builder: FlatBufferBuilder, numElems: Int) = builder.startVector(4, numElems, 4)
-        fun endReport(builder: FlatBufferBuilder) : Int {
+
+        fun startBinaryImagesVector(
+            builder: FlatBufferBuilder,
+            numElems: Int,
+        ) = builder.startVector(4, numElems, 4)
+
+        fun endReport(builder: FlatBufferBuilder): Int {
             val o = builder.endTable()
             return o
         }
-        fun finishReportBuffer(builder: FlatBufferBuilder, offset: Int) = builder.finish(offset)
-        fun finishSizePrefixedReportBuffer(builder: FlatBufferBuilder, offset: Int) = builder.finishSizePrefixed(offset)
+
+        fun finishReportBuffer(
+            builder: FlatBufferBuilder,
+            offset: Int,
+        ) = builder.finish(offset)
+
+        fun finishSizePrefixedReportBuffer(
+            builder: FlatBufferBuilder,
+            offset: Int,
+        ) = builder.finishSizePrefixed(offset)
     }
 }

@@ -74,11 +74,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
+    // TODO(murki): consider updating to using kotlin.compilerOptions {} block
     kotlinOptions {
-        apiVersion = "1.9"
         jvmTarget = "1.8"
+        apiVersion = "2.1"
+        languageVersion = "2.1"
         allWarningsAsErrors = true
-        languageVersion = "1.9"
     }
 
     // TODO(murki): Move this common configuration to a reusable buildSrc plugin once it's fully supported for kotlin DSL
@@ -91,6 +92,7 @@ android {
         abortOnError = true
         checkDependencies = true
         checkReleaseBuilds = true
+        disable.add("GradleDependency")
     }
 }
 
@@ -118,7 +120,7 @@ tasks.whenTaskAdded {
     }
 }
 
-//detekt
+// detekt
 detekt {
     // Define the detekt configuration(s) you want to use.
     // Defaults to the default detekt configuration.
@@ -140,6 +142,6 @@ publishing {
         maven {
             url = uri(layout.buildDirectory.dir("repos/releases"))
         }
-      mavenLocal()
+        mavenLocal()
     }
 }

@@ -36,25 +36,26 @@ package io.bitdrift.capture.instrumentation.fakes
 import io.bitdrift.capture.extension.InstrumentationExtension.OkHttpInstrumentationType
 import io.bitdrift.capture.instrumentation.ClassInstrumentable
 import io.bitdrift.capture.instrumentation.SpanAddingClassVisitorFactory
-import java.io.File
 import org.gradle.api.internal.provider.DefaultProperty
 import org.gradle.api.internal.provider.PropertyHost
 import org.gradle.api.provider.Property
+import java.io.File
 
 class TestSpanAddingParameters(
     private val debugOutput: Boolean = true,
-    private val inMemoryDir: File
+    private val inMemoryDir: File,
 ) : SpanAddingClassVisitorFactory.SpanAddingParameters {
     override val debug: Property<Boolean>
-        get() = DefaultProperty(PropertyHost.NO_OP, Boolean::class.javaObjectType)
-            .convention(debugOutput)
+        get() =
+            DefaultProperty(PropertyHost.NO_OP, Boolean::class.javaObjectType)
+                .convention(debugOutput)
     override val okHttpInstrumentationType: Property<OkHttpInstrumentationType>
-        get() = DefaultProperty(PropertyHost.NO_OP, OkHttpInstrumentationType::class.javaObjectType)
-            .convention(OkHttpInstrumentationType.PROXY)
+        get() =
+            DefaultProperty(PropertyHost.NO_OP, OkHttpInstrumentationType::class.javaObjectType)
+                .convention(OkHttpInstrumentationType.PROXY)
 
     override val tmpDir: Property<File>
         get() = DefaultProperty<File>(PropertyHost.NO_OP, File::class.java).convention(inMemoryDir)
 
     override var _instrumentable: ClassInstrumentable? = null
-
 }

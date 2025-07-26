@@ -20,7 +20,6 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import io.bitdrift.gradletestapp.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
-
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
     private lateinit var navController: NavController
@@ -41,14 +40,13 @@ class MainActivity : AppCompatActivity() {
         setupActionBarWithNavController(navController, appBarConfiguration)
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        return if (isNotEntryPointFragment()) {
+    override fun onCreateOptionsMenu(menu: Menu): Boolean =
+        if (isNotEntryPointFragment()) {
             false
         } else {
             menuInflater.inflate(R.menu.menu_main, menu)
             true
         }
-    }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         // Handle action bar item clicks here. The action bar will
@@ -61,11 +59,12 @@ class MainActivity : AppCompatActivity() {
             }
 
             R.id.switch_app_theme -> {
-                val appNightMode = if (AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES) {
-                    AppCompatDelegate.MODE_NIGHT_NO
-                } else {
-                    AppCompatDelegate.MODE_NIGHT_YES
-                }
+                val appNightMode =
+                    if (AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES) {
+                        AppCompatDelegate.MODE_NIGHT_NO
+                    } else {
+                        AppCompatDelegate.MODE_NIGHT_YES
+                    }
                 AppCompatDelegate.setDefaultNightMode(appNightMode)
                 return true
             }
@@ -73,12 +72,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        return navController.navigateUp(appBarConfiguration)
-                || super.onSupportNavigateUp()
-    }
+    override fun onSupportNavigateUp(): Boolean =
+        navController.navigateUp(appBarConfiguration) ||
+            super.onSupportNavigateUp()
 
-    private fun isNotEntryPointFragment():Boolean{
-        return navController.currentDestination?.id != R.id.FirstFragment
-    }
+    private fun isNotEntryPointFragment(): Boolean = navController.currentDestination?.id != R.id.FirstFragment
 }

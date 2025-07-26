@@ -20,7 +20,6 @@ include(":gradle-test-app")
 
 include(":microbenchmark")
 
-
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {

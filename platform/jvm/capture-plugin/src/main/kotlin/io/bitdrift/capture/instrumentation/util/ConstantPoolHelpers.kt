@@ -31,6 +31,8 @@
  * SOFTWARE.
  */
 
+@file:Suppress("ktlint:standard:max-line-length")
+
 package io.bitdrift.capture.instrumentation.util
 
 import org.objectweb.asm.ClassReader
@@ -45,11 +47,12 @@ import java.lang.reflect.Field
 internal fun ClassVisitor.findClassWriter(): ClassWriter? {
     var classWriter: ClassVisitor = this
     while (!ClassWriter::class.java.isAssignableFrom(classWriter::class.java)) {
-        val cvField: Field = try {
-            classWriter::class.java.allFields.find { it.name == "cv" } ?: return null
-        } catch (e: Throwable) {
-            return null
-        }
+        val cvField: Field =
+            try {
+                classWriter::class.java.allFields.find { it.name == "cv" } ?: return null
+            } catch (e: Throwable) {
+                return null
+            }
         cvField.isAccessible = true
         classWriter = (cvField.get(classWriter) as? ClassVisitor) ?: return null
     }
@@ -61,32 +64,31 @@ internal fun ClassVisitor.findClassWriter(): ClassWriter? {
  */
 internal fun ClassWriter.findClassReader(): ClassReader? {
     val clazz: Class<out ClassWriter> = this::class.java
-    val symbolTableField: Field = try {
-        clazz.allFields.find { it.name == "symbolTable" } ?: return null
-    } catch (e: Throwable) {
-        return null
-    }
+    val symbolTableField: Field =
+        try {
+            clazz.allFields.find { it.name == "symbolTable" } ?: return null
+        } catch (e: Throwable) {
+            return null
+        }
     symbolTableField.isAccessible = true
     val symbolTable = symbolTableField.get(this)
-    val classReaderField: Field = try {
-        symbolTable::class.java.getDeclaredField("sourceClassReader")
-    } catch (e: Throwable) {
-        return null
-    }
+    val classReaderField: Field =
+        try {
+            symbolTable::class.java.getDeclaredField("sourceClassReader")
+        } catch (e: Throwable) {
+            return null
+        }
     classReaderField.isAccessible = true
     return (classReaderField.get(symbolTable) as? ClassReader)
 }
 
-internal fun ClassReader.getSimpleClassName(): String {
-    return className.substringAfterLast("/")
-}
+internal fun ClassReader.getSimpleClassName(): String = className.substringAfterLast("/")
 
 /**
  * Looks at the constant pool entries and searches for R8 markers
  */
-internal fun ClassReader.isMinifiedClass(): Boolean {
-    return isR8Minified(this) || classNameLooksMinified(this.getSimpleClassName(), this.className)
-}
+internal fun ClassReader.isMinifiedClass(): Boolean =
+    isR8Minified(this) || classNameLooksMinified(this.getSimpleClassName(), this.className)
 
 private fun isR8Minified(classReader: ClassReader): Boolean {
     val charBuffer = CharArray(classReader.maxStringLength)
@@ -113,21 +115,23 @@ private fun isR8Minified(classReader: ClassReader): Boolean {
  * See https://github.com/getsentry/sentry-android-gradle-plugin/issues/360
  * and https://github.com/getsentry/sentry-android-gradle-plugin/issues/359#issuecomment-1193782500
  */
-/* ktlint-disable max-line-length */
-private val MINIFIED_CLASSNAME_REGEX = """^(((([a-zA-z])\4{1,}|[a-zA-Z]{1,2})([0-9]{1,})?(([a-zA-Z])\7{1,})?)|([a-zA-Z]([0-9])?))(${'\\'}${'$'}((((\w)\14{1,}|[a-zA-Z]{1,2})([0-9]{1,})?(([a-zA-Z])\17{1,})?)|(\w([0-9])?)))*${'$'}""".toRegex()
+private val MINIFIED_CLASSNAME_REGEX =
+    """^(((([a-zA-z])\4{1,}|[a-zA-Z]{1,2})([0-9]{1,})?(([a-zA-Z])\7{1,})?)|([a-zA-Z]([0-9])?))(${'\\'}${'$'}((((\w)\14{1,}|[a-zA-Z]{1,2})([0-9]{1,})?(([a-zA-Z])\17{1,})?)|(\w([0-9])?)))*${'$'}"""
+        .toRegex()
 
 /**
  * See https://github.com/getsentry/sentry/blob/c943de2afc785083554e7fdfb10c67d0c0de0f98/static/app/components/events/eventEntries.tsx#L57-L58
  */
 private val MINIFIED_CLASSNAME_SENTRY_REGEX =
-        """^(([\w\${'$'}]\/[\w\${'$'}]{1,2})|([\w\${'$'}]{2}\/[\w\${'$'}]\/[\w\${'$'}]))(\/|${'$'})""".toRegex()
-/* ktlint-enable max-line-length */
+    """^(([\w\${'$'}]\/[\w\${'$'}]{1,2})|([\w\${'$'}]{2}\/[\w\${'$'}]\/[\w\${'$'}]))(\/|${'$'})""".toRegex()
 
-fun classNameLooksMinified(simpleClassName: String, fullClassName: String): Boolean {
-    return simpleClassName.isNotEmpty() &&
-            simpleClassName[0].isLowerCase() &&
-            (
-                    MINIFIED_CLASSNAME_REGEX.matches(simpleClassName) ||
-                            MINIFIED_CLASSNAME_SENTRY_REGEX.matches(fullClassName)
-                    )
-}
+fun classNameLooksMinified(
+    simpleClassName: String,
+    fullClassName: String,
+): Boolean =
+    simpleClassName.isNotEmpty() &&
+        simpleClassName[0].isLowerCase() &&
+        (
+            MINIFIED_CLASSNAME_REGEX.matches(simpleClassName) ||
+                MINIFIED_CLASSNAME_SENTRY_REGEX.matches(fullClassName)
+        )

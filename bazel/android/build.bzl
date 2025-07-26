@@ -46,6 +46,8 @@ def bitdrift_kt_android_local_test(name, deps = [], jvm_flags = [], **kwargs):
 
         deps = [":_{}_lib".format(name)]
 
+    java_test_files = native.glob(["src/test/**/*.java"], allow_empty = True)
+
     # Robolectric does some class loader magic which doesn't work well with loading a static
     # library. To get around this, we create one test target per source file to avoid multiple
     # class loaders being used. An alternative to this that we might consider is to avoid loading
@@ -59,7 +61,7 @@ def bitdrift_kt_android_local_test(name, deps = [], jvm_flags = [], **kwargs):
             deps = deps + ["//bazel/android:test_suite_lib"],
             manifest = "//platform/jvm:AndroidManifest.xml",
             jvm_flags = jvm_flags + ["-Dcapture_api_url=https://localhost:1234"],
-            srcs = [s],
+            srcs = [s] + java_test_files,
             **kwargs
         )
 

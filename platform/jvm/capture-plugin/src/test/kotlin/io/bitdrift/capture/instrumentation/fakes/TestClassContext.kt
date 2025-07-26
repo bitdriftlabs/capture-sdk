@@ -16,14 +16,13 @@ data class TestClassData(
     override val className: String,
     override val classAnnotations: List<String> = emptyList(),
     override val interfaces: List<String> = emptyList(),
-    override val superClasses: List<String> = emptyList()
+    override val superClasses: List<String> = emptyList(),
 ) : ClassData
 
 data class TestClassContext(
     override val currentClassData: ClassData,
-    private val classLoader: (String) -> ClassData? = { null }
+    private val classLoader: (String) -> ClassData? = { null },
 ) : ClassContext {
-
     constructor(className: String) : this(TestClassData(className))
 
     constructor(className: String, classLoader: (String) -> ClassData?) :
