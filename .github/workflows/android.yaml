@@ -132,7 +132,7 @@ jobs:
           git worktree remove temp-worktree --force
 
       - name: Fetch APK size baseline from branch (PR only)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         run: |
           git fetch origin binary-size-baseline
           git worktree add temp-baseline origin/binary-size-baseline
@@ -140,7 +140,7 @@ jobs:
           git worktree remove temp-baseline --force
 
       - name: Compute and compare APK size
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         id: apk_size
         run: |
           APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
@@ -167,7 +167,7 @@ jobs:
           fi
 
       - name: Report APK size on PR
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@v6
         env:
           CURRENT_KB: ${{ steps.apk_size.outputs.current_kb }}
