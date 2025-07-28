@@ -510,9 +510,9 @@ object Capture {
         context: Context?,
     ) {
         try {
-            val appContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
+            val startSdkTimer = TimeSource.Monotonic.markNow()
 
-            val wholeDurationTimer = TimeSource.Monotonic.markNow()
+            val appContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
 
             val clientAttributes =
                 ClientAttributes(
@@ -549,7 +549,7 @@ object Capture {
 
             val sdkConfiguredDuration =
                 SdkConfiguredDuration(
-                    wholeStartDuration = wholeDurationTimer.elapsedNow(),
+                    wholeStartDuration = startSdkTimer.elapsedNow(),
                     nativeLoadDuration = nativeLoadDuration,
                     loggerImplBuildDuration = loggerImplBuildDuration,
                 )
