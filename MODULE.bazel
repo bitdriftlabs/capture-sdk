@@ -20,7 +20,7 @@ KOTLIN_STD_VERSION = KOTLIN_COMPILE_VERSION
 
 NDK_API_LEVEL = 21
 
-SDK_API_LEVEL = 35
+SDK_API_LEVEL = 36
 
 ####################
 # Bazel dependencies
