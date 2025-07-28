@@ -167,7 +167,7 @@ jobs:
           fi
 
       - name: Report APK size on PR
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@v6
         env:
           CURRENT_KB: ${{ steps.apk_size.outputs.current_kb }}
