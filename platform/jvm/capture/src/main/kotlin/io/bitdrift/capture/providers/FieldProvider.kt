@@ -119,7 +119,7 @@ internal fun ByteArray.toFieldValue() =
  */
 @Suppress("SENSELESS_COMPARISON")
 internal fun Map<String, String>?.toFields(): Map<String, FieldValue> {
-    if (this == null) return emptyMap()
+    if (isNullOrEmpty()) return emptyMap()
 
     val result = HashMap<String, FieldValue>(size)
     for ((key, value) in this) {

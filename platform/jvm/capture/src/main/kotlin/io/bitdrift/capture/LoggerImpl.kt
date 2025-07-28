@@ -468,16 +468,34 @@ internal class LoggerImpl(
     internal fun extractFields(
         fields: Map<String, String>?,
         throwable: Throwable?,
-    ): InternalFieldsMap? =
-        buildMap {
-            fields?.let {
-                putAll(it)
+    ): InternalFieldsMap {
+        // Maintainer note: keep initialCapacity in sync with the code adding fields to the map.
+        val initialCapacity = (fields?.size ?: 0) + (throwable?.let { 2 } ?: 0)
+        if (initialCapacity == 0) {
+            // If throwable is null AND fields is either null or empty, no need to create a HashMap.
+            return emptyMap()
+        }
+        // Create a hashmap of the exact target size and with the right final value type, instead
+        // of creating a temporary map and then converting it with Map.toFields()
+        val extractedFields = HashMap<String, FieldValue>(initialCapacity)
+        fields?.let {
+            for ((key, value) in it) {
+                // Java interop: clients could have passed in null keys or values.
+                @Suppress("SENSELESS_COMPARISON")
+                if (key != null && value != null) {
+                    extractedFields[key] = value.toFieldValue()
+                }
             }
-            throwable?.let {
-                put("_error", it.javaClass.name.orEmpty())
-                put("_error_details", it.message.orEmpty())
-            }
-        }.toFields()
+        }
+        throwable?.let {
+            extractedFields["_error"] =
+                it.javaClass.name
+                    .orEmpty()
+                    .toFieldValue()
+            extractedFields["_error_details"] = it.message.orEmpty().toFieldValue()
+        }
+        return extractedFields
+    }
 
     internal fun flush(blocking: Boolean) {
         CaptureJniLibrary.flush(this.loggerId, blocking)
