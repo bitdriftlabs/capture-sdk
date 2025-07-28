@@ -26,7 +26,7 @@ open class CaptureTree internal constructor(
     private val logger: ILogger?
         get() = internalLogger ?: Capture.logger()
 
-    override fun log(
+    final override fun log(
         priority: Int,
         tag: String?,
         message: String,
