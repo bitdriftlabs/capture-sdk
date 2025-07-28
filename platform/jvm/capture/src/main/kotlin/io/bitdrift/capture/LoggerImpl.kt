@@ -488,7 +488,10 @@ internal class LoggerImpl(
             }
         }
         throwable?.let {
-            extractedFields["_error"] = it.javaClass.name.orEmpty().toFieldValue()
+            extractedFields["_error"] =
+                it.javaClass.name
+                    .orEmpty()
+                    .toFieldValue()
             extractedFields["_error_details"] = it.message.orEmpty().toFieldValue()
         }
         return extractedFields
