@@ -35,12 +35,13 @@ internal object JvmCrashProcessor {
         val errors = buildErrors(builder, throwable)
         val threadList =
             allThreads?.map { (thread, frames) ->
-                val threadId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
-                    thread.threadId()
-                } else {
-                    @Suppress("deprecation")
-                    thread.id
-                }
+                val threadId =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
+                        thread.threadId()
+                    } else {
+                        @Suppress("deprecation")
+                        thread.id
+                    }
                 val threadStack = frames.map { e -> getFrameDetails(builder, e) }.toIntArray()
                 io.bitdrift.capture.reports.binformat.v1.Thread.createThread(
                     builder,
