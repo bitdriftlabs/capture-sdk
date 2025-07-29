@@ -15,7 +15,7 @@ import android.content.Context.MODE_PRIVATE
  * Convenience wrapper for working with `SharedPreferences`.
  */
 internal class Preferences(
-    private val context: Context,
+    context: Context,
 ) : IPreferences {
     private val underlyingPreferences = context.getSharedPreferences("io.bitdrift.storage", MODE_PRIVATE)
 
