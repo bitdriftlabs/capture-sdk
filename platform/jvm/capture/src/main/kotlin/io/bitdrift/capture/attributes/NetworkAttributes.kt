@@ -19,13 +19,7 @@ import android.net.NetworkCapabilities.TRANSPORT_CELLULAR
 import android.net.NetworkCapabilities.TRANSPORT_ETHERNET
 import android.net.NetworkCapabilities.TRANSPORT_WIFI
 import android.telephony.TelephonyManager
-import android.telephony.TelephonyManager.NETWORK_TYPE_1xRTT
-import android.telephony.TelephonyManager.NETWORK_TYPE_CDMA
 import android.telephony.TelephonyManager.NETWORK_TYPE_EDGE
-import android.telephony.TelephonyManager.NETWORK_TYPE_EHRPD
-import android.telephony.TelephonyManager.NETWORK_TYPE_EVDO_0
-import android.telephony.TelephonyManager.NETWORK_TYPE_EVDO_A
-import android.telephony.TelephonyManager.NETWORK_TYPE_EVDO_B
 import android.telephony.TelephonyManager.NETWORK_TYPE_GPRS
 import android.telephony.TelephonyManager.NETWORK_TYPE_GSM
 import android.telephony.TelephonyManager.NETWORK_TYPE_HSDPA
@@ -54,13 +48,7 @@ internal class NetworkAttributes(
     @SuppressLint("InlinedApi")
     private val radioTypeNameMap =
         hashMapOf(
-            NETWORK_TYPE_1xRTT to "onExRtt",
-            NETWORK_TYPE_CDMA to "cdma",
             NETWORK_TYPE_EDGE to "edge",
-            NETWORK_TYPE_EHRPD to "ehrpd",
-            NETWORK_TYPE_EVDO_0 to "evdo0",
-            NETWORK_TYPE_EVDO_A to "evdoA",
-            NETWORK_TYPE_EVDO_B to "evdoB",
             NETWORK_TYPE_GPRS to "gprs",
             NETWORK_TYPE_GSM to "gsm",
             NETWORK_TYPE_HSDPA to "hsdpa",

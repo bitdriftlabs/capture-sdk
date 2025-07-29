@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.reports.processor
 
+import android.os.Build
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.reports.binformat.v1.Error
 import io.bitdrift.capture.reports.binformat.v1.ErrorRelation
@@ -34,12 +35,19 @@ internal object JvmCrashProcessor {
         val errors = buildErrors(builder, throwable)
         val threadList =
             allThreads?.map { (thread, frames) ->
+                val threadId =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
+                        thread.threadId()
+                    } else {
+                        @Suppress("deprecation")
+                        thread.id
+                    }
                 val threadStack = frames.map { e -> getFrameDetails(builder, e) }.toIntArray()
                 io.bitdrift.capture.reports.binformat.v1.Thread.createThread(
                     builder,
                     builder.createString(thread.name),
                     thread == callerThread,
-                    thread.id.toUInt(),
+                    threadId.toUInt(),
                     builder.createString(thread.state.name),
                     thread.priority.toFloat(),
                     -1, // default value for quality of service (unused on Android)

@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "io.bitdrift.microbenchmark"
-    compileSdk = 35
+    compileSdk = 36
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -25,7 +25,7 @@ android {
     }
 
     testOptions {
-        targetSdk = 35
+        targetSdk = 36
     }
 
     testBuildType = "release"

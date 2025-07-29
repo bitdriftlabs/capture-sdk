@@ -59,7 +59,7 @@ protobuf {
 android {
     namespace = "io.bitdrift.capture"
 
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 24
