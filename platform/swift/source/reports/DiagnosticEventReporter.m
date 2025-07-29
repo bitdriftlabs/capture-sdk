@@ -7,6 +7,7 @@
 
 #import "DiagnosticEventReporter.h"
 #import "bd-report-writer/ffi.h"
+#import "BitdriftKSCrashWrapper.h"
 
 #import <mach/exception_types.h>
 #include <stdlib.h>
@@ -139,10 +140,10 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
   return nil;
 }
 
-#define string_for_key(dict, key) object_for_key(dict, key, [NSString class])
-#define number_for_key(dict, key) object_for_key(dict, key, [NSNumber class])
-#define array_for_key(dict, key) object_for_key(dict, key, [NSArray class])
-#define dict_for_key(dict, key) object_for_key(dict, key, [NSDictionary class])
+#define string_for_key(dict, key) ((NSString *)object_for_key(dict, key, [NSString class]))
+#define number_for_key(dict, key) ((NSNumber *)object_for_key(dict, key, [NSNumber class]))
+#define array_for_key(dict, key) ((NSArray *)object_for_key(dict, key, [NSArray class]))
+#define dict_for_key(dict, key) ((NSDictionary *)object_for_key(dict, key, [NSDictionary class]))
 
 static inline const char * cstring_from(NSString *str) {
   return [str cStringUsingEncoding:NSUTF8StringEncoding];
@@ -241,8 +242,11 @@ static void serialize_error_threads(BDProcessorHandle handle, NSDictionary *cras
     if (thread_index == crashed_index) {
       bdrw_add_error(handle, cstring_from(name), cstring_from(reason), 0, frame_index, stack);
     } else {
-      BDThread thread = { .index = thread_index, .quality_of_service = -1 };
-      bdrw_add_thread(handle, [call_stacks count], &thread, frame_index, stack);
+        BDThread bdthread = { .index = thread_index,
+                .quality_of_service = -1,
+                .name = string_for_key(thread, @"name").UTF8String
+        };
+      bdrw_add_thread(handle, [call_stacks count], &bdthread, frame_index, stack);
     }
     free(stack);
   }
@@ -333,7 +337,8 @@ static ReportType serialize_diagnostic(BDProcessorHandle handle, NSString *sdk_v
     bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(sdk_version));
     NSString *name = is_hang ? DEFAULT_HANG_NAME : name_for_crash(crash);
     NSString *reason = reason_for_crash(crash, name);
-    serialize_error_threads(handle, event.dictionaryRepresentation, name, reason, FrameOrderInnerToOuter);
+    NSDictionary *enhancedReport = [BitdriftKSCrashWrapper enhancedMetricKitReport:event.dictionaryRepresentation];
+    serialize_error_threads(handle, enhancedReport, name, reason, FrameOrderInnerToOuter);
   } else if ([event isKindOfClass:[MXHangDiagnostic class]]) {
     report_type = ReportTypeAppNotResponding;
     bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(sdk_version));

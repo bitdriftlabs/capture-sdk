@@ -1,0 +1,7 @@
+cc_library(
+    name = "ksbonjson",
+    hdrs = glob(["library/include/ksbonjson/*.h"]),
+    includes = ["library/include/ksbonjson"],
+    srcs = glob(["library/src/*.c", "library/src/*.h", "library/include/ksbonjson/*.h"]),
+    visibility = ["//visibility:public"],
+)
