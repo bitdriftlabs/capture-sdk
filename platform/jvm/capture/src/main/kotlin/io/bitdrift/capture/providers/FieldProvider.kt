@@ -7,6 +7,9 @@
 
 package io.bitdrift.capture.providers
 
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
+
 /**
  * A single field.
  * @param key the field key.
@@ -110,6 +113,11 @@ internal fun ByteArray.toFieldValue() =
     with(this@toFieldValue) {
         FieldValue.BinaryField(this)
     }
+
+/**
+ * Converts a [Duration] into a [FieldValue] using the specified [DurationUnit].
+ */
+internal fun Duration.toFieldValue(durationUnit: DurationUnit): FieldValue = this.toDouble(durationUnit).toString().toFieldValue()
 
 /**
  * Converts a Map<String, String> into a List<Field>.

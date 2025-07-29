@@ -37,30 +37,29 @@ class SessionStrategyTest {
     fun fixedSessionStrategy() {
         val generatedSessionIds = mutableListOf<String>()
 
-        val logger =
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServerUrl(),
-                fieldProviders = listOf(),
-                dateProvider = mock(),
-                context = ContextHolder.APP_CONTEXT,
-                sessionStrategy =
-                    SessionStrategy.Fixed {
-                        val sessionId = UUID.randomUUID().toString()
-                        generatedSessionIds.add(sessionId)
-                        sessionId
-                    },
-                configuration = Configuration(),
-                fatalIssueReporter = fatalIssueReporter,
-            )
+        Capture.Logger.start(
+            apiKey = "test",
+            apiUrl = testServerUrl(),
+            fieldProviders = listOf(),
+            dateProvider = mock(),
+            context = ContextHolder.APP_CONTEXT,
+            sessionStrategy =
+                SessionStrategy.Fixed {
+                    val sessionId = UUID.randomUUID().toString()
+                    generatedSessionIds.add(sessionId)
+                    sessionId
+                },
+            configuration = Configuration(),
+        )
 
-        val sessionId = logger.sessionId
+        val logger = Capture.logger()
+        val sessionId = logger?.sessionId
 
         assertThat(generatedSessionIds.count()).isEqualTo(1)
         assertThat(generatedSessionIds[0]).isEqualTo(sessionId)
 
-        logger.startNewSession()
-        val newSessionId = logger.sessionId
+        logger?.startNewSession()
+        val newSessionId = logger?.sessionId
 
         assertThat(generatedSessionIds.count()).isEqualTo(2)
         assertThat(generatedSessionIds[1]).isEqualTo(newSessionId)
