@@ -1,3 +1,5 @@
+import org.gradle.internal.extensions.stdlib.capitalized
+
 plugins {
     // The rust android gradle plugin needs to go first
     //  see: https://github.com/mozilla/rust-android-gradle/issues/147
@@ -94,6 +96,18 @@ android {
         checkReleaseBuilds = true
         disable.add("GradleDependency")
     }
+
+    libraryVariants.all {
+        // Ensure that we have all the JNI libs before merging them.
+        val capitalizedVariantName = name.toString().capitalized()
+        tasks["merge${capitalizedVariantName}JniLibFolders"].apply {
+            // This is required for the merge task to run every time the .so files are updated.
+            // See this comment for more information:
+            // https://github.com/mozilla/rust-android-gradle/issues/118#issuecomment-1569407058
+            inputs.dir(layout.buildDirectory.dir("rustJniLibs/android"))
+            dependsOn("cargoBuild")
+        }
+    }
 }
 
 // Rust cargo build toolchain
@@ -107,15 +121,6 @@ cargo {
     exec = { spec, _ ->
         // enable 16 KB ELF alignment on Android to support API 35+
         spec.environment("RUST_ANDROID_GRADLE_CC_LINK_ARG", "-Wl,-z,max-page-size=16384")
-    }
-}
-
-// workaround bug in rust-android-gradle plugin that causes .so to not be available on app launch
-// see: https://github.com/mozilla/rust-android-gradle/issues/118#issuecomment-1569407058
-tasks.whenTaskAdded {
-    if ((this.name == "mergeDebugJniLibFolders" || this.name == "mergeReleaseJniLibFolders")) {
-        this.dependsOn("cargoBuild")
-        this.inputs.dir(layout.buildDirectory.dir("rustJniLibs/android"))
     }
 }
 
