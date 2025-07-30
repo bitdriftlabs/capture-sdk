@@ -99,7 +99,13 @@ android {
 // Rust cargo build toolchain
 cargo {
     libname = "capture"
-    extraCargoBuildArguments = listOf("--package", "capture")
+    extraCargoBuildArguments = listOf(
+      "--package", "capture",
+      "--profile", "release-android",
+      "-Z", "build-std=std,panic_abort",
+      "-Z", "build-std-features=optimize_for_size,panic_immediate_abort",
+      "-Z", "fmt-debug=none"
+    )
     module = "../.."
     targetDirectory = "../../../target"
     targets = listOf("arm64", "x86_64")
@@ -107,6 +113,7 @@ cargo {
     exec = { spec, _ ->
         // enable 16 KB ELF alignment on Android to support API 35+
         spec.environment("RUST_ANDROID_GRADLE_CC_LINK_ARG", "-Wl,-z,max-page-size=16384")
+        spec.environment("RUSTC_BOOTSTRAP", "1")
     }
 }
 
