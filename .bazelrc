@@ -82,8 +82,6 @@ build:release-android --config=release-common
 build:release-android --copt=-flto=thin --linkopt=-flto=thin
 build:release-android --config=android
 build:release-android --linkopt=-Wl,--pack-dyn-relocs=android
-build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Zfmt-debug=none'
-build:release-android --config=fake-nightly
 # build:release-android --linkopt=-Wl,--use-android-relr-tags
 
 # Custom iOS release configuration
