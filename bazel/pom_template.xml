@@ -27,22 +27,46 @@
     </licenses>
     <developers>
         <developer>
-        <id>bitdriftlabs</id>
-        <name>Bitdrift, Inc.</name>
-        <email>info@bitdrift.io</email>
-        <url>https://github.com/bitdriftlabs</url>
+            <id>bitdriftlabs</id>
+            <name>Bitdrift, Inc.</name>
+            <email>info@bitdrift.io</email>
+            <url>https://github.com/bitdriftlabs</url>
         </developer>
         <developer>
-        <id>Augustyniak</id>
-        <name>Rafał Augustyniak</name>
-        <email>rafal@bitdrift.io</email>
-        <url>https://github.com/Augustyniak</url>
+            <id>kattrali</id>
+            <name>Delisa Fuller</name>
+            <email>dfuller@bitdrift.io</email>
+            <url>https://github.com/kattrali</url>
         </developer>
         <developer>
-        <id>murki</id>
-        <name>Miguel Angel Juárez López</name>
-        <email>miguel@bitdrift.io</email>
-        <url>https://github.com/murki</url>
+            <id>FranAguilera</id>
+            <name>Fran Aguilera</name>
+            <email>faguilera@bitdrift.io</email>
+            <url>https://github.com/FranAguilera</url>
+        </developer>
+        <developer>
+            <id>kstenerud</id>
+            <name>Karl Stenerud</name>
+            <email>kstenerud@bitdrift.io</email>
+            <url>https://github.com/kstenerud</url>
+        </developer>
+        <developer>
+            <id>mattklein123</id>
+            <name>Matt Klein</name>
+            <email>mklein@bitdrift.io</email>
+            <url>https://github.com/mattklein123</url>
+        </developer>
+        <developer>
+            <id>murki</id>
+            <name>Miguel Angel Juárez López</name>
+            <email>miguel@bitdrift.io</email>
+            <url>https://github.com/murki</url>
+        </developer>
+        <developer>
+            <id>snowp</id>
+            <name>Snow Pettersen</name>
+            <email>snow@bitdrift.io</email>
+            <url>https://github.com/snowp</url>
         </developer>
     </developers>
     <scm>
