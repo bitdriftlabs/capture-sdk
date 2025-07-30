@@ -99,7 +99,13 @@ android {
 // Rust cargo build toolchain
 cargo {
     libname = "capture"
-    extraCargoBuildArguments = listOf("--package", "capture", "--profile", "release-android", "-Z", "build-std=std,panic_abort", "-Z", "build-std-features=optimize_for_size,panic_immediate_abort")
+    extraCargoBuildArguments = listOf(
+      "--package", "capture",
+      "--profile", "release-android",
+      "-Z", "build-std=std,panic_abort",
+      "-Z", "build-std-features=optimize_for_size,panic_immediate_abort",
+      "-Z", "fmt-debug=none"
+    )
     module = "../.."
     targetDirectory = "../../../target"
     targets = listOf("arm64", "x86_64")
