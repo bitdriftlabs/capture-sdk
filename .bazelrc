@@ -75,6 +75,10 @@ build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Clto=fat'
 # Without the next line, rules_rust will add -Clinker-plugin-lto which would be amazing
 # but the ndk's lld won't support the output
 build:release-common --@rules_rust//rust/settings:lto='manual'
+# Compile out Debug implementations for all release builds. This requires nightly so bypass
+# the stable toolchain check.
+build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Zfmt-debug=none'
+build:release-common --config=fake-nightly
 
 build:release-android --define android_strip_symbols=true
 build:release-android --android_platforms=@rules_android//:armeabi-v7a,@rules_android//:arm64-v8a,@rules_android//:x86,@rules_android//:x86_64
@@ -82,8 +86,6 @@ build:release-android --config=release-common
 build:release-android --copt=-flto=thin --linkopt=-flto=thin
 build:release-android --config=android
 build:release-android --linkopt=-Wl,--pack-dyn-relocs=android
-build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Zfmt-debug=none'
-build:release-android --config=fake-nightly
 # build:release-android --linkopt=-Wl,--use-android-relr-tags
 
 # Custom iOS release configuration
