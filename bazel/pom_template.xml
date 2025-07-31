@@ -27,22 +27,10 @@
     </licenses>
     <developers>
         <developer>
-        <id>bitdriftlabs</id>
-        <name>Bitdrift, Inc.</name>
-        <email>info@bitdrift.io</email>
-        <url>https://github.com/bitdriftlabs</url>
-        </developer>
-        <developer>
-        <id>Augustyniak</id>
-        <name>Rafał Augustyniak</name>
-        <email>rafal@bitdrift.io</email>
-        <url>https://github.com/Augustyniak</url>
-        </developer>
-        <developer>
-        <id>murki</id>
-        <name>Miguel Angel Juárez López</name>
-        <email>miguel@bitdrift.io</email>
-        <url>https://github.com/murki</url>
+            <id>bitdriftlabs</id>
+            <name>Bitdrift, Inc.</name>
+            <email>info@bitdrift.io</email>
+            <url>https://github.com/bitdriftlabs</url>
         </developer>
     </developers>
     <scm>
