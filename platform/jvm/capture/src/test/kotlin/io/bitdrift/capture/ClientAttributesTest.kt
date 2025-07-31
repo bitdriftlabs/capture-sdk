@@ -223,6 +223,16 @@ class ClientAttributesTest {
         assertThat(fields).containsEntry("_architecture", "armeabi-v7a")
     }
 
+    @Test
+    fun osVersion_withStartedLifecycle_shouldMatchConfigVersion() {
+        val clientAttributes =
+            ClientAttributes(appContext, obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED))
+
+        val fields = clientAttributes.invoke()
+
+        assertThat(fields).containsEntry("os_version", "7.0")
+    }
+
     private fun assertInstallationSource(
         hasValidInstallationSource: Boolean,
         expectedInstallationSource: String,

@@ -48,6 +48,9 @@ internal class ClientAttributes(
             return supportedAbis.firstOrNull() ?: "unknown"
         }
 
+    override val osVersion: String
+        get() = Build.VERSION.RELEASE
+
     @Suppress("SwallowedException")
     private val packageInfo: PackageInfo? =
         try {

@@ -19,6 +19,9 @@ interface IClientAttributes {
     /** A positive integer used as an internal version number. This helps determine version recency. */
     val appVersionCode: Long
 
+    /** The operating system version (e.g. 12.1). */
+    val osVersion: String
+
     /** A list of the currently supported ABIs */
     val supportedAbis: List<String>
 
