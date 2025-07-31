@@ -101,14 +101,32 @@ jobs:
           name: android_app.apk
           path: ./bazel-bin/examples/android/android_app.apk
 
-      - name: Save APK size baseline and push to branch (main only)
-        if: github.ref == 'refs/heads/main' && success()
+      - name: Save APK and .so size baseline and push to branch (main only)
+        # Testing if: github.ref == 'refs/heads/main' && success()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -e
           APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
           SIZE_FILE=ci/baseline_binary_size.txt
-          stat -c%s "$APK_PATH" > "$SIZE_FILE"
+
+          # Get APK size
+          APK_SIZE=$(stat -c%s "$APK_PATH")
+
+          # Extract, strip, and get .so size (arm64-v8a)
+          ABI=arm64-v8a
+          TMPDIR=$(mktemp -d)
+          unzip -j "$APK_PATH" "lib/$ABI/*.so" -d "$TMPDIR"
+
+          SO_SIZE=0
+          for SO in $TMPDIR/*.so; do
+            llvm-strip "$SO" || echo "llvm-strip failed for $SO"
+            SO_SIZE=$(stat -c%s "$SO")
+            break  # only first .so found, remove break for multiple
+          done
+
+          # Write sizes as comma-separated values
+          echo "${APK_SIZE},${SO_SIZE}" > "$SIZE_FILE"
 
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
@@ -122,7 +140,7 @@ jobs:
           git add ci/baseline_binary_size.txt
 
           if ! git diff --cached --quiet; then
-            git commit -m "ci: update Bazel APK size baseline [skip ci]"
+            git commit -m "ci: update Bazel APK and .so size baseline [skip ci]"
             git push origin HEAD:binary-size-baseline
           else
             echo "No changes to baseline size."
@@ -139,7 +157,7 @@ jobs:
           cp temp-baseline/ci/baseline_binary_size.txt ci/
           git worktree remove temp-baseline --force
 
-      - name: Compute and compare APK size
+      - name: Compute and compare APK and .so size
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         id: apk_size
         run: |
@@ -151,57 +169,97 @@ jobs:
             exit 1
           fi
 
-          CURRENT_SIZE=$(stat -c%s "$APK_PATH")
-          CURRENT_KB=$((CURRENT_SIZE / 1024))
-          echo "current_kb=$CURRENT_KB" >> $GITHUB_OUTPUT
+          # Get current APK size
+          CURRENT_APK_SIZE=$(stat -c%s "$APK_PATH")
+
+          # Extract, strip, and get current .so size (arm64-v8a)
+          ABI=arm64-v8a
+          TMPDIR=$(mktemp -d)
+          unzip -j "$APK_PATH" "lib/$ABI/*.so" -d "$TMPDIR"
+
+          CURRENT_SO_SIZE=0
+          for SO in $TMPDIR/*.so; do
+            llvm-strip "$SO" || echo "llvm-strip failed for $SO"
+            CURRENT_SO_SIZE=$(stat -c%s "$SO")
+            break  # Only first .so
+          done
+
+          CURRENT_APK_KB=$((CURRENT_APK_SIZE / 1024))
+          CURRENT_SO_KB=$((CURRENT_SO_SIZE / 1024))
+          echo "current_apk_kb=$CURRENT_APK_KB" >> $GITHUB_OUTPUT
+          echo "current_so_kb=$CURRENT_SO_KB" >> $GITHUB_OUTPUT
 
           if [ ! -f "$BASELINE_PATH" ]; then
-            echo "baseline_kb=" >> $GITHUB_OUTPUT
-            echo "diff_kb=" >> $GITHUB_OUTPUT
+            echo "baseline_apk_kb=" >> $GITHUB_OUTPUT
+            echo "diff_apk_kb=" >> $GITHUB_OUTPUT
+            echo "baseline_so_kb=" >> $GITHUB_OUTPUT
+            echo "diff_so_kb=" >> $GITHUB_OUTPUT
           else
-            BASELINE_SIZE=$(cat "$BASELINE_PATH")
-            BASELINE_KB=$((BASELINE_SIZE / 1024))
-            DIFF_KB=$((CURRENT_KB - BASELINE_KB))
-            echo "baseline_kb=$BASELINE_KB" >> $GITHUB_OUTPUT
-            echo "diff_kb=$DIFF_KB" >> $GITHUB_OUTPUT
+            BASELINE_LINE=$(cat "$BASELINE_PATH")
+            BASELINE_APK_SIZE=$(echo "$BASELINE_LINE" | cut -d',' -f1)
+            BASELINE_SO_SIZE=$(echo "$BASELINE_LINE" | cut -d',' -f2)
+            BASELINE_APK_KB=$((BASELINE_APK_SIZE / 1024))
+            BASELINE_SO_KB=$((BASELINE_SO_SIZE / 1024))
+            DIFF_APK_KB=$((CURRENT_APK_KB - BASELINE_APK_KB))
+            DIFF_SO_KB=$((CURRENT_SO_KB - BASELINE_SO_KB))
+
+            echo "baseline_apk_kb=$BASELINE_APK_KB" >> $GITHUB_OUTPUT
+            echo "diff_apk_kb=$DIFF_APK_KB" >> $GITHUB_OUTPUT
+            echo "baseline_so_kb=$BASELINE_SO_KB" >> $GITHUB_OUTPUT
+            echo "diff_so_kb=$DIFF_SO_KB" >> $GITHUB_OUTPUT
           fi
 
-      - name: Report APK size on PR
+      - name: Report APK and .so size on PR
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@v6
         env:
-          CURRENT_KB: ${{ steps.apk_size.outputs.current_kb }}
-          BASELINE_KB: ${{ steps.apk_size.outputs.baseline_kb }}
-          DIFF_KB: ${{ steps.apk_size.outputs.diff_kb }}
+          CURRENT_APK_KB: ${{ steps.apk_size.outputs.current_apk_kb }}
+          BASELINE_APK_KB: ${{ steps.apk_size.outputs.baseline_apk_kb }}
+          DIFF_APK_KB: ${{ steps.apk_size.outputs.diff_apk_kb }}
+          CURRENT_SO_KB: ${{ steps.apk_size.outputs.current_so_kb }}
+          BASELINE_SO_KB: ${{ steps.apk_size.outputs.baseline_so_kb }}
+          DIFF_SO_KB: ${{ steps.apk_size.outputs.diff_so_kb }}
         with:
           script: |
-            const current = process.env.CURRENT_KB;
-            const baseline = process.env.BASELINE_KB;
-            const diff = process.env.DIFF_KB;
+            const c_apk = process.env.CURRENT_APK_KB;
+            const b_apk = process.env.BASELINE_APK_KB;
+            const d_apk = process.env.DIFF_APK_KB;
+
+            const c_so = process.env.CURRENT_SO_KB;
+            const b_so = process.env.BASELINE_SO_KB;
+            const d_so = process.env.DIFF_SO_KB;
 
             let body = '';
 
-            if (baseline && baseline !== '') {
+            if (b_apk && b_apk !== '' && b_so && b_so !== '') {
               body = `
-              ### 📦 Bazel APK(x86_64) Size Report
+              ### 📦 Bazel APK(x86_64) and libcapture.so (arm64-v8a) Size Report
 
-              | Metric     | Size (KB) |
-              |------------|-----------|
-              | Baseline   | ${baseline} |
-              | Current    | ${current} |
-              | Difference | ${diff} |
-
+              | Artifact      | Baseline (KB) | Current (KB) | Difference (KB) |
+              |--------------|---------------|--------------|-----------------|
+              | APK          | ${b_apk}      | ${c_apk}     | ${d_apk}        |
+              | libcapture.so| ${b_so}       | ${c_so}      | ${d_so}         |
               `;
 
-              if (parseInt(diff, 10) > 0) {
-                body += `> ❌ Bazel APK(x86_64) size increased by ${diff} KB.`;
-              } else if (parseInt(diff, 10) < 0) {
-                body += `> ✅ Bazel APK(x86_64) size decreased by ${Math.abs(diff)} KB.`;
+              // APK diff note
+              if (parseInt(d_apk, 10) > 0) {
+                body += `\n> ❌ APK size increased by ${d_apk} KB.`;
+              } else if (parseInt(d_apk, 10) < 0) {
+                body += `\n> ✅ APK size decreased by ${Math.abs(d_apk)} KB.`;
               } else {
-                body += `> ✅ Bazel APK(x86_64) size unchanged.`;
+                body += `\n> ✅ APK size unchanged.`;
+              }
+
+              // SO diff note
+              if (parseInt(d_so, 10) > 0) {
+                body += `\n> ❌ libcapture.so size increased by ${d_so} KB.`;
+              } else if (parseInt(d_so, 10) < 0) {
+                body += `\n> ✅ libcapture.so size decreased by ${Math.abs(d_so)} KB.`;
+              } else {
+                body += `\n> ✅ libcapture.so size unchanged.`;
               }
             } else {
-              body = `📌 Current Bazel APK(x86_64) size: ${current} KB (No baseline available for comparison).`;
+              body = `📌 Current Bazel APK(x86_64) size: ${c_apk} KB\n📌 Current libcapture.so (arm64-v8a) size: ${c_so} KB (No baseline available for comparison).`;
             }
 
             github.rest.issues.createComment({
