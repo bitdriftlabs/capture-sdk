@@ -32,17 +32,19 @@ class CaptureOkHttpEventListenerFactory internal constructor(
     private val targetEventListenerCreator: ((call: Call) -> EventListener)? = null,
     private val logger: ILogger? = Capture.logger(),
     private val clock: IClock = DefaultClock.getInstance(),
-    private val extraFieldsProvider: OkHttpRequestFieldProvider = OkHttpRequestFieldProvider {
-        emptyMap()
-    }
+    private val extraFieldsProvider: OkHttpRequestFieldProvider =
+        OkHttpRequestFieldProvider {
+            emptyMap()
+        },
 ) : EventListener.Factory {
     /**
      * Initializes a new instance of the Capture event listener.
      */
     constructor(
-        extraFieldsProvider: OkHttpRequestFieldProvider = OkHttpRequestFieldProvider {
-            emptyMap()
-        }
+        extraFieldsProvider: OkHttpRequestFieldProvider =
+            OkHttpRequestFieldProvider {
+                emptyMap()
+            },
     ) : this(null, extraFieldsProvider = extraFieldsProvider)
 
     /**
@@ -54,9 +56,10 @@ class CaptureOkHttpEventListenerFactory internal constructor(
      */
     constructor(
         targetEventListener: EventListener,
-        extraFieldsProvider: OkHttpRequestFieldProvider = OkHttpRequestFieldProvider {
-            emptyMap()
-        }
+        extraFieldsProvider: OkHttpRequestFieldProvider =
+            OkHttpRequestFieldProvider {
+                emptyMap()
+            },
     ) : this({ targetEventListener }, extraFieldsProvider = extraFieldsProvider)
 
     /**
@@ -68,20 +71,22 @@ class CaptureOkHttpEventListenerFactory internal constructor(
      */
     constructor(
         targetEventListenerFactory: EventListener.Factory,
-        extraFieldsProvider: OkHttpRequestFieldProvider = OkHttpRequestFieldProvider {
-            emptyMap()
-        }
+        extraFieldsProvider: OkHttpRequestFieldProvider =
+            OkHttpRequestFieldProvider {
+                emptyMap()
+            },
     ) : this(
         targetEventListenerCreator = { targetEventListenerFactory.create(it) },
-        extraFieldsProvider = extraFieldsProvider
+        extraFieldsProvider = extraFieldsProvider,
     )
 
-    override fun create(call: Call): EventListener = CaptureOkHttpEventListener(
-        logger = getLogger(),
-        clock = clock,
-        targetEventListener = targetEventListenerCreator?.invoke(call),
-        extraFieldsProvider = extraFieldsProvider
-    )
+    override fun create(call: Call): EventListener =
+        CaptureOkHttpEventListener(
+            logger = getLogger(),
+            clock = clock,
+            targetEventListener = targetEventListenerCreator?.invoke(call),
+            extraFieldsProvider = extraFieldsProvider,
+        )
 
     // attempts to get the latest logger if one wasn't found at construction time
     private fun getLogger(): ILogger? = logger ?: Capture.logger()

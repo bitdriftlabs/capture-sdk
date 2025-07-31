@@ -561,28 +561,29 @@ class CaptureOkHttpEventListenerFactoryTest {
 
         val request =
             Request
-              .Builder()
-              .url(endpoint)
-              .post("test".toRequestBody())
-              .tag(requestMetadata)
-              .build()
+                .Builder()
+                .url(endpoint)
+                .post("test".toRequestBody())
+                .tag(requestMetadata)
+                .build()
 
         val response =
             Response
-              .Builder()
-              .request(request)
-              .protocol(Protocol.HTTP_2)
-              .code(200)
-              .message("message")
-              .header("response_header", "response_header_value")
-              .build()
+                .Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_2)
+                .code(200)
+                .message("message")
+                .header("response_header", "response_header_value")
+                .build()
 
         val call: Call = mock()
         whenever(call.request()).thenReturn(request)
 
-        val extraFieldProvider = OkHttpRequestFieldProvider {
-            mapOf("requestMetadata" to it.tag() as String)
-        }
+        val extraFieldProvider =
+            OkHttpRequestFieldProvider {
+                mapOf("requestMetadata" to it.tag() as String)
+            }
 
         // ACT
         val factory = CaptureOkHttpEventListenerFactory(null, logger, clock, extraFieldProvider)
