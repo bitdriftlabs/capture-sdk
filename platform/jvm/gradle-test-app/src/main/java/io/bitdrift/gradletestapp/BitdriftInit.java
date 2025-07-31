@@ -7,18 +7,26 @@
 
 package io.bitdrift.gradletestapp;
 
+import static io.bitdrift.gradletestapp.VerificationUtils.getDeferredMessage;
+
 import android.content.Context;
+import android.util.Log;
 
 import io.bitdrift.capture.Capture;
 import io.bitdrift.capture.Configuration;
+import io.bitdrift.capture.LogLevel;
 import io.bitdrift.capture.providers.FieldProvider;
 import io.bitdrift.capture.providers.session.SessionStrategy;
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.SessionStrategyPreferences;
+
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
 import okhttp3.HttpUrl;
 
 public class BitdriftInit {
@@ -37,13 +45,19 @@ public class BitdriftInit {
         });
 
         Capture.Logger.start(
-            apiKey,
-            sessionStrategy,
-            configuration,
-            fieldProviders,
-            null,
-            apiUrl,
-            context
+                apiKey,
+                sessionStrategy,
+                configuration,
+                fieldProviders,
+                null,
+                apiUrl,
+                context
+        );
+
+        Capture.Logger.logInfo(
+                null,
+                null,
+                () -> getDeferredMessage("java")
         );
     }
 }

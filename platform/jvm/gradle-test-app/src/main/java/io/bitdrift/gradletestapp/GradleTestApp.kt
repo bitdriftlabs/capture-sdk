@@ -51,8 +51,8 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import com.bugsnag.android.Bugsnag
-import com.bugsnag.android.Logger
 import io.bitdrift.capture.Capture
+import io.bitdrift.capture.Capture.Logger.logInfo
 import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.LogLevel
@@ -120,6 +120,10 @@ class GradleTestApp : Application() {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+
+        // Just to confirm message is only generated upon successful Capture.Logger.start
+        logInfo { VerificationUtils.getDeferredMessage("kotlin") }
+
         Timber.plant(CaptureTree())
         Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
     }
