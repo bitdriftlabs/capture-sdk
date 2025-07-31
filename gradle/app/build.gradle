@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'io.bitdrift.capture-plugin'
 }
 
 android {
@@ -61,7 +62,6 @@ android {
 dependencies {
     implementation 'io.bitdrift:capture:0.18.0'
     implementation 'io.bitdrift:capture-timber:0.18.0'
-    implementation 'io.bitdrift:capture-plugin:0.18.0'
 
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'com.google.android.material:material:1.12.0'
