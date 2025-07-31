@@ -295,7 +295,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.TRACE, fields = fields, throwable = throwable, message = message)
+            logger()?.logInline(level = LogLevel.TRACE, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -312,7 +312,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.DEBUG, fields = fields, throwable = throwable, message = message)
+            logger()?.logInline(level = LogLevel.DEBUG, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -329,7 +329,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.INFO, fields = fields, throwable = throwable, message = message)
+            logger()?.logInline(level = LogLevel.INFO, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -346,7 +346,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.WARNING, fields = fields, throwable = throwable, message = message)
+            logger()?.logInline(level = LogLevel.WARNING, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -363,7 +363,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.ERROR, fields = fields, throwable = throwable, message = message)
+            logger()?.logInline(level = LogLevel.ERROR, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -382,7 +382,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = level, fields = fields, throwable = throwable, message = message)
+            logger()?.logInline(level = level, fields = fields, throwable = throwable, message = message)
         }
 
         /**

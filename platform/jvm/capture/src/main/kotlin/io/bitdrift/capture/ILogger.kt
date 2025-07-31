@@ -16,7 +16,7 @@ import kotlin.time.Duration
 /**
  * A Capture SDK logger interface.
  */
-interface ILogger {
+interface ILogger : IMessageLogger {
     /**
      * The identifier for the current ongoing session.
      */
@@ -74,21 +74,6 @@ interface ILogger {
      * @param key the name of the field to remove.
      */
     fun removeField(key: String)
-
-    /**
-     * Logs a message at a specified level.
-     *
-     * @param level the severity of the log.
-     * @param fields and optional collection of key-value pairs to be added to the log line.
-     * @param throwable an optional throwable to include in the log line.
-     * @param message the main message of the log line, the lambda gets evaluated lazily.
-     */
-    fun log(
-        level: LogLevel,
-        fields: Map<String, String>? = null,
-        throwable: Throwable? = null,
-        message: () -> String,
-    )
 
     /**
      * Writes an app launch TTI log event. This event should be logged only once per Logger configuration.
