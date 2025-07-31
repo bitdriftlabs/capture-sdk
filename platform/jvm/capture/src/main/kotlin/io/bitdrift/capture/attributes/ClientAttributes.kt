@@ -66,7 +66,7 @@ internal class ClientAttributes(
             // Operating system. Always Android for this code path.
             "os" to "Android",
             // The operating system version (e.g. 12.1)
-            "os_version" to Build.VERSION.RELEASE,
+            "os_version" to osVersion,
             // Whether or not the app was in the background by the time the log was fired.
             "foreground" to isForeground(),
             // The version of this package, as specified by the manifest's `versionName` attribute
