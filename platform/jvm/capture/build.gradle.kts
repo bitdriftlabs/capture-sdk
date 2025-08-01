@@ -1,8 +1,5 @@
 plugins {
     alias(libs.plugins.android.library)
-
-    // The rust android gradle plugin needs to go first
-    //  see: https://github.com/mozilla/rust-android-gradle/issues/147
     alias(libs.plugins.rust.android)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.detekt)
@@ -88,7 +85,8 @@ cargoNdk {
     extraCargoBuildArguments = arrayListOf("--package", "capture")
     module = "../.."
     targetDirectory = "./target"
-    targets = arrayListOf("arm64", "x86_64")
+    // Default set for local dev on ARM-based macos
+    targets = arrayListOf("arm64")
     // enable 16 KB ELF alignment on Android to support API 35+
     extraCargoEnv = mapOf("RUST_ANDROID_GRADLE_CC_LINK_ARG" to "-Wl,-z,max-page-size=16384")
 }
