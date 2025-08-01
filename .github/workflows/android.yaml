@@ -250,6 +250,18 @@ jobs:
         export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
         yes | sdkmanager "ndk;${NDK_VERSION}"
 
+    - name: Set up Rust ARM target
+      run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
+
+    - name: Cache cargo-ndk
+      id: cargo-ndk-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/cargo-ndk
+        key: ${{ runner.os }}-cargo-ndk-3.4
+    - name: Install cargo-ndk
+      if: steps.cargo-ndk-cache.outputs.cache-hit != 'true'
+      run: cargo install cargo-ndk --version 3.4.0 --locked
     # See https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/
     - name: Enable KVM group perms
       run: |
@@ -262,8 +274,6 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
         cache: gradle
-    - name: Set up Rust ARM target
-      run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
     - name: AVD cache
       uses: actions/cache@v4
       id: avd-cache
@@ -294,6 +304,9 @@ jobs:
     - name: Check Licenses for modules
       working-directory: ./platform/jvm
       run: ./gradlew replay:checkLicense common:checkLicense capture:checkLicense
+    - name: Set up local.properties, required for cargo-ndk
+      working-directory: ./platform/jvm
+      run: touch local.properties
     - name: Build Microbenchmark target
       working-directory: ./platform/jvm
       run: ./gradlew microbenchmark:assembleAndroidTest
@@ -310,7 +323,7 @@ jobs:
         profile: Nexus 6
         disable-animations: true
         emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-        script: cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test; adb uninstall io.bitdrift.gradletestapp; cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -p platform/jvm gradle-test-app:check gradle-test-app:connectedCheck --stacktrace
+        script: cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test; adb uninstall io.bitdrift.gradletestapp; cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm gradle-test-app:check gradle-test-app:connectedCheck --stacktrace
 
   verify_android_hello_world_per_version:
     needs: build_and_compare_apk
