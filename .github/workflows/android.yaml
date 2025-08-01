@@ -39,7 +39,7 @@ jobs:
 
       - name: Check for workflow file changes
         id: workflow_check
-        run: ./ci/files_changed.sh .github/workflows/android.yaml
+        run: ./ci/files_changed.sh .github/workflows/android.yaml .bazelrc
         continue-on-error: true
 
       - name: Check for relevant Gradle changes
