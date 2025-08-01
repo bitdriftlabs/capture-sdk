@@ -12,7 +12,7 @@ plugins {
     alias(libs.plugins.maven.publish)
 
     id("dependency-license-config")
-    id("com.google.protobuf") version "0.9.1"
+    id("com.google.protobuf") version "0.9.4"
 }
 
 group = "io.bitdrift"
