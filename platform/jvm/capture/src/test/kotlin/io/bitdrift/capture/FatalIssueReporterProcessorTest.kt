@@ -26,7 +26,6 @@ import io.bitdrift.capture.reports.persistence.IFatalIssueReporterStorage
 import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -89,7 +88,7 @@ class FatalIssueReporterProcessorTest {
             "persistJvmCrash_withFakeException_shouldCreateNonEmptyErrorModel",
         )
         assertThat(error.stackTrace(0)!!.sourceFile!!.path).isEqualTo("FatalIssueReporterProcessorTest.kt")
-        assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(62)
+        assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(61)
         assertThat(error.stackTrace(0)!!.sourceFile!!.column).isEqualTo(0)
     }
 
@@ -323,7 +322,6 @@ class FatalIssueReporterProcessorTest {
         )
     }
 
-    @Ignore("TODO(FranAguilera): BIT-5823 use NativeCrashProcessor once async processing is ready")
     @Test
     fun persistAppExitReport_whenNativeCrash_shouldCreateEmptyErrorModel() {
         val description = "Native crash"

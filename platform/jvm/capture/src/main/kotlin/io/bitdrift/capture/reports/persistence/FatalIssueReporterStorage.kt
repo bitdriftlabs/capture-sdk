@@ -22,6 +22,7 @@ internal class FatalIssueReporterStorage(
         val fileName = "${terminationTimeStampInMilli}_${mapToReadableType(reportType)}_${UUID.randomUUID()}.cap"
         val outputFile = File(destinationDirectory, fileName)
         outputFile.writeBytes(data)
+        // [BIT-5823] Pending to call new native call to indicate to shared-core layer that processing/storage is done
     }
 
     private fun mapToReadableType(reportType: Byte): String =

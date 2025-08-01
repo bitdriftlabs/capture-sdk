@@ -14,6 +14,7 @@ import android.util.Log
 import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.attributes.IClientAttributes
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.reports.FatalIssueReporterState.NotInitialized
@@ -26,6 +27,7 @@ import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
 import io.bitdrift.capture.reports.persistence.FatalIssueReporterStorage
 import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor
+import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.SdkDirectory
 import java.io.File
 import kotlin.time.DurationUnit
@@ -37,6 +39,7 @@ import kotlin.time.measureTime
 internal class FatalIssueReporter(
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
+    private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
 ) : IFatalIssueReporter,
     IJvmCrashListener {
     @VisibleForTesting
@@ -65,7 +68,9 @@ internal class FatalIssueReporter(
                                 clientAttributes,
                             )
                         captureUncaughtExceptionHandler.install(this)
-                        persistLastExitReasonIfNeeded(appContext)
+                        backgroundThreadHandler.runAsync {
+                            persistLastExitReasonIfNeeded(appContext)
+                        }
                         fatalIssueReporterState = FatalIssueReporterState.BuiltIn.Initialized
                     }
                 fatalIssueReporterState to duration

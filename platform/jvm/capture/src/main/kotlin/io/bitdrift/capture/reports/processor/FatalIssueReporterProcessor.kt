@@ -60,8 +60,14 @@ internal class FatalIssueReporterProcessor(
                 }
 
                 ReportType.NativeCrash -> {
-                    // TODO(FranAguilera): BIT-5823 use NativeCrashProcessor once async processing is ready
-                    null
+                    NativeCrashProcessor.process(
+                        builder,
+                        sdk,
+                        appMetrics,
+                        deviceMetrics,
+                        description,
+                        traceInputStream,
+                    )
                 }
 
                 else -> null
