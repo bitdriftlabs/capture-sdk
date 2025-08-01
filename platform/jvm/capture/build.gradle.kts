@@ -1,8 +1,9 @@
 plugins {
+    alias(libs.plugins.android.library)
+
     // The rust android gradle plugin needs to go first
     //  see: https://github.com/mozilla/rust-android-gradle/issues/147
     alias(libs.plugins.rust.android)
-    alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.detekt)
 
@@ -11,7 +12,7 @@ plugins {
     alias(libs.plugins.maven.publish)
 
     id("dependency-license-config")
-    id("com.google.protobuf") version "0.9.1"
+    id("com.google.protobuf") version "0.9.4"
 }
 
 group = "io.bitdrift"
@@ -39,21 +40,6 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.robolectric)
     testImplementation(libs.mockwebserver)
-}
-
-protobuf {
-    protoc {
-        artifact = "com.google.protobuf:protoc:3.24.2"
-    }
-    generateProtoTasks {
-        all().configureEach {
-            builtins {
-                create("java") {
-                    option("lite")
-                }
-            }
-        }
-    }
 }
 
 android {
@@ -97,26 +83,14 @@ android {
 }
 
 // Rust cargo build toolchain
-cargo {
-    libname = "capture"
-    extraCargoBuildArguments = listOf("--package", "capture")
+cargoNdk {
+    librariesNames = arrayListOf("libcapture.so")
+    extraCargoBuildArguments = arrayListOf("--package", "capture")
     module = "../.."
-    targetDirectory = "../../../target"
-    targets = listOf("arm64", "x86_64")
-    pythonCommand = "python3"
-    exec = { spec, _ ->
-        // enable 16 KB ELF alignment on Android to support API 35+
-        spec.environment("RUST_ANDROID_GRADLE_CC_LINK_ARG", "-Wl,-z,max-page-size=16384")
-    }
-}
-
-// workaround bug in rust-android-gradle plugin that causes .so to not be available on app launch
-// see: https://github.com/mozilla/rust-android-gradle/issues/118#issuecomment-1569407058
-tasks.whenTaskAdded {
-    if ((this.name == "mergeDebugJniLibFolders" || this.name == "mergeReleaseJniLibFolders")) {
-        this.dependsOn("cargoBuild")
-        this.inputs.dir(layout.buildDirectory.dir("rustJniLibs/android"))
-    }
+    targetDirectory = "./target"
+    targets = arrayListOf("arm64", "x86_64")
+    // enable 16 KB ELF alignment on Android to support API 35+
+    extraCargoEnv = mapOf("RUST_ANDROID_GRADLE_CC_LINK_ARG" to "-Wl,-z,max-page-size=16384")
 }
 
 // detekt
@@ -125,6 +99,22 @@ detekt {
     // Defaults to the default detekt configuration.
     config.setFrom("detekt.yml")
 }
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.24.2"
+    }
+    generateProtoTasks {
+        all().configureEach {
+            builtins {
+                create("java") {
+                    option("lite")
+                }
+            }
+        }
+    }
+}
+
 
 tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
     exclude {
