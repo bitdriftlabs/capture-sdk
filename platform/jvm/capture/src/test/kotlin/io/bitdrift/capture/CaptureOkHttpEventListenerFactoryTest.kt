@@ -16,6 +16,7 @@ import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
+import io.bitdrift.capture.network.okhttp.OkHttpRequestFieldProvider
 import okhttp3.Call
 import okhttp3.Headers.Companion.toHeaders
 import okhttp3.Protocol
@@ -551,5 +552,58 @@ class CaptureOkHttpEventListenerFactoryTest {
                 .entries
                 .containsAll(expectedFields.entries),
         ).isTrue()
+    }
+
+    @Test
+    fun testCustomFieldProviderAddsExtraFields() {
+        // ARRANGE
+        val requestMetadata = "1234"
+
+        val request =
+            Request
+                .Builder()
+                .url(endpoint)
+                .post("test".toRequestBody())
+                .tag(requestMetadata)
+                .build()
+
+        val response =
+            Response
+                .Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_2)
+                .code(200)
+                .message("message")
+                .header("response_header", "response_header_value")
+                .build()
+
+        val call: Call = mock()
+        whenever(call.request()).thenReturn(request)
+
+        val extraFieldProvider =
+            OkHttpRequestFieldProvider {
+                mapOf("requestMetadata" to it.tag() as String)
+            }
+
+        // ACT
+        val factory = CaptureOkHttpEventListenerFactory(null, logger, clock, extraFieldProvider)
+        val listener = factory.create(call)
+
+        listener.callStart(call)
+
+        listener.responseHeadersEnd(call, response)
+        listener.responseBodyEnd(call, 234)
+
+        listener.callEnd(call)
+
+        // ASSERT
+        val httpRequestInfoCapture = argumentCaptor<HttpRequestInfo>()
+        verify(logger).log(httpRequestInfoCapture.capture())
+        val httpResponseInfoCapture = argumentCaptor<HttpResponseInfo>()
+        verify(logger).log(httpResponseInfoCapture.capture())
+
+        val httpRequestInfo = httpRequestInfoCapture.firstValue
+
+        assertThat(httpRequestInfo.fields["requestMetadata"].toString()).isEqualTo(requestMetadata)
     }
 }
