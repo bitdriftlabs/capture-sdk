@@ -88,7 +88,7 @@ cargoNdk {
     // Default set for local dev on ARM-based macos
     targets = arrayListOf("arm64")
     // enable 16 KB ELF alignment on Android to support API 35+
-    extraCargoEnv = mapOf("RUST_ANDROID_GRADLE_CC_LINK_ARG" to "-Wl,-z,max-page-size=16384")
+    extraCargoEnv = mapOf("RUSTFLAGS" to "-C link-args=-Wl,-z,max-page-size=16384")
 }
 
 // detekt
