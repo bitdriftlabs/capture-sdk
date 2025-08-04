@@ -231,13 +231,31 @@ public final class Logger {
 
         self.deviceCodeController = DeviceCodeController(client: client)
 
-        // Update hang duration with runtime value
-        let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
-        if let reporter = Logger.diagnosticReporter.load(),
-           hangDuration > 0 {
-            let seconds = Double(hangDuration) / Double(MSEC_PER_SEC)
-            reporter.setMinimumHangSeconds(TimeInterval(seconds))
+        #if targetEnvironment(simulator)
+        Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
+        #else
+        Logger.issueReporterInitResult = measureTime {
+            guard let outputDir = Logger.reportCollectionDirectory() else {
+                return .initialized(.missingReportsDirectory)
+            }
+            if configuration.enableFatalIssueReporting {
+                let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
+                let reporter = DiagnosticEventReporter(
+                    outputDir: outputDir,
+                    sdkVersion: capture_get_sdk_version(),
+                    eventTypes: .crash,
+                    minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC)) { [weak self] in
+                    self?.underlyingLogger.processCrashReports()
+                }
+                Logger.diagnosticReporter.update { val in
+                    val = reporter
+                }
+                MXMetricManager.shared.add(reporter)
+                return .initialized(.monitoring)
+            }
+            return .initialized(.notEnabled)
         }
+        #endif
     }
 
     // swiftlint:enable function_body_length
