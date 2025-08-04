@@ -1,0 +1,39 @@
+name: Common Android SDK/NDK setup
+description: Sets up Android SDK cmdline-tools and installs the NDK
+inputs:
+  ndk-version:
+    description: Android NDK version to install
+    required: false
+    default: "27.2.12479018"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cache Android NDK
+      id: ndk-cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.ANDROID_SDK_ROOT }}/ndk/${{ inputs.ndk-version }}
+        key: ${{ runner.os }}-android-ndk-${{ inputs.ndk-version }}
+
+    - name: Verify cmdline-tools
+      shell: bash
+      run: |
+        CMDLINE_TOOLS_DIR="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin"
+        if [ ! -x "$CMDLINE_TOOLS_DIR/sdkmanager" ]; then
+          echo "cmdline-tools not found or incomplete. Installing..."
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          cd $ANDROID_SDK_ROOT/cmdline-tools
+          curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
+          unzip -q cmdline-tools.zip
+          mv cmdline-tools latest
+        else
+          echo "cmdline-tools already installed."
+        fi
+
+    - name: Install Android NDK
+      if: steps.ndk-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
+        yes | sdkmanager "ndk;${{ inputs.ndk-version }}"

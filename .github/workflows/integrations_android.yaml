@@ -1,6 +1,3 @@
-env:
-  NDK_VERSION: 27.2.12479018
-
 name: Build Android Integrations
 on:
   workflow_call:
@@ -32,30 +29,8 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
         cache: gradle
-    - name: Cache Android NDK
-      id: ndk-cache
-      uses: actions/cache@v4
-      with:
-        path: ${{ env.ANDROID_SDK_ROOT }}/ndk/${{ env.NDK_VERSION }}
-        key: ${{ runner.os }}-android-ndk-${{ env.NDK_VERSION }}
-    - name: Verify cmdline-tools
-      run: |
-        CMDLINE_TOOLS_DIR="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin"
-        if [ ! -x "$CMDLINE_TOOLS_DIR/sdkmanager" ]; then
-          echo "cmdline-tools not found or incomplete. Installing..."
-          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          cd $ANDROID_SDK_ROOT/cmdline-tools
-          curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
-          unzip -q cmdline-tools.zip
-          mv cmdline-tools latest
-        else
-          echo "cmdline-tools already installed."
-        fi
-    - name: Install Android NDK
-      if: steps.ndk-cache.outputs.cache-hit != 'true'
-      run: |
-        export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
-        yes | sdkmanager "ndk;${NDK_VERSION}"
+    - name: Setup Android cmd line tools + NDK
+      uses: ./.github/actions/common-android-setup
     - name: Install Rust target
       run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
     - name: Build Timber artifacts with Gradle
