@@ -1,5 +1,6 @@
 name: Common Android SDK/NDK setup
 description: Sets up Android SDK cmdline-tools and installs the NDK
+
 inputs:
   ndk-version:
     description: Android NDK version to install
@@ -9,18 +10,24 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Set ANDROID_HOME and unset deprecated variable
+      shell: bash
+      run: |
+        echo "ANDROID_HOME=${{ github.workspace }}/android-sdk" >> $GITHUB_ENV
+        echo "ANDROID_SDK_ROOT=${{ github.workspace }}/android-sdk" >> $GITHUB_ENV
+
     - name: Cache Android NDK
       id: ndk-cache
       uses: actions/cache@v4
       with:
-        path: ${{ env.ANDROID_SDK_ROOT }}/ndk/${{ inputs.ndk-version }}
+        path: ${{ env.ANDROID_HOME }}/ndk/${{ inputs.ndk-version }}
         key: ${{ runner.os }}-android-ndk-${{ inputs.ndk-version }}
 
     - name: Cache Android cmdline-tools
       id: cmdline-tools-cache
       uses: actions/cache@v4
       with:
-        path: ${{ env.ANDROID_SDK_ROOT }}/cmdline-tools/latest
+        path: ${{ env.ANDROID_HOME }}/cmdline-tools/latest
         key: ${{ runner.os }}-android-cmdline-tools-v1
 
     - name: Verify cmdline-tools
@@ -28,8 +35,8 @@ runs:
       shell: bash
       run: |
         echo "cmdline-tools not found or incomplete. Installing..."
-        mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-        cd $ANDROID_SDK_ROOT/cmdline-tools
+        mkdir -p $ANDROID_HOME/cmdline-tools
+        cd $ANDROID_HOME/cmdline-tools
         curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
         unzip -q cmdline-tools.zip
         mv cmdline-tools latest
@@ -38,5 +45,5 @@ runs:
       if: steps.ndk-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
-        yes | sdkmanager "ndk;${{ inputs.ndk-version }}"
+        export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+        echo "y" | sdkmanager --sdk_root=$ANDROID_HOME "ndk;${{ inputs.ndk-version }}"
