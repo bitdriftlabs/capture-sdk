@@ -1,6 +1,3 @@
-env:
-  NDK_VERSION: 27.2.12479018
-
 name: Build Android example apps
 on:
   workflow_dispatch:

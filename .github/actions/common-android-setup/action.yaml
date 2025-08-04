@@ -16,20 +16,23 @@ runs:
         path: ${{ env.ANDROID_SDK_ROOT }}/ndk/${{ inputs.ndk-version }}
         key: ${{ runner.os }}-android-ndk-${{ inputs.ndk-version }}
 
+    - name: Cache Android cmdline-tools
+      id: cmdline-tools-cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.ANDROID_SDK_ROOT }}/cmdline-tools/latest
+        key: ${{ runner.os }}-android-cmdline-tools-v1
+
     - name: Verify cmdline-tools
+      if: steps.cmdline-tools-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        CMDLINE_TOOLS_DIR="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin"
-        if [ ! -x "$CMDLINE_TOOLS_DIR/sdkmanager" ]; then
-          echo "cmdline-tools not found or incomplete. Installing..."
-          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          cd $ANDROID_SDK_ROOT/cmdline-tools
-          curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
-          unzip -q cmdline-tools.zip
-          mv cmdline-tools latest
-        else
-          echo "cmdline-tools already installed."
-        fi
+        echo "cmdline-tools not found or incomplete. Installing..."
+        mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+        cd $ANDROID_SDK_ROOT/cmdline-tools
+        curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
+        unzip -q cmdline-tools.zip
+        mv cmdline-tools latest
 
     - name: Install Android NDK
       if: steps.ndk-cache.outputs.cache-hit != 'true'
