@@ -135,4 +135,6 @@ extension MockLoggerBridging: LoggerBridging {
     public func setSleepMode(_ mode: Capture.SleepMode) {
         sleepMode = mode
     }
+
+    public func processCrashReports() {}
 }

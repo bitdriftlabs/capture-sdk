@@ -88,9 +88,6 @@ extension Logger {
     ) -> LoggerIntegrator?
     {
         return self.createOnce {
-            if configuration.enableFatalIssueReporting {
-                Capture.Logger.initFatalIssueReporting(.builtIn)
-            }
             return Logger(
                 withAPIKey: apiKey,
                 apiURL: apiURL,
@@ -100,48 +97,6 @@ extension Logger {
                 fieldProviders: fieldProviders,
                 loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
             )
-        }
-    }
-
-    /// Initializes the issue reporting mechanism. Must be called prior to `Logger.start()`
-    /// This API is experimental and subject to change
-    ///
-    /// WARNING: For now this API is not exposed to customers. If there is a request for this will open visibility again
-    ///
-    /// - parameter type: mechanism for crash detection
-    static func initFatalIssueReporting(_ type: IssueReporterType = .builtIn) {
-        if issueReporterInitResult.0 != .notInitialized {
-            return
-        }
-
-        issueReporterInitResult = (.initializing, 0)
-        guard let outputDir = Logger.reportCollectionDirectory() else {
-            issueReporterInitResult = (.initialized(.missingReportsDirectory), 0)
-            return
-        }
-
-        issueReporterInitResult = measureTime {
-            switch type {
-            case .builtIn:
-                #if targetEnvironment(simulator)
-                return .initialized(.unsupportedHardware)
-                #else
-                let hangDuration = RuntimeVariable.applicationANRReporterThresholdMs.defaultValue
-                let reporter = DiagnosticEventReporter(
-                    outputDir: outputDir,
-                    sdkVersion: capture_get_sdk_version(),
-                    eventTypes: .crash,
-                    minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC)
-                )
-                diagnosticReporter.update { val in
-                    val = reporter
-                }
-                MXMetricManager.shared.add(reporter)
-                return .initialized(.monitoring)
-                #endif
-            case .customConfig:
-                return CustomConfigIssueReporter.processFiles()
-            }
         }
     }
 
