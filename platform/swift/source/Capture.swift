@@ -14,11 +14,6 @@ public typealias Fields = [String: FieldValue]
 /// The value of a log field.
 public typealias FieldValue = Encodable & Sendable
 
-public enum IssueReporterType {
-    case builtIn
-    case customConfig
-}
-
 extension Logger {
     struct SDKNotStartedfError: Swift.Error {}
 
