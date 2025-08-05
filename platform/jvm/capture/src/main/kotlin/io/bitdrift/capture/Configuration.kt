@@ -13,8 +13,8 @@ import io.bitdrift.capture.replay.SessionReplayConfiguration
  * A configuration object representing the feature set enabled for Capture.
  * @param sessionReplayConfiguration The resource reporting configuration to use. Passing `null` disables the feature.
  * @param enableFatalIssueReporting When set to true wil capture Fatal Issues automatically [JVM crash, ANR, etc] and without requiring
- * any external 3rd party library integration
- * @param sleepMode SleepMode.ACTIVE if Capture should initialize in minimal activity mode
+ * any external 3rd party library integration.
+ * @param sleepMode SleepMode.ACTIVE if Capture should initialize in minimal activity mode.
  */
 data class Configuration
     @JvmOverloads
