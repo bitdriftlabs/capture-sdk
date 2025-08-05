@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.rust.android)
@@ -57,12 +60,14 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
-    // TODO(murki): consider updating to using kotlin.compilerOptions {} block
-    kotlinOptions {
-        jvmTarget = "1.8"
-        apiVersion = "2.1"
-        languageVersion = "2.1"
-        allWarningsAsErrors = true
+    kotlin {
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_1_8
+            apiVersion = KotlinVersion.KOTLIN_2_1
+            languageVersion = KotlinVersion.KOTLIN_2_1
+            allWarningsAsErrors = true
+            freeCompilerArgs.addAll(listOf("-Xdont-warn-on-error-suppression")) // needed for suppressing INVISIBLE_REFERENCE etc
+        }
     }
 
     // TODO(murki): Move this common configuration to a reusable buildSrc plugin once it's fully supported for kotlin DSL
