@@ -58,7 +58,7 @@ class ResourceUtilizationTargetTest {
     }
 
     @Test
-    @Suppress("INVISIBLE_MEMBER")
+    @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
     fun resourceUtilizationTickEmitsLog() {
         whenever(batteryMonitor.batteryPercentageAttribute()).thenReturn(Pair("_battery_val", "0.75"))
         whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
