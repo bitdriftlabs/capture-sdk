@@ -41,7 +41,7 @@ jobs:
 
       - name: Check for relevant Gradle changes
         id: gradle_check
-        run: ./ci/files_changed.sh "^platform/jvm/gradle-test-app/.*\.(gradle|kts|kt|xml)$"
+        run: ./ci/files_changed.sh "^platform/jvm/gradle-test-app/.*\.(gradle|kts|kt|xml)$" && ./ci/files_changed.sh "^platform/jvm/capture/src/test/.*$"
         continue-on-error: true
 
       - name: Check for Cargo.toml changes
