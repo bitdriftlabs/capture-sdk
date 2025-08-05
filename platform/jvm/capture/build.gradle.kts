@@ -31,7 +31,9 @@ dependencies {
     implementation(libs.jsr305)
     implementation(libs.gson)
     implementation(libs.performance)
-    implementation(libs.protobuf.kotlinlite)
+    implementation(libs.protobuf.kotlinlite) {
+        exclude(group = "com.google.protobuf", module = "protobuf-javalite")
+    }
 
     testImplementation(libs.junit)
     testImplementation(libs.assertj.core)

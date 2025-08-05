@@ -199,6 +199,9 @@ maven.install(
         "androidx.compose.runtime:runtime:{}".format(COMPOSE_VERSION),
         "androidx.annotation:annotation-jvm:1.9.1",
     ],
+    exclusions = {
+        "com.google.protobuf:protobuf-kotlin-lite": ["com.google.protobuf:protobuf-javalite"],
+    },
     repositories = [
         "https://repo1.maven.org/maven2",
         "https://maven.google.com",
