@@ -47,6 +47,7 @@ use platform_shared::{LoggerHolder, LoggerId};
 use std::borrow::{Borrow, Cow};
 use std::collections::HashMap;
 use std::ffi::c_void;
+use std::ops::DerefMut;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, OnceLock};
@@ -1107,6 +1108,21 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setSleepModeEn
       Ok(())
     },
     "jni transition sleep mode",
+  );
+}
+
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processCrashReports(
+  _env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  mut logger_id: LoggerId<'_>,
+) {
+  bd_client_common::error::with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      logger_id.deref_mut().process_crash_reports(bd_logger::ReportProcessingSession::PreviousRun);
+      Ok(())
+    },
+  "jni process crash reports",
   );
 }
 

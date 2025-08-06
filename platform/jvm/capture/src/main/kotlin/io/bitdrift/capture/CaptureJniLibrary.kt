@@ -317,4 +317,9 @@ internal object CaptureJniLibrary : IBridge {
         loggerId: Long,
         enabled: Boolean,
     )
+
+    /**
+     * Sends signal to native layer to process existing reports
+     */
+    external fun processCrashReports(loggerId: LoggerId)
 }
