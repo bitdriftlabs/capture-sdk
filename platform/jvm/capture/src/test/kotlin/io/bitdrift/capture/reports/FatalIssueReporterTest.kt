@@ -64,6 +64,7 @@ class FatalIssueReporterTest {
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.BuiltIn::class.java,
         )
+        verify(completedReportsProcessor).processCrashReports()
     }
 
     private fun FatalIssueReporterStatus.assert(
