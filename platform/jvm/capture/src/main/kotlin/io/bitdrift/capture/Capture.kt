@@ -525,10 +525,6 @@ object Capture {
                     CaptureJniLibrary.load()
                 }
 
-            if (configuration.enableFatalIssueReporting) {
-                fatalIssueReporter.initBuiltInMode(appContext, clientAttributes)
-            }
-
             val (loggerImpl, loggerImplBuildDuration) =
                 measureTimedValue {
                     LoggerImpl(
@@ -553,6 +549,10 @@ object Capture {
                     nativeLoadDuration = nativeLoadDuration,
                     loggerImplBuildDuration = loggerImplBuildDuration,
                 )
+
+            if (configuration.enableFatalIssueReporting) {
+                fatalIssueReporter.initBuiltInMode(appContext, clientAttributes, loggerImpl)
+            }
 
             loggerImpl.writeSdkStartLog(
                 appContext = appContext,

@@ -48,6 +48,7 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.IFatalIssueReporter
+import io.bitdrift.capture.reports.processor.IJniFatalIssueProcessor
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
@@ -83,7 +84,8 @@ internal class LoggerImpl(
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
     private val fatalIssueReporter: IFatalIssueReporter,
-) : ILogger {
+) : ILogger,
+    IJniFatalIssueProcessor {
     private val metadataProvider: MetadataProvider
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
@@ -257,6 +259,10 @@ internal class LoggerImpl(
 
         CaptureJniLibrary.startLogger(this.loggerId)
 
+        CaptureJniLibrary.processCrashReports(this.loggerId)
+    }
+
+    override fun processCrashReports() {
         CaptureJniLibrary.processCrashReports(this.loggerId)
     }
 

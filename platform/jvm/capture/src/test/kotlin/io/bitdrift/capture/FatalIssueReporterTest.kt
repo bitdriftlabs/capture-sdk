@@ -16,6 +16,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.attributes.ClientAttributes
+import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.reports.FatalIssueReporter
@@ -25,6 +26,7 @@ import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.FatalIssueReporterStatus
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
+import io.bitdrift.capture.reports.processor.IJniFatalIssueProcessor
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -40,6 +42,8 @@ class FatalIssueReporterTest {
     private lateinit var reportsDir: File
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
     private val lifecycleOwner: LifecycleOwner = mock()
+
+    private val jniProcessor: IJniFatalIssueProcessor = mock()
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = mock()
     private val appContext = ApplicationProvider.getApplicationContext<Context>()
     private val clientAttributes = ClientAttributes(appContext, lifecycleOwner)
@@ -54,7 +58,7 @@ class FatalIssueReporterTest {
 
     @Test
     fun initialize_whenBuiltInMechanism_shouldInitCrashHandlerAndFetchAppExitReason() {
-        fatalIssueReporter.initBuiltInMode(appContext, clientAttributes)
+        fatalIssueReporter.initBuiltInMode(appContext, clientAttributes, jniProcessor)
 
         verify(captureUncaughtExceptionHandler).install(eq(fatalIssueReporter))
         verify(latestAppExitInfoProvider).get(any())
@@ -87,6 +91,7 @@ class FatalIssueReporterTest {
 
     private fun buildReporter(): FatalIssueReporter =
         FatalIssueReporter(
+            FakeBackgroundThreadHandler(),
             latestAppExitInfoProvider,
             captureUncaughtExceptionHandler,
         )
