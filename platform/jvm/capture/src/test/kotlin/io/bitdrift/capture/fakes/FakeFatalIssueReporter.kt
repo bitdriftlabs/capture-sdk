@@ -5,34 +5,27 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.reports
+package io.bitdrift.capture.fakes
 
 import android.content.Context
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.reports.FatalIssueMechanism
+import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 
-/**
- * Handles internal reporting of Fatal Issues
- */
-interface IFatalIssueReporter {
-    /**
-     * Initializes the BuiltIn reporter
-     */
-    fun initBuiltInMode(
+class FakeFatalIssueReporter(
+    private val fatalIssueMechanism: FatalIssueMechanism,
+) : IFatalIssueReporter {
+    override fun initBuiltInMode(
         appContext: Context,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
-    )
+    ) {
+        // no-op
+    }
 
-    /**
-     * Returns the configured [io.bitdrift.capture.reports.FatalIssueMechanism]
-     */
-    fun getReportingMechanism(): FatalIssueMechanism
+    override fun getReportingMechanism(): FatalIssueMechanism = fatalIssueMechanism
 
-    /**
-     * Generates the [InternalFieldsMap] to be reported upon Capture.Logger.start with
-     * details of FatalIssueReporter state
-     */
-    fun getLogStatusFieldsMap(): Map<String, FieldValue>
+    override fun getLogStatusFieldsMap(): Map<String, FieldValue> = emptyMap()
 }

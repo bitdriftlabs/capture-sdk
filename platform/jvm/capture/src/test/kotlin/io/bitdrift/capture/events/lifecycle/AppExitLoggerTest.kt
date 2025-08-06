@@ -25,6 +25,7 @@ import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
+import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.SESSION_ID
@@ -310,7 +311,7 @@ class AppExitLoggerTest {
             backgroundThreadHandler,
             lastExitInfo,
             captureUncaughtExceptionHandler,
-            fatalIssueMechanism,
+            FakeFatalIssueReporter(fatalIssueMechanism),
         )
 
     private fun buildExpectedAnrFields(): Map<String, FieldValue> =
