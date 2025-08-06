@@ -258,8 +258,6 @@ internal class LoggerImpl(
         appExitLogger.installAppExitLogger()
 
         CaptureJniLibrary.startLogger(this.loggerId)
-
-        CaptureJniLibrary.processCrashReports(this.loggerId)
     }
 
     override fun processCrashReports() {
