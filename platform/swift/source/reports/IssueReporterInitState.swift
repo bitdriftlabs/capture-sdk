@@ -20,8 +20,10 @@ enum ReporterInitResolution: Equatable, Error {
     case monitoring
     /// Disabled due to hardware limitations
     case unsupportedHardware
-    /// Core functionality disabled
-    case notEnabled
+    /// Core functionality disabled by Configuration
+    case clientNotEnabled
+    /// Core functionality disabled by runtime variable
+    case runtimeNotEnabled
     /// No directory available for delivering reports, cannot continue
     case missingReportsDirectory
     /// Crash reporting configuration file contains errors, cannot continue
@@ -49,8 +51,10 @@ extension IssueReporterInitState: CustomStringConvertible {
             switch resolution {
             case .monitoring:
                 return "CRASH_REPORT_MONITORING"
-            case .notEnabled:
-                return "CRASH_REPORT_DISABLED"
+            case .clientNotEnabled:
+                return "CLIENT_CONFIG_DISABLED"
+            case .runtimeNotEnabled:
+                return "RUNTIME_CONFIG_DISABLED"
             case .unsupportedHardware:
                 return "UNSUPPORTED_HARDWARE"
             case .missingReportsDirectory:

@@ -234,11 +234,15 @@ public final class Logger {
         #if targetEnvironment(simulator)
         Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
         #else
-        Logger.issueReporterInitResult = measureTime {
-            guard let outputDir = Logger.reportCollectionDirectory() else {
-                return .initialized(.missingReportsDirectory)
-            }
-            if configuration.enableFatalIssueReporting {
+        if !configuration.enableFatalIssueReporting {
+            Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
+        } else if !self.underlyingLogger.runtimeValue(.crashReporting) {
+            Logger.issueReporterInitResult = (.initialized(.runtimeNotEnabled), 0)
+        } else {
+            Logger.issueReporterInitResult = measureTime {
+                guard let outputDir = Logger.reportCollectionDirectory() else {
+                    return .initialized(.missingReportsDirectory)
+                }
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
                 let reporter = DiagnosticEventReporter(
                     outputDir: outputDir,
@@ -253,7 +257,6 @@ public final class Logger {
                 MXMetricManager.shared.add(reporter)
                 return .initialized(.monitoring)
             }
-            return .initialized(.notEnabled)
         }
         #endif
     }
