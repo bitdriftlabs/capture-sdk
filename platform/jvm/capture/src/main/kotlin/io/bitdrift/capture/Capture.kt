@@ -22,6 +22,7 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.FatalIssueReporter
+import io.bitdrift.capture.reports.NoOpFatalIssueReporter
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -60,7 +61,6 @@ internal sealed class LoggerState {
 object Capture {
     internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
-    private val fatalIssueReporter = FatalIssueReporter()
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -513,6 +513,13 @@ object Capture {
             val startSdkTimer = TimeSource.Monotonic.markNow()
 
             val appContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
+
+            val fatalIssueReporter =
+                if (configuration.enableFatalIssueReporting) {
+                    FatalIssueReporter()
+                } else {
+                    NoOpFatalIssueReporter()
+                }
 
             val clientAttributes =
                 ClientAttributes(

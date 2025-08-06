@@ -160,7 +160,7 @@ internal class FatalIssueReporter(
     private fun buildDefaultReporterStatus(): FatalIssueReporterStatus =
         FatalIssueReporterStatus(
             FatalIssueReporterState.NotInitialized,
-            mechanism = FatalIssueMechanism.None,
+            mechanism = FatalIssueMechanism.BuiltIn,
         )
 
     private fun getFatalIssueDirectories(appContext: Context): FatalIssueDirectories {
