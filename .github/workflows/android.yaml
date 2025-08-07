@@ -229,7 +229,7 @@ jobs:
     - uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
       with:
         toolchain: stable
-        targets: x86_64-unknown-linux-gnu,aarch-linux-android
+        targets: x86_64-unknown-linux-gnu,aarch64-linux-android
         components: rust-src
 
     - name: Cache cargo-ndk
