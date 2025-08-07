@@ -4,6 +4,7 @@ on:
     branches:
       - main
   pull_request:
+
 # Cancel in-progress CI jobs when a new commit is pushed to a PR.
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -361,11 +362,191 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: ./ci/verify_android.sh
 
+
+  test_maven_central_upload:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install GPG
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gnupg
+
+      - name: Set up GPG signing key
+        env:
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+          GPG_SIGNING_KEY_PASSPHRASE: ${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}
+        run: |
+          echo "$GPG_SIGNING_KEY" | gpg --batch --import
+          echo "GPG key imported successfully"
+          gpg --list-secret-keys --keyid-format LONG
+
+      - name: Download release artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: 0.17.28
+          RELEASE_TAG: ${{ inputs.maven_release_tag }}
+        run: |
+          mkdir -p maven-upload/io/bitdrift/capture/$VERSION
+          cd maven-upload/io/bitdrift/capture/$VERSION
+          
+          echo "Downloading artifacts from release $RELEASE_TAG..."
+          gh release download $RELEASE_TAG --pattern "capture-$VERSION-javadoc.jar"
+          gh release download $RELEASE_TAG --pattern "capture-$VERSION-sources.jar"
+          gh release download $RELEASE_TAG --pattern "capture-$VERSION.aar"
+          gh release download $RELEASE_TAG --pattern "capture-$VERSION.pom"
+          
+          ls -la
+          echo "All required artifacts downloaded successfully"
+
+      - name: Generate checksums and signatures
+        env:
+          GPG_SIGNING_KEY_PASSPHRASE: ${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}
+          VERSION: ${{ inputs.maven_version }}
+        run: |
+          cd maven-upload/io/bitdrift/capture/$VERSION
+          
+          echo "Generating checksums..."
+          md5sum capture-$VERSION.aar | cut -d' ' -f1 > capture-$VERSION.aar.md5
+          sha1sum capture-$VERSION.aar | cut -d' ' -f1 > capture-$VERSION.aar.sha1
+          md5sum capture-$VERSION.pom | cut -d' ' -f1 > capture-$VERSION.pom.md5
+          sha1sum capture-$VERSION.pom | cut -d' ' -f1 > capture-$VERSION.pom.sha1
+          md5sum capture-$VERSION-sources.jar | cut -d' ' -f1 > capture-$VERSION-sources.jar.md5
+          sha1sum capture-$VERSION-sources.jar | cut -d' ' -f1 > capture-$VERSION-sources.jar.sha1
+          md5sum capture-$VERSION-javadoc.jar | cut -d' ' -f1 > capture-$VERSION-javadoc.jar.md5
+          sha1sum capture-$VERSION-javadoc.jar | cut -d' ' -f1 > capture-$VERSION-javadoc.jar.sha1
+          
+          echo "Generating GPG signatures..."
+          echo "$GPG_SIGNING_KEY_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --armor --detach-sign capture-$VERSION.aar
+          echo "$GPG_SIGNING_KEY_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --armor --detach-sign capture-$VERSION.pom
+          echo "$GPG_SIGNING_KEY_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --armor --detach-sign capture-$VERSION-sources.jar
+          echo "$GPG_SIGNING_KEY_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --armor --detach-sign capture-$VERSION-javadoc.jar
+          
+          echo "Verifying signatures..."
+          gpg --verify capture-$VERSION.aar.asc capture-$VERSION.aar
+          gpg --verify capture-$VERSION.pom.asc capture-$VERSION.pom
+          gpg --verify capture-$VERSION-sources.jar.asc capture-$VERSION-sources.jar
+          gpg --verify capture-$VERSION-javadoc.jar.asc capture-$VERSION-javadoc.jar
+          
+          echo "All checksums and signatures generated successfully"
+          ls -la
+
+      - name: Create bundle ZIP
+        env:
+          VERSION: ${{ inputs.maven_version }}
+        run: |
+          cd maven-upload
+          zip -r ../capture-$VERSION-central-bundle.zip io/
+          echo "Bundle created: capture-$VERSION-central-bundle.zip"
+          ls -la ../capture-$VERSION-central-bundle.zip
+
+      - name: Upload to Maven Central (if not dry run)
+        if: ${{ !inputs.maven_dry_run }}
+        env:
+          MAVEN_CENTRAL_TOKEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_TOKEN_USERNAME }}
+          MAVEN_CENTRAL_TOKEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN_PASSWORD }}
+          VERSION: ${{ inputs.maven_version }}
+        run: |
+          BUNDLE_NAME="bitdrift-capture-sdk-$(echo $VERSION | tr '.' '-')"
+          
+          echo "Uploading bundle to Maven Central as: $BUNDLE_NAME"
+          
+          # Upload the bundle
+          UPLOAD_RESPONSE=$(curl -s -X POST \
+            -u "$MAVEN_CENTRAL_TOKEN_USERNAME:$MAVEN_CENTRAL_TOKEN_PASSWORD" \
+            -F "bundle=@capture-$VERSION-central-bundle.zip" \
+            -F "name=$BUNDLE_NAME" \
+            "https://central.sonatype.com/api/v1/publisher/upload")
+          
+          echo "Upload response: $UPLOAD_RESPONSE"
+          
+          # Extract deployment ID from response
+          DEPLOYMENT_ID=$(echo "$UPLOAD_RESPONSE" | jq -r '.deploymentId // empty')
+          
+          if [ -z "$DEPLOYMENT_ID" ]; then
+            echo "Failed to get deployment ID from upload response"
+            echo "Full response: $UPLOAD_RESPONSE"
+            exit 1
+          fi
+          
+          echo "Deployment ID: $DEPLOYMENT_ID"
+          
+          # Check deployment status
+          echo "Checking deployment status..."
+          for i in {1..30}; do
+            STATUS_RESPONSE=$(curl -s -X GET \
+              -u "$MAVEN_CENTRAL_TOKEN_USERNAME:$MAVEN_CENTRAL_TOKEN_PASSWORD" \
+              "https://central.sonatype.com/api/v1/publisher/status?id=$DEPLOYMENT_ID")
+            
+            STATUS=$(echo "$STATUS_RESPONSE" | jq -r '.deploymentState // "UNKNOWN"')
+            echo "Deployment status (attempt $i): $STATUS"
+            
+            case "$STATUS" in
+              "PUBLISHED")
+                echo "✅ Successfully published to Maven Central!"
+                exit 0
+                ;;
+              "FAILED"|"REJECTED")
+                echo "❌ Deployment failed or was rejected"
+                echo "Response: $STATUS_RESPONSE"
+                exit 1
+                ;;
+              "PENDING"|"VALIDATING"|"VALIDATED")
+                echo "⏳ Still processing... waiting 30 seconds"
+                sleep 30
+                ;;
+              *)
+                echo "Unknown status: $STATUS"
+                sleep 30
+                ;;
+            esac
+          done
+          
+          echo "❌ Deployment did not complete within expected time"
+          exit 1
+
+      - name: Upload bundle as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-central-bundle-${{ inputs.maven_version }}
+          path: capture-${{ inputs.maven_version }}-central-bundle.zip
+          retention-days: 7
+
+      - name: Test Summary
+        run: |
+          echo "## Maven Central Upload Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ inputs.maven_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release Tag:** ${{ inputs.maven_release_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dry Run:** ${{ inputs.maven_dry_run }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ inputs.maven_dry_run }}" = "true" ]; then
+            echo "✅ **Dry run test completed successfully!**" >> $GITHUB_STEP_SUMMARY
+            echo "- Bundle created and uploaded as artifact" >> $GITHUB_STEP_SUMMARY
+            echo "- No actual upload to Maven Central performed" >> $GITHUB_STEP_SUMMARY
+            echo "- Download the bundle artifact to inspect the generated files" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **Upload test completed successfully!**" >> $GITHUB_STEP_SUMMARY
+            echo "- Artifacts uploaded to Maven Central" >> $GITHUB_STEP_SUMMARY
+            echo "- Available at: https://central.sonatype.com/artifact/io.bitdrift/capture/${{ inputs.maven_version }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+
   # This is a noop job that completes once all the jobs spawned by the previous step completes. By blocking PR merges on this
   # job completing, we are able to gate it on all the previous jobs without explicitly enumerating them.
   verify_android:
     runs-on: ubuntu-latest
-    needs: ["pre_check", "build_and_compare_apk", "verify_android_hello_world_per_version", "gradle_tests"]
+    needs: ["pre_check", "test_maven_central_upload", "build_and_compare_apk", "verify_android_hello_world_per_version", "gradle_tests"]
     if: always()
     steps:
     # Checkout repo to Github Actions runner
