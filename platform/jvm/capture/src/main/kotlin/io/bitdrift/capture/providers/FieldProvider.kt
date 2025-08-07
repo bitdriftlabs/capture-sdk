@@ -7,6 +7,9 @@
 
 package io.bitdrift.capture.providers
 
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
+
 /**
  * A single field.
  * @param key the field key.
@@ -112,6 +115,11 @@ internal fun ByteArray.toFieldValue() =
     }
 
 /**
+ * Converts a [Duration] into a [FieldValue] using the specified [DurationUnit].
+ */
+internal fun Duration.toFieldValue(durationUnit: DurationUnit): FieldValue = this.toDouble(durationUnit).toString().toFieldValue()
+
+/**
  * Converts a Map<String, String> into a List<Field>.
  *
  * NOTE: Suppresses null-check warnings due to possible nulls from Java interop.
@@ -119,7 +127,7 @@ internal fun ByteArray.toFieldValue() =
  */
 @Suppress("SENSELESS_COMPARISON")
 internal fun Map<String, String>?.toFields(): Map<String, FieldValue> {
-    if (this == null) return emptyMap()
+    if (isNullOrEmpty()) return emptyMap()
 
     val result = HashMap<String, FieldValue>(size)
     for ((key, value) in this) {

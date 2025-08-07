@@ -72,7 +72,13 @@ To install without Homebrew you can follow these instructions: [https://docs.azu
 
 Setup the environment, open Android Studio.
 
-1. Select `Open...` and select folder `/capture-sdk/platform/jvm`. This should automatically kick off the Gradle sync process.
+1. Install `cargo-ndk` which is used to build the Rust shared library.
+
+  ```
+  cargo install cargo-ndk --version 3.4.0
+  ```
+
+2. Select `Open...` and select folder `/capture-sdk/platform/jvm`. This should automatically kick off the Gradle sync process.
 
     - If you get an `NDK not installed` error:
 
@@ -82,7 +88,7 @@ Setup the environment, open Android Studio.
 
         ![](../docs/images/android_local_gradle_ndk.png)
 
-2. Run/debug the test app either on an emulated or physical device
+3. Run/debug the test app either on an emulated or physical device
 
     - If you receive a `cargo` error due to missing architectures, run:
         ```shell

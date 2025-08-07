@@ -1,8 +1,9 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
-    // The rust android gradle plugin needs to go first
-    //  see: https://github.com/mozilla/rust-android-gradle/issues/147
-    alias(libs.plugins.rust.android)
     alias(libs.plugins.android.library)
+    alias(libs.plugins.rust.android)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.detekt)
 
@@ -11,7 +12,7 @@ plugins {
     alias(libs.plugins.maven.publish)
 
     id("dependency-license-config")
-    id("com.google.protobuf") version "0.9.1"
+    id("com.google.protobuf") version "0.9.4"
 }
 
 group = "io.bitdrift"
@@ -41,25 +42,10 @@ dependencies {
     testImplementation(libs.mockwebserver)
 }
 
-protobuf {
-    protoc {
-        artifact = "com.google.protobuf:protoc:3.24.2"
-    }
-    generateProtoTasks {
-        all().configureEach {
-            builtins {
-                create("java") {
-                    option("lite")
-                }
-            }
-        }
-    }
-}
-
 android {
     namespace = "io.bitdrift.capture"
 
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 24
@@ -74,12 +60,14 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
-    // TODO(murki): consider updating to using kotlin.compilerOptions {} block
-    kotlinOptions {
-        jvmTarget = "1.8"
-        apiVersion = "2.1"
-        languageVersion = "2.1"
-        allWarningsAsErrors = true
+    kotlin {
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_1_8
+            apiVersion = KotlinVersion.KOTLIN_2_1
+            languageVersion = KotlinVersion.KOTLIN_2_1
+            allWarningsAsErrors = true
+            freeCompilerArgs.addAll(listOf("-Xdont-warn-on-error-suppression")) // needed for suppressing INVISIBLE_REFERENCE etc
+        }
     }
 
     // TODO(murki): Move this common configuration to a reusable buildSrc plugin once it's fully supported for kotlin DSL
@@ -97,33 +85,34 @@ android {
 }
 
 // Rust cargo build toolchain
-cargo {
-    libname = "capture"
-    extraCargoBuildArguments = listOf(
-      "--package", "capture",
-      "--profile", "release-android",
-      "-Z", "build-std=std,panic_abort",
-      "-Z", "build-std-features=optimize_for_size,panic_immediate_abort",
-      "-Z", "fmt-debug=none"
-    )
-    module = "../.."
-    targetDirectory = "../../../target"
-    targets = listOf("arm64", "x86_64")
-    pythonCommand = "python3"
-    exec = { spec, _ ->
-        // enable 16 KB ELF alignment on Android to support API 35+
-        spec.environment("RUST_ANDROID_GRADLE_CC_LINK_ARG", "-Wl,-z,max-page-size=16384")
-        spec.environment("RUSTC_BOOTSTRAP", "1")
-    }
-}
+cargoNdk {
+    librariesNames = arrayListOf("libcapture.so")
+    extraCargoBuildArguments = arrayListOf("--package", "capture")
 
-// workaround bug in rust-android-gradle plugin that causes .so to not be available on app launch
-// see: https://github.com/mozilla/rust-android-gradle/issues/118#issuecomment-1569407058
-tasks.whenTaskAdded {
-    if ((this.name == "mergeDebugJniLibFolders" || this.name == "mergeReleaseJniLibFolders")) {
-        this.dependsOn("cargoBuild")
-        this.inputs.dir(layout.buildDirectory.dir("rustJniLibs/android"))
+    buildTypes {
+        getByName("release") {
+            buildType = "release"
+            extraCargoBuildArguments = arrayListOf(
+                "--package", "capture",
+                "-Z", "build-std=std,panic_abort",
+                "-Z", "build-std-features=optimize_for_size,panic_immediate_abort",
+            )
+        }
+
+        getByName("debug") {
+            buildType = "dev"
+        }
     }
+
+    module = "../.."
+    targetDirectory = "./target"
+    // Default set for local dev on ARM-based macos
+    targets = arrayListOf("arm64")
+    // enable 16 KB ELF alignment on Android to support API 35+
+    extraCargoEnv = mapOf(
+      "RUSTFLAGS" to "-C link-args=-Wl,-z,max-page-size=16384",
+      "RUSTC_BOOTSTRAP" to "1" // Required for using unstable features in the Rust compiler
+    )
 }
 
 // detekt
@@ -132,6 +121,22 @@ detekt {
     // Defaults to the default detekt configuration.
     config.setFrom("detekt.yml")
 }
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.24.2"
+    }
+    generateProtoTasks {
+        all().configureEach {
+            builtins {
+                create("java") {
+                    option("lite")
+                }
+            }
+        }
+    }
+}
+
 
 tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
     exclude {

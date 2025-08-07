@@ -11,7 +11,7 @@ group = "io.bitdrift"
 android {
     namespace = "io.bitdrift.capture.common"
 
-    compileSdk = 35
+    compileSdk = 36
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8

@@ -55,7 +55,6 @@ import okhttp3.HttpUrl
 import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
-import kotlin.time.measureTime
 
 typealias LoggerId = Long
 internal typealias InternalFieldsList = List<Field>
@@ -71,7 +70,7 @@ internal class LoggerImpl(
     private val errorHandler: ErrorHandler = ErrorHandler(),
     sessionStrategy: SessionStrategy,
     context: Context,
-    clientAttributes: ClientAttributes =
+    private val clientAttributes: ClientAttributes =
         ClientAttributes(
             context,
             ProcessLifecycleOwner.get(),
@@ -79,8 +78,8 @@ internal class LoggerImpl(
     preferences: IPreferences = Preferences(context),
     private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey),
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
-    private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
-    private val bridge: IBridge = CaptureJniLibrary,
+    activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
+    bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
     private val fatalIssueReporter: IFatalIssueReporter,
@@ -107,166 +106,156 @@ internal class LoggerImpl(
     internal val loggerId: LoggerId
 
     init {
-        val duration =
-            measureTime {
-                setUpInternalLogging(context)
+        setUpInternalLogging(context)
 
-                CaptureJniLibrary.load()
+        this.sessionUrlBase =
+            HttpUrl
+                .Builder()
+                .scheme("https")
+                .host(apiUrl.host.replaceFirst("api.", "timeline."))
+                .addQueryParameter("utm_source", "sdk")
+                .build()
 
-                this.sessionUrlBase =
-                    HttpUrl
-                        .Builder()
-                        .scheme("https")
-                        .host(apiUrl.host.replaceFirst("api.", "timeline."))
-                        .addQueryParameter("utm_source", "sdk")
-                        .build()
+        val networkAttributes = NetworkAttributes(context)
+        val deviceAttributes = DeviceAttributes(context)
 
-                val networkAttributes = NetworkAttributes(context)
-                val deviceAttributes = DeviceAttributes(context)
-
-                metadataProvider =
-                    MetadataProvider(
-                        dateProvider = dateProvider,
-                        // order of providers matters in here, the earlier in the list the higher their priority in
-                        // case of key conflicts.
-                        ootbFieldProviders =
-                            listOf(
-                                clientAttributes,
-                                networkAttributes,
-                                deviceAttributes,
-                            ),
-                        errorHandler = errorHandler,
-                        customFieldProviders = fieldProviders,
-                    )
-
-                val network =
-                    OkHttpNetwork(
-                        apiBaseUrl = apiUrl,
-                    )
-
-                val sdkDirectory = SdkDirectory.getPath(context)
-
-                val localErrorReporter =
-                    errorReporter ?: ErrorReporterService(
-                        listOf(clientAttributes),
-                        apiClient,
-                    )
-
-                diskUsageMonitor =
-                    DiskUsageMonitor(
-                        preferences,
-                        context,
-                    )
-                memoryMetricsProvider = MemoryMetricsProvider(activityManager)
-
-                resourceUtilizationTarget =
-                    ResourceUtilizationTarget(
-                        memoryMetricsProvider,
-                        batteryMonitor,
-                        powerMonitor,
-                        diskUsageMonitor,
-                        errorHandler,
-                        this,
-                        eventListenerDispatcher.executorService,
-                    )
-
-                this.sessionReplayTarget =
-                    SessionReplayTarget(
-                        configuration = configuration.sessionReplayConfiguration,
-                        errorHandler,
-                        context,
-                        logger = this,
-                        windowManager = windowManager,
-                    )
-
-                val loggerId =
-                    bridge.createLogger(
-                        sdkDirectory,
-                        apiKey,
-                        sessionStrategy.createSessionStrategyConfiguration { appExitSaveCurrentSessionId(it) },
-                        metadataProvider,
-                        // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
-                        //  and `eventsListenerTarget` as part of `startLogger` method call instead.
-                        // Pass the event listener target here and finish setting up
-                        // before the logger is actually started.
-                        resourceUtilizationTarget,
-                        sessionReplayTarget,
-                        // Pass the event listener target here and finish setting up
-                        // before the logger is actually started.
-                        eventsListenerTarget,
-                        clientAttributes.appId,
-                        clientAttributes.appVersion,
-                        deviceAttributes.model(),
-                        network,
-                        preferences,
-                        localErrorReporter,
-                        configuration.sleepMode == SleepMode.ACTIVE,
-                    )
-
-                check(loggerId != -1L) { "initialization of the rust logger failed" }
-
-                this.loggerId = loggerId
-
-                runtime = JniRuntime(this.loggerId)
-                sessionReplayTarget.runtime = runtime
-                diskUsageMonitor.runtime = runtime
-                memoryMetricsProvider.runtime = runtime
-
-                eventsListenerTarget.add(
-                    AppLifecycleListenerLogger(
-                        this,
-                        ProcessLifecycleOwner.get(),
-                        activityManager,
-                        runtime,
-                        eventListenerDispatcher.executorService,
-                    ),
-                )
-
-                eventsListenerTarget.add(
-                    DeviceStateListenerLogger(
-                        this,
-                        context,
-                        batteryMonitor,
-                        powerMonitor,
-                        runtime,
-                        eventListenerDispatcher.executorService,
-                    ),
-                )
-
-                eventsListenerTarget.add(
-                    AppUpdateListenerLogger(
-                        this,
+        metadataProvider =
+            MetadataProvider(
+                dateProvider = dateProvider,
+                // order of providers matters in here, the earlier in the list the higher their priority in
+                // case of key conflicts.
+                ootbFieldProviders =
+                    listOf(
                         clientAttributes,
-                        context,
-                        runtime,
-                        eventListenerDispatcher.executorService,
+                        networkAttributes,
+                        deviceAttributes,
                     ),
-                )
+                errorHandler = errorHandler,
+                customFieldProviders = fieldProviders,
+            )
 
-                addJankStatsMonitorTarget(windowManager, context)
+        val network =
+            OkHttpNetwork(
+                apiBaseUrl = apiUrl,
+            )
 
-                appExitLogger =
-                    AppExitLogger(
-                        logger = this,
-                        activityManager,
-                        runtime,
-                        errorHandler,
-                        memoryMetricsProvider = memoryMetricsProvider,
-                        fatalIssueMechanism = fatalIssueReporter.getReportingMechanism(),
-                    )
+        val sdkDirectory = SdkDirectory.getPath(context)
 
-                // Install the app exit logger before the Capture logger is started to ensure
-                // that logs emitted during the installation are the first logs emitted by the
-                // Capture logger.
-                appExitLogger.installAppExitLogger()
+        val localErrorReporter =
+            errorReporter ?: ErrorReporterService(
+                listOf(clientAttributes),
+                apiClient,
+            )
 
-                CaptureJniLibrary.startLogger(this.loggerId)
-            }
+        diskUsageMonitor =
+            DiskUsageMonitor(
+                preferences,
+                context,
+            )
+        memoryMetricsProvider = MemoryMetricsProvider(activityManager)
 
-        val captureStartThread = Thread.currentThread().name
-        eventListenerDispatcher.executorService.execute {
-            writeSdkStartLog(context, clientAttributes, duration, captureStartThread)
-        }
+        resourceUtilizationTarget =
+            ResourceUtilizationTarget(
+                memoryMetricsProvider,
+                batteryMonitor,
+                powerMonitor,
+                diskUsageMonitor,
+                errorHandler,
+                this,
+                eventListenerDispatcher.executorService,
+            )
+
+        this.sessionReplayTarget =
+            SessionReplayTarget(
+                configuration = configuration.sessionReplayConfiguration,
+                errorHandler,
+                context,
+                logger = this,
+                windowManager = windowManager,
+            )
+
+        val loggerId =
+            bridge.createLogger(
+                sdkDirectory,
+                apiKey,
+                sessionStrategy.createSessionStrategyConfiguration { appExitSaveCurrentSessionId(it) },
+                metadataProvider,
+                // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
+                //  and `eventsListenerTarget` as part of `startLogger` method call instead.
+                // Pass the event listener target here and finish setting up
+                // before the logger is actually started.
+                resourceUtilizationTarget,
+                sessionReplayTarget,
+                // Pass the event listener target here and finish setting up
+                // before the logger is actually started.
+                eventsListenerTarget,
+                clientAttributes.appId,
+                clientAttributes.appVersion,
+                deviceAttributes.model(),
+                network,
+                preferences,
+                localErrorReporter,
+                configuration.sleepMode == SleepMode.ACTIVE,
+            )
+
+        check(loggerId != -1L) { "initialization of the rust logger failed" }
+
+        this.loggerId = loggerId
+
+        runtime = JniRuntime(this.loggerId)
+        sessionReplayTarget.runtime = runtime
+        diskUsageMonitor.runtime = runtime
+        memoryMetricsProvider.runtime = runtime
+
+        eventsListenerTarget.add(
+            AppLifecycleListenerLogger(
+                this,
+                ProcessLifecycleOwner.get(),
+                activityManager,
+                runtime,
+                eventListenerDispatcher.executorService,
+            ),
+        )
+
+        eventsListenerTarget.add(
+            DeviceStateListenerLogger(
+                this,
+                context,
+                batteryMonitor,
+                powerMonitor,
+                runtime,
+                eventListenerDispatcher.executorService,
+            ),
+        )
+
+        eventsListenerTarget.add(
+            AppUpdateListenerLogger(
+                this,
+                clientAttributes,
+                context,
+                runtime,
+                eventListenerDispatcher.executorService,
+            ),
+        )
+
+        addJankStatsMonitorTarget(windowManager, context)
+
+        appExitLogger =
+            AppExitLogger(
+                logger = this,
+                activityManager,
+                runtime,
+                errorHandler,
+                memoryMetricsProvider = memoryMetricsProvider,
+                fatalIssueMechanism = fatalIssueReporter.getReportingMechanism(),
+            )
+
+        // Install the app exit logger before the Capture logger is started to ensure
+        // that logs emitted during the installation are the first logs emitted by the
+        // Capture logger.
+        appExitLogger.installAppExitLogger()
+
+        CaptureJniLibrary.startLogger(this.loggerId)
     }
 
     override val sessionId: String
@@ -468,16 +457,34 @@ internal class LoggerImpl(
     internal fun extractFields(
         fields: Map<String, String>?,
         throwable: Throwable?,
-    ): InternalFieldsMap? =
-        buildMap {
-            fields?.let {
-                putAll(it)
+    ): InternalFieldsMap {
+        // Maintainer note: keep initialCapacity in sync with the code adding fields to the map.
+        val initialCapacity = (fields?.size ?: 0) + (throwable?.let { 2 } ?: 0)
+        if (initialCapacity == 0) {
+            // If throwable is null AND fields is either null or empty, no need to create a HashMap.
+            return emptyMap()
+        }
+        // Create a hashmap of the exact target size and with the right final value type, instead
+        // of creating a temporary map and then converting it with Map.toFields()
+        val extractedFields = HashMap<String, FieldValue>(initialCapacity)
+        fields?.let {
+            for ((key, value) in it) {
+                // Java interop: clients could have passed in null keys or values.
+                @Suppress("SENSELESS_COMPARISON")
+                if (key != null && value != null) {
+                    extractedFields[key] = value.toFieldValue()
+                }
             }
-            throwable?.let {
-                put("_error", it.javaClass.name.orEmpty())
-                put("_error_details", it.message.orEmpty())
-            }
-        }.toFields()
+        }
+        throwable?.let {
+            extractedFields["_error"] =
+                it.javaClass.name
+                    .orEmpty()
+                    .toFieldValue()
+            extractedFields["_error_details"] = it.message.orEmpty().toFieldValue()
+        }
+        return extractedFields
+    }
 
     internal fun flush(blocking: Boolean) {
         CaptureJniLibrary.flush(this.loggerId, blocking)
@@ -488,35 +495,44 @@ internal class LoggerImpl(
         appExitLogger.uninstallAppExitLogger()
     }
 
-    private fun writeSdkStartLog(
+    internal data class SdkConfiguredDuration(
+        val wholeStartDuration: Duration,
+        val nativeLoadDuration: Duration,
+        val loggerImplBuildDuration: Duration,
+    )
+
+    /**
+     * Emits the SDKConfigured event with details about its duration, caller thread, etc
+     */
+    internal fun writeSdkStartLog(
         appContext: Context,
-        clientAttributes: ClientAttributes,
-        initDuration: Duration,
+        sdkConfiguredDuration: SdkConfiguredDuration,
         captureStartThread: String,
     ) {
-        val installationSource =
-            clientAttributes
-                .getInstallationSource(appContext, errorHandler)
-                .toFieldValue()
+        eventListenerDispatcher.executorService.execute {
+            val installationSource =
+                clientAttributes
+                    .getInstallationSource(appContext, errorHandler)
+                    .toFieldValue()
 
-        val sdkStartFields =
-            buildMap {
-                put("_app_installation_source", installationSource)
-                put("_capture_start_thread", captureStartThread.toFieldValue())
-                CaptureJniLibrary.getLoadDurationInMillis()?.let {
+            val sdkStartFields =
+                buildMap {
+                    put("_app_installation_source", installationSource)
+                    put("_capture_start_thread", captureStartThread.toFieldValue())
                     put(
                         "_native_load_duration_ms",
-                        it.toFieldValue(),
+                        sdkConfiguredDuration.nativeLoadDuration.toFieldValue(DurationUnit.MILLISECONDS),
                     )
+                    put("_logger_build_duration_ms", sdkConfiguredDuration.loggerImplBuildDuration.toFieldValue(DurationUnit.MILLISECONDS))
+                    putAll(fatalIssueReporter.getLogStatusFieldsMap())
                 }
-                putAll(fatalIssueReporter.getLogStatusFieldsMap())
-            }
 
-        CaptureJniLibrary.writeSDKStartLog(
-            this.loggerId,
-            sdkStartFields,
-            initDuration.toDouble(DurationUnit.SECONDS),
-        )
+            CaptureJniLibrary.writeSDKStartLog(
+                this.loggerId,
+                sdkStartFields,
+                sdkConfiguredDuration.wholeStartDuration.toDouble(DurationUnit.SECONDS),
+            )
+        }
     }
 
     /**

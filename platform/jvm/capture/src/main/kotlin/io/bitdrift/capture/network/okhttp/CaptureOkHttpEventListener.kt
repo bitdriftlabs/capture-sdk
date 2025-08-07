@@ -32,6 +32,7 @@ internal class CaptureOkHttpEventListener internal constructor(
     private val logger: ILogger?,
     private val clock: IClock,
     private val targetEventListener: EventListener?,
+    private val extraFieldsProvider: OkHttpRequestFieldProvider,
 ) : EventListener() {
     private var requestBodyBytesSentCount: Long = 0
     private var responseBodyBytesReceivedCount: Long = 0
@@ -125,6 +126,7 @@ internal class CaptureOkHttpEventListener internal constructor(
                 query = request.url.query,
                 headers = request.headers.toMap(),
                 bytesExpectedToSendCount = bytesExpectedToSendCount,
+                extraFields = extraFieldsProvider.provideExtraFields(request),
             )
 
         this.requestInfo = requestInfo

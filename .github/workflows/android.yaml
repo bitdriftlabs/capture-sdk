@@ -1,6 +1,3 @@
-env:
-  NDK_VERSION: 27.2.12479018
-
 name: android
 on:
   push:
@@ -44,7 +41,7 @@ jobs:
 
       - name: Check for relevant Gradle changes
         id: gradle_check
-        run: ./ci/files_changed.sh "^platform/jvm/gradle-test-app/.*\.(gradle|kts|kt|xml)$"
+        run: ./ci/files_changed.sh "^platform/jvm/gradle-test-app/.*\.(gradle|kts|kt|xml)$" && ./ci/files_changed.sh "^platform/jvm/capture/src/test/.*$"
         continue-on-error: true
 
       - name: Check for Cargo.toml changes
@@ -223,33 +220,24 @@ jobs:
     - name: Checkout project sources
       uses: actions/checkout@v4
 
-    - name: Cache Android NDK
-      id: ndk-cache
+    - name: Setup Android cmd line tools + NDK
+      uses: ./.github/actions/common-android-setup
+
+    - name: Accept Android SDK licenses
+      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+
+    - name: Set up Rust ARM target
+      run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
+
+    - name: Cache cargo-ndk
+      id: cargo-ndk-cache
       uses: actions/cache@v4
       with:
-        path: ${{ env.ANDROID_SDK_ROOT }}/ndk/${{ env.NDK_VERSION }}
-        key: ${{ runner.os }}-android-ndk-${{ env.NDK_VERSION }}
-
-    - name: Verify cmdline-tools
-      run: |
-        CMDLINE_TOOLS_DIR="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin"
-        if [ ! -x "$CMDLINE_TOOLS_DIR/sdkmanager" ]; then
-          echo "cmdline-tools not found or incomplete. Installing..."
-          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          cd $ANDROID_SDK_ROOT/cmdline-tools
-          curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
-          unzip -q cmdline-tools.zip
-          mv cmdline-tools latest
-        else
-          echo "cmdline-tools already installed."
-        fi
-
-    - name: Install Android NDK
-      if: steps.ndk-cache.outputs.cache-hit != 'true'
-      run: |
-        export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
-        yes | sdkmanager "ndk;${NDK_VERSION}"
-
+        path: ~/.cargo/bin/cargo-ndk
+        key: ${{ runner.os }}-cargo-ndk-3.4
+    - name: Install cargo-ndk
+      if: steps.cargo-ndk-cache.outputs.cache-hit != 'true'
+      run: cargo install cargo-ndk --version 3.4.0 --locked
     # See https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/
     - name: Enable KVM group perms
       run: |
@@ -297,6 +285,9 @@ jobs:
     - name: Check Licenses for modules
       working-directory: ./platform/jvm
       run: ./gradlew replay:checkLicense common:checkLicense capture:checkLicense
+    - name: Set up local.properties, required for cargo-ndk
+      working-directory: ./platform/jvm
+      run: touch local.properties
     - name: Build Microbenchmark target
       working-directory: ./platform/jvm
       run: ./gradlew microbenchmark:assembleAndroidTest
@@ -313,7 +304,7 @@ jobs:
         profile: Nexus 6
         disable-animations: true
         emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-        script: cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test; adb uninstall io.bitdrift.gradletestapp; cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -p platform/jvm gradle-test-app:check gradle-test-app:connectedCheck --stacktrace
+        script: cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test; adb uninstall io.bitdrift.gradletestapp; cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm gradle-test-app:check gradle-test-app:connectedCheck --stacktrace
 
   verify_android_hello_world_per_version:
     needs: build_and_compare_apk

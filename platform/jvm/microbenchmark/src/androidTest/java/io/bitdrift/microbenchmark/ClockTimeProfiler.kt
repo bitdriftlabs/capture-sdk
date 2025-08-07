@@ -15,6 +15,7 @@ import androidx.benchmark.junit4.measureRepeated
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.bitdrift.capture.Capture
+import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.attributes.IClientAttributes
@@ -52,6 +53,7 @@ class ClockTimeProfiler {
     @Test
     fun loggerStart() {
         benchmarkRule.measureRepeated {
+            CaptureJniLibrary.load()
             LoggerImpl(
                 apiKey = "android-benchmark-test",
                 apiUrl = "https://api-tests.bitdrift.io".toHttpUrl(),
