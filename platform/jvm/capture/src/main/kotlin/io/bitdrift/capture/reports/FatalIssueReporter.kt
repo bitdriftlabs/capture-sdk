@@ -32,7 +32,7 @@ import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.SdkDirectory
 import java.io.File
 import kotlin.time.DurationUnit
-import kotlin.time.measureTime
+import kotlin.time.TimeSource
 
 /**
  * Handles internal reporting of crashes
@@ -66,33 +66,38 @@ internal class FatalIssueReporter(
     ) {
         if (fatalIssueReporterStatus.state is NotInitialized) {
             runCatching {
-                var fatalIssueReporterState: FatalIssueReporterState
-                val duration =
-                    measureTime {
-                        val destinationDirectory = getFatalIssueDirectories(appContext)
-                        fatalIssueReporterProcessor =
-                            FatalIssueReporterProcessor(
-                                FatalIssueReporterStorage(destinationDirectory.destinationDirectory),
-                                clientAttributes,
-                            )
-                        captureUncaughtExceptionHandler.install(this)
-                        backgroundThreadHandler.runAsync {
-                            persistLastExitReasonIfNeeded(appContext)
-                            completedReportsProcessor.processCrashReports()
-                        }
-                        fatalIssueReporterState = FatalIssueReporterState.BuiltIn.Initialized
-                    }
-                fatalIssueReporterState to duration
-                fatalIssueReporterStatus =
-                    FatalIssueReporterStatus(
-                        fatalIssueReporterState,
-                        duration,
-                        FatalIssueMechanism.BuiltIn,
+                val duration = TimeSource.Monotonic.markNow()
+                val destinationDirectory = getFatalIssueDirectories(appContext)
+                fatalIssueReporterProcessor =
+                    FatalIssueReporterProcessor(
+                        FatalIssueReporterStorage(destinationDirectory.destinationDirectory),
+                        clientAttributes,
                     )
+                captureUncaughtExceptionHandler.install(this)
+
+                backgroundThreadHandler.runAsync {
+                    runCatching {
+                        persistLastExitReasonIfNeeded(appContext)
+                        completedReportsProcessor.processCrashReports()
+                    }.onSuccess {
+                        fatalIssueReporterStatus =
+                            FatalIssueReporterStatus(
+                                FatalIssueReporterState.BuiltIn.Initialized,
+                                duration.elapsedNow(),
+                                FatalIssueMechanism.BuiltIn,
+                            )
+                    }.onFailure {
+                        logError(completedReportsProcessor, it)
+                        fatalIssueReporterStatus =
+                            FatalIssueReporterStatus(
+                                FatalIssueReporterState.BuiltIn.InitializationFailed,
+                                duration.elapsedNow(),
+                                FatalIssueMechanism.BuiltIn,
+                            )
+                    }
+                }
             }.getOrElse {
-                val errorMessage =
-                    "Error while initializing reporter for ${FatalIssueMechanism.BuiltIn}. $it"
-                Log.e(LOG_TAG, errorMessage)
+                logError(completedReportsProcessor, it)
                 fatalIssueReporterStatus =
                     FatalIssueReporterStatus(
                         FatalIssueReporterState.BuiltIn.InitializationFailed,
@@ -171,6 +176,16 @@ internal class FatalIssueReporter(
         val sdkDirectory: String = SdkDirectory.getPath(appContext)
         val destinationDirectory = File(sdkDirectory, DESTINATION_FILE_PATH).apply { if (!exists()) mkdirs() }
         return FatalIssueDirectories(sdkDirectory, destinationDirectory)
+    }
+
+    private fun logError(
+        completedReportsProcessor: ICompletedReportsProcessor,
+        throwable: Throwable,
+    ) {
+        val errorMessage =
+            "Error while initializing reporter for ${FatalIssueMechanism.BuiltIn}. $throwable"
+        completedReportsProcessor.onReportProcessingError(errorMessage, throwable)
+        Log.e(LOG_TAG, errorMessage, throwable)
     }
 
     private data class FatalIssueDirectories(
