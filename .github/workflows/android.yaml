@@ -367,21 +367,21 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout
+      - name: 1. Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: 2. Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Install GPG
+      - name: 3. Install GPG
         run: |
           sudo apt-get update
           sudo apt-get install -y gnupg
 
-      - name: Download release artifacts
+      - name: 4. Download release artifacts
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: 0.17.28
@@ -403,7 +403,7 @@ jobs:
           echo "Contents:"
           ls -la
 
-      - name: Set up GPG signing key
+      - name: 5. Set up GPG signing key
         env:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
         run: |
@@ -413,6 +413,11 @@ jobs:
           gpg --list-secret-keys --keyid-format LONG 2>/dev/null
           shred -u signingkey.asc
           echo "Completed"
+
+      # Next steps 
+      # 6. generate .asc files. e.g. gpg --armor --detach-sign capture-0.17.29.aar
+      # 7. zip all the files with the recommended structure .e.g. /io/bitdrift/capture/0.17.29/files placed here
+      # 8. Publish the zipped files into central sonar. You'll need the maven credentials under secrets
 
   # This is a noop job that completes once all the jobs spawned by the previous step completes. By blocking PR merges on this
   # job completing, we are able to gate it on all the previous jobs without explicitly enumerating them.
