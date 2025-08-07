@@ -49,4 +49,5 @@ runs:
         echo "y" | sdkmanager --sdk_root=$ANDROID_HOME "ndk;${{ inputs.ndk-version }}"
 
     - name: Touch local.properties
+      shell: bash
       run: touch platform/jvm/local.properties
