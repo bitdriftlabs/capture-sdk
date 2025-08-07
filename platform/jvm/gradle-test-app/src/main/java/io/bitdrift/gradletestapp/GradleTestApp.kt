@@ -106,9 +106,15 @@ class GradleTestApp : Application() {
             Log.e("GradleTestApp", "Failed to initialize bitdrift logger due to invalid API URL: $stringApiUrl")
             return
         }
-
-        val enableFatalIssueReporting = fatalIssueMechanism == FatalIssueMechanism.BuiltIn.displayName
-        val configuration = Configuration(enableFatalIssueReporting = enableFatalIssueReporting)
+        val configuration =
+            if (fatalIssueMechanism == FatalIssueMechanism.BuiltIn.displayName) {
+                Configuration(
+                    enableFatalIssueReporting = true,
+                    enableNativeCrashReporting = true,
+                )
+            } else {
+                Configuration()
+            }
         BitdriftInit.initBitdriftCaptureInJava(
             apiUrl,
             sharedPreferences.getString(BITDRIFT_API_KEY, ""),

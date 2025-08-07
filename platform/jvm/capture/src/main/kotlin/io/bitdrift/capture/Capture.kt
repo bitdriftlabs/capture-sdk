@@ -21,7 +21,7 @@ import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueReporter
+import io.bitdrift.capture.reports.FatalIssueReporterFactory
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import okhttp3.HttpUrl
 import java.util.UUID
@@ -525,12 +525,7 @@ object Capture {
                     CaptureJniLibrary.load()
                 }
 
-            val fatalIssueReporter: IFatalIssueReporter? =
-                if (configuration.enableFatalIssueReporting) {
-                    FatalIssueReporter()
-                } else {
-                    null
-                }
+            val fatalIssueReporter: IFatalIssueReporter? = FatalIssueReporterFactory.create(configuration)
 
             val (loggerImpl, loggerImplBuildDuration) =
                 measureTimedValue {
