@@ -403,6 +403,16 @@ jobs:
           echo "Contents:"
           ls -la
 
+      - name: Set up GPG signing key
+        env:
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+        run: |
+          echo "::add-mask::$GPG_SIGNING_KEY"
+          echo "$GPG_SIGNING_KEY" > signingkey.asc
+          gpg --batch --import signingkey.asc 2>/dev/null
+          gpg --list-secret-keys --keyid-format LONG 2>/dev/null
+          shred -u signingkey.asc
+          echo "Completed"
 
   # This is a noop job that completes once all the jobs spawned by the previous step completes. By blocking PR merges on this
   # job completing, we are able to gate it on all the previous jobs without explicitly enumerating them.
