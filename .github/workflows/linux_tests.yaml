@@ -41,7 +41,7 @@ jobs:
           bazel_status="${{ steps.bazel_check.outputs.check_result }}"
           workflow_status="${{ steps.workflow_check.outputs.check_result }}"
 
-          if [[ $bazel_status == "1" && $workflow_status == "1" ]]; then
+          if [[ $bazel_status == "2" && $workflow_status == "2" ]]; then
             echo "No changes detected, skipping"
             exit 0
           fi
