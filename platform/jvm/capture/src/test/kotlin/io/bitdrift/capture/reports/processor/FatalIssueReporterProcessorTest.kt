@@ -363,7 +363,7 @@ class FatalIssueReporterProcessorTest {
         assertThat(report.errorsLength).isEqualTo(1)
 
         val capturedError = report.errors(0)!!
-        assertThat(capturedError.reason).isEqualTo("Native crash")
+        assertThat(capturedError.reason).isEqualTo("Bus error (bad memory access)")
         assertThat(capturedError.name).isEqualTo("SIGSEGV")
         val errorStackTrace = capturedError.stackTrace(0)
         assertThat(errorStackTrace).isNotNull
