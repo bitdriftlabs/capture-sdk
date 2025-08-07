@@ -36,8 +36,14 @@ import kotlin.time.measureTime
 
 /**
  * Handles internal reporting of crashes
+ * @param enableNativeCrashReporting Flag to enable native NDK crash reporting.
+ * Note: This is a temporary flag that may be removed in the future.
+ * @param backgroundThreadHandler Handler for background thread operations
+ * @param latestAppExitInfoProvider Provider for retrieving latest app exit information
+ * @param captureUncaughtExceptionHandler Handler for uncaught exceptions
  */
 internal class FatalIssueReporter(
+    private val enableNativeCrashReporting: Boolean = false,
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
@@ -145,6 +151,7 @@ internal class FatalIssueReporter(
                 mapToFatalIssueType(lastReason.reason)?.let { fatalIssueType ->
                     fatalIssueReporterProcessor.persistAppExitReport(
                         fatalIssueType = fatalIssueType,
+                        enableNativeCrashReporting = enableNativeCrashReporting,
                         timestamp = lastReason.timestamp,
                         description = lastReason.description,
                         traceInputStream = it,
