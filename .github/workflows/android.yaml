@@ -385,19 +385,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: 0.17.28
-          RELEASE_TAG: ${{ inputs.maven_release_tag }}
+          RELEASE_TAG: v0.17.28
         run: |
+          ZIP_NAME="Capture-${VERSION}.android.zip"
+          DOWNLOAD_URL="https://github.com/bitdriftlabs/capture-sdk/releases/download/${RELEASE_TAG}/${ZIP_NAME}"
+
           mkdir -p maven-upload/io/bitdrift/capture/$VERSION
           cd maven-upload/io/bitdrift/capture/$VERSION
+
+          echo "Downloading ${ZIP_NAME} from $DOWNLOAD_URL..."
+          curl -L -o $ZIP_NAME -H "Authorization: token $GH_TOKEN" "$DOWNLOAD_URL"
           
-          echo "Downloading artifacts from release $RELEASE_TAG..."
-          gh release download $RELEASE_TAG --pattern "capture-$VERSION-javadoc.jar"
-          gh release download $RELEASE_TAG --pattern "capture-$VERSION-sources.jar"
-          gh release download $RELEASE_TAG --pattern "capture-$VERSION.aar"
-          gh release download $RELEASE_TAG --pattern "capture-$VERSION.pom"
-          
+          echo "Extracting contents..."
+          unzip -q $ZIP_NAME
+          rm $ZIP_NAME
+
+          echo "Contents:"
           ls -la
-          echo "All required artifacts downloaded successfully"
 
 
   # This is a noop job that completes once all the jobs spawned by the previous step completes. By blocking PR merges on this
