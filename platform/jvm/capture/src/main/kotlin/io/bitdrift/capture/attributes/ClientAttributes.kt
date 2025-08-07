@@ -55,27 +55,28 @@ internal class ClientAttributes(
 
     private val constantAttributesMap by lazy {
         mapOf(
-          // The package name which identifies the running app (e.g. me.foobar.android)
-          "app_id" to appId,
-          // Operating system. Always Android for this code path.
-          "os" to "Android",
-          // The operating system version (e.g. 12.1)
-          "os_version" to osVersion,
-          // The version of this package, as specified by the manifest's `versionName` attribute
-          // (e.g. 1.2.33).
-          "app_version" to appVersion,
-          // A positive integer used as an internal version number.
-          // This number helps determine whether one version is more recent than another.
-          "_app_version_code" to appVersionCode.toString(),
-          // The current architecture e.g. (arm64-v8a)
-          "_architecture" to architecture,
+            // The package name which identifies the running app (e.g. me.foobar.android)
+            "app_id" to appId,
+            // Operating system. Always Android for this code path.
+            "os" to "Android",
+            // The operating system version (e.g. 12.1)
+            "os_version" to osVersion,
+            // The version of this package, as specified by the manifest's `versionName` attribute
+            // (e.g. 1.2.33).
+            "app_version" to appVersion,
+            // A positive integer used as an internal version number.
+            // This number helps determine whether one version is more recent than another.
+            "_app_version_code" to appVersionCode.toString(),
+            // The current architecture e.g. (arm64-v8a)
+            "_architecture" to architecture,
         )
     }
 
-    override fun invoke(): Fields = constantAttributesMap.toMutableMap().apply {
-        // Whether or not the app was in the background by the time the log was fired.
-        this["foreground"] = isForeground()
-    }
+    override fun invoke(): Fields =
+        constantAttributesMap.toMutableMap().apply {
+            // Whether or not the app was in the background by the time the log was fired.
+            this["foreground"] = isForeground()
+        }
 
     private fun isForeground(): String {
         // refer to lifecycle states https://developer.android.com/topic/libraries/architecture/lifecycle#lc
