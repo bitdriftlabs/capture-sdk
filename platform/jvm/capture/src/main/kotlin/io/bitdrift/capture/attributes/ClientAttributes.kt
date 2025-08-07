@@ -25,59 +25,57 @@ internal class ClientAttributes(
     FieldProvider {
     override val appId = context.packageName ?: UNKNOWN_FIELD_VALUE
 
-    override val appVersion: String
-        get() {
-            return packageInfo?.versionName ?: "?.?.?"
+    override val appVersion by lazy {
+        packageInfo?.versionName ?: "?.?.?"
+    }
+
+    override val appVersionCode by lazy {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageInfo?.longVersionCode ?: -1
+        } else {
+            @Suppress("DEPRECATION")
+            packageInfo?.versionCode?.toLong() ?: -1
         }
+    }
 
-    override val appVersionCode: Long
-        get() {
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                packageInfo?.longVersionCode ?: -1
-            } else {
-                @Suppress("DEPRECATION")
-                packageInfo?.versionCode?.toLong() ?: -1
-            }
-        }
+    override val supportedAbis: List<String> = Build.SUPPORTED_ABIS.toList()
 
-    override val supportedAbis: List<String>
-        get() = Build.SUPPORTED_ABIS.toList()
+    override val architecture = supportedAbis.firstOrNull() ?: "unknown"
 
-    override val architecture: String
-        get() {
-            return supportedAbis.firstOrNull() ?: "unknown"
-        }
-
-    override val osVersion: String
-        get() = Build.VERSION.RELEASE
+    override val osVersion: String = Build.VERSION.RELEASE
 
     @Suppress("SwallowedException")
-    private val packageInfo: PackageInfo? =
+    private val packageInfo: PackageInfo? by lazy {
         try {
             context.packageManager.getPackageInfoCompat(appId)
         } catch (e: Exception) {
             null
         }
+    }
 
-    override fun invoke(): Fields =
+    private val constantAttributesMap by lazy {
         mapOf(
-            // The package name which identifies the running app (e.g. me.foobar.android)
-            "app_id" to appId,
-            // Operating system. Always Android for this code path.
-            "os" to "Android",
-            // The operating system version (e.g. 12.1)
-            "os_version" to osVersion,
-            // Whether or not the app was in the background by the time the log was fired.
-            "foreground" to isForeground(),
-            // The version of this package, as specified by the manifest's `versionName` attribute
-            // (e.g. 1.2.33).
-            "app_version" to appVersion,
-            // A positive integer used as an internal version number.
-            // This number helps determine whether one version is more recent than another.
-            "_app_version_code" to appVersionCode.toString(),
-            // The current architecture e.g. (arm64-v8a)
-            "_architecture" to architecture,
+          // The package name which identifies the running app (e.g. me.foobar.android)
+          "app_id" to appId,
+          // Operating system. Always Android for this code path.
+          "os" to "Android",
+          // The operating system version (e.g. 12.1)
+          "os_version" to osVersion,
+          // The version of this package, as specified by the manifest's `versionName` attribute
+          // (e.g. 1.2.33).
+          "app_version" to appVersion,
+          // A positive integer used as an internal version number.
+          // This number helps determine whether one version is more recent than another.
+          "_app_version_code" to appVersionCode.toString(),
+          // The current architecture e.g. (arm64-v8a)
+          "_architecture" to architecture,
         )
+    }
+
+    override fun invoke(): Fields = constantAttributesMap.toMutableMap().apply {
+        // Whether or not the app was in the background by the time the log was fired.
+        this["foreground"] = isForeground()
+    }
 
     private fun isForeground(): String {
         // refer to lifecycle states https://developer.android.com/topic/libraries/architecture/lifecycle#lc
