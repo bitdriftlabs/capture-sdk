@@ -127,6 +127,10 @@ object Capture {
          *               Compose API base URL.
          * @param context an optional context reference. You should provide the context if called from
          * a [android.content.ContentProvider]
+         * @param applicationIdSuffix A suffix that will be added to the representation of the
+         * application id (aka package name) in Bitdrift. This is useful if you have different
+         * build flavors with the same application id and you want a way to apply entire workflows
+         * only to a subset of those.
          */
         @Synchronized
         @JvmStatic
@@ -139,16 +143,18 @@ object Capture {
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             context: Context? = null,
+            applicationIdSuffix: String = ""
         ) {
             start(
-                apiKey,
-                sessionStrategy,
-                configuration,
-                fieldProviders,
-                dateProvider,
-                apiUrl,
-                CaptureJniLibrary,
-                context,
+                apiKey = apiKey,
+                sessionStrategy = sessionStrategy,
+                configuration = configuration,
+                fieldProviders = fieldProviders,
+                dateProvider = dateProvider,
+                apiUrl = apiUrl,
+                bridge = CaptureJniLibrary,
+                context = context,
+                applicationIdSuffix = applicationIdSuffix,
             )
         }
 
@@ -164,6 +170,7 @@ object Capture {
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             bridge: IBridge,
             context: Context? = null,
+            applicationIdSuffix: String = ""
         ) {
             // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
             // while subsequent logger access relies on volatile reads.
@@ -188,6 +195,7 @@ object Capture {
                     apiUrl = apiUrl,
                     bridge = bridge,
                     context = context,
+                    applicationIdSuffix = applicationIdSuffix
                 )
             } else {
                 Log.w(LOG_TAG, "Multiple attempts to start Capture")
@@ -508,6 +516,7 @@ object Capture {
         apiUrl: HttpUrl,
         bridge: IBridge,
         context: Context?,
+        applicationIdSuffix: String,
     ) {
         try {
             val startSdkTimer = TimeSource.Monotonic.markNow()
@@ -516,8 +525,9 @@ object Capture {
 
             val clientAttributes =
                 ClientAttributes(
-                    appContext,
-                    ProcessLifecycleOwner.get(),
+                    context = appContext,
+                    processLifecycleOwner = ProcessLifecycleOwner.get(),
+                    applicationIdSuffix = applicationIdSuffix
                 )
 
             val nativeLoadDuration =
