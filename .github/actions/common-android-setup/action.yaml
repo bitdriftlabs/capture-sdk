@@ -47,3 +47,6 @@ runs:
       run: |
         export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
         echo "y" | sdkmanager --sdk_root=$ANDROID_HOME "ndk;${{ inputs.ndk-version }}"
+
+    - name: Touch local.properties
+      run: touch platform/jvm/local.properties
