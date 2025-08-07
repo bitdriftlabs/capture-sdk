@@ -9,11 +9,11 @@ pub mod error;
 pub mod metadata;
 
 use bd_client_common::error::handle_unexpected;
-use bd_logger::{log_level, AnnotatedLogField, LogFieldKind, LogType};
+use bd_logger::{log_level, AnnotatedLogField, LogFieldKind, LogType, ReportProcessingSession};
 use bd_runtime::runtime::Snapshot;
 use parking_lot::Once;
 use std::future::Future;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::pin::Pin;
 use std::sync::Arc;
 
@@ -77,6 +77,12 @@ impl Deref for LoggerId<'_> {
 
   fn deref(&self) -> &Self::Target {
     self.logger_holder()
+  }
+}
+
+impl DerefMut for LoggerId<'_> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    unsafe { &mut *(self.value as *mut LoggerHolder) }
   }
 }
 
@@ -193,6 +199,12 @@ impl LoggerHolder {
         bd_logger::CaptureSession::default(),
       );
     });
+  }
+
+  pub fn process_crash_reports(&mut self, session: ReportProcessingSession) {
+    if let Err(e) = self.logger.process_crash_reports(session) {
+      log::error!("failed to process crash reports: {e}");
+    }
   }
 
   pub fn log_screen_view(&self, screen_name: String) {
