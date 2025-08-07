@@ -77,7 +77,7 @@ build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Clto=fat'
 build:release-common --@rules_rust//rust/settings:lto='manual'
 # Compile out Debug implementations for all release builds. This requires nightly so bypass
 # the stable toolchain check.
-build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Zfmt-debug=none'
+build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Zfmt-debug=shallow'
 build:release-common --config=fake-nightly
 
 build:release-android --define android_strip_symbols=true
