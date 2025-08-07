@@ -296,8 +296,10 @@ class FirstFragment : Fragment() {
             AppExitReason.APP_CRASH_COROUTINE_EXCEPTION -> FatalIssueGenerator.forceCoroutinesCrash()
             AppExitReason.APP_CRASH_REGULAR_JVM_EXCEPTION -> FatalIssueGenerator.forceUnhandledException()
             AppExitReason.APP_CRASH_RX_JAVA_EXCEPTION -> FatalIssueGenerator.forceRxJavaException()
-            AppExitReason.APP_CRASH_NATIVE -> FatalIssueGenerator.forceNativeCrash()
             AppExitReason.APP_CRASH_OUT_OF_MEMORY -> FatalIssueGenerator.forceOutOfMemoryCrash()
+            AppExitReason.NATIVE_CAPTURE_DESTROY_CRASH -> FatalIssueGenerator.forceCaptureNativeCrash()
+            AppExitReason.NATIVE_SIGSEGV -> FatalIssueGenerator.forceNativeSegmentationFault()
+            AppExitReason.NATIVE_SIGBUS -> FatalIssueGenerator.forceNativeBusError()
             AppExitReason.SYSTEM_EXIT -> exitProcess(0)
         }
     }
@@ -325,7 +327,13 @@ class FirstFragment : Fragment() {
         APP_CRASH_REGULAR_JVM_EXCEPTION,
         APP_CRASH_RX_JAVA_EXCEPTION,
         APP_CRASH_OUT_OF_MEMORY,
-        APP_CRASH_NATIVE,
+
+        NATIVE_CAPTURE_DESTROY_CRASH,
+
+        NATIVE_SIGSEGV,
+
+        NATIVE_SIGBUS,
+
         SYSTEM_EXIT,
     }
 }

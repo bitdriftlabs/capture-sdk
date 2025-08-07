@@ -48,6 +48,7 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.IFatalIssueReporter
+import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
@@ -82,8 +83,9 @@ internal class LoggerImpl(
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    private val fatalIssueReporter: IFatalIssueReporter,
-) : ILogger {
+    private val fatalIssueReporter: IFatalIssueReporter?,
+) : ILogger,
+    ICompletedReportsProcessor {
     private val metadataProvider: MetadataProvider
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
@@ -247,7 +249,7 @@ internal class LoggerImpl(
                 runtime,
                 errorHandler,
                 memoryMetricsProvider = memoryMetricsProvider,
-                fatalIssueMechanism = fatalIssueReporter.getReportingMechanism(),
+                fatalIssueReporter = fatalIssueReporter,
             )
 
         // Install the app exit logger before the Capture logger is started to ensure
@@ -256,6 +258,17 @@ internal class LoggerImpl(
         appExitLogger.installAppExitLogger()
 
         CaptureJniLibrary.startLogger(this.loggerId)
+    }
+
+    override fun processCrashReports() {
+        CaptureJniLibrary.processCrashReports(this.loggerId)
+    }
+
+    override fun onReportProcessingError(
+        message: String,
+        throwable: Throwable,
+    ) {
+        errorHandler.handleError(message, throwable)
     }
 
     override val sessionId: String
@@ -524,7 +537,9 @@ internal class LoggerImpl(
                         sdkConfiguredDuration.nativeLoadDuration.toFieldValue(DurationUnit.MILLISECONDS),
                     )
                     put("_logger_build_duration_ms", sdkConfiguredDuration.loggerImplBuildDuration.toFieldValue(DurationUnit.MILLISECONDS))
-                    putAll(fatalIssueReporter.getLogStatusFieldsMap())
+                    fatalIssueReporter?.let {
+                        putAll(it.getLogStatusFieldsMap())
+                    }
                 }
 
             CaptureJniLibrary.writeSDKStartLog(

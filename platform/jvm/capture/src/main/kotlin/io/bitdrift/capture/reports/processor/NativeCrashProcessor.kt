@@ -25,6 +25,16 @@ import java.io.InputStream
  * and converts to a FlatBuffer Report.
  */
 internal object NativeCrashProcessor {
+    private val signalDescriptions =
+        mapOf(
+            "SIGABRT" to "Abort program",
+            "SIGBUS" to "Bus error (bad memory access)",
+            "SIGFPE" to "Floating‑point exception",
+            "SIGILL" to "Illegal instruction",
+            "SIGSEGV" to "Segmentation violation (invalid memory reference)",
+            "SIGTRAP" to "Trace/breakpoint trap",
+        )
+
     fun process(
         builder: FlatBufferBuilder,
         sdk: Int,
@@ -115,11 +125,12 @@ internal object NativeCrashProcessor {
         tombstone: Tombstone,
         frameOffsets: IntArray,
     ): Int {
+        val signalName = tombstone.signalInfo.name
         val reason =
-            builder.createString(tombstone.signalInfo.name.ifEmpty { description })
+            builder.createString(signalName.ifEmpty { description })
         val causeText =
             tombstone.causesList.firstOrNull()?.humanReadable
-                ?: tombstone.abortMessage.ifEmpty { "Native crash" }
+                ?: tombstone.abortMessage.ifEmpty { signalDescriptions[signalName] ?: "Native crash" }
         val cause = builder.createString(causeText)
         return Error.createError(
             builder,

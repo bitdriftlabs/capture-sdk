@@ -51,6 +51,7 @@ static const char *name_for_diagnostic_type(ReportType type);
 @property (nonnull, strong) NSURL *dir;
 @property (nonnull, strong) NSString *sdkVersion;
 @property (nonnull, strong, nonatomic) NSMeasurement <NSUnitDuration *> *minimumHangDuration;
+@property (nullable, strong, nonatomic) void (^completionHandler)();
 @property CAPDiagnosticType diagnosticTypes;
 @end
 
@@ -58,11 +59,13 @@ static const char *name_for_diagnostic_type(ReportType type);
 - (instancetype _Nonnull)initWithOutputDir:(NSURL *_Nonnull)dir
                                 sdkVersion:(NSString *_Nonnull)sdkVersion
                                 eventTypes:(CAPDiagnosticType)types
-                        minimumHangSeconds:(NSTimeInterval)seconds {
+                        minimumHangSeconds:(NSTimeInterval)seconds
+                         completionHandler:(void (^_Nullable)())completionHandler {
   if (self = [super init]) {
     self.dir = dir;
     self.sdkVersion = sdkVersion;
     self.diagnosticTypes = types;
+    self.completionHandler = completionHandler;
     [self setMinimumHangSeconds:seconds];
   }
   return self;
@@ -96,6 +99,9 @@ static const char *name_for_diagnostic_type(ReportType type);
         [self processDiagnostic:event atTimestamp:timestamp];
       }
     }
+  }
+  if (self.completionHandler) {
+    self.completionHandler();
   }
 }
 

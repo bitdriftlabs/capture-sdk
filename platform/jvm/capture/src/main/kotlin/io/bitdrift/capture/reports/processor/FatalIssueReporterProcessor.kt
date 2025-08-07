@@ -15,6 +15,7 @@ import io.bitdrift.capture.reports.binformat.v1.AppBuildNumber
 import io.bitdrift.capture.reports.binformat.v1.Architecture
 import io.bitdrift.capture.reports.binformat.v1.DeviceMetrics
 import io.bitdrift.capture.reports.binformat.v1.DeviceMetrics.Companion.createCpuAbisVector
+import io.bitdrift.capture.reports.binformat.v1.OSBuild
 import io.bitdrift.capture.reports.binformat.v1.Platform
 import io.bitdrift.capture.reports.binformat.v1.ReportType
 import io.bitdrift.capture.reports.binformat.v1.SDKInfo
@@ -33,9 +34,17 @@ internal class FatalIssueReporterProcessor(
 ) {
     /**
      * Process AppTerminations due to ANRs and native crashes into packed format
+     * @param fatalIssueType The flatbuffer type of fatal issue being processed
+     * (e.g. [ReportType.AppNotResponding] or [ReportType.NativeCrash])
+     * @param enableNativeCrashReporting Flag indicating if native crash reporting is enabled.
+     * Note: This is a temporary flag which may be deleted in the future.
+     * @param timestamp The timestamp when the issue occurred
+     * @param description Optional description of the issue
+     * @param traceInputStream Input stream containing the fatal issue trace data
      */
     fun persistAppExitReport(
         fatalIssueType: Byte,
+        enableNativeCrashReporting: Boolean,
         timestamp: Long,
         description: String? = null,
         traceInputStream: InputStream,
@@ -46,8 +55,8 @@ internal class FatalIssueReporterProcessor(
         val deviceMetrics = createDeviceMetrics(builder, timestamp)
 
         val report: Int? =
-            when (fatalIssueType) {
-                ReportType.AppNotResponding -> {
+            when {
+                fatalIssueType == ReportType.AppNotResponding -> {
                     AppExitAnrTraceProcessor.process(
                         builder,
                         sdk,
@@ -58,9 +67,15 @@ internal class FatalIssueReporterProcessor(
                     )
                 }
 
-                ReportType.NativeCrash -> {
-                    // TODO(FranAguilera): BIT-5823 use NativeCrashProcessor once async processing is ready
-                    null
+                fatalIssueType == ReportType.NativeCrash && enableNativeCrashReporting -> {
+                    NativeCrashProcessor.process(
+                        builder,
+                        sdk,
+                        appMetrics,
+                        deviceMetrics,
+                        description,
+                        traceInputStream,
+                    )
                 }
 
                 else -> null
@@ -118,7 +133,8 @@ internal class FatalIssueReporterProcessor(
         )
 
     private fun createAppMetrics(builder: FlatBufferBuilder): Int {
-        val buildNumber = AppBuildNumber.createAppBuildNumber(builder, clientAttributes.appVersionCode, 0)
+        val buildNumber =
+            AppBuildNumber.createAppBuildNumber(builder, clientAttributes.appVersionCode, 0)
         val appId = builder.createString(clientAttributes.appId)
         val appVersion = builder.createString(clientAttributes.appVersion)
         io.bitdrift.capture.reports.binformat.v1.AppMetrics
@@ -143,7 +159,10 @@ internal class FatalIssueReporterProcessor(
                 builder,
                 clientAttributes.supportedAbis.map { builder.createString(it) }.toIntArray(),
             )
+        val osBuildVersion = getOsBuildVersion(builder)
+
         DeviceMetrics.startDeviceMetrics(builder)
+        DeviceMetrics.addOsBuild(builder, osBuildVersion)
         DeviceMetrics.addPlatform(builder, Platform.Android)
         DeviceMetrics.addArch(builder, architectureAsFbs(clientAttributes.architecture))
         DeviceMetrics.addCpuAbis(
@@ -157,6 +176,13 @@ internal class FatalIssueReporterProcessor(
             },
         )
         return DeviceMetrics.endDeviceMetrics(builder)
+    }
+
+    private fun getOsBuildVersion(flatBufferBuilder: FlatBufferBuilder): Int {
+        val osVersionOffset = flatBufferBuilder.createString(clientAttributes.osVersion)
+        OSBuild.startOSBuild(flatBufferBuilder)
+        OSBuild.addVersion(flatBufferBuilder, osVersionOffset)
+        return OSBuild.endOSBuild(flatBufferBuilder)
     }
 
     private fun architectureAsFbs(architecture: String): Byte =
