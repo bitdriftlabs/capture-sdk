@@ -14,4 +14,12 @@ interface ICompletedReportsProcessor {
      * To be called when we are ready to process existing fatal issue reports stored on disk
      */
     fun processCrashReports()
+
+    /**
+     * Will be called if there is an issue while processing reports
+     */
+    fun onReportProcessingError(
+        message: String,
+        throwable: Throwable,
+    )
 }

@@ -14,6 +14,7 @@ import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
+import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.attributes.ClientAttributes
@@ -82,6 +83,20 @@ class FatalIssueReporterTest {
         assertThat(duration).isNotNull()
         assertThat(buildFieldsMap()).isEqualTo(expectedMap)
         assertCrashFile(crashFileExist)
+    }
+
+    @Test
+    fun initBuiltInMode_whenAppExitInfoFails_shouldCallOnErrorOccurred() {
+        val exception = RuntimeException("test error")
+        whenever(latestAppExitInfoProvider.get(any()))
+            .thenThrow(exception)
+
+        fatalIssueReporter.initBuiltInMode(appContext, clientAttributes, completedReportsProcessor)
+
+        verify(completedReportsProcessor).onReportProcessingError(
+            any(),
+            eq(exception),
+        )
     }
 
     private fun assertCrashFile(crashFileExist: Boolean) {

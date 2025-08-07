@@ -264,6 +264,13 @@ internal class LoggerImpl(
         CaptureJniLibrary.processCrashReports(this.loggerId)
     }
 
+    override fun onReportProcessingError(
+        message: String,
+        throwable: Throwable,
+    ) {
+        errorHandler.handleError(message, throwable)
+    }
+
     override val sessionId: String
         get() = CaptureJniLibrary.getSessionId(this.loggerId) ?: "unknown"
 
