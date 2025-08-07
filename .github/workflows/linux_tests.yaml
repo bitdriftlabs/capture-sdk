@@ -26,8 +26,26 @@ jobs:
           sudo chmod 777 /cores
           # Core filenames will be of the form executable.pid.timestamp:
           sudo bash -c 'echo "/cores/%e.%p.%t" > /proc/sys/kernel/core_pattern'
+      - name: Check for Bazel build file changes
+        id: bazel_check
+        run: ./ci/check_bazel.sh //platform/... //core/... //test/...
+        continue-on-error: true
+
+      - name: Check for workflow file changes
+        id: workflow_check
+        run: ./ci/files_changed.sh .github/workflows/linux_test.yaml
+        continue-on-error: true
+
       - name: test
         run: |
+          bazel_status="${{ steps.bazel_check.outputs.check_result }}"
+          workflow_status="${{ steps.workflow_check.outputs.check_result }}"
+
+          if [[ $bazel_status == "2" && $workflow_status == "2" ]]; then
+            echo "No changes detected, skipping"
+            exit 0
+          fi
+
           # ulimit -c unlimited
           set +e
           ./ci/version_only_change.sh

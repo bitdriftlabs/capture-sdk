@@ -250,6 +250,11 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
         cache: gradle
+    - uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
+      with:
+        toolchain: stable
+        targets: x86_64-unknown-linux-gnu
+        components: rust-src
     - name: AVD cache
       uses: actions/cache@v4
       id: avd-cache
@@ -280,9 +285,6 @@ jobs:
     - name: Check Licenses for modules
       working-directory: ./platform/jvm
       run: ./gradlew replay:checkLicense common:checkLicense capture:checkLicense
-    - name: Set up local.properties, required for cargo-ndk
-      working-directory: ./platform/jvm
-      run: touch local.properties
     - name: Build Microbenchmark target
       working-directory: ./platform/jvm
       run: ./gradlew microbenchmark:assembleAndroidTest

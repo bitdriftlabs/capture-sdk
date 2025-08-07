@@ -88,12 +88,31 @@ android {
 cargoNdk {
     librariesNames = arrayListOf("libcapture.so")
     extraCargoBuildArguments = arrayListOf("--package", "capture")
+
+    buildTypes {
+        getByName("release") {
+            buildType = "release"
+            extraCargoBuildArguments = arrayListOf(
+                "--package", "capture",
+                "-Z", "build-std=std,panic_abort",
+                "-Z", "build-std-features=optimize_for_size,panic_immediate_abort",
+            )
+        }
+
+        getByName("debug") {
+            buildType = "dev"
+        }
+    }
+
     module = "../.."
     targetDirectory = "./target"
     // Default set for local dev on ARM-based macos
     targets = arrayListOf("arm64")
     // enable 16 KB ELF alignment on Android to support API 35+
-    extraCargoEnv = mapOf("RUSTFLAGS" to "-C link-args=-Wl,-z,max-page-size=16384")
+    extraCargoEnv = mapOf(
+      "RUSTFLAGS" to "-C link-args=-Wl,-z,max-page-size=16384",
+      "RUSTC_BOOTSTRAP" to "1" // Required for using unstable features in the Rust compiler
+    )
 }
 
 // detekt
