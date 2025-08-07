@@ -18,6 +18,8 @@ import android.content.IntentFilter
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.system.Os
+import android.system.OsConstants
 import android.util.Log
 import androidx.core.content.ContextCompat
 import io.bitdrift.capture.Capture
@@ -111,10 +113,18 @@ internal object FatalIssueGenerator {
         }
     }
 
-    fun forceNativeCrash() {
+    fun forceCaptureNativeCrash() {
         val logger = Capture.logger()
         CaptureJniLibrary.destroyLogger((logger as LoggerImpl).loggerId)
         Logger.logInfo { "Forced native crash" }
+    }
+
+    fun forceNativeSegmentationFault() {
+        triggerOsKill(OsConstants.SIGSEGV)
+    }
+
+    fun forceNativeBusError() {
+        triggerOsKill(OsConstants.SIGBUS)
     }
 
     fun forceOutOfMemoryCrash() {
@@ -160,6 +170,10 @@ internal object FatalIssueGenerator {
 
     private fun callOnMainThread(action: () -> Unit) {
         mainThreadHandler.post(action)
+    }
+
+    private fun triggerOsKill(signal: Int) {
+        Os.kill(Os.getpid(), signal)
     }
 
     private val FIRST_LOCK_RESOURCE: Any = "first_lock"

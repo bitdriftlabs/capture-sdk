@@ -24,6 +24,7 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.reports.IFatalIssueReporter
+import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.Rule
 import org.junit.Test
@@ -71,6 +72,7 @@ class ClockTimeProfiler {
                         override fun initBuiltInMode(
                             appContext: Context,
                             clientAttributes: IClientAttributes,
+                            completedReportsProcessor: ICompletedReportsProcessor,
                         ) {
                             // no-op
                         }

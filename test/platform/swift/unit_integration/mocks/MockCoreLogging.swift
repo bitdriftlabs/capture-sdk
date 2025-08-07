@@ -168,4 +168,6 @@ extension MockCoreLogging: CoreLogging {
     public func enableBlockingShutdown() {}
 
     public func setSleepMode(_ mode: SleepMode) {}
+
+    public func processCrashReports() {}
 }

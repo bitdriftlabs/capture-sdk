@@ -14,15 +14,18 @@ import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
+import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.attributes.ClientAttributes
+import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.reports.FatalIssueReporter.Companion.buildFieldsMap
 import io.bitdrift.capture.reports.FatalIssueReporter.Companion.getDuration
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
+import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -38,6 +41,9 @@ class FatalIssueReporterTest {
     private lateinit var reportsDir: File
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
     private val lifecycleOwner: LifecycleOwner = mock()
+
+    private val completedReportsProcessor: ICompletedReportsProcessor = mock()
+
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = mock()
     private val appContext = ApplicationProvider.getApplicationContext<Context>()
     private val clientAttributes = ClientAttributes(appContext, lifecycleOwner)
@@ -52,13 +58,14 @@ class FatalIssueReporterTest {
 
     @Test
     fun initialize_whenBuiltInMechanism_shouldInitCrashHandlerAndFetchAppExitReason() {
-        fatalIssueReporter.initBuiltInMode(appContext, clientAttributes)
+        fatalIssueReporter.initBuiltInMode(appContext, clientAttributes, completedReportsProcessor)
 
         verify(captureUncaughtExceptionHandler).install(eq(fatalIssueReporter))
         verify(latestAppExitInfoProvider).get(any())
         fatalIssueReporter.fatalIssueReporterStatus.assert(
             FatalIssueReporterState.BuiltIn::class.java,
         )
+        verify(completedReportsProcessor).processCrashReports()
     }
 
     private fun FatalIssueReporterStatus.assert(
@@ -78,6 +85,20 @@ class FatalIssueReporterTest {
         assertCrashFile(crashFileExist)
     }
 
+    @Test
+    fun initBuiltInMode_whenAppExitInfoFails_shouldCallOnErrorOccurred() {
+        val exception = RuntimeException("test error")
+        whenever(latestAppExitInfoProvider.get(any()))
+            .thenThrow(exception)
+
+        fatalIssueReporter.initBuiltInMode(appContext, clientAttributes, completedReportsProcessor)
+
+        verify(completedReportsProcessor).onReportProcessingError(
+            any(),
+            eq(exception),
+        )
+    }
+
     private fun assertCrashFile(crashFileExist: Boolean) {
         val crashFile = File(reportsDir, "/new/latest_crash_info.json")
         assertThat(crashFile.exists()).isEqualTo(crashFileExist)
@@ -85,6 +106,8 @@ class FatalIssueReporterTest {
 
     private fun buildReporter(): FatalIssueReporter =
         FatalIssueReporter(
+            enableNativeCrashReporting = true,
+            FakeBackgroundThreadHandler(),
             latestAppExitInfoProvider,
             captureUncaughtExceptionHandler,
         )

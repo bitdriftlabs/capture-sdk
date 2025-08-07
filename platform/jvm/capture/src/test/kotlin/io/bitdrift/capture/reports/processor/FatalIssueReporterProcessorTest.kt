@@ -26,9 +26,9 @@ import io.bitdrift.capture.reports.binformat.v1.ReportType
 import io.bitdrift.capture.reports.persistence.IFatalIssueReporterStorage
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.verifyNoInteractions
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.InputStream
@@ -130,6 +130,7 @@ class FatalIssueReporterProcessorTest {
 
         fatalIssueReporterProcessor.persistAppExitReport(
             fatalIssueType = ReportType.AppNotResponding,
+            enableNativeCrashReporting = true,
             FAKE_TIME_STAMP,
             description,
             traceInputStream,
@@ -323,14 +324,30 @@ class FatalIssueReporterProcessorTest {
         )
     }
 
-    @Ignore("TODO(FranAguilera): BIT-5823 use NativeCrashProcessor once async processing is ready")
     @Test
-    fun persistAppExitReport_whenNativeCrash_shouldCreateEmptyErrorModel() {
+    fun persistAppExitReport_whenNativeCrashAndNdkProcessingNotConfigured_shouldNotCreateNativeReport() {
         val description = "Native crash"
         val traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.bin")
 
         fatalIssueReporterProcessor.persistAppExitReport(
             ReportType.NativeCrash,
+            enableNativeCrashReporting = false,
+            FAKE_TIME_STAMP,
+            description,
+            traceInputStream,
+        )
+
+        verifyNoInteractions(fatalIssueReporterStorage)
+    }
+
+    @Test
+    fun persistAppExitReport_whenNativeCrashAndNdkProcessingConfigured_shouldCreateNativeReport() {
+        val description = "Native crash"
+        val traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.bin")
+
+        fatalIssueReporterProcessor.persistAppExitReport(
+            ReportType.NativeCrash,
+            enableNativeCrashReporting = true,
             FAKE_TIME_STAMP,
             description,
             traceInputStream,
@@ -379,6 +396,7 @@ class FatalIssueReporterProcessorTest {
 
         fatalIssueReporterProcessor.persistAppExitReport(
             ReportType.JVMCrash,
+            enableNativeCrashReporting = true,
             FAKE_TIME_STAMP,
             description,
             traceInputStream,
@@ -394,6 +412,7 @@ class FatalIssueReporterProcessorTest {
     ) {
         fatalIssueReporterProcessor.persistAppExitReport(
             fatalIssueType = ReportType.AppNotResponding,
+            enableNativeCrashReporting = true,
             FAKE_TIME_STAMP,
             descriptionFromAppExit,
             buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt"),

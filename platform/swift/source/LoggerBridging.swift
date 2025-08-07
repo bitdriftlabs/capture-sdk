@@ -88,4 +88,7 @@ protocol LoggerBridging {
     ///
     /// - parameter mode: the mode to use
     func setSleepMode(_ mode: SleepMode)
+
+    /// Process pending crash reports
+    func processCrashReports()
 }

@@ -28,11 +28,13 @@ typedef NS_OPTIONS(NSUInteger, CAPDiagnosticType) {
  * @param sdkVersion current version of the Capture SDK
  * @param types      event types to report
  * @param seconds    number of seconds required to report `CAPDiagnosticTypeHang` events
+ * @param completion block to invoke when report processing is completed
  */
 - (instancetype _Nonnull)initWithOutputDir:(NSURL *_Nonnull)path
                                 sdkVersion:(NSString *_Nonnull)sdkVersion
                                 eventTypes:(CAPDiagnosticType)types
-                        minimumHangSeconds:(NSTimeInterval)seconds;
+                        minimumHangSeconds:(NSTimeInterval)seconds
+                         completionHandler:(void (^_Nullable)())completion;
 
 - (void)setMinimumHangSeconds:(NSTimeInterval)seconds;
 @end

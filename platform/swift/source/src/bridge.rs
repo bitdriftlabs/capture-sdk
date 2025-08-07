@@ -30,6 +30,7 @@ use bd_logger::{
   LogFields,
   LogLevel,
   MetadataProvider,
+  ReportProcessingSession,
 };
 use bd_noop_network::NoopNetwork;
 use objc::rc::StrongPtr;
@@ -41,6 +42,7 @@ use std::boxed::Box;
 use std::collections::HashMap;
 use std::convert::From;
 use std::ffi::CStr;
+use std::ops::DerefMut;
 use std::os::raw::c_char;
 use std::sync::{Arc, Once};
 use time::{Duration, OffsetDateTime};
@@ -530,6 +532,19 @@ extern "C" fn capture_start_logger(logger_id: LoggerId<'_>) {
 #[no_mangle]
 extern "C" fn capture_shutdown_logger(logger_id: LoggerId<'_>, blocking: bool) {
   logger_id.shutdown(blocking);
+}
+
+#[no_mangle]
+extern "C" fn capture_process_crash_reports(mut logger_id: LoggerId<'_>) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      logger_id
+        .deref_mut()
+        .process_crash_reports(ReportProcessingSession::PreviousRun);
+      Ok(())
+    },
+    "swift process crash reports",
+  );
 }
 
 #[no_mangle]
