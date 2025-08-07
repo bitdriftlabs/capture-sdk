@@ -7,7 +7,6 @@ fn main() {
   {
     if is_nightly_channel() || std::env::var("RUSTC_BOOTSTRAP").as_deref() == Ok("1") {
       println!("cargo:rustflag=-Zfmt-debug=shallow");
-      panic!("nightly!");
     }
   }
 }
