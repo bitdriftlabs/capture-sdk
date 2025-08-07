@@ -32,9 +32,11 @@ jobs:
     - name: Setup Android cmd line tools + NDK
       uses: ./.github/actions/common-android-setup
     - name: Accept Android SDK licenses
-      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses    
-    - name: Install Rust target
-      run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
+      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+    - uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
+      with:
+        toolchain: stable
+        targets: x86_64-unknown-linux-gnu,aarch-linux-android
     - name: Build Timber artifacts with Gradle
       run: ./gradlew :capture-timber:publish -PVERSION_NAME="${{ inputs.version }}" --info
       env:
@@ -54,7 +56,7 @@ jobs:
     - name: Compress Apollo artifacts
       run: |
         readonly dir=$(pwd)
-        (cd capture-apollo/build/repos/releases/io/bitdrift/capture-apollo/${{ inputs.version }} && zip -r "$dir/capture-apollo-${{ inputs.version }}.android.zip" ./*)        
+        (cd capture-apollo/build/repos/releases/io/bitdrift/capture-apollo/${{ inputs.version }} && zip -r "$dir/capture-apollo-${{ inputs.version }}.android.zip" ./*)
     - name: Compress Android Plugin artifacts
       run: |
         readonly dir=$(pwd)
@@ -74,7 +76,7 @@ jobs:
       with:
         name: capture-apollo-${{ inputs.version }}.android.zip
         path: platform/jvm/capture-apollo-${{ inputs.version }}.android.zip
-        if-no-files-found: error        
+        if-no-files-found: error
     - name: Upload Gradle Plugin artifacts
       uses: actions/upload-artifact@v4
       with:

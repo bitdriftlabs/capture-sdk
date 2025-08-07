@@ -39,9 +39,11 @@ jobs:
     - name: Setup Android cmd line tools + NDK
       uses: ./.github/actions/common-android-setup
     - name: Accept Android SDK licenses
-      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses    
-    - name: Install Rust target
-      run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
+      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+    - uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
+      with:
+        toolchain: stable
+        targets: x86_64-unknown-linux-gnu,aarch-linux-android
     - name: Build Android example app
       run: ./ci/prepare_example_apps_android.sh
       env:
