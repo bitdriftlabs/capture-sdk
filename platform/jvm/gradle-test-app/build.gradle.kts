@@ -71,6 +71,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // This needs to be set to access the strip tools to strip the shared libraries.
+    ndkVersion = "27.2.12479018"
+
     // Run lint checks on every build
     applicationVariants.configureEach {
         val lintTask = tasks.named("lint${name.replaceFirstChar(Char::titlecase)}")

@@ -250,6 +250,11 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
         cache: gradle
+    - uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
+      with:
+        toolchain: stable
+        targets: x86_64-unknown-linux-gnu
+        components: rust-src
     - name: AVD cache
       uses: actions/cache@v4
       id: avd-cache

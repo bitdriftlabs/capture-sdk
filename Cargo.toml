@@ -73,4 +73,7 @@ uuid = { version = "1.17.0", features = ["v4"] }
 panic = "abort"
 
 [profile.release]
-panic = "abort"
+codegen-units = 1
+lto           = "fat"
+opt-level     = "s"
+panic         = "abort"
