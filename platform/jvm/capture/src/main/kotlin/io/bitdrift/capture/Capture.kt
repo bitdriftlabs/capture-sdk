@@ -66,9 +66,9 @@ object Capture {
      */
     fun logger(): ILogger? =
         when (val state = default.get()) {
-            is LoggerState.NotStarted   -> null
-            is LoggerState.Starting     -> null
-            is LoggerState.Started      -> state.logger
+            is LoggerState.NotStarted -> null
+            is LoggerState.Starting -> null
+            is LoggerState.Started -> state.logger
             is LoggerState.StartFailure -> null
         }
 
@@ -526,7 +526,7 @@ object Capture {
                         dateProvider = dateProvider ?: SystemDateProvider(),
                         configuration = configuration,
                         sessionStrategy = sessionStrategy,
-                        bridge = bridge
+                        bridge = bridge,
                     )
                 }
 
