@@ -9,9 +9,9 @@ package io.bitdrift.capture
 
 import android.content.Context
 import android.util.Log
-import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.annotation.VisibleForTesting
+import io.bitdrift.capture.Capture.Logger.startSpan
 import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
-import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
@@ -21,8 +21,6 @@ import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueReporter
-import io.bitdrift.capture.reports.IFatalIssueReporter
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -108,9 +106,10 @@ object Capture {
          * @return the version as a String
          */
         @JvmStatic
-        val sdkVersion: String get() {
-            return BuildConstants.SDK_VERSION
-        }
+        val sdkVersion: String
+            get() {
+                return BuildConstants.SDK_VERSION
+            }
 
         /**
          * Initializes the Capture SDK with the specified API key, providers, and configuration.
@@ -127,10 +126,6 @@ object Capture {
          *               Compose API base URL.
          * @param context an optional context reference. You should provide the context if called from
          * a [android.content.ContentProvider]
-         * @param applicationIdSuffix A suffix that will be added to the representation of the
-         * application id (aka package name) in Bitdrift. This is useful if you have different
-         * build flavors with the same application id and you want a way to apply entire workflows
-         * only to a subset of those.
          */
         @Synchronized
         @JvmStatic
@@ -143,7 +138,6 @@ object Capture {
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             context: Context? = null,
-            applicationIdSuffix: String = ""
         ) {
             start(
                 apiKey = apiKey,
@@ -154,7 +148,6 @@ object Capture {
                 apiUrl = apiUrl,
                 bridge = CaptureJniLibrary,
                 context = context,
-                applicationIdSuffix = applicationIdSuffix,
             )
         }
 
@@ -170,7 +163,6 @@ object Capture {
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             bridge: IBridge,
             context: Context? = null,
-            applicationIdSuffix: String = ""
         ) {
             // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
             // while subsequent logger access relies on volatile reads.
@@ -195,7 +187,6 @@ object Capture {
                     apiUrl = apiUrl,
                     bridge = bridge,
                     context = context,
-                    applicationIdSuffix = applicationIdSuffix
                 )
             } else {
                 Log.w(LOG_TAG, "Multiple attempts to start Capture")
@@ -507,7 +498,8 @@ object Capture {
         private fun hasInvalidContext(context: Context? = null) = context == null && !ContextHolder.isInitialized
     }
 
-    private fun initSdk(
+    @VisibleForTesting
+    internal fun initSdk(
         apiKey: String,
         sessionStrategy: SessionStrategy,
         configuration: Configuration,
@@ -516,30 +508,15 @@ object Capture {
         apiUrl: HttpUrl,
         bridge: IBridge,
         context: Context?,
-        applicationIdSuffix: String,
     ) {
         try {
             val startSdkTimer = TimeSource.Monotonic.markNow()
 
             val appContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
 
-            val clientAttributes =
-                ClientAttributes(
-                    context = appContext,
-                    processLifecycleOwner = ProcessLifecycleOwner.get(),
-                    applicationIdSuffix = applicationIdSuffix
-                )
-
             val nativeLoadDuration =
                 measureTime {
                     CaptureJniLibrary.load()
-                }
-
-            val fatalIssueReporter: IFatalIssueReporter? =
-                if (configuration.enableFatalIssueReporting) {
-                    FatalIssueReporter()
-                } else {
-                    null
                 }
 
             val (loggerImpl, loggerImplBuildDuration) =
@@ -548,19 +525,15 @@ object Capture {
                         apiKey = apiKey,
                         apiUrl = apiUrl,
                         context = appContext,
-                        clientAttributes = clientAttributes,
                         fieldProviders = fieldProviders,
                         dateProvider = dateProvider ?: SystemDateProvider(),
                         configuration = configuration,
                         sessionStrategy = sessionStrategy,
                         bridge = bridge,
-                        fatalIssueReporter = fatalIssueReporter,
                     )
                 }
 
             default.set(LoggerState.Started(loggerImpl))
-
-            fatalIssueReporter?.initBuiltInMode(appContext, clientAttributes, loggerImpl)
 
             val sdkConfiguredDuration =
                 SdkConfiguredDuration(

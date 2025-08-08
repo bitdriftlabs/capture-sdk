@@ -15,6 +15,10 @@ import io.bitdrift.capture.replay.SessionReplayConfiguration
  * @param enableFatalIssueReporting When set to true wil capture Fatal Issues automatically [JVM crash, ANR, etc] and without requiring
  * any external 3rd party library integration
  * @param sleepMode SleepMode.ACTIVE if Capture should initialize in minimal activity mode
+ * @param applicationIdSuffix An optional suffix that will be appended to the representation of the
+ * application id (aka package name) in bitdrift. This is useful if you have different
+ * build flavors with the same application id and you want a way to apply workflows
+ * only to a subset of those.
  */
 data class Configuration
     @JvmOverloads
@@ -22,4 +26,5 @@ data class Configuration
         val sessionReplayConfiguration: SessionReplayConfiguration = SessionReplayConfiguration(),
         val enableFatalIssueReporting: Boolean = false,
         val sleepMode: SleepMode = SleepMode.INACTIVE,
+        val applicationIdSuffix: String = "",
     )

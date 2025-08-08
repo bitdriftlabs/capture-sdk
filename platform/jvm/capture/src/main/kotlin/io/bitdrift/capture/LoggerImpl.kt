@@ -47,6 +47,7 @@ import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.threading.CaptureDispatchers
@@ -75,6 +76,7 @@ internal class LoggerImpl(
         ClientAttributes(
             context,
             ProcessLifecycleOwner.get(),
+            configuration.applicationIdSuffix,
         ),
     preferences: IPreferences = Preferences(context),
     private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey),
@@ -83,7 +85,7 @@ internal class LoggerImpl(
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    private val fatalIssueReporter: IFatalIssueReporter?,
+    private val fatalIssueReporter: IFatalIssueReporter? = if (configuration.enableFatalIssueReporting) FatalIssueReporter() else null,
 ) : ILogger,
     ICompletedReportsProcessor {
     private val metadataProvider: MetadataProvider
@@ -249,7 +251,7 @@ internal class LoggerImpl(
                 runtime,
                 errorHandler,
                 memoryMetricsProvider = memoryMetricsProvider,
-                fatalIssueReporter = fatalIssueReporter,
+                isFatalIssueReporterEnabled = configuration.enableFatalIssueReporting,
             )
 
         // Install the app exit logger before the Capture logger is started to ensure
@@ -258,6 +260,9 @@ internal class LoggerImpl(
         appExitLogger.installAppExitLogger()
 
         CaptureJniLibrary.startLogger(this.loggerId)
+
+        // fatalIssueReporter must be initialized after the appExitLogger and the logger
+        fatalIssueReporter?.initBuiltInMode(context, clientAttributes, this)
     }
 
     override fun processCrashReports() {
