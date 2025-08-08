@@ -20,7 +20,9 @@ final class ClientAttributes {
 
     private let osVersion = UIDevice.current.systemVersion
 
-    /// Initializes ClientAttributes with an optional appIdSuffix.
+    /// Initializes ClientAttributes.
+    ///
+    /// - parameter appIdSuffix: A suffix that will be appended to the app_id (default: "").
     init(appIdSuffix: String = "") {
         if let baseAppID = Bundle.main.bundleIdentifier {
             self.appID = baseAppID + appIdSuffix
