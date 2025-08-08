@@ -21,9 +21,10 @@ import io.bitdrift.capture.utils.BuildTypeChecker
 internal class ClientAttributes(
     context: Context,
     private val processLifecycleOwner: LifecycleOwner,
+    applicationIdSuffix: String = "",
 ) : IClientAttributes,
     FieldProvider {
-    override val appId = context.packageName ?: UNKNOWN_FIELD_VALUE
+    override val appId = context.packageName?.plus(applicationIdSuffix) ?: UNKNOWN_FIELD_VALUE
 
     override val appVersion by lazy {
         packageInfo?.versionName ?: "?.?.?"

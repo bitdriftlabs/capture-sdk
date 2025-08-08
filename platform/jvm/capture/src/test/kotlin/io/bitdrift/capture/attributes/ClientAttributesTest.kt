@@ -233,6 +233,24 @@ class ClientAttributesTest {
         assertThat(fields).containsEntry("os_version", "7.0")
     }
 
+    @Test
+    fun applicationIdSuffix_modifiesAooId() {
+        val packageName = "my.bitdrift.test"
+        val appIdSuffix = ".staging"
+        val context = spy(appContext)
+        doReturn(packageName).`when`(context).packageName
+        val mockedLifecycleOwnerLifecycleStateStarted =
+            obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
+
+        val clientAttributes = ClientAttributes(
+            context,
+            mockedLifecycleOwnerLifecycleStateStarted,
+            appIdSuffix
+        ).invoke()
+
+        assertThat(clientAttributes).containsEntry("app_id", packageName.plus(appIdSuffix))
+    }
+
     private fun assertInstallationSource(
         hasValidInstallationSource: Boolean,
         expectedInstallationSource: String,
