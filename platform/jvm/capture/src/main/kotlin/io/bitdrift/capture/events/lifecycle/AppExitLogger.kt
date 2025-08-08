@@ -26,8 +26,6 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.reports.FatalIssueMechanism
-import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
@@ -49,7 +47,7 @@ internal class AppExitLogger(
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
-    private val fatalIssueReporter: IFatalIssueReporter?,
+    private val isFatalIssueReporterEnabled: Boolean,
 ) : IJvmCrashListener {
     companion object {
         private const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -138,8 +136,7 @@ internal class AppExitLogger(
         throwable: Throwable,
     ) {
         // When FatalIssueMechanism.BuiltIn is configured will rely on shared-core to emit the related JVM crash log
-        if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) ||
-            fatalIssueReporter?.getReportingMechanism() == FatalIssueMechanism.BuiltIn
+        if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) || isFatalIssueReporterEnabled
         ) {
             return
         }
@@ -209,35 +206,35 @@ internal class AppExitLogger(
 
     private fun Int.toReasonText(): String =
         when (this) {
-            ApplicationExitInfo.REASON_EXIT_SELF -> "EXIT_SELF"
-            ApplicationExitInfo.REASON_SIGNALED -> "SIGNALED"
-            ApplicationExitInfo.REASON_LOW_MEMORY -> "LOW_MEMORY"
-            ApplicationExitInfo.REASON_CRASH -> "CRASH"
-            ApplicationExitInfo.REASON_CRASH_NATIVE -> "CRASH_NATIVE"
-            ApplicationExitInfo.REASON_ANR -> "ANR"
-            ApplicationExitInfo.REASON_INITIALIZATION_FAILURE -> "INITIALIZATION_FAILURE"
-            ApplicationExitInfo.REASON_PERMISSION_CHANGE -> "PERMISSION_CHANGE"
+            ApplicationExitInfo.REASON_EXIT_SELF                -> "EXIT_SELF"
+            ApplicationExitInfo.REASON_SIGNALED                 -> "SIGNALED"
+            ApplicationExitInfo.REASON_LOW_MEMORY               -> "LOW_MEMORY"
+            ApplicationExitInfo.REASON_CRASH                    -> "CRASH"
+            ApplicationExitInfo.REASON_CRASH_NATIVE             -> "CRASH_NATIVE"
+            ApplicationExitInfo.REASON_ANR                      -> "ANR"
+            ApplicationExitInfo.REASON_INITIALIZATION_FAILURE   -> "INITIALIZATION_FAILURE"
+            ApplicationExitInfo.REASON_PERMISSION_CHANGE        -> "PERMISSION_CHANGE"
             ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE -> "EXCESSIVE_RESOURCE_USAGE"
-            ApplicationExitInfo.REASON_USER_REQUESTED -> "USER_REQUESTED"
-            ApplicationExitInfo.REASON_USER_STOPPED -> "USER_STOPPED"
-            ApplicationExitInfo.REASON_DEPENDENCY_DIED -> "DEPENDENCY_DIED"
-            ApplicationExitInfo.REASON_OTHER -> "OTHER"
-            ApplicationExitInfo.REASON_FREEZER -> "FREEZER"
-            else -> "UNKNOWN"
+            ApplicationExitInfo.REASON_USER_REQUESTED           -> "USER_REQUESTED"
+            ApplicationExitInfo.REASON_USER_STOPPED             -> "USER_STOPPED"
+            ApplicationExitInfo.REASON_DEPENDENCY_DIED          -> "DEPENDENCY_DIED"
+            ApplicationExitInfo.REASON_OTHER                    -> "OTHER"
+            ApplicationExitInfo.REASON_FREEZER                  -> "FREEZER"
+            else                                                -> "UNKNOWN"
         }
 
     private fun Int.toImportanceText(): String =
         when (this) {
-            RunningAppProcessInfo.IMPORTANCE_CACHED -> "CACHED"
-            RunningAppProcessInfo.IMPORTANCE_CANT_SAVE_STATE -> "CANT_SAVE_STATE"
-            RunningAppProcessInfo.IMPORTANCE_FOREGROUND -> "FOREGROUND"
+            RunningAppProcessInfo.IMPORTANCE_CACHED             -> "CACHED"
+            RunningAppProcessInfo.IMPORTANCE_CANT_SAVE_STATE    -> "CANT_SAVE_STATE"
+            RunningAppProcessInfo.IMPORTANCE_FOREGROUND         -> "FOREGROUND"
             RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE -> "FOREGROUND_SERVICE"
-            RunningAppProcessInfo.IMPORTANCE_GONE -> "GONE"
-            RunningAppProcessInfo.IMPORTANCE_PERCEPTIBLE -> "PERCEPTIBLE"
-            RunningAppProcessInfo.IMPORTANCE_SERVICE -> "SERVICE"
-            RunningAppProcessInfo.IMPORTANCE_TOP_SLEEPING -> "TOP_SLEEPING"
-            RunningAppProcessInfo.IMPORTANCE_VISIBLE -> "VISIBLE"
-            else -> "UNKNOWN"
+            RunningAppProcessInfo.IMPORTANCE_GONE               -> "GONE"
+            RunningAppProcessInfo.IMPORTANCE_PERCEPTIBLE        -> "PERCEPTIBLE"
+            RunningAppProcessInfo.IMPORTANCE_SERVICE            -> "SERVICE"
+            RunningAppProcessInfo.IMPORTANCE_TOP_SLEEPING       -> "TOP_SLEEPING"
+            RunningAppProcessInfo.IMPORTANCE_VISIBLE            -> "VISIBLE"
+            else                                                -> "UNKNOWN"
         }
 
     @RequiresApi(Build.VERSION_CODES.R)
@@ -250,7 +247,7 @@ internal class AppExitLogger(
                 ApplicationExitInfo.REASON_ANR,
                 ApplicationExitInfo.REASON_LOW_MEMORY,
             ),
-            -> LogLevel.ERROR
+                 -> LogLevel.ERROR
 
             else -> LogLevel.INFO
         }
