@@ -10,7 +10,7 @@ import UIKit
 /// Client attributes related to the app metadata and OS.
 final class ClientAttributes {
     /// The app ID.
-    private(set) var appID = Bundle.main.bundleIdentifier ?? "unknown"
+    private(set) var appID: String
     /// The app version. Up to three integers split using "." character.
     private(set) var appVersion: String =
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?.?.?"
@@ -19,6 +19,17 @@ final class ClientAttributes {
         Bundle.main.infoDictionary?[kCFBundleVersionKey as String] as? String ?? "?"
 
     private let osVersion = UIDevice.current.systemVersion
+
+    /// Initializes ClientAttributes.
+    ///
+    /// - parameter appIdSuffix: A suffix that will be appended to the app_id (default: "").
+    init(appIdSuffix: String = "") {
+        if let baseAppID = Bundle.main.bundleIdentifier {
+            self.appID = baseAppID + appIdSuffix
+        } else {
+            self.appID = "unknown"
+        }
+    }
 }
 
 extension ClientAttributes: FieldProvider {

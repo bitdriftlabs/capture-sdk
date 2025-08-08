@@ -21,9 +21,10 @@ import io.bitdrift.capture.utils.BuildTypeChecker
 internal class ClientAttributes(
     context: Context,
     private val processLifecycleOwner: LifecycleOwner,
+    appIdSuffix: String = "",
 ) : IClientAttributes,
     FieldProvider {
-    override val appId = context.packageName ?: UNKNOWN_FIELD_VALUE
+    override val appId = context.packageName?.plus(appIdSuffix) ?: UNKNOWN_FIELD_VALUE
 
     override val appVersion by lazy {
         packageInfo?.versionName ?: "?.?.?"
@@ -47,8 +48,9 @@ internal class ClientAttributes(
     @Suppress("SwallowedException")
     private val packageInfo: PackageInfo? by lazy {
         try {
-            context.packageManager.getPackageInfoCompat(appId)
-        } catch (e: Exception) {
+            // we intentionally not use appId+suffix to retain the original's packageInfo
+            context.packageManager.getPackageInfoCompat(context.packageName.orEmpty())
+        } catch (_: Exception) {
             null
         }
     }

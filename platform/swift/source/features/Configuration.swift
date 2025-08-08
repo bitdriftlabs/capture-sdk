@@ -18,18 +18,27 @@ public struct Configuration {
     /// true if Capture should enable Fatal Issue Reporting
     public var enableFatalIssueReporting: Bool
 
+    /// A suffix that will be appended to the representation of the
+    /// "app_id" (aka package name). This is useful if you have different environments or
+    /// build flavors with the same application id and you want a way to target workflows
+    /// directly to those.
+    public var appIdSuffix: String
+
     /// Initializes a new instance of the Capture configuration.
     ///
     /// - parameter sessionReplayConfiguration: The session replay configuration to use.
     /// - parameter sleepMode:                  .active if Capture should initialize in minimal activity mode
     /// - parameter enableFatalIssueReporting:  true if Capture should enable Fatal Issue Reporting
+    /// - parameter appIdSuffix:                A suffix that will be appended to the app_id (default: "")
     public init(
         sessionReplayConfiguration: SessionReplayConfiguration = .init(),
         sleepMode: SleepMode = .inactive,
-        enableFatalIssueReporting: Bool = false
+        enableFatalIssueReporting: Bool = false,
+        appIdSuffix: String = ""
     ) {
         self.sessionReplayConfiguration = sessionReplayConfiguration
         self.sleepMode = sleepMode
         self.enableFatalIssueReporting = enableFatalIssueReporting
+        self.appIdSuffix = appIdSuffix
     }
 }

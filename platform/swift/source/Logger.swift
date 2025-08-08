@@ -129,7 +129,7 @@ public final class Logger {
         // Order of providers matters in here, the latter in the list the higher their priority in
         // case of key conflicts.
         let appStateAttributes = AppStateAttributes()
-        let clientAttributes = ClientAttributes()
+        let clientAttributes = ClientAttributes(appIdSuffix: configuration.appIdSuffix)
         let deviceAttributes = DeviceAttributes()
         let networkAttributes = NetworkAttributes()
         let ootbFieldProviders: [FieldProvider] = [
