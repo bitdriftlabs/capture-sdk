@@ -76,7 +76,7 @@ internal class LoggerImpl(
         ClientAttributes(
             context,
             ProcessLifecycleOwner.get(),
-            configuration.applicationIdSuffix,
+            configuration.appIdSuffix,
         ),
     preferences: IPreferences = Preferences(context),
     private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey),

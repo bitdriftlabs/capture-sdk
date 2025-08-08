@@ -51,7 +51,6 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import com.bugsnag.android.Bugsnag
-import com.bugsnag.android.Logger
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.Configuration
@@ -158,17 +157,17 @@ class GradleTestApp : Application() {
                         "start_timestamp_launch_ns" to (appStartInfo.startupTimestamps[START_TIMESTAMP_LAUNCH]?.toString() ?: "null"),
                         "start_timestamp_fork_ns" to (appStartInfo.startupTimestamps[START_TIMESTAMP_FORK]?.toString() ?: "null"),
                         "start_timestamp_oncreate_ns" to
-                            (appStartInfo.startupTimestamps[START_TIMESTAMP_APPLICATION_ONCREATE]?.toString() ?: "null"),
+                                (appStartInfo.startupTimestamps[START_TIMESTAMP_APPLICATION_ONCREATE]?.toString() ?: "null"),
                         "start_timestamp_bind_application_ns" to
-                            (appStartInfo.startupTimestamps[START_TIMESTAMP_BIND_APPLICATION]?.toString() ?: "null"),
+                                (appStartInfo.startupTimestamps[START_TIMESTAMP_BIND_APPLICATION]?.toString() ?: "null"),
                         "start_timestamp_first_frame_ns" to
-                            (appStartInfo.startupTimestamps[START_TIMESTAMP_FIRST_FRAME]?.toString() ?: "null"),
+                                (appStartInfo.startupTimestamps[START_TIMESTAMP_FIRST_FRAME]?.toString() ?: "null"),
                         "start_timestamp_fully_drawn_ns" to
-                            (appStartInfo.startupTimestamps[START_TIMESTAMP_FULLY_DRAWN]?.toString() ?: "null"),
+                                (appStartInfo.startupTimestamps[START_TIMESTAMP_FULLY_DRAWN]?.toString() ?: "null"),
                         "start_timestamp_initial_renderthread_frame_ns" to
-                            (appStartInfo.startupTimestamps[START_TIMESTAMP_INITIAL_RENDERTHREAD_FRAME]?.toString() ?: "null"),
+                                (appStartInfo.startupTimestamps[START_TIMESTAMP_INITIAL_RENDERTHREAD_FRAME]?.toString() ?: "null"),
                         "start_timestamp_surfaceflinger_composition_complete_ns" to
-                            (appStartInfo.startupTimestamps[START_TIMESTAMP_SURFACEFLINGER_COMPOSITION_COMPLETE]?.toString() ?: "null"),
+                                (appStartInfo.startupTimestamps[START_TIMESTAMP_SURFACEFLINGER_COMPOSITION_COMPLETE]?.toString() ?: "null"),
                     )
                 Capture.Logger.logInfo(appStartInfoFields) { "ApplicationStartInfoCompletion" }
             }
@@ -178,7 +177,7 @@ class GradleTestApp : Application() {
         PapaEventListener.install { event ->
             Timber.d("Papa event: $event")
             when (event) {
-                is PapaEvent.AppLaunch -> {
+                is PapaEvent.AppLaunch          -> {
                     Capture.Logger.logInfo(
                         mapOf(
                             "preLaunchState" to event.preLaunchState.toString(),
@@ -193,6 +192,7 @@ class GradleTestApp : Application() {
                         Capture.Logger.logAppLaunchTTI(event.durationUptimeMillis.toDuration(DurationUnit.MILLISECONDS))
                     }
                 }
+
                 is PapaEvent.FrozenFrameOnTouch -> {
                     Capture.Logger.logInfo(
                         mapOf(
@@ -204,7 +204,8 @@ class GradleTestApp : Application() {
                         ),
                     ) { "PapaEvent.FrozenFrameOnTouch" }
                 }
-                is PapaEvent.UsageError -> {
+
+                is PapaEvent.UsageError         -> {
                     Capture.Logger.logInfo(
                         mapOf(
                             "debugMessage" to event.debugMessage,
@@ -218,45 +219,45 @@ class GradleTestApp : Application() {
     private fun Int.toStartTypeText(): String =
         when (this) {
             START_TYPE_UNSET -> "START_TYPE_UNSET"
-            START_TYPE_COLD -> "START_TYPE_COLD"
-            START_TYPE_WARM -> "START_TYPE_WARM"
-            START_TYPE_HOT -> "START_TYPE_HOT"
-            else -> "UNKNOWN"
+            START_TYPE_COLD  -> "START_TYPE_COLD"
+            START_TYPE_WARM  -> "START_TYPE_WARM"
+            START_TYPE_HOT   -> "START_TYPE_HOT"
+            else             -> "UNKNOWN"
         }
 
     private fun Int.toStartupStateText(): String =
         when (this) {
-            STARTUP_STATE_STARTED -> "STARTUP_STATE_STARTED"
-            STARTUP_STATE_ERROR -> "STARTUP_STATE_ERROR"
+            STARTUP_STATE_STARTED           -> "STARTUP_STATE_STARTED"
+            STARTUP_STATE_ERROR             -> "STARTUP_STATE_ERROR"
             STARTUP_STATE_FIRST_FRAME_DRAWN -> "STARTUP_STATE_FIRST_FRAME_DRAWN"
-            else -> "UNKNOWN"
+            else                            -> "UNKNOWN"
         }
 
     private fun Int.toLaunchModeText(): String =
         when (this) {
-            LAUNCH_MODE_STANDARD -> "LAUNCH_MODE_STANDARD"
-            LAUNCH_MODE_SINGLE_TOP -> "LAUNCH_MODE_SINGLE_TOP"
-            LAUNCH_MODE_SINGLE_INSTANCE -> "LAUNCH_MODE_SINGLE_INSTANCE"
-            LAUNCH_MODE_SINGLE_TASK -> "LAUNCH_MODE_SINGLE_TASK"
+            LAUNCH_MODE_STANDARD                 -> "LAUNCH_MODE_STANDARD"
+            LAUNCH_MODE_SINGLE_TOP               -> "LAUNCH_MODE_SINGLE_TOP"
+            LAUNCH_MODE_SINGLE_INSTANCE          -> "LAUNCH_MODE_SINGLE_INSTANCE"
+            LAUNCH_MODE_SINGLE_TASK              -> "LAUNCH_MODE_SINGLE_TASK"
             LAUNCH_MODE_SINGLE_INSTANCE_PER_TASK -> "LAUNCH_MODE_SINGLE_INSTANCE_PER_TASK"
-            else -> "UNKNOWN"
+            else                                 -> "UNKNOWN"
         }
 
     private fun Int.toStartReasonText(): String =
         when (this) {
-            START_REASON_ALARM -> "START_REASON_ALARM"
-            START_REASON_BACKUP -> "START_REASON_BACKUP"
-            START_REASON_BOOT_COMPLETE -> "START_REASON_BOOT_COMPLETE"
-            START_REASON_BROADCAST -> "START_REASON_BROADCAST"
+            START_REASON_ALARM            -> "START_REASON_ALARM"
+            START_REASON_BACKUP           -> "START_REASON_BACKUP"
+            START_REASON_BOOT_COMPLETE    -> "START_REASON_BOOT_COMPLETE"
+            START_REASON_BROADCAST        -> "START_REASON_BROADCAST"
             START_REASON_CONTENT_PROVIDER -> "START_REASON_CONTENT_PROVIDER"
-            START_REASON_JOB -> "START_REASON_JOB"
-            START_REASON_LAUNCHER -> "START_REASON_LAUNCHER"
+            START_REASON_JOB              -> "START_REASON_JOB"
+            START_REASON_LAUNCHER         -> "START_REASON_LAUNCHER"
             START_REASON_LAUNCHER_RECENTS -> "START_REASON_LAUNCHER_RECENTS"
-            START_REASON_OTHER -> "START_REASON_OTHER"
-            START_REASON_PUSH -> "START_REASON_PUSH"
-            START_REASON_SERVICE -> "START_REASON_SERVICE"
-            START_REASON_START_ACTIVITY -> "START_REASON_START_ACTIVITY"
-            else -> "UNKNOWN"
+            START_REASON_OTHER            -> "START_REASON_OTHER"
+            START_REASON_PUSH             -> "START_REASON_PUSH"
+            START_REASON_SERVICE          -> "START_REASON_SERVICE"
+            START_REASON_START_ACTIVITY   -> "START_REASON_START_ACTIVITY"
+            else                          -> "UNKNOWN"
         }
 
     private fun trackAppLifecycle() {

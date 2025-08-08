@@ -17,7 +17,7 @@ import io.bitdrift.capture.replay.SessionReplayConfiguration
  * @param enableNativeCrashReporting When set to true will capture native NDK crashes automatically.
  * Requires enableFatalIssueReporting to be true. Note: This is a temporary flag and may be removed in future versions.
  * @param sleepMode SleepMode.ACTIVE if Capture should initialize in minimal activity mode
- * @param applicationIdSuffix A suffix that will be appended to the representation of the
+ * @param appIdSuffix A suffix that will be appended to the representation of the
  * "app_id" (aka package name). This is useful if you have different environments or
  * build flavors with the same application id and you want a way to target workflows
  * directly to those.
@@ -29,5 +29,5 @@ data class Configuration
         val enableFatalIssueReporting: Boolean = false,
         val enableNativeCrashReporting: Boolean = false,
         val sleepMode: SleepMode = SleepMode.INACTIVE,
-        val applicationIdSuffix: String = "",
+        val appIdSuffix: String = "",
     )
