@@ -84,11 +84,12 @@ internal class LoggerImpl(
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    private val fatalIssueReporter: IFatalIssueReporter? = if (configuration.enableFatalIssueReporting) {
-        FatalIssueReporter(configuration.enableNativeCrashReporting)
-    } else {
-        null
-    },
+    private val fatalIssueReporter: IFatalIssueReporter? =
+        if (configuration.enableFatalIssueReporting) {
+            FatalIssueReporter(configuration.enableNativeCrashReporting)
+        } else {
+            null
+        },
 ) : ILogger,
     ICompletedReportsProcessor {
     private val metadataProvider: MetadataProvider
@@ -401,15 +402,15 @@ internal class LoggerImpl(
         try {
             val expectedPreviousProcessSessionId =
                 when (attributesOverrides) {
-                    is LogAttributesOverrides.SessionID  -> attributesOverrides.expectedPreviousProcessSessionId
+                    is LogAttributesOverrides.SessionID -> attributesOverrides.expectedPreviousProcessSessionId
                     is LogAttributesOverrides.OccurredAt -> null
-                    else                                 -> null
+                    else -> null
                 }
             val occurredAtTimestampMs: Long =
                 when (attributesOverrides) {
-                    is LogAttributesOverrides.SessionID  -> attributesOverrides.occurredAtTimestampMs
+                    is LogAttributesOverrides.SessionID -> attributesOverrides.occurredAtTimestampMs
                     is LogAttributesOverrides.OccurredAt -> attributesOverrides.occurredAtTimestampMs
-                    else                                 -> 0
+                    else -> 0
                 }
 
             CaptureJniLibrary.writeLog(
