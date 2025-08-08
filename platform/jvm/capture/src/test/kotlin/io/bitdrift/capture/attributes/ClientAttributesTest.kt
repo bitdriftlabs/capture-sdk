@@ -242,11 +242,12 @@ class ClientAttributesTest {
         val mockedLifecycleOwnerLifecycleStateStarted =
             obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
-        val clientAttributes = ClientAttributes(
-            context,
-            mockedLifecycleOwnerLifecycleStateStarted,
-            appIdSuffix
-        ).invoke()
+        val clientAttributes =
+            ClientAttributes(
+                context,
+                mockedLifecycleOwnerLifecycleStateStarted,
+                appIdSuffix,
+            ).invoke()
 
         assertThat(clientAttributes).containsEntry("app_id", packageName.plus(appIdSuffix))
     }
