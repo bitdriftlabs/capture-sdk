@@ -51,3 +51,14 @@ runs:
     - name: Touch local.properties
       shell: bash
       run: touch platform/jvm/local.properties
+
+    - name: Cache cargo-ndk
+      id: cargo-ndk-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/cargo-ndk
+        key: ${{ runner.os }}-cargo-ndk-3.4
+    - name: Install cargo-ndk
+      if: steps.cargo-ndk-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: cargo install cargo-ndk --version 3.4.0 --locked
