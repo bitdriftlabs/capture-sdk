@@ -26,8 +26,6 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.reports.FatalIssueMechanism
-import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
@@ -49,7 +47,7 @@ internal class AppExitLogger(
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
-    private val fatalIssueReporter: IFatalIssueReporter?,
+    private val isFatalIssueReporterEnabled: Boolean,
 ) : IJvmCrashListener {
     companion object {
         private const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -138,8 +136,7 @@ internal class AppExitLogger(
         throwable: Throwable,
     ) {
         // When FatalIssueMechanism.BuiltIn is configured will rely on shared-core to emit the related JVM crash log
-        if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) ||
-            fatalIssueReporter?.getReportingMechanism() == FatalIssueMechanism.BuiltIn
+        if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) || isFatalIssueReporterEnabled
         ) {
             return
         }

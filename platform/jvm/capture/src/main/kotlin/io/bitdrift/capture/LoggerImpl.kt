@@ -47,6 +47,7 @@ import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.threading.CaptureDispatchers
@@ -83,7 +84,12 @@ internal class LoggerImpl(
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    private val fatalIssueReporter: IFatalIssueReporter?,
+    private val fatalIssueReporter: IFatalIssueReporter? =
+        if (configuration.enableFatalIssueReporting) {
+            FatalIssueReporter(configuration.enableNativeCrashReporting)
+        } else {
+            null
+        },
 ) : ILogger,
     ICompletedReportsProcessor {
     private val metadataProvider: MetadataProvider
@@ -249,7 +255,7 @@ internal class LoggerImpl(
                 runtime,
                 errorHandler,
                 memoryMetricsProvider = memoryMetricsProvider,
-                fatalIssueReporter = fatalIssueReporter,
+                isFatalIssueReporterEnabled = configuration.enableFatalIssueReporting,
             )
 
         // Install the app exit logger before the Capture logger is started to ensure
@@ -258,6 +264,9 @@ internal class LoggerImpl(
         appExitLogger.installAppExitLogger()
 
         CaptureJniLibrary.startLogger(this.loggerId)
+
+        // fatal issue reporter needs to be initialized after appExitLogger and the jniLogger
+        fatalIssueReporter?.initBuiltInMode(context, clientAttributes, this)
     }
 
     override fun processCrashReports() {

@@ -9,9 +9,8 @@ package io.bitdrift.capture
 
 import android.content.Context
 import android.util.Log
-import androidx.lifecycle.ProcessLifecycleOwner
+import io.bitdrift.capture.Capture.Logger.startSpan
 import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
-import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
@@ -21,8 +20,6 @@ import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueReporterFactory
-import io.bitdrift.capture.reports.IFatalIssueReporter
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -108,9 +105,10 @@ object Capture {
          * @return the version as a String
          */
         @JvmStatic
-        val sdkVersion: String get() {
-            return BuildConstants.SDK_VERSION
-        }
+        val sdkVersion: String
+            get() {
+                return BuildConstants.SDK_VERSION
+            }
 
         /**
          * Initializes the Capture SDK with the specified API key, providers, and configuration.
@@ -152,6 +150,8 @@ object Capture {
             )
         }
 
+        // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
+        // while subsequent logger access relies on volatile reads.
         @Synchronized
         @JvmStatic
         @JvmOverloads
@@ -165,9 +165,6 @@ object Capture {
             bridge: IBridge,
             context: Context? = null,
         ) {
-            // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
-            // while subsequent logger access relies on volatile reads.
-
             // There's nothing we can do if we don't have yet access to the application context.
             if (hasInvalidContext(context)) {
                 Log.w(
@@ -514,18 +511,10 @@ object Capture {
 
             val appContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
 
-            val clientAttributes =
-                ClientAttributes(
-                    appContext,
-                    ProcessLifecycleOwner.get(),
-                )
-
             val nativeLoadDuration =
                 measureTime {
                     CaptureJniLibrary.load()
                 }
-
-            val fatalIssueReporter: IFatalIssueReporter? = FatalIssueReporterFactory.create(configuration)
 
             val (loggerImpl, loggerImplBuildDuration) =
                 measureTimedValue {
@@ -533,19 +522,15 @@ object Capture {
                         apiKey = apiKey,
                         apiUrl = apiUrl,
                         context = appContext,
-                        clientAttributes = clientAttributes,
                         fieldProviders = fieldProviders,
                         dateProvider = dateProvider ?: SystemDateProvider(),
                         configuration = configuration,
                         sessionStrategy = sessionStrategy,
                         bridge = bridge,
-                        fatalIssueReporter = fatalIssueReporter,
                     )
                 }
 
             default.set(LoggerState.Started(loggerImpl))
-
-            fatalIssueReporter?.initBuiltInMode(appContext, clientAttributes, loggerImpl)
 
             val sdkConfiguredDuration =
                 SdkConfiguredDuration(
