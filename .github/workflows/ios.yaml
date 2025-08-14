@@ -96,6 +96,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Select Xcode version
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          xcodebuild -version
+
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
       - name: Run iOS tests (tsan)
