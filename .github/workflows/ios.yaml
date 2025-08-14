@@ -79,18 +79,13 @@ jobs:
       - run: ./bazelw run --config ci //examples/swift/hello_world:ios_app &> /tmp/envoy.log &
         name: "Run app"
   macos_tsan:
-    runs-on: macos-15
+    runs-on: macos-14
     needs: "pre_check"
     if: needs.pre_check.outputs.should_run == 'true'
     steps:
       # Checkout repo to Github Actions runner
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Select Xcode version
-        run: |
-          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
-          xcodebuild -version
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
