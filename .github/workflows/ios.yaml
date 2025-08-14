@@ -15,8 +15,8 @@ jobs:
     steps:
       - name: Check installed Simulator runtimes
         run: |
-          xcrun simctl list -j runtimes "iOS 18.4"
           xcrun simctl list -j runtimes
+          xcrun simctl list -j runtimes "iOS 18.4"
 
   pre_check:
     name: pre_check
