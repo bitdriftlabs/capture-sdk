@@ -7,7 +7,7 @@
 
 package io.bitdrift.capture.events.lifecycle
 
-import io.bitdrift.capture.IEventsListenerTarget
+import io.bitdrift.capture.IEventSubscriber
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.events.SafeEventListenerLogger
 
@@ -15,7 +15,7 @@ import io.bitdrift.capture.events.SafeEventListenerLogger
  * A wrapper around platform event listeners that subscribe to various system notifications
  * and emit Capture out-of-the-box in response to them.
  */
-internal class EventsListenerTarget : IEventsListenerTarget {
+internal class EventSubscriber : IEventSubscriber {
     private var listeners: MutableList<IEventListenerLogger> = mutableListOf()
 
     fun add(eventListener: IEventListenerLogger) {

@@ -52,7 +52,7 @@
    public <methods>;
 }
 
--keep, includedescriptorclasses class io.bitdrift.capture.IEventsListenerTarget {
+-keep, includedescriptorclasses class io.bitdrift.capture.IEventSubscriber {
    public <methods>;
 }
 

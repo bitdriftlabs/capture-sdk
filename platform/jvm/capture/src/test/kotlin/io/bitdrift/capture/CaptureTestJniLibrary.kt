@@ -89,7 +89,7 @@ object CaptureTestJniLibrary {
     external fun runSessionReplayTargetTest(target: Any)
 
     // Runs events listener target test.
-    external fun runEventsListenerTargetTest(target: Any)
+    external fun runEventSubscriberTest(target: Any)
 
     // Issues a runtime update causing the specified feature to be marked as disabled.
     external fun disableRuntimeFeature(

@@ -28,7 +28,7 @@ import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.events.device.DeviceStateListenerLogger
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.AppLifecycleListenerLogger
-import io.bitdrift.capture.events.lifecycle.EventsListenerTarget
+import io.bitdrift.capture.events.lifecycle.EventSubscriber
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
 import io.bitdrift.capture.events.performance.JankStatsMonitor
@@ -106,7 +106,7 @@ internal class LoggerImpl(
     private val sessionUrlBase: HttpUrl
 
     private val resourceUtilizationTarget: ResourceUtilizationTarget
-    private val eventsListenerTarget = EventsListenerTarget()
+    private val eventSubscriber = EventSubscriber()
 
     private val sessionReplayTarget: SessionReplayTarget?
 
@@ -189,14 +189,14 @@ internal class LoggerImpl(
                 sessionStrategy.createSessionStrategyConfiguration { appExitSaveCurrentSessionId(it) },
                 metadataProvider,
                 // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
-                //  and `eventsListenerTarget` as part of `startLogger` method call instead.
+                //  and `eventSubscriber` as part of `startLogger` method call instead.
                 // Pass the event listener target here and finish setting up
                 // before the logger is actually started.
                 resourceUtilizationTarget,
                 sessionReplayTarget,
                 // Pass the event listener target here and finish setting up
                 // before the logger is actually started.
-                eventsListenerTarget,
+                eventSubscriber,
                 clientAttributes.appId,
                 clientAttributes.appVersion,
                 deviceAttributes.model(),
@@ -215,7 +215,7 @@ internal class LoggerImpl(
         diskUsageMonitor.runtime = runtime
         memoryMetricsProvider.runtime = runtime
 
-        eventsListenerTarget.add(
+        eventSubscriber.add(
             AppLifecycleListenerLogger(
                 this,
                 ProcessLifecycleOwner.get(),
@@ -225,7 +225,7 @@ internal class LoggerImpl(
             ),
         )
 
-        eventsListenerTarget.add(
+        eventSubscriber.add(
             DeviceStateListenerLogger(
                 this,
                 context,
@@ -236,7 +236,7 @@ internal class LoggerImpl(
             ),
         )
 
-        eventsListenerTarget.add(
+        eventSubscriber.add(
             AppUpdateListenerLogger(
                 this,
                 clientAttributes,
@@ -603,7 +603,7 @@ internal class LoggerImpl(
                     errorHandler,
                 )
             jankStatsMonitor?.let {
-                eventsListenerTarget.add(it)
+                eventSubscriber.add(it)
             }
         } else {
             errorHandler.handleError("Couldn't start JankStatsMonitor. Invalid application provided")

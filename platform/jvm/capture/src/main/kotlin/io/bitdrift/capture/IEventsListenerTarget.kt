@@ -11,7 +11,7 @@ package io.bitdrift.capture
  * Responsible for managing event listeners that emit out-of-the-box logs in response
  * to various system notifications and events.
  */
-interface IEventsListenerTarget {
+interface IEventSubscriber {
     /**
      * Starts the event listener, giving it an opportunity to subscribe to notifications
      * and system events.
