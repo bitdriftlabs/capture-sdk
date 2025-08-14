@@ -231,7 +231,7 @@ public final class Logger {
 
         self.deviceCodeController = DeviceCodeController(client: client)
 
-        #if false //targetEnvironment(simulator)
+        #if targetEnvironment(simulator)
         Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
         #else
         Logger.issueReporterInitResult = measureTime {
@@ -239,7 +239,6 @@ public final class Logger {
                 return .initialized(.missingReportsDirectory)
             }
             if configuration.enableFatalIssueReporting {
-                
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
                 let reporter = DiagnosticEventReporter(
                     outputDir: outputDir,
