@@ -7,6 +7,7 @@
 
 #import "DiagnosticEventReporter.h"
 #import "bd-report-writer/ffi.h"
+#import "BitdriftKSCrashWrapper.h"
 
 #import <mach/exception_types.h>
 #include <stdlib.h>
@@ -202,6 +203,7 @@ static void serialize_error_threads(BDProcessorHandle handle, NSDictionary *cras
 
   for (uint32_t thread_index = 0; thread_index < call_stacks.count; thread_index++) {
     NSDictionary *thread = call_stacks[thread_index];
+    NSString *threadName = string_for_key(thread, @"name");
     NSDictionary *frame = thread_root_frame(thread);
     uint64_t frame_count = count_frames(frame);
     if (frame_count == 0 && thread_index != crashed_index) {
@@ -244,11 +246,10 @@ static void serialize_error_threads(BDProcessorHandle handle, NSDictionary *cras
       frame = [array_for_key(frame, @"subFrames") firstObject];
       frame_index++;
     }
+    BDThread bdthread = { .index = thread_index, .quality_of_service = -1, .name = cstring_from(threadName) };
+    bdrw_add_thread(handle, [call_stacks count], &bdthread, frame_index, stack);
     if (thread_index == crashed_index) {
       bdrw_add_error(handle, cstring_from(name), cstring_from(reason), 0, frame_index, stack);
-    } else {
-      BDThread thread = { .index = thread_index, .quality_of_service = -1 };
-      bdrw_add_thread(handle, [call_stacks count], &thread, frame_index, stack);
     }
     free(stack);
   }
@@ -339,7 +340,8 @@ static ReportType serialize_diagnostic(BDProcessorHandle handle, NSString *sdk_v
     bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(sdk_version));
     NSString *name = is_hang ? DEFAULT_HANG_NAME : name_for_crash(crash);
     NSString *reason = reason_for_crash(crash, name);
-    serialize_error_threads(handle, event.dictionaryRepresentation, name, reason, FrameOrderInnerToOuter);
+    NSDictionary *dictReport = [BitdriftKSCrashWrapper enhancedMetricKitReport:event.dictionaryRepresentation];
+    serialize_error_threads(handle, dictReport, name, reason, FrameOrderInnerToOuter);
   } else if ([event isKindOfClass:[MXHangDiagnostic class]]) {
     report_type = ReportTypeAppNotResponding;
     bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(sdk_version));
