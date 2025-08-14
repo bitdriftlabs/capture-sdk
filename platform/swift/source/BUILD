@@ -39,6 +39,7 @@ swift_library(
     private_deps = [
         ":CapturePassable",
         ":objc_bridge",
+        ":bitdrift_enhanced_crash_data",
     ],
     tags = [
         "macos_only",
@@ -81,11 +82,13 @@ objc_library(
     name = "objc_bridge",
     srcs = [
         "ObjCWrapper.mm",
+        "reports/BitdriftKSCrashWrapper.m",
         "reports/DiagnosticEventReporter.m",
     ],
     hdrs = [
         "CaptureRustBridge.h",
         "ObjCWrapper.h",
+        "reports/BitdriftKSCrashWrapper.h",
         "reports/DiagnosticEventReporter.h",
         "reports/bd-report-writer/ffi.h",
     ],
@@ -93,6 +96,28 @@ objc_library(
     tags = ["macos_only"],
     visibility = ["//visibility:public"],
     deps = [
+        ":CapturePassable",
+        ":swift_bridge",
+    ],
+)
+
+objc_library(
+    name = "bitdrift_enhanced_crash_data",
+    srcs = [
+        "crash_handler/BitdriftKSCrashHandler.m",
+        "crash_handler/ReportWriter.c",
+    ],
+    hdrs = [
+        "crash_handler/bd-bonjson/ffi.h",
+        "crash_handler/BitdriftKSCrashHandler.h",
+        "crash_handler/ReportContext.h",
+        "crash_handler/ReportWriter.h",
+    ],
+    module_name = "BitdriftEnhancedCrashData",
+    tags = ["macos_only"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@kscrash//:kscrash_mini",
         ":CapturePassable",
         ":swift_bridge",
     ],

@@ -363,6 +363,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bd-bonjson"
+version = "1.0.0"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6883b9e854cb95aeed3b6ae65257e08dce51f4fd#6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
+dependencies = [
+ "cbindgen",
+ "libc",
+ "log",
+]
+
+[[package]]
 name = "bd-bounded-buffer"
 version = "1.0.0"
 source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6883b9e854cb95aeed3b6ae65257e08dce51f4fd#6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
@@ -2693,7 +2703,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2706,7 +2716,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.9.4",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2961,6 +2971,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bd-api",
+ "bd-bonjson",
  "bd-client-common",
  "bd-device",
  "bd-key-value",
@@ -3021,7 +3032,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix 1.0.7",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3620,7 +3631,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
