@@ -15,6 +15,7 @@ jobs:
     steps:
       - name: Check installed Simulator runtimes
         run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
           xcrun simctl list -j runtimes
           xcrun simctl list -j runtimes "iOS 18.4"
 
