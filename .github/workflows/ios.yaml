@@ -11,7 +11,7 @@ concurrency:
 jobs:
   pre_pre_check:
     name: pre_pre_check
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Check installed Simulator runtimes
         run: |
