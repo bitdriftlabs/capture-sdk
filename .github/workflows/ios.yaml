@@ -14,7 +14,7 @@ jobs:
     runs-on: macos-14
     steps:
       - name: Check installed Simulator runtimes
-        run:
+        run: |
           xcrun simctl list -j runtimes "iOS 18.4"
           xcrun simctl list -j runtimes
 
