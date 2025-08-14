@@ -86,66 +86,6 @@ jobs:
         with:
           name: Capture.android.zip
           path: ./dist/Capture.android.zip
-  # Builds libcapture.so targeting Linux, to support instant-android using the .aar on Linux CI machines.
-  build-android-linux-so:
-    name: Linux x86_64 libcapture.so
-    # Running on ubuntu-latest builds againt a glibc that is more modern than what
-    # instant-android uses in CI, causing a load error. Use 20.04 to link against a compatible
-    # glibc.
-    runs-on: ubuntu-latest
-    needs: ["verify-version"]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.sha }}
-      - name: Install Clang
-        run: sudo apt-get install -y clang
-
-      - name: build
-        run: ./ci/create_linux_java_so.sh
-      - uses: actions/upload-artifact@v4
-        with:
-          name: libcapture.so
-          path: ./bazel-bin/platform/jvm/libcapture.so
-  # Builds libcapture.dylib targeting macos arm64, to support instant-android using the .aar on arm64 Macs.
-  build-android-macos-arm64:
-    name: arm64 libcapture.dylib
-    runs-on: macos-15
-    needs: ["verify-version"]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.sha }}
-      - name: 'Update the content of platform/shared/.sdk_version'
-        run: echo "${{ inputs.version }}" > platform/shared/.sdk_version
-      - name: 'Install dependencies'
-        run: ./ci/mac_ci_setup.sh
-      - name: build
-        run: ./bazelw build --announce_rc --config=ci --config=release-common --cpu=darwin_arm64 --platforms @build_bazel_apple_support//platforms:macos_arm64 //platform/jvm:capture && cp bazel-bin/platform/jvm/libcapture.dylib libcapture.dylib.arm64
-      - uses: actions/upload-artifact@v4
-        with:
-          name: libcapture.dylib.arm64
-          path: libcapture.dylib.arm64
-  # Builds libcapture.dylib targeting macos x86_64, to support instant-android using the .aar on arm64 Macs.
-  build-android-macos-x86_64:
-    name: x86_64 libcapture.dylib
-    runs-on: macos-15
-    needs: ["verify-version"]
-    steps:
-      # Checkout repo to Github Actions runner
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.sha }}
-      - name: 'Update the content of platform/shared/.sdk_version'
-        run: echo "${{ inputs.version }}" > platform/shared/.sdk_version
-      - name: 'Install dependencies'
-        run: ./ci/mac_ci_setup.sh
-      - name: build
-        run: ./bazelw build --announce_rc --config=ci --config=release-common --cpu=darwin_x86_64 //platform/jvm:capture && cp bazel-bin/platform/jvm/libcapture.dylib libcapture.dylib.x86_64
-      - uses: actions/upload-artifact@v4
-        with:
-          name: libcapture.dylib.x86_64
-          path: libcapture.dylib.x86_64
   build-android-example-apps:
     needs: ["verify-version"]
     permissions:
@@ -172,9 +112,6 @@ jobs:
       "ios-release-build",
       "build-ios-example-apps",
       "android-release-build",
-      "build-android-linux-so",
-      "build-android-macos-x86_64",
-      "build-android-macos-arm64",
       "build-android-example-apps",
       "build-android-integrations",
     ]
@@ -187,18 +124,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Capture.android.zip
-      - name: Download Android Capture .so
-        uses: actions/download-artifact@v4
-        with:
-          name: libcapture.so
-      - name: Download Android Capture .dylib.arm64
-        uses: actions/download-artifact@v4
-        with:
-          name: libcapture.dylib.arm64
-      - name: Download Android Capture .dylib.x86_64
-        uses: actions/download-artifact@v4
-        with:
-          name: libcapture.dylib.x86_64
       - name: Download Android Example Apps
         uses: actions/download-artifact@v4
         with:

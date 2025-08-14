@@ -34,11 +34,11 @@ function generate_maven_file() {
 
   echo "+++ Generating maven-metadata.xml for '$location'"
 
-  releases=$(aws s3 ls "$location/" \
-    | grep -v 'maven-metadata.xml' \
-    | grep -v 'io.bitdrift' \
-    | awk '{print $2}' \
-    | sed 's/^\///;s/\/$//')
+  releases=$(aws s3 ls "$location/" |
+    grep -v 'maven-metadata.xml' |
+    grep -v 'io.bitdrift' |
+    awk '{print $2}' |
+    sed 's/^\///;s/\/$//')
 
   python3 "$sdk_repo/ci/generate_maven_metadata.py" --releases "${releases//$'\n'/,}" --library "library_name"
 
@@ -53,33 +53,31 @@ function release_capture_sdk() {
 
   # We get a zip containing:
   #  * the artifacts named per Maven conventions
-  #  * .tar symbols file containing symbols for the stripped release shared libraries.
-  #  * shared dylib libraries
+  #  * .tar symbols file containing symbols for the release build (e.g., for the .aar).
 
   pushd "$(mktemp -d)"
-    unzip -o "$sdk_repo/$capture_archive"
+  unzip -o "$sdk_repo/$capture_archive"
 
-    echo "+++ Uploading artifacts to s3 bucket"
+  echo "+++ Uploading artifacts to s3 bucket"
 
-    local -r remote_location_prefix="$remote_location_root_prefix/capture"
-    local -r name="capture-$version"
+  local -r remote_location_prefix="$remote_location_root_prefix/capture"
+  local -r name="capture-$version"
 
-    files=(\
-      "$sdk_repo/ci/LICENSE.txt" \
-      "$sdk_repo/ci/NOTICE.txt" \
-      "$name.pom" \
-      "$name-javadoc.jar" \
-      "$name-sources.jar" \
-      "$name-symbols.tar" \
-      "$name-dylib.tar" \
-      "$name.aar" \
-    )
+  files=(
+    "$sdk_repo/ci/LICENSE.txt"
+    "$sdk_repo/ci/NOTICE.txt"
+    "$name.pom"
+    "$name-javadoc.jar"
+    "$name-sources.jar"
+    "$name-symbols.tar"
+    "$name.aar"
+  )
 
-    for file in "${files[@]}"; do
-      upload_file "$remote_location_prefix/$version" "$file"
-    done
+  for file in "${files[@]}"; do
+    upload_file "$remote_location_prefix/$version" "$file"
+  done
 
-    generate_maven_file "$remote_location_prefix" "capture"
+  generate_maven_file "$remote_location_prefix" "capture"
   popd
 }
 
@@ -92,16 +90,16 @@ function release_gradle_library() {
   local -r remote_location_prefix="$remote_location_root_prefix/$library_name"
 
   pushd "$(mktemp -d)"
-    unzip -o "$sdk_repo/$archive"
-    
-    # Update the per-version files
-    aws s3 cp "$sdk_repo/ci/LICENSE.txt" "$remote_location_prefix/$version/LICENSE.txt" --region us-east-1
-    aws s3 cp "$sdk_repo/ci/NOTICE.txt" "$remote_location_prefix/$version/NOTICE.txt" --region us-east-1
+  unzip -o "$sdk_repo/$archive"
 
-    # Upload all the files in the zip
-    aws s3 cp . "$remote_location_prefix/$version/" --recursive --region us-east-1
+  # Update the per-version files
+  aws s3 cp "$sdk_repo/ci/LICENSE.txt" "$remote_location_prefix/$version/LICENSE.txt" --region us-east-1
+  aws s3 cp "$sdk_repo/ci/NOTICE.txt" "$remote_location_prefix/$version/NOTICE.txt" --region us-east-1
 
-    generate_maven_file "$remote_location_prefix" "$library_name"
+  # Upload all the files in the zip
+  aws s3 cp . "$remote_location_prefix/$version/" --recursive --region us-east-1
+
+  generate_maven_file "$remote_location_prefix" "$library_name"
   popd
 }
 
@@ -115,15 +113,15 @@ function release_gradle_plugin() {
   local -r remote_location_prefix="$remote_location_root_prefix/$plugin_name/$plugin_marker"
 
   pushd "$(mktemp -d)"
-    unzip -o "$sdk_repo/$archive"
+  unzip -o "$sdk_repo/$archive"
 
-    aws s3 cp "$sdk_repo/ci/LICENSE.txt" "$remote_location_prefix/$version/LICENSE.txt" --region us-east-1
-    aws s3 cp "$sdk_repo/ci/NOTICE.txt" "$remote_location_prefix/$version/NOTICE.txt" --region us-east-1
+  aws s3 cp "$sdk_repo/ci/LICENSE.txt" "$remote_location_prefix/$version/LICENSE.txt" --region us-east-1
+  aws s3 cp "$sdk_repo/ci/NOTICE.txt" "$remote_location_prefix/$version/NOTICE.txt" --region us-east-1
 
-    aws s3 cp . "$remote_location_prefix/$version/" --recursive --region us-east-1
+  aws s3 cp . "$remote_location_prefix/$version/" --recursive --region us-east-1
 
-    generate_maven_file "$remote_location_prefix" "$plugin_marker"
-    popd
+  generate_maven_file "$remote_location_prefix" "$plugin_marker"
+  popd
 }
 
 release_capture_sdk
