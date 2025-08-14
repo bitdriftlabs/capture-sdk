@@ -9,6 +9,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 jobs:
+  pre_pre_check:
+    name: pre_pre_check
+    runs-on: macos-14
+    steps:
+      - name: Check installed Simulator runtimes
+        run:
+          xcrun simctl list runtimes -j runtimes "iOS 18.4"
+
   pre_check:
     name: pre_check
     runs-on: ubuntu-latest
