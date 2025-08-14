@@ -194,7 +194,6 @@ pub(crate) unsafe fn copy_from_objc(ptr: *const Object) -> anyhow::Result<Value>
       WorkItem::InsertDictValue { key_str, value_id, map_id } => {
         let value = results.remove(&value_id).unwrap();
         if let Some(Value::Object(ref mut map)) = results.get_mut(&map_id) {
-          println!("Inserting into map: {} -> {:?}", key_str, value);
           map.insert(key_str, value);
         }
       },
@@ -202,7 +201,6 @@ pub(crate) unsafe fn copy_from_objc(ptr: *const Object) -> anyhow::Result<Value>
       WorkItem::InsertArrayValue { value_id, array_id } => {
         let value = results.remove(&value_id).unwrap();
         if let Some(Value::Array(ref mut vec)) = results.get_mut(&array_id) {
-          println!("Inserting into array: {:?}", value);
           // Push to maintain order (items are processed in reverse due to stack)
           vec.push(value);
         }
@@ -211,14 +209,12 @@ pub(crate) unsafe fn copy_from_objc(ptr: *const Object) -> anyhow::Result<Value>
       WorkItem::FinalizeDictionary { map_id, result_id } => {
         // Move the completed map to the final result
         let final_map = results.remove(&map_id).unwrap();
-        println!("Finalizing dictionary: {:?}", final_map);
         results.insert(result_id, final_map);
       },
       
       WorkItem::FinalizeArray { array_id, result_id } => {
         // Move the completed array to the final result
         let final_array = results.remove(&array_id).unwrap();
-        println!("Finalizing array: {:?}", final_array);
         results.insert(result_id, final_array);
       },
     }
