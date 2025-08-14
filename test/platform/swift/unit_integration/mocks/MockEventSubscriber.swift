@@ -7,7 +7,7 @@
 
 @testable import CaptureLoggerBridge
 
-public final class MockEventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget {
+public final class MockEventSubscriber: CaptureLoggerBridge.EventSubscriber {
     public init() {}
 
     public func start() {}
