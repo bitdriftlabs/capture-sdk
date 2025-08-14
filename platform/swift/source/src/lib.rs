@@ -16,3 +16,4 @@ pub mod resource_utilization;
 mod session;
 pub mod session_replay;
 pub mod conversion;
+pub mod conversion_tests;

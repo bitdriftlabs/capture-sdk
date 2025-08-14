@@ -139,7 +139,7 @@ pub(crate) unsafe fn copy_from_objc(ptr: *const Object) -> anyhow::Result<Value>
               result_id,
             });
             
-            // Process array items in reverse order to maintain correct order
+            // Process array items in reverse order to maintain correct order with stack
             for i in (0..count).rev() {
               let item: *const Object = msg_send![ptr, objectAtIndex: i];
               let value_id = get_next_id();
@@ -200,8 +200,8 @@ pub(crate) unsafe fn copy_from_objc(ptr: *const Object) -> anyhow::Result<Value>
         let value = results.remove(&value_id).unwrap();
         if let Some(Value::Array(ref mut vec)) = results.get_mut(&array_id) {
           println!("Inserting into array: {:?}", value);
-          // Insert at the beginning to maintain order (since we processed in reverse)
-          vec.insert(0, value);
+          // Push to maintain order (items are processed in reverse due to stack)
+          vec.push(value);
         }
       },
       
@@ -324,7 +324,7 @@ pub(crate) unsafe fn value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
                 result_id,
               });
               
-              // Process array items in reverse order to maintain correct order
+              // Process array items in reverse order to maintain correct order with stack
               for (_i, item) in arr.iter().enumerate().rev() {
                 let value_id = get_next_id();
                 
@@ -514,7 +514,7 @@ pub(crate) unsafe fn copy_from_objc1(ptr: *const Object) -> anyhow::Result<Value
             let vec_key = get_next_key();
             results.insert(vec_key.clone(), Value::Array(Vec::with_capacity(count)));
             
-            // Process array items in reverse order to maintain correct order
+            // Process array items in reverse order to maintain correct order with stack
             for i in (0..count).rev() {
               let item: *const Object = msg_send![ptr, objectAtIndex: i];
               let value_key = get_next_key();
@@ -571,8 +571,8 @@ pub(crate) unsafe fn copy_from_objc1(ptr: *const Object) -> anyhow::Result<Value
       WorkItem::InsertArrayValue { value_key, vec_key } => {
         let value = results.remove(&value_key).unwrap();
         if let Some(Value::Array(ref mut vec)) = results.get_mut(&vec_key) {
-          // Insert at the beginning to maintain order (since we processed in reverse)
-          vec.insert(0, value);
+          // Push to maintain order (items are processed in reverse due to stack)
+          vec.push(value);
         }
       },
     }
