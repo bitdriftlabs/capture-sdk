@@ -85,8 +85,6 @@ build:release-android --linkopt=-Wl,--pack-dyn-relocs=android
 # build:release-android --linkopt=-Wl,--use-android-relr-tags
 
 # Custom iOS release configuration
-build:force-xcode-version --ios_simulator_device="iPhone 16"
-build:force-xcode-version --ios_simulator_version=18.4
 build:force-xcode-version --xcode_version=16.2
 build:release-ios --config=release-common --config=force-xcode-version
 
