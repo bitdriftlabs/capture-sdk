@@ -183,6 +183,9 @@ pub(crate) unsafe fn copy_from_objc(ptr: *const Object) -> anyhow::Result<Value>
           };
           results.insert(result_id, value);
         }
+        else if msg_send![ptr, isKindOfClass: class!(NSNull)] {
+          results.insert(result_id, Value::Null);
+        }
         else {
           anyhow::bail!("Unsupported Objective-C type for conversion: {:?}", class_name_as_string(ptr));
         }
@@ -555,6 +558,9 @@ pub(crate) unsafe fn copy_from_objc1(ptr: *const Object) -> anyhow::Result<Value
         else if msg_send![ptr, isKindOfClass: class!(NSString)] {
           let string: String = nsstring_into_string(ptr)?;
           results.insert(result_key, Value::String(string));
+        }
+        else if msg_send![ptr, isKindOfClass: class!(NSNull)] {
+          results.insert(result_key, Value::Null);
         }
         else {
           anyhow::bail!("Unsupported Objective-C type for conversion: {:?}", class_name_as_string(ptr));
