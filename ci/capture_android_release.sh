@@ -53,7 +53,7 @@ function release_capture_sdk() {
 
   # We get a zip containing:
   #  * the artifacts named per Maven conventions
-  #  * .tar symbols file containing symbols for the stripped release shared libraries.
+  #  * .tar symbols file containing symbols for the release build (e.g., for the .aar).
 
   pushd "$(mktemp -d)"
   unzip -o "$sdk_repo/$capture_archive"
