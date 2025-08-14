@@ -11,12 +11,8 @@ function prepare_capture_sdk() {
 
   pushd "$(mktemp -d)"
   local -r out_artifacts_dir="android-tmp"
-  readonly dylibs_dir="capture-$version-dylib"
 
   mkdir "$out_artifacts_dir"
-  mkdir "$dylibs_dir/"
-  mkdir "$dylibs_dir/darwin_arm64/"
-  mkdir "$dylibs_dir/darwin_x86_64/"
 
   echo "++ Unzipping Maven Android artifacts"
 
