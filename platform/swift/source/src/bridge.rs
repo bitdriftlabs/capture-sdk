@@ -11,6 +11,7 @@ mod bridge_tests;
 
 use crate::bridge::ffi::make_nsstring;
 use crate::ffi::nsstring_into_string;
+use crate::conversion;
 use crate::key_value_storage::UserDefaultsStorage;
 use crate::{events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
@@ -258,6 +259,41 @@ impl<W: StreamWriter> Drop for SwiftNetworkStream<W> {
     if *self.stream_state_rx.borrow() != State::Closed {
       self.stream_writer.shutdown();
     }
+  }
+}
+
+#[no_mangle]
+extern "C" fn check_dictionary(ptr: *const Object) {
+  let result = unsafe { conversion::copy_from_objc(ptr).unwrap() };
+  println!("### Converted dictionary:");
+  print_value(&result, 0);
+}
+
+fn print_value(value: &bd_bonjson::decoder::Value, indent: usize) {
+  let indent_str = "  ".repeat(indent);
+  
+  match value {
+    bd_bonjson::decoder::Value::String(s) => println!("{}String: \"{}\"", indent_str, s),
+    bd_bonjson::decoder::Value::Signed(n) => println!("{}Signed: {}", indent_str, n),
+    bd_bonjson::decoder::Value::Unsigned(n) => println!("{}Unsigned: {}", indent_str, n),
+    bd_bonjson::decoder::Value::Float(f) => println!("{}Float: {}", indent_str, f),
+    bd_bonjson::decoder::Value::Bool(b) => println!("{}Bool: {}", indent_str, b),
+    bd_bonjson::decoder::Value::Array(a) => {
+      println!("{}Array[{}]:", indent_str, a.len());
+      for (i, item) in a.iter().enumerate() {
+        println!("{}  [{}]:", indent_str, i);
+        print_value(item, indent + 2);
+      }
+    },
+    bd_bonjson::decoder::Value::Object(d) => {
+      println!("{}Object[{}]:", indent_str, d.len());
+      for (key, val) in d.iter() {
+        println!("{}  \"{}\":", indent_str, key);
+        print_value(val, indent + 2);
+      }
+    },
+    bd_bonjson::decoder::Value::Null => println!("{}Null", indent_str),
+    bd_bonjson::decoder::Value::None => println!("{}None", indent_str),
   }
 }
 

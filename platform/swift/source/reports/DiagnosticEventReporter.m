@@ -13,6 +13,8 @@
 #include <stdint.h>
 #import <signal.h>
 
+void check_dictionary(const NSDictionary *_Nullable dict);
+
 typedef NS_ENUM(int8_t, ReportType) {
   ReportTypeNone = 0,
   ReportTypeAppNotResponding = 1,
@@ -67,6 +69,23 @@ static const char *name_for_diagnostic_type(ReportType type);
     self.diagnosticTypes = types;
     self.completionHandler = completionHandler;
     [self setMinimumHangSeconds:seconds];
+//      NSLog(@"### Check dict");
+      check_dictionary(@{@"x":
+                             @[
+                                 @1,
+                                 @"abc",
+                                 @{
+                                     @"a": @"test",
+                                     @"b":
+                                        @[
+                                            @"t",
+                                            @"u",
+                                            @"v"
+                                        ],
+                                 }
+                             ],
+                         @"y": @1000,
+                       });
   }
   return self;
 }
@@ -76,7 +95,31 @@ static const char *name_for_diagnostic_type(ReportType type);
                                                                    unit:[NSUnitDuration baseUnit]];
 }
 
+- (void)checkDict:(id) obj {
+    NSLog(@"> %p", obj);
+    NSLog(@">> %p", [obj class]);
+    NSLog(@">>> %p", NSStringFromClass([obj class]));
+    NSLog(@">>> %@", NSStringFromClass([obj class]));
+    if ([obj isKindOfClass:NSDictionary.class]) {
+        NSLog(@">>>> dict");
+        NSDictionary *dict = (NSDictionary *)obj;
+        for (id key in dict.allKeys) {
+            [self checkDict:key];
+            [self checkDict:dict[key]];
+        }
+        NSLog(@">>>> end dict");
+    } else if ([obj isKindOfClass:NSArray.class]) {
+        NSLog(@">>>> array");
+        NSArray *array = (NSArray *)obj;
+        for (id value in array) {
+            [self checkDict:value];
+        }
+        NSLog(@">>>> end array");
+    }
+}
+
 - (void)didReceiveDiagnosticPayloads:(NSArray<MXDiagnosticPayload *> * _Nonnull)payloads API_AVAILABLE(ios(14.0), macos(12.0)) {
+    NSLog(@"####################################### %lu", (unsigned long)payloads.count);
   NSFileManager *fileManager = [NSFileManager defaultManager];
   if (![fileManager createDirectoryAtPath:[self.dir path] withIntermediateDirectories:YES attributes:0 error:nil]) {
     return;
@@ -86,12 +129,20 @@ static const char *name_for_diagnostic_type(ReportType type);
     NSTimeInterval timestamp = [payload.timeStampEnd timeIntervalSince1970];
     if ((self.diagnosticTypes & CAPDiagnosticTypeCrash) > 0) {
       for (MXCrashDiagnostic *event in payload.crashDiagnostics) {
+//          NSLog(@"MXCrashDiagnostic");
+//          [self checkDict:event.dictionaryRepresentation];
+//          NSLog(@"MXCrashDiagnostic DONE");
+//          check_dictionary(event.dictionaryRepresentation);
         [self processDiagnostic:event atTimestamp:timestamp];
       }
     }
 
     if ((self.diagnosticTypes & CAPDiagnosticTypeHang) > 0) {
       for (MXHangDiagnostic *event in payload.hangDiagnostics) {
+//          NSLog(@"MXHangDiagnostic");
+//          [self checkDict:event.dictionaryRepresentation];
+//          NSLog(@"MXHangDiagnostic DONE");
+//          check_dictionary(event.dictionaryRepresentation);
         NSMeasurement *duration = ((MXHangDiagnostic *)event).hangDuration;
         if ([duration measurementBySubtractingMeasurement:self.minimumHangDuration].doubleValue < 0) {
           continue;

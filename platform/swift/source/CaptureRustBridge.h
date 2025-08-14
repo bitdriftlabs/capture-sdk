@@ -12,6 +12,8 @@ typedef uintptr_t stream_id;
 
 NS_ASSUME_NONNULL_BEGIN
 
+void check_dictionary(const NSDictionary *_Nullable dict);
+
 /*
  * Reports an error to the bitdrift backend and log it to the console. Both reporting to remote and logging
  * to the console are throttled to protect against noisy errors.

@@ -231,7 +231,7 @@ public final class Logger {
 
         self.deviceCodeController = DeviceCodeController(client: client)
 
-        #if targetEnvironment(simulator)
+        #if false //targetEnvironment(simulator)
         Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
         #else
         Logger.issueReporterInitResult = measureTime {
@@ -239,6 +239,7 @@ public final class Logger {
                 return .initialized(.missingReportsDirectory)
             }
             if configuration.enableFatalIssueReporting {
+                
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
                 let reporter = DiagnosticEventReporter(
                     outputDir: outputDir,
@@ -372,6 +373,11 @@ public final class Logger {
     static func reportConfigPath() -> URL? {
         return captureSDKDirectory()?
             .appendingPathComponent("reports/config", isDirectory: false)
+    }
+
+    static func reportCrashesDirectory() -> URL? {
+        return captureSDKDirectory()?
+            .appendingPathComponent("reports/crashes", isDirectory: true)
     }
 
     static func reportCollectionDirectory() -> URL? {

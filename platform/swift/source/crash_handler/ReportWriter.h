@@ -5,14 +5,16 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-#[macro_use]
-extern crate objc;
+#pragma once
 
-pub mod bridge;
-pub mod events;
-pub mod ffi;
-pub mod key_value_storage;
-pub mod resource_utilization;
-mod session;
-pub mod session_replay;
-pub mod conversion;
+#include "ReportContext.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+bool bitdrift_writeKSCrashReport(ReportContext *context);
+
+#ifdef __cplusplus
+}
+#endif
