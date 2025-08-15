@@ -5,7 +5,6 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-// use bd_bonjson::decoder::Value;
 use objc::runtime::Object;
 use crate::{conversion::{objc_value_to_rust, rust_value_to_objc}, ffi::nsstring_into_string};
 use std::fs;
@@ -13,14 +12,17 @@ use std::path::Path;
 use bd_bonjson::decoder::{decode_value, Value};
 use anyhow;
 
-/// Loads and parses a BonJSON document from the specified file path.
-/// 
-/// # Arguments
-/// * `path` - The file path to the BonJSON document
-/// 
-/// # Returns
-/// * `Ok(Value)` - The (possibly partially) decoded value
-/// * `Err(anyhow::Error)` - If the file cannot be read or parsed
+#[no_mangle]
+extern "C" fn enhance_metrickit_diagnostic_report(metrickit_report_ptr: *const Object, kscrash_report_path: *const Object) -> *const Object {
+    match enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr, kscrash_report_path) {
+        Ok(result_ptr) => result_ptr,
+        Err(e) => {
+            println!("Error in enhance_metrickit_diagnostic_report: {}", e);
+            metrickit_report_ptr // Return original on error
+        }
+    }
+}
+
 fn load_bonjson_document<P: AsRef<Path>>(path: P) -> anyhow::Result<Value> {
     let file_contents = fs::read(path)?;
     let decode_result = decode_value(&file_contents);
@@ -34,17 +36,6 @@ fn load_bonjson_document<P: AsRef<Path>>(path: P) -> anyhow::Result<Value> {
                 }
                 value => { Ok(value) }
             }
-        }
-    }
-}
-
-#[no_mangle]
-extern "C" fn enhance_metrickit_diagnostic_report(metrickit_report_ptr: *const Object, kscrash_report_path: *const Object) -> *const Object {
-    match enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr, kscrash_report_path) {
-        Ok(result_ptr) => result_ptr,
-        Err(e) => {
-            println!("Error in enhance_metrickit_diagnostic_report: {}", e);
-            metrickit_report_ptr // Return original on error
         }
     }
 }
@@ -123,7 +114,7 @@ fn enhance_report(metrickit_report: Value, kscrash_report: Value) -> anyhow::Res
     let named_threads = named_threads_from_kscrash_report(&kscrash_report);
     println!("### Found {} named threads:", named_threads.len());
     for thread in &named_threads {
-        println!("###   - {}: {} addresses, count: {}", thread.name, thread.stack_addresses.len(), thread.count);
+        println!("###   - {}: {} addresses, count: {}", thread.name, thread.call_stack.len(), thread.count);
     }
     
     println!("### ALL OK (Placeholder)");
@@ -212,7 +203,7 @@ fn named_threads_from_kscrash_report(kscrash_report: &Value) -> Vec<NamedThread>
                             // Create new NamedThread entry
                             named_threads.push(NamedThread {
                                 name: thread_name.clone(),
-                                stack_addresses,
+                                call_stack: stack_addresses,
                                 count: 1,
                             });
                         }
@@ -251,7 +242,7 @@ fn inject_thread_names_into_metrickit(mut metrickit_report: Value, named_threads
                 for call_stack in call_stacks.iter_mut() {
                     if let Value::Object(ref mut call_stack_obj) = call_stack {
                         // Extract addresses from this call stack
-                        let addresses = extract_addresses_from_metrickit_call_stack(call_stack_obj);
+                        let addresses = extract_call_stack_from_metrickit_thread(call_stack_obj);
                         
                         // Find matching named thread that hasn't exceeded its count limit
                         if let Some(matching_thread) = find_matching_thread_with_limit(&addresses, named_threads, &usage_counts) {
@@ -277,30 +268,30 @@ fn inject_thread_names_into_metrickit(mut metrickit_report: Value, named_threads
     metrickit_report
 }
 
-/// Extracts all addresses from a MetricKit call stack by traversing the subFrames tree
-fn extract_addresses_from_metrickit_call_stack(call_stack_obj: &std::collections::HashMap<String, Value>) -> Vec<u64> {
+fn extract_call_stack_from_metrickit_thread(thread: &std::collections::HashMap<String, Value>) -> Vec<u64> {
     let mut addresses = Vec::new();
     
-    println!("### Call stack keys: {:?}", call_stack_obj.keys().collect::<Vec<_>>());
+    println!("### Call stack keys: {:?}", thread.keys().collect::<Vec<_>>());
     
-    if let Some(Value::Array(root_frames)) = call_stack_obj.get("callStackRootFrames") {
+    if let Some(Value::Array(root_frames)) = thread.get("callStackRootFrames") {
         println!("### Found {} root frames", root_frames.len());
         for (i, root_frame) in root_frames.iter().enumerate() {
             println!("### Processing root frame {}", i);
             if let Value::Object(frame_obj) = root_frame {
-                extract_addresses_from_frame(frame_obj, &mut addresses);
+                extract_call_stack_from_metrickit_frame(frame_obj, &mut addresses);
             } else {
                 println!("### Root frame {} is not an object: {:?}", i, root_frame);
             }
         }
     } else {
         println!("### No callStackRootFrames found or it's not an array");
-        if let Some(root_frames_value) = call_stack_obj.get("callStackRootFrames") {
+        if let Some(root_frames_value) = thread.get("callStackRootFrames") {
             println!("### callStackRootFrames value: {:?}", root_frames_value);
         }
     }
     
-    // Remove the last entry from addresses
+    // MetricKit always has an extra frame at the root of the call stack,
+    // which is not part of the actual call stack, so remove it.
     if !addresses.is_empty() {
         addresses.pop();
     }
@@ -315,12 +306,12 @@ fn extract_addresses_from_metrickit_call_stack(call_stack_obj: &std::collections
 
 
 /// Recursively extracts addresses from a MetricKit frame and its subFrames
-fn extract_addresses_from_frame(frame_obj: &std::collections::HashMap<String, Value>, addresses: &mut Vec<u64>) {
+fn extract_call_stack_from_metrickit_frame(frame: &std::collections::HashMap<String, Value>, addresses: &mut Vec<u64>) {
     // Debug: Print all keys in the frame
-    println!("### Frame keys: {:?}", frame_obj.keys().collect::<Vec<_>>());
+    println!("### Frame keys: {:?}", frame.keys().collect::<Vec<_>>());
     
     // Extract address from current frame - try both Unsigned and Signed
-    if let Some(address_value) = frame_obj.get("address") {
+    if let Some(address_value) = frame.get("address") {
         println!("### Found address field: {:?}", address_value);
         match address_value {
             Value::Unsigned(address) => {
@@ -342,11 +333,11 @@ fn extract_addresses_from_frame(frame_obj: &std::collections::HashMap<String, Va
     }
     
     // Recursively process subFrames
-    if let Some(Value::Array(sub_frames)) = frame_obj.get("subFrames") {
+    if let Some(Value::Array(sub_frames)) = frame.get("subFrames") {
         println!("### Found {} subFrames", sub_frames.len());
         for sub_frame in sub_frames {
             if let Value::Object(sub_frame_obj) = sub_frame {
-                extract_addresses_from_frame(sub_frame_obj, addresses);
+                extract_call_stack_from_metrickit_frame(sub_frame_obj, addresses);
             }
         }
     } else {
@@ -354,24 +345,23 @@ fn extract_addresses_from_frame(frame_obj: &std::collections::HashMap<String, Va
     }
 }
 
-/// Finds a named thread whose addresses match the given call stack addresses
-#[allow(dead_code)]
-fn find_matching_thread<'a>(call_stack_addresses: &[u64], named_threads: &'a [NamedThread]) -> Option<&'a NamedThread> {
-    for named_thread in named_threads {
-        println!("### Checking thread: {} with {} entries", named_thread.name, named_thread.stack_addresses.len());
-        for addr in named_thread.stack_addresses.iter() {
-            println!("###### address: {:?}", addr);
-        }
-        println!("#### VS");
-        for addr in call_stack_addresses.iter() {
-            println!("###### address: {:?}", addr);
-        }
-        if addresses_match(call_stack_addresses, &named_thread.stack_addresses) {
-            return Some(named_thread);
-        }
-    }
-    None
-}
+// #[allow(dead_code)]
+// fn find_named_thread_with_call_stack<'a>(call_stack: &[u64], named_threads: &'a [NamedThread]) -> Option<&'a NamedThread> {
+//     for named_thread in named_threads {
+//         println!("### Checking thread: {} with {} entries", named_thread.name, named_thread.call_stack.len());
+//         for addr in named_thread.call_stack.iter() {
+//             println!("###### address: {:?}", addr);
+//         }
+//         println!("#### VS");
+//         for addr in call_stack.iter() {
+//             println!("###### address: {:?}", addr);
+//         }
+//         if addresses_match(call_stack, &named_thread.call_stack) {
+//             return Some(named_thread);
+//         }
+//     }
+//     None
+// }
 
 /// Finds a named thread whose addresses match the given call stack addresses,
 /// but only if the thread hasn't exceeded its usage count limit
@@ -390,9 +380,9 @@ fn find_matching_thread_with_limit<'a>(
         }
         
         println!("### Checking thread: {} with {} entries (usage: {}/{})", 
-               named_thread.name, named_thread.stack_addresses.len(), current_usage, named_thread.count);
+               named_thread.name, named_thread.call_stack.len(), current_usage, named_thread.count);
         
-        for addr in named_thread.stack_addresses.iter() {
+        for addr in named_thread.call_stack.iter() {
             println!("###### address: {:?}", addr);
         }
         println!("#### VS");
@@ -400,7 +390,7 @@ fn find_matching_thread_with_limit<'a>(
             println!("###### address: {:?}", addr);
         }
         
-        if addresses_match(call_stack_addresses, &named_thread.stack_addresses) {
+        if addresses_match(call_stack_addresses, &named_thread.call_stack) {
             return Some(named_thread);
         }
     }
@@ -421,9 +411,9 @@ fn addresses_match(metrickit_addresses: &[u64], kscrash_addresses: &[u64]) -> bo
     metrickit_addresses == kscrash_addresses
 }
 
-#[allow(dead_code)]
+// #[allow(dead_code)]
 struct NamedThread {
     name: String,
-    stack_addresses: Vec<u64>,
+    call_stack: Vec<u64>,
     count: usize,
 }
