@@ -31,7 +31,7 @@ public final class Logger {
     private(set) var sessionReplayTarget: SessionReplayTarget
     private(set) var dispatchSourceMemoryMonitor: DispatchSourceMemoryMonitor?
     private(set) var resourceUtilizationTarget: ResourceUtilizationTarget
-    private(set) var eventsListenerTarget: EventsListenerTarget
+    private(set) var eventsListenerTarget: EventSubscriber
 
     private let sessionURLBase: URL
 
@@ -165,7 +165,7 @@ public final class Logger {
             storageProvider: storageProvider,
             timeProvider: timeProvider
         )
-        self.eventsListenerTarget = EventsListenerTarget()
+        self.eventsListenerTarget = EventSubscriber()
 
         let sessionReplayTarget = SessionReplayTarget(configuration: configuration.sessionReplayConfiguration)
         self.sessionReplayTarget = sessionReplayTarget
