@@ -102,7 +102,7 @@ fn enhance_report(metrickit_report: Value, kscrash_report: Value) -> anyhow::Res
         return Ok(metrickit_report);
     };
     
-    let enhanced_metrickit = inject_thread_names_into_metrickit(metrickit_report, &named_threads);
+    let enhanced_metrickit = inject_thread_names_into_metrickit(metrickit_report, &named_threads)?;
     Ok(enhanced_metrickit)
 }
 
@@ -220,20 +220,20 @@ fn extract_stack_addresses_from_thread(thread: &std::collections::HashMap<String
 
 /// Injects thread names from KSCrash report into MetricKit report call stacks
 /// where the addresses match between the two reports.
-fn inject_thread_names_into_metrickit(mut metrickit_report: Value, named_threads: &[NamedThread]) -> Value {
+fn inject_thread_names_into_metrickit(mut metrickit_report: Value, named_threads: &[NamedThread]) -> anyhow::Result<Value> {
     // Track how many times each named thread has been matched
     let mut usage_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     
     let Value::Object(ref mut report_obj) = metrickit_report else {
-        return metrickit_report;
+        return Ok(metrickit_report);
     };
     
     let Some(Value::Object(ref mut call_stack_tree)) = report_obj.get_mut("callStackTree") else {
-        return metrickit_report;
+        return Ok(metrickit_report);
     };
     
     let Some(Value::Array(ref mut threads)) = call_stack_tree.get_mut("callStacks") else {
-        return metrickit_report;
+        return Ok(metrickit_report);
     };
     
     for thread in threads.iter_mut() {
@@ -241,7 +241,11 @@ fn inject_thread_names_into_metrickit(mut metrickit_report: Value, named_threads
             continue;
         };
         
-        let call_stack = extract_call_stack_from_metrickit_thread(thread_obj);
+        let call_stack = extract_call_stack_from_metrickit_thread(thread_obj)?;
+        
+        let Some(call_stack) = call_stack else {
+            continue;
+        };
         
         // Find a matching named thread that hasn't exceeded its count limit
         let Some(matching_thread) = find_matching_thread_with_limit(&call_stack, named_threads, &usage_counts) else {
@@ -257,21 +261,21 @@ fn inject_thread_names_into_metrickit(mut metrickit_report: Value, named_threads
         thread_obj.insert("name".to_string(), Value::String(thread_name));
     }
     
-    metrickit_report
+    Ok(metrickit_report)
 }
 
-fn extract_call_stack_from_metrickit_thread(thread: &std::collections::HashMap<String, Value>) -> Vec<u64> {
+fn extract_call_stack_from_metrickit_thread(thread: &std::collections::HashMap<String, Value>) -> anyhow::Result<Option<Vec<u64>>> {
     let Some(Value::Array(root_frames)) = thread.get("callStackRootFrames") else {
-        return Vec::new();
+        return Err(anyhow::anyhow!("MetricKit thread missing 'callStackRootFrames' array"));
     };
     
     // Assume callStackRootFrames contains only one call stack
     let Some(root_frame) = root_frames.first() else {
-        return Vec::new();
+        return Ok(None);
     };
     
     let Value::Object(frame_obj) = root_frame else {
-        return Vec::new();
+        return Ok(None);
     };
     
     let mut addresses = extract_call_stack_from_metrickit_frame(frame_obj);
@@ -282,7 +286,11 @@ fn extract_call_stack_from_metrickit_thread(thread: &std::collections::HashMap<S
         addresses.pop();
     }
 
-    addresses
+    if addresses.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(addresses))
+    }
 }
 
 
