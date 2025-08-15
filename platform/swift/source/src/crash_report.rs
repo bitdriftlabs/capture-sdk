@@ -33,14 +33,26 @@ fn enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr: *const Object,
         };
 
         let metrickit_report = match objc_value_to_rust(metrickit_report_ptr) {
-            Ok(v) => v,
+            Ok(v) => {
+                if matches!(v, Value::Object(_)) {
+                    v
+                } else {
+                    return Err(anyhow::anyhow!("MetricKit report is not a valid object/hashmap"));
+                }
+            },
             Err(e) => {
                 return Err(anyhow::anyhow!("Failed to convert metrickit_report_ptr to Rust Value: {e}"));
             },
         };
 
         let kscrash_report = match load_bonjson_document(path_str) {
-            Ok(value) => value,
+            Ok(v) => {
+                if matches!(v, Value::Object(_)) {
+                    v
+                } else {
+                    return Err(anyhow::anyhow!("KSCrash report is not a valid object/hashmap"));
+                }
+            },
             Err(e) => {
                 return Err(anyhow::anyhow!("Failed to load kscrash_report: {e}"));
             },
@@ -84,7 +96,10 @@ fn enhance_report(metrickit_report: Value, kscrash_report: Value) -> anyhow::Res
         return Ok(metrickit_report);
     }
     
-    let named_threads = named_threads_from_kscrash_report(&kscrash_report);
+    let Some(named_threads) = named_threads_from_kscrash_report(&kscrash_report) else {
+        return Ok(metrickit_report);
+    };
+    
     let enhanced_metrickit = inject_thread_names_into_metrickit(metrickit_report, &named_threads);
     Ok(enhanced_metrickit)
 }
@@ -114,15 +129,11 @@ fn diagnostic_metadata_matches_in_reports(report_a: &Value, report_b: &Value) ->
     }
 }
 
-fn named_threads_from_kscrash_report(kscrash_report: &Value) -> Vec<NamedThread> {
+fn named_threads_from_kscrash_report(kscrash_report: &Value) -> Option<Vec<NamedThread>> {
     let mut named_threads: Vec<NamedThread> = Vec::new();
-    
-    let Value::Object(report_obj) = kscrash_report else {
-        return named_threads;
-    };
-    
-    let Some(Value::Array(threads)) = report_obj.get("threads") else {
-        return named_threads;
+
+    let Some(Value::Array(threads)) = kscrash_report.get("threads") else {
+        return None;
     };
     
     for thread in threads {
@@ -150,7 +161,11 @@ fn named_threads_from_kscrash_report(kscrash_report: &Value) -> Vec<NamedThread>
         }
     }
     
-    named_threads
+    if named_threads.is_empty() {
+        None
+    } else {
+        Some(named_threads)
+    }
 }
 
 fn extract_stack_addresses_from_thread(thread_obj: &std::collections::HashMap<String, Value>) -> Vec<u64> {
