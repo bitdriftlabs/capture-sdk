@@ -74,6 +74,19 @@ android {
     // This needs to be set to access the strip tools to strip the shared libraries.
     ndkVersion = "27.2.12479018"
 
+    buildTypes {
+        debug {
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE" // Using this to reduce output .so size
+            }
+        }
+        release {
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
+        }
+    }
+
     // Run lint checks on every build
     applicationVariants.configureEach {
         val lintTask = tasks.named("lint${name.replaceFirstChar(Char::titlecase)}")
