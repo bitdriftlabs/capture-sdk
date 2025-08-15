@@ -11,7 +11,7 @@ import XCTest
 
 final class ResourceUtilizationTargetTest: XCTestCase {
     func testTargetDoesNotCrash() {
-        let target = ResourceUtilizationTarget(
+        let target = ResourceUtilizationController(
             storageProvider: MockStorageProvider(),
             timeProvider: MockTimeProvider()
         )

@@ -28,9 +28,9 @@ public final class Logger {
     private let remoteErrorReporter: RemoteErrorReporting
     private let deviceCodeController: DeviceCodeController
 
-    private(set) var sessionReplayTarget: SessionReplayTarget
+    private(set) var sessionReplayTarget: SessionReplayController
     private(set) var dispatchSourceMemoryMonitor: DispatchSourceMemoryMonitor?
-    private(set) var resourceUtilizationTarget: ResourceUtilizationTarget
+    private(set) var resourceUtilizationTarget: ResourceUtilizationController
     private(set) var eventsListenerTarget: EventSubscriber
 
     private let sessionURLBase: URL
@@ -139,7 +139,7 @@ public final class Logger {
             networkAttributes,
         ]
 
-        let metadataProvider = MetadataProvider(
+        let metadataProvider = MetadataProviderController(
             dateProvider: dateProvider ?? SystemDateProvider(),
             ootbFieldProviders: ootbFieldProviders,
             customFieldProviders: fieldProviders
@@ -161,13 +161,13 @@ public final class Logger {
             : nil
         self.network = network
 
-        self.resourceUtilizationTarget = ResourceUtilizationTarget(
+        self.resourceUtilizationTarget = ResourceUtilizationController(
             storageProvider: storageProvider,
             timeProvider: timeProvider
         )
         self.eventsListenerTarget = EventSubscriber()
 
-        let sessionReplayTarget = SessionReplayTarget(configuration: configuration.sessionReplayConfiguration)
+        let sessionReplayTarget = SessionReplayController(configuration: configuration.sessionReplayConfiguration)
         self.sessionReplayTarget = sessionReplayTarget
 
         guard let logger = loggerBridgingFactoryProvider.makeLogger(

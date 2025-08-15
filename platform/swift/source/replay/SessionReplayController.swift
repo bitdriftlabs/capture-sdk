@@ -9,7 +9,7 @@ internal import CapturePassable
 import Foundation
 import UIKit
 
-final class SessionReplayTarget {
+final class SessionReplayController {
     private let queue = DispatchQueue.serial(withLabelSuffix: "ReplayController", target: .default)
     private let replay: Replay = Replay()
 
@@ -22,7 +22,7 @@ final class SessionReplayTarget {
     }
 }
 
-extension SessionReplayTarget: CapturePassable.SessionReplayTarget {
+extension SessionReplayController: CapturePassable.SessionReplayTarget {
     func captureScreen() {
         DispatchQueue.main.async { [weak self] in
             let start = Uptime()

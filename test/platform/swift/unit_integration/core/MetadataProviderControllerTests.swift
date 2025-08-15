@@ -19,11 +19,11 @@ private struct FailingEncodable: Encodable {
     }
 }
 
-final class MetadataProviderTests: XCTestCase {
+final class MetadataProviderControllerTests: XCTestCase {
     func testReportsFieldsErrors() throws {
         let errorHandler = MockErrorHandler()
 
-        let provider = MetadataProvider(
+        let provider = MetadataProviderController(
             dateProvider: MockDateProvider(),
             ootbFieldProviders: [
                 MockFieldProvider {
@@ -51,7 +51,7 @@ final class MetadataProviderTests: XCTestCase {
     func testReportsCustomFieldsErrors() {
         let errorHandler = MockErrorHandler()
 
-        let provider = MetadataProvider(
+        let provider = MetadataProviderController(
             dateProvider: MockDateProvider(),
             ootbFieldProviders: [],
             customFieldProviders: [
