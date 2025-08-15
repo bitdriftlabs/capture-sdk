@@ -58,4 +58,4 @@ void run_resource_utilization_target_test(id<ResourceUtilizationTarget>);
 
 void run_session_replay_target_test(id<SessionReplayTarget>);
 
-void run_events_listener_target_test(id<EventSubscriber>);
+void run_events_listener_target_test(id<EventsListenerTarget>);

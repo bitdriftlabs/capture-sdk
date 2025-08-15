@@ -10,7 +10,7 @@ import CaptureMocks
 @testable import CaptureTestBridge
 import XCTest
 
-final class EventSubscriberTests: XCTestCase {
+final class EventsSubscriberTests: XCTestCase {
     func testEventSubscriberDoesNotCrash() {
         let listener = EventSubscriber()
         listener.setUp(

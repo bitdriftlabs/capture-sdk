@@ -39,7 +39,7 @@ final class EventSubscriber {
     }
 }
 
-extension EventSubscriber: CaptureLoggerBridge.EventSubscriber {
+extension EventSubscriber: EventsListenerTarget {
     func start() {
         self.listeners.update { $0.forEach { $0.start() } }
     }

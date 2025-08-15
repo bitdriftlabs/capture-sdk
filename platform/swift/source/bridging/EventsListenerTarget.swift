@@ -10,7 +10,7 @@ import Foundation
 /// Responsible for managing event listeners that emit out-of-the-box logs in response to
 /// various system notifications and events.
 @objc
-public protocol EventSubscriber {
+public protocol EventsListenerTarget {
     /// Starts the event listener, giving it an opportunity to subscribe to notifications
     /// and system events.
     func start()

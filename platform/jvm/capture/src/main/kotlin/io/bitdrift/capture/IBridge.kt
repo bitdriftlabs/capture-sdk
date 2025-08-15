@@ -19,7 +19,7 @@ internal interface IBridge {
         metadataProvider: IMetadataProvider,
         resourceUtilizationTarget: IResourceUtilizationTarget,
         sessionReplayTarget: ISessionReplayTarget,
-        eventSubscriber: IEventSubscriber,
+        eventsListenerTarget: IEventsListenerTarget,
         applicationId: String,
         applicationVersion: String,
         model: String,

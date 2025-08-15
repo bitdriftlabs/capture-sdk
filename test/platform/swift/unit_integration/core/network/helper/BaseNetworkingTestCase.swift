@@ -82,7 +82,7 @@ open class BaseNetworkingTestCase: XCTestCase {
                 metadataProvider: MockMetadataProvider(),
                 resourceUtilizationTarget: MockResourceUtilizationTarget(),
                 sessionReplayTarget: MockSessionReplayTarget(),
-                eventSubscriber: MockEventSubscriber(),
+                eventsListenerTarget: MockEventsListenerTarget(),
                 appID: "io.bitdrift.capture.test",
                 releaseVersion: "",
                 model: "",
