@@ -278,7 +278,6 @@ fn extract_call_stack_from_metrickit_thread(thread: &std::collections::HashMap<S
 
 /// Recursively extracts addresses from a MetricKit frame and its subFrames
 fn extract_call_stack_from_metrickit_frame(frame: &std::collections::HashMap<String, Value>, addresses: &mut Vec<u64>) {
-    // Extract address from current frame - try both Unsigned and Signed
     if let Some(address_value) = frame.get("address") {
         match address_value {
             Value::Unsigned(address) => {
@@ -317,25 +316,18 @@ fn find_matching_thread_with_limit<'a>(
             continue;
         }
         
-        if addresses_match(call_stack_addresses, &named_thread.call_stack) {
+        if call_stacks_match(call_stack_addresses, &named_thread.call_stack) {
             return Some(named_thread);
         }
     }
     None
 }
 
-/// Checks if two address sequences are an exact match
-fn addresses_match(metrickit_addresses: &[u64], kscrash_addresses: &[u64]) -> bool {
-    if metrickit_addresses.len() != kscrash_addresses.len() {
+fn call_stacks_match(call_stack_a: &[u64], call_stack_b: &[u64]) -> bool {
+    if call_stack_a.len() != call_stack_b.len() || call_stack_a.is_empty() {
         return false;
-    }
-    
-    if metrickit_addresses.is_empty() {
-        return false;
-    }
-    
-    // Check for exact match - all addresses must be identical in the same order
-    metrickit_addresses == kscrash_addresses
+    }    
+    call_stack_a == call_stack_b
 }
 
 struct NamedThread {
