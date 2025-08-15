@@ -278,7 +278,7 @@ fn extract_call_stack_from_metrickit_thread(thread: &std::collections::HashMap<S
         return Ok(None);
     };
     
-    let mut addresses = extract_call_stack_from_metrickit_frame(frame_obj);
+    let mut addresses = extract_call_stack_from_metrickit_frame(frame_obj)?;
     
     // MetricKit always has an extra frame at the root of the call stack,
     // which is not part of the actual call stack, so remove it.
@@ -295,21 +295,25 @@ fn extract_call_stack_from_metrickit_thread(thread: &std::collections::HashMap<S
 
 
 /// Recursively extracts addresses from a MetricKit frame and its subFrames
-fn extract_call_stack_from_metrickit_frame(frame: &std::collections::HashMap<String, Value>) -> Vec<u64> {
+fn extract_call_stack_from_metrickit_frame(frame: &std::collections::HashMap<String, Value>) -> anyhow::Result<Vec<u64>> {
     let mut addresses = Vec::new();
     
     // Extract address from current frame - try both Unsigned and Signed
-    if let Some(address_value) = frame.get("address") {
-        match address_value {
-            Value::Unsigned(address) => {
-                addresses.push(*address);
-            },
-            Value::Signed(address) => {
-                if *address >= 0 {
-                    addresses.push(*address as u64);
-                }
-            },
-            _ => {}
+    let Some(address_value) = frame.get("address") else {
+        return Err(anyhow::anyhow!("MetricKit frame missing 'address' field"));
+    };
+    
+    match address_value {
+        Value::Unsigned(address) => {
+            addresses.push(*address);
+        },
+        Value::Signed(address) => {
+            if *address >= 0 {
+                addresses.push(*address as u64);
+            }
+        },
+        _ => {
+            return Err(anyhow::anyhow!("Address value is not a valid number (got {:?})", address_value));
         }
     }
     
@@ -317,13 +321,13 @@ fn extract_call_stack_from_metrickit_frame(frame: &std::collections::HashMap<Str
     if let Some(Value::Array(sub_frames)) = frame.get("subFrames") {
         for sub_frame in sub_frames {
             if let Value::Object(sub_frame_obj) = sub_frame {
-                let mut sub_addresses = extract_call_stack_from_metrickit_frame(sub_frame_obj);
+                let mut sub_addresses = extract_call_stack_from_metrickit_frame(sub_frame_obj)?;
                 addresses.append(&mut sub_addresses);
             }
         }
     }
     
-    addresses
+    Ok(addresses)
 }
 
 /// Finds a named thread whose addresses match the given call stack addresses,
