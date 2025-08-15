@@ -702,7 +702,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
 // implementation for Android and other platforms.
 #[cfg(target_os = "android")]
 fn set_thread_name(name: &str) {
-  // Set the thread name to help with debugging.
   unsafe {
     let thread = libc::pthread_self();
     libc::pthread_setname_np(thread, CString::new(name).unwrap().as_ptr());
@@ -711,7 +710,6 @@ fn set_thread_name(name: &str) {
 
 #[cfg(not(target_os = "android"))]
 fn set_thread_name(name: &str) {
-  // Set the thread name to help with debugging.
   unsafe {
     libc::pthread_setname_np(CString::new(name).unwrap().as_ptr());
   }
