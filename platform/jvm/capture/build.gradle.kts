@@ -83,6 +83,16 @@ android {
         checkReleaseBuilds = true
         disable.add("GradleDependency")
     }
+
+    buildTypes {
+        getByName("debug") {
+            packaging {
+                jniLibs {
+                    keepDebugSymbols += "**/libcapture.so"
+                }
+            }
+        }
+    }
 }
 
 // Rust cargo build toolchain
