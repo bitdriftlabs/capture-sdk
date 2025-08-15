@@ -9,7 +9,14 @@ pub mod error;
 pub mod metadata;
 
 use bd_client_common::error::handle_unexpected;
-use bd_logger::{log_level, AnnotatedLogField, LogFieldKind, LogType, ReportProcessingSession};
+use bd_logger::{
+  log_level,
+  AnnotatedLogField,
+  LogFieldKind,
+  LogType,
+  LoggerBuilder,
+  ReportProcessingSession,
+};
 use bd_runtime::runtime::Snapshot;
 use parking_lot::Once;
 use std::future::Future;
@@ -127,15 +134,8 @@ impl LoggerHolder {
       return;
     };
 
-    std::thread::spawn(move || {
-      tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-          handle_unexpected(future.await, "logger top level run loop");
-        });
-    });
+    // Start the logger runtime using the defaults provided by the logger builder.
+    handle_unexpected(LoggerBuilder::run_logger_runtime(future), "logger runtime");
   }
 
   /// Consumes the logger and returns the raw pointer to it. This effectively leaks the object, so
