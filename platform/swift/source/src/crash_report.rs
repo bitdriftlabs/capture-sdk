@@ -237,7 +237,7 @@ fn inject_thread_names_into_metrickit(mut metrickit_report: HashMap<String, Valu
         };
         
         // Find a matching named thread that hasn't exceeded its count limit
-        let Some(matching_thread) = find_matching_thread_with_limit(&call_stack, named_threads, &usage_counts) else {
+        let Some(matching_thread) = find_matching_named_thread_with_limit(&call_stack, named_threads, &usage_counts) else {
             continue;
         };
         
@@ -269,8 +269,9 @@ fn extract_call_stack_from_metrickit_thread(thread: &HashMap<String, Value>) -> 
     
     let mut addresses = extract_call_stack_from_metrickit_frame(frame_obj)?;
     
-    // MetricKit always has an extra frame at the root of the call stack,
-    // which is not part of the actual call stack, so remove it.
+    // MetricKit always has an extra frame at the root of the call stack
+    // which is not captured by in-process crash reporters. Remove it so
+    // that we can compare the stack traces.
     if !addresses.is_empty() {
         addresses.pop();
     }
@@ -284,11 +285,10 @@ fn extract_call_stack_from_metrickit_thread(thread: &HashMap<String, Value>) -> 
 
 
 /// Recursively extracts addresses from a MetricKit frame and its subFrames
-fn extract_call_stack_from_metrickit_frame(frame: &HashMap<String, Value>) -> anyhow::Result<Vec<u64>> {
+fn extract_call_stack_from_metrickit_frame(metrickit_frame: &HashMap<String, Value>) -> anyhow::Result<Vec<u64>> {
     let mut addresses = Vec::new();
     
-    // Extract address from current frame - try both Unsigned and Signed
-    let Some(address_value) = frame.get("address") else {
+    let Some(address_value) = metrickit_frame.get("address") else {
         return Err(anyhow::anyhow!("MetricKit frame missing 'address' field"));
     };
     
@@ -306,8 +306,7 @@ fn extract_call_stack_from_metrickit_frame(frame: &HashMap<String, Value>) -> an
         }
     }
     
-    // Recursively process subFrames
-    if let Some(Value::Array(sub_frames)) = frame.get("subFrames") {
+    if let Some(Value::Array(sub_frames)) = metrickit_frame.get("subFrames") {
         for sub_frame in sub_frames {
             if let Value::Object(sub_frame_obj) = sub_frame {
                 let mut sub_addresses = extract_call_stack_from_metrickit_frame(sub_frame_obj)?;
@@ -321,8 +320,8 @@ fn extract_call_stack_from_metrickit_frame(frame: &HashMap<String, Value>) -> an
 
 /// Finds a named thread whose addresses match the given call stack addresses,
 /// but only if the thread hasn't exceeded its usage count limit
-fn find_matching_thread_with_limit<'a>(
-    call_stack_addresses: &[u64], 
+fn find_matching_named_thread_with_limit<'a>(
+    call_stack: &[u64], 
     named_threads: &'a [NamedThread],
     usage_counts: &HashMap<String, usize>
 ) -> Option<&'a NamedThread> {
@@ -333,7 +332,7 @@ fn find_matching_thread_with_limit<'a>(
             continue;
         }
         
-        if call_stacks_match(call_stack_addresses, &named_thread.call_stack) {
+        if call_stacks_match(call_stack, &named_thread.call_stack) {
             return Some(named_thread);
         }
     }
