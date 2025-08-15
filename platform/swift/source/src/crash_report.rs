@@ -170,8 +170,8 @@ fn named_threads_from_kscrash_report(kscrash_report: &HashMap<String, Value>) ->
     }
 }
 
-fn extract_call_stack_from_kcrash_thread(thread: &HashMap<String, Value>) -> anyhow::Result<Option<Vec<u64>>> {    
-    let Some(Value::Object(backtrace)) = thread.get("backtrace") else {
+fn extract_call_stack_from_kcrash_thread(kscrash_thread: &HashMap<String, Value>) -> anyhow::Result<Option<Vec<u64>>> {    
+    let Some(Value::Object(backtrace)) = kscrash_thread.get("backtrace") else {
         return Err(anyhow::anyhow!("Thread missing 'backtrace' object"));
     };
     
