@@ -145,7 +145,9 @@ fn named_threads_from_kscrash_report(kscrash_report: &Value) -> Option<Vec<Named
             continue;
         };
         
-        let stack_addresses = extract_stack_addresses_from_thread(thread_obj);
+        let Some(stack_addresses) = extract_stack_addresses_from_thread(thread_obj) else {
+            continue;
+        };
         
         // Check if we already have a thread with this name
         if let Some(existing_thread) = named_threads.iter_mut().find(|t| t.name == *thread_name) {
@@ -168,15 +170,15 @@ fn named_threads_from_kscrash_report(kscrash_report: &Value) -> Option<Vec<Named
     }
 }
 
-fn extract_stack_addresses_from_thread(thread_obj: &std::collections::HashMap<String, Value>) -> Vec<u64> {
+fn extract_stack_addresses_from_thread(thread: &std::collections::HashMap<String, Value>) -> Option<Vec<u64>> {
     let mut stack_addresses = Vec::new();
     
-    let Some(Value::Object(backtrace_obj)) = thread_obj.get("backtrace") else {
-        return stack_addresses;
+    let Some(Value::Object(backtrace_obj)) = thread.get("backtrace") else {
+        return None;
     };
     
     let Some(Value::Array(contents)) = backtrace_obj.get("contents") else {
-        return stack_addresses;
+        return None;
     };
     
     for frame in contents {
@@ -201,7 +203,11 @@ fn extract_stack_addresses_from_thread(thread_obj: &std::collections::HashMap<St
         }
     }
     
-    stack_addresses
+    if stack_addresses.is_empty() {
+        None
+    } else {
+        Some(stack_addresses)
+    }
 }
 
 /// Injects thread names from KSCrash report into MetricKit report call stacks
