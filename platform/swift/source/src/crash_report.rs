@@ -9,6 +9,8 @@ use objc::runtime::Object;
 use crate::{conversion::{objc_value_to_rust, rust_value_to_objc}, ffi::nsstring_into_string};
 use std::fs;
 use std::path::Path;
+#[allow(unused_imports)]
+use std::collections::HashMap;
 use bd_bonjson::decoder::{decode_value, Value};
 use anyhow;
 
@@ -33,12 +35,9 @@ fn enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr: *const Object,
         };
 
         let metrickit_report = match objc_value_to_rust(metrickit_report_ptr) {
-            Ok(v) => {
-                if matches!(v, Value::Object(_)) {
-                    v
-                } else {
-                    return Err(anyhow::anyhow!("metrickit_report is not a valid object/hashmap"));
-                }
+            Ok(Value::Object(hashmap)) => hashmap,
+            Ok(_) => {
+                return Err(anyhow::anyhow!("metrickit_report is not a valid object/hashmap"));
             },
             Err(e) => {
                 return Err(anyhow::anyhow!("Failed to convert metrickit_report_ptr to Rust Value: {e}"));
@@ -46,12 +45,9 @@ fn enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr: *const Object,
         };
 
         let kscrash_report = match load_bonjson_document(path_str) {
-            Ok(v) => {
-                if matches!(v, Value::Object(_)) {
-                    v
-                } else {
-                    return Err(anyhow::anyhow!("kscrash_report is not a valid object/hashmap"));
-                }
+            Ok(Value::Object(hashmap)) => hashmap,
+            Ok(_) => {
+                return Err(anyhow::anyhow!("kscrash_report is not a valid object/hashmap"));
             },
             Err(e) => {
                 return Err(anyhow::anyhow!("Failed to load kscrash_report: {e}"));
@@ -91,15 +87,17 @@ fn load_bonjson_document<P: AsRef<Path>>(path: P) -> anyhow::Result<Value> {
     }
 }
 
-fn enhance_report(metrickit_report: Value, kscrash_report: Value) -> anyhow::Result<Value> {
-    if !diagnostic_metadata_matches_in_reports(&metrickit_report, &kscrash_report) {
-        return Ok(metrickit_report);
+fn enhance_report(metrickit_report: std::collections::HashMap<String, Value>, kscrash_report: std::collections::HashMap<String, Value>) -> anyhow::Result<Value> {
+    let metrickit_value = Value::Object(metrickit_report.clone());
+    let kscrash_value = Value::Object(kscrash_report.clone());
+    if !diagnostic_metadata_matches_in_reports(&metrickit_value, &kscrash_value) {
+        return Ok(metrickit_value);
     }
     
     let named_threads = named_threads_from_kscrash_report(&kscrash_report)?;
     
     let Some(named_threads) = named_threads else {
-        return Ok(metrickit_report);
+        return Ok(Value::Object(metrickit_report));
     };
     
     let enhanced_metrickit = inject_thread_names_into_metrickit(metrickit_report, &named_threads)?;
@@ -131,14 +129,10 @@ fn diagnostic_metadata_matches_in_reports(report_a: &Value, report_b: &Value) ->
     }
 }
 
-fn named_threads_from_kscrash_report(kscrash_report: &Value) -> anyhow::Result<Option<Vec<NamedThread>>> {
+fn named_threads_from_kscrash_report(kscrash_report: &std::collections::HashMap<String, Value>) -> anyhow::Result<Option<Vec<NamedThread>>> {
     let mut named_threads: Vec<NamedThread> = Vec::new();
 
-    let Value::Object(report_obj) = kscrash_report else {
-        return Err(anyhow::anyhow!("KSCrash report is not an object"));
-    };
-
-    let Some(Value::Array(threads)) = report_obj.get("threads") else {
+    let Some(Value::Array(threads)) = kscrash_report.get("threads") else {
         return Err(anyhow::anyhow!("KSCrash report missing 'threads' array"));
     };
     
@@ -220,15 +214,11 @@ fn extract_stack_addresses_from_thread(thread: &std::collections::HashMap<String
 
 /// Injects thread names from KSCrash report into MetricKit report call stacks
 /// where the addresses match between the two reports.
-fn inject_thread_names_into_metrickit(mut metrickit_report: Value, named_threads: &[NamedThread]) -> anyhow::Result<Value> {
+fn inject_thread_names_into_metrickit(mut metrickit_report: std::collections::HashMap<String, Value>, named_threads: &[NamedThread]) -> anyhow::Result<Value> {
     // Track how many times each named thread has been matched
     let mut usage_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     
-    let Value::Object(ref mut report_obj) = metrickit_report else {
-        return Err(anyhow::anyhow!("MetricKit report is not an object"));
-    };
-    
-    let Some(Value::Object(ref mut call_stack_tree)) = report_obj.get_mut("callStackTree") else {
+    let Some(Value::Object(ref mut call_stack_tree)) = metrickit_report.get_mut("callStackTree") else {
         return Err(anyhow::anyhow!("MetricKit report missing 'callStackTree' object"));
     };
     
@@ -261,7 +251,7 @@ fn inject_thread_names_into_metrickit(mut metrickit_report: Value, named_threads
         thread_obj.insert("name".to_string(), Value::String(thread_name));
     }
     
-    Ok(metrickit_report)
+    Ok(Value::Object(metrickit_report))
 }
 
 fn extract_call_stack_from_metrickit_thread(thread: &std::collections::HashMap<String, Value>) -> anyhow::Result<Option<Vec<u64>>> {
