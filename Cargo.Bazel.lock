@@ -1,5 +1,5 @@
 {
-  "checksum": "e632c21fe9c3a78344cf9bf9975c9aebd07466ab5dbb19486015336c1216b349",
+  "checksum": "2a655d7112ad6e3c66e1a72b26b3118f4916badf103dca45679606321d6777e7",
   "crates": {
     "addr2line 0.24.2": {
       "name": "addr2line",
@@ -5882,8 +5882,16 @@
               "target": "bd_time"
             },
             {
+              "id": "futures-util 0.3.31",
+              "target": "futures_util"
+            },
+            {
               "id": "jni 0.21.1",
               "target": "jni"
+            },
+            {
+              "id": "libc 0.2.175",
+              "target": "libc"
             },
             {
               "id": "log 0.4.27",
@@ -25376,7 +25384,9 @@
     "chrono 0.4.41",
     "criterion 0.7.0",
     "ctor 0.5.0",
+    "futures-util 0.3.31",
     "jni 0.21.1",
+    "libc 0.2.175",
     "log 0.4.27",
     "objc 0.2.7",
     "objc-foundation 0.1.1",

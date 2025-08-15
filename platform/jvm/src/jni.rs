@@ -6,7 +6,6 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::events::ListenerTargetHandler as EventsListenerTargetHandler;
-use crate::executor::{self};
 use crate::key_value_storage::PreferencesHandle;
 use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
 use crate::session::SessionStrategyConfigurationHandle;
@@ -28,6 +27,7 @@ use bd_client_common::error::{
   UnexpectedErrorHandler,
 };
 use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields, LogType};
+use futures_util::FutureExt;
 use jni::descriptors::Desc;
 use jni::objects::{
   GlobalRef,
@@ -46,7 +46,7 @@ use platform_shared::metadata::Mobile;
 use platform_shared::{LoggerHolder, LoggerId};
 use std::borrow::{Borrow, Cow};
 use std::collections::HashMap;
-use std::ffi::c_void;
+use std::ffi::{c_void, CString};
 use std::ops::DerefMut;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -234,7 +234,7 @@ pub(crate) fn initialize_class(
 }
 
 fn check_exception(env: &mut JNIEnv<'_>) {
-  match executor::check_exception(env) {
+  match crate::executor::check_exception(env) {
     Ok(Some(exception)) => log::error!("failed with exception {exception}"),
     Ok(None) => log::error!("no active exception"),
     Err(e) => {
@@ -653,6 +653,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       // the error reporter is set up.
       UnexpectedErrorHandler::set_reporter(Arc::new(error_reporter));
 
+      let executor = jni::Executor::new(Arc::new(env.get_java_vm().unwrap()));
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory,
         api_key: unsafe { env.get_string_unchecked(&api_key) }?.into(),
@@ -669,13 +670,56 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       })
       .with_internal_logger(true)
       .build()
-      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future))?;
+      .map(|(logger, _, future, _)| {
+        LoggerHolder::new(
+          logger,
+          async move {
+            executor
+              .with_attached(|_| {
+                // When we first attach the runtime thread the JVM will rename the thread since
+                // the jni crate won't let us pass a thread name through to the attach function.
+                // To work around this we attach and then immediatley rename the thread again.
+                set_thread_name("bd-tokio");
+
+                Ok::<(), anyhow::Error>(())
+              })
+              .unwrap();
+            future.await
+          }
+          .boxed(),
+        )
+      })?;
 
       Ok(logger.into_raw().into())
     },
     -1,
     "jni create logger",
   )
+}
+
+// On Android pthread_setname_np in the libc crate takes two arguments so we need to use a different
+// implementation for Android and other platforms.
+#[cfg(any(target_os = "android", target_os = "linux"))]
+fn set_thread_name(name: &str) {
+  debug_assert!(
+    name.len() <= 15,
+    "Thread name must be at most 15 characters long, got: {name}"
+  );
+  unsafe {
+    let thread = libc::pthread_self();
+    libc::pthread_setname_np(thread, CString::new(name).unwrap().as_ptr());
+  }
+}
+
+#[cfg(not(any(target_os = "android", target_os = "linux")))]
+fn set_thread_name(name: &str) {
+  debug_assert!(
+    name.len() <= 15,
+    "Thread name must be at most 15 characters long, got: {name}"
+  );
+  unsafe {
+    libc::pthread_setname_np(CString::new(name).unwrap().as_ptr());
+  }
 }
 
 #[no_mangle]

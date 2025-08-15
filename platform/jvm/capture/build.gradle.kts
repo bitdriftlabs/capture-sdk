@@ -83,6 +83,7 @@ android {
         checkReleaseBuilds = true
         disable.add("GradleDependency")
     }
+
 }
 
 // Rust cargo build toolchain
