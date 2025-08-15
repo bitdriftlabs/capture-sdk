@@ -102,8 +102,6 @@ final class DiagnosticEventReporterTests: XCTestCase {
                 foundNames.append(name)
             }
         }
-        print("$$$ \(expectedNames.sorted())")
-        print("$$$ \(foundNames.sorted())")
         XCTAssertEqual(expectedNames.sorted(), foundNames.sorted())
     }
 
