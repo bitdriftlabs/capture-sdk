@@ -31,7 +31,7 @@ public final class Logger {
     private(set) var sessionReplayTarget: SessionReplayTarget
     private(set) var dispatchSourceMemoryMonitor: DispatchSourceMemoryMonitor?
     private(set) var resourceUtilizationTarget: ResourceUtilizationTarget
-    private(set) var eventSubscriber: EventSubscriber
+    private(set) var eventsListenerTarget: EventsListenerTarget
 
     private let sessionURLBase: URL
 
@@ -165,7 +165,7 @@ public final class Logger {
             storageProvider: storageProvider,
             timeProvider: timeProvider
         )
-        self.eventSubscriber = EventSubscriber()
+        self.eventsListenerTarget = EventsListenerTarget()
 
         let sessionReplayTarget = SessionReplayTarget(configuration: configuration.sessionReplayConfiguration)
         self.sessionReplayTarget = sessionReplayTarget
@@ -176,14 +176,14 @@ public final class Logger {
             sessionStrategy: sessionStrategy,
             metadataProvider: metadataProvider,
             // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
-            // and `eventSubscriber` as part of the `self.underlyingLogger.start()` method call instead.
+            // and `eventsListenerTarget` as part of the `self.underlyingLogger.start()` method call instead.
             // Pass the event listener target here and finish setting up
             // before the logger is actually started.
             resourceUtilizationTarget: self.resourceUtilizationTarget,
             sessionReplayTarget: self.sessionReplayTarget,
             // Pass the event listener target here and finish setting up
             // before the logger is actually started.
-            eventSubscriber: self.eventSubscriber,
+            eventsListenerTarget: self.eventsListenerTarget,
             appID: clientAttributes.appID,
             releaseVersion: clientAttributes.appVersion,
             model: deviceAttributes.hardwareVersion,
@@ -205,7 +205,7 @@ public final class Logger {
             self.underlyingLogger.logSDKStart(fields: fields, duration: duration)
         }
 
-        self.eventSubscriber.setUp(
+        self.eventsListenerTarget.setUp(
             logger: self.underlyingLogger,
             appStateAttributes: appStateAttributes,
             clientAttributes: clientAttributes,

@@ -11,15 +11,15 @@ import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.CaptureTestJniLibrary
 import org.junit.Test
 
-class EventSubscriberTest {
-    private val listener = EventSubscriber()
+class EventsListenerTargetTest {
+    private val listener = EventsListenerTarget()
 
     init {
         CaptureJniLibrary.load()
     }
 
     @Test
-    fun eventSubscriberDoesNotCrash() {
-        CaptureTestJniLibrary.runEventSubscriberTest(listener)
+    fun eventsListenerTargetDoesNotCrash() {
+        CaptureTestJniLibrary.runEventsListenerTargetTest(listener)
     }
 }

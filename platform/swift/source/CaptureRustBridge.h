@@ -42,7 +42,7 @@ logger_id capture_create_logger(
     id<MetadataProvider> metadata_provider,
     id<ResourceUtilizationTarget> resource_utilization_target,
     id<SessionReplayTarget> session_replay_target,
-    id<EventSubscriber> events_listener_target,
+    id<EventsListenerTarget> events_listener_target,
     const char *app_id,
     const char *app_version,
     const char *model,
