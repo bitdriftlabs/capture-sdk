@@ -10,7 +10,7 @@ import Foundation
 
 /// A wrapper around platform event listeners that subscribe to various system notifications
 /// and emit Capture out-of-the-box in response to them.
-final class EventsListenerTarget {
+final class EventSubscriber {
     private let listeners = Atomic([EventListener]())
 
     func setUp(
@@ -39,7 +39,7 @@ final class EventsListenerTarget {
     }
 }
 
-extension EventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget {
+extension EventSubscriber: CaptureLoggerBridge.EventSubscriber {
     func start() {
         self.listeners.update { $0.forEach { $0.start() } }
     }

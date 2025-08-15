@@ -361,7 +361,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runSessionRepla
 }
 
 #[no_mangle]
-pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runEventsListenerTargetTest(
+pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runEventSubscriberTest(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   target: JObject<'_>,

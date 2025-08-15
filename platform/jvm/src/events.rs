@@ -17,8 +17,7 @@ static TARGET_START: OnceLock<CachedMethod> = OnceLock::new();
 static TARGET_STOP: OnceLock<CachedMethod> = OnceLock::new();
 
 pub(crate) fn initialize(env: &mut JNIEnv<'_>) {
-  let events_listener_target =
-    initialize_class(env, "io/bitdrift/capture/IEventsListenerTarget", None);
+  let events_listener_target = initialize_class(env, "io/bitdrift/capture/IEventSubscriber", None);
   initialize_method_handle(
     env,
     &events_listener_target.class,

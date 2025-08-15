@@ -42,7 +42,7 @@ internal object CaptureJniLibrary : IBridge {
      * @param metadataProvider used to provide metadata for emitted logs.
      * @param resourceUtilizationTarget used to inform platform layer about a need to emit a resource log.
      * @param sessionReplayTarget used to inform platform layer about a need to emit session replay logs.
-     * @param eventsListenerTarget responsible for listening to platform events and emitting logs in response to them.
+     * @param eventSubscriber responsible for listening to platform events and emitting logs in response to them.
      * @param applicationId the application ID of the current app, used to identify with the backend
      * @param applicationVersion the version of the current app, used to identify with the backend
      * @param model the host device model, used to identify with the backend
@@ -58,7 +58,7 @@ internal object CaptureJniLibrary : IBridge {
         metadataProvider: IMetadataProvider,
         resourceUtilizationTarget: IResourceUtilizationTarget,
         sessionReplayTarget: ISessionReplayTarget,
-        eventsListenerTarget: IEventsListenerTarget,
+        eventSubscriber: IEventSubscriber,
         applicationId: String,
         applicationVersion: String,
         model: String,
