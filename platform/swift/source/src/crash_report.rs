@@ -53,8 +53,9 @@ fn enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr: *const Object,
             },
         };
 
-        let enhanced_report = match enhance_report(metrickit_report, kscrash_report) {
-            Ok(hashmap) => Value::Object(hashmap),
+        let enhanced_report = match enhance_report(metrickit_report.clone(), kscrash_report) {
+            Ok(Some(hashmap)) => Value::Object(hashmap),
+            Ok(None) => Value::Object(metrickit_report),
             Err(e) => {
                 return Err(anyhow::anyhow!("Failed to enhance report: {e}"));
             }
@@ -86,21 +87,21 @@ fn load_bonjson_document<P: AsRef<Path>>(path: P) -> anyhow::Result<Value> {
     }
 }
 
-fn enhance_report(metrickit_report: HashMap<String, Value>, kscrash_report: HashMap<String, Value>) -> anyhow::Result<HashMap<String, Value>> {
+fn enhance_report(metrickit_report: HashMap<String, Value>, kscrash_report: HashMap<String, Value>) -> anyhow::Result<Option<HashMap<String, Value>>> {
     let metrickit_value = Value::Object(metrickit_report.clone());
     let kscrash_value = Value::Object(kscrash_report.clone());
     if !diagnostic_metadata_matches_in_reports(&metrickit_value, &kscrash_value) {
-        return Ok(metrickit_report);
+        return Ok(None);
     }
     
     let named_threads = named_threads_from_kscrash_report(&kscrash_report)?;
     
     let Some(named_threads) = named_threads else {
-        return Ok(metrickit_report);
+        return Ok(None);
     };
     
     let enhanced_metrickit = inject_thread_names_into_metrickit(metrickit_report, &named_threads)?;
-    Ok(enhanced_metrickit)
+    Ok(Some(enhanced_metrickit))
 }
 
 fn diagnostic_metadata_matches_in_reports(report_a: &Value, report_b: &Value) -> bool {
