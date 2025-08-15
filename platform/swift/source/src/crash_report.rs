@@ -145,7 +145,7 @@ fn named_threads_from_kscrash_report(kscrash_report: &HashMap<String, Value>) ->
             continue;
         };
         
-        let Some(stack_addresses) = extract_stack_addresses_from_kcrash_thread(thread_obj)? else {
+        let Some(call_stack) = extract_call_stack_from_kcrash_thread(thread_obj)? else {
             continue;
         };
         
@@ -157,7 +157,7 @@ fn named_threads_from_kscrash_report(kscrash_report: &HashMap<String, Value>) ->
             // Create new NamedThread entry
             named_threads.push(NamedThread {
                 name: thread_name.clone(),
-                call_stack: stack_addresses,
+                call_stack,
                 count: 1,
             });
         }
@@ -170,50 +170,49 @@ fn named_threads_from_kscrash_report(kscrash_report: &HashMap<String, Value>) ->
     }
 }
 
-fn extract_stack_addresses_from_kcrash_thread(thread: &HashMap<String, Value>) -> anyhow::Result<Option<Vec<u64>>> {
-    let mut stack_addresses = Vec::new();
-    
-    let Some(Value::Object(backtrace_obj)) = thread.get("backtrace") else {
+fn extract_call_stack_from_kcrash_thread(thread: &HashMap<String, Value>) -> anyhow::Result<Option<Vec<u64>>> {    
+    let Some(Value::Object(backtrace)) = thread.get("backtrace") else {
         return Err(anyhow::anyhow!("Thread missing 'backtrace' object"));
     };
     
-    let Some(Value::Array(contents)) = backtrace_obj.get("contents") else {
+    let Some(Value::Array(contents)) = backtrace.get("contents") else {
         return Err(anyhow::anyhow!("Backtrace missing 'contents' array"));
     };
     
+    let mut call_stack = Vec::new();
+
     for frame in contents {
-        let Value::Object(frame_obj) = frame else {
+        let Value::Object(frame) = frame else {
             return Err(anyhow::anyhow!("Frame is not a valid object/hashmap"));
         };
         
-        let Some(address_value) = frame_obj.get("address") else {
+        let Some(address) = frame.get("address") else {
             return Err(anyhow::anyhow!("Frame missing 'address' field"));
         };
         
-        match address_value {
+        match address {
             Value::Unsigned(address) => {
-                stack_addresses.push(*address);
+                call_stack.push(*address);
             },
             Value::Signed(address) => {
                 if *address >= 0 {
-                    stack_addresses.push(*address as u64);
+                    call_stack.push(*address as u64);
                 }
             },
             _ => {
-                return Err(anyhow::anyhow!("Address value is not a valid number (got {:?})", address_value));
+                return Err(anyhow::anyhow!("Address value is not a valid number (got {:?})", address));
             }
         }
     }
     
-    if stack_addresses.is_empty() {
+    if call_stack.is_empty() {
         Ok(None)
     } else {
-        Ok(Some(stack_addresses))
+        Ok(Some(call_stack))
     }
 }
 
-/// Injects thread names from KSCrash report into MetricKit report call stacks
-/// where the addresses match between the two reports.
+/// Injects thread names from a KSCrash report into a MetricKit report where their thread call stacks match.
 fn inject_thread_names_into_metrickit(mut metrickit_report: HashMap<String, Value>, named_threads: &[NamedThread]) -> anyhow::Result<HashMap<String, Value>> {
     // Track how many times each named thread has been matched
     let mut usage_counts: HashMap<String, usize> = HashMap::new();
@@ -261,11 +260,11 @@ fn extract_call_stack_from_metrickit_thread(thread: &HashMap<String, Value>) -> 
     
     // Assume callStackRootFrames contains only one call stack
     let Some(root_frame) = root_frames.first() else {
-        return Ok(None);
+        return Err(anyhow::anyhow!("MetricKit thread 'callStackRootFrames' array is empty"));
     };
     
     let Value::Object(frame_obj) = root_frame else {
-        return Ok(None);
+        return Err(anyhow::anyhow!("Root frame is not a valid object/hashmap"));
     };
     
     let mut addresses = extract_call_stack_from_metrickit_frame(frame_obj)?;
