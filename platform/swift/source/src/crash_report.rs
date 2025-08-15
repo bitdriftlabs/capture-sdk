@@ -53,7 +53,7 @@ fn enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr: *const Object,
             },
         };
 
-        let enhanced_report = match enhance_report(metrickit_report.clone(), kscrash_report) {
+        let enhanced_report = match enhance_report(metrickit_report.clone(), &kscrash_report) {
             Ok(Some(hashmap)) => Value::Object(hashmap),
             Ok(None) => Value::Object(metrickit_report),
             Err(e) => {
@@ -79,7 +79,7 @@ fn load_bonjson_document<P: AsRef<Path>>(path: P) -> anyhow::Result<Value> {
         Err(e) => {
             match e.partial_value {
                 Value::None => {
-                    return Err(anyhow::anyhow!("Failed to decode BONJSON: {:?}", e));
+                    Err(anyhow::anyhow!("Failed to decode BONJSON: {:?}", e))
                 }
                 value => { Ok(value) }
             }
@@ -87,14 +87,14 @@ fn load_bonjson_document<P: AsRef<Path>>(path: P) -> anyhow::Result<Value> {
     }
 }
 
-fn enhance_report(metrickit_report: HashMap<String, Value>, kscrash_report: HashMap<String, Value>) -> anyhow::Result<Option<HashMap<String, Value>>> {
+fn enhance_report(metrickit_report: HashMap<String, Value>, kscrash_report: &HashMap<String, Value>) -> anyhow::Result<Option<HashMap<String, Value>>> {
     let metrickit_value = Value::Object(metrickit_report.clone());
     let kscrash_value = Value::Object(kscrash_report.clone());
     if !diagnostic_metadata_matches_in_reports(&metrickit_value, &kscrash_value) {
         return Ok(None);
     }
     
-    let named_threads = named_threads_from_kscrash_report(&kscrash_report)?;
+    let named_threads = named_threads_from_kscrash_report(kscrash_report)?;
     
     let Some(named_threads) = named_threads else {
         return Ok(None);
@@ -118,7 +118,7 @@ fn diagnostic_metadata_matches_in_reports(report_a: &Value, report_b: &Value) ->
                 "signal",
                 "pid",
             ];
-            for key in check_keys.iter() {
+            for key in &check_keys {
                 if a_meta.as_ref().unwrap().get(key) != b_meta.as_ref().unwrap().get(key) {
                     return false;
                 }
@@ -196,7 +196,10 @@ fn extract_call_stack_from_kcrash_thread(kscrash_thread: &HashMap<String, Value>
             },
             Value::Signed(address) => {
                 if *address >= 0 {
+                    #[allow(clippy::cast_sign_loss)]
                     call_stack.push(*address as u64);
+                } else {
+                    return Err(anyhow::anyhow!("Address value is negative: {}", address));
                 }
             },
             _ => {
@@ -212,7 +215,7 @@ fn extract_call_stack_from_kcrash_thread(kscrash_thread: &HashMap<String, Value>
     }
 }
 
-/// Injects thread names from a KSCrash report into a MetricKit report where their thread call stacks match.
+/// Injects thread names from a `KSCrash` report into a `MetricKit` report where their thread call stacks match.
 fn inject_thread_names_into_metrickit(mut metrickit_report: HashMap<String, Value>, named_threads: &[NamedThread]) -> anyhow::Result<HashMap<String, Value>> {
     // Track how many times each named thread has been matched
     let mut usage_counts: HashMap<String, usize> = HashMap::new();
@@ -284,7 +287,7 @@ fn extract_call_stack_from_metrickit_thread(thread: &HashMap<String, Value>) -> 
 }
 
 
-/// Recursively extracts addresses from a MetricKit frame and its subFrames
+/// Recursively extracts addresses from a `MetricKit` frame and its subFrames
 fn extract_call_stack_from_metrickit_frame(metrickit_frame: &HashMap<String, Value>) -> anyhow::Result<Vec<u64>> {
     let mut addresses = Vec::new();
     
@@ -298,7 +301,10 @@ fn extract_call_stack_from_metrickit_frame(metrickit_frame: &HashMap<String, Val
         },
         Value::Signed(address) => {
             if *address >= 0 {
+                #[allow(clippy::cast_sign_loss)]
                 addresses.push(*address as u64);
+            } else {
+                return Err(anyhow::anyhow!("Address value is negative: {}", address));
             }
         },
         _ => {
