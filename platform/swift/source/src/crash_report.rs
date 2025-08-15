@@ -242,6 +242,9 @@ fn named_threads_from_kscrash_report(kscrash_report: &Value) -> Vec<NamedThread>
 /// where the addresses match between the two reports.
 #[allow(dead_code)]
 fn inject_thread_names_into_metrickit(mut metrickit_report: Value, named_threads: &[NamedThread]) -> Value {
+    // Track how many times each named thread has been matched
+    let mut usage_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    
     if let Value::Object(ref mut report_obj) = metrickit_report {
         if let Some(Value::Object(ref mut call_stack_tree)) = report_obj.get_mut("callStackTree") {
             if let Some(Value::Array(ref mut call_stacks)) = call_stack_tree.get_mut("callStacks") {
@@ -250,11 +253,19 @@ fn inject_thread_names_into_metrickit(mut metrickit_report: Value, named_threads
                         // Extract addresses from this call stack
                         let addresses = extract_addresses_from_metrickit_call_stack(call_stack_obj);
                         
-                        // Find matching named thread
-                        if let Some(matching_thread) = find_matching_thread(&addresses, named_threads) {
+                        // Find matching named thread that hasn't exceeded its count limit
+                        if let Some(matching_thread) = find_matching_thread_with_limit(&addresses, named_threads, &usage_counts) {
+                            let thread_name = matching_thread.name.clone();
+                            let current_count = usage_counts.get(&thread_name).unwrap_or(&0);
+                            let new_count = current_count + 1;
+                            
+                            // Update usage count
+                            usage_counts.insert(thread_name.clone(), new_count);
+                            
                             // Inject the thread name next to callStackRootFrames
-                            call_stack_obj.insert("name".to_string(), Value::String(matching_thread.name.clone()));
-                            println!("### Injected thread name '{}' for call stack with {} addresses", matching_thread.name, addresses.len());
+                            call_stack_obj.insert("name".to_string(), Value::String(thread_name.clone()));
+                            println!("### Injected thread name '{}' for call stack with {} addresses (usage: {}/{})", 
+                                   thread_name, addresses.len(), new_count, matching_thread.count);
                         } else if !addresses.is_empty() {
                             println!("### No matching thread found for call stack with {} addresses", addresses.len());
                         }
@@ -344,6 +355,7 @@ fn extract_addresses_from_frame(frame_obj: &std::collections::HashMap<String, Va
 }
 
 /// Finds a named thread whose addresses match the given call stack addresses
+#[allow(dead_code)]
 fn find_matching_thread<'a>(call_stack_addresses: &[u64], named_threads: &'a [NamedThread]) -> Option<&'a NamedThread> {
     for named_thread in named_threads {
         println!("### Checking thread: {} with {} entries", named_thread.name, named_thread.stack_addresses.len());
@@ -354,6 +366,40 @@ fn find_matching_thread<'a>(call_stack_addresses: &[u64], named_threads: &'a [Na
         for addr in call_stack_addresses.iter() {
             println!("###### address: {:?}", addr);
         }
+        if addresses_match(call_stack_addresses, &named_thread.stack_addresses) {
+            return Some(named_thread);
+        }
+    }
+    None
+}
+
+/// Finds a named thread whose addresses match the given call stack addresses,
+/// but only if the thread hasn't exceeded its usage count limit
+fn find_matching_thread_with_limit<'a>(
+    call_stack_addresses: &[u64], 
+    named_threads: &'a [NamedThread],
+    usage_counts: &std::collections::HashMap<String, usize>
+) -> Option<&'a NamedThread> {
+    for named_thread in named_threads {
+        // Check if this thread has already been used up to its count limit
+        let current_usage = usage_counts.get(&named_thread.name).unwrap_or(&0);
+        if *current_usage >= named_thread.count {
+            println!("### Thread '{}' already used {} times (limit: {}), skipping", 
+                   named_thread.name, current_usage, named_thread.count);
+            continue;
+        }
+        
+        println!("### Checking thread: {} with {} entries (usage: {}/{})", 
+               named_thread.name, named_thread.stack_addresses.len(), current_usage, named_thread.count);
+        
+        for addr in named_thread.stack_addresses.iter() {
+            println!("###### address: {:?}", addr);
+        }
+        println!("#### VS");
+        for addr in call_stack_addresses.iter() {
+            println!("###### address: {:?}", addr);
+        }
+        
         if addresses_match(call_stack_addresses, &named_thread.stack_addresses) {
             return Some(named_thread);
         }
