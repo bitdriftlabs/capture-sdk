@@ -37,7 +37,7 @@ fn enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr: *const Object,
                 if matches!(v, Value::Object(_)) {
                     v
                 } else {
-                    return Err(anyhow::anyhow!("MetricKit report is not a valid object/hashmap"));
+                    return Err(anyhow::anyhow!("metrickit_report is not a valid object/hashmap"));
                 }
             },
             Err(e) => {
@@ -50,7 +50,7 @@ fn enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr: *const Object,
                 if matches!(v, Value::Object(_)) {
                     v
                 } else {
-                    return Err(anyhow::anyhow!("KSCrash report is not a valid object/hashmap"));
+                    return Err(anyhow::anyhow!("kscrash_report is not a valid object/hashmap"));
                 }
             },
             Err(e) => {
@@ -83,7 +83,7 @@ fn load_bonjson_document<P: AsRef<Path>>(path: P) -> anyhow::Result<Value> {
         Err(e) => {
             match e.partial_value {
                 Value::None => {
-                    return Err(anyhow::anyhow!("Failed to decode BonJSON: {:?}", e));
+                    return Err(anyhow::anyhow!("Failed to decode BONJSON: {:?}", e));
                 }
                 value => { Ok(value) }
             }
