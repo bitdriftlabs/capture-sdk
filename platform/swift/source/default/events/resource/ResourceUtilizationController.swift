@@ -8,7 +8,7 @@
 internal import CapturePassable
 import Foundation
 
-final class ResourceUtilizationTarget {
+final class ResourceUtilizationController {
     private let queue: DispatchQueue = .serial(withLabelSuffix: "ResourceUtilizationTarget", target: .heavy)
 
     private let storageProvider: StorageProvider
@@ -41,7 +41,7 @@ final class ResourceUtilizationTarget {
     }
 }
 
-extension ResourceUtilizationTarget: CapturePassable.ResourceUtilizationTarget {
+extension ResourceUtilizationController: CapturePassable.ResourceUtilizationTarget {
     func tick() {
         self.queue.async { [weak logger] in
             let start = self.timeProvider.uptime()

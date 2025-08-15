@@ -10,8 +10,8 @@ import CaptureMocks
 @testable import CaptureTestBridge
 import XCTest
 
-final class SessionReplayTargetTests: XCTestCase {
-    private var target: Capture.SessionReplayTarget!
+final class SessionReplayControllerTests: XCTestCase {
+    private var target: Capture.SessionReplayController!
     private var logger: MockCoreLogging!
 
     override func setUp() {
@@ -19,11 +19,11 @@ final class SessionReplayTargetTests: XCTestCase {
 
         self.logger = MockCoreLogging()
 
-        self.target = SessionReplayTarget(configuration: .init())
+        self.target = SessionReplayController(configuration: .init())
         self.target.logger = self.logger
     }
 
-    func testSessionReplayTargetDoesNotCrash() {
+    func testSessionReplayControllerDoesNotCrash() {
         run_session_replay_target_test(self.target)
     }
 

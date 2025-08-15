@@ -10,11 +10,11 @@ import CaptureMocks
 @testable import CaptureTestBridge
 import XCTest
 
-final class ResourceUtilizationTargetTests: XCTestCase {
+final class ResourceUtilizationControllerTests: XCTestCase {
     private var storageProvider: MockStorageProvider!
     private var timeProvider: MockTimeProvider!
     private var logger: MockCoreLogging!
-    private var target: Capture.ResourceUtilizationTarget!
+    private var target: Capture.ResourceUtilizationController!
 
     override func setUp() {
         super.setUp()
@@ -23,7 +23,7 @@ final class ResourceUtilizationTargetTests: XCTestCase {
         self.timeProvider = MockTimeProvider()
         self.logger = MockCoreLogging()
 
-        self.target = ResourceUtilizationTarget(
+        self.target = ResourceUtilizationController(
             storageProvider: self.storageProvider,
             timeProvider: self.timeProvider
         )
@@ -31,7 +31,7 @@ final class ResourceUtilizationTargetTests: XCTestCase {
         self.target.logger = self.logger
     }
 
-    func testResourceUtilizationTargetDoesNotCrash() {
+    func testResourceUtilizationControllerDoesNotCrash() {
         run_resource_utilization_target_test(self.target)
     }
 

@@ -10,7 +10,7 @@ import Foundation
 
 /// To support the date and session provider being able to change at any time, we need to be able
 /// to wrap up the Atomics in an @objc protocol
-final class MetadataProvider {
+final class MetadataProviderController {
     typealias ErrorReporter = (_ context: String, _ error: Error) -> Void
 
     var errorHandler: ErrorReporter = { _, _ in assertionFailure("errorHandler not set") }
@@ -46,7 +46,7 @@ final class MetadataProvider {
     }
 }
 
-extension MetadataProvider: CapturePassable.MetadataProvider {
+extension MetadataProviderController: CapturePassable.MetadataProvider {
     func timestamp() -> TimeInterval {
         self.dateProvider.getDate().timeIntervalSince1970
     }
