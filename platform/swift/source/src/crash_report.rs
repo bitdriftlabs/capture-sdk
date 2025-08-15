@@ -16,8 +16,48 @@ use anyhow;
 extern "C" fn enhance_metrickit_diagnostic_report(metrickit_report_ptr: *const Object, kscrash_report_path: *const Object) -> *const Object {
     match enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr, kscrash_report_path) {
         Ok(result_ptr) => result_ptr,
-        Err(_e) => {
+        Err(e) => {
+            log::error!("Failed to enhance MetricKit report: {e}");
             metrickit_report_ptr // Return original on error
+        }
+    }
+}
+
+fn enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr: *const Object, kscrash_report_path: *const Object) -> anyhow::Result<*const Object> {
+    unsafe {
+        let path_str = match nsstring_into_string(kscrash_report_path) {
+            Ok(s) => s,
+            Err(e) => {
+                return Err(anyhow::anyhow!("Failed to convert kscrash_report_path to string: {e}"));
+            }
+        };
+
+        let metrickit_report = match objc_value_to_rust(metrickit_report_ptr) {
+            Ok(v) => v,
+            Err(e) => {
+                return Err(anyhow::anyhow!("Failed to convert metrickit_report_ptr to Rust Value: {e}"));
+            },
+        };
+
+        let kscrash_report = match load_bonjson_document(path_str) {
+            Ok(value) => value,
+            Err(e) => {
+                return Err(anyhow::anyhow!("Failed to load kscrash_report: {e}"));
+            },
+        };
+
+        let enhanced_report = match enhance_report(metrickit_report, kscrash_report) {
+            Ok(report) => report,
+            Err(e) => {
+                return Err(anyhow::anyhow!("Failed to enhance report: {e}"));
+            }
+        };
+
+        match rust_value_to_objc(&enhanced_report) {
+            Ok(strong_ptr) => Ok(*strong_ptr),
+            Err(e) => {
+                Err(anyhow::anyhow!("Failed to convert enhanced_report to Objective-C: {e}"))
+            },
         }
     }
 }
@@ -39,47 +79,18 @@ fn load_bonjson_document<P: AsRef<Path>>(path: P) -> anyhow::Result<Value> {
     }
 }
 
-fn enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr: *const Object, kscrash_report_path: *const Object) -> anyhow::Result<*const Object> {
-    unsafe {
-        let path_str = match nsstring_into_string(kscrash_report_path) {
-            Ok(s) => s,
-            Err(e) => {
-                return Err(anyhow::anyhow!("Failed to convert kscrash_report_path to string: {}", e));
-            }
-        };
-
-        let metrickit_report = match objc_value_to_rust(metrickit_report_ptr) {
-            Ok(v) => v,
-            Err(e) => {
-                return Err(anyhow::anyhow!("Failed to convert metrickit_report_ptr to Rust Value: {:?}", e));
-            },
-        };
-
-        let kscrash_report = match load_bonjson_document(path_str) {
-            Ok(value) => value,
-            Err(e) => {
-                return Err(anyhow::anyhow!("Failed to load kscrash_report: {}", e));
-            },
-        };
-
-        let enhanced_report = match enhance_report(metrickit_report, kscrash_report) {
-            Ok(report) => report,
-            Err(e) => {
-                return Err(anyhow::anyhow!("Failed to enhance report: {}", e));
-            }
-        };
-
-        match rust_value_to_objc(&enhanced_report) {
-            Ok(strong_ptr) => Ok(*strong_ptr),
-            Err(e) => {
-                Err(anyhow::anyhow!("Failed to convert enhanced_report to Objective-C: {:?}", e))
-            },
-        }
+fn enhance_report(metrickit_report: Value, kscrash_report: Value) -> anyhow::Result<Value> {
+    if !diagnostic_metadata_matches_in_reports(&metrickit_report, &kscrash_report) {
+        return Ok(metrickit_report);
     }
+    
+    let named_threads = named_threads_from_kscrash_report(&kscrash_report);
+    let enhanced_metrickit = inject_thread_names_into_metrickit(metrickit_report, &named_threads);
+    Ok(enhanced_metrickit)
 }
 
-fn diagnostic_metadata_matches(a: &Value, b: &Value) -> bool {
-    match (a, b) {
+fn diagnostic_metadata_matches_in_reports(report_a: &Value, report_b: &Value) -> bool {
+    match (report_a, report_b) {
         (Value::Object(a_obj), Value::Object(b_obj)) => {
             let a_meta = a_obj.get("diagnosticMetaData");
             let b_meta = b_obj.get("diagnosticMetaData");
@@ -103,110 +114,123 @@ fn diagnostic_metadata_matches(a: &Value, b: &Value) -> bool {
     }
 }
 
-fn enhance_report(metrickit_report: Value, kscrash_report: Value) -> anyhow::Result<Value> {
-    if !diagnostic_metadata_matches(&metrickit_report, &kscrash_report) {
-        return Ok(metrickit_report);
-    }
-    
-    // Test the named_threads_from_kscrash_report function
-    let named_threads = named_threads_from_kscrash_report(&kscrash_report);
-    
-    // Inject thread names from KSCrash into MetricKit report
-    let enhanced_metrickit = inject_thread_names_into_metrickit(metrickit_report, &named_threads);
-    
-    Ok(enhanced_metrickit)
-}
-
-#[allow(dead_code)]
 fn named_threads_from_kscrash_report(kscrash_report: &Value) -> Vec<NamedThread> {
     let mut named_threads: Vec<NamedThread> = Vec::new();
     
-    if let Value::Object(report_obj) = kscrash_report {
-        if let Some(Value::Array(threads)) = report_obj.get("threads") {
-            for (_thread_index, thread) in threads.iter().enumerate() {
-                
-                if let Value::Object(thread_obj) = thread {
-                    // Check if this thread has a name
-                    if let Some(Value::String(thread_name)) = thread_obj.get("name") {
-                        // Extract stack addresses from backtrace.contents
-                        let mut stack_addresses = Vec::new();
-                        
-                        if let Some(Value::Object(backtrace_obj)) = thread_obj.get("backtrace") {
-                            if let Some(Value::Array(contents)) = backtrace_obj.get("contents") {
-                                for (_i, frame) in contents.iter().enumerate() {
-                                    if let Value::Object(frame_obj) = frame {
-                                        
-                                        if let Some(address_value) = frame_obj.get("address") {
-                                            match address_value {
-                                                Value::Unsigned(address) => {
-                                                    stack_addresses.push(*address);
-                                                },
-                                                Value::Signed(address) => {
-                                                    if *address >= 0 {
-                                                        stack_addresses.push(*address as u64);
-                                                    }
-                                                },
-                                                _ => {}
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Check if we already have a thread with this name
-                        if let Some(existing_thread) = named_threads.iter_mut().find(|t| t.name == *thread_name) {
-                            // Increment count for existing thread
-                            existing_thread.count += 1;
-                        } else {
-                            // Create new NamedThread entry
-                            named_threads.push(NamedThread {
-                                name: thread_name.clone(),
-                                call_stack: stack_addresses,
-                                count: 1,
-                            });
-                        }
-                    }
-                }
-            }
+    let Value::Object(report_obj) = kscrash_report else {
+        return named_threads;
+    };
+    
+    let Some(Value::Array(threads)) = report_obj.get("threads") else {
+        return named_threads;
+    };
+    
+    for thread in threads {
+        let Value::Object(thread_obj) = thread else {
+            continue;
+        };
+        
+        let Some(Value::String(thread_name)) = thread_obj.get("name") else {
+            continue;
+        };
+        
+        let stack_addresses = extract_stack_addresses_from_thread(thread_obj);
+        
+        // Check if we already have a thread with this name
+        if let Some(existing_thread) = named_threads.iter_mut().find(|t| t.name == *thread_name) {
+            // Increment count for existing thread
+            existing_thread.count += 1;
+        } else {
+            // Create new NamedThread entry
+            named_threads.push(NamedThread {
+                name: thread_name.clone(),
+                call_stack: stack_addresses,
+                count: 1,
+            });
         }
     }
     
     named_threads
 }
 
+fn extract_stack_addresses_from_thread(thread_obj: &std::collections::HashMap<String, Value>) -> Vec<u64> {
+    let mut stack_addresses = Vec::new();
+    
+    let Some(Value::Object(backtrace_obj)) = thread_obj.get("backtrace") else {
+        return stack_addresses;
+    };
+    
+    let Some(Value::Array(contents)) = backtrace_obj.get("contents") else {
+        return stack_addresses;
+    };
+    
+    for frame in contents {
+        let Value::Object(frame_obj) = frame else {
+            continue;
+        };
+        
+        let Some(address_value) = frame_obj.get("address") else {
+            continue;
+        };
+        
+        match address_value {
+            Value::Unsigned(address) => {
+                stack_addresses.push(*address);
+            },
+            Value::Signed(address) => {
+                if *address >= 0 {
+                    stack_addresses.push(*address as u64);
+                }
+            },
+            _ => {}
+        }
+    }
+    
+    stack_addresses
+}
+
 /// Injects thread names from KSCrash report into MetricKit report call stacks
 /// where the addresses match between the two reports.
-#[allow(dead_code)]
 fn inject_thread_names_into_metrickit(mut metrickit_report: Value, named_threads: &[NamedThread]) -> Value {
     // Track how many times each named thread has been matched
     let mut usage_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     
-    if let Value::Object(ref mut report_obj) = metrickit_report {
-        if let Some(Value::Object(ref mut call_stack_tree)) = report_obj.get_mut("callStackTree") {
-            if let Some(Value::Array(ref mut call_stacks)) = call_stack_tree.get_mut("callStacks") {
-                for call_stack in call_stacks.iter_mut() {
-                    if let Value::Object(ref mut call_stack_obj) = call_stack {
-                        // Extract addresses from this call stack
-                        let addresses = extract_call_stack_from_metrickit_thread(call_stack_obj);
-                        
-                        // Find matching named thread that hasn't exceeded its count limit
-                        if let Some(matching_thread) = find_matching_thread_with_limit(&addresses, named_threads, &usage_counts) {
-                            let thread_name = matching_thread.name.clone();
-                            let current_count = usage_counts.get(&thread_name).unwrap_or(&0);
-                            let new_count = current_count + 1;
-                            
-                            // Update usage count
-                            usage_counts.insert(thread_name.clone(), new_count);
-                            
-                            // Inject the thread name next to callStackRootFrames
-                            call_stack_obj.insert("name".to_string(), Value::String(thread_name.clone()));
-                        }
-                    }
-                }
-            }
-        }
+    let Value::Object(ref mut report_obj) = metrickit_report else {
+        return metrickit_report;
+    };
+    
+    let Some(Value::Object(ref mut call_stack_tree)) = report_obj.get_mut("callStackTree") else {
+        return metrickit_report;
+    };
+    
+    let Some(Value::Array(ref mut call_stacks)) = call_stack_tree.get_mut("callStacks") else {
+        return metrickit_report;
+    };
+    
+    for call_stack in call_stacks.iter_mut() {
+        let Value::Object(ref mut call_stack_obj) = call_stack else {
+            continue;
+        };
+        
+        // Extract addresses from this call stack
+        let addresses = extract_call_stack_from_metrickit_thread(call_stack_obj);
+        
+        // Find matching named thread that hasn't exceeded its count limit
+        let Some(matching_thread) = find_matching_thread_with_limit(&addresses, named_threads, &usage_counts) else {
+            continue;
+        };
+        
+        let thread_name = matching_thread.name.clone();
+        let current_count = usage_counts.get(&thread_name).unwrap_or(&0);
+        let new_count = current_count + 1;
+        
+        // Update usage count
+        usage_counts.insert(thread_name.clone(), new_count);
+        
+        // Inject the thread name next to callStackRootFrames
+        call_stack_obj.insert("name".to_string(), Value::String(thread_name));
     }
+    
     metrickit_report
 }
 
@@ -258,24 +282,6 @@ fn extract_call_stack_from_metrickit_frame(frame: &std::collections::HashMap<Str
     }
 }
 
-// #[allow(dead_code)]
-// fn find_named_thread_with_call_stack<'a>(call_stack: &[u64], named_threads: &'a [NamedThread]) -> Option<&'a NamedThread> {
-//     for named_thread in named_threads {
-//         println!("### Checking thread: {} with {} entries", named_thread.name, named_thread.call_stack.len());
-//         for addr in named_thread.call_stack.iter() {
-//             println!("###### address: {:?}", addr);
-//         }
-//         println!("#### VS");
-//         for addr in call_stack.iter() {
-//             println!("###### address: {:?}", addr);
-//         }
-//         if addresses_match(call_stack, &named_thread.call_stack) {
-//             return Some(named_thread);
-//         }
-//     }
-//     None
-// }
-
 /// Finds a named thread whose addresses match the given call stack addresses,
 /// but only if the thread hasn't exceeded its usage count limit
 fn find_matching_thread_with_limit<'a>(
@@ -311,7 +317,6 @@ fn addresses_match(metrickit_addresses: &[u64], kscrash_addresses: &[u64]) -> bo
     metrickit_addresses == kscrash_addresses
 }
 
-// #[allow(dead_code)]
 struct NamedThread {
     name: String,
     call_stack: Vec<u64>,
