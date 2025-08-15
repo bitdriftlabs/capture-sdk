@@ -30,6 +30,83 @@ final class DiagnosticEventReporterTests: XCTestCase {
         }
     }
 
+    private func getTestBundleFileUrl(_ name: String) -> URL {
+        let testBundle = Bundle(for: type(of: self))
+        let url = testBundle.url(forResource: name, withExtension: nil)!
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        return url
+    }
+
+    private func getTestBundleFileUrl(_ name: String, subdir: String) -> URL {
+        let testBundle = Bundle(for: type(of: self))
+        let url = testBundle.url(forResource: name, withExtension: nil, subdirectory: subdir)!
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        return url
+    }
+
+    private func getContentsOfTestBundleJsonFile(_ name: String) throws -> [String: any Equatable] {
+        return try JSONSerialization.jsonObject(
+            with: Data(contentsOf: getTestBundleFileUrl(name)),
+            options: []
+        ) as! Dictionary
+    }
+
+    private func dictsAreEqual(_ dict1: [String: any Equatable], _ dict2: [String: any Equatable]) -> Bool {
+        guard dict1.keys == dict2.keys else {
+            return false
+        }
+        for key in dict1.keys {
+            let value1 = dict1[key]!
+            let value2 = dict2[key]!
+            
+            if let value1AsDict = value1 as? [String: any Equatable],
+               let value2AsDict = value2 as? [String: any Equatable]
+            {
+                if !dictsAreEqual(value1AsDict, value2AsDict) {
+                    return false
+                }
+            } else if "\(value1)" != "\(value2)" {
+                return false
+            }
+        }
+        return true
+    }
+
+    func testReportMerging() throws {
+        let metrickitReport = try! getContentsOfTestBundleJsonFile("metrickit-example.json")
+        XCTAssertNotNil(metrickitReport)
+        let kscrashPath = getTestBundleFileUrl("lastCrash.bjn", subdir: "kscrash")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: kscrashPath.path))
+
+        let enhancedReport = enhance_metrickit_diagnostic_report(metrickitReport, kscrashPath.path) as! [String : any Equatable]
+//        BitdriftKSCrashWrapper.configure(withBasePath: kscrashPath)
+//        let enhancedReport = BitdriftKSCrashWrapper.enhancedMetricKitReport(metrickitReport) as! [String: any Equatable]
+        XCTAssertNotNil(enhancedReport)
+        XCTAssertFalse(dictsAreEqual(metrickitReport, enhancedReport))
+
+        let expectedNames = ["com.apple.uikit.eventfetch-thread",
+                             "tokio-runtime-worker",
+                             "io.bitdrift.capture.anr-reporter",
+                             "tokio-runtime-worker",
+                             "io.bitdrift.capture.buffer.Verbose Buffer",
+                             "io.bitdrift.capture.buffer.Continuous Buffer",
+                             "com.apple.NSURLConnectionLoader",
+                             // This won't be found because its stack trace wasn't captured
+                             // "KSCrash Exception Handler (Primary)",
+        ]
+        let callStackTree = enhancedReport["callStackTree"] as! [String: Any]
+        let callStacks = callStackTree["callStacks"] as! [Dictionary<String, any Equatable>]
+        var foundNames: [String] = []
+        for stack in callStacks {
+            if let name = stack["name"] as? String {
+                foundNames.append(name)
+            }
+        }
+        print("$$$ \(expectedNames.sorted())")
+        print("$$$ \(foundNames.sorted())")
+        XCTAssertEqual(expectedNames.sorted(), foundNames.sorted())
+    }
+
     func testSdkAttributes() throws {
         let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
         let crash = try MockCrashDiagnostic(signal: 9, exceptionType: nil, exceptionCode: nil, callStacks: [])

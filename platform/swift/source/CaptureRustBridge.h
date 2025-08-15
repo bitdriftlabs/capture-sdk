@@ -12,7 +12,7 @@ typedef uintptr_t stream_id;
 
 NS_ASSUME_NONNULL_BEGIN
 
-NSDictionary *_Nullable enhance_metrickit_diagnostic_report(const NSDictionary *_Nullable report);
+NSDictionary *_Nullable enhance_metrickit_diagnostic_report(const NSDictionary *_Nullable report, NSString *_Nullable kscrashReportPath);
 
 /*
  * Reports an error to the bitdrift backend and log it to the console. Both reporting to remote and logging
