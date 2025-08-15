@@ -9,7 +9,6 @@ use objc::runtime::Object;
 use crate::{conversion::{objc_value_to_rust, rust_value_to_objc}, ffi::nsstring_into_string};
 use std::fs;
 use std::path::Path;
-#[allow(unused_imports)]
 use std::collections::HashMap;
 use bd_bonjson::decoder::{decode_value, Value};
 use anyhow;
@@ -87,7 +86,7 @@ fn load_bonjson_document<P: AsRef<Path>>(path: P) -> anyhow::Result<Value> {
     }
 }
 
-fn enhance_report(metrickit_report: std::collections::HashMap<String, Value>, kscrash_report: std::collections::HashMap<String, Value>) -> anyhow::Result<std::collections::HashMap<String, Value>> {
+fn enhance_report(metrickit_report: HashMap<String, Value>, kscrash_report: HashMap<String, Value>) -> anyhow::Result<HashMap<String, Value>> {
     let metrickit_value = Value::Object(metrickit_report.clone());
     let kscrash_value = Value::Object(kscrash_report.clone());
     if !diagnostic_metadata_matches_in_reports(&metrickit_value, &kscrash_value) {
@@ -101,10 +100,7 @@ fn enhance_report(metrickit_report: std::collections::HashMap<String, Value>, ks
     };
     
     let enhanced_metrickit = inject_thread_names_into_metrickit(metrickit_report, &named_threads)?;
-    match enhanced_metrickit {
-        Value::Object(hashmap) => Ok(hashmap),
-        _ => unreachable!("inject_thread_names_into_metrickit should always return Value::Object"),
-    }
+    Ok(enhanced_metrickit)
 }
 
 fn diagnostic_metadata_matches_in_reports(report_a: &Value, report_b: &Value) -> bool {
@@ -132,7 +128,7 @@ fn diagnostic_metadata_matches_in_reports(report_a: &Value, report_b: &Value) ->
     }
 }
 
-fn named_threads_from_kscrash_report(kscrash_report: &std::collections::HashMap<String, Value>) -> anyhow::Result<Option<Vec<NamedThread>>> {
+fn named_threads_from_kscrash_report(kscrash_report: &HashMap<String, Value>) -> anyhow::Result<Option<Vec<NamedThread>>> {
     let mut named_threads: Vec<NamedThread> = Vec::new();
 
     let Some(Value::Array(threads)) = kscrash_report.get("threads") else {
@@ -173,7 +169,7 @@ fn named_threads_from_kscrash_report(kscrash_report: &std::collections::HashMap<
     }
 }
 
-fn extract_stack_addresses_from_thread(thread: &std::collections::HashMap<String, Value>) -> anyhow::Result<Option<Vec<u64>>> {
+fn extract_stack_addresses_from_thread(thread: &HashMap<String, Value>) -> anyhow::Result<Option<Vec<u64>>> {
     let mut stack_addresses = Vec::new();
     
     let Some(Value::Object(backtrace_obj)) = thread.get("backtrace") else {
@@ -217,9 +213,9 @@ fn extract_stack_addresses_from_thread(thread: &std::collections::HashMap<String
 
 /// Injects thread names from KSCrash report into MetricKit report call stacks
 /// where the addresses match between the two reports.
-fn inject_thread_names_into_metrickit(mut metrickit_report: std::collections::HashMap<String, Value>, named_threads: &[NamedThread]) -> anyhow::Result<Value> {
+fn inject_thread_names_into_metrickit(mut metrickit_report: HashMap<String, Value>, named_threads: &[NamedThread]) -> anyhow::Result<HashMap<String, Value>> {
     // Track how many times each named thread has been matched
-    let mut usage_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut usage_counts: HashMap<String, usize> = HashMap::new();
     
     let Some(Value::Object(ref mut call_stack_tree)) = metrickit_report.get_mut("callStackTree") else {
         return Err(anyhow::anyhow!("MetricKit report missing 'callStackTree' object"));
@@ -254,10 +250,10 @@ fn inject_thread_names_into_metrickit(mut metrickit_report: std::collections::Ha
         thread_obj.insert("name".to_string(), Value::String(thread_name));
     }
     
-    Ok(Value::Object(metrickit_report))
+    Ok(metrickit_report)
 }
 
-fn extract_call_stack_from_metrickit_thread(thread: &std::collections::HashMap<String, Value>) -> anyhow::Result<Option<Vec<u64>>> {
+fn extract_call_stack_from_metrickit_thread(thread: &HashMap<String, Value>) -> anyhow::Result<Option<Vec<u64>>> {
     let Some(Value::Array(root_frames)) = thread.get("callStackRootFrames") else {
         return Err(anyhow::anyhow!("MetricKit thread missing 'callStackRootFrames' array"));
     };
@@ -288,7 +284,7 @@ fn extract_call_stack_from_metrickit_thread(thread: &std::collections::HashMap<S
 
 
 /// Recursively extracts addresses from a MetricKit frame and its subFrames
-fn extract_call_stack_from_metrickit_frame(frame: &std::collections::HashMap<String, Value>) -> anyhow::Result<Vec<u64>> {
+fn extract_call_stack_from_metrickit_frame(frame: &HashMap<String, Value>) -> anyhow::Result<Vec<u64>> {
     let mut addresses = Vec::new();
     
     // Extract address from current frame - try both Unsigned and Signed
@@ -328,7 +324,7 @@ fn extract_call_stack_from_metrickit_frame(frame: &std::collections::HashMap<Str
 fn find_matching_thread_with_limit<'a>(
     call_stack_addresses: &[u64], 
     named_threads: &'a [NamedThread],
-    usage_counts: &std::collections::HashMap<String, usize>
+    usage_counts: &HashMap<String, usize>
 ) -> Option<&'a NamedThread> {
     for named_thread in named_threads {
         // Check if this thread has already been used up to its count limit
