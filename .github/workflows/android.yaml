@@ -36,7 +36,7 @@ jobs:
 
       - name: Check for workflow file changes
         id: workflow_check
-        run: ./ci/files_changed.sh .github/workflows/android.yaml
+        run: ./ci/files_changed.sh .github/workflows/android.yaml .bazelrc
         continue-on-error: true
 
       - name: Check for relevant Gradle changes
@@ -226,8 +226,11 @@ jobs:
     - name: Accept Android SDK licenses
       run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
 
-    - name: Set up Rust ARM target
-      run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
+    - uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
+      with:
+        toolchain: stable
+        targets: x86_64-unknown-linux-gnu,aarch64-linux-android
+        components: rust-src
 
     # See https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/
     - name: Enable KVM group perms
@@ -241,11 +244,6 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
         cache: gradle
-    - uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
-      with:
-        toolchain: stable
-        targets: x86_64-unknown-linux-gnu
-        components: rust-src
     - name: AVD cache
       uses: actions/cache@v4
       id: avd-cache
