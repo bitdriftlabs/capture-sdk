@@ -133,7 +133,7 @@ fn named_threads_from_kscrash_report(kscrash_report: &HashMap<String, Value>) ->
     let mut named_threads: Vec<NamedThread> = Vec::new();
 
     let Some(Value::Array(threads)) = kscrash_report.get("threads") else {
-        return Err(anyhow::anyhow!("KSCrash report missing 'threads' array"));
+        return Err(anyhow::anyhow!("kscrash_report missing 'threads' array"));
     };
     
     for thread in threads {
@@ -145,7 +145,7 @@ fn named_threads_from_kscrash_report(kscrash_report: &HashMap<String, Value>) ->
             continue;
         };
         
-        let Some(stack_addresses) = extract_stack_addresses_from_thread(thread_obj)? else {
+        let Some(stack_addresses) = extract_stack_addresses_from_kcrash_thread(thread_obj)? else {
             continue;
         };
         
@@ -170,7 +170,7 @@ fn named_threads_from_kscrash_report(kscrash_report: &HashMap<String, Value>) ->
     }
 }
 
-fn extract_stack_addresses_from_thread(thread: &HashMap<String, Value>) -> anyhow::Result<Option<Vec<u64>>> {
+fn extract_stack_addresses_from_kcrash_thread(thread: &HashMap<String, Value>) -> anyhow::Result<Option<Vec<u64>>> {
     let mut stack_addresses = Vec::new();
     
     let Some(Value::Object(backtrace_obj)) = thread.get("backtrace") else {
@@ -183,11 +183,11 @@ fn extract_stack_addresses_from_thread(thread: &HashMap<String, Value>) -> anyho
     
     for frame in contents {
         let Value::Object(frame_obj) = frame else {
-            continue;
+            return Err(anyhow::anyhow!("Frame is not a valid object/hashmap"));
         };
         
         let Some(address_value) = frame_obj.get("address") else {
-            continue;
+            return Err(anyhow::anyhow!("Frame missing 'address' field"));
         };
         
         match address_value {
