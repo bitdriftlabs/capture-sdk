@@ -701,25 +701,25 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
 // implementation for Android and other platforms.
 #[cfg(any(target_os = "android", target_os = "linux"))]
 fn set_thread_name(name: &str) {
-    debug_assert!(
-        name.len() <= 15,
-        "Thread name must be at most 15 characters long, got: {name}"
-    );
-    unsafe {
-        let thread = libc::pthread_self();
-        libc::pthread_setname_np(thread, CString::new(name).unwrap().as_ptr());
-    }
+  debug_assert!(
+    name.len() <= 15,
+    "Thread name must be at most 15 characters long, got: {name}"
+  );
+  unsafe {
+    let thread = libc::pthread_self();
+    libc::pthread_setname_np(thread, CString::new(name).unwrap().as_ptr());
+  }
 }
 
 #[cfg(not(any(target_os = "android", target_os = "linux")))]
 fn set_thread_name(name: &str) {
-    debug_assert!(
-        name.len() <= 15,
-        "Thread name must be at most 15 characters long, got: {name}"
-    );
-    unsafe {
-        libc::pthread_setname_np(CString::new(name).unwrap().as_ptr());
-    }
+  debug_assert!(
+    name.len() <= 15,
+    "Thread name must be at most 15 characters long, got: {name}"
+  );
+  unsafe {
+    libc::pthread_setname_np(CString::new(name).unwrap().as_ptr());
+  }
 }
 
 #[no_mangle]
