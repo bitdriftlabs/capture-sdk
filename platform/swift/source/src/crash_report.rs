@@ -225,15 +225,15 @@ fn inject_thread_names_into_metrickit(mut metrickit_report: Value, named_threads
     let mut usage_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     
     let Value::Object(ref mut report_obj) = metrickit_report else {
-        return Ok(metrickit_report);
+        return Err(anyhow::anyhow!("MetricKit report is not an object"));
     };
     
     let Some(Value::Object(ref mut call_stack_tree)) = report_obj.get_mut("callStackTree") else {
-        return Ok(metrickit_report);
+        return Err(anyhow::anyhow!("MetricKit report missing 'callStackTree' object"));
     };
     
     let Some(Value::Array(ref mut threads)) = call_stack_tree.get_mut("callStacks") else {
-        return Ok(metrickit_report);
+        return Err(anyhow::anyhow!("CallStackTree missing 'callStacks' array"));
     };
     
     for thread in threads.iter_mut() {
