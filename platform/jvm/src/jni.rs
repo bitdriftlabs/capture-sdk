@@ -679,7 +679,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
                 // When we first attach the runtime thread the JVM will rename the thread since
                 // the jni crate won't let us pass a thread name through to the attach function.
                 // To work around this we attach and then immediatley rename the thread again.
-
                 set_thread_name("bd-tokio");
 
                 Ok::<(), anyhow::Error>(())
@@ -700,19 +699,27 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
 
 // On Android pthread_setname_np in the libc crate takes two arguments so we need to use a different
 // implementation for Android and other platforms.
-#[cfg(target_os = "android")]
+#[cfg(any(target_os = "android", target_os = "linux"))]
 fn set_thread_name(name: &str) {
-  unsafe {
-    let thread = libc::pthread_self();
-    libc::pthread_setname_np(thread, CString::new(name).unwrap().as_ptr());
-  }
+    debug_assert!(
+        name.len() <= 15,
+        "Thread name must be at most 15 characters long, got: {name}"
+    );
+    unsafe {
+        let thread = libc::pthread_self();
+        libc::pthread_setname_np(thread, CString::new(name).unwrap().as_ptr());
+    }
 }
 
-#[cfg(not(target_os = "android"))]
+#[cfg(not(any(target_os = "android", target_os = "linux")))]
 fn set_thread_name(name: &str) {
-  unsafe {
-    libc::pthread_setname_np(CString::new(name).unwrap().as_ptr());
-  }
+    debug_assert!(
+        name.len() <= 15,
+        "Thread name must be at most 15 characters long, got: {name}"
+    );
+    unsafe {
+        libc::pthread_setname_np(CString::new(name).unwrap().as_ptr());
+    }
 }
 
 #[no_mangle]
