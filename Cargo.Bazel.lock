@@ -1,5 +1,5 @@
 {
-  "checksum": "114d1127417950edee3b8ca9eff2be82eefdeb7f770ef01ec8e540d0cffa21e3",
+  "checksum": "e632c21fe9c3a78344cf9bf9975c9aebd07466ab5dbb19486015336c1216b349",
   "crates": {
     "addr2line 0.24.2": {
       "name": "addr2line",
@@ -335,14 +335,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "android_logger 0.15.0": {
+    "android_logger 0.15.1": {
       "name": "android_logger",
-      "version": "0.15.0",
+      "version": "0.15.1",
       "package_url": "https://github.com/rust-mobile/android_logger-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/android_logger/0.15.0/download",
-          "sha256": "f6f39be698127218cca460cb624878c9aa4e2b47dba3b277963d2bf00bad263b"
+          "url": "https://static.crates.io/crates/android_logger/0.15.1/download",
+          "sha256": "dbb4e440d04be07da1f1bf44fb4495ebd58669372fe0cffa6e48595ac5bd88a3"
         }
       },
       "targets": [
@@ -382,7 +382,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.15.0"
+        "version": "0.15.1"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -423,7 +423,7 @@
         "deps": {
           "common": [
             {
-              "id": "libc 0.2.174",
+              "id": "libc 0.2.175",
               "target": "libc"
             }
           ],
@@ -484,14 +484,14 @@
       ],
       "license_file": null
     },
-    "anstream 0.6.19": {
+    "anstream 0.6.20": {
       "name": "anstream",
-      "version": "0.6.19",
+      "version": "0.6.20",
       "package_url": "https://github.com/rust-cli/anstyle.git",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/anstream/0.6.19/download",
-          "sha256": "301af1932e46185686725e0fad2f8f2aa7da69dd70bf6ecc44d6b703844a3933"
+          "url": "https://static.crates.io/crates/anstream/0.6.20/download",
+          "sha256": "3ae563653d1938f79b1ab1b5e668c87c76a9930414574a6583a7b7e11a8e6192"
         }
       },
       "targets": [
@@ -532,7 +532,7 @@
               "target": "anstyle_parse"
             },
             {
-              "id": "anstyle-query 1.1.3",
+              "id": "anstyle-query 1.1.4",
               "target": "anstyle_query"
             },
             {
@@ -551,7 +551,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.6.19"
+        "version": "0.6.20"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -661,14 +661,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "anstyle-query 1.1.3": {
+    "anstyle-query 1.1.4": {
       "name": "anstyle-query",
-      "version": "1.1.3",
+      "version": "1.1.4",
       "package_url": "https://github.com/rust-cli/anstyle.git",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/anstyle-query/1.1.3/download",
-          "sha256": "6c8bdeb6047d8983be085bab0ba1472e6dc604e7041dbf6fcd5e71523014fae9"
+          "url": "https://static.crates.io/crates/anstyle-query/1.1.4/download",
+          "sha256": "9e231f6134f61b71076a3eab506c379d4f36122f2af15a9ff04415ea4c3339e2"
         }
       },
       "targets": [
@@ -695,14 +695,14 @@
           "selects": {
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.59.0",
+                "id": "windows-sys 0.60.2",
                 "target": "windows_sys"
               }
             ]
           }
         },
         "edition": "2021",
-        "version": "1.1.3"
+        "version": "1.1.4"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -711,14 +711,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "anstyle-wincon 3.0.9": {
+    "anstyle-wincon 3.0.10": {
       "name": "anstyle-wincon",
-      "version": "3.0.9",
+      "version": "3.0.10",
       "package_url": "https://github.com/rust-cli/anstyle.git",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/anstyle-wincon/3.0.9/download",
-          "sha256": "403f75924867bb1033c59fbf0797484329750cfbe3c4325cd33127941fabc882"
+          "url": "https://static.crates.io/crates/anstyle-wincon/3.0.10/download",
+          "sha256": "3e0633414522a32ffaac8ac6cc8f748e090c5717661fddeea04219e2344f5f2a"
         }
       },
       "targets": [
@@ -754,14 +754,14 @@
                 "target": "once_cell_polyfill"
               },
               {
-                "id": "windows-sys 0.59.0",
+                "id": "windows-sys 0.60.2",
                 "target": "windows_sys"
               }
             ]
           }
         },
         "edition": "2021",
-        "version": "3.0.9"
+        "version": "3.0.10"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -770,14 +770,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "anyhow 1.0.98": {
+    "anyhow 1.0.99": {
       "name": "anyhow",
-      "version": "1.0.98",
+      "version": "1.0.99",
       "package_url": "https://github.com/dtolnay/anyhow",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/anyhow/1.0.98/download",
-          "sha256": "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
+          "url": "https://static.crates.io/crates/anyhow/1.0.99/download",
+          "sha256": "b0674a1ddeecb70197781e945de4b3b8ffb61fa939a5597bcf48503737663100"
         }
       },
       "targets": [
@@ -821,14 +821,14 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "build_script_build"
             }
           ],
           "selects": {}
         },
         "edition": "2018",
-        "version": "1.0.98"
+        "version": "1.0.99"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -982,7 +982,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -998,14 +998,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "async-trait 0.1.88": {
+    "async-trait 0.1.89": {
       "name": "async-trait",
-      "version": "0.1.88",
+      "version": "0.1.89",
       "package_url": "https://github.com/dtolnay/async-trait",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/async-trait/0.1.88/download",
-          "sha256": "e539d3fca749fcee5236ab05e93a52867dd549cc157c8cb7f99595f3cedffdb5"
+          "url": "https://static.crates.io/crates/async-trait/0.1.89/download",
+          "sha256": "9035ad2d096bed7955a320ee7e2230574d28fd3c3a0f186cbea1ff3c7eed5dbb"
         }
       },
       "targets": [
@@ -1030,7 +1030,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -1038,14 +1038,14 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.104",
+              "id": "syn 2.0.105",
               "target": "syn"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.1.88"
+        "version": "0.1.89"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -1245,7 +1245,7 @@
               "target": "serde"
             },
             {
-              "id": "serde_json 1.0.140",
+              "id": "serde_json 1.0.142",
               "target": "serde_json"
             },
             {
@@ -1261,7 +1261,7 @@
               "target": "sync_wrapper"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -1291,7 +1291,7 @@
               "target": "axum_macros"
             },
             {
-              "id": "rustversion 1.0.21",
+              "id": "rustversion 1.0.22",
               "target": "rustversion"
             }
           ],
@@ -1393,7 +1393,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "rustversion 1.0.21",
+              "id": "rustversion 1.0.22",
               "target": "rustversion"
             }
           ],
@@ -1445,7 +1445,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -1453,7 +1453,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.104",
+              "id": "syn 2.0.105",
               "target": "syn"
             }
           ],
@@ -1556,7 +1556,7 @@
               "target": "rustls_pki_types"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -1684,7 +1684,7 @@
               "target": "cfg_if"
             },
             {
-              "id": "rustc-demangle 0.1.25",
+              "id": "rustc-demangle 0.1.26",
               "target": "rustc_demangle"
             }
           ],
@@ -1701,7 +1701,7 @@
                 "target": "addr2line"
               },
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               },
               {
@@ -1826,7 +1826,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-api"
         }
@@ -1853,7 +1853,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -1921,7 +1921,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -1929,7 +1929,7 @@
               "target": "tracing"
             },
             {
-              "id": "uuid 1.17.0",
+              "id": "uuid 1.18.0",
               "target": "uuid"
             }
           ],
@@ -1939,7 +1939,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -1959,7 +1959,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-artifact-upload"
         }
@@ -1986,7 +1986,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -2050,11 +2050,11 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
-              "id": "uuid 1.17.0",
+              "id": "uuid 1.18.0",
               "target": "uuid"
             }
           ],
@@ -2064,7 +2064,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -2084,7 +2084,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-bounded-buffer"
         }
@@ -2131,7 +2131,7 @@
               "target": "thiserror"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -2152,7 +2152,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-buffer"
         }
@@ -2179,7 +2179,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -2247,7 +2247,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -2261,7 +2261,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -2281,7 +2281,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-client-common"
         }
@@ -2308,7 +2308,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -2364,7 +2364,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -2374,7 +2374,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -2394,7 +2394,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-client-stats"
         }
@@ -2421,7 +2421,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -2481,7 +2481,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -2491,7 +2491,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -2511,7 +2511,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-client-stats-store"
         }
@@ -2562,7 +2562,7 @@
               "target": "thiserror"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -2583,7 +2583,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-completion"
         }
@@ -2610,7 +2610,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -2622,7 +2622,7 @@
               "target": "thiserror"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -2643,7 +2643,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-crash-handler"
         }
@@ -2670,7 +2670,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -2746,11 +2746,11 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
-              "id": "uuid 1.17.0",
+              "id": "uuid 1.18.0",
               "target": "uuid"
             }
           ],
@@ -2760,7 +2760,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -2780,7 +2780,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-device"
         }
@@ -2807,7 +2807,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -2831,7 +2831,7 @@
               "target": "time"
             },
             {
-              "id": "uuid 1.17.0",
+              "id": "uuid 1.18.0",
               "target": "uuid"
             }
           ],
@@ -2852,7 +2852,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-events"
         }
@@ -2891,7 +2891,7 @@
               "target": "log"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -2912,7 +2912,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-grpc"
         }
@@ -2951,7 +2951,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -3043,7 +3043,7 @@
               "target": "serde"
             },
             {
-              "id": "serde_json 1.0.140",
+              "id": "serde_json 1.0.142",
               "target": "serde_json"
             },
             {
@@ -3059,7 +3059,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -3089,7 +3089,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -3135,7 +3135,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-grpc-codec"
         }
@@ -3169,7 +3169,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -3218,7 +3218,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-hyper-network"
         }
@@ -3252,7 +3252,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -3304,11 +3304,11 @@
               "target": "serde"
             },
             {
-              "id": "serde_json 1.0.140",
+              "id": "serde_json 1.0.142",
               "target": "serde_json"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -3322,7 +3322,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -3342,7 +3342,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-internal-logging"
         }
@@ -3377,7 +3377,7 @@
               "target": "bd_proto"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -3398,7 +3398,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-key-value"
         }
@@ -3425,7 +3425,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -3453,7 +3453,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -3474,7 +3474,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-log"
         }
@@ -3501,7 +3501,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -3517,7 +3517,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -3554,7 +3554,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-log-filter"
         }
@@ -3581,7 +3581,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -3634,7 +3634,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-log-matcher"
         }
@@ -3661,7 +3661,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -3702,7 +3702,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-log-metadata"
         }
@@ -3729,7 +3729,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -3758,7 +3758,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-log-primitives"
         }
@@ -3822,7 +3822,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-logger"
         }
@@ -3849,7 +3849,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -4005,7 +4005,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -4027,7 +4027,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -4047,7 +4047,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-metadata"
         }
@@ -4086,7 +4086,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-network-quality"
         }
@@ -4125,7 +4125,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-noop-network"
         }
@@ -4152,7 +4152,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -4170,7 +4170,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -4190,7 +4190,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-panic"
         }
@@ -4246,7 +4246,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-pgv"
         }
@@ -4344,7 +4344,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-proto"
         }
@@ -4450,7 +4450,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-report-writer"
         }
@@ -4544,7 +4544,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-resource-utilization"
         }
@@ -4571,7 +4571,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -4599,7 +4599,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -4620,7 +4620,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-runtime"
         }
@@ -4647,7 +4647,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -4679,7 +4679,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -4689,7 +4689,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -4709,7 +4709,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-server-stats"
         }
@@ -4736,7 +4736,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -4780,7 +4780,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -4801,7 +4801,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-session"
         }
@@ -4828,7 +4828,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -4864,11 +4864,11 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
-              "id": "uuid 1.17.0",
+              "id": "uuid 1.18.0",
               "target": "uuid"
             }
           ],
@@ -4889,7 +4889,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-session-replay"
         }
@@ -4916,7 +4916,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -4960,7 +4960,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -4981,7 +4981,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-shutdown"
         }
@@ -5012,7 +5012,7 @@
               "target": "log"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -5033,7 +5033,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-stats-common"
         }
@@ -5081,7 +5081,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-test-helpers"
         }
@@ -5108,7 +5108,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -5220,7 +5220,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -5238,7 +5238,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -5258,7 +5258,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-time"
         }
@@ -5293,7 +5293,7 @@
               "target": "protobuf"
             },
             {
-              "id": "rand 0.9.1",
+              "id": "rand 0.9.2",
               "target": "rand"
             },
             {
@@ -5301,7 +5301,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -5311,7 +5311,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -5331,7 +5331,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "5eee768cb85aea9f6646ed15b027e3691a25bd7e"
+            "Rev": "6883b9e854cb95aeed3b6ae65257e08dce51f4fd"
           },
           "strip_prefix": "bd-workflows"
         }
@@ -5358,7 +5358,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -5446,11 +5446,11 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
-              "id": "uuid 1.17.0",
+              "id": "uuid 1.18.0",
               "target": "uuid"
             }
           ],
@@ -5460,7 +5460,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -5838,11 +5838,11 @@
         "deps": {
           "common": [
             {
-              "id": "android_logger 0.15.0",
+              "id": "android_logger 0.15.1",
               "target": "android_logger"
             },
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -5898,7 +5898,7 @@
               "target": "tracing_subscriber"
             },
             {
-              "id": "uuid 1.17.0",
+              "id": "uuid 1.18.0",
               "target": "uuid"
             }
           ],
@@ -5908,7 +5908,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -6014,7 +6014,7 @@
               "target": "build_script_build"
             },
             {
-              "id": "clap 4.5.40",
+              "id": "clap 4.5.45",
               "target": "clap"
             },
             {
@@ -6030,7 +6030,7 @@
               "target": "log"
             },
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -6042,11 +6042,11 @@
               "target": "serde"
             },
             {
-              "id": "serde_json 1.0.140",
+              "id": "serde_json 1.0.142",
               "target": "serde_json"
             },
             {
-              "id": "syn 2.0.104",
+              "id": "syn 2.0.105",
               "target": "syn"
             },
             {
@@ -6459,14 +6459,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "clap 4.5.40": {
+    "clap 4.5.45": {
       "name": "clap",
-      "version": "4.5.40",
+      "version": "4.5.45",
       "package_url": "https://github.com/clap-rs/clap",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/clap/4.5.40/download",
-          "sha256": "40b6887a1d8685cebccf115538db5c0efe625ccac9696ad45c409d96566e910f"
+          "url": "https://static.crates.io/crates/clap/4.5.45/download",
+          "sha256": "1fc0e74a703892159f5ae7d3aac52c8e6c392f5ae5f359c70b5881d60aaac318"
         }
       },
       "targets": [
@@ -6513,14 +6513,14 @@
         "deps": {
           "common": [
             {
-              "id": "clap_builder 4.5.40",
+              "id": "clap_builder 4.5.44",
               "target": "clap_builder"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "4.5.40"
+        "version": "4.5.45"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -6529,14 +6529,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "clap_builder 4.5.40": {
+    "clap_builder 4.5.44": {
       "name": "clap_builder",
-      "version": "4.5.40",
+      "version": "4.5.44",
       "package_url": "https://github.com/clap-rs/clap",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/clap_builder/4.5.40/download",
-          "sha256": "e0c66c08ce9f0c698cbce5c0279d0bb6ac936d8674174fe48f736533b964f59e"
+          "url": "https://static.crates.io/crates/clap_builder/4.5.44/download",
+          "sha256": "b3e7f4214277f3c7aa526a59dd3fbe306a370daee1f8b7b8c987069cd8e888a8"
         }
       },
       "targets": [
@@ -6592,7 +6592,7 @@
           "selects": {
             "aarch64-apple-darwin": [
               {
-                "id": "anstream 0.6.19",
+                "id": "anstream 0.6.20",
                 "target": "anstream"
               },
               {
@@ -6602,7 +6602,7 @@
             ],
             "x86_64-unknown-linux-gnu": [
               {
-                "id": "anstream 0.6.19",
+                "id": "anstream 0.6.20",
                 "target": "anstream"
               },
               {
@@ -6613,7 +6613,7 @@
           }
         },
         "edition": "2021",
-        "version": "4.5.40"
+        "version": "4.5.44"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -6938,25 +6938,25 @@
           "selects": {
             "aarch64-linux-android": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
             "cfg(all(target_arch = \"aarch64\", target_os = \"linux\"))": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
             "cfg(all(target_arch = \"aarch64\", target_vendor = \"apple\"))": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
             "cfg(all(target_arch = \"loongarch64\", target_os = \"linux\"))": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ]
@@ -7027,14 +7027,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "criterion 0.6.0": {
+    "criterion 0.7.0": {
       "name": "criterion",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "package_url": "https://github.com/bheisler/criterion.rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/criterion/0.6.0/download",
-          "sha256": "3bf7af66b0989381bd0be551bd7cc91912a655a58c6918420c9527b1fd8b4679"
+          "url": "https://static.crates.io/crates/criterion/0.7.0/download",
+          "sha256": "e1c047a62b0cc3e145fa84415a3191f628e980b194c2755aa12300a4e6cbd928"
         }
       },
       "targets": [
@@ -7080,11 +7080,11 @@
               "target": "ciborium"
             },
             {
-              "id": "clap 4.5.40",
+              "id": "clap 4.5.45",
               "target": "clap"
             },
             {
-              "id": "criterion-plot 0.5.0",
+              "id": "criterion-plot 0.6.0",
               "target": "criterion_plot"
             },
             {
@@ -7116,7 +7116,7 @@
               "target": "serde"
             },
             {
-              "id": "serde_json 1.0.140",
+              "id": "serde_json 1.0.142",
               "target": "serde_json"
             },
             {
@@ -7131,7 +7131,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.6.0"
+        "version": "0.7.0"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
@@ -7140,14 +7140,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "criterion-plot 0.5.0": {
+    "criterion-plot 0.6.0": {
       "name": "criterion-plot",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "package_url": "https://github.com/bheisler/criterion.rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/criterion-plot/0.5.0/download",
-          "sha256": "6b50826342786a51a89e2da3a28f1c32b06e387201bc2d19791f622c673706b1"
+          "url": "https://static.crates.io/crates/criterion-plot/0.6.0/download",
+          "sha256": "9b1bcc0dc7dfae599d84ad0b1a55f80cde8af3725da8313b528da95ef783e338"
         }
       },
       "targets": [
@@ -7176,16 +7176,16 @@
               "target": "cast"
             },
             {
-              "id": "itertools 0.10.5",
+              "id": "itertools 0.13.0",
               "target": "itertools"
             }
           ],
           "selects": {}
         },
-        "edition": "2018",
-        "version": "0.5.0"
+        "edition": "2021",
+        "version": "0.6.0"
       },
-      "license": "MIT/Apache-2.0",
+      "license": "MIT OR Apache-2.0",
       "license_ids": [
         "Apache-2.0",
         "MIT"
@@ -7512,14 +7512,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "ctor 0.4.2": {
+    "ctor 0.5.0": {
       "name": "ctor",
-      "version": "0.4.2",
+      "version": "0.5.0",
       "package_url": "https://github.com/mmastrac/rust-ctor",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/ctor/0.4.2/download",
-          "sha256": "a4735f265ba6a1188052ca32d461028a7d1125868be18e287e756019da7607b5"
+          "url": "https://static.crates.io/crates/ctor/0.5.0/download",
+          "sha256": "67773048316103656a637612c4a62477603b777d91d9c62ff2290f9cde178fdb"
         }
       },
       "targets": [
@@ -7553,7 +7553,7 @@
         "deps": {
           "common": [
             {
-              "id": "dtor 0.0.6",
+              "id": "dtor 0.1.0",
               "target": "dtor"
             }
           ],
@@ -7563,13 +7563,13 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "ctor-proc-macro 0.0.5",
+              "id": "ctor-proc-macro 0.0.6",
               "target": "ctor_proc_macro"
             }
           ],
           "selects": {}
         },
-        "version": "0.4.2"
+        "version": "0.5.0"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
@@ -7578,14 +7578,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "ctor-proc-macro 0.0.5": {
+    "ctor-proc-macro 0.0.6": {
       "name": "ctor-proc-macro",
-      "version": "0.0.5",
+      "version": "0.0.6",
       "package_url": "https://github.com/mmastrac/rust-ctor",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/ctor-proc-macro/0.0.5/download",
-          "sha256": "4f211af61d8efdd104f96e57adf5e426ba1bc3ed7a4ead616e15e5881fd79c4d"
+          "url": "https://static.crates.io/crates/ctor-proc-macro/0.0.6/download",
+          "sha256": "e2931af7e13dc045d8e9d26afccc6fa115d64e115c9c84b1166288b46f6782c2"
         }
       },
       "targets": [
@@ -7614,14 +7614,14 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.0.5"
+        "version": "0.0.6"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
         "Apache-2.0",
         "MIT"
       ],
-      "license_file": null
+      "license_file": "LICENSE-APACHE"
     },
     "dashmap 6.1.0": {
       "name": "dashmap",
@@ -7897,14 +7897,14 @@
       ],
       "license_file": "LICENSE-MIT"
     },
-    "dtor 0.0.6": {
+    "dtor 0.1.0": {
       "name": "dtor",
-      "version": "0.0.6",
+      "version": "0.1.0",
       "package_url": "https://github.com/mmastrac/rust-ctor",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/dtor/0.0.6/download",
-          "sha256": "97cbdf2ad6846025e8e25df05171abfb30e3ababa12ee0a0e44b9bbe570633a8"
+          "url": "https://static.crates.io/crates/dtor/0.1.0/download",
+          "sha256": "e58a0764cddb55ab28955347b45be00ade43d4d6f3ba4bf3dc354e4ec9432934"
         }
       },
       "targets": [
@@ -7937,29 +7937,29 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "dtor-proc-macro 0.0.5",
+              "id": "dtor-proc-macro 0.0.6",
               "target": "dtor_proc_macro"
             }
           ],
           "selects": {}
         },
-        "version": "0.0.6"
+        "version": "0.1.0"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
         "Apache-2.0",
         "MIT"
       ],
-      "license_file": null
+      "license_file": "LICENSE-APACHE"
     },
-    "dtor-proc-macro 0.0.5": {
+    "dtor-proc-macro 0.0.6": {
       "name": "dtor-proc-macro",
-      "version": "0.0.5",
+      "version": "0.0.6",
       "package_url": "https://github.com/mmastrac/rust-ctor",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/dtor-proc-macro/0.0.5/download",
-          "sha256": "7454e41ff9012c00d53cf7f475c5e3afa3b91b7c90568495495e8d9bf47a1055"
+          "url": "https://static.crates.io/crates/dtor-proc-macro/0.0.6/download",
+          "sha256": "f678cf4a922c215c63e0de95eb1ff08a958a81d47e485cf9da1e27bf6305cfa5"
         }
       },
       "targets": [
@@ -7988,14 +7988,14 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.0.5"
+        "version": "0.0.6"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
         "Apache-2.0",
         "MIT"
       ],
-      "license_file": null
+      "license_file": "LICENSE-APACHE"
     },
     "either 1.15.0": {
       "name": "either",
@@ -8177,19 +8177,19 @@
           "selects": {
             "cfg(target_os = \"hermit\")": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
             "cfg(target_os = \"wasi\")": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
             "cfg(unix)": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -8658,7 +8658,7 @@
               "target": "build_script_build"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -8728,7 +8728,7 @@
           "selects": {
             "cfg(unix)": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -9117,7 +9117,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -9125,7 +9125,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.104",
+              "id": "syn 2.0.105",
               "target": "syn"
             }
           ],
@@ -9317,7 +9317,7 @@
               "target": "pin_utils"
             },
             {
-              "id": "slab 0.4.10",
+              "id": "slab 0.4.11",
               "target": "slab"
             }
           ],
@@ -9482,7 +9482,7 @@
             ],
             "cfg(unix)": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ]
@@ -9559,7 +9559,7 @@
           "selects": {
             "cfg(all(any(target_os = \"linux\", target_os = \"android\"), not(any(all(target_os = \"linux\", target_env = \"\"), getrandom_backend = \"custom\", getrandom_backend = \"linux_raw\", getrandom_backend = \"rdrand\", getrandom_backend = \"rndr\"))))": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -9577,43 +9577,43 @@
             ],
             "cfg(any(target_os = \"dragonfly\", target_os = \"freebsd\", target_os = \"hurd\", target_os = \"illumos\", target_os = \"cygwin\", all(target_os = \"horizon\", target_arch = \"arm\")))": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
             "cfg(any(target_os = \"haiku\", target_os = \"redox\", target_os = \"nto\", target_os = \"aix\"))": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
             "cfg(any(target_os = \"ios\", target_os = \"visionos\", target_os = \"watchos\", target_os = \"tvos\"))": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
             "cfg(any(target_os = \"macos\", target_os = \"openbsd\", target_os = \"vita\", target_os = \"emscripten\"))": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
             "cfg(target_os = \"netbsd\")": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
             "cfg(target_os = \"solaris\")": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
             "cfg(target_os = \"vxworks\")": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ]
@@ -9746,11 +9746,11 @@
               "target": "indexmap"
             },
             {
-              "id": "slab 0.4.10",
+              "id": "slab 0.4.11",
               "target": "slab"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -10387,7 +10387,7 @@
               "target": "smallvec"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -10469,7 +10469,7 @@
               "alias": "pki_types"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -10572,7 +10572,7 @@
               "target": "hyper"
             },
             {
-              "id": "libc 0.2.174",
+              "id": "libc 0.2.175",
               "target": "libc"
             },
             {
@@ -10584,7 +10584,7 @@
               "target": "socket2"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -10936,6 +10936,89 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
+    "io-uring 0.7.9": {
+      "name": "io-uring",
+      "version": "0.7.9",
+      "package_url": "https://github.com/tokio-rs/io-uring",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/io-uring/0.7.9/download",
+          "sha256": "d93587f37623a1a17d94ef2bc9ada592f5465fe7732084ab7beefabe5c77c0c4"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "io_uring",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "io_uring",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "bitflags 2.9.1",
+              "target": "bitflags"
+            },
+            {
+              "id": "cfg-if 1.0.1",
+              "target": "cfg_if"
+            },
+            {
+              "id": "io-uring 0.7.9",
+              "target": "build_script_build"
+            },
+            {
+              "id": "libc 0.2.175",
+              "target": "libc"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.7.9"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
     "is_terminal_polyfill 1.70.1": {
       "name": "is_terminal_polyfill",
       "version": "1.70.1",
@@ -10975,62 +11058,6 @@
         "version": "1.70.1"
       },
       "license": "MIT OR Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
-    "itertools 0.10.5": {
-      "name": "itertools",
-      "version": "0.10.5",
-      "package_url": "https://github.com/rust-itertools/itertools",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/itertools/0.10.5/download",
-          "sha256": "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "itertools",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "itertools",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "crate_features": {
-          "common": [
-            "default",
-            "use_alloc",
-            "use_std"
-          ],
-          "selects": {}
-        },
-        "deps": {
-          "common": [
-            {
-              "id": "either 1.15.0",
-              "target": "either"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2018",
-        "version": "0.10.5"
-      },
-      "license": "MIT/Apache-2.0",
       "license_ids": [
         "Apache-2.0",
         "MIT"
@@ -11399,14 +11426,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "libc 0.2.174": {
+    "libc 0.2.175": {
       "name": "libc",
-      "version": "0.2.174",
+      "version": "0.2.175",
       "package_url": "https://github.com/rust-lang/libc",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/libc/0.2.174/download",
-          "sha256": "1171693293099992e19cddea4e8b849964e9846f4acee11b3948bcc337be8776"
+          "url": "https://static.crates.io/crates/libc/0.2.175/download",
+          "sha256": "6a82ae493e598baaea5209805c49bbf2ea7de956d50d7da0da1164f9c6d28543"
         }
       },
       "targets": [
@@ -11454,14 +11481,14 @@
         "deps": {
           "common": [
             {
-              "id": "libc 0.2.174",
+              "id": "libc 0.2.175",
               "target": "build_script_build"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.2.174"
+        "version": "0.2.175"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -11865,7 +11892,7 @@
               "target": "bd_test_helpers"
             },
             {
-              "id": "criterion 0.6.0",
+              "id": "criterion 0.7.0",
               "target": "criterion"
             },
             {
@@ -11922,7 +11949,7 @@
         "deps": {
           "common": [
             {
-              "id": "libc 0.2.174",
+              "id": "libc 0.2.175",
               "target": "libc"
             }
           ],
@@ -12110,7 +12137,7 @@
           "selects": {
             "cfg(unix)": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ]
@@ -12347,13 +12374,13 @@
           "selects": {
             "cfg(target_os = \"hermit\")": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
             "cfg(target_os = \"wasi\")": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               },
               {
@@ -12363,7 +12390,7 @@
             ],
             "cfg(unix)": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -12509,7 +12536,7 @@
               "target": "build_script_build"
             },
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -12517,7 +12544,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.104",
+              "id": "syn 2.0.105",
               "target": "syn"
             }
           ],
@@ -13241,13 +13268,13 @@
           "selects": {
             "cfg(target_os = \"redox\")": [
               {
-                "id": "redox_syscall 0.5.13",
+                "id": "redox_syscall 0.5.17",
                 "target": "syscall"
               }
             ],
             "cfg(unix)": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -13483,7 +13510,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -13535,7 +13562,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -13595,7 +13622,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -14140,14 +14167,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "proc-macro2 1.0.95": {
+    "proc-macro2 1.0.97": {
       "name": "proc-macro2",
-      "version": "1.0.95",
+      "version": "1.0.97",
       "package_url": "https://github.com/dtolnay/proc-macro2",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/proc-macro2/1.0.95/download",
-          "sha256": "02b3e5e68a3a1a02aad3ec490a98007cbc13c37cbe84a3cd7b8e406d76e7f778"
+          "url": "https://static.crates.io/crates/proc-macro2/1.0.97/download",
+          "sha256": "d61789d7719defeb74ea5fe81f2fdfdbd28a803847077cecce2ff14e1472f6f1"
         }
       },
       "targets": [
@@ -14191,7 +14218,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "build_script_build"
             },
             {
@@ -14202,7 +14229,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "1.0.95"
+        "version": "1.0.97"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -14345,7 +14372,7 @@
               "target": "serde"
             },
             {
-              "id": "serde_json 1.0.140",
+              "id": "serde_json 1.0.142",
               "target": "serde_json"
             }
           ],
@@ -14578,7 +14605,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -14652,7 +14679,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -14831,7 +14858,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             }
           ],
@@ -14927,7 +14954,7 @@
         "deps": {
           "common": [
             {
-              "id": "libc 0.2.174",
+              "id": "libc 0.2.175",
               "target": "libc"
             }
           ],
@@ -15010,7 +15037,7 @@
         "deps": {
           "common": [
             {
-              "id": "libc 0.2.174",
+              "id": "libc 0.2.175",
               "target": "libc"
             },
             {
@@ -15034,14 +15061,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "rand 0.9.1": {
+    "rand 0.9.2": {
       "name": "rand",
-      "version": "0.9.1",
+      "version": "0.9.2",
       "package_url": "https://github.com/rust-random/rand",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/rand/0.9.1/download",
-          "sha256": "9fbfd9d094a40bf3ae768db9361049ace4c0e04a4fd6b359518bd7b73a73dd97"
+          "url": "https://static.crates.io/crates/rand/0.9.2/download",
+          "sha256": "6db2770f06117d490610c7488547d543617b21bfa07796d7a12f6f1bd53850d1"
         }
       },
       "targets": [
@@ -15089,7 +15116,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.9.1"
+        "version": "0.9.2"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -15591,14 +15618,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "redox_syscall 0.5.13": {
+    "redox_syscall 0.5.17": {
       "name": "redox_syscall",
-      "version": "0.5.13",
+      "version": "0.5.17",
       "package_url": "https://gitlab.redox-os.org/redox-os/syscall",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/redox_syscall/0.5.13/download",
-          "sha256": "0d04b7d0ee6b4a0207a0a7adb104d23ecb0b47d6beae7152d0fa34b692b29fd6"
+          "url": "https://static.crates.io/crates/redox_syscall/0.5.17/download",
+          "sha256": "5407465600fb0548f1442edf71dd20683c6ed326200ace4b1ef0763521bb3b77"
         }
       },
       "targets": [
@@ -15630,7 +15657,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.5.13"
+        "version": "0.5.17"
       },
       "license": "MIT",
       "license_ids": [
@@ -16093,13 +16120,13 @@
             ],
             "cfg(all(all(target_arch = \"aarch64\", target_endian = \"little\"), target_vendor = \"apple\", any(target_os = \"ios\", target_os = \"macos\", target_os = \"tvos\", target_os = \"visionos\", target_os = \"watchos\")))": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
             "cfg(all(any(all(target_arch = \"aarch64\", target_endian = \"little\"), all(target_arch = \"arm\", target_endian = \"little\")), any(target_os = \"android\", target_os = \"linux\")))": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ]
@@ -16136,14 +16163,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "rustc-demangle 0.1.25": {
+    "rustc-demangle 0.1.26": {
       "name": "rustc-demangle",
-      "version": "0.1.25",
+      "version": "0.1.26",
       "package_url": "https://github.com/rust-lang/rustc-demangle",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/rustc-demangle/0.1.25/download",
-          "sha256": "989e6739f80c4ad5b13e0fd7fe89531180375b18520cc8c82080e4dc4035b84f"
+          "url": "https://static.crates.io/crates/rustc-demangle/0.1.26/download",
+          "sha256": "56f7d92ca342cea22a06f2121d944b4fd82af56988c270852495420f961d4ace"
         }
       },
       "targets": [
@@ -16166,7 +16193,7 @@
           "**"
         ],
         "edition": "2015",
-        "version": "0.1.25"
+        "version": "0.1.26"
       },
       "license": "MIT/Apache-2.0",
       "license_ids": [
@@ -16292,7 +16319,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -16315,7 +16342,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -16326,7 +16353,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "windows-sys 0.59.0",
+                "id": "windows-sys 0.52.0",
                 "target": "windows_sys"
               }
             ]
@@ -16422,7 +16449,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -16433,7 +16460,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -16444,7 +16471,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -16455,7 +16482,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -16466,7 +16493,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -16489,7 +16516,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -16500,7 +16527,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "windows-sys 0.59.0",
+                "id": "windows-sys 0.52.0",
                 "target": "windows_sys"
               }
             ],
@@ -16511,7 +16538,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -16522,7 +16549,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -16533,7 +16560,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ]
@@ -16850,14 +16877,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "rustversion 1.0.21": {
+    "rustversion 1.0.22": {
       "name": "rustversion",
-      "version": "1.0.21",
+      "version": "1.0.22",
       "package_url": "https://github.com/dtolnay/rustversion",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/rustversion/1.0.21/download",
-          "sha256": "8a0d197bd2c9dc6e53b84da9556a69ba4cdfab8619eb41a8bd1cc2027a0f6b1d"
+          "url": "https://static.crates.io/crates/rustversion/1.0.22/download",
+          "sha256": "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
         }
       },
       "targets": [
@@ -16894,14 +16921,14 @@
         "deps": {
           "common": [
             {
-              "id": "rustversion 1.0.21",
+              "id": "rustversion 1.0.22",
               "target": "build_script_build"
             }
           ],
           "selects": {}
         },
         "edition": "2018",
-        "version": "1.0.21"
+        "version": "1.0.22"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -17256,7 +17283,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -17264,7 +17291,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.104",
+              "id": "syn 2.0.105",
               "target": "syn"
             }
           ],
@@ -17280,14 +17307,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "serde_json 1.0.140": {
+    "serde_json 1.0.142": {
       "name": "serde_json",
-      "version": "1.0.140",
+      "version": "1.0.142",
       "package_url": "https://github.com/serde-rs/json",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/serde_json/1.0.140/download",
-          "sha256": "20068b6e96dc6c9bd23e01df8827e6c7e1f2fddd43c21810382803c136b99373"
+          "url": "https://static.crates.io/crates/serde_json/1.0.142/download",
+          "sha256": "030fedb782600dcbd6f02d479bf0d817ac3bb40d644745b769d6a96bc3afc5a7"
         }
       },
       "targets": [
@@ -17348,14 +17375,14 @@
               "target": "serde"
             },
             {
-              "id": "serde_json 1.0.140",
+              "id": "serde_json 1.0.142",
               "target": "build_script_build"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "1.0.140"
+        "version": "1.0.142"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -17700,14 +17727,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "signal-hook-registry 1.4.5": {
+    "signal-hook-registry 1.4.6": {
       "name": "signal-hook-registry",
-      "version": "1.4.5",
+      "version": "1.4.6",
       "package_url": "https://github.com/vorner/signal-hook",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/signal-hook-registry/1.4.5/download",
-          "sha256": "9203b8055f63a2a00e2f593bb0510367fe707d7ff1e5c872de2f537b339e5410"
+          "url": "https://static.crates.io/crates/signal-hook-registry/1.4.6/download",
+          "sha256": "b2a4719bff48cee6b39d12c020eeb490953ad2443b7055bd0b21fca26bd8c28b"
         }
       },
       "targets": [
@@ -17732,14 +17759,14 @@
         "deps": {
           "common": [
             {
-              "id": "libc 0.2.174",
+              "id": "libc 0.2.175",
               "target": "libc"
             }
           ],
           "selects": {}
         },
         "edition": "2015",
-        "version": "1.4.5"
+        "version": "1.4.6"
       },
       "license": "Apache-2.0/MIT",
       "license_ids": [
@@ -17833,14 +17860,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "slab 0.4.10": {
+    "slab 0.4.11": {
       "name": "slab",
-      "version": "0.4.10",
+      "version": "0.4.11",
       "package_url": "https://github.com/tokio-rs/slab",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/slab/0.4.10/download",
-          "sha256": "04dc19736151f35336d325007ac991178d504a119863a2fcb3758cdb5e52c50d"
+          "url": "https://static.crates.io/crates/slab/0.4.11/download",
+          "sha256": "7a2ae44ef20feb57a68b23d846850f861394c2e02dc425a50098ae8c90267589"
         }
       },
       "targets": [
@@ -17870,7 +17897,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.4.10"
+        "version": "0.4.11"
       },
       "license": "MIT",
       "license_ids": [
@@ -18034,7 +18061,7 @@
           "selects": {
             "cfg(unix)": [
               {
-                "id": "libc 0.2.174",
+                "id": "libc 0.2.175",
                 "target": "libc"
               }
             ],
@@ -18048,6 +18075,68 @@
         },
         "edition": "2021",
         "version": "0.5.10"
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
+    "socket2 0.6.0": {
+      "name": "socket2",
+      "version": "0.6.0",
+      "package_url": "https://github.com/rust-lang/socket2",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/socket2/0.6.0/download",
+          "sha256": "233504af464074f9d066d7b5416c5f9b894a5862a6506e306f7b816cdd6f1807"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "socket2",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "socket2",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "all"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [],
+          "selects": {
+            "cfg(unix)": [
+              {
+                "id": "libc 0.2.175",
+                "target": "libc"
+              }
+            ],
+            "cfg(windows)": [
+              {
+                "id": "windows-sys 0.59.0",
+                "target": "windows_sys"
+              }
+            ]
+          }
+        },
+        "edition": "2021",
+        "version": "0.6.0"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -18202,7 +18291,7 @@
               "target": "ahash"
             },
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -18270,7 +18359,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -18278,7 +18367,7 @@
               "target": "tracing_subscriber"
             },
             {
-              "id": "uuid 1.17.0",
+              "id": "uuid 1.18.0",
               "target": "uuid"
             }
           ],
@@ -18301,7 +18390,7 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "async-trait 0.1.88",
+              "id": "async-trait 0.1.89",
               "target": "async_trait"
             }
           ],
@@ -18313,14 +18402,14 @@
       "license_ids": [],
       "license_file": "LICENSE"
     },
-    "syn 2.0.104": {
+    "syn 2.0.105": {
       "name": "syn",
-      "version": "2.0.104",
+      "version": "2.0.105",
       "package_url": "https://github.com/dtolnay/syn",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/syn/2.0.104/download",
-          "sha256": "17b6f705963418cdb9927482fa304bc562ece2fdd4f616084c50b7023b435a40"
+          "url": "https://static.crates.io/crates/syn/2.0.105/download",
+          "sha256": "7bc3fcb250e53458e712715cf74285c1f889686520d79294a9ef3bd7aa1fc619"
         }
       },
       "targets": [
@@ -18361,7 +18450,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -18376,7 +18465,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "2.0.104"
+        "version": "2.0.105"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -18535,7 +18624,7 @@
             ],
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.59.0",
+                "id": "windows-sys 0.52.0",
                 "target": "windows_sys"
               }
             ]
@@ -18666,7 +18755,7 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.98",
+              "id": "anyhow 1.0.99",
               "target": "anyhow"
             },
             {
@@ -18698,7 +18787,7 @@
               "target": "chrono"
             },
             {
-              "id": "ctor 0.4.2",
+              "id": "ctor 0.5.0",
               "target": "ctor"
             },
             {
@@ -18766,7 +18855,7 @@
               "target": "bd_test_helpers"
             },
             {
-              "id": "ctor 0.4.2",
+              "id": "ctor 0.5.0",
               "target": "ctor"
             },
             {
@@ -18994,7 +19083,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -19002,7 +19091,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.104",
+              "id": "syn 2.0.105",
               "target": "syn"
             }
           ],
@@ -19050,7 +19139,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -19058,7 +19147,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.104",
+              "id": "syn 2.0.105",
               "target": "syn"
             }
           ],
@@ -19347,7 +19436,7 @@
               "target": "serde"
             },
             {
-              "id": "serde_json 1.0.140",
+              "id": "serde_json 1.0.142",
               "target": "serde_json"
             }
           ],
@@ -19363,14 +19452,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "tokio 1.45.1": {
+    "tokio 1.47.1": {
       "name": "tokio",
-      "version": "1.45.1",
+      "version": "1.47.1",
       "package_url": "https://github.com/tokio-rs/tokio",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/tokio/1.45.1/download",
-          "sha256": "75ef51a33ef1da925cea3e4eb122833cb377c61439ca401b770f54902b806779"
+          "url": "https://static.crates.io/crates/tokio/1.47.1/download",
+          "sha256": "89e49afdadebb872d3145a5638b59eb0691ea23e46ca484037cfab3b76b95038"
         }
       },
       "targets": [
@@ -19425,7 +19514,7 @@
               "target": "bytes"
             },
             {
-              "id": "libc 0.2.174",
+              "id": "libc 0.2.175",
               "target": "libc"
             },
             {
@@ -19441,15 +19530,25 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "signal-hook-registry 1.4.5",
+              "id": "signal-hook-registry 1.4.6",
               "target": "signal_hook_registry"
             },
             {
-              "id": "socket2 0.5.10",
+              "id": "socket2 0.6.0",
               "target": "socket2"
             }
           ],
           "selects": {
+            "cfg(all(tokio_uring, target_os = \"linux\"))": [
+              {
+                "id": "io-uring 0.7.9",
+                "target": "io_uring"
+              },
+              {
+                "id": "slab 0.4.11",
+                "target": "slab"
+              }
+            ],
             "cfg(tokio_taskdump)": [
               {
                 "id": "backtrace 0.3.75",
@@ -19468,7 +19567,7 @@
           ],
           "selects": {}
         },
-        "version": "1.45.1"
+        "version": "1.47.1"
       },
       "license": "MIT",
       "license_ids": [
@@ -19508,7 +19607,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -19516,7 +19615,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.104",
+              "id": "syn 2.0.105",
               "target": "syn"
             }
           ],
@@ -19567,7 +19666,7 @@
               "target": "rustls"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -19630,7 +19729,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -19701,7 +19800,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             }
           ],
@@ -20025,7 +20124,7 @@
               "target": "sync_wrapper"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -20123,7 +20222,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "tokio 1.45.1",
+              "id": "tokio 1.47.1",
               "target": "tokio"
             },
             {
@@ -20332,7 +20431,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -20340,7 +20439,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.104",
+              "id": "syn 2.0.105",
               "target": "syn"
             }
           ],
@@ -20989,14 +21088,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "uuid 1.17.0": {
+    "uuid 1.18.0": {
       "name": "uuid",
-      "version": "1.17.0",
+      "version": "1.18.0",
       "package_url": "https://github.com/uuid-rs/uuid",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/uuid/1.17.0/download",
-          "sha256": "3cf4199d1e5d15ddd86a694e4d0dffa9c323ce759fea589f00fef9d81cc1931d"
+          "url": "https://static.crates.io/crates/uuid/1.18.0/download",
+          "sha256": "f33196643e165781c20a5ead5582283a7dacbb87855d867fbc2df3f81eddc1be"
         }
       },
       "targets": [
@@ -21037,7 +21136,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "1.17.0"
+        "version": "1.18.0"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
@@ -21549,7 +21648,7 @@
               "target": "log"
             },
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -21557,7 +21656,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.104",
+              "id": "syn 2.0.105",
               "target": "syn"
             },
             {
@@ -21661,7 +21760,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -21669,7 +21768,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.104",
+              "id": "syn 2.0.105",
               "target": "syn"
             },
             {
@@ -22122,7 +22221,7 @@
           "selects": {
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.59.0",
+                "id": "windows-sys 0.52.0",
                 "target": "windows_sys"
               }
             ]
@@ -22310,7 +22409,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -22318,7 +22417,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.104",
+              "id": "syn 2.0.105",
               "target": "syn"
             }
           ],
@@ -22366,7 +22465,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -22374,7 +22473,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.104",
+              "id": "syn 2.0.105",
               "target": "syn"
             }
           ],
@@ -24937,7 +25036,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.95",
+              "id": "proc-macro2 1.0.97",
               "target": "proc_macro2"
             },
             {
@@ -24945,7 +25044,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.104",
+              "id": "syn 2.0.105",
               "target": "syn"
             }
           ],
@@ -25113,6 +25212,7 @@
       "x86_64-unknown-linux-gnu"
     ],
     "cfg(all(target_os = \"uefi\", getrandom_backend = \"efi_rng\"))": [],
+    "cfg(all(tokio_uring, target_os = \"linux\"))": [],
     "cfg(any())": [],
     "cfg(any(target_arch = \"aarch64\", target_arch = \"x86_64\", target_arch = \"x86\"))": [
       "aarch64-apple-darwin",
@@ -25251,10 +25351,10 @@
   },
   "direct_deps": [
     "ahash 0.8.12",
-    "android_logger 0.15.0",
-    "anyhow 1.0.98",
+    "android_logger 0.15.1",
+    "anyhow 1.0.99",
     "assert_matches 1.5.0",
-    "async-trait 0.1.88",
+    "async-trait 0.1.89",
     "bd-api 1.0.0",
     "bd-buffer 1.0.0",
     "bd-client-common 1.0.0",
@@ -25274,8 +25374,8 @@
     "bd-test-helpers 1.0.0",
     "bd-time 1.0.0",
     "chrono 0.4.41",
-    "criterion 0.6.0",
-    "ctor 0.4.2",
+    "criterion 0.7.0",
+    "ctor 0.5.0",
     "jni 0.21.1",
     "log 0.4.27",
     "objc 0.2.7",
@@ -25284,13 +25384,13 @@
     "protobuf 4.0.0-alpha.0",
     "regex 1.11.1",
     "serde 1.0.219",
-    "serde_json 1.0.140",
+    "serde_json 1.0.142",
     "simple-xml 0.1.10",
     "tempdir 0.3.7",
     "time 0.3.41",
-    "tokio 1.45.1",
+    "tokio 1.47.1",
     "tracing-subscriber 0.3.19",
-    "uuid 1.17.0"
+    "uuid 1.18.0"
   ],
   "direct_dev_deps": [
     "pretty_assertions 1.4.1"
