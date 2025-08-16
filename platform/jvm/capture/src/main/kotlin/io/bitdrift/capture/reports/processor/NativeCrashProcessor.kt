@@ -48,6 +48,8 @@ internal object NativeCrashProcessor {
         val threadOffsets = mutableListOf<Int>()
         val binaryImageOffsets = mutableListOf<Int>()
 
+        val referencedBuildIds = mutableSetOf<String>()
+
         tombstone.threadsMap.forEach { (tid, thread) ->
             val frameOffsets =
                 thread.currentBacktraceList
@@ -57,16 +59,10 @@ internal object NativeCrashProcessor {
                         val isNativeFrame = frame.pc != 0L
                         val imageId: String? = if (isNativeFrame) frame.buildId else null
 
-                        if (isNativeFrame) {
-                            binaryImageOffsets.add(
-                                BinaryImage.createBinaryImage(
-                                    builder,
-                                    builder.toOffset(imageId),
-                                    builder.toOffset(frame.fileName),
-                                    frameAddress,
-                                ),
-                            )
+                        if (frame.buildId != null) {
+                            referencedBuildIds.add(frame.buildId)
                         }
+
                         val frameData =
                             FrameData(
                                 symbolName = frame.functionName,
@@ -107,6 +103,18 @@ internal object NativeCrashProcessor {
                 ThreadDetails.createThreadsVector(builder, threadOffsets.toIntArray()),
             )
 
+        referencedBuildIds.forEach { buildId ->
+            tombstone.memoryMappingsList.filter { it.buildId == buildId }.forEach {
+                binaryImageOffsets.add(
+                    BinaryImage.createBinaryImage(
+                        builder,
+                        builder.createString(buildId),
+                        builder.createString(it.mappingName),
+                        it.beginAddress.toULong()
+                    )
+                )
+            }
+        }
         return Report.createReport(
             builder,
             sdk,
