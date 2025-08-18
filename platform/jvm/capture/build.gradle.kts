@@ -112,7 +112,7 @@ cargoNdk {
     targets = arrayListOf("arm64")
     // enable 16 KB ELF alignment on Android to support API 35+
     extraCargoEnv = mapOf(
-      "RUSTFLAGS" to "-C link-args=-Wl,-z,max-page-size=16384",
+      "RUSTFLAGS" to "-C link-args=-Wl,-z,max-page-size=16384,--build-id",
       "RUSTC_BOOTSTRAP" to "1" // Required for using unstable features in the Rust compiler
     )
 }
