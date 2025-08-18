@@ -55,11 +55,10 @@ internal object NativeCrashProcessor {
                 thread.currentBacktraceList
                     .map { frame ->
                         val frameAddress = frame.pc.toULong()
-                        val functionOffset = frame.functionOffset.toULong()
                         val isNativeFrame = frame.pc != 0L
                         val imageId: String? = if (isNativeFrame) frame.buildId else null
 
-                        if (frame.buildId != null) {
+                        if (!frame.buildId.isNullOrEmpty()) {
                             referencedBuildIds.add(frame.buildId)
                         }
 
@@ -69,7 +68,6 @@ internal object NativeCrashProcessor {
                                 fileName = if (!isNativeFrame) frame.fileName else null,
                                 imageId = imageId,
                                 frameAddress = frameAddress,
-                                symbolAddress = frameAddress - functionOffset,
                             )
                         ReportFrameBuilder.build(
                             FrameType.AndroidNative,
@@ -104,7 +102,8 @@ internal object NativeCrashProcessor {
             )
 
         referencedBuildIds.forEach { buildId ->
-            tombstone.memoryMappingsList.filter { it.buildId == buildId }.forEach {
+            tombstone.memoryMappingsList.filter() { it.buildId == buildId }
+                .minByOrNull { it.beginAddress }?.let {
                 binaryImageOffsets.add(
                     BinaryImage.createBinaryImage(
                         builder,
