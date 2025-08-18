@@ -17,7 +17,6 @@ import io.bitdrift.capture.reports.binformat.v1.Report
 import io.bitdrift.capture.reports.binformat.v1.ReportType
 import io.bitdrift.capture.reports.binformat.v1.Thread
 import io.bitdrift.capture.reports.binformat.v1.ThreadDetails
-import io.bitdrift.capture.reports.processor.ReportFrameBuilder.toOffset
 import java.io.InputStream
 
 /**
@@ -102,17 +101,19 @@ internal object NativeCrashProcessor {
             )
 
         referencedBuildIds.forEach { buildId ->
-            tombstone.memoryMappingsList.filter() { it.buildId == buildId }
-                .minByOrNull { it.beginAddress }?.let {
-                binaryImageOffsets.add(
-                    BinaryImage.createBinaryImage(
-                        builder,
-                        builder.createString(buildId),
-                        builder.createString(it.mappingName),
-                        it.beginAddress.toULong()
+            tombstone.memoryMappingsList
+                .filter { it.buildId == buildId }
+                .minByOrNull { it.beginAddress }
+                ?.let {
+                    binaryImageOffsets.add(
+                        BinaryImage.createBinaryImage(
+                            builder,
+                            builder.createString(buildId),
+                            builder.createString(it.mappingName),
+                            it.beginAddress.toULong(),
+                        ),
                     )
-                )
-            }
+                }
         }
         return Report.createReport(
             builder,
@@ -137,7 +138,9 @@ internal object NativeCrashProcessor {
             builder.createString(signalName.ifEmpty { description })
         val causeText =
             tombstone.causesList.firstOrNull()?.humanReadable
-                ?: tombstone.abortMessage.ifEmpty { signalDescriptions[signalName] ?: "Native crash" }
+                ?: tombstone.abortMessage.ifEmpty {
+                    signalDescriptions[signalName] ?: "Native crash"
+                }
         val cause = builder.createString(causeText)
         return Error.createError(
             builder,
