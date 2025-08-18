@@ -17,7 +17,6 @@ import io.bitdrift.capture.reports.binformat.v1.Report
 import io.bitdrift.capture.reports.binformat.v1.ReportType
 import io.bitdrift.capture.reports.binformat.v1.Thread
 import io.bitdrift.capture.reports.binformat.v1.ThreadDetails
-import io.bitdrift.capture.reports.processor.ReportFrameBuilder.toOffset
 import java.io.InputStream
 
 /**
@@ -48,32 +47,26 @@ internal object NativeCrashProcessor {
         val threadOffsets = mutableListOf<Int>()
         val binaryImageOffsets = mutableListOf<Int>()
 
+        val referencedBuildIds = mutableSetOf<String>()
+
         tombstone.threadsMap.forEach { (tid, thread) ->
             val frameOffsets =
                 thread.currentBacktraceList
                     .map { frame ->
                         val frameAddress = frame.pc.toULong()
-                        val functionOffset = frame.functionOffset.toULong()
                         val isNativeFrame = frame.pc != 0L
                         val imageId: String? = if (isNativeFrame) frame.buildId else null
 
-                        if (isNativeFrame) {
-                            binaryImageOffsets.add(
-                                BinaryImage.createBinaryImage(
-                                    builder,
-                                    builder.toOffset(imageId),
-                                    builder.toOffset(frame.fileName),
-                                    frameAddress,
-                                ),
-                            )
+                        if (!frame.buildId.isNullOrEmpty()) {
+                            referencedBuildIds.add(frame.buildId)
                         }
+
                         val frameData =
                             FrameData(
                                 symbolName = frame.functionName,
                                 fileName = if (!isNativeFrame) frame.fileName else null,
                                 imageId = imageId,
                                 frameAddress = frameAddress,
-                                symbolAddress = frameAddress - functionOffset,
                             )
                         ReportFrameBuilder.build(
                             FrameType.AndroidNative,
@@ -107,6 +100,21 @@ internal object NativeCrashProcessor {
                 ThreadDetails.createThreadsVector(builder, threadOffsets.toIntArray()),
             )
 
+        referencedBuildIds.forEach { buildId ->
+            tombstone.memoryMappingsList
+                .filter { it.buildId == buildId }
+                .minByOrNull { it.beginAddress }
+                ?.let {
+                    binaryImageOffsets.add(
+                        BinaryImage.createBinaryImage(
+                            builder,
+                            builder.createString(buildId),
+                            builder.createString(it.mappingName),
+                            it.beginAddress.toULong(),
+                        ),
+                    )
+                }
+        }
         return Report.createReport(
             builder,
             sdk,
@@ -130,7 +138,9 @@ internal object NativeCrashProcessor {
             builder.createString(signalName.ifEmpty { description })
         val causeText =
             tombstone.causesList.firstOrNull()?.humanReadable
-                ?: tombstone.abortMessage.ifEmpty { signalDescriptions[signalName] ?: "Native crash" }
+                ?: tombstone.abortMessage.ifEmpty {
+                    signalDescriptions[signalName] ?: "Native crash"
+                }
         val cause = builder.createString(causeText)
         return Error.createError(
             builder,

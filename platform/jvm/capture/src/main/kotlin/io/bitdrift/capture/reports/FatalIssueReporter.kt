@@ -152,7 +152,7 @@ internal class FatalIssueReporter(
         val lastReasonResult = latestAppExitInfoProvider.get(activityManager)
         if (lastReasonResult is LatestAppExitReasonResult.Valid) {
             val lastReason = lastReasonResult.applicationExitInfo
-            lastReason.traceInputStream?.let {
+            lastReason.traceInputStream?.use {
                 mapToFatalIssueType(lastReason.reason)?.let { fatalIssueType ->
                     fatalIssueReporterProcessor.persistAppExitReport(
                         fatalIssueType = fatalIssueType,
