@@ -10,6 +10,11 @@ on:
         type: boolean
         description: Ignore main branch requirement (SOC2 compliance)
         required: true
+      publish_to_maven_central:
+        type: boolean
+        description: Also upload generated bundles to Maven Central (Central Portal)
+        required: false
+        default: false
   workflow_dispatch:
     inputs:
       version:
@@ -20,6 +25,11 @@ on:
         type: boolean
         description: Ignore main branch requirement (SOC2 compliance)
         required: true
+      publish_to_maven_central:
+        type: boolean
+        description: Also upload generated bundles to Maven Central (Central Portal)
+        required: false
+        default: false
 jobs:
   release-ios:
     name: Upload iOS artifacts to dl.bitdrift.io
@@ -61,7 +71,7 @@ jobs:
     name: Upload Android artifacts to dl.bitdrift.io
     permissions:
       id-token: write # required to use OIDC authentication (set up aws credentials)
-      contents: read
+      contents: write
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -93,6 +103,56 @@ jobs:
       env:
         VERSION: ${{ inputs.version }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Upload Android Artifacts to aws bucket
+    - name: Upload Android Artifacts to aws bucket and prepare Maven Central bundles
+      env:
+        # Enable Maven Central bundles; script will skip if signing key isn't provided
+        MAKE_MAVEN_CENTRAL_BUNDLES: "true"
+        # GPG signing configuration (existing repo/org secrets)
+        GPG_PRIVATE_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+        GPG_PASSPHRASE: ${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}
       run: ./ci/capture_android_release.sh ${{ inputs.version }} "Capture-${{ inputs.version }}.android.zip" "capture-timber-${{ inputs.version }}.android.zip" "capture-apollo-${{ inputs.version }}.android.zip" "capture-plugin-${{ inputs.version }}.android.zip" "capture-plugin-marker-${{ inputs.version }}.android.zip"
+    - name: Upload Maven Central bundles as GitHub Release assets
+      if: always()
+      env:
+        VERSION: ${{ inputs.version }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        set -euo pipefail
+        if compgen -G "dist/maven-central/*.{zip,tar.gz}" > /dev/null; then
+          echo "Uploading Maven Central bundles to GitHub Release v$VERSION"
+          gh release upload "v$VERSION" dist/maven-central/*.{zip,tar.gz} --clobber || \
+            gh release upload "v$VERSION" dist/maven-central/*.zip --clobber || true
+        else
+          echo "No Maven Central bundles found; skipping upload."
+        fi
+    - name: Upload bundles to Maven Central (Central Portal)
+      if: ${{ inputs.publish_to_maven_central == true }}
+      env:
+        MAVEN_CENTRAL_TOKEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_TOKEN_USERNAME }}
+        MAVEN_CENTRAL_TOKEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN_PASSWORD }}
+      run: |
+        set -euo pipefail
+        if [[ -z "${MAVEN_CENTRAL_TOKEN_USERNAME:-}" || -z "${MAVEN_CENTRAL_TOKEN_PASSWORD:-}" ]]; then
+          echo "Maven Central tokens not provided; skipping upload."
+          exit 0
+        fi
+        if [[ ! -d dist/maven-central ]]; then
+          echo "No Maven Central bundles directory found; skipping."
+          exit 0
+        fi
+        cd dist/maven-central
+        shopt -s nullglob
+        bundles=( io.bitdrift-*.maven-central.zip *.maven-central.zip )
+        shopt -u nullglob
+        if (( ${#bundles[@]} == 0 )); then
+          echo "No bundle zips found to upload."
+          exit 0
+        fi
+        for b in "${bundles[@]}"; do
+          [[ -f "$b" ]] || continue
+          echo "Uploading $b to Sonatype Central Portal..."
+          curl -sS -u "${MAVEN_CENTRAL_TOKEN_USERNAME}:${MAVEN_CENTRAL_TOKEN_PASSWORD}" \
+            -F "bundle=@${b}" \
+            https://central.sonatype.com/api/v1/publisher/upload | tee /dev/stderr
+        done
 
