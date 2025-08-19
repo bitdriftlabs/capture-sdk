@@ -25,6 +25,8 @@ objc_library(
         "Sources/KSCrashRecordingCore/KSCPU_x86_32.c",
         "Sources/KSCrashRecordingCore/KSCPU_x86_64.c",
         "Sources/KSCrashRecordingCore/KSCrashMonitor.c",
+        "Sources/KSCrashRecordingCore/KSCrashMonitorAPI.c",
+        "Sources/KSCrashRecordingCore/KSCrashMonitorRegistry.c",
         "Sources/KSCrashRecordingCore/KSCxaThrowSwapper.c",
         "Sources/KSCrashRecordingCore/KSDebug.c",
         "Sources/KSCrashRecordingCore/KSDynamicLinker.c",

@@ -3118,6 +3118,7 @@ dependencies = [
 name = "test_swift_bridge"
 version = "1.0.0"
 dependencies = [
+ "bd-bonjson",
  "bd-client-common",
  "bd-error-reporter",
  "bd-key-value",

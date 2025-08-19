@@ -4,7 +4,7 @@ bitdrift_mobile_swift_test(
     name = "test",
     srcs = glob(["**/*.swift"]) + ["//proto:report_swift_source"],
     data = [
-        "testdata/kscrash-example.bjn",
+        "testdata/lastCrash.bjn",
         "testdata/metrickit-example.json",
     ],
     repository = "@capture",

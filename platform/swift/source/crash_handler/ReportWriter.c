@@ -79,7 +79,7 @@ static bool writeBacktrace(BDCrashWriterHandle writer, const char *const key, KS
                         RETURN_ON_FAIL(writeKVString(writer, "binaryName", ksfu_lastPathEntry(info.dli_fname)));
                         RETURN_ON_FAIL(writeKVUnsigned(writer, "offsetIntoBinaryTextSegment", info.dli_saddr - info.dli_fbase));
                         KSBinaryImage img = {0};
-                        if(ksdl_getBinaryImageForHeader(info.dli_fbase, info.dli_fname, &img)) {
+                        if(ksdl_binaryImageForHeader(info.dli_fbase, info.dli_fname, &img)) {
                             RETURN_ON_FAIL(writeKVUUID(writer, "binaryUUID", img.uuid));
                         }
                     }

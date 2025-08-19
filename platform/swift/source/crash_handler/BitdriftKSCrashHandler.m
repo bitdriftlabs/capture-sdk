@@ -72,39 +72,44 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     return [BitdriftKSCrashHandler.sharedInstance configureWithCrashReportPath:crashReportPath];
 }
 
-- (bool)configureWithCrashReportPath:(NSURL *)crashReportPath {
-    if (crashReportPath == nil) {
+- (bool)configureWithCrashReportPath:(NSURL *)crashReportDir {
+    if (crashReportDir == nil) {
         return false;
     }
 
+    NSString *crashReportFile = [crashReportDir.absoluteURL.path stringByAppendingPathComponent:@"lastCrash.bjn"];
+
     @try {
         NSFileManager *fm = NSFileManager.defaultManager;
-        NSString *parentDir = crashReportPath.URLByDeletingLastPathComponent.absoluteURL.path;
-        if (![fm fileExistsAtPath:parentDir]) {
+        NSString *dir = crashReportDir.absoluteURL.path;
+        if (![fm fileExistsAtPath:dir]) {
             NSError *error = nil;
-            if (![fm createDirectoryAtPath:parentDir
+            if (![fm createDirectoryAtPath:dir
                withIntermediateDirectories:YES
                                 attributes:nil
                                      error:&error]) {
-                @throw [NSString stringWithFormat:@"Error: Could not create directory \"%@\": %@", parentDir, error];
+                @throw [NSString stringWithFormat:@"Error: Could not create directory \"%@\": %@", dir, error];
             }
         }
 
-        self.kscrashReportFilePath = [crashReportPath.absoluteURL.path stringByAppendingPathComponent:@"lastCrash.bjn"];
+        self.kscrashReportFilePath = crashReportFile;
+        if (![fm fileExistsAtPath:crashReportFile]) {
+            return true;
+        }
 
-        if (!capture_cache_kscrash_report(self.kscrashReportFilePath)) {
+        if (!capture_cache_kscrash_report(crashReportFile)) {
             @throw [NSString stringWithFormat:@"Error caching kscrash report at \"%@\"",self.kscrashReportFilePath];
         }
-        if ([fm fileExistsAtPath:self.kscrashReportFilePath]) {
+        if ([fm fileExistsAtPath:crashReportFile]) {
             NSError *error = NULL;
-            if (![fm removeItemAtPath:self.kscrashReportFilePath error:&error]) {
+            if (![fm removeItemAtPath:crashReportFile error:&error]) {
                 NSLog(@"Error removing old KSCrash report at %@: %@", self.kscrashReportFilePath, error);
             }
         }
 
         return true;
     } @catch(id exception) {
-        [NSFileManager.defaultManager removeItemAtPath:self.kscrashReportFilePath error:nil];
+        [NSFileManager.defaultManager removeItemAtPath:crashReportFile error:nil];
         NSLog(@"Error configuring BitdriftKSCrashHandler: %@", exception);
         return false;
     }

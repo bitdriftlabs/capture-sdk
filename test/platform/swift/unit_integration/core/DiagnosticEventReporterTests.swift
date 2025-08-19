@@ -76,10 +76,14 @@ final class DiagnosticEventReporterTests: XCTestCase {
     func testReportMerging() throws {
         let metrickitReport = try! getContentsOfTestBundleJsonFile("metrickit-example.json")
         XCTAssertNotNil(metrickitReport)
-        let kscrashPath = getTestBundleFileUrl("kscrash-example.bjn")
-        XCTAssertTrue(FileManager.default.fileExists(atPath: kscrashPath.path))
+        // Needs to match the name used in BitdriftKSCrashHandler
+        let kscrashFilePath = getTestBundleFileUrl("lastCrash.bjn")
+        let parentDir = kscrashFilePath.deletingLastPathComponent()
 
-        XCTAssertTrue(BitdriftKSCrashHandler.configure(withCrashReportFilePath: kscrashPath))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: parentDir.path))
+
+        XCTAssertTrue(BitdriftKSCrashHandler.configure(withCrashReportPath: parentDir))
+
         let enhancedReport = BitdriftKSCrashHandler.enhancedMetricKitReport(metrickitReport) as! [String: any Equatable]
         XCTAssertNotNil(enhancedReport)
         XCTAssertFalse(dictsAreEqual(metrickitReport, enhancedReport))

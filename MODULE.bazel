@@ -81,7 +81,7 @@ new_git_repository(
 
 new_git_repository(
     name = "kscrash",
-    branch = "66eb948d9c2f8d2c46e818f62b6a4e016035aef8",
+    branch = "54b8262091bc7c25f30940505c101d9d75a4e94e",
     build_file = "//bazel:BUILD.kscrash",
     remote = "https://github.com/kstenerud/KSCrash.git",
 )
