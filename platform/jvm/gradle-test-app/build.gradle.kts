@@ -95,6 +95,7 @@ android {
     lint {
         checkDependencies = true
         disable.add("GradleDependency")
+        disable.add("AndroidGradlePluginVersion")
     }
 
     signingConfigs {

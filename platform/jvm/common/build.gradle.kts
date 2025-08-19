@@ -32,6 +32,7 @@ android {
         checkDependencies = true
         checkReleaseBuilds = true
         disable.add("GradleDependency")
+        disable.add("AndroidGradlePluginVersion")
     }
 }
 
