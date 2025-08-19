@@ -34,7 +34,7 @@ extension URLSession {
         if delegate?.isKind(of: ProxyURLSessionDelegate.self) == true {
             newDelegate = delegate
         } else {
-            newDelegate = ProxyURLSessionDelegate(target: delegate as? URLSessionTaskDelegate)
+            newDelegate = ProxyURLSessionDelegate(target: delegate)
         }
 
         if var protocolClasses = configuration.protocolClasses {

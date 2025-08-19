@@ -20,7 +20,16 @@ private final class URLSessionIncompleteDelegate: NSObject, URLSessionTaskDelega
     }
 }
 
-private final class URLSessionDelegate: NSObject, URLSessionTaskDelegate {
+private final class URLSessionCustomDelegate: NSObject, URLSessionDelegate {
+    var didReceiveChallenge: XCTestExpectation?
+
+    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
+        self.didReceiveChallenge?.fulfill()
+        return (.performDefaultHandling, nil)
+    }
+}
+
+private final class URLSessionCustomTaskDelegate: NSObject, URLSessionTaskDelegate {
     var didCreateTaskExpectation: XCTestExpectation?
     var didFinishCollectingMetricsExpectation: XCTestExpectation?
     var didCompleteExpectation: XCTestExpectation?
@@ -122,7 +131,7 @@ final class URLSessionIntegrationTests: XCTestCase {
 
             let taskCompletionExpectation = self.expectation(description: "task completed")
 
-            let delegate = URLSessionDelegate()
+            let delegate = URLSessionCustomTaskDelegate()
             delegate.didCreateTaskExpectation = expectation
             delegate.didFinishCollectingMetricsExpectation = expectation
             delegate.didCompleteExpectation = taskCompletionExpectation
@@ -205,7 +214,7 @@ final class URLSessionIntegrationTests: XCTestCase {
 
             let taskCompletionExpectation = self.expectation(description: "task completed")
 
-            let delegate = URLSessionDelegate()
+            let delegate = URLSessionCustomTaskDelegate()
             delegate.didCreateTaskExpectation = expectation
             delegate.didFinishCollectingMetricsExpectation = expectation
             delegate.didCompleteExpectation = taskCompletionExpectation
@@ -217,6 +226,31 @@ final class URLSessionIntegrationTests: XCTestCase {
             let task = try taskTestCase(session)
 
             try self.runCompletedRequestTest(with: task, completionExpectation: taskCompletionExpectation)
+
+            XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 0.1))
+
+            session.invalidateAndCancel()
+            self.customTearDown()
+        }
+    }
+
+    func testCustomCaptureSessionTasksWithNonTaskDelegate() throws {
+        for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
+            self.customSetUp(swizzle: false)
+
+            let expectation = self.expectation(description: "delegate callbacks are called")
+            expectation.expectedFulfillmentCount = 1
+
+            let delegate = URLSessionCustomDelegate()
+            delegate.didReceiveChallenge = expectation
+
+            let session = URLSession(
+                instrumentedSessionWithConfiguration: .default,
+                delegate: delegate
+            )
+            let task = try taskTestCase(session)
+
+            try self.runCompletedRequestTest(with: task, completionExpectation: nil)
 
             XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 0.1))
 
@@ -268,7 +302,7 @@ final class URLSessionIntegrationTests: XCTestCase {
             let expectation = self.expectation(description: "delegate callback is called")
             let taskCompletionExpectation = self.expectation(description: "task completed")
 
-            let delegate = URLSessionDelegate()
+            let delegate = URLSessionCustomTaskDelegate()
             delegate.didFinishCollectingMetricsExpectation = expectation
             delegate.didCompleteExpectation = taskCompletionExpectation
 
@@ -293,7 +327,7 @@ final class URLSessionIntegrationTests: XCTestCase {
             let expectation = self.expectation(description: "delegate callback is called")
             let taskCompletionExpectation = self.expectation(description: "task completed")
 
-            let delegate = URLSessionDelegate()
+            let delegate = URLSessionCustomTaskDelegate()
             delegate.didFinishCollectingMetricsExpectation = expectation
             delegate.didCompleteExpectation = taskCompletionExpectation
 
@@ -332,7 +366,7 @@ final class URLSessionIntegrationTests: XCTestCase {
             let expectation = self.expectation(description: "delegate callbacks are called")
             expectation.expectedFulfillmentCount = 2
 
-            let delegate = URLSessionDelegate()
+            let delegate = URLSessionCustomTaskDelegate()
             delegate.didCreateTaskExpectation = expectation
             delegate.didFinishCollectingMetricsExpectation = expectation
 
@@ -384,7 +418,7 @@ final class URLSessionIntegrationTests: XCTestCase {
             self.customSetUp(swizzle: true)
 
             let expectation = self.expectation(description: "task completes")
-            let delegate = URLSessionDelegate()
+            let delegate = URLSessionCustomTaskDelegate()
             delegate.didCompleteExpectation = expectation
 
             let task = try taskTestCase(.shared)
@@ -403,7 +437,7 @@ final class URLSessionIntegrationTests: XCTestCase {
             let session = URLSession(configuration: .default)
 
             let expectation = self.expectation(description: "task completes")
-            let delegate = URLSessionDelegate()
+            let delegate = URLSessionCustomTaskDelegate()
             delegate.didCompleteExpectation = expectation
 
             let task = try taskTestCase(session)
@@ -457,7 +491,7 @@ final class URLSessionIntegrationTests: XCTestCase {
             self.customSetUp(swizzle: true)
 
             let expectation = self.expectation(description: "task did collect metrics")
-            let delegate = URLSessionDelegate()
+            let delegate = URLSessionCustomTaskDelegate()
             delegate.didFinishCollectingMetricsExpectation = expectation
 
             let testCaseInput = try taskTestCase(.shared)
@@ -481,7 +515,7 @@ final class URLSessionIntegrationTests: XCTestCase {
             let session = URLSession(configuration: .default)
 
             let expectation = self.expectation(description: "task did collect metrics")
-            let delegate = URLSessionDelegate()
+            let delegate = URLSessionCustomTaskDelegate()
             delegate.didFinishCollectingMetricsExpectation = expectation
 
             let testCaseInput = try taskTestCase(session)
