@@ -64,7 +64,6 @@ jobs:
         VERSION: ${{ inputs.version }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Upload iOS Artifacts to aws bucket
-      if: ${{ inputs.publish_to_maven_central }} == 'false'
       run: ./ci/capture_ios_release.sh "$VERSION"
       env:
         VERSION: ${{ inputs.version }}
