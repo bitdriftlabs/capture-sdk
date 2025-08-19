@@ -5,11 +5,6 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-// FFI test functions for Swift/Objective-C integration tests
-// These need to be available in all builds since Swift tests call them via FFI
-#[path = "./conversion_tests.rs"]
-mod conversion_tests;
-
 use crate::ffi::{make_nsstring, nsstring_into_string};
 use bd_bonjson::decoder::Value;
 use objc::rc::StrongPtr;
@@ -113,7 +108,7 @@ pub(crate) unsafe fn objc_obj_class_name(s: *const Object) -> anyhow::Result<Str
 /// * `Err(anyhow::Error)` - If the pointer is null, the object type is unsupported, or a conversion
 ///   error occurs
 #[allow(clippy::cognitive_complexity)]
-pub(crate) unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
+pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
   if ptr.is_null() {
     anyhow::bail!("Cannot convert null pointer to Value");
   }
@@ -279,7 +274,7 @@ pub(crate) unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Va
 /// # Safety
 /// The call to this method needs to be wrapped in an autorelease pool.
 #[allow(clippy::cognitive_complexity)]
-pub(crate) unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
+pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
   let mut work_stack: Vec<RustToObjcWorkItem> = Vec::new();
   let mut results: HashMap<usize, StrongPtr> = HashMap::new();
   let mut next_id = 0;

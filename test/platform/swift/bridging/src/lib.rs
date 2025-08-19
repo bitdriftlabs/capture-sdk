@@ -24,6 +24,9 @@ use swift_bridge::ffi::make_nsstring;
 use swift_bridge::key_value_storage::UserDefaultsStorage;
 use time::Duration;
 
+#[path = "./conversion_tests.rs"]
+mod conversion_tests;
+
 #[ctor::ctor]
 fn setup() {
   bd_test_helpers::test_global_init();
