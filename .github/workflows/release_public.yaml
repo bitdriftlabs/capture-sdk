@@ -12,7 +12,7 @@ on:
         required: true
       publish_to_maven_central:
         type: boolean
-        description: Also upload generated bundles to Maven Central (Central Portal)
+        description: Also upload generated android bundles to Maven Central
         required: true
         default: true
   workflow_dispatch:
@@ -27,7 +27,7 @@ on:
         required: true
       publish_to_maven_central:
         type: boolean
-        description: Also upload generated bundles to Maven Central (Central Portal)
+        description: Also upload generated android bundles to Maven Central
         required: true
         default: true
 jobs:
