@@ -6,7 +6,7 @@ buildscript {
     }
     dependencies {
         // TODO: Start publishing plugin to gradlePluginPortal
-        classpath 'io.bitdrift:capture-plugin:0.18.0'
+        classpath 'io.bitdrift:capture-plugin:0.18.5'
     }
 }
 plugins {
