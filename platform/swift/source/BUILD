@@ -108,18 +108,18 @@ objc_library(
         "crash_handler/ReportWriter.c",
     ],
     hdrs = [
-        "crash_handler/bd-bonjson/ffi.h",
         "crash_handler/BitdriftKSCrashHandler.h",
         "crash_handler/ReportContext.h",
         "crash_handler/ReportWriter.h",
+        "crash_handler/bd-bonjson/ffi.h",
     ],
     module_name = "BitdriftEnhancedCrashData",
     tags = ["macos_only"],
     visibility = ["//visibility:public"],
     deps = [
-        "@kscrash//:kscrash_mini",
         ":CapturePassable",
         ":swift_bridge",
+        "@kscrash//:kscrash_mini",
     ],
 )
 
