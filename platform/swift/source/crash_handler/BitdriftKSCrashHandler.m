@@ -158,6 +158,14 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     return true;
 }
 
++ (void)stopCrashReporter {
+    [self.sharedInstance stopCrashReporter];
+}
+
+- (void)stopCrashReporter {
+    kscm_disableAllMonitors();
+}
+
 + (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport {
     return [self.sharedInstance enhancedMetricKitReport:metricKitReport];
 }

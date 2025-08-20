@@ -39,4 +39,12 @@
 #endif
 }
 
++ (void)stopCrashReporter {
+#ifndef BITDRIFT_OMIT_KSCRASH
+    [BitdriftKSCrashHandler stopCrashReporter];
+#else
+    return true;
+#endif
+}
+
 @end
