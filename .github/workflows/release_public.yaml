@@ -10,11 +10,6 @@ on:
         type: boolean
         description: Ignore main branch requirement (SOC2 compliance)
         required: true
-      publish_to_maven_central:
-        type: boolean
-        description: Also upload generated android bundles to Maven Central
-        required: true
-        default: true
   workflow_dispatch:
     inputs:
       version:
@@ -25,11 +20,6 @@ on:
         type: boolean
         description: Ignore main branch requirement (SOC2 compliance)
         required: true
-      publish_to_maven_central:
-        type: boolean
-        description: Also upload generated android bundles to Maven Central
-        required: true
-        default: true
 jobs:
   release-ios:
     name: Upload iOS artifacts to dl.bitdrift.io
@@ -105,14 +95,11 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Upload Android Artifacts to aws bucket and prepare Maven Central bundles
       env:
-        # Enable Maven Central bundles; script will skip if signing key isn't provided
-        MAKE_MAVEN_CENTRAL_BUNDLES: "true"
         # GPG signing configuration (existing repo/org secrets)
         GPG_PRIVATE_KEY: ${{ secrets.GPG_SIGNING_KEY }}
         GPG_PASSPHRASE: ${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}
       run: ./ci/capture_android_release.sh ${{ inputs.version }} "Capture-${{ inputs.version }}.android.zip" "capture-timber-${{ inputs.version }}.android.zip" "capture-apollo-${{ inputs.version }}.android.zip" "capture-plugin-${{ inputs.version }}.android.zip" "capture-plugin-marker-${{ inputs.version }}.android.zip"
     - name: Upload bundles to Maven Central
-      if: ${{ inputs.publish_to_maven_central }}
       env:
         MAVEN_CENTRAL_TOKEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_TOKEN_USERNAME }}
         MAVEN_CENTRAL_TOKEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN_PASSWORD }}
@@ -154,7 +141,6 @@ jobs:
         echo "Saved deployment IDs (if any) to dist/maven-central/deployment_ids.txt"
 
     - name: Poll Maven Central deployment status
-      if: ${{ inputs.publish_to_maven_central }}
       env:
         MAVEN_CENTRAL_TOKEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_TOKEN_USERNAME }}
         MAVEN_CENTRAL_TOKEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN_PASSWORD }}

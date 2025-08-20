@@ -20,13 +20,8 @@ readonly capture_plugin_marker_archive="$6"
 # Import a GPG private key if provided via env vars.
 # Supports either raw ASCII-armored key in GPG_PRIVATE_KEY or base64-encoded in GPG_PRIVATE_KEY_BASE64.
 function import_gpg_key_if_available() {
-  if [[ "${MAKE_MAVEN_CENTRAL_BUNDLES:-false}" != "true" ]]; then
-    return 0
-  fi
-
   if [[ -z "${GPG_PRIVATE_KEY:-${GPG_PRIVATE_KEY_BASE64:-}}" ]]; then
     echo "Maven Central bundle generation requested but GPG key not provided; skipping bundle creation." >&2
-    export MAKE_MAVEN_CENTRAL_BUNDLES="false"
     return 0
   fi
 
@@ -127,10 +122,6 @@ function generate_all_checksums() {
 #   $3 - version
 #   $4.. - files to include (must be located in current CWD)
 function package_maven_central_bundle() {
-  if [[ "${MAKE_MAVEN_CENTRAL_BUNDLES:-false}" != "true" ]]; then
-    return 0
-  fi
-
   local -r group_path="$1"
   local -r artifact_id="$2"
   local -r ver="$3"
@@ -267,31 +258,29 @@ function release_gradle_library() {
 
   # Prepare Maven Central bundle (group: io/bitdrift, artifact: $library_name)
   # Try to derive base from .pom name
-  if [[ "${MAKE_MAVEN_CENTRAL_BUNDLES:-false}" == "true" ]]; then
-    shopt -s nullglob
-    local poms=( *.pom )
-    if (( ${#poms[@]} > 0 )); then
-      local base="${poms[0]%.pom}"
-      # Select common files if present
-      local -a bundle_files=( "$base.pom" )
-      [[ -f "$base.jar" ]] && bundle_files+=( "$base.jar" )
-      [[ -f "$base.aar" ]] && bundle_files+=( "$base.aar" )
-      [[ -f "$base-sources.jar" ]] && bundle_files+=( "$base-sources.jar" )
-      [[ -f "$base-javadoc.jar" ]] && bundle_files+=( "$base-javadoc.jar" )
-      # Explicitly exclude LICENSE/NOTICE from bundle files if present nearby
-      for i in "${!bundle_files[@]}"; do
-        case "$(basename "${bundle_files[$i]}" | tr '[:upper:]' '[:lower:]')" in
-          license|license.*|notice|notice.*)
-            unset 'bundle_files[$i]'
-            ;;
-        esac
-      done
-      package_maven_central_bundle "io/bitdrift" "$library_name" "$version" "${bundle_files[@]}"
-    else
-      echo "Warning: No .pom found for $library_name; skipping Maven Central bundle."
-    fi
-    shopt -u nullglob
+  shopt -s nullglob
+  local poms=( *.pom )
+  if (( ${#poms[@]} > 0 )); then
+    local base="${poms[0]%.pom}"
+    # Select common files if present
+    local -a bundle_files=( "$base.pom" )
+    [[ -f "$base.jar" ]] && bundle_files+=( "$base.jar" )
+    [[ -f "$base.aar" ]] && bundle_files+=( "$base.aar" )
+    [[ -f "$base-sources.jar" ]] && bundle_files+=( "$base-sources.jar" )
+    [[ -f "$base-javadoc.jar" ]] && bundle_files+=( "$base-javadoc.jar" )
+    # Explicitly exclude LICENSE/NOTICE from bundle files if present nearby
+    for i in "${!bundle_files[@]}"; do
+      case "$(basename "${bundle_files[$i]}" | tr '[:upper:]' '[:lower:]')" in
+        license|license.*|notice|notice.*)
+          unset 'bundle_files[$i]'
+          ;;
+      esac
+    done
+    package_maven_central_bundle "io/bitdrift" "$library_name" "$version" "${bundle_files[@]}"
+  else
+    echo "Warning: No .pom found for $library_name; skipping Maven Central bundle."
   fi
+  shopt -u nullglob
   popd
 }
 
