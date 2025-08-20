@@ -43,6 +43,8 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (bool)startCrashReporter;
 
++ (void)stopCrashReporter;
+
 @end
 
 NS_ASSUME_NONNULL_END

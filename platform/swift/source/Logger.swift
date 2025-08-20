@@ -416,6 +416,8 @@ public final class Logger {
         self.dispatchSourceMemoryMonitor?.stop()
 
         self.dispatchSourceMemoryMonitor = nil
+
+        BitdriftKSCrashWrapper.stopCrashReporter()
     }
 }
 
