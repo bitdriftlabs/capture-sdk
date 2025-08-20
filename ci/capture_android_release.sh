@@ -21,8 +21,8 @@ readonly capture_plugin_marker_archive="$6"
 # Supports either raw ASCII-armored key in GPG_PRIVATE_KEY or base64-encoded in GPG_PRIVATE_KEY_BASE64.
 function import_gpg_key_if_available() {
   if [[ -z "${GPG_PRIVATE_KEY:-${GPG_PRIVATE_KEY_BASE64:-}}" ]]; then
-    echo "Maven Central bundle generation requested but GPG key not provided; skipping bundle creation." >&2
-    return 0
+    echo "GPG signing key not provided; cannot proceed with Maven Central bundle creation." >&2
+    exit 1
   fi
 
   # Ensure gpg is available
