@@ -239,8 +239,8 @@ public final class Logger {
                 return .initialized(.missingReportsDirectory)
             }
             if configuration.enableFatalIssueReporting {
-                if let kscrashReportPath = Logger.kscrashReportDirectory() {
-                    if BitdriftKSCrashWrapper.configure(withCrashReportFilePath: kscrashReportPath) {
+                if let kscrashReportDir = Logger.kscrashReportDirectory() {
+                    if BitdriftKSCrashWrapper.configure(withCrashReportDirectory: kscrashReportDir) {
                         BitdriftKSCrashWrapper.startCrashReporter()
                     }
                 }

@@ -21,7 +21,7 @@ NS_ASSUME_NONNULL_BEGIN
  * @param crashReportDir The path to the directory where KSCrash will store reports (directory).
  * @return true if the crash handler was successfully initialized.
  */
-+ (bool)configureWithCrashReportPath:(NSURL *)crashReportDir;
++ (bool)configureWithCrashReportDirectory:(NSURL *)crashReportDir;
 
 /**
  * Enhance a MetricKit report with data gleaned from a matching KSCrash report:

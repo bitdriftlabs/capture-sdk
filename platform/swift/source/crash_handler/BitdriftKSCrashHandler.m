@@ -68,11 +68,11 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     return instance;
 }
 
-+ (bool)configureWithCrashReportPath:(NSURL *)crashReportPath {
-    return [BitdriftKSCrashHandler.sharedInstance configureWithCrashReportPath:crashReportPath];
++ (bool)configureWithCrashReportDirectory:(NSURL *)crashReportPath {
+    return [BitdriftKSCrashHandler.sharedInstance configureWithCrashReportDirectory:crashReportPath];
 }
 
-- (bool)configureWithCrashReportPath:(NSURL *)crashReportDir {
+- (bool)configureWithCrashReportDirectory:(NSURL *)crashReportDir {
     if (crashReportDir == nil) {
         return false;
     }

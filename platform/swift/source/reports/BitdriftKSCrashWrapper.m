@@ -10,14 +10,14 @@
 #import "BitdriftKSCrashWrapper.h"
 
 #ifndef BITDRIFT_OMIT_KSCRASH
-#import "../crash_handler//BitdriftKSCrashHandler.h"
+#import "../crash_handler/BitdriftKSCrashHandler.h"
 #endif
 
 @implementation BitdriftKSCrashWrapper
 
-+ (bool)configureWithCrashReportFilePath:(NSURL *)basePath {
++ (bool)configureWithCrashReportDirectory:(NSURL *)basePath {
 #ifndef BITDRIFT_OMIT_KSCRASH
-    return [BitdriftKSCrashHandler configureWithCrashReportPath:basePath];
+    return [BitdriftKSCrashHandler configureWithCrashReportDirectory:basePath];
 #else
     return true;
 #endif
