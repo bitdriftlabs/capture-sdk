@@ -11,9 +11,9 @@ bitdrift_mobile_swift_test(
     tags = ["macos_only"],
     visibility = ["//visibility:public"],
     deps = [
+        "//platform/swift/source:bitdrift_enhanced_crash_data",
         "//platform/swift/source:ios_lib",
         "//platform/swift/source:objc_bridge",
-        "//platform/swift/source:bitdrift_enhanced_crash_data",
         "//test/platform/swift/benchmark:benchmarks",
         "//test/platform/swift/bridging:rust_bridge",
         "//test/platform/swift/unit_integration/mocks",
