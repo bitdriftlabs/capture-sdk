@@ -251,14 +251,27 @@ ThermalInfo: (
         let contents = FileManager.default.contents(atPath: "\(path)/\(files[0])")!
         var buf = ByteBuffer(data: contents)
         let report: Report = try! getCheckedRoot(byteBuffer: &buf)
-        XCTAssertNil(report.threadDetails)
+        XCTAssertNotNil(report.threadDetails)
+        XCTAssertEqual(1, report.threadDetails?.threadsCount)
+
+        let thread = report.threadDetails!.threads(at: 0)!
+        XCTAssertEqual(2, thread.stackTraceCount)
+        XCTAssertEqual(1, thread.index)
+
+        var frame = thread.stackTrace(at: 0)!
+        XCTAssertEqual("70B89F27-1634-3580-A695-57CDB41D7743", frame.imageId)
+        XCTAssertEqual(7170766264, frame.frameAddress)
+
+        frame = thread.stackTrace(at: 1)!
+        XCTAssertEqual("D366A690-4127-4BB6-B6A9-019A2ACD0D8D", frame.imageId)
+        XCTAssertEqual(23786237891, frame.frameAddress)
 
         let error = report.errors(at: 0)!
         XCTAssertEqual("SIGKILL", error.name!)
         XCTAssertEqual(2, error.stackTraceCount)
 
         // frame order is the opposite of hangs (FB18377370)
-        let frame = error.stackTrace(at: 0)!
+        frame = error.stackTrace(at: 0)!
         XCTAssertEqual("70B89F27-1634-3580-A695-57CDB41D7743", frame.imageId)
         XCTAssertEqual(7170766264, frame.frameAddress)
 
@@ -312,13 +325,22 @@ ThermalInfo: (
         let contents = FileManager.default.contents(atPath: "\(path)/\(files[0])")!
         var buf = ByteBuffer(data: contents)
         let report: Report = try! getCheckedRoot(byteBuffer: &buf)
-        XCTAssertNil(report.threadDetails)
+        XCTAssertNotNil(report.threadDetails)
+        XCTAssertEqual(1, report.threadDetails?.threadsCount)
+
+        let thread = report.threadDetails!.threads(at: 0)!
+        XCTAssertEqual(1, thread.stackTraceCount)
+        XCTAssertEqual(0, thread.index)
+
+        var frame = thread.stackTrace(at: 0)!
+        XCTAssertEqual("70B89F27-1634-3580-A695-57CDB41D7743", frame.imageId)
+        XCTAssertEqual(7170766264, frame.frameAddress)
 
         let error = report.errors(at: 0)!
         XCTAssertEqual("SIGABRT", error.name!)
         XCTAssertEqual(1, error.stackTraceCount)
 
-        let frame = error.stackTrace(at: 0)!
+        frame = error.stackTrace(at: 0)!
         XCTAssertEqual("70B89F27-1634-3580-A695-57CDB41D7743", frame.imageId)
         XCTAssertEqual(7170766264, frame.frameAddress)
 
@@ -386,11 +408,11 @@ ThermalInfo: (
         let contents = FileManager.default.contents(atPath: "\(path)/\(files[0])")!
         var buf = ByteBuffer(data: contents)
         let report: Report = try! getCheckedRoot(byteBuffer: &buf)
-        XCTAssertEqual(1, report.threadDetails!.threadsCount) // # of items in threads array
+        XCTAssertEqual(2, report.threadDetails!.threadsCount) // # of items in threads array
         XCTAssertEqual(2, report.threadDetails!.count) // total system threads
         XCTAssertEqual(ReportType.appnotresponding, report.type)
 
-        let thread = report.threadDetails!.threads(at: 0)!
+        let thread = report.threadDetails!.threads(at: 1)!
         XCTAssertEqual(1, thread.stackTraceCount)
 
         var frame = thread.stackTrace(at: 0)!
@@ -477,7 +499,7 @@ ThermalInfo: (
         let contents = FileManager.default.contents(atPath: "\(path)/\(files[0])")!
         var buf = ByteBuffer(data: contents)
         let report: Report = try! getCheckedRoot(byteBuffer: &buf)
-        XCTAssertEqual(2, report.threadDetails!.threadsCount) // # of items in threads array
+        XCTAssertEqual(3, report.threadDetails!.threadsCount) // # of items in threads array
         XCTAssertEqual(3, report.threadDetails!.count) // total system threads
         XCTAssertEqual(ReportType.nativecrash, report.type)
 
@@ -489,7 +511,7 @@ ThermalInfo: (
         XCTAssertEqual("E41D0413-92D1-4B00-9B62-43D57A1B0CC5", frame.imageId)
         XCTAssertEqual(7170701375, frame.frameAddress)
 
-        thread = report.threadDetails!.threads(at: 1)!
+        thread = report.threadDetails!.threads(at: 2)!
         XCTAssertEqual(2, thread.stackTraceCount)
         XCTAssertEqual(2, thread.index) // error is thread 1
 
