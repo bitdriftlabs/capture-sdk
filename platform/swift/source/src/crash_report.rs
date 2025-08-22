@@ -30,14 +30,10 @@ static CACHED_KSCRASH_REPORT: Mutex<Option<HashMap<String, Value>>> = Mutex::new
 
 #[no_mangle]
 extern "C" fn capture_cache_kscrash_report(kscrash_report_path_ptr: *const Object) -> bool {
-  match capture_cache_kscrash_report_impl(kscrash_report_path_ptr) {
-    Ok(Some(result)) => result,
-    Ok(None) => false, // Return false when caching returns None
-    Err(e) => {
-      log::error!("Failed to cache KSCrash report: {e}");
-      false // Return false on error
-    },
-  }
+  capture_cache_kscrash_report_impl(kscrash_report_path_ptr)
+    .inspect_err(|e| log::error!("Failed to cache KSCrash report: {e}"))
+    .unwrap_or(Some(false))
+    .unwrap_or(false)
 }
 
 #[no_mangle]
