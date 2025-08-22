@@ -76,7 +76,12 @@
     "prettier": "^3.3.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-native": "0.76.6",
+    "react-native": "~0.77.1",
+    "react-native-reanimated": "~3.16.7",
+    "react-native-gesture-handler": "~2.22.0",
+    "react-native-screens": "~4.8.0",
+    "react-native-safe-area-context": "~5.1.0",
+    "react-native-webview": "~13.13.1",
     "react-native-builder-bob": "^0.35.2",
     "react-native-svg": "15.11.1",
     "react-native-svg-transformer": "1.5.0",
@@ -97,7 +102,8 @@
     "expo-status-bar": "~2.0.0",
     "metro": "^0.80.12",
     "metro-config": "^0.80.12",
-    "metro-resolver": "^0.80.12"
+    "metro-resolver": "^0.80.12",
+    "react": "18.3.1"
   },
   "overrides": {
     "got": "^11.8.6"

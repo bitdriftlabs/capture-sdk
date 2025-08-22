@@ -5,6 +5,7 @@ inputs:
     default: ''
   registry-url:
     description: 'Optional registry to set up for auth. Will set the registry in a project level .npmrc and .yarnrc file, and set up auth to read in from env.NODE_AUTH_TOKEN.'
+    default: 'https://registry.npmjs.org'
 
 runs:
   using: composite
@@ -36,7 +37,7 @@ runs:
     - name: Install
       if: steps.cache-npm.outputs.cache-hit != 'true'
       shell: bash
-      run: npm i
+      run: npm ci
 
     - name: List dependencies
       if: steps.cache-npm.outputs.cache-hit == 'true'

@@ -3,7 +3,7 @@ const newArchEnabled = process.env.NEW_ARCH !== 'false';
 export default {
   expo: {
     name: 'ExpoExample',
-    newArchEnabled: newArchEnabled,
+    newArchEnabled,
     slug: 'expo-example',
     entryPoint: 'expo-router/entry',
     version: '1.0.0',
@@ -45,7 +45,7 @@ export default {
         {
           android: {
             minSdkVersion: 24,
-            newArchEnabled,
+            kotlinVersion: '2.1.21'
           },
         },
       ],

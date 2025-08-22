@@ -98,6 +98,7 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
     Capture.Logger.logScreenView(screenView)
   }
 
+  @ReactMethod
   override fun logAppLaunchTTI(ttiMs: Double) {
     Capture.Logger.logAppLaunchTTI(ttiMs.toDuration(DurationUnit.MILLISECONDS))
   }
