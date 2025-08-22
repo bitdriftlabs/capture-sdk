@@ -86,6 +86,10 @@ pub(crate) unsafe fn objc_obj_class_name(s: *const Object) -> anyhow::Result<Str
 /// - `NSDictionary` → `Value::Object` (`HashMap<String, Value>`)
 /// - `NSNull` → `Value::Null`
 ///
+/// # Type preference when converting numbers
+/// Signed integer is always preferred over unsigned, and integers are preferred over floats.
+/// This matches with the conversion preference in the BONJSON decoder, and is important when comparing containers.
+///
 /// # Algorithm
 /// Stack-based work queue system with the following work items:
 /// - `ProcessObject`: Generic Objective-C conversion
@@ -212,13 +216,18 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
           let num_u64: u64 = msg_send![ptr, unsignedLongLongValue];
           let num_f64: f64 = msg_send![ptr, doubleValue];
 
+          // NSNumber won't tell us what numeric type it was initialized with, so we use heuristics.
+          // If the float value can't be round-tripped via i64 or u64, we keep the float value.
+          // Otherwise we decide based on whether it can fit in a signed integer.
+          #[allow(clippy::cast_sign_loss)]
+          #[allow(clippy::cast_possible_truncation)]
           #[allow(clippy::float_cmp, clippy::cast_precision_loss)]
-          let value = if num_f64 != num_i64 as f64 && num_f64 != num_u64 as f64 {
+          let value = if num_f64 != num_f64 as i64 as f64 && num_f64 != num_f64 as u64 as f64 {
             Value::Float(num_f64)
-          } else if num_u64 > i64::MAX as u64 {
-            Value::Unsigned(num_u64)
-          } else {
+          } else if num_i64 < 0 || num_u64 <= i64::MAX as u64 {
             Value::Signed(num_i64)
+          } else {
+            Value::Unsigned(num_u64)
           };
           results.insert(result_id, value);
         } else if msg_send![ptr, isKindOfClass: class!(NSNull)] {
