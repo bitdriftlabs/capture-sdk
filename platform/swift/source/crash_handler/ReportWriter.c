@@ -20,6 +20,7 @@
 #include "bd-bonjson/ffi.h"
 
 #include <stdio.h>
+#include <stdint.h>
 
 static bool getStackCursor(const ReportContext *const ctx,
                            const struct KSMachineContext *const machineContext,
@@ -33,7 +34,7 @@ static bool getStackCursor(const ReportContext *const ctx,
     return true;
 }
 
-#define RETURN_ON_FAIL(A) if(!(A)) return false
+#define RETURN_ON_FAIL(A) if (!(A)) return false
 
 #define BUILD_KV_WRITE_FUNC_0ARG(LOCAL_NAME, FFI_NAME) \
 static bool writeKV##LOCAL_NAME(BDCrashWriterHandle writer, const char *key) { \
@@ -74,12 +75,15 @@ static bool writeBacktrace(BDCrashWriterHandle writer, const char *const key, KS
                 {
                     RETURN_ON_FAIL(writeKVUnsigned(writer, "address", stackCursor->stackEntry.address));
                     Dl_info info = {0};
-                    if(ksdl_dladdr(stackCursor->stackEntry.address, &info))
-                    {
+                    if (ksdl_dladdr(stackCursor->stackEntry.address, &info)) {
                         RETURN_ON_FAIL(writeKVString(writer, "binaryName", ksfu_lastPathEntry(info.dli_fname)));
-                        RETURN_ON_FAIL(writeKVUnsigned(writer, "offsetIntoBinaryTextSegment", info.dli_saddr - info.dli_fbase));
+                        // Ensure safe pointer arithmetic
+                        if (info.dli_saddr >= info.dli_fbase) {
+                            RETURN_ON_FAIL(writeKVUnsigned(writer, "offsetIntoBinaryTextSegment", 
+                                                          (uintptr_t)info.dli_saddr - (uintptr_t)info.dli_fbase));
+                        }
                         KSBinaryImage img = {0};
-                        if(ksdl_binaryImageForHeader(info.dli_fbase, info.dli_fname, &img)) {
+                        if (ksdl_binaryImageForHeader(info.dli_fbase, info.dli_fname, &img)) {
                             RETURN_ON_FAIL(writeKVUUID(writer, "binaryUUID", img.uuid));
                         }
                     }
@@ -107,7 +111,7 @@ static bool writeThread(BDCrashWriterHandle writer,
     RETURN_ON_FAIL(bdcrw_write_map_begin(writer));
     {
         if (hasBacktrace) {
-            writeBacktrace(writer, KSCrashField_Backtrace, &stackCursor);
+            RETURN_ON_FAIL(writeBacktrace(writer, KSCrashField_Backtrace, &stackCursor));
         }
         RETURN_ON_FAIL(writeKVSigned(writer, KSCrashField_Index, threadIndex));
         const char *name = kstc_getThreadName(thread);
