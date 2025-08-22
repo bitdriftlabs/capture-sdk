@@ -14,6 +14,7 @@ use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use bd_client_common::error::with_handle_unexpected_or;
 
 struct NamedThread {
   name: String,
@@ -49,19 +50,27 @@ static CACHED_KSCRASH_REPORT: Mutex<Option<HashMap<String, Value>>> = Mutex::new
 
 #[no_mangle]
 extern "C" fn capture_cache_kscrash_report(kscrash_report_path_ptr: *const Object) -> CacheResult {
-  capture_cache_kscrash_report_impl(kscrash_report_path_ptr)
-    .inspect_err(|e| log::error!("Failed to cache KSCrash report: {e}"))
-    .unwrap_or(CacheResult::Failure)
+    with_handle_unexpected_or(
+        || -> anyhow::Result<CacheResult> {
+            capture_cache_kscrash_report_impl(kscrash_report_path_ptr)
+        },
+        CacheResult::Failure,
+        "cache kscrash report",
+    )
 }
 
 #[no_mangle]
 extern "C" fn capture_enhance_metrickit_diagnostic_report(
   metrickit_report_ptr: *const Object,
 ) -> *const Object {
-  enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr)
-    .inspect_err(|e| log::error!("Failed to enhance MetricKit report: {e}"))
-    .unwrap_or(Some(metrickit_report_ptr))
-    .unwrap_or(metrickit_report_ptr)
+  with_handle_unexpected_or(
+    || -> anyhow::Result<*const Object> {
+      enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr)
+        .map(|result| result.unwrap_or(metrickit_report_ptr))
+    },
+    metrickit_report_ptr,
+    "enhance metrickit diagnostic report",
+  )
 }
 
 // Implementation
