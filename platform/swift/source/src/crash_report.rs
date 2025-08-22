@@ -67,13 +67,8 @@ fn capture_cache_kscrash_report_impl(
     return Ok(Some(true));
   }
 
-  let hashmap = match load_bonjson_document(&kscrash_report_path)? {
-    Value::Object(hashmap) => hashmap,
-    _ => {
-      return Err(anyhow::anyhow!(
-        "KSCrash report is not a valid object/hashmap"
-      ))
-    },
+  let Value::Object(hashmap) = load_bonjson_document(&kscrash_report_path)? else {
+    return Err(anyhow::anyhow!("KSCrash report is not a valid object/hashmap"));
   };
 
   CACHED_KSCRASH_REPORT
@@ -100,14 +95,10 @@ fn enhance_metrickit_diagnostic_report_impl(
     let value = objc_value_to_rust(metrickit_report_ptr)
       .map_err(|e| anyhow::anyhow!("Failed to convert metrickit_report_ptr to Rust Value: {e}"))?;
 
-    match value {
-      Value::Object(hashmap) => hashmap,
-      _ => {
-        return Err(anyhow::anyhow!(
-          "metrickit_report is not a valid object/hashmap"
-        ))
-      },
-    }
+    let Value::Object(hashmap) = value else {
+      return Err(anyhow::anyhow!("metrickit_report is not a valid object/hashmap"));
+    };
+    hashmap
   };
 
   let kscrash_report = CACHED_KSCRASH_REPORT
@@ -119,10 +110,10 @@ fn enhance_metrickit_diagnostic_report_impl(
     })?
     .clone();
 
-  let enhanced_report = match enhance_report(&metrickit_report, &kscrash_report)? {
-    Some(hashmap) => Value::Object(hashmap),
-    None => return Ok(None),
+  let Some(enhanced_hashmap) = enhance_report(&metrickit_report, &kscrash_report)? else {
+    return Ok(None);
   };
+  let enhanced_report = Value::Object(enhanced_hashmap);
 
   unsafe {
     let strong_ptr = rust_value_to_objc(&enhanced_report)
@@ -233,31 +224,32 @@ fn extract_call_stack_from_kcrash_thread(
       return Err(anyhow::anyhow!("Frame missing 'address' field"));
     };
 
-    match address {
-      Value::Unsigned(address) => {
-        call_stack.push(*address);
-      },
-      Value::Signed(address) => {
-        if *address >= 0 {
-          #[allow(clippy::cast_sign_loss)]
-          call_stack.push(*address as u64);
-        } else {
-          return Err(anyhow::anyhow!("Address value is negative: {}", address));
-        }
-      },
-      _ => {
-        return Err(anyhow::anyhow!(
-          "Address value is not a valid number (got {:?})",
-          address
-        ));
-      },
-    }
+    let address = parse_address_value(address)?;
+    call_stack.push(address);
   }
 
   if call_stack.is_empty() {
     Ok(None)
   } else {
     Ok(Some(call_stack))
+  }
+}
+
+fn parse_address_value(address: &Value) -> anyhow::Result<u64> {
+  match address {
+    Value::Unsigned(address) => Ok(*address),
+    Value::Signed(address) => {
+      if *address >= 0 {
+        #[allow(clippy::cast_sign_loss)]
+        Ok(*address as u64)
+      } else {
+        Err(anyhow::anyhow!("Address value is negative: {}", address))
+      }
+    },
+    _ => Err(anyhow::anyhow!(
+      "Address value is not a valid number (got {:?})",
+      address
+    )),
   }
 }
 
@@ -357,25 +349,8 @@ fn extract_call_stack_from_metrickit_frame(
     return Err(anyhow::anyhow!("MetricKit frame missing 'address' field"));
   };
 
-  match address_value {
-    Value::Unsigned(address) => {
-      addresses.push(*address);
-    },
-    Value::Signed(address) => {
-      if *address >= 0 {
-        #[allow(clippy::cast_sign_loss)]
-        addresses.push(*address as u64);
-      } else {
-        return Err(anyhow::anyhow!("Address value is negative: {}", address));
-      }
-    },
-    _ => {
-      return Err(anyhow::anyhow!(
-        "Address value is not a valid number (got {:?})",
-        address_value
-      ));
-    },
-  }
+  let address = parse_address_value(address_value)?;
+  addresses.push(address);
 
   if let Some(Value::Array(sub_frames)) = metrickit_frame.get("subFrames") {
     for sub_frame in sub_frames {
