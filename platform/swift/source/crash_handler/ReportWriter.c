@@ -56,12 +56,21 @@ BUILD_KV_WRITE_FUNC_1ARG(String, str, const char *)
 BUILD_KV_WRITE_FUNC_1ARG(Boolean, boolean, bool)
 
 static bool writeKVUUID(BDCrashWriterHandle writer, const char *key, const uint8_t *value) {
-    // Example: 9c5b94b1-35ad-49bb-b118-8e8fc24abf80
-    char uuid[40] = {0};
-    // sprintf and friends are signal safe so long as you don't try to print floats.
-    snprintf(uuid, sizeof(uuid), "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-             value[0], value[1], value[2], value[3], value[4], value[5], value[6], value[7],
-             value[8], value[9], value[10], value[11], value[12], value[13], value[14], value[15]);
+    // Signal-safe UUID string construction without snprintf
+    static const char hex_chars[] = "0123456789abcdef";
+    char uuid[37]; // 32 hex chars + 4 hyphens + null terminator
+    char *p = uuid;
+    
+    // Format: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+    for (int i = 0; i < 16; i++) {
+        if (i == 4 || i == 6 || i == 8 || i == 10) {
+            *p++ = '-';
+        }
+        *p++ = hex_chars[(value[i] >> 4) & 0x0F];
+        *p++ = hex_chars[value[i] & 0x0F];
+    }
+    *p = '\0';
+    
     return writeKVString(writer, key, uuid);
 }
 
