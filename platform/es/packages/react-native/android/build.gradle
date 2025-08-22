@@ -81,6 +81,11 @@ android {
     targetCompatibility JavaVersion.VERSION_1_8
   }
 
+  kotlinOptions {
+    languageVersion = "2.1"
+    apiVersion = "2.1"
+  }
+
   sourceSets {
     main {
       if (isNewArchitectureEnabled()) {
@@ -112,7 +117,7 @@ dependencies {
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-  api 'io.bitdrift:capture:0.17.26'
+  api 'io.bitdrift:capture:0.18.5'
 }
 
 if (isNewArchitectureEnabled()) {

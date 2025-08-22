@@ -32,7 +32,6 @@ class BdReactNativePackage : TurboReactPackage() {
         BdReactNativeModule.NAME,
         false,  // canOverrideExistingModule
         false,  // needsEagerInit
-        true,  // hasConstants
         false,  // isCxxModule
         isTurboModule // isTurboModule
       )
