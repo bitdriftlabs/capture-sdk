@@ -96,14 +96,14 @@ fn capture_cache_kscrash_report_impl(
 fn load_bonjson_document<P: AsRef<Path>>(path: &P) -> Result<Value, PartialDecodeResult> {
   let file_contents = fs::read(path).map_err(|io_error| PartialDecodeResult {
     partial_value: Value::None,
-    error: anyhow::anyhow!("Failed to read file: {}", io_error),
+    error: anyhow::anyhow!("Failed to read file: {io_error}"),
   })?;
 
   decode_value(&file_contents).map_err(|bd_error| {
-    let error_debug = format!("{:?}", bd_error);
+    let error_msg = format!("Failed to decode BONJSON: {bd_error:?}");
     PartialDecodeResult {
       partial_value: bd_error.partial_value,
-      error: anyhow::anyhow!("Failed to decode BONJSON: {}", error_debug),
+      error: anyhow::anyhow!(error_msg),
     }
   })
 }
@@ -256,8 +256,11 @@ fn parse_address_value(address: &Value) -> anyhow::Result<u64> {
     Value::Unsigned(address) => Ok(*address),
     Value::Signed(address) => {
       (*address >= 0)
-        .then(|| *address as u64)
-        .ok_or_else(|| anyhow::anyhow!("Address value is negative: {}", address))
+        .then_some({
+          #[allow(clippy::cast_sign_loss)]
+          { *address as u64 }
+        })
+        .ok_or_else(|| anyhow::anyhow!("Address value is negative: {address}"))
     },
     _ => Err(anyhow::anyhow!(
       "Address value is not a valid number (got {:?})",
@@ -399,8 +402,5 @@ fn find_matching_named_thread_with_limit<'a>(
 }
 
 fn call_stacks_match(call_stack_a: &[u64], call_stack_b: &[u64]) -> bool {
-  if call_stack_a.len() != call_stack_b.len() || call_stack_a.is_empty() {
-    return false;
-  }
-  call_stack_a == call_stack_b
+  !call_stack_a.is_empty() && call_stack_a == call_stack_b
 }
