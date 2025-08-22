@@ -29,8 +29,22 @@ void ksmemory_notifyUnhandledFatalSignal(void) {}
 
 #pragma mark Rust Bridge
 
+typedef enum {
+    /// The report was not cached due to an error
+    CacheResultFailure = 0,
+    /// The crash report file does not exist
+    CacheResultReportDoesNotExist = 1,
+    /// Successfully cached a partial document
+    CacheResultPartialSuccess = 2,
+    /// Successfully cached the complete document
+    CacheResultSuccess = 3
+} CacheResult;
+
+/** Cache a KSCrash report, which will be used later for report enhancement. */
+CacheResult capture_cache_kscrash_report(NSString *reportPath);
+
+/** Enhance a MetricKit report using the cached KSCrash report. */
 NSDictionary *_Nullable capture_enhance_metrickit_diagnostic_report(const NSDictionary *_Nullable report);
-bool capture_cache_kscrash_report(NSString *reportPath);
 
 #pragma mark Crash Handling
 
@@ -97,9 +111,19 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
             return true;
         }
 
-        if (!capture_cache_kscrash_report(crashReportFile)) {
-            @throw [NSString stringWithFormat:@"Error caching kscrash report at \"%@\"",self.kscrashReportFilePath];
+        switch (capture_cache_kscrash_report(crashReportFile)) {
+            case CacheResultReportDoesNotExist:
+                // KSCrash didn't detect a crash last launch.
+                break;
+            case CacheResultSuccess:
+                break;
+            case CacheResultPartialSuccess:
+                NSLog(@"Warning: The KSCrash report was only partially recovered.");
+                break;
+            case CacheResultFailure:
+                @throw [NSString stringWithFormat:@"Error caching kscrash report at \"%@\"",self.kscrashReportFilePath];
         }
+
         if ([fm fileExistsAtPath:crashReportFile]) {
             NSError *error = NULL;
             if (![fm removeItemAtPath:crashReportFile error:&error]) {

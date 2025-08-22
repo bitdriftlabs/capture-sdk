@@ -21,6 +21,25 @@ struct NamedThread {
   count: usize,
 }
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CacheResult {
+  /// The report was not cached due to an error
+  Failure = 0,
+  /// The report file does not exist
+  ReportDoesNotExist = 1,
+  /// Successfully cached a partial document
+  PartialSuccess = 2,
+  /// Successfully cached the complete document
+  Success = 3,
+}
+
+#[derive(Debug)]
+pub struct PartialDecodeResult {
+  pub partial_value: Value, // The value decoded so far, which will be incomplete or possibly None.
+  pub error: anyhow::Error, // The error that occurred during decoding.
+}
+
 // Global cache for the most recently loaded KSCrash report.
 // This allows us to safely delete the report file so that it's not picked up next launch by
 // mistake.
@@ -29,11 +48,10 @@ static CACHED_KSCRASH_REPORT: Mutex<Option<HashMap<String, Value>>> = Mutex::new
 // API
 
 #[no_mangle]
-extern "C" fn capture_cache_kscrash_report(kscrash_report_path_ptr: *const Object) -> bool {
+extern "C" fn capture_cache_kscrash_report(kscrash_report_path_ptr: *const Object) -> CacheResult {
   capture_cache_kscrash_report_impl(kscrash_report_path_ptr)
     .inspect_err(|e| log::error!("Failed to cache KSCrash report: {e}"))
-    .unwrap_or(Some(false))
-    .unwrap_or(false)
+    .unwrap_or(CacheResult::Failure)
 }
 
 #[no_mangle]
@@ -50,21 +68,24 @@ extern "C" fn capture_enhance_metrickit_diagnostic_report(
 
 fn capture_cache_kscrash_report_impl(
   kscrash_report_path_ptr: *const Object,
-) -> anyhow::Result<Option<bool>> {
+) -> anyhow::Result<CacheResult> {
   let kscrash_report_path = unsafe {
     nsstring_into_string(kscrash_report_path_ptr)
       .map_err(|e| anyhow::anyhow!("Failed to convert KSCrash report path to string: {e}"))?
   };
 
   if !Path::new(&kscrash_report_path).exists() {
-    log::debug!(
-      "capture_cache_kscrash_report: App has not produced a crash report yet, so returning success"
-    );
-    return Ok(Some(true));
+    return Ok(CacheResult::ReportDoesNotExist);
   }
 
-  let Value::Object(hashmap) = load_bonjson_document(&kscrash_report_path)? else {
-    return Err(anyhow::anyhow!("KSCrash report is not a valid object/hashmap"));
+  let (hashmap, was_partial) = match load_bonjson_document(&kscrash_report_path) {
+    Ok(Value::Object(hashmap)) => (hashmap, false),
+    Ok(_) => return Err(anyhow::anyhow!("KSCrash report is not a valid object/hashmap")),
+    Err(partial_result) => match partial_result.partial_value {
+      Value::None => return Ok(CacheResult::Failure),
+      Value::Object(hashmap) => (hashmap, true),
+      _ => return Err(anyhow::anyhow!("KSCrash report is not a valid object/hashmap")),
+    }
   };
 
   CACHED_KSCRASH_REPORT
@@ -72,15 +93,21 @@ fn capture_cache_kscrash_report_impl(
     .map_err(|e| anyhow::anyhow!("Failed to acquire cache lock: {e}"))?
     .replace(hashmap);
 
-  Ok(Some(true))
+  Ok(if was_partial { CacheResult::PartialSuccess } else { CacheResult::Success })
 }
 
-fn load_bonjson_document<P: AsRef<Path>>(path: &P) -> anyhow::Result<Value> {
-  let file_contents = fs::read(path)?;
+fn load_bonjson_document<P: AsRef<Path>>(path: &P) -> Result<Value, PartialDecodeResult> {
+  let file_contents = fs::read(path).map_err(|io_error| PartialDecodeResult {
+    partial_value: Value::None,
+    error: anyhow::anyhow!("Failed to read file: {}", io_error),
+  })?;
 
-  decode_value(&file_contents).or_else(|e| match e.partial_value {
-    Value::None => Err(anyhow::anyhow!("Failed to decode BONJSON: {:?}", e)),
-    value => Ok(value),
+  decode_value(&file_contents).map_err(|bd_error| {
+    let error_debug = format!("{:?}", bd_error);
+    PartialDecodeResult {
+      partial_value: bd_error.partial_value,
+      error: anyhow::anyhow!("Failed to decode BONJSON: {}", error_debug),
+    }
   })
 }
 
