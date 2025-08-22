@@ -103,6 +103,13 @@ pub(crate) unsafe fn objc_obj_class_name(s: *const Object) -> anyhow::Result<Str
 /// # Arguments
 /// * `ptr` - A pointer to an Objective-C object
 ///
+/// # Safety
+/// The caller must ensure that:
+/// - `ptr` is either null or points to a valid Objective-C object
+/// - The pointed-to object, if not null, remains valid for the duration of this function call
+/// - The object and any nested objects it contains are properly retained by the Objective-C runtime
+/// - The object conforms to one of the supported types (`NSString`, `NSNumber`, `NSArray`, `NSDictionary`, `NSNull`)
+///
 /// # Returns
 /// * `Ok(Value)` - The converted Rust value
 /// * `Err(anyhow::Error)` - If the pointer is null, the object type is unsupported, or a conversion
