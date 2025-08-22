@@ -147,21 +147,23 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
         NSLog(@"Error: Cannot start crash reporter: must call configureWithCrashReportPath first");
         return NO;
     }
-
+    
     static atomic_bool isStarted = false;
     bool expectStarted = false;
     if (!atomic_compare_exchange_strong(&isStarted, &expectStarted, true)) {
         return YES; // Already started
     }
-
+    
     memset(&g_crashHandlerReportContext, 0, sizeof(g_crashHandlerReportContext));
     g_crashHandlerReportContext.reportPath = strdup(self.kscrashReportFilePath.UTF8String);
     g_crashHandlerReportContext.metadata.pid = NSProcessInfo.processInfo.processIdentifier;
-
-#define ERROR_IF_FALSE(A) do if(!(A)) { \
-    NSLog(@"Error: Function returned unexpected false: %s", #A); \
-    isStarted = false; \
-    return NO; \
+    
+#define ERROR_IF_FALSE(A) do { \
+    if(!(A)) { \
+        NSLog(@"Error: Function returned unexpected false: %s", #A); \
+        isStarted = false; \
+        return NO; \
+    } \
 } while(0)
 
     ERROR_IF_FALSE(bdcrw_open_writer(&g_crashHandlerReportContext.writer, g_crashHandlerReportContext.reportPath));

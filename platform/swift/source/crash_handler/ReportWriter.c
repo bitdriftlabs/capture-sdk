@@ -34,7 +34,7 @@ static bool getStackCursor(const ReportContext *const ctx,
     return true;
 }
 
-#define RETURN_ON_FAIL(A) if (!(A)) return false
+#define RETURN_ON_FAIL(A) do { if (!(A)) return false; } while(0)
 
 #define BUILD_KV_WRITE_FUNC_0ARG(LOCAL_NAME, FFI_NAME) \
 static bool writeKV##LOCAL_NAME(BDCrashWriterHandle writer, const char *key) { \
