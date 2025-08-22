@@ -9,12 +9,12 @@ use crate::conversion::{objc_value_to_rust, rust_value_to_objc};
 use crate::ffi::nsstring_into_string;
 use anyhow;
 use bd_bonjson::decoder::{decode_value, Value};
+use bd_client_common::error::with_handle_unexpected_or;
 use objc::runtime::Object;
 use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use bd_client_common::error::with_handle_unexpected_or;
 
 struct NamedThread {
   name: String,
@@ -50,13 +50,13 @@ static CACHED_KSCRASH_REPORT: Mutex<Option<HashMap<String, Value>>> = Mutex::new
 
 #[no_mangle]
 extern "C" fn capture_cache_kscrash_report(kscrash_report_path_ptr: *const Object) -> CacheResult {
-    with_handle_unexpected_or(
-        || -> anyhow::Result<CacheResult> {
-            capture_cache_kscrash_report_impl(kscrash_report_path_ptr)
-        },
-        CacheResult::Failure,
-        "cache kscrash report",
-    )
+  with_handle_unexpected_or(
+    || -> anyhow::Result<CacheResult> {
+      capture_cache_kscrash_report_impl(kscrash_report_path_ptr)
+    },
+    CacheResult::Failure,
+    "cache kscrash report",
+  )
 }
 
 #[no_mangle]
