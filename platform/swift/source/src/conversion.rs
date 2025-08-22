@@ -214,24 +214,7 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
           let string_value = nsstring_into_string(ptr)?;
           results.insert(result_id, Value::String(string_value));
         } else if msg_send![ptr, isKindOfClass: class!(NSNumber)] {
-          let num_i64: i64 = msg_send![ptr, longLongValue];
-          let num_u64: u64 = msg_send![ptr, unsignedLongLongValue];
-          let num_f64: f64 = msg_send![ptr, doubleValue];
-
-          // NSNumber won't tell us what numeric type it was initialized with, so we use heuristics.
-          // If the float value can't be round-tripped via i64 or u64, we keep the float value.
-          // Otherwise we decide based on whether it can fit in a signed integer.
-          #[allow(clippy::cast_sign_loss)]
-          #[allow(clippy::cast_possible_truncation)]
-          #[allow(clippy::float_cmp, clippy::cast_precision_loss)]
-          let value = if num_f64 != num_f64 as i64 as f64 && num_f64 != num_f64 as u64 as f64 {
-            Value::Float(num_f64)
-          } else if num_i64 < 0 || num_u64 <= i64::MAX as u64 {
-            Value::Signed(num_i64)
-          } else {
-            Value::Unsigned(num_u64)
-          };
-          results.insert(result_id, value);
+          results.insert(result_id, extract_nsnumber_value(ptr)?);
         } else if msg_send![ptr, isKindOfClass: class!(NSNull)] {
           results.insert(result_id, Value::Null);
         } else {
@@ -281,6 +264,27 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
   results
     .remove(&root_id)
     .ok_or_else(|| anyhow::anyhow!("Failed to find root result"))
+}
+
+fn extract_nsnumber_value(ptr: *const Object) -> anyhow::Result<Value> {
+  let num_i64: i64 = unsafe { msg_send![ptr, longLongValue] };
+  let num_u64: u64 = unsafe { msg_send![ptr, unsignedLongLongValue] };
+  let num_f64: f64 = unsafe { msg_send![ptr, doubleValue] };
+
+  // NSNumber won't tell us what numeric type it was initialized with, so we use heuristics.
+  // If the float value can't be round-tripped via i64 or u64, we keep the float value.
+  // Otherwise we decide based on whether it can fit in a signed integer.
+  #[allow(clippy::cast_sign_loss)]
+  #[allow(clippy::cast_possible_truncation)]
+  #[allow(clippy::float_cmp, clippy::cast_precision_loss)]
+  let value = if num_f64 != num_f64 as i64 as f64 && num_f64 != num_f64 as u64 as f64 {
+    Value::Float(num_f64)
+  } else if num_i64 < 0 || i64::try_from(num_u64).is_ok() {
+    Value::Signed(num_i64)
+  } else {
+    Value::Unsigned(num_u64)
+  };
+  Ok(value)
 }
 
 /// Deep-convert a Rust `Value` to its Objective-C equivalent.
