@@ -44,14 +44,10 @@ extern "C" fn capture_cache_kscrash_report(kscrash_report_path_ptr: *const Objec
 extern "C" fn capture_enhance_metrickit_diagnostic_report(
   metrickit_report_ptr: *const Object,
 ) -> *const Object {
-  match enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr) {
-    Ok(Some(enhanced_report_ptr)) => enhanced_report_ptr,
-    Ok(None) => metrickit_report_ptr, // Return original when enhancement returns None
-    Err(e) => {
-      log::error!("Failed to enhance MetricKit report: {e}");
-      metrickit_report_ptr // Return original on error
-    },
-  }
+  enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr)
+    .inspect_err(|e| log::error!("Failed to enhance MetricKit report: {e}"))
+    .unwrap_or(Some(metrickit_report_ptr))
+    .unwrap_or(metrickit_report_ptr)
 }
 
 // Implementation
@@ -60,12 +56,8 @@ fn capture_cache_kscrash_report_impl(
   kscrash_report_path_ptr: *const Object,
 ) -> anyhow::Result<Option<bool>> {
   let kscrash_report_path = unsafe {
-    match nsstring_into_string(kscrash_report_path_ptr) {
-      Ok(s) => s,
-      Err(e) => {
-        return Err(anyhow::anyhow!("Failed to convert path to string: {e}"));
-      },
-    }
+    nsstring_into_string(kscrash_report_path_ptr)
+      .map_err(|e| anyhow::anyhow!("Failed to convert KSCrash report path to string: {e}"))?
   };
 
   if !Path::new(&kscrash_report_path).exists() {
@@ -75,84 +67,67 @@ fn capture_cache_kscrash_report_impl(
     return Ok(Some(true));
   }
 
-  match load_bonjson_document(&kscrash_report_path) {
-    Ok(Value::Object(hashmap)) => match CACHED_KSCRASH_REPORT.lock() {
-      Ok(mut cache) => {
-        *cache = Some(hashmap);
-        Ok(Some(true))
-      },
-      Err(e) => Err(anyhow::anyhow!("Failed to acquire cache lock: {e}")),
+  let hashmap = match load_bonjson_document(&kscrash_report_path)? {
+    Value::Object(hashmap) => hashmap,
+    _ => {
+      return Err(anyhow::anyhow!(
+        "KSCrash report is not a valid object/hashmap"
+      ))
     },
-    Ok(_) => Err(anyhow::anyhow!(
-      "KSCrash report is not a valid object/hashmap"
-    )),
-    Err(e) => Err(anyhow::anyhow!(
-      "Failed to load KSCrash report at \"{kscrash_report_path}\": {e}"
-    )),
-  }
+  };
+
+  CACHED_KSCRASH_REPORT
+    .lock()
+    .map_err(|e| anyhow::anyhow!("Failed to acquire cache lock: {e}"))?
+    .replace(hashmap);
+
+  Ok(Some(true))
 }
 
 fn load_bonjson_document<P: AsRef<Path>>(path: &P) -> anyhow::Result<Value> {
   let file_contents = fs::read(path)?;
-  let decode_result = decode_value(&file_contents);
 
-  match decode_result {
-    Ok(value) => Ok(value),
-    Err(e) => match e.partial_value {
-      Value::None => Err(anyhow::anyhow!("Failed to decode BONJSON: {:?}", e)),
-      value => Ok(value),
-    },
-  }
+  decode_value(&file_contents).or_else(|e| match e.partial_value {
+    Value::None => Err(anyhow::anyhow!("Failed to decode BONJSON: {:?}", e)),
+    value => Ok(value),
+  })
 }
 
 fn enhance_metrickit_diagnostic_report_impl(
   metrickit_report_ptr: *const Object,
 ) -> anyhow::Result<Option<*const Object>> {
   let metrickit_report = unsafe {
-    match objc_value_to_rust(metrickit_report_ptr) {
-      Ok(Value::Object(hashmap)) => hashmap,
-      Ok(_) => {
+    let value = objc_value_to_rust(metrickit_report_ptr)
+      .map_err(|e| anyhow::anyhow!("Failed to convert metrickit_report_ptr to Rust Value: {e}"))?;
+
+    match value {
+      Value::Object(hashmap) => hashmap,
+      _ => {
         return Err(anyhow::anyhow!(
           "metrickit_report is not a valid object/hashmap"
-        ));
-      },
-      Err(e) => {
-        return Err(anyhow::anyhow!(
-          "Failed to convert metrickit_report_ptr to Rust Value: {e}"
-        ));
+        ))
       },
     }
   };
 
-  let kscrash_report = match CACHED_KSCRASH_REPORT.lock() {
-    Ok(cache) => match cache.as_ref() {
-      Some(report) => report.clone(),
-      None => {
-        return Err(anyhow::anyhow!(
-          "No KSCrash report has been cached. Call capture_cache_kscrash_report first."
-        ));
-      },
-    },
-    Err(e) => {
-      return Err(anyhow::anyhow!("Failed to acquire cache lock: {e}"));
-    },
-  };
+  let kscrash_report = CACHED_KSCRASH_REPORT
+    .lock()
+    .map_err(|e| anyhow::anyhow!("Failed to acquire cache lock: {e}"))?
+    .as_ref()
+    .ok_or_else(|| {
+      anyhow::anyhow!("No KSCrash report has been cached. Call capture_cache_kscrash_report first.")
+    })?
+    .clone();
 
-  let enhanced_report = match enhance_report(&metrickit_report, &kscrash_report) {
-    Ok(Some(hashmap)) => Value::Object(hashmap),
-    Ok(None) => return Ok(None), // Return None when enhancement fails
-    Err(e) => {
-      return Err(anyhow::anyhow!("Failed to enhance report: {e}"));
-    },
+  let enhanced_report = match enhance_report(&metrickit_report, &kscrash_report)? {
+    Some(hashmap) => Value::Object(hashmap),
+    None => return Ok(None),
   };
 
   unsafe {
-    match rust_value_to_objc(&enhanced_report) {
-      Ok(strong_ptr) => Ok(Some(*strong_ptr)),
-      Err(e) => Err(anyhow::anyhow!(
-        "Failed to convert enhanced_report to Objective-C: {e}"
-      )),
-    }
+    let strong_ptr = rust_value_to_objc(&enhanced_report)
+      .map_err(|e| anyhow::anyhow!("Failed to convert enhanced_report to Objective-C: {e}"))?;
+    Ok(Some(*strong_ptr))
   }
 }
 

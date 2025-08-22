@@ -87,7 +87,7 @@ pub(crate) unsafe fn objc_obj_class_name(s: *const Object) -> anyhow::Result<Str
 /// - `NSNull` → `Value::Null`
 ///
 /// # Algorithm
-/// Stack-based work queue system with the followin work items:
+/// Stack-based work queue system with the following work items:
 /// - `ProcessObject`: Generic Objective-C conversion
 /// - `InsertDictValue`: Insert a value into a dictionary after processing
 /// - `InsertArrayValue`: Insert a value into an array after processing
