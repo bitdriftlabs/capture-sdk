@@ -69,10 +69,8 @@ extern "C" fn capture_enhance_metrickit_diagnostic_report(
 fn capture_cache_kscrash_report_impl(
   kscrash_report_path_ptr: *const Object,
 ) -> anyhow::Result<CacheResult> {
-  let kscrash_report_path = unsafe {
-    nsstring_into_string(kscrash_report_path_ptr)
-      .map_err(|e| anyhow::anyhow!("Failed to convert KSCrash report path to string: {e}"))?
-  };
+  let kscrash_report_path = unsafe { nsstring_into_string(kscrash_report_path_ptr) }
+    .map_err(|e| anyhow::anyhow!("Failed to convert KSCrash report path to string: {e}"))?;
 
   if !Path::new(&kscrash_report_path).exists() {
     return Ok(CacheResult::ReportDoesNotExist);
@@ -113,14 +111,11 @@ fn load_bonjson_document<P: AsRef<Path>>(path: &P) -> Result<Value, PartialDecod
 fn enhance_metrickit_diagnostic_report_impl(
   metrickit_report_ptr: *const Object,
 ) -> anyhow::Result<Option<*const Object>> {
-  let metrickit_report = unsafe {
-    let value = objc_value_to_rust(metrickit_report_ptr)
-      .map_err(|e| anyhow::anyhow!("Failed to convert metrickit_report_ptr to Rust Value: {e}"))?;
+  let value = unsafe { objc_value_to_rust(metrickit_report_ptr) }
+    .map_err(|e| anyhow::anyhow!("Failed to convert metrickit_report_ptr to Rust Value: {e}"))?;
 
-    let Value::Object(hashmap) = value else {
-      return Err(anyhow::anyhow!("metrickit_report is not a valid object/hashmap"));
-    };
-    hashmap
+  let Value::Object(metrickit_report) = value else {
+    return Err(anyhow::anyhow!("metrickit_report is not a valid object/hashmap"));
   };
 
   let kscrash_report = CACHED_KSCRASH_REPORT
@@ -136,11 +131,9 @@ fn enhance_metrickit_diagnostic_report_impl(
   };
   let enhanced_report = Value::Object(enhanced_hashmap);
 
-  unsafe {
-    let strong_ptr = rust_value_to_objc(&enhanced_report)
-      .map_err(|e| anyhow::anyhow!("Failed to convert enhanced_report to Objective-C: {e}"))?;
-    Ok(Some(*strong_ptr))
-  }
+  let strong_ptr = unsafe { rust_value_to_objc(&enhanced_report) }
+    .map_err(|e| anyhow::anyhow!("Failed to convert enhanced_report to Objective-C: {e}"))?;
+  Ok(Some(*strong_ptr))
 }
 
 fn enhance_report(
