@@ -166,14 +166,16 @@ fn diagnostic_metadata_matches_in_reports(
   report_a: &HashMap<String, Value>,
   report_b: &HashMap<String, Value>,
 ) -> bool {
-  let a_meta = report_a.get("diagnosticMetaData");
-  let b_meta = report_b.get("diagnosticMetaData");
-  if a_meta.is_none() || b_meta.is_none() {
+  let (Some(a_meta), Some(b_meta)) = (
+    report_a.get("diagnosticMetaData"),
+    report_b.get("diagnosticMetaData")
+  ) else {
     return false;
-  }
+  };
+  
   let check_keys = ["exceptionType", "exceptionCode", "signal", "pid"];
   for key in &check_keys {
-    if a_meta.as_ref().unwrap().get(key) != b_meta.as_ref().unwrap().get(key) {
+    if a_meta.get(key) != b_meta.get(key) {
       return false;
     }
   }
@@ -260,12 +262,9 @@ fn parse_address_value(address: &Value) -> anyhow::Result<u64> {
   match address {
     Value::Unsigned(address) => Ok(*address),
     Value::Signed(address) => {
-      if *address >= 0 {
-        #[allow(clippy::cast_sign_loss)]
-        Ok(*address as u64)
-      } else {
-        Err(anyhow::anyhow!("Address value is negative: {}", address))
-      }
+      (*address >= 0)
+        .then(|| *address as u64)
+        .ok_or_else(|| anyhow::anyhow!("Address value is negative: {}", address))
     },
     _ => Err(anyhow::anyhow!(
       "Address value is not a valid number (got {:?})",
