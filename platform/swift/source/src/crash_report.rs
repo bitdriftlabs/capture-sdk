@@ -10,10 +10,10 @@ use crate::ffi::nsstring_into_string;
 use anyhow;
 use bd_bonjson::decoder::{decode_value, Value};
 use objc::runtime::Object;
+use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use std::sync::Mutex;
 
 struct NamedThread {
   name: String,
@@ -90,7 +90,6 @@ fn capture_cache_kscrash_report_impl(
 
   CACHED_KSCRASH_REPORT
     .lock()
-    .map_err(|e| anyhow::anyhow!("Failed to acquire cache lock: {e}"))?
     .replace(hashmap);
 
   Ok(if was_partial { CacheResult::PartialSuccess } else { CacheResult::Success })
@@ -126,7 +125,6 @@ fn enhance_metrickit_diagnostic_report_impl(
 
   let kscrash_report = CACHED_KSCRASH_REPORT
     .lock()
-    .map_err(|e| anyhow::anyhow!("Failed to acquire cache lock: {e}"))?
     .as_ref()
     .ok_or_else(|| {
       anyhow::anyhow!("No KSCrash report has been cached. Call capture_cache_kscrash_report first.")
