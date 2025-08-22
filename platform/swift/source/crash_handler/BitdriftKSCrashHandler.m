@@ -67,7 +67,6 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
 
 @interface BitdriftKSCrashHandler ()
 @property(nonatomic, strong) NSString *kscrashReportFilePath;
-@property(nonatomic, strong) NSDictionary *lastCrashReport;
 @property(class, nonatomic, readonly, strong) BitdriftKSCrashHandler *sharedInstance;
 @end
 
@@ -82,13 +81,13 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     return instance;
 }
 
-+ (bool)configureWithCrashReportDirectory:(NSURL *)crashReportPath {
++ (BOOL)configureWithCrashReportDirectory:(NSURL *)crashReportPath {
     return [BitdriftKSCrashHandler.sharedInstance configureWithCrashReportDirectory:crashReportPath];
 }
 
-- (bool)configureWithCrashReportDirectory:(NSURL *)crashReportDir {
+- (BOOL)configureWithCrashReportDirectory:(NSURL *)crashReportDir {
     if (crashReportDir == nil) {
-        return false;
+        return NO;
     }
 
     NSString *crashReportFile = [crashReportDir.absoluteURL.path stringByAppendingPathComponent:@"lastCrash.bjn"];
@@ -108,7 +107,7 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
 
         self.kscrashReportFilePath = crashReportFile;
         if (![fm fileExistsAtPath:crashReportFile]) {
-            return true;
+            return YES;
         }
 
         switch (capture_cache_kscrash_report(crashReportFile)) {
@@ -131,28 +130,28 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
             }
         }
 
-        return true;
+        return YES;
     } @catch(id exception) {
         [NSFileManager.defaultManager removeItemAtPath:crashReportFile error:nil];
         NSLog(@"Error configuring BitdriftKSCrashHandler: %@", exception);
-        return false;
+        return NO;
     }
 }
 
-+ (bool)startCrashReporter {
++ (BOOL)startCrashReporter {
     return [self.sharedInstance startCrashReporter];
 }
 
-- (bool)startCrashReporter {
+- (BOOL)startCrashReporter {
     if (self.kscrashReportFilePath == nil) {
         NSLog(@"Error: Cannot start crash reporter: must call configureWithCrashReportPath first");
-        return false;
+        return NO;
     }
 
     static atomic_bool isStarted = false;
     bool expectStarted = false;
     if (!atomic_compare_exchange_strong(&isStarted, &expectStarted, true)) {
-        return true; // Already started
+        return YES; // Already started
     }
 
     memset(&g_crashHandlerReportContext, 0, sizeof(g_crashHandlerReportContext));
@@ -162,7 +161,7 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
 #define ERROR_IF_FALSE(A) do if(!(A)) { \
     NSLog(@"Error: Function returned unexpected false: %s", #A); \
     isStarted = false; \
-    return false; \
+    return NO; \
 } while(0)
 
     ERROR_IF_FALSE(bdcrw_open_writer(&g_crashHandlerReportContext.writer, g_crashHandlerReportContext.reportPath));
@@ -179,7 +178,7 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     ERROR_IF_FALSE(kscm_activateMonitors());
 
 #undef ERROR_IF_FALSE
-    return true;
+    return YES;
 }
 
 + (void)stopCrashReporter {
