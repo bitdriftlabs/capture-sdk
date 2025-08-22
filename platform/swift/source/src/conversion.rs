@@ -88,7 +88,8 @@ pub(crate) unsafe fn objc_obj_class_name(s: *const Object) -> anyhow::Result<Str
 ///
 /// # Type preference when converting numbers
 /// Signed integer is always preferred over unsigned, and integers are preferred over floats.
-/// This matches with the conversion preference in the BONJSON decoder, and is important when comparing containers.
+/// This matches with the conversion preference in the BONJSON decoder, and is important when
+/// comparing containers.
 ///
 /// # Algorithm
 /// Stack-based work queue system with the following work items:
@@ -112,7 +113,8 @@ pub(crate) unsafe fn objc_obj_class_name(s: *const Object) -> anyhow::Result<Str
 /// - `ptr` is either null or points to a valid Objective-C object
 /// - The pointed-to object, if not null, remains valid for the duration of this function call
 /// - The object and any nested objects it contains are properly retained by the Objective-C runtime
-/// - The object conforms to one of the supported types (`NSString`, `NSNumber`, `NSArray`, `NSDictionary`, `NSNull`)
+/// - The object conforms to one of the supported types (`NSString`, `NSNumber`, `NSArray`,
+///   `NSDictionary`, `NSNull`)
 ///
 /// # Returns
 /// * `Ok(Value)` - The converted Rust value

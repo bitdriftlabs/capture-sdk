@@ -25,13 +25,13 @@ struct NamedThread {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CacheResult {
   /// The report was not cached due to an error
-  Failure = 0,
+  Failure            = 0,
   /// The report file does not exist
   ReportDoesNotExist = 1,
   /// Successfully cached a partial document
-  PartialSuccess = 2,
+  PartialSuccess     = 2,
   /// Successfully cached the complete document
-  Success = 3,
+  Success            = 3,
 }
 
 #[derive(Debug)]
@@ -78,19 +78,31 @@ fn capture_cache_kscrash_report_impl(
 
   let (hashmap, was_partial) = match load_bonjson_document(&kscrash_report_path) {
     Ok(Value::Object(hashmap)) => (hashmap, false),
-    Ok(_) => return Err(anyhow::anyhow!("KSCrash report is not a valid object/hashmap")),
+    Ok(_) => {
+      return Err(anyhow::anyhow!(
+        "KSCrash report is not a valid object/hashmap"
+      ))
+    },
     Err(partial_result) => match partial_result.partial_value {
       Value::None => return Ok(CacheResult::Failure),
       Value::Object(hashmap) => (hashmap, true),
-      _ => return Err(anyhow::anyhow!("KSCrash report is not a valid object/hashmap")),
-    }
+      _ => {
+        return Err(anyhow::anyhow!(
+          "KSCrash report is not a valid object/hashmap"
+        ))
+      },
+    },
   };
 
-  CACHED_KSCRASH_REPORT
-    .lock()
-    .replace(hashmap);
+  CACHED_KSCRASH_REPORT.lock().replace(hashmap);
 
-  Ok(if was_partial { CacheResult::PartialSuccess } else { CacheResult::Success })
+  Ok(
+    if was_partial {
+      CacheResult::PartialSuccess
+    } else {
+      CacheResult::Success
+    },
+  )
 }
 
 fn load_bonjson_document<P: AsRef<Path>>(path: &P) -> Result<Value, PartialDecodeResult> {
@@ -115,7 +127,9 @@ fn enhance_metrickit_diagnostic_report_impl(
     .map_err(|e| anyhow::anyhow!("Failed to convert metrickit_report_ptr to Rust Value: {e}"))?;
 
   let Value::Object(metrickit_report) = value else {
-    return Err(anyhow::anyhow!("metrickit_report is not a valid object/hashmap"));
+    return Err(anyhow::anyhow!(
+      "metrickit_report is not a valid object/hashmap"
+    ));
   };
 
   let kscrash_report = CACHED_KSCRASH_REPORT
@@ -161,11 +175,11 @@ fn diagnostic_metadata_matches_in_reports(
 ) -> bool {
   let (Some(a_meta), Some(b_meta)) = (
     report_a.get("diagnosticMetaData"),
-    report_b.get("diagnosticMetaData")
+    report_b.get("diagnosticMetaData"),
   ) else {
     return false;
   };
-  
+
   let check_keys = ["exceptionType", "exceptionCode", "signal", "pid"];
   for key in &check_keys {
     if a_meta.get(key) != b_meta.get(key) {
@@ -254,14 +268,14 @@ fn extract_call_stack_from_kcrash_thread(
 fn parse_address_value(address: &Value) -> anyhow::Result<u64> {
   match address {
     Value::Unsigned(address) => Ok(*address),
-    Value::Signed(address) => {
-      (*address >= 0)
-        .then_some({
-          #[allow(clippy::cast_sign_loss)]
-          { *address as u64 }
-        })
-        .ok_or_else(|| anyhow::anyhow!("Address value is negative: {address}"))
-    },
+    Value::Signed(address) => (*address >= 0)
+      .then_some({
+        #[allow(clippy::cast_sign_loss)]
+        {
+          *address as u64
+        }
+      })
+      .ok_or_else(|| anyhow::anyhow!("Address value is negative: {address}")),
     _ => Err(anyhow::anyhow!(
       "Address value is not a valid number (got {:?})",
       address
