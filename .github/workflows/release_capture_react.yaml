@@ -1,0 +1,34 @@
+name: Trigger capture-es (React Native) Release
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'The SDK version to release to React, ex: 0.18.6'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The SDK version to release to React, ex: 0.18.6'
+        required: true
+        type: string
+jobs:
+  release-capture-react:
+    runs-on: ubuntu-latest
+    steps:
+      - name: org-read-write-install token
+        id: org-read-write
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0
+        with:
+          app_id: ${{ secrets.OPEN_CAPTURE_SDK_PRS_APP_ID }}
+          private_key: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}
+      - name: Trigger CI Job in capture-ios Repo
+        run: |
+          gh workflow run $WORKFLOW_ID \
+          --repo bitdriftlabs/capture-es \
+          --raw-field version=${{ inputs.version }}
+        env:
+          GH_TOKEN: ${{ steps.org-read-write.outputs.token }}
+          # "Update Capture SDK version" workflow id in the capture-es repo.
+          WORKFLOW_ID: 183994602
+
