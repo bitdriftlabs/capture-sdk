@@ -4,4 +4,4 @@ The bitdrift Capture SDK is a highly optimized, lightweight library built to ena
 
 See [here](https://docs.bitdrift.io/product/overview) for more information.
 
-For setup, please refer to the [wiki] (https://github.com/bitdriftlabs/capture-sdk/wiki)
+For setup, please refer to the [wiki](https://github.com/bitdriftlabs/capture-sdk/wiki)
