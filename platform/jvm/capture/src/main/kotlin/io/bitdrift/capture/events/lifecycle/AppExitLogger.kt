@@ -136,8 +136,7 @@ internal class AppExitLogger(
         throwable: Throwable,
     ) {
         // When FatalIssueMechanism.BuiltIn is configured will rely on shared-core to emit the related JVM crash log
-        if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) || isFatalIssueReporterEnabled
-        ) {
+        if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) || isFatalIssueReporterEnabled) {
             return
         }
 
