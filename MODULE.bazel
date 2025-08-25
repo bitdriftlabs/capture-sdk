@@ -14,11 +14,11 @@ COMPOSE_VERSION = "1.7.0"
 
 COMPOSE_COMPILER_VERSION = "1.5.15"
 
-KOTLIN_COMPILE_VERSION = "1.9.25"
+KOTLIN_COMPILE_VERSION = "2.1.21"
 
 KOTLIN_COMPILER_SHA = "6ab72d6144e71cbbc380b770c2ad380972548c63ab6ed4c79f11c88f2967332e"
 
-KOTLIN_STD_VERSION = KOTLIN_COMPILE_VERSION
+KOTLIN_STD_VERSION = "1.9.25"
 
 NDK_API_LEVEL = 21
 
@@ -144,12 +144,6 @@ use_repo(android_ndk_repository_extension, "androidndk")
 
 register_toolchains("@androidndk//:all")
 
-rules_kotlin_extensions = use_extension("@rules_kotlin//src/main/starlark/core/repositories:bzlmod_setup.bzl", "rules_kotlin_extensions")
-rules_kotlin_extensions.kotlinc_version(
-    sha256 = KOTLIN_COMPILER_SHA,
-    version = KOTLIN_COMPILE_VERSION,
-)
-
 register_toolchains("//:kotlin_toolchain")
 
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
@@ -181,7 +175,7 @@ maven.install(
         "com.google.protobuf:protobuf-kotlin-lite:3.24.2",
 
         # Compose
-        "androidx.compose.compiler:compiler:{}".format(COMPOSE_COMPILER_VERSION),
+        "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:{}".format(KOTLIN_COMPILE_VERSION),
         "org.jetbrains:annotations:26.0.1",
         "androidx.core:core-ktx:1.13.1",
         "androidx.appcompat:appcompat:1.7.0",

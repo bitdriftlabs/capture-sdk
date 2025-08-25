@@ -134,14 +134,17 @@ kt_javac_options(
     name = "kt_javac_options",
 )
 
+KOTLIN_LANG_VERSION = "1.9"
+JAVA_LANG_VERSION = "1.8"
+
 define_kt_toolchain(
     name = "kotlin_toolchain",
-    api_version = "1.9",
+    api_version = KOTLIN_LANG_VERSION,
     experimental_use_abi_jars = True,
     javac_options = "//:kt_javac_options",
-    jvm_target = "1.8",
+    jvm_target = JAVA_LANG_VERSION,
     kotlinc_options = "//:kt_kotlinc_options",
-    language_version = "1.9",
+    language_version = KOTLIN_LANG_VERSION,
 )
 
 # Define the compose compiler plugin
@@ -152,7 +155,7 @@ kt_compiler_plugin(
     target_embedded_compiler = True,
     visibility = ["//visibility:public"],
     deps = [
-        "@maven//:androidx_compose_compiler_compiler",
+        "@maven//:org_jetbrains_kotlin_kotlin_compose_compiler_plugin_embeddable",
     ],
 )
 
