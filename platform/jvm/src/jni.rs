@@ -252,7 +252,7 @@ fn check_exception(env: &mut JNIEnv<'_>) {
   }
 }
 
-fn jni_loader_inner(vm: &JavaVM) -> anyhow::Result<jint> {
+fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
   let mut env = vm.get_env()?;
 
   let metadata_provider =
@@ -335,7 +335,7 @@ fn jni_loader_inner(vm: &JavaVM) -> anyhow::Result<jint> {
 
 #[no_mangle]
 pub extern "system" fn JNI_OnLoad(vm: JavaVM, _: *mut c_void) -> jint {
-  jni_loader_inner(&vm).unwrap_or(JNI_ERR)
+  jni_load_inner(&vm).unwrap_or(JNI_ERR)
 }
 
 //
