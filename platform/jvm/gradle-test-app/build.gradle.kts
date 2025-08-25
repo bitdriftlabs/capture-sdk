@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.apollo.graphql)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.compose.compiler)
 }
 
 dependencies {
@@ -73,6 +72,10 @@ android {
 
     // This needs to be set to access the strip tools to strip the shared libraries.
     ndkVersion = "27.2.12479018"
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.15"
+    }
 
     buildTypes {
         debug {

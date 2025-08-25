@@ -152,7 +152,7 @@ kt_compiler_plugin(
     target_embedded_compiler = True,
     visibility = ["//visibility:public"],
     deps = [
-        "@maven//:org_jetbrains_kotlin_kotlin_compose_compiler_plugin_embeddable",
+        "@maven//:androidx_compose_compiler_compiler",
     ],
 )
 

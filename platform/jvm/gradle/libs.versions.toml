@@ -12,7 +12,7 @@ flatbuffers             = "25.2.10"
 gson                    = "2.10.1"
 jsr305                  = "3.0.2"
 junit                   = "4.13.2"
-kotlin                  = "2.1.21"
+kotlin                  = "1.9.25"
 kotlinResultJvm         = "1.1.18"
 lifecycleCommon         = "2.8.7"
 material3Android        = "1.2.1"
@@ -63,7 +63,6 @@ android-application = { id = "com.android.application", version.ref = "androidGr
 android-benchmark   = { id = "androidx.benchmark", version.ref = "androidBenchkmarkPlugin" }
 android-library     = { id = "com.android.library", version.ref = "androidGradlePlugin" }
 apollo-graphql      = { id = "com.apollographql.apollo", version.ref = "apollo" }
-compose-compiler    = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 detekt              = { id = "io.gitlab.arturbosch.detekt", version.ref = "detektPlugin" }
 dokka               = { id = "org.jetbrains.dokka", version.ref = "dokkaPlugin" }
 kotlin              = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
