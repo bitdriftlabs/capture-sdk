@@ -78,7 +78,10 @@ impl SessionStrategyConfigurationHandle {
       Ok(Arc::new(
         if e.is_instance_of(
           session_strategy_configuration,
-          &SESSION_STRATEGY_FIXED.get().ok_or(InvariantError::Invariant)?.class,
+          &SESSION_STRATEGY_FIXED
+            .get()
+            .ok_or(InvariantError::Invariant)?
+            .class,
         )? {
           Strategy::Fixed(fixed::Strategy::new(store, callbacks))
         } else {
