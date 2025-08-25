@@ -64,8 +64,8 @@ android {
     kotlin {
         compilerOptions {
             jvmTarget = JvmTarget.JVM_1_8
-            apiVersion = KotlinVersion.KOTLIN_2_1
-            languageVersion = KotlinVersion.KOTLIN_2_1
+            apiVersion = KotlinVersion.KOTLIN_1_9
+            languageVersion = KotlinVersion.KOTLIN_1_9
             allWarningsAsErrors = true
             freeCompilerArgs.addAll(listOf("-Xdont-warn-on-error-suppression")) // needed for suppressing INVISIBLE_REFERENCE etc
         }
