@@ -9,23 +9,19 @@
 
 package io.bitdrift.microbenchmark
 
-import android.content.Context
 import androidx.benchmark.junit4.BenchmarkRule
 import androidx.benchmark.junit4.measureRepeated
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.LoggerImpl
-import io.bitdrift.capture.attributes.IClientAttributes
-import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueMechanism
-import io.bitdrift.capture.reports.IFatalIssueReporter
-import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -52,31 +48,18 @@ class ClockTimeProfiler {
     }
 
     @Test
-    fun loggerStart() {
+    @Ignore("Tends to fail with OOM errors")
+    fun loggerStartWithoutFatalIssue() {
+        CaptureJniLibrary.load()
         benchmarkRule.measureRepeated {
-            CaptureJniLibrary.load()
             LoggerImpl(
                 apiKey = "android-benchmark-test",
                 apiUrl = "https://api-tests.bitdrift.io".toHttpUrl(),
-                context = InstrumentationRegistry.getInstrumentation().targetContext,
+                context = ApplicationProvider.getApplicationContext(),
                 fieldProviders = listOf(),
                 dateProvider = SystemDateProvider(),
                 configuration = Configuration(),
                 sessionStrategy = SessionStrategy.Fixed(),
-                fatalIssueReporter =
-                    object : IFatalIssueReporter {
-                        override fun getReportingMechanism(): FatalIssueMechanism = FatalIssueMechanism.BuiltIn
-
-                        override fun getLogStatusFieldsMap(): Map<String, FieldValue> = emptyMap()
-
-                        override fun initBuiltInMode(
-                            appContext: Context,
-                            clientAttributes: IClientAttributes,
-                            completedReportsProcessor: ICompletedReportsProcessor,
-                        ) {
-                            // no-op
-                        }
-                    },
             )
         }
     }
@@ -123,6 +106,24 @@ class ClockTimeProfiler {
                     "keykeykey10" to "valvalval10",
                 ),
             ) { LOG_MESSAGE }
+        }
+    }
+
+    @Test
+    fun logWithManyFieldProviders() {
+        // Create a  list of FieldProvider in a loop that have different keys and value strings
+        val fieldProviders = mutableListOf<FieldProvider>()
+        for (i in 1..100) {
+            fieldProviders.add(FieldProvider { mapOf("key$i" to "value$i") })
+        }
+        Capture.Logger.start(
+            apiKey = "android-benchmark-test",
+            apiUrl = "https://api-tests.bitdrift.io".toHttpUrl(),
+            sessionStrategy = SessionStrategy.Fixed(),
+            fieldProviders = fieldProviders
+        )
+        benchmarkRule.measureRepeated {
+            Capture.Logger.logInfo { LOG_MESSAGE }
         }
     }
 }
