@@ -25,10 +25,9 @@ bitdrift_kt_android_library(
 bitdrift_kt_android_local_test(
     name = "test",
     associates = [
-        ":lib_kt",
+        ":lib",
     ],
     deps = [
-        ":lib",
         artifact("junit:junit"),
         artifact("org.robolectric:robolectric"),
         "@rules_robolectric//bazel:android-all",
