@@ -7,6 +7,7 @@
 
 use crate::define_object_wrapper;
 use crate::jni::{initialize_class, initialize_method_handle, CachedMethod, JValueWrapper};
+use bd_client_common::error::InvariantError;
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::JNI_TRUE;
 use jni::JNIEnv;
@@ -17,22 +18,23 @@ use std::sync::OnceLock;
 static PREFERENCES_GET_STRING: OnceLock<CachedMethod> = OnceLock::new();
 static PREFERENCES_SET_STRING: OnceLock<CachedMethod> = OnceLock::new();
 
-pub(crate) fn initialize(env: &mut JNIEnv<'_>) {
-  let preferences = initialize_class(env, "io/bitdrift/capture/IPreferences", None);
+pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
+  let preferences = initialize_class(env, "io/bitdrift/capture/IPreferences", None)?;
   initialize_method_handle(
     env,
     &preferences.class,
     "getString",
     "(Ljava/lang/String;)Ljava/lang/String;",
     &PREFERENCES_GET_STRING,
-  );
+  )?;
   initialize_method_handle(
     env,
     &preferences.class,
     "setString",
     "(Ljava/lang/String;Ljava/lang/String;Z)V",
     &PREFERENCES_SET_STRING,
-  );
+  )?;
+  Ok(())
 }
 
 //
@@ -51,7 +53,7 @@ impl bd_key_value::Storage for PreferencesHandle {
 
       let value = PREFERENCES_GET_STRING
         .get()
-        .unwrap()
+        .ok_or(InvariantError::Invariant)?
         .call_method(
           e,
           preferences,
@@ -80,7 +82,7 @@ impl bd_key_value::Storage for PreferencesHandle {
 
       PREFERENCES_SET_STRING
         .get()
-        .unwrap()
+        .ok_or(InvariantError::Invariant)?
         .call_method(
           e,
           preferences,
@@ -101,7 +103,7 @@ impl bd_key_value::Storage for PreferencesHandle {
 
       PREFERENCES_SET_STRING
         .get()
-        .unwrap()
+        .ok_or(InvariantError::Invariant)?
         .call_method(
           e,
           preferences,
