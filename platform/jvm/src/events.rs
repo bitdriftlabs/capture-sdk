@@ -7,6 +7,8 @@
 
 use crate::define_object_wrapper;
 use crate::jni::{initialize_class, initialize_method_handle, CachedMethod};
+use bd_client_common::error::InvariantError;
+use bd_error_reporter::reporter::with_handle_unexpected;
 use jni::signature::{Primitive, ReturnType};
 use jni::JNIEnv;
 use std::sync::OnceLock;
@@ -16,23 +18,24 @@ use std::sync::OnceLock;
 static TARGET_START: OnceLock<CachedMethod> = OnceLock::new();
 static TARGET_STOP: OnceLock<CachedMethod> = OnceLock::new();
 
-pub(crate) fn initialize(env: &mut JNIEnv<'_>) {
+pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   let events_listener_target =
-    initialize_class(env, "io/bitdrift/capture/IEventsListenerTarget", None);
+    initialize_class(env, "io/bitdrift/capture/IEventsListenerTarget", None)?;
   initialize_method_handle(
     env,
     &events_listener_target.class,
     "start",
     "()V",
     &TARGET_START,
-  );
+  )?;
   initialize_method_handle(
     env,
     &events_listener_target.class,
     "stop",
     "()V",
     &TARGET_STOP,
-  );
+  )?;
+  Ok(())
 }
 
 //
@@ -46,12 +49,12 @@ unsafe impl Sync for ListenerTargetHandler {}
 
 impl bd_logger::EventsListenerTarget for ListenerTargetHandler {
   fn start(&self) {
-    bd_client_common::error::with_handle_unexpected(
+    with_handle_unexpected(
       || {
         self.execute(|e, target| {
           TARGET_START
             .get()
-            .unwrap()
+            .ok_or(InvariantError::Invariant)?
             .call_method(e, target, ReturnType::Primitive(Primitive::Void), &[])
             .map(|_| ())
         })
@@ -61,12 +64,12 @@ impl bd_logger::EventsListenerTarget for ListenerTargetHandler {
   }
 
   fn stop(&self) {
-    bd_client_common::error::with_handle_unexpected(
+    with_handle_unexpected(
       || {
         self.execute(|e, target| {
           TARGET_STOP
             .get()
-            .unwrap()
+            .ok_or(InvariantError::Invariant)?
             .call_method(e, target, ReturnType::Primitive(Primitive::Void), &[])
             .map(|_| ())
         })

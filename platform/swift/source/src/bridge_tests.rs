@@ -81,8 +81,8 @@ impl Setup {
         timeout: self.timeout.clone(),
       },
       stream_state_rx: self.stream_state_tx.subscribe(),
-      emit_send_data_timeout_error: self.runtime.register_watch().unwrap(),
-      send_data_timeout: self.runtime.register_watch().unwrap(),
+      emit_send_data_timeout_error: self.runtime.register_bool_watch(),
+      send_data_timeout: self.runtime.register_int_watch(),
     }
   }
 

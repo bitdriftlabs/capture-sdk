@@ -8,7 +8,7 @@
 #[macro_use]
 extern crate objc;
 
-use bd_client_common::error::Reporter;
+use bd_error_reporter::reporter::Reporter;
 use bd_logger::StringOrBytes;
 use bd_test_helpers::config_helper::make_benchmarking_configuration_with_workflows_update;
 use bd_test_helpers::test_api_server::{Event, ExpectedStreamEvent};

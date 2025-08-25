@@ -8,6 +8,7 @@ version      = "1.0.0"
 
 [dependencies]
 bd-client-common          = { workspace = true }
+bd-error-reporter         = { workspace = true }
 bd-key-value              = { workspace = true }
 bd-logger                 = { workspace = true }
 bd-proto                  = { workspace = true }
