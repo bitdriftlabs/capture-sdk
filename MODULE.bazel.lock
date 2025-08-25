@@ -563,6 +563,33 @@
         "recordedRepoMappingEntries": []
       }
     },
+    "@@rules_detekt+//detekt:extensions.bzl%detekt": {
+      "general": {
+        "bzlTransitiveDigest": "dRyyXQ/c/GJHk2riwBEcSpuqQX81SRWDck1RKJoDqgE=",
+        "usagesDigest": "yTKTgZSxir1frlBXAR2BeYXgu0La6m/JCbot7yzhbW0=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "detekt_cli_all": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_jar",
+            "attributes": {
+              "sha256": "089c15405ec5563adba285d09ceccff047ebc7888b8bbc3a386bbc6c6744d788",
+              "urls": [
+                "https://github.com/detekt/detekt/releases/download/v1.23.1/detekt-cli-1.23.1-all.jar"
+              ]
+            }
+          }
+        },
+        "recordedRepoMappingEntries": [
+          [
+            "rules_detekt+",
+            "bazel_tools",
+            "bazel_tools"
+          ]
+        ]
+      }
+    },
     "@@rules_foreign_cc+//foreign_cc:extensions.bzl%tools": {
       "general": {
         "bzlTransitiveDigest": "FApcIcVN43WOEs7g8eg7Cy1hrfRbVNEoUu8IiF+8WOc=",
