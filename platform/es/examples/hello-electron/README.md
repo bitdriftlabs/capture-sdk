@@ -3,10 +3,10 @@
 From the root of the project, run:
 
 ```bash
-npm install
+npm ci
 ```
 
-Bofore running the example app, you need to create an .env file, so from the `hello-electron` directory, run:
+Before running the example app, you need to create an .env file, so from the `hello-electron` directory, run:
 
 ```bash
 cp .env.example .env

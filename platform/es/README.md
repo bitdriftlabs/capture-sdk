@@ -10,38 +10,43 @@ To install dependencies, run
 $ npm ci
 ```
 
-## Available Scripts
+## Electron
 
-Builds the electron library in debug mode:
+The electron library consists of two parts
 
-### `nx build electron`
+- `@bitdrift/core` - the native bindings that allow calling into the Rust shared code.
+- `@bitdrift/electron` - the top level library providing a JS API for `@bitdrift/core`.
 
-Buld the electron library in release mode, suitable for distribution:
+The indirection allows us to have users install `@bitdrift/electron` and download the
+architecture appropriate version of `@bitdrift/core`.
 
-### `nx build electron -c release`
+### Useful commands
 
-Runs the test suite:
+Builds the electron native library in debug mode:
 
-### `nx test electron`
+`nx build @bitdrift/core`
 
-## Exploring capture-es
+Build the electron native library in release mode, suitable for distribution:
 
-After building capture-es, you can explore its exports at the Node REPL:
+`nx build @bitdrift/core -c release`
 
-```sh
-$ nx build electron
-$ node
-> require('./dist/native.node').init("<api key>")
-```
+Runs the electron native library test suite:
 
-## Distribution
+`nx test @bitdrift/core`
 
-To distribute the electron library, run:
+Runs the electron JS library test suite:
 
-```sh
-nx build electron -c release
-npm pack ./dist/electron
-```
+`nx test @bitdrift/electron`
 
-This produces a .tgz in the project root that can be distributed and installed with npm.
+Most of the development of the electron logger tends to be done via the example app which can
+be used to interact with the library.
 
+## React Native
+
+The React Native library needs to run in the context of an app, so use the `expo` example app
+to build and develop the plugin. By opening the `expo` app in XCode or Android Studio, the
+plugin files can be edited directly for a smoother development experience.
+
+## Example Apps
+
+To run either of the example apps, refer to the READMEs in `examples/`.
