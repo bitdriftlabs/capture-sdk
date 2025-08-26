@@ -10,7 +10,7 @@ package io.bitdrift.capture.attributes
  * Provides relevant client attributes
  */
 interface IClientAttributes {
-    /** The package name which identifies the running app (e.g. me.foobar.android) */
+    /** The package name which identifies the running app (e.g. me.foobar.android). */
     val appId: String
 
     /** The version of this package, as specified by the manifest's `versionName` attribute (e.g. 1.2.33). */
@@ -22,9 +22,9 @@ interface IClientAttributes {
     /** The operating system version (e.g. 12.1). */
     val osVersion: String
 
-    /** A list of the currently supported ABIs */
+    /** A list of the currently supported ABIs. */
     val supportedAbis: List<String>
 
-    /** The current architecture (e.g. arm64-v8a) */
+    /** The current architecture (e.g. arm64-v8a). */
     val architecture: String
 }
