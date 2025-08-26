@@ -104,4 +104,5 @@ jobs:
         with:
           fetch-depth: 1
       - run: |
-          ./ci/check_result.sh ${{ needs.swift_hello_world.result }}
+          ./ci/check_result.sh ${{ needs.macos_tsan.result }} \
+          && ./ci/check_result.sh ${{ needs.swift_hello_world.result }}
