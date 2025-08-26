@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "io.bitdrift.microbenchmark"
-    compileSdk = 35
+    compileSdk = 36
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -25,7 +25,7 @@ android {
     }
 
     testOptions {
-        targetSdk = 35
+        targetSdk = 36
     }
 
     testBuildType = "release"
@@ -45,6 +45,7 @@ android {
 dependencies {
     // the module containing code to benchmark
     androidTestImplementation(project(":capture"))
+    androidTestImplementation(project(":common"))
 
     androidTestImplementation("androidx.test:runner:1.5.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
@@ -54,5 +55,4 @@ dependencies {
     // in an app module this way - you will need to move any code you
     // want to benchmark to a library module:
     // https://developer.android.com/studio/projects/android-library#Convert
-
 }

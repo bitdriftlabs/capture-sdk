@@ -15,6 +15,7 @@ import androidx.benchmark.junit4.measureRepeated
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.bitdrift.capture.Capture
+import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.attributes.IClientAttributes
@@ -23,6 +24,7 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.reports.IFatalIssueReporter
+import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.Rule
 import org.junit.Test
@@ -38,7 +40,6 @@ private const val LOG_MESSAGE = "50 characters long test message - 0123456789012
  */
 @RunWith(AndroidJUnit4::class)
 class ClockTimeProfiler {
-
     @get:Rule
     val benchmarkRule = BenchmarkRule()
 
@@ -53,6 +54,7 @@ class ClockTimeProfiler {
     @Test
     fun loggerStart() {
         benchmarkRule.measureRepeated {
+            CaptureJniLibrary.load()
             LoggerImpl(
                 apiKey = "android-benchmark-test",
                 apiUrl = "https://api-tests.bitdrift.io".toHttpUrl(),
@@ -61,15 +63,20 @@ class ClockTimeProfiler {
                 dateProvider = SystemDateProvider(),
                 configuration = Configuration(),
                 sessionStrategy = SessionStrategy.Fixed(),
-                fatalIssueReporter = object : IFatalIssueReporter {
-                    override fun getReportingMechanism(): FatalIssueMechanism = FatalIssueMechanism.BuiltIn
+                fatalIssueReporter =
+                    object : IFatalIssueReporter {
+                        override fun getReportingMechanism(): FatalIssueMechanism = FatalIssueMechanism.BuiltIn
 
-                    override fun getLogStatusFieldsMap(): Map<String, FieldValue> = emptyMap()
+                        override fun getLogStatusFieldsMap(): Map<String, FieldValue> = emptyMap()
 
-                    override fun initBuiltInMode(appContext: Context, clientAttributes: IClientAttributes) {
-                        /*no-op*/
-                    }
-                }
+                        override fun initBuiltInMode(
+                            appContext: Context,
+                            clientAttributes: IClientAttributes,
+                            completedReportsProcessor: ICompletedReportsProcessor,
+                        ) {
+                            // no-op
+                        }
+                    },
             )
         }
     }
@@ -93,7 +100,7 @@ class ClockTimeProfiler {
                     "keykeykey3" to "valvalval3",
                     "keykeykey4" to "valvalval4",
                     "keykeykey5" to "valvalval5",
-                )
+                ),
             ) { LOG_MESSAGE }
         }
     }
@@ -114,7 +121,7 @@ class ClockTimeProfiler {
                     "keykeykey8" to "valvalval8",
                     "keykeykey9" to "valvalval9",
                     "keykeykey10" to "valvalval10",
-                )
+                ),
             ) { LOG_MESSAGE }
         }
     }

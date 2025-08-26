@@ -33,24 +33,25 @@
 
 package io.bitdrift.capture.instrumentation.util
 
+import org.objectweb.asm.util.Textifier
 import java.io.File
 import java.io.FileOutputStream
 import java.io.PrintWriter
-import org.objectweb.asm.util.Textifier
 
 class FileLogTextifier(
-        apiVersion: Int,
-        log: File,
-        methodName: String?,
-        methodDescriptor: String?
-) : Textifier(apiVersion), ExceptionHandler {
-
+    apiVersion: Int,
+    log: File,
+    methodName: String?,
+    methodDescriptor: String?,
+) : Textifier(apiVersion),
+    ExceptionHandler {
     private var hasThrown = false
 
-    private val fileOutputStream = FileOutputStream(log, true).apply {
-        write("function $methodName $methodDescriptor".toByteArray())
-        write("\n".toByteArray())
-    }
+    private val fileOutputStream =
+        FileOutputStream(log, true).apply {
+            write("function $methodName $methodDescriptor".toByteArray())
+            write("\n".toByteArray())
+        }
 
     override fun visitMethodEnd() {
         if (!hasThrown) {

@@ -41,7 +41,7 @@ jobs:
 
       - name: Check for relevant Gradle changes
         id: gradle_check
-        run: ./ci/files_changed.sh "^platform/jvm/gradle-test-app/.*\.(gradle|kts|kt|xml)$"
+        run: ./ci/files_changed.sh "^platform/jvm/gradle-test-app/.*\.(gradle|kts|kt|xml)$" && ./ci/files_changed.sh "^platform/jvm/capture/src/test/.*$"
         continue-on-error: true
 
       - name: Check for Cargo.toml changes
@@ -129,7 +129,7 @@ jobs:
           git worktree remove temp-worktree --force
 
       - name: Fetch APK size baseline from branch (PR only)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         run: |
           git fetch origin binary-size-baseline
           git worktree add temp-baseline origin/binary-size-baseline
@@ -137,7 +137,7 @@ jobs:
           git worktree remove temp-baseline --force
 
       - name: Compute and compare APK size
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         id: apk_size
         run: |
           APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
@@ -164,7 +164,7 @@ jobs:
           fi
 
       - name: Report APK size on PR
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@v6
         env:
           CURRENT_KB: ${{ steps.apk_size.outputs.current_kb }}
@@ -216,8 +216,18 @@ jobs:
     if: needs.pre_check.outputs.should_run == 'true'
     needs: pre_check
     steps:
+
     - name: Checkout project sources
       uses: actions/checkout@v4
+
+    - name: Setup Android cmd line tools + NDK
+      uses: ./.github/actions/common-android-setup
+
+    - name: Accept Android SDK licenses
+      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+
+    - name: Set up Rust ARM target
+      run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
 
     # See https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/
     - name: Enable KVM group perms
@@ -231,8 +241,11 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
         cache: gradle
-    - name: Set up Rust ARM target
-      run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
+    - uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
+      with:
+        toolchain: stable
+        targets: x86_64-unknown-linux-gnu
+        components: rust-src
     - name: AVD cache
       uses: actions/cache@v4
       id: avd-cache
@@ -279,7 +292,7 @@ jobs:
         profile: Nexus 6
         disable-animations: true
         emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-        script: cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test; adb uninstall io.bitdrift.gradletestapp; cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -p platform/jvm gradle-test-app:check gradle-test-app:connectedCheck --stacktrace
+        script: cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test; adb uninstall io.bitdrift.gradletestapp; cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm gradle-test-app:check gradle-test-app:connectedCheck --stacktrace
 
   verify_android_hello_world_per_version:
     needs: build_and_compare_apk

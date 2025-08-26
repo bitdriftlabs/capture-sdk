@@ -10,6 +10,10 @@ package io.bitdrift.capture.extension
 import org.gradle.api.Project
 import javax.inject.Inject
 
-open class BitdriftPluginExtension @Inject constructor(project: Project) {
-    val instrumentation = project.extensions.create("instrumentation", InstrumentationExtension::class.java, project)
-}
+open class BitdriftPluginExtension
+    @Inject
+    constructor(
+        project: Project,
+    ) {
+        val instrumentation = project.extensions.create("instrumentation", InstrumentationExtension::class.java, project)
+    }

@@ -253,4 +253,8 @@ final class LoggerBridge: LoggerBridging {
     func setSleepMode(_ mode: SleepMode) {
         capture_set_sleep_mode(self.loggerID, mode == .active)
     }
+
+    func processCrashReports() {
+        capture_process_crash_reports(self.loggerID)
+    }
 }

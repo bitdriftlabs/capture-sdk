@@ -274,8 +274,8 @@
     "https://bcr.bazel.build/modules/rules_kotlin/1.9.0/MODULE.bazel": "ef85697305025e5a61f395d4eaede272a5393cee479ace6686dba707de804d59",
     "https://bcr.bazel.build/modules/rules_kotlin/1.9.5/MODULE.bazel": "043a16a572f610558ec2030db3ff0c9938574e7dd9f58bded1bb07c0192ef025",
     "https://bcr.bazel.build/modules/rules_kotlin/1.9.6/MODULE.bazel": "d269a01a18ee74d0335450b10f62c9ed81f2321d7958a2934e44272fe82dcef3",
-    "https://bcr.bazel.build/modules/rules_kotlin/2.1.7/MODULE.bazel": "3e7c2cc8228805290202945af55c6d633d26ce833ac47db8d4917b42bbad3176",
-    "https://bcr.bazel.build/modules/rules_kotlin/2.1.7/source.json": "6ca504355b36637cc284d9e505d4f3140c4a2ad180cb7c702c0f9cdf87165713",
+    "https://bcr.bazel.build/modules/rules_kotlin/2.1.9/MODULE.bazel": "28576b494c054a52a75aadeb47533a8f8ce7853858e3b62426e24f57436fcaab",
+    "https://bcr.bazel.build/modules/rules_kotlin/2.1.9/source.json": "a9cea7b968eee397162a42e0e8ab6d5dfb8680320ba4e39a2f58d80ab2af0964",
     "https://bcr.bazel.build/modules/rules_license/0.0.3/MODULE.bazel": "627e9ab0247f7d1e05736b59dbb1b6871373de5ad31c3011880b4133cafd4bd0",
     "https://bcr.bazel.build/modules/rules_license/0.0.7/MODULE.bazel": "088fbeb0b6a419005b89cf93fe62d9517c0a2b8bb56af3244af65ecfe37e7d5d",
     "https://bcr.bazel.build/modules/rules_license/1.0.0/MODULE.bazel": "a7fda60eefdf3d8c827262ba499957e4df06f659330bbe6cdbdb975b768bb65c",
@@ -367,7 +367,7 @@
     "@@apple_support+//crosstool:setup.bzl%apple_cc_configure_extension": {
       "general": {
         "bzlTransitiveDigest": "gv4nokEMGNye4Jvoh7Tw0Lzs63zfklj+n4t0UegI7Ms=",
-        "usagesDigest": "KQVWrmzxrdWZHmzACGxrsuaS4FscNQUmdUjwazd4jHE=",
+        "usagesDigest": "+nj9p/CqbQGtgWN0XijZnkspTSmBT8AeYTloM5xBTJ0=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -538,7 +538,7 @@
     "@@rules_android+//rules/android_sdk_repository:rule.bzl%android_sdk_repository_extension": {
       "general": {
         "bzlTransitiveDigest": "NAy+0M15JNVEBb8Tny6t7j3lKqTnsAMjoBB6LJ+C370=",
-        "usagesDigest": "W+8syyFLk94cueK2fcfPjuVHZ1ii2/3RjuNzn3Z3vVI=",
+        "usagesDigest": "ub4KGmkmDByybraYL+KDWQyaftUT9fwi/16EryjDh4A=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -546,7 +546,7 @@
           "androidsdk": {
             "repoRuleId": "@@rules_android+//rules/android_sdk_repository:rule.bzl%_android_sdk_repository",
             "attributes": {
-              "api_level": 35,
+              "api_level": 36,
               "build_tools_version": "",
               "path": ""
             }
@@ -572,6 +572,83 @@
           }
         },
         "recordedRepoMappingEntries": []
+      }
+    },
+    "@@rules_apple+//apple:apple.bzl%provisioning_profile_repository_extension": {
+      "general": {
+        "bzlTransitiveDigest": "DX3Y0ZbdbpB4oBbrSn6XegbF+WumJkjpopz2CzwYcHQ=",
+        "usagesDigest": "0EHzLTJlMTVTJ8YrNWsO1IC7mxSweG1kmBAzJagFnpo=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "local_provisioning_profiles": {
+            "repoRuleId": "@@rules_apple+//apple/internal:local_provisioning_profiles.bzl%provisioning_profile_repository",
+            "attributes": {}
+          }
+        },
+        "recordedRepoMappingEntries": [
+          [
+            "apple_support+",
+            "bazel_skylib",
+            "bazel_skylib+"
+          ],
+          [
+            "bazel_tools",
+            "rules_cc",
+            "rules_cc+"
+          ],
+          [
+            "rules_apple+",
+            "bazel_skylib",
+            "bazel_skylib+"
+          ],
+          [
+            "rules_apple+",
+            "bazel_tools",
+            "bazel_tools"
+          ],
+          [
+            "rules_apple+",
+            "build_bazel_apple_support",
+            "apple_support+"
+          ],
+          [
+            "rules_apple+",
+            "build_bazel_rules_swift",
+            "rules_swift+"
+          ],
+          [
+            "rules_cc+",
+            "bazel_tools",
+            "bazel_tools"
+          ],
+          [
+            "rules_cc+",
+            "rules_cc",
+            "rules_cc+"
+          ],
+          [
+            "rules_swift+",
+            "bazel_skylib",
+            "bazel_skylib+"
+          ],
+          [
+            "rules_swift+",
+            "bazel_tools",
+            "bazel_tools"
+          ],
+          [
+            "rules_swift+",
+            "build_bazel_apple_support",
+            "apple_support+"
+          ],
+          [
+            "rules_swift+",
+            "build_bazel_rules_swift",
+            "rules_swift+"
+          ]
+        ]
       }
     },
     "@@rules_detekt+//detekt:extensions.bzl%detekt": {
@@ -917,8 +994,8 @@
     },
     "@@rules_kotlin+//src/main/starlark/core/repositories:bzlmod_setup.bzl%rules_kotlin_extensions": {
       "general": {
-        "bzlTransitiveDigest": "ROQ+ERGf6HmMyteu0Ff/JhOhKerP2JB6W7IJvJqh/HM=",
-        "usagesDigest": "gtDZf4U3T5fLga3bny4UpYdaPynZpR7W/wMTu6u7S5Q=",
+        "bzlTransitiveDigest": "L/HRvzkdtVIn/Mx/JaakYWH2VZgbVIlC+vpf0/QT4qQ=",
+        "usagesDigest": "MuUr8937cYwHs/gXOtu14rgCs0SvEk3vOhpKwe7uBqU=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},

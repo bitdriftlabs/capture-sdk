@@ -15,12 +15,6 @@ import io.bitdrift.capture.common.ErrorHandler
  * unexpected failures.
  */
 internal class ErrorHandler : ErrorHandler {
-    init {
-        // Make sure this is loaded before we call into CaptureJniLibrary. Generally this should
-        // already have been loaded.
-        CaptureJniLibrary.load()
-    }
-
     /**
      * Handles a single error.
      * @param detail a string identifying the action that resulted in an error.

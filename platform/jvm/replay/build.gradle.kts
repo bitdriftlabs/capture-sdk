@@ -26,7 +26,7 @@ group = "io.bitdrift"
 android {
     namespace = "io.bitdrift.capture.replay"
 
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 24
@@ -54,11 +54,12 @@ android {
         checkDependencies = true
         checkReleaseBuilds = true
         disable.add("GradleDependency")
+        disable.add("AndroidGradlePluginVersion")
     }
 }
 
 publishing {
     repositories {
-      mavenLocal()
+        mavenLocal()
     }
 }

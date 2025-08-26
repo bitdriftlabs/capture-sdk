@@ -69,15 +69,16 @@ internal class OkHttpApiClient(
                     response: Response,
                 ) {
                     response.use {
+                        val responseBody = response.body?.string().orEmpty()
+
                         if (response.isSuccessful) {
                             try {
-                                val typedResponse = gson.fromTypedJson<Rp>(response.body?.string().orEmpty())
+                                val typedResponse = gson.fromTypedJson<Rp>(responseBody)
                                 completion(CaptureResult.Success(typedResponse))
                             } catch (e: Exception) {
                                 completion(CaptureResult.Failure(e.toSerializationError()))
                             }
                         } else {
-                            val responseBody = response.body?.string()
                             completion(CaptureResult.Failure(ApiError.ServerError(response.code, responseBody)))
                         }
                     }

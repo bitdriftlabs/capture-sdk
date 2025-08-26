@@ -5,15 +5,31 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+#![deny(
+  clippy::expect_used,
+  clippy::panic,
+  clippy::todo,
+  clippy::unimplemented,
+  clippy::unreachable,
+  clippy::unwrap_used
+)]
+
 pub mod error;
 pub mod metadata;
 
-use bd_client_common::error::handle_unexpected;
-use bd_logger::{log_level, AnnotatedLogField, LogFieldKind, LogType};
+use bd_error_reporter::reporter::handle_unexpected;
+use bd_logger::{
+  log_level,
+  AnnotatedLogField,
+  LogFieldKind,
+  LogType,
+  LoggerBuilder,
+  ReportProcessingSession,
+};
 use bd_runtime::runtime::Snapshot;
 use parking_lot::Once;
 use std::future::Future;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::pin::Pin;
 use std::sync::Arc;
 
@@ -80,6 +96,12 @@ impl Deref for LoggerId<'_> {
   }
 }
 
+impl DerefMut for LoggerId<'_> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    unsafe { &mut *(self.value as *mut LoggerHolder) }
+  }
+}
+
 pub type LoggerFuture =
   Pin<Box<dyn Future<Output = anyhow::Result<()>> + 'static + std::marker::Send>>;
 
@@ -121,15 +143,8 @@ impl LoggerHolder {
       return;
     };
 
-    std::thread::spawn(move || {
-      tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-          handle_unexpected(future.await, "logger top level run loop");
-        });
-    });
+    // Start the logger runtime using the defaults provided by the logger builder.
+    handle_unexpected(LoggerBuilder::run_logger_runtime(future), "logger runtime");
   }
 
   /// Consumes the logger and returns the raw pointer to it. This effectively leaks the object, so
@@ -193,6 +208,12 @@ impl LoggerHolder {
         bd_logger::CaptureSession::default(),
       );
     });
+  }
+
+  pub fn process_crash_reports(&mut self, session: ReportProcessingSession) {
+    if let Err(e) = self.logger.process_crash_reports(session) {
+      log::error!("failed to process crash reports: {e}");
+    }
   }
 
   pub fn log_screen_view(&self, screen_name: String) {

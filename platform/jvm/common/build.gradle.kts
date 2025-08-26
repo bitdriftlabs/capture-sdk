@@ -11,7 +11,7 @@ group = "io.bitdrift"
 android {
     namespace = "io.bitdrift.capture.common"
 
-    compileSdk = 35
+    compileSdk = 36
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -32,11 +32,12 @@ android {
         checkDependencies = true
         checkReleaseBuilds = true
         disable.add("GradleDependency")
+        disable.add("AndroidGradlePluginVersion")
     }
 }
 
 publishing {
     repositories {
-      mavenLocal()
+        mavenLocal()
     }
 }

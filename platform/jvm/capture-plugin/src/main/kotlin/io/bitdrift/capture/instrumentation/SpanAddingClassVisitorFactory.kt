@@ -50,7 +50,6 @@ import org.objectweb.asm.ClassVisitor
 import java.io.File
 
 abstract class SpanAddingClassVisitorFactory : AsmClassVisitorFactory<SpanAddingClassVisitorFactory.SpanAddingParameters> {
-
     interface SpanAddingParameters : InstrumentationParameters {
         @get:Input
         val debug: Property<Boolean>
@@ -72,22 +71,22 @@ abstract class SpanAddingClassVisitorFactory : AsmClassVisitorFactory<SpanAdding
                 return memoized
             }
 
-            val instrumentable = ChainedInstrumentable(
+            val instrumentable =
+                ChainedInstrumentable(
                     listOfNotNull(
-                            OkHttpEventListener()
-                    )
-            )
+                        OkHttpEventListener(),
+                    ),
+                )
             CapturePlugin.logger.info(
-                    "Instrumentable: $instrumentable"
+                "Instrumentable: $instrumentable",
             )
             parameters.get()._instrumentable = instrumentable
             return instrumentable
         }
 
-
     override fun createClassVisitor(
-            classContext: ClassContext,
-            nextClassVisitor: ClassVisitor
+        classContext: ClassContext,
+        nextClassVisitor: ClassVisitor,
     ): ClassVisitor {
         val className = classContext.currentClassData.className
 
@@ -95,19 +94,18 @@ abstract class SpanAddingClassVisitorFactory : AsmClassVisitorFactory<SpanAdding
         val isMinifiedClass = classReader?.isMinifiedClass() ?: false
         if (isMinifiedClass) {
             CapturePlugin.logger.info(
-                    "$className skipped from instrumentation because it's a minified class."
+                "$className skipped from instrumentation because it's a minified class.",
             )
             return nextClassVisitor
         }
 
         return instrumentable.getVisitor(
-                classContext,
-                instrumentationContext.apiVersion.get(),
-                nextClassVisitor,
-                parameters = parameters.get()
+            classContext,
+            instrumentationContext.apiVersion.get(),
+            nextClassVisitor,
+            parameters = parameters.get(),
         )
     }
 
-    override fun isInstrumentable(classData: ClassData): Boolean =
-            instrumentable.isInstrumentable(classData.toClassContext())
+    override fun isInstrumentable(classData: ClassData): Boolean = instrumentable.isInstrumentable(classData.toClassContext())
 }

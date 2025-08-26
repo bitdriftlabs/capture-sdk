@@ -56,7 +56,6 @@ import kotlin.system.exitProcess
  * A simple [Fragment] subclass as the default destination in the navigation.
  */
 class FirstFragment : Fragment() {
-
     private data class RequestDefinition(
         val method: String,
         val host: String,
@@ -66,29 +65,36 @@ class FirstFragment : Fragment() {
 
     private var _binding: FragmentFirstBinding? = null
 
-    private val requestDefinitions = listOf(
-        RequestDefinition(method = "GET", host = "httpbin.org", path = "get"),
-        RequestDefinition(method = "POST", host = "httpbin.org", path = "post"),
-        RequestDefinition(method = "GET", host = "cat-fact.herokuapp.com", path = "facts/random"),
-        RequestDefinition(method = "GET", host = "api.fisenko.net", path = "v1/quotes/en/random"),
-        RequestDefinition(method = "GET", host = "api.census.gov", path = "data/2021/pep/population", query = mapOf(
-            "get" to "DENSITY_2021,NAME,STATE",
-            "for" to "state:36"
-        ))
-    )
+    private val requestDefinitions =
+        listOf(
+            RequestDefinition(method = "GET", host = "httpbin.org", path = "get"),
+            RequestDefinition(method = "POST", host = "httpbin.org", path = "post"),
+            RequestDefinition(method = "GET", host = "cat-fact.herokuapp.com", path = "facts/random"),
+            RequestDefinition(method = "GET", host = "api.fisenko.net", path = "v1/quotes/en/random"),
+            RequestDefinition(
+                method = "GET",
+                host = "api.census.gov",
+                path = "data/2021/pep/population",
+                query =
+                    mapOf(
+                        "get" to "DENSITY_2021,NAME,STATE",
+                        "for" to "state:36",
+                    ),
+            ),
+        )
 
     // This property is only valid between onCreateView and onDestroyView.
     private val binding get() = _binding!!
     private lateinit var clipboardManager: ClipboardManager
     private lateinit var okHttpClient: OkHttpClient
     private lateinit var apolloClient: ApolloClient
-    private var firstFragmentToCopySessionSpan: Span ?= null
+    private var firstFragmentToCopySessionSpan: Span? = null
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
-
         firstFragmentToCopySessionSpan = Logger.startSpan("CreateFragmentToCopySessionClick", LogLevel.INFO)
 
         _binding = FragmentFirstBinding.inflate(inflater, container, false)
@@ -114,7 +120,10 @@ class FirstFragment : Fragment() {
         return viewRoot
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?,
+    ) {
         super.onViewCreated(view, savedInstanceState)
         Logger.logScreenView("first_fragment")
         binding.btnNavigateConfiguration.setOnClickListener {
@@ -128,7 +137,7 @@ class FirstFragment : Fragment() {
         binding.btnGraphQlRequest.setOnClickListener(this::performGraphQlRequest)
         binding.btnLogMessage.setOnClickListener(this::logMessage)
         binding.btnAppExit.setOnClickListener(this::forceAppExit)
-        binding.btnNavigateToWebView.setOnClickListener{
+        binding.btnNavigateToWebView.setOnClickListener {
             Logger.logScreenView("web_view_fragment")
             findNavController().navigate(R.id.action_FirstFragment_to_WebViewFragment)
         }
@@ -143,15 +152,19 @@ class FirstFragment : Fragment() {
         setSpinnerAdapter(binding.spnAppExitOptions, AppExitReason.entries)
         setSpinnerAdapter(binding.logLevelItems, LogLevel.entries.map { it.name }.toList())
 
-        okHttpClient = OkHttpClient.Builder()
-            .eventListenerFactory(CaptureOkHttpEventListenerFactory())
-            .build()
+        okHttpClient =
+            OkHttpClient
+                .Builder()
+                .eventListenerFactory(CaptureOkHttpEventListenerFactory())
+                .build()
 
-        apolloClient = ApolloClient.Builder()
-            .serverUrl("https://apollo-fullstack-tutorial.herokuapp.com/graphql")
-            .okHttpClient(okHttpClient)
-            .addInterceptor(CaptureApolloInterceptor())
-            .build()
+        apolloClient =
+            ApolloClient
+                .Builder()
+                .serverUrl("https://apollo-fullstack-tutorial.herokuapp.com/graphql")
+                .okHttpClient(okHttpClient)
+                .addInterceptor(CaptureApolloInterceptor())
+                .build()
     }
 
     override fun onDestroyView() {
@@ -188,7 +201,7 @@ class FirstFragment : Fragment() {
         clipboardManager.setPrimaryClip(data)
     }
 
-    private fun displayDeviceCodeError(error: Error){
+    private fun displayDeviceCodeError(error: Error) {
         binding.deviceCodeTextView.text = error.message
     }
 
@@ -196,28 +209,44 @@ class FirstFragment : Fragment() {
         val requestDef = requestDefinitions.random()
         Timber.i("Performing OkHttp Network Request: $requestDef")
 
-        val url = HttpUrl.Builder().scheme("https").host(requestDef.host).addPathSegments(requestDef.path)
+        val url =
+            HttpUrl
+                .Builder()
+                .scheme("https")
+                .host(requestDef.host)
+                .addPathSegments(requestDef.path)
         requestDef.query.forEach { (key, value) -> url.addQueryParameter(key, value) }
 
-        val request = Request.Builder()
-            .url(url.build())
-            .method(requestDef.method, if (requestDef.method == "POST") "requestBody".toRequestBody() else null)
-            .build()
+        val request =
+            Request
+                .Builder()
+                .url(url.build())
+                .method(requestDef.method, if (requestDef.method == "POST") "requestBody".toRequestBody() else null)
+                .build()
 
         val call = okHttpClient.newCall(request)
 
-        call.enqueue(object : Callback {
-            override fun onResponse(call: Call, response: Response) {
-                val body = response.use {
-                    it.body!!.string()
+        call.enqueue(
+            object : Callback {
+                override fun onResponse(
+                    call: Call,
+                    response: Response,
+                ) {
+                    val body =
+                        response.use {
+                            it.body!!.string()
+                        }
+                    Timber.v("Http request completed with status code=${response.code} and body=$body")
                 }
-                Timber.v("Http request completed with status code=${response.code} and body=$body")
-            }
 
-            override fun onFailure(call: Call, e: IOException) {
-                Timber.v("Http request failed with exception=$e")
-            }
-        })
+                override fun onFailure(
+                    call: Call,
+                    e: IOException,
+                ) {
+                    Timber.v("Http request failed with exception=$e")
+                }
+            },
+        )
     }
 
     private val graphQlOperations by lazy {
@@ -238,7 +267,6 @@ class FirstFragment : Fragment() {
                 Timber.e(e, "GraphQL request failed")
             }
         }
-
     }
 
     private fun logMessage(view: View?) {
@@ -268,18 +296,24 @@ class FirstFragment : Fragment() {
             AppExitReason.APP_CRASH_COROUTINE_EXCEPTION -> FatalIssueGenerator.forceCoroutinesCrash()
             AppExitReason.APP_CRASH_REGULAR_JVM_EXCEPTION -> FatalIssueGenerator.forceUnhandledException()
             AppExitReason.APP_CRASH_RX_JAVA_EXCEPTION -> FatalIssueGenerator.forceRxJavaException()
-            AppExitReason.APP_CRASH_NATIVE -> FatalIssueGenerator.forceNativeCrash()
             AppExitReason.APP_CRASH_OUT_OF_MEMORY -> FatalIssueGenerator.forceOutOfMemoryCrash()
+            AppExitReason.NATIVE_CAPTURE_DESTROY_CRASH -> FatalIssueGenerator.forceCaptureNativeCrash()
+            AppExitReason.NATIVE_SIGSEGV -> FatalIssueGenerator.forceNativeSegmentationFault()
+            AppExitReason.NATIVE_SIGBUS -> FatalIssueGenerator.forceNativeBusError()
             AppExitReason.SYSTEM_EXIT -> exitProcess(0)
         }
     }
 
-    private fun setSpinnerAdapter(spinner: Spinner, items: List<*>){
-        spinner.adapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_dropdown_item,
-            items
-        )
+    private fun setSpinnerAdapter(
+        spinner: Spinner,
+        items: List<*>,
+    ) {
+        spinner.adapter =
+            ArrayAdapter(
+                requireContext(),
+                android.R.layout.simple_spinner_dropdown_item,
+                items,
+            )
     }
 
     enum class AppExitReason {
@@ -293,7 +327,13 @@ class FirstFragment : Fragment() {
         APP_CRASH_REGULAR_JVM_EXCEPTION,
         APP_CRASH_RX_JAVA_EXCEPTION,
         APP_CRASH_OUT_OF_MEMORY,
-        APP_CRASH_NATIVE,
+
+        NATIVE_CAPTURE_DESTROY_CRASH,
+
+        NATIVE_SIGSEGV,
+
+        NATIVE_SIGBUS,
+
         SYSTEM_EXIT,
     }
 }

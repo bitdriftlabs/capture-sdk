@@ -7,6 +7,8 @@
 
 use crate::define_object_wrapper;
 use crate::jni::{initialize_class, initialize_method_handle, CachedMethod};
+use bd_client_common::error::InvariantError;
+use bd_error_reporter::reporter::with_handle_unexpected;
 use jni::signature::{Primitive, ReturnType};
 use jni::JNIEnv;
 use std::sync::OnceLock;
@@ -15,16 +17,17 @@ use std::sync::OnceLock;
 
 static TARGET_TICK: OnceLock<CachedMethod> = OnceLock::new();
 
-pub(crate) fn initialize(env: &mut JNIEnv<'_>) {
+pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   let resource_utilization_target =
-    initialize_class(env, "io/bitdrift/capture/IResourceUtilizationTarget", None);
+    initialize_class(env, "io/bitdrift/capture/IResourceUtilizationTarget", None)?;
   initialize_method_handle(
     env,
     &resource_utilization_target.class,
     "tick",
     "()V",
     &TARGET_TICK,
-  );
+  )?;
+  Ok(())
 }
 
 //
@@ -38,12 +41,12 @@ unsafe impl Sync for TargetHandler {}
 
 impl bd_logger::ResourceUtilizationTarget for TargetHandler {
   fn tick(&self) {
-    bd_client_common::error::with_handle_unexpected(
+    with_handle_unexpected(
       || {
         self.execute(|e, target| {
           TARGET_TICK
             .get()
-            .unwrap()
+            .ok_or(InvariantError::Invariant)?
             .call_method(e, target, ReturnType::Primitive(Primitive::Void), &[])
             .map(|_| ())
         })

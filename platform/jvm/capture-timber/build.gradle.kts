@@ -15,7 +15,7 @@ group = "io.bitdrift"
 
 android {
     namespace = "io.bitdrift.capture.timber"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 24
@@ -40,6 +40,7 @@ android {
         checkDependencies = true
         checkReleaseBuilds = true
         disable.add("GradleDependency")
+        disable.add("AndroidGradlePluginVersion")
     }
 }
 
@@ -61,7 +62,7 @@ tasks.preBuild {
 
 dependencies {
     implementation(project(":capture"))
-    implementation (libs.timber)
+    implementation(libs.timber)
 
     testImplementation(libs.truth)
     testImplementation(libs.junit)
@@ -91,18 +92,6 @@ mavenPublishing {
                 name.set("Bitdrift, Inc.")
                 url.set("https://github.com/bitdriftlabs")
                 email.set("info@bitdrift.io")
-            }
-            developer {
-                id.set("Augustyniak")
-                name.set("Rafał Augustyniak")
-                url.set("https://github.com/Augustyniak")
-                email.set("rafal@bitdrift.io")
-            }
-            developer {
-                id.set("murki")
-                name.set("Miguel Angel Juárez López")
-                url.set("https://github.com/murki")
-                email.set("miguel@bitdrift.io")
             }
             scm {
                 connection.set("scm:git:git://github.com/bitdriftlabs/capture-sdk.git")

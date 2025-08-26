@@ -69,7 +69,7 @@ bitdrift_kt_android_library(
 bitdrift_kt_android_local_test(
     name = "test",
     associates = [
-        ":capture_logger_lib_kt",
+        ":capture_logger_lib",
     ],
     data = [
         "//platform/jvm/capture/src/test/resources:test_resources",

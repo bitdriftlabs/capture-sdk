@@ -19,15 +19,17 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicReference
 
 object TestUtils {
-
     fun createReplayPreviewClient(
         replay: AtomicReference<Pair<FilteredCapture, ReplayCaptureMetrics>?>,
         latch: CountDownLatch,
-        context: Context
-    ): ReplayPreviewClient {
-        return ReplayPreviewClient(
+        context: Context,
+    ): ReplayPreviewClient =
+        ReplayPreviewClient(
             object : ErrorHandler {
-                override fun handleError(detail: String, e: Throwable?) {
+                override fun handleError(
+                    detail: String,
+                    e: Throwable?,
+                ) {
                     Log.e("Replay Tests", "error: $detail $e")
                 }
             },
@@ -35,7 +37,7 @@ object TestUtils {
                 override fun onScreenCaptured(
                     encodedScreen: ByteArray,
                     screen: FilteredCapture,
-                    metrics: ReplayCaptureMetrics
+                    metrics: ReplayCaptureMetrics,
                 ) {
                     Log.d("Replay Tests", "took ${metrics.parseDuration.inWholeMilliseconds}ms")
                     Log.d("Replay Tests", "Captured a total of ${screen.size} ReplayRect views.")
@@ -45,28 +47,37 @@ object TestUtils {
                         "echo \"${
                             Base64.encodeToString(
                                 encodedScreen,
-                                0
+                                0,
                             )
-                        }\" | websocat ws://localhost:3001 --base64 -bv -1"
+                        }\" | websocat ws://localhost:3001 --base64 -bv -1",
                     )
 
                     replay.set(Pair(screen, metrics))
                     latch.countDown()
                 }
 
-                override fun logVerboseInternal(message: String, fields: Map<String, String>?) {
+                override fun logVerboseInternal(
+                    message: String,
+                    fields: Map<String, String>?,
+                ) {
                     Log.v("Replay Tests", message)
                 }
 
-                override fun logDebugInternal(message: String, fields: Map<String, String>?) {
+                override fun logDebugInternal(
+                    message: String,
+                    fields: Map<String, String>?,
+                ) {
                     Log.d("Replay Tests", message)
                 }
 
-                override fun logErrorInternal(message: String, e: Throwable?, fields: Map<String, String>?) {
+                override fun logErrorInternal(
+                    message: String,
+                    e: Throwable?,
+                    fields: Map<String, String>?,
+                ) {
                     Log.e("Replay Tests", message, e)
                 }
             },
             context,
         )
-    }
 }

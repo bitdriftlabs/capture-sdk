@@ -12,15 +12,17 @@ LIFECYCLE_VERSION = "2.8.7"
 
 COMPOSE_VERSION = "1.7.0"
 
+COMPOSE_COMPILER_VERSION = "1.5.15"
+
 KOTLIN_COMPILE_VERSION = "2.1.21"
 
-KOTLIN_COMPILER_SHA = "1ba08a8b45da99339a0601134cc037b54cf85e9bc0edbe76dcbd27c2d684a977"
+KOTLIN_COMPILER_SHA = "6ab72d6144e71cbbc380b770c2ad380972548c63ab6ed4c79f11c88f2967332e"
 
-KOTLIN_STD_VERSION = KOTLIN_COMPILE_VERSION
+KOTLIN_STD_VERSION = "1.9.25"
 
 NDK_API_LEVEL = 21
 
-SDK_API_LEVEL = 35
+SDK_API_LEVEL = 36
 
 ####################
 # Bazel dependencies
@@ -48,7 +50,7 @@ bazel_dep(name = "rules_jvm_external", version = "6.6")
 bazel_dep(name = "rules_detekt", version = "0.8.1.2")
 bazel_dep(name = "flatbuffers", version = "25.2.10")
 bazel_dep(name = "platforms", version = "0.0.11")
-bazel_dep(name = "rules_kotlin", version = "2.1.7")
+bazel_dep(name = "rules_kotlin", version = "2.1.9")
 bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "protobuf", version = "29.3")
 bazel_dep(name = "rules_rust", version = "0.62.0")
@@ -134,12 +136,6 @@ android_ndk_repository_extension.configure(api_level = NDK_API_LEVEL)
 use_repo(android_ndk_repository_extension, "androidndk")
 
 register_toolchains("@androidndk//:all")
-
-rules_kotlin_extensions = use_extension("@rules_kotlin//src/main/starlark/core/repositories:bzlmod_setup.bzl", "rules_kotlin_extensions")
-rules_kotlin_extensions.kotlinc_version(
-    sha256 = KOTLIN_COMPILER_SHA,
-    version = KOTLIN_COMPILE_VERSION,
-)
 
 register_toolchains("//:kotlin_toolchain")
 

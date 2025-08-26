@@ -33,24 +33,22 @@
 
 package io.bitdrift.capture.instrumentation.util
 
-import java.io.File
-import kotlin.test.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.objectweb.asm.Label
 import org.objectweb.asm.Opcodes
+import java.io.File
+import kotlin.test.assertEquals
 
 class FileLogTextifierTest {
-
     class Fixture {
-
         fun getSut(tmpFile: File) =
             FileLogTextifier(
                 Opcodes.ASM7,
                 tmpFile,
                 "SomeMethod",
-                "(Ljava/lang/Throwable;)V"
+                "(Ljava/lang/Throwable;)V",
             )
 
         fun visitMethodInstructions(sut: FileLogTextifier) {
@@ -72,7 +70,7 @@ class FileLogTextifierTest {
         val file = File(tmpDir.root, "instrumentation.log")
         assertEquals(
             file.readText(),
-            "function SomeMethod (Ljava/lang/Throwable;)V\n"
+            "function SomeMethod (Ljava/lang/Throwable;)V\n",
         )
     }
 
@@ -92,7 +90,7 @@ class FileLogTextifierTest {
             |    LDC "db"
             |
             |
-            """.trimMargin()
+            """.trimMargin(),
         )
     }
 
@@ -112,7 +110,7 @@ class FileLogTextifierTest {
             |function SomeMethod (Ljava/lang/Throwable;)V
             |
             |
-            """.trimMargin()
+            """.trimMargin(),
         )
     }
 
@@ -132,7 +130,7 @@ class FileLogTextifierTest {
             |    LDC "db"
             |
             |
-            """.trimMargin()
+            """.trimMargin(),
         )
     }
 }

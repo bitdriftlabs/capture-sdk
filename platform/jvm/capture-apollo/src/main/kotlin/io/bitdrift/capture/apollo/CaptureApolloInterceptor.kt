@@ -21,17 +21,21 @@ import kotlinx.coroutines.flow.Flow
 /**
  * An [ApolloInterceptor] that logs request and response events to the [Capture.Logger].
  */
-class CaptureApolloInterceptor: ApolloInterceptor {
-
-    override fun <D : Operation.Data> intercept(request: ApolloRequest<D>, chain: ApolloInterceptorChain): Flow<ApolloResponse<D>> {
+class CaptureApolloInterceptor : ApolloInterceptor {
+    override fun <D : Operation.Data> intercept(
+        request: ApolloRequest<D>,
+        chain: ApolloInterceptorChain,
+    ): Flow<ApolloResponse<D>> {
         // Use special header format that is recognized by the CaptureOkHttpEventListener to be transformed into a span
-        val requestBuilder = request.newBuilder()
-            .addHttpHeader("x-capture-span-key", "gql")
-            .addHttpHeader("x-capture-span-gql-name", "graphql")
-            .addHttpHeader("x-capture-span-gql-field-operation-id", request.operation.id())
-            .addHttpHeader("x-capture-span-gql-field-operation-type", request.operation.type())
-            .addHttpHeader("x-capture-span-gql-field-operation-name", request.operation.name())
-            .addHttpHeader("x-capture-path-template", "gql-${request.operation.name()}") // set this to override the http _path_template field
+        val requestBuilder =
+            request
+                .newBuilder()
+                .addHttpHeader("x-capture-span-key", "gql")
+                .addHttpHeader("x-capture-span-gql-name", "graphql")
+                .addHttpHeader("x-capture-span-gql-field-operation-id", request.operation.id())
+                .addHttpHeader("x-capture-span-gql-field-operation-type", request.operation.type())
+                .addHttpHeader("x-capture-span-gql-field-operation-name", request.operation.name())
+                .addHttpHeader("x-capture-path-template", "gql-${request.operation.name()}") // set this to override the http _path_template field
         // TODO(murki): Augment request logs with
         //  request.executionContext[CustomScalarAdapters]?.let {
         //    addHttpHeader("x-capture-span-gql-field-operation-variables", request.operation.variables(it).valueMap.toString())
@@ -43,12 +47,11 @@ class CaptureApolloInterceptor: ApolloInterceptor {
         return chain.proceed(modifiedRequest)
     }
 
-    private fun <D : Operation.Data> Operation<D>.type(): String {
-        return when (this) {
-            is Query        -> "query"
-            is Mutation     -> "mutation"
+    private fun <D : Operation.Data> Operation<D>.type(): String =
+        when (this) {
+            is Query -> "query"
+            is Mutation -> "mutation"
             is Subscription -> "subscription"
-            else            -> this.javaClass.simpleName
+            else -> this.javaClass.simpleName
         }
-    }
 }

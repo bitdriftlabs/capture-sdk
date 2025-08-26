@@ -9,8 +9,8 @@ package io.bitdrift.capture
 
 import android.content.Context
 import android.util.Log
-import androidx.lifecycle.ProcessLifecycleOwner
-import io.bitdrift.capture.attributes.ClientAttributes
+import io.bitdrift.capture.Capture.Logger.startSpan
+import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
@@ -20,11 +20,13 @@ import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueReporter
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
+import kotlin.time.TimeSource
+import kotlin.time.measureTime
+import kotlin.time.measureTimedValue
 
 internal sealed class LoggerState {
     /**
@@ -56,7 +58,6 @@ internal sealed class LoggerState {
 object Capture {
     internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
-    private val fatalIssueReporter = FatalIssueReporter()
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -104,9 +105,10 @@ object Capture {
          * @return the version as a String
          */
         @JvmStatic
-        val sdkVersion: String get() {
-            return BuildConstants.SDK_VERSION
-        }
+        val sdkVersion: String
+            get() {
+                return BuildConstants.SDK_VERSION
+            }
 
         /**
          * Initializes the Capture SDK with the specified API key, providers, and configuration.
@@ -148,6 +150,8 @@ object Capture {
             )
         }
 
+        // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
+        // while subsequent logger access relies on volatile reads.
         @Synchronized
         @JvmStatic
         @JvmOverloads
@@ -161,9 +165,6 @@ object Capture {
             bridge: IBridge,
             context: Context? = null,
         ) {
-            // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
-            // while subsequent logger access relies on volatile reads.
-
             // There's nothing we can do if we don't have yet access to the application context.
             if (hasInvalidContext(context)) {
                 Log.w(
@@ -175,35 +176,16 @@ object Capture {
 
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
             if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
-                try {
-                    val unWrappedContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
-                    val clientAttributes =
-                        ClientAttributes(
-                            unWrappedContext,
-                            ProcessLifecycleOwner.get(),
-                        )
-
-                    if (configuration.enableFatalIssueReporting) {
-                        fatalIssueReporter.initBuiltInMode(unWrappedContext, clientAttributes)
-                    }
-                    val loggerImpl =
-                        LoggerImpl(
-                            apiKey = apiKey,
-                            apiUrl = apiUrl,
-                            context = unWrappedContext,
-                            clientAttributes = clientAttributes,
-                            fieldProviders = fieldProviders,
-                            dateProvider = dateProvider ?: SystemDateProvider(),
-                            configuration = configuration,
-                            sessionStrategy = sessionStrategy,
-                            bridge = bridge,
-                            fatalIssueReporter = fatalIssueReporter,
-                        )
-                    default.set(LoggerState.Started(loggerImpl))
-                } catch (e: Throwable) {
-                    Log.w(LOG_TAG, "Failed to start Capture", e)
-                    default.set(LoggerState.StartFailure)
-                }
+                initSdk(
+                    apiKey = apiKey,
+                    sessionStrategy = sessionStrategy,
+                    configuration = configuration,
+                    fieldProviders = fieldProviders,
+                    dateProvider = dateProvider,
+                    apiUrl = apiUrl,
+                    bridge = bridge,
+                    context = context,
+                )
             } else {
                 Log.w(LOG_TAG, "Multiple attempts to start Capture")
             }
@@ -512,5 +494,59 @@ object Capture {
         }
 
         private fun hasInvalidContext(context: Context? = null) = context == null && !ContextHolder.isInitialized
+    }
+
+    private fun initSdk(
+        apiKey: String,
+        sessionStrategy: SessionStrategy,
+        configuration: Configuration,
+        fieldProviders: List<FieldProvider>,
+        dateProvider: DateProvider? = null,
+        apiUrl: HttpUrl,
+        bridge: IBridge,
+        context: Context?,
+    ) {
+        try {
+            val startSdkTimer = TimeSource.Monotonic.markNow()
+
+            val appContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
+
+            val nativeLoadDuration =
+                measureTime {
+                    CaptureJniLibrary.load()
+                }
+
+            val (loggerImpl, loggerImplBuildDuration) =
+                measureTimedValue {
+                    LoggerImpl(
+                        apiKey = apiKey,
+                        apiUrl = apiUrl,
+                        context = appContext,
+                        fieldProviders = fieldProviders,
+                        dateProvider = dateProvider ?: SystemDateProvider(),
+                        configuration = configuration,
+                        sessionStrategy = sessionStrategy,
+                        bridge = bridge,
+                    )
+                }
+
+            default.set(LoggerState.Started(loggerImpl))
+
+            val sdkConfiguredDuration =
+                SdkConfiguredDuration(
+                    wholeStartDuration = startSdkTimer.elapsedNow(),
+                    nativeLoadDuration = nativeLoadDuration,
+                    loggerImplBuildDuration = loggerImplBuildDuration,
+                )
+
+            loggerImpl.writeSdkStartLog(
+                appContext = appContext,
+                sdkConfiguredDuration = sdkConfiguredDuration,
+                captureStartThread = Thread.currentThread().name,
+            )
+        } catch (e: Throwable) {
+            Log.w(LOG_TAG, "Failed to start Capture", e)
+            default.set(LoggerState.StartFailure)
+        }
     }
 }

@@ -1,71 +1,72 @@
 [versions]
 androidBenchkmarkPlugin = "1.2.4"
-androidGradlePlugin = "8.11.1"
-apollo = "4.1.0"
-appcompat = "1.7.0"
-assertjCore = "3.22.0"
-androidxCore = "1.13.1"
-androidxTestCore = "1.6.1"
-detektPlugin = "1.23.7"
-dokkaPlugin = "1.9.20"
-gson = "2.10.1"
-jsr305 = "3.0.2"
-junit = "4.13.2"
-kotlinResultJvm = "1.1.18"
-lifecycleCommon = "2.8.7"
-mavenPublishPlugin = "0.28.0"
-kotlin = "2.1.21"
-mockitoCore = "4.9.0"
-mockitoKotlin = "2.2.0"
-mockitoKotlinVersion = "4.1.0"
-okhttp = "4.12.0"
-protobufKotlinLite = "3.24.2"
-robolectric = "4.13"
-rustAndroidPlugin = "0.9.6"
-material3Android = "1.2.1"
-startupRuntime = "1.2.0"
-timber = "5.0.1"
-truth = "1.1.4"
-ui = "1.7.6"
-performance = "1.0.0-beta01"
-flatbuffers = "25.2.10"
+androidGradlePlugin     = "8.12.0"
+androidxCore            = "1.13.1"
+androidxTestCore        = "1.6.1"
+apollo                  = "4.1.0"
+appcompat               = "1.7.0"
+assertjCore             = "3.22.0"
+detektPlugin            = "1.23.7"
+dokkaPlugin             = "1.9.20"
+flatbuffers             = "25.2.10"
+gson                    = "2.10.1"
+jsr305                  = "3.0.2"
+junit                   = "4.13.2"
+kotlin                  = "2.1.21"
+kotlinResultJvm         = "1.1.18"
+lifecycleCommon         = "2.8.7"
+material3Android        = "1.2.1"
+mavenPublishPlugin      = "0.28.0"
+mockitoCore             = "4.11.0"
+mockitoKotlin           = "2.2.0"
+mockitoKotlinVersion    = "4.1.0"
+okhttp                  = "4.12.0"
+performance             = "1.0.0-beta01"
+protobufKotlinLite      = "3.24.2"
+robolectric             = "4.13"
+rustAndroidPlugin       = "0.3.4"
+startupRuntime          = "1.2.0"
+timber                  = "5.0.1"
+truth                   = "1.1.4"
+ui                      = "1.7.6"
 
 [libraries]
-androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
-androidx-lifecycle-common = { module = "androidx.lifecycle:lifecycle-common", version.ref = "lifecycleCommon" }
+androidx-appcompat         = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+androidx-core              = { group = "androidx.core", name = "core", version.ref = "androidxCore" }
+androidx-lifecycle-common  = { module = "androidx.lifecycle:lifecycle-common", version.ref = "lifecycleCommon" }
 androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycleCommon" }
 androidx-material3-android = { group = "androidx.compose.material3", name = "material3-android", version.ref = "material3Android" }
-androidx-core = { group = "androidx.core", name = "core", version.ref = "androidxCore" }
-androidx-startup-runtime = { module = "androidx.startup:startup-runtime", version.ref = "startupRuntime" }
-androidx-test-core = { module = "androidx.test:core", version.ref = "androidxTestCore" }
-androidx-ui = { module = "androidx.compose.ui:ui", version.ref = "ui" }
-apollo-runtime = { module = "com.apollographql.apollo:apollo-runtime", version.ref = "apollo" }
-assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertjCore" }
-gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
-jsr305 = { module = "com.google.code.findbugs:jsr305", version.ref = "jsr305" }
-junit = { module = "junit:junit", version.ref = "junit" }
-kotlin-mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockitoKotlinVersion" }
-kotlin-result-jvm = { module = "com.michael-bull.kotlin-result:kotlin-result-jvm", version.ref = "kotlinResultJvm" }
-mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockitoCore" }
-mockito-kotlin = { module = "com.nhaarman.mockitokotlin2:mockito-kotlin", version.ref = "mockitoKotlin" }
-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttp" }
-okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
-protobuf-kotlinlite = { module = "com.google.protobuf:protobuf-kotlin-lite", version.ref = "protobufKotlinLite" }
-robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
-timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
-truth = { module = "com.google.truth:truth", version.ref = "truth" }
-performance = { module = "androidx.metrics:metrics-performance", version.ref = "performance" }
-flatbuffers = { module = "com.google.flatbuffers:flatbuffers-java", version.ref = "flatbuffers" }
+androidx-startup-runtime   = { module = "androidx.startup:startup-runtime", version.ref = "startupRuntime" }
+androidx-test-core         = { module = "androidx.test:core", version.ref = "androidxTestCore" }
+androidx-ui                = { module = "androidx.compose.ui:ui", version.ref = "ui" }
+apollo-runtime             = { module = "com.apollographql.apollo:apollo-runtime", version.ref = "apollo" }
+assertj-core               = { module = "org.assertj:assertj-core", version.ref = "assertjCore" }
+flatbuffers                = { module = "com.google.flatbuffers:flatbuffers-java", version.ref = "flatbuffers" }
+gson                       = { module = "com.google.code.gson:gson", version.ref = "gson" }
+jsr305                     = { module = "com.google.code.findbugs:jsr305", version.ref = "jsr305" }
+junit                      = { module = "junit:junit", version.ref = "junit" }
+kotlin-mockito-kotlin      = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockitoKotlinVersion" }
+kotlin-result-jvm          = { module = "com.michael-bull.kotlin-result:kotlin-result-jvm", version.ref = "kotlinResultJvm" }
+mockito-core               = { module = "org.mockito:mockito-core", version.ref = "mockitoCore" }
+mockito-kotlin             = { module = "com.nhaarman.mockitokotlin2:mockito-kotlin", version.ref = "mockitoKotlin" }
+mockito-kotlin-inline      = { module = "org.mockito:mockito-inline", version.ref = "mockitoCore" }
+mockwebserver              = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttp" }
+okhttp                     = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+performance                = { module = "androidx.metrics:metrics-performance", version.ref = "performance" }
+protobuf-kotlinlite        = { module = "com.google.protobuf:protobuf-kotlin-lite", version.ref = "protobufKotlinLite" }
+robolectric                = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+timber                     = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
+truth                      = { module = "com.google.truth:truth", version.ref = "truth" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
-android-benchmark = { id = "androidx.benchmark", version.ref = "androidBenchkmarkPlugin" }
-android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
-apollo-graphql = { id = "com.apollographql.apollo", version.ref = "apollo" }
-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detektPlugin" }
-dokka = { id = "org.jetbrains.dokka", version.ref = "dokkaPlugin" }
-maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublishPlugin" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-rust-android = { id = "org.mozilla.rust-android-gradle.rust-android", version.ref = "rustAndroidPlugin" }
+android-benchmark   = { id = "androidx.benchmark", version.ref = "androidBenchkmarkPlugin" }
+android-library     = { id = "com.android.library", version.ref = "androidGradlePlugin" }
+apollo-graphql      = { id = "com.apollographql.apollo", version.ref = "apollo" }
+compose-compiler    = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+detekt              = { id = "io.gitlab.arturbosch.detekt", version.ref = "detektPlugin" }
+dokka               = { id = "org.jetbrains.dokka", version.ref = "dokkaPlugin" }
+kotlin              = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-android      = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+maven-publish       = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublishPlugin" }
+rust-android        = { id = "com.github.willir.rust.cargo-ndk-android", version.ref = "rustAndroidPlugin" }

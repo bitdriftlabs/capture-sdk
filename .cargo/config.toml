@@ -8,6 +8,17 @@ rustflags = ["-Csplit-debuginfo=unpacked"]
 [target.x86_64-unknown-linux-gnu]
 rustflags = ["-C", "link-arg=-fuse-ld=lld"]
 
+# Android target configuration
+[target.'cfg(target_os="android")']
+rustflags = [
+  "-C",
+  "link-arg=-Wl,--retain-symbols-file=platform/jvm/jni_symbols.lds",
+  "-C",
+  "link-arg=-Wl,--build-id",
+  "-C",
+  "link-arg=-Wl,--pack-dyn-relocs=android",
+]
+
 #####################################
 # Warnings and Linter Configuration #
 #####################################

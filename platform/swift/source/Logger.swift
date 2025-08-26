@@ -28,10 +28,10 @@ public final class Logger {
     private let remoteErrorReporter: RemoteErrorReporting
     private let deviceCodeController: DeviceCodeController
 
-    private(set) var sessionReplayTarget: SessionReplayTarget
+    private(set) var sessionReplayTarget: SessionReplayController
     private(set) var dispatchSourceMemoryMonitor: DispatchSourceMemoryMonitor?
-    private(set) var resourceUtilizationTarget: ResourceUtilizationTarget
-    private(set) var eventsListenerTarget: EventsListenerTarget
+    private(set) var resourceUtilizationTarget: ResourceUtilizationController
+    private(set) var eventsListenerTarget: EventSubscriber
 
     private let sessionURLBase: URL
 
@@ -139,7 +139,7 @@ public final class Logger {
             networkAttributes,
         ]
 
-        let metadataProvider = MetadataProvider(
+        let metadataProvider = MetadataProviderController(
             dateProvider: dateProvider ?? SystemDateProvider(),
             ootbFieldProviders: ootbFieldProviders,
             customFieldProviders: fieldProviders
@@ -161,13 +161,13 @@ public final class Logger {
             : nil
         self.network = network
 
-        self.resourceUtilizationTarget = ResourceUtilizationTarget(
+        self.resourceUtilizationTarget = ResourceUtilizationController(
             storageProvider: storageProvider,
             timeProvider: timeProvider
         )
-        self.eventsListenerTarget = EventsListenerTarget()
+        self.eventsListenerTarget = EventSubscriber()
 
-        let sessionReplayTarget = SessionReplayTarget(configuration: configuration.sessionReplayConfiguration)
+        let sessionReplayTarget = SessionReplayController(configuration: configuration.sessionReplayConfiguration)
         self.sessionReplayTarget = sessionReplayTarget
 
         guard let logger = loggerBridgingFactoryProvider.makeLogger(
@@ -231,13 +231,31 @@ public final class Logger {
 
         self.deviceCodeController = DeviceCodeController(client: client)
 
-        // Update hang duration with runtime value
-        let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
-        if let reporter = Logger.diagnosticReporter.load(),
-           hangDuration > 0 {
-            let seconds = Double(hangDuration) / Double(MSEC_PER_SEC)
-            reporter.setMinimumHangSeconds(TimeInterval(seconds))
+        #if targetEnvironment(simulator)
+        Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
+        #else
+        Logger.issueReporterInitResult = measureTime {
+            guard let outputDir = Logger.reportCollectionDirectory() else {
+                return .initialized(.missingReportsDirectory)
+            }
+            if configuration.enableFatalIssueReporting {
+                let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
+                let reporter = DiagnosticEventReporter(
+                    outputDir: outputDir,
+                    sdkVersion: capture_get_sdk_version(),
+                    eventTypes: .crash,
+                    minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC)) { [weak self] in
+                    self?.underlyingLogger.processCrashReports()
+                }
+                Logger.diagnosticReporter.update { val in
+                    val = reporter
+                }
+                MXMetricManager.shared.add(reporter)
+                return .initialized(.monitoring)
+            }
+            return .initialized(.notEnabled)
         }
+        #endif
     }
 
     // swiftlint:enable function_body_length

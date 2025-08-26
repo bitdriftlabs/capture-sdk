@@ -13,7 +13,7 @@ import io.bitdrift.capture.reports.binformat.v1.SourceFile
 
 /**
  * A builder that allows you to create a [io.bitdrift.capture.reports.binformat.v1.Frame] with
- * the main relevant fields
+ * the main relevant fields.
  */
 internal object ReportFrameBuilder {
     /**

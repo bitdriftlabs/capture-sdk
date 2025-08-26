@@ -10,6 +10,7 @@ package io.bitdrift.capture.reports
 import android.content.Context
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 
 /**
  * Handles internal reporting of Fatal Issues
@@ -21,6 +22,7 @@ interface IFatalIssueReporter {
     fun initBuiltInMode(
         appContext: Context,
         clientAttributes: IClientAttributes,
+        completedReportsProcessor: ICompletedReportsProcessor,
     )
 
     /**

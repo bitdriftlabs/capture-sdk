@@ -10,6 +10,7 @@ version      = "1.0.0"
 anyhow                   = { workspace = true }
 assert_matches.workspace = true
 bd-client-common         = { workspace = true }
+bd-error-reporter        = { workspace = true }
 bd-log                   = { workspace = true }
 bd-logger                = { workspace = true }
 bd-proto                 = { workspace = true }
