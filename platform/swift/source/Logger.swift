@@ -244,7 +244,7 @@ public final class Logger {
                         try BitdriftKSCrashWrapper.configure(withCrashReportDirectory: kscrashReportDir)
                         try BitdriftKSCrashWrapper.startCrashReporter()
                     } catch {
-                        log(level:.debug, message:"Failed to set up KSCrash reporter", error:error)
+                        log(level: .debug, message: "Failed to set up KSCrash reporter", error: error)
                     }
                 }
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
