@@ -82,7 +82,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
 
         XCTAssertTrue(FileManager.default.fileExists(atPath: parentDir.path))
 
-        XCTAssertTrue(BitdriftKSCrashHandler.configure(withCrashReportDirectory: parentDir))
+        XCTAssertNoThrow(try! BitdriftKSCrashHandler.configure(withCrashReportDirectory: parentDir))
 
         let enhancedReport = BitdriftKSCrashHandler.enhancedMetricKitReport(metrickitReport) as! [String: any Equatable]
         XCTAssertNotNil(enhancedReport)

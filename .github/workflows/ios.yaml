@@ -95,7 +95,7 @@ jobs:
         run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/core/...)') --test_tag_filters=macos_only --test_output=errors --config ci
   verify_ios:
     runs-on: ubuntu-latest
-    needs: ["swift_hello_world"]
+    needs: ["macos_tsan", "swift_hello_world"]
     if: always()
     steps:
       # Checkout repo to Github Actions runner

@@ -19,9 +19,10 @@ NS_ASSUME_NONNULL_BEGIN
  * Note: This method MUST be called before calling any other method in this class.
  *
  * @param crashReportDir The path to the directory where KSCrash will store reports (directory).
+ * @param error Filled if NO is returned.
  * @return true if the crash handler was successfully initialized.
  */
-+ (bool)configureWithCrashReportDirectory:(NSURL *)crashReportDir;
++ (BOOL)configureWithCrashReportDirectory:(NSURL *)crashReportDir error:(NSError **)error;
 
 /**
  * Enhance a MetricKit report with data gleaned from a matching KSCrash report:
@@ -39,9 +40,10 @@ NS_ASSUME_NONNULL_BEGIN
  * Start the in-process crash reporter, which captures supplemental
  * information that we can tack on to the MetricKit report.
  *
+ * @param error Filled if NO is returned.
  * @return true on success.
  */
-+ (bool)startCrashReporter;
++ (BOOL)startCrashReporterWithError:(NSError **)error;
 
 + (void)stopCrashReporter;
 

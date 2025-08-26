@@ -15,9 +15,9 @@
 
 @implementation BitdriftKSCrashWrapper
 
-+ (bool)configureWithCrashReportDirectory:(NSURL *)basePath {
++ (BOOL)configureWithCrashReportDirectory:(NSURL *)basePath error:(NSError **)error {
 #ifndef BITDRIFT_OMIT_KSCRASH
-    return [BitdriftKSCrashHandler configureWithCrashReportDirectory:basePath];
+    return [BitdriftKSCrashHandler configureWithCrashReportDirectory:basePath error:error];
 #else
     return true;
 #endif
@@ -31,9 +31,9 @@
 #endif
 }
 
-+ (bool)startCrashReporter {
++ (BOOL)startCrashReporterWithError:(NSError **)error {
 #ifndef BITDRIFT_OMIT_KSCRASH
-    return [BitdriftKSCrashHandler startCrashReporter];
+    return [BitdriftKSCrashHandler startCrashReporterWithError:error];
 #else
     return true;
 #endif

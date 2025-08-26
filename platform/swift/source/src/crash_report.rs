@@ -9,7 +9,7 @@ use crate::conversion::{objc_value_to_rust, rust_value_to_objc};
 use crate::ffi::nsstring_into_string;
 use anyhow;
 use bd_bonjson::decoder::{decode_value, Value};
-use bd_client_common::error::with_handle_unexpected_or;
+use bd_error_reporter::reporter::with_handle_unexpected_or;
 use objc::runtime::Object;
 use parking_lot::Mutex;
 use std::collections::HashMap;

@@ -246,7 +246,7 @@ static void serialize_error_threads(BDProcessorHandle handle, NSDictionary *cras
       frame = [array_for_key(frame, @"subFrames") firstObject];
       frame_index++;
     }
-    BDThread bdthread = { .index = thread_index, .quality_of_service = -1, .name = cstring_from(threadName) };
+    BDThread bdthread = { .index = thread_index, .quality_of_service = -1, .name = cstring_from(threadName), .active = (thread_index == crashed_index) };
     bdrw_add_thread(handle, [call_stacks count], &bdthread, frame_index, stack);
     if (thread_index == crashed_index) {
       bdrw_add_error(handle, cstring_from(name), cstring_from(reason), 0, frame_index, stack);

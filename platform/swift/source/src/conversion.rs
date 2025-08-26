@@ -318,7 +318,7 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
       RustToObjcWorkItem::ProcessValue { value, result_id } => {
         match value {
           Value::String(s) => {
-            let ns_string = make_nsstring(&s);
+            let ns_string = make_nsstring(&s)?;
             results.insert(result_id, ns_string);
           },
 
@@ -428,7 +428,7 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
       } => {
         let value_obj = results.remove(&value_id).unwrap();
         let dict_obj = results.get(&dict_id).unwrap();
-        let ns_key = make_nsstring(&key);
+        let ns_key = make_nsstring(&key)?;
         let () = msg_send![**dict_obj, setObject: *value_obj forKey: *ns_key];
       },
 

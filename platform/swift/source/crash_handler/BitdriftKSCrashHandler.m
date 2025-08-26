@@ -81,70 +81,72 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     return instance;
 }
 
-+ (BOOL)configureWithCrashReportDirectory:(NSURL *)crashReportPath {
-    return [BitdriftKSCrashHandler.sharedInstance configureWithCrashReportDirectory:crashReportPath];
++ (BOOL)configureWithCrashReportDirectory:(NSURL *)crashReportDir error:(NSError **)error {
+    return [BitdriftKSCrashHandler.sharedInstance configureWithCrashReportDirectory:crashReportDir error:error];
 }
 
-- (BOOL)configureWithCrashReportDirectory:(NSURL *)crashReportDir {
+- (BOOL)configureWithCrashReportDirectory:(NSURL *)crashReportDir error:(NSError **)error {
     if (crashReportDir == nil) {
+        *error = [NSError errorWithDomain:@"BitdriftKSCrashHandler" code:0 userInfo:@{
+                NSLocalizedDescriptionKey:@"Configuration failed",
+         NSLocalizedFailureReasonErrorKey:@"crashReportDir is nil",
+        }];
         return NO;
     }
 
     NSString *crashReportFile = [crashReportDir.absoluteURL.path stringByAppendingPathComponent:@"lastCrash.bjn"];
 
-    @try {
-        NSFileManager *fm = NSFileManager.defaultManager;
-        NSString *dir = crashReportDir.absoluteURL.path;
-        if (![fm fileExistsAtPath:dir]) {
-            NSError *error = nil;
-            if (![fm createDirectoryAtPath:dir
-               withIntermediateDirectories:YES
-                                attributes:nil
-                                     error:&error]) {
-                @throw [NSString stringWithFormat:@"Error: Could not create directory \"%@\": %@", dir, error];
-            }
+    NSFileManager *fm = NSFileManager.defaultManager;
+    NSString *dir = crashReportDir.absoluteURL.path;
+    if (![fm fileExistsAtPath:dir]) {
+        if (![fm createDirectoryAtPath:dir
+           withIntermediateDirectories:YES
+                            attributes:nil
+                                 error:error]) {
+            return NO;
         }
-
-        self.kscrashReportFilePath = crashReportFile;
-        if (![fm fileExistsAtPath:crashReportFile]) {
-            return YES;
-        }
-
-        switch (capture_cache_kscrash_report(crashReportFile)) {
-            case CacheResultReportDoesNotExist:
-                // KSCrash didn't detect a crash last launch.
-                break;
-            case CacheResultSuccess:
-                break;
-            case CacheResultPartialSuccess:
-                NSLog(@"Warning: The KSCrash report was only partially recovered.");
-                break;
-            case CacheResultFailure:
-                @throw [NSString stringWithFormat:@"Error caching kscrash report at \"%@\"",self.kscrashReportFilePath];
-        }
-
-        if ([fm fileExistsAtPath:crashReportFile]) {
-            NSError *error = NULL;
-            if (![fm removeItemAtPath:crashReportFile error:&error]) {
-                NSLog(@"Error removing old KSCrash report at %@: %@", self.kscrashReportFilePath, error);
-            }
-        }
-
-        return YES;
-    } @catch(id exception) {
-        [NSFileManager.defaultManager removeItemAtPath:crashReportFile error:nil];
-        NSLog(@"Error configuring BitdriftKSCrashHandler: %@", exception);
-        return NO;
     }
+
+    self.kscrashReportFilePath = crashReportFile;
+    if (![fm fileExistsAtPath:crashReportFile]) {
+        return YES;
+    }
+
+    switch (capture_cache_kscrash_report(crashReportFile)) {
+        case CacheResultReportDoesNotExist:
+            // KSCrash didn't detect a crash last launch.
+            break;
+        case CacheResultSuccess:
+            break;
+        case CacheResultPartialSuccess:
+            // It may have enough information anyway, so this is fine.
+            break;
+        case CacheResultFailure:
+            *error = [NSError errorWithDomain:@"BitdriftKSCrashHandler" code:0 userInfo:@{
+                    NSLocalizedDescriptionKey:@"Configuration failed",
+             NSLocalizedFailureReasonErrorKey:[NSString stringWithFormat:@"Error caching kscrash report at \"%@\"",
+                                               self.kscrashReportFilePath],
+            }];
+            return NO;
+    }
+
+    if ([fm fileExistsAtPath:crashReportFile]) {
+        [fm removeItemAtPath:crashReportFile error:nil];
+    }
+
+    return YES;
 }
 
-+ (BOOL)startCrashReporter {
-    return [self.sharedInstance startCrashReporter];
++ (BOOL)startCrashReporterWithError:(NSError **)error {
+    return [self.sharedInstance startCrashReporterWithError:error];
 }
 
-- (BOOL)startCrashReporter {
+- (BOOL)startCrashReporterWithError:(NSError **)error {
     if (self.kscrashReportFilePath == nil) {
-        NSLog(@"Error: Cannot start crash reporter: must call configureWithCrashReportPath first");
+        *error = [NSError errorWithDomain:@"BitdriftKSCrashHandler" code:0 userInfo:@{
+                NSLocalizedDescriptionKey:@"Start failed",
+                NSLocalizedFailureReasonErrorKey:@"Must call configureWithCrashReportPath first"
+        }];
         return NO;
     }
     
@@ -160,7 +162,10 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     
 #define ERROR_IF_FALSE(A) do { \
     if(!(A)) { \
-        NSLog(@"Error: Function returned unexpected false: %s", #A); \
+        *error = [NSError errorWithDomain:@"BitdriftKSCrashHandler" code:0 userInfo:@{ \
+                NSLocalizedDescriptionKey:@"Start failed", \
+         NSLocalizedFailureReasonErrorKey:@"Function returned unexpected false: " #A \
+        }]; \
         isStarted = false; \
         return NO; \
     } \
@@ -197,7 +202,6 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
 
 - (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport {
     if (self.kscrashReportFilePath == nil) {
-        NSLog(@"Error: Cannot enhance MetricKit report: must call configureWithCrashReportPath first");
         return metricKitReport;
     }
 
