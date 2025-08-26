@@ -7,8 +7,10 @@
 
 package io.bitdrift.capture.reports.processor
 
+import android.os.Build
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.BuildConstants
+import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.reports.binformat.v1.AppBuildNumber
@@ -49,39 +51,33 @@ internal class FatalIssueReporterProcessor(
         description: String? = null,
         traceInputStream: InputStream,
     ) {
-        val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
-        val sdk = createSDKInfo(builder)
-        val appMetrics = createAppMetrics(builder)
-        val deviceMetrics = createDeviceMetrics(builder, timestamp)
-
-        val report: Int? =
-            when {
-                fatalIssueType == ReportType.AppNotResponding -> {
-                    AppExitAnrTraceProcessor.process(
-                        builder,
-                        sdk,
-                        appMetrics,
-                        deviceMetrics,
-                        description,
-                        traceInputStream,
-                    )
-                }
-
-                fatalIssueType == ReportType.NativeCrash && enableNativeCrashReporting -> {
-                    NativeCrashProcessor.process(
-                        builder,
-                        sdk,
-                        appMetrics,
-                        deviceMetrics,
-                        description,
-                        traceInputStream,
-                    )
-                }
-
-                else -> null
-            }
-
-        report?.let {
+        if (fatalIssueType == ReportType.AppNotResponding) {
+            val destination = fatalIssueReporterStorage.generateFilePath()
+            CaptureJniLibrary.reportANR(
+                traceInputStream,
+                destination,
+                Build.MANUFACTURER,
+                Build.MODEL,
+                clientAttributes.osVersion,
+                Build.BRAND,
+                clientAttributes.appId,
+                clientAttributes.appVersion,
+                clientAttributes.appVersionCode,
+            )
+        } else if (fatalIssueType == ReportType.NativeCrash && enableNativeCrashReporting) {
+            val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
+            val sdk = createSDKInfo(builder)
+            val appMetrics = createAppMetrics(builder)
+            val deviceMetrics = createDeviceMetrics(builder, timestamp)
+            val report =
+                NativeCrashProcessor.process(
+                    builder,
+                    sdk,
+                    appMetrics,
+                    deviceMetrics,
+                    description,
+                    traceInputStream,
+                )
             persistReport(timestamp, builder, report, fatalIssueType)
         }
     }
