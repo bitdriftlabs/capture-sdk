@@ -24,6 +24,8 @@ internal class FatalIssueReporterStorage(
         outputFile.writeBytes(data)
     }
 
+    override fun generateFilePath(): String = destinationDirectory.path + "/${UUID.randomUUID()}.cap"
+
     private fun mapToReadableType(reportType: Byte): String =
         when (reportType) {
             ReportType.AppNotResponding -> "anr"

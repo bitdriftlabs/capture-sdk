@@ -1,5 +1,5 @@
 {
-  "checksum": "3274368592bafc30f19832ff889eb639b66871b39f75fa1d45fc118f51ca8f00",
+  "checksum": "2337f8198694a92b398df221b6bc800c5c71efaaa242c0b7d61b3e9daacd3a37",
   "crates": {
     "addr2line 0.24.2": {
       "name": "addr2line",
@@ -4688,6 +4688,74 @@
       "license_ids": [],
       "license_file": "../LICENSE"
     },
+    "bd-report-parsers 1.0.0": {
+      "name": "bd-report-parsers",
+      "version": "1.0.0",
+      "package_url": null,
+      "repository": {
+        "Git": {
+          "remote": "https://github.com/bitdriftlabs/shared-core.git",
+          "commitish": {
+            "Rev": "c60b9807cae0c6dccae50a71ac6701e5dfcc5fd8"
+          },
+          "strip_prefix": "bd-report-parsers"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "bd_report_parsers",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "bd_report_parsers",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "anyhow 1.0.99",
+              "target": "anyhow"
+            },
+            {
+              "id": "bd-proto 1.0.0",
+              "target": "bd_proto"
+            },
+            {
+              "id": "flatbuffers 25.2.10",
+              "target": "flatbuffers"
+            },
+            {
+              "id": "itertools 0.14.0",
+              "target": "itertools"
+            },
+            {
+              "id": "memmap2 0.9.8",
+              "target": "memmap2"
+            },
+            {
+              "id": "nom 8.0.0",
+              "target": "nom"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2024",
+        "version": "1.0.0"
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": "../LICENSE"
+    },
     "bd-report-writer 1.0.0": {
       "name": "bd-report-writer",
       "version": "1.0.0",
@@ -6144,6 +6212,14 @@
               "target": "bd_logger"
             },
             {
+              "id": "bd-proto 1.0.0",
+              "target": "bd_proto"
+            },
+            {
+              "id": "bd-report-parsers 1.0.0",
+              "target": "bd_report_parsers"
+            },
+            {
               "id": "bd-runtime 1.0.0",
               "target": "bd_runtime"
             },
@@ -6154,6 +6230,10 @@
             {
               "id": "bd-time 1.0.0",
               "target": "bd_time"
+            },
+            {
+              "id": "flatbuffers 25.2.10",
+              "target": "flatbuffers"
             },
             {
               "id": "futures-util 0.3.31",
@@ -8464,7 +8544,7 @@
             ],
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.52.0",
+                "id": "windows-sys 0.60.2",
                 "target": "windows_sys"
               }
             ]
@@ -12681,6 +12761,61 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
+    "nom 8.0.0": {
+      "name": "nom",
+      "version": "8.0.0",
+      "package_url": "https://github.com/rust-bakery/nom",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/nom/8.0.0/download",
+          "sha256": "df9761775871bdef83bee530e60050f7e54b1105350d6884eb0fb4f46c2f9405"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "nom",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "nom",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "alloc",
+            "default",
+            "std"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "memchr 2.7.5",
+              "target": "memchr"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "8.0.0"
+      },
+      "license": "MIT",
+      "license_ids": [
+        "MIT"
+      ],
+      "license_file": "LICENSE"
+    },
     "nu-ansi-term 0.50.1": {
       "name": "nu-ansi-term",
       "version": "0.50.1",
@@ -16229,7 +16364,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "windows-sys 0.52.0",
+                "id": "windows-sys 0.60.2",
                 "target": "windows_sys"
               }
             ],
@@ -18322,7 +18457,7 @@
             ],
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.52.0",
+                "id": "windows-sys 0.60.2",
                 "target": "windows_sys"
               }
             ]
@@ -21983,7 +22118,7 @@
           "selects": {
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.52.0",
+                "id": "windows-sys 0.60.2",
                 "target": "windows_sys"
               }
             ]
@@ -24839,6 +24974,7 @@
     "bd-logger 1.0.0",
     "bd-noop-network 1.0.0",
     "bd-proto 1.0.0",
+    "bd-report-parsers 1.0.0",
     "bd-report-writer 1.0.0",
     "bd-runtime 1.0.0",
     "bd-session 1.0.0",
@@ -24847,6 +24983,7 @@
     "bd-time 1.0.0",
     "criterion 0.7.0",
     "ctor 0.5.0",
+    "flatbuffers 25.2.10",
     "futures-util 0.3.31",
     "jni 0.21.1",
     "libc 0.2.175",

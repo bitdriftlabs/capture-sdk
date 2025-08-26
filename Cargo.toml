@@ -36,6 +36,7 @@ bd-logger = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "c6
 bd-noop-network = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "c60b9807cae0c6dccae50a71ac6701e5dfcc5fd8" }
 bd-proto = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "c60b9807cae0c6dccae50a71ac6701e5dfcc5fd8" }
 bd-report-writer = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "c60b9807cae0c6dccae50a71ac6701e5dfcc5fd8" }
+bd-report-parsers = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "c60b9807cae0c6dccae50a71ac6701e5dfcc5fd8" }
 bd-runtime = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "c60b9807cae0c6dccae50a71ac6701e5dfcc5fd8" }
 bd-session = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "c60b9807cae0c6dccae50a71ac6701e5dfcc5fd8" }
 bd-shutdown = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "c60b9807cae0c6dccae50a71ac6701e5dfcc5fd8" }
@@ -44,6 +45,7 @@ bd-time = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "c60b
 clap = { version = "4.5.47", features = ["derive", "env"] }
 ctor = "0.5.0"
 env_logger = { version = "0.11.8", default-features = false }
+flatbuffers = "25.2.10"
 futures-util = "0.3.31"
 jni = "0.21.1"
 libc = "0.2.175"
