@@ -16,4 +16,6 @@ internal interface IFatalIssueReporterStorage {
         data: ByteArray,
         reportType: Byte,
     )
+
+    fun generateFilePath(): String
 }
