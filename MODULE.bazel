@@ -67,7 +67,7 @@ http_jar(
 
 new_git_repository(
     name = "bitdrift_api",
-    branch = "main",
+    commit = "250f755b39343c90742250a1ae8d9f73b8423df7",
     build_file = "//bazel:BUILD.bitdriftlabs_api",
     remote = "https://github.com/bitdriftlabs/api.git",
 )

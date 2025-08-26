@@ -12,6 +12,7 @@ flatbuffer_library_public(
     name = "descriptor",
     srcs = [
         "@bitdrift_api//:buffer_log",
+        "@bitdrift_api//:common",
     ],
     outs = [
         "buffer_log.schema.json",
@@ -23,6 +24,7 @@ flatbuffer_library_public(
     name = "gen_report_swift",
     srcs = [
         "@bitdrift_api//:report",
+        "@bitdrift_api//:common",
     ],
     outs = [
         "report_generated.swift",

@@ -17,6 +17,12 @@ filegroup(
 )
 
 filegroup(
+  name = "common",
+  srcs = ["src/bitdrift_public/fbs/common/v1/common.fbs"],
+  visibility = ["//visibility:public"],
+)
+
+filegroup(
   name = "report",
   srcs = ["src/bitdrift_public/fbs/issue-reporting/v1/report.fbs"],
   visibility = ["//visibility:public"],
