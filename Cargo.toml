@@ -19,6 +19,7 @@ anyhow = "1.0.99"
 assert_matches = "1.5.0"
 async-trait = "0.1.89"
 bd-api = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b10c06f4a217e4a50f90073d1f496ad2d547f6ec" }
+bd-bonjson = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b10c06f4a217e4a50f90073d1f496ad2d547f6ec" }
 bd-buffer = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b10c06f4a217e4a50f90073d1f496ad2d547f6ec" }
 bd-client-common = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b10c06f4a217e4a50f90073d1f496ad2d547f6ec" }
 bd-client-stats-store = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b10c06f4a217e4a50f90073d1f496ad2d547f6ec" }

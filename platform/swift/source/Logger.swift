@@ -239,6 +239,14 @@ public final class Logger {
                 return .initialized(.missingReportsDirectory)
             }
             if configuration.enableFatalIssueReporting {
+                if let kscrashReportDir = Logger.kscrashReportDirectory() {
+                    do {
+                        try BitdriftKSCrashWrapper.configure(withCrashReportDirectory: kscrashReportDir)
+                        try BitdriftKSCrashWrapper.startCrashReporter()
+                    } catch {
+                        log(level: .debug, message: "Failed to set up KSCrash reporter", error: error)
+                    }
+                }
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
                 let reporter = DiagnosticEventReporter(
                     outputDir: outputDir,
@@ -374,6 +382,11 @@ public final class Logger {
             .appendingPathComponent("reports/config", isDirectory: false)
     }
 
+    static func kscrashReportDirectory() -> URL? {
+        return captureSDKDirectory()?
+            .appendingPathComponent("reports/kscrash", isDirectory: true)
+    }
+
     static func reportCollectionDirectory() -> URL? {
         return captureSDKDirectory()?
             .appendingPathComponent("reports/new", isDirectory: true)
@@ -406,6 +419,8 @@ public final class Logger {
         self.dispatchSourceMemoryMonitor?.stop()
 
         self.dispatchSourceMemoryMonitor = nil
+
+        BitdriftKSCrashWrapper.stopCrashReporter()
     }
 }
 

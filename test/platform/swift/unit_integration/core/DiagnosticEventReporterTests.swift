@@ -5,6 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+import BitdriftEnhancedCrashData
 @testable import CaptureLoggerBridge
 import FlatBuffers
 import XCTest
@@ -28,6 +29,84 @@ final class DiagnosticEventReporterTests: XCTestCase {
         if let dir = self.reportDir {
             try FileManager.default.removeItem(at: dir)
         }
+    }
+
+    private func getTestBundleFileUrl(_ name: String) -> URL {
+        let testBundle = Bundle(for: type(of: self))
+        let url = testBundle.url(forResource: name, withExtension: nil)!
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        return url
+    }
+
+    private func getTestBundleFileUrl(_ name: String, subdir: String) -> URL {
+        let testBundle = Bundle(for: type(of: self))
+        let url = testBundle.url(forResource: name, withExtension: nil, subdirectory: subdir)!
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        return url
+    }
+
+    private func getContentsOfTestBundleJsonFile(_ name: String) throws -> [String: any Equatable] {
+        return try JSONSerialization.jsonObject(
+            with: Data(contentsOf: getTestBundleFileUrl(name)),
+            options: []
+        ) as! Dictionary
+    }
+
+    private func dictsAreEqual(_ dict1: [String: any Equatable], _ dict2: [String: any Equatable]) -> Bool {
+        guard dict1.keys == dict2.keys else {
+            return false
+        }
+        for key in dict1.keys {
+            let value1 = dict1[key]!
+            let value2 = dict2[key]!
+
+            if let value1AsDict = value1 as? [String: any Equatable],
+               let value2AsDict = value2 as? [String: any Equatable]
+            {
+                if !dictsAreEqual(value1AsDict, value2AsDict) {
+                    return false
+                }
+            } else if "\(value1)" != "\(value2)" {
+                return false
+            }
+        }
+        return true
+    }
+
+    func testReportMerging() throws {
+        let metrickitReport = try! getContentsOfTestBundleJsonFile("metrickit-example.json")
+        XCTAssertNotNil(metrickitReport)
+        // Needs to match the name used in BitdriftKSCrashHandler
+        let kscrashFilePath = getTestBundleFileUrl("lastCrash.bjn")
+        let parentDir = kscrashFilePath.deletingLastPathComponent()
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: parentDir.path))
+
+        XCTAssertNoThrow(try! BitdriftKSCrashHandler.configure(withCrashReportDirectory: parentDir))
+
+        let enhancedReport = BitdriftKSCrashHandler.enhancedMetricKitReport(metrickitReport) as! [String: any Equatable]
+        XCTAssertNotNil(enhancedReport)
+        XCTAssertFalse(dictsAreEqual(metrickitReport, enhancedReport))
+
+        let expectedNames = ["com.apple.uikit.eventfetch-thread",
+                             "tokio-runtime-worker",
+                             "io.bitdrift.capture.anr-reporter",
+                             "tokio-runtime-worker",
+                             "io.bitdrift.capture.buffer.Verbose Buffer",
+                             "io.bitdrift.capture.buffer.Continuous Buffer",
+                             "com.apple.NSURLConnectionLoader",
+                             // This won't be found because its stack trace wasn't captured
+                             // "KSCrash Exception Handler (Primary)",
+        ]
+        let callStackTree = enhancedReport["callStackTree"] as! [String: Any]
+        let callStacks = callStackTree["callStacks"] as! [Dictionary<String, any Equatable>]
+        var foundNames: [String] = []
+        for stack in callStacks {
+            if let name = stack["name"] as? String {
+                foundNames.append(name)
+            }
+        }
+        XCTAssertEqual(expectedNames.sorted(), foundNames.sorted())
     }
 
     func testSdkAttributes() throws {
@@ -172,14 +251,27 @@ ThermalInfo: (
         let contents = FileManager.default.contents(atPath: "\(path)/\(files[0])")!
         var buf = ByteBuffer(data: contents)
         let report: Report = try! getCheckedRoot(byteBuffer: &buf)
-        XCTAssertNil(report.threadDetails)
+        XCTAssertNotNil(report.threadDetails)
+        XCTAssertEqual(1, report.threadDetails?.threadsCount)
+
+        let thread = report.threadDetails!.threads(at: 0)!
+        XCTAssertEqual(2, thread.stackTraceCount)
+        XCTAssertEqual(1, thread.index)
+
+        var frame = thread.stackTrace(at: 0)!
+        XCTAssertEqual("70B89F27-1634-3580-A695-57CDB41D7743", frame.imageId)
+        XCTAssertEqual(7170766264, frame.frameAddress)
+
+        frame = thread.stackTrace(at: 1)!
+        XCTAssertEqual("D366A690-4127-4BB6-B6A9-019A2ACD0D8D", frame.imageId)
+        XCTAssertEqual(23786237891, frame.frameAddress)
 
         let error = report.errors(at: 0)!
         XCTAssertEqual("SIGKILL", error.name!)
         XCTAssertEqual(2, error.stackTraceCount)
 
         // frame order is the opposite of hangs (FB18377370)
-        let frame = error.stackTrace(at: 0)!
+        frame = error.stackTrace(at: 0)!
         XCTAssertEqual("70B89F27-1634-3580-A695-57CDB41D7743", frame.imageId)
         XCTAssertEqual(7170766264, frame.frameAddress)
 
@@ -233,13 +325,22 @@ ThermalInfo: (
         let contents = FileManager.default.contents(atPath: "\(path)/\(files[0])")!
         var buf = ByteBuffer(data: contents)
         let report: Report = try! getCheckedRoot(byteBuffer: &buf)
-        XCTAssertNil(report.threadDetails)
+        XCTAssertNotNil(report.threadDetails)
+        XCTAssertEqual(1, report.threadDetails?.threadsCount)
+
+        let thread = report.threadDetails!.threads(at: 0)!
+        XCTAssertEqual(1, thread.stackTraceCount)
+        XCTAssertEqual(0, thread.index)
+
+        var frame = thread.stackTrace(at: 0)!
+        XCTAssertEqual("70B89F27-1634-3580-A695-57CDB41D7743", frame.imageId)
+        XCTAssertEqual(7170766264, frame.frameAddress)
 
         let error = report.errors(at: 0)!
         XCTAssertEqual("SIGABRT", error.name!)
         XCTAssertEqual(1, error.stackTraceCount)
 
-        let frame = error.stackTrace(at: 0)!
+        frame = error.stackTrace(at: 0)!
         XCTAssertEqual("70B89F27-1634-3580-A695-57CDB41D7743", frame.imageId)
         XCTAssertEqual(7170766264, frame.frameAddress)
 
@@ -307,11 +408,11 @@ ThermalInfo: (
         let contents = FileManager.default.contents(atPath: "\(path)/\(files[0])")!
         var buf = ByteBuffer(data: contents)
         let report: Report = try! getCheckedRoot(byteBuffer: &buf)
-        XCTAssertEqual(1, report.threadDetails!.threadsCount) // # of items in threads array
+        XCTAssertEqual(2, report.threadDetails!.threadsCount) // # of items in threads array
         XCTAssertEqual(2, report.threadDetails!.count) // total system threads
         XCTAssertEqual(ReportType.appnotresponding, report.type)
 
-        let thread = report.threadDetails!.threads(at: 0)!
+        let thread = report.threadDetails!.threads(at: 1)!
         XCTAssertEqual(1, thread.stackTraceCount)
 
         var frame = thread.stackTrace(at: 0)!
@@ -320,7 +421,8 @@ ThermalInfo: (
 
         let error = report.errors(at: 0)!
         XCTAssertEqual("Main Runloop Hang", error.name!)
-        XCTAssertEqual("app was unresponsive for 1.7 sec", error.reason!)
+        let reason = error.reason?.replacingOccurrences(of: "1,7", with: "1.7")
+        XCTAssertEqual("app was unresponsive for 1.7 sec", reason!)
         XCTAssertEqual(2, error.stackTraceCount)
 
         // frame order is the opposite of crashes (FB18377370)
@@ -397,7 +499,7 @@ ThermalInfo: (
         let contents = FileManager.default.contents(atPath: "\(path)/\(files[0])")!
         var buf = ByteBuffer(data: contents)
         let report: Report = try! getCheckedRoot(byteBuffer: &buf)
-        XCTAssertEqual(2, report.threadDetails!.threadsCount) // # of items in threads array
+        XCTAssertEqual(3, report.threadDetails!.threadsCount) // # of items in threads array
         XCTAssertEqual(3, report.threadDetails!.count) // total system threads
         XCTAssertEqual(ReportType.nativecrash, report.type)
 
@@ -409,7 +511,7 @@ ThermalInfo: (
         XCTAssertEqual("E41D0413-92D1-4B00-9B62-43D57A1B0CC5", frame.imageId)
         XCTAssertEqual(7170701375, frame.frameAddress)
 
-        thread = report.threadDetails!.threads(at: 1)!
+        thread = report.threadDetails!.threads(at: 2)!
         XCTAssertEqual(2, thread.stackTraceCount)
         XCTAssertEqual(2, thread.index) // error is thread 1
 

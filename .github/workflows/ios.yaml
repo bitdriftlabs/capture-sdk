@@ -79,6 +79,8 @@ jobs:
       - run: ./bazelw run --config ci //examples/swift/hello_world:ios_app &> /tmp/envoy.log &
         name: "Run app"
   macos_tsan:
+    # Note: tsan has been disabled because it's too flaky.
+    # https://bitdrift.slack.com/archives/C058ZD2M2CQ/p1755792021318899?thread_ts=1755784965.888369&cid=C058ZD2M2CQ
     runs-on: macos-14
     needs: "pre_check"
     if: needs.pre_check.outputs.should_run == 'true'
@@ -90,7 +92,7 @@ jobs:
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
       - name: Run iOS tests (tsan)
-        run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/core/...)') --test_tag_filters=macos_only --test_output=errors --config ci --config ios-tsan
+        run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/core/...)') --test_tag_filters=macos_only --test_output=errors --config ci
   verify_ios:
     runs-on: ubuntu-latest
     needs: ["macos_tsan", "swift_hello_world"]

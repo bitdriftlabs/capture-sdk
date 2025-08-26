@@ -79,6 +79,13 @@ new_git_repository(
     remote = "https://github.com/bitdriftlabs/api.git",
 )
 
+new_git_repository(
+    name = "kscrash",
+    build_file = "//bazel:BUILD.kscrash",
+    commit = "f81af773ae3172718a03bdcb89359bb9e6f34c08",
+    remote = "https://github.com/kstenerud/KSCrash.git",
+)
+
 git_override(
     module_name = "google_bazel_common",
     commit = "c35b0339ae7d7ac95761f69f4a0eed033163cc80",
@@ -349,6 +356,8 @@ crate.from_cargo(
         "x86_64-unknown-linux-gnu",
     ],
 )
+
+# File generation must be skipped because of https://github.com/bazelbuild/rules_rust/issues/3552
 crate.annotation(
     build_script_env = {"SKIP_PROTO_GEN": "1"},
     crate = "bd-grpc",
@@ -364,6 +373,10 @@ crate.annotation(
 crate.annotation(
     build_script_env = {"SKIP_FILE_GEN": "1"},
     crate = "bd-report-writer",
+)
+crate.annotation(
+    build_script_env = {"SKIP_FILE_GEN": "1"},
+    crate = "bd-bonjson",
 )
 
 # A recent rustix update seems to have broken something here, so manually add in the crates we need to build under Bazel.

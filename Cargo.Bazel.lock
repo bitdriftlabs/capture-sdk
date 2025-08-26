@@ -1,5 +1,5 @@
 {
-  "checksum": "3405b8efe8ffd9b83483266e6066cbdef214000238429a076426395813e472ea",
+  "checksum": "15be8eba02ae4bd774b4b50552c1edea1289fc7f77ff53fe21d8547c089b1516",
   "crates": {
     "addr2line 0.24.2": {
       "name": "addr2line",
@@ -2087,6 +2087,100 @@
           "selects": {}
         },
         "version": "1.0.0"
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": "../LICENSE"
+    },
+    "bd-bonjson 1.0.0": {
+      "name": "bd-bonjson",
+      "version": "1.0.0",
+      "package_url": null,
+      "repository": {
+        "Git": {
+          "remote": "https://github.com/bitdriftlabs/shared-core.git",
+          "commitish": {
+            "Rev": "b10c06f4a217e4a50f90073d1f496ad2d547f6ec"
+          },
+          "strip_prefix": "bd-bonjson"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "bd_bonjson",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "bd_bonjson",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "bd-bonjson 1.0.0",
+              "target": "build_script_build"
+            },
+            {
+              "id": "libc 0.2.175",
+              "target": "libc"
+            },
+            {
+              "id": "log 0.4.27",
+              "target": "log"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2024",
+        "version": "1.0.0"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "cbindgen 0.29.0",
+              "target": "cbindgen"
+            }
+          ],
+          "selects": {}
+        },
+        "build_script_env": {
+          "common": {
+            "SKIP_FILE_GEN": "1"
+          },
+          "selects": {}
+        }
       },
       "license": null,
       "license_ids": [],
@@ -18530,6 +18624,10 @@
               "target": "bd_api"
             },
             {
+              "id": "bd-bonjson 1.0.0",
+              "target": "bd_bonjson"
+            },
+            {
               "id": "bd-client-common 1.0.0",
               "target": "bd_client_common"
             },
@@ -19073,6 +19171,10 @@
         ],
         "deps": {
           "common": [
+            {
+              "id": "bd-bonjson 1.0.0",
+              "target": "bd_bonjson"
+            },
             {
               "id": "bd-client-common 1.0.0",
               "target": "bd_client_common"
@@ -25606,6 +25708,7 @@
     "assert_matches 1.5.0",
     "async-trait 0.1.89",
     "bd-api 1.0.0",
+    "bd-bonjson 1.0.0",
     "bd-buffer 1.0.0",
     "bd-client-common 1.0.0",
     "bd-client-stats-store 1.0.0",

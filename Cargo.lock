@@ -367,6 +367,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bd-bonjson"
+version = "1.0.0"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=b10c06f4a217e4a50f90073d1f496ad2d547f6ec#b10c06f4a217e4a50f90073d1f496ad2d547f6ec"
+dependencies = [
+ "cbindgen",
+ "libc",
+ "log",
+]
+
+[[package]]
 name = "bd-bounded-buffer"
 version = "1.0.0"
 source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=b10c06f4a217e4a50f90073d1f496ad2d547f6ec#b10c06f4a217e4a50f90073d1f496ad2d547f6ec"
@@ -3003,6 +3013,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bd-api",
+ "bd-bonjson",
  "bd-client-common",
  "bd-device",
  "bd-error-reporter",
@@ -3107,6 +3118,7 @@ dependencies = [
 name = "test_swift_bridge"
 version = "1.0.0"
 dependencies = [
+ "bd-bonjson",
  "bd-client-common",
  "bd-error-reporter",
  "bd-key-value",
