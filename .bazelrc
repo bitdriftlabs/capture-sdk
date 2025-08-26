@@ -21,6 +21,9 @@ build --features=swift.opt_uses_osize
 build --features=swift.opt_uses_wmo
 build --features=swift.remap_xcode_path
 build --features=swift.use_global_module_cache
+build --features=swift.enable_library_evolution
+
+build:ios-hello-world --features=swift.emit_swiftinterface
 
 # Gate the references to androidndk behind a flag to support building on arm linux.
 build:android --android_crosstool_top=@androidndk//:toolchain
