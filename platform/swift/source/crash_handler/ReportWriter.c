@@ -89,7 +89,7 @@ static bool writeBacktrace(BDCrashWriterHandle writer, const char *const key, KS
                         // Ensure safe pointer arithmetic
                         if (info.dli_saddr >= info.dli_fbase) {
                             RETURN_ON_FAIL(writeKVUnsigned(writer, "offsetIntoBinaryTextSegment", 
-                                                          (uintptr_t)info.dli_saddr - (uintptr_t)info.dli_fbase));
+                                                          (uintptr_t)stackCursor->stackEntry.address - (uintptr_t)info.dli_fbase));
                         }
                         KSBinaryImage img = {0};
                         if (ksdl_binaryImageForHeader(info.dli_fbase, info.dli_fname, &img)) {

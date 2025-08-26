@@ -157,6 +157,7 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     }
     
     memset(&g_crashHandlerReportContext, 0, sizeof(g_crashHandlerReportContext));
+    // This gets allocated once and lives forever.
     g_crashHandlerReportContext.reportPath = strdup(self.kscrashReportFilePath.UTF8String);
     g_crashHandlerReportContext.metadata.pid = NSProcessInfo.processInfo.processIdentifier;
     
