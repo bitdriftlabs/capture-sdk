@@ -1,0 +1,133 @@
+name: Update Capture SDK version and React Native version for release
+on:
+    workflow_call:
+      inputs:
+        version:
+          description: 'The Capture SDK version to release, ex: 0.18.6'
+          required: true
+          type: string
+    workflow_dispatch:
+      inputs:
+        version:
+          description: 'The Capture SDK version to release, ex: 0.18.6'
+          required: true
+          type: string
+          
+jobs:
+  update-capture-sdk-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: ./.github/actions/javascript-setup
+
+      - name: Get previous Capture SDK version before update (e.g. 0.18.5)
+        id: previous-capture-sdk-version
+        run: |
+          PREVIOUS_CAPTURE_SDK_VERSION=$(grep "capture_version = '" packages/react-native/BdReactNative.podspec | sed "s/.*capture_version = '\([^']*\)'.*/\1/")
+          echo "previous_capture_sdk_version=$PREVIOUS_CAPTURE_SDK_VERSION" >> $GITHUB_OUTPUT
+          echo "Previous capture SDK version: $PREVIOUS_CAPTURE_SDK_VERSION"
+
+      - name: Run update_rn_capture_version.sh
+        id: update-capture-sdk-version-version
+        run: ./scripts/update_rn_capture_version.sh ${{ inputs.version }}
+
+  update-rn-version:
+    needs: [update-capture-sdk-version]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: ./.github/actions/javascript-setup
+
+      - name: Get previous capture SDK version
+        id: previous-capture-version
+        run: |
+          # Get the previous version from the current state
+          PREVIOUS_CAPTURE_SDK_VERSION=$(grep "capture_version = '" packages/react-native/BdReactNative.podspec | sed "s/.*capture_version = '\([^']*\)'.*/\1/")
+          echo "previous_capture_sdk_version=$PREVIOUS_CAPTURE_SDK_VERSION" >> $GITHUB_OUTPUT
+          echo "Previous capture SDK version: $PREVIOUS_CAPTURE_SDK_VERSION"
+
+      - name: Calculate new React Native package version (e.g. 0.7.2)
+        id: update-rn-version
+        run: |
+          # Get current React Native package version 
+          CURRENT_RN_VERSION=$(node -p "require('./packages/react-native/package.json').version")
+          UPDATED_CAPTURE_SDK_VERSION="${{ inputs.version }}"
+          
+          PREVIOUS_CAPTURE_SDK_VERSION="${{ steps.previous-capture-version.outputs.previous_capture_sdk_version }}"
+          
+          CURRENT_RN_MAJOR=$(echo "$CURRENT_RN_VERSION" | cut -d. -f1)
+          CURRENT_RN_MINOR=$(echo "$CURRENT_RN_VERSION" | cut -d. -f2)
+          CURRENT_RN_PATCH=$(echo "$CURRENT_RN_VERSION" | cut -d. -f3)
+          
+          PREVIOUS_CAPTURE_MAJOR=$(echo "$PREVIOUS_CAPTURE_SDK_VERSION" | cut -d. -f1)
+          CAPTURE_MAJOR=$(echo "$UPDATED_CAPTURE_SDK_VERSION" | cut -d. -f1)
+          
+          # Handle RN version logic as following:
+          # 1. If capture-sdk version goes from 0.18.6 to 0.19.0, then update react native from 0.7.1 to 0.8.0
+          # 2. If capture-sdk version goes from 0.18.6 to 0.18.7, then update react native from 0.7.1 to 0.7.2
+          # 3. If capture-sdk version goes from 0.99.9 to 1.0.0, then update react native from 0.7.1 to 1.0.0
+        
+          PREVIOUS_CAPTURE_MINOR=$(echo "$PREVIOUS_CAPTURE_SDK_VERSION" | cut -d. -f2)
+          UPDATED_CAPTURE_MINOR=$(echo "$UPDATED_CAPTURE_SDK_VERSION" | cut -d. -f2)
+          
+          if [ "$CAPTURE_MAJOR" -gt "$PREVIOUS_CAPTURE_MAJOR" ]; then
+            NEW_RN_MAJOR=$CAPTURE_MAJOR
+            NEW_RN_MINOR=0
+            NEW_RN_PATCH=0
+            echo "Major version change detected in capture SDK: $PREVIOUS_CAPTURE_SDK_VERSION -> $UPDATED_CAPTURE_SDK_VERSION"
+            echo "Updating React Native package to major version: $CURRENT_RN_VERSION -> $NEW_RN_MAJOR.$NEW_RN_MINOR.$NEW_RN_PATCH"
+          elif [ "$CAPTURE_MAJOR" -eq "$PREVIOUS_CAPTURE_MAJOR" ] && [ "$UPDATED_CAPTURE_MINOR" -gt "$PREVIOUS_CAPTURE_MINOR" ]; then
+            NEW_RN_MAJOR=$CURRENT_RN_MAJOR
+            NEW_RN_MINOR=$((CURRENT_RN_MINOR + 1))
+            NEW_RN_PATCH=0
+            echo "Minor version change detected in capture SDK: $PREVIOUS_CAPTURE_SDK_VERSION -> $UPDATED_CAPTURE_SDK_VERSION"
+            echo "Updating React Native package to minor version: $CURRENT_RN_VERSION -> $NEW_RN_MAJOR.$NEW_RN_MINOR.$NEW_RN_PATCH"
+          else
+            NEW_RN_MAJOR=$CURRENT_RN_MAJOR
+            NEW_RN_MINOR=$CURRENT_RN_MINOR
+            NEW_RN_PATCH=$((CURRENT_RN_PATCH + 1))
+            echo "No major version change in capture SDK: $PREVIOUS_CAPTURE_SDK_VERSION -> $UPDATED_CAPTURE_SDK_VERSION"
+            echo "Incrementing React Native package patch version: $CURRENT_RN_VERSION -> $NEW_RN_MAJOR.$NEW_RN_MINOR.$NEW_RN_PATCH"
+          fi
+          
+          NEW_RN_VERSION="$NEW_RN_MAJOR.$NEW_RN_MINOR.$NEW_RN_PATCH"
+          echo "new_rn_version=$NEW_RN_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update React Native package version
+        run: |
+          NEW_VERSION="${{ steps.update-rn-version.outputs.new_rn_version }}"
+          
+          # Update package.json
+          npm version $NEW_VERSION --workspace=packages/react-native --no-git-tag-version
+          
+          # Update package-lock.json
+          npm install --package-lock-only
+          
+          echo "Updated React Native package version to $NEW_VERSION"
+
+      - name: Create Pull Request after successful E2E tests
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: Update version to ${{ inputs.version }} and bump React Native to ${{ steps.update-rn-version.outputs.new_rn_version }}
+          commit-message: Update React Native version with Capture SDK ${{ inputs.version }} and bump RN package to ${{ steps.update-rn-version.outputs.new_rn_version }}
+          committer: GitHub Action <noreply@github.com>
+          base: main
+          delete-branch: true
+          branch: update-rn-capture-version-${{ inputs.version }}
+
+
