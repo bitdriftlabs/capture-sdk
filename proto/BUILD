@@ -92,8 +92,8 @@ genrule(
 filegroup(
     name = "report_swift_source",
     srcs = [
-        ":report_swift",
         ":common_swift",
+        ":report_swift",
     ],
     visibility = ["//visibility:public"],
 )
