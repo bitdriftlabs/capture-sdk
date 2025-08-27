@@ -13,12 +13,12 @@ flatbuffer_library_public(
     srcs = [
         "@bitdrift_api//:buffer_log",
     ],
-    includes = ["@bitdrift_api//:common"],
-    # This seems crazy hacky
-    include_paths = ["external/+_repo_rules3+bitdrift_api/src"],
     outs = [
         "buffer_log.schema.json",
     ],
+    # This seems crazy hacky
+    include_paths = ["external/+_repo_rules3+bitdrift_api/src"],
+    includes = ["@bitdrift_api//:common"],
     language_flag = "--jsonschema",
 )
 
@@ -27,12 +27,12 @@ flatbuffer_library_public(
     srcs = [
         "@bitdrift_api//:report",
     ],
-    includes = ["@bitdrift_api//:common"],
-    # This seems crazy hacky
-    include_paths = ["external/+_repo_rules3+bitdrift_api/src"],
     outs = [
         "report_generated.swift",
     ],
+    # This seems crazy hacky
+    include_paths = ["external/+_repo_rules3+bitdrift_api/src"],
+    includes = ["@bitdrift_api//:common"],
     language_flag = "--swift",
 )
 
