@@ -12,8 +12,10 @@ flatbuffer_library_public(
     name = "descriptor",
     srcs = [
         "@bitdrift_api//:buffer_log",
-        "@bitdrift_api//:common",
     ],
+    includes = ["@bitdrift_api//:common"],
+    # This seems crazy hacky
+    include_paths = ["external/+_repo_rules3+bitdrift_api/src"],
     outs = [
         "buffer_log.schema.json",
     ],
@@ -24,8 +26,10 @@ flatbuffer_library_public(
     name = "gen_report_swift",
     srcs = [
         "@bitdrift_api//:report",
-        "@bitdrift_api//:common",
     ],
+    includes = ["@bitdrift_api//:common"],
+    # This seems crazy hacky
+    include_paths = ["external/+_repo_rules3+bitdrift_api/src"],
     outs = [
         "report_generated.swift",
     ],
