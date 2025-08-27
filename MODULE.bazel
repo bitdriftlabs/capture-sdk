@@ -172,7 +172,7 @@ maven.install(
         "androidx.collection:collection:1.4.5",
         "androidx.metrics:metrics-performance:1.0.0-beta01",
         "com.google.flatbuffers:flatbuffers-java:25.2.10",
-        "com.google.protobuf:protobuf-kotlin-lite:3.25.5",
+        "com.google.protobuf:protobuf-kotlin-lite:4.31.1",
 
         # Compose
         "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:{}".format(KOTLIN_COMPILE_VERSION),
