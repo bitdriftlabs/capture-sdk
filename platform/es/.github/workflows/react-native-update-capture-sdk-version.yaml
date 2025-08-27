@@ -1,4 +1,4 @@
-name: Update Capture SDK version and React Native version for release
+name: React Native Update Version
 on:
     workflow_call:
       inputs:
@@ -14,7 +14,7 @@ on:
           type: string
           
 jobs:
-  update-capture-sdk-version:
+  update-versions:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -35,30 +35,9 @@ jobs:
           echo "previous_capture_sdk_version=$PREVIOUS_CAPTURE_SDK_VERSION" >> $GITHUB_OUTPUT
           echo "Previous capture SDK version: $PREVIOUS_CAPTURE_SDK_VERSION"
 
-      - name: Run update_rn_capture_version.sh
-        id: update-capture-sdk-version-version
+      - name: Run update_rn_capture_version.sh to pick latest capture-sdk version
+        id: update-capture-sdk-version
         run: ./scripts/update_rn_capture_version.sh ${{ inputs.version }}
-
-  update-rn-version:
-    needs: [update-capture-sdk-version]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: ./.github/actions/javascript-setup
-
-      - name: Get previous capture SDK version
-        id: previous-capture-version
-        run: |
-          # Get the previous version from the current state
-          PREVIOUS_CAPTURE_SDK_VERSION=$(grep "capture_version = '" packages/react-native/BdReactNative.podspec | sed "s/.*capture_version = '\([^']*\)'.*/\1/")
-          echo "previous_capture_sdk_version=$PREVIOUS_CAPTURE_SDK_VERSION" >> $GITHUB_OUTPUT
-          echo "Previous capture SDK version: $PREVIOUS_CAPTURE_SDK_VERSION"
 
       - name: Calculate new React Native package version (e.g. 0.7.2)
         id: update-rn-version
@@ -67,7 +46,7 @@ jobs:
           CURRENT_RN_VERSION=$(node -p "require('./packages/react-native/package.json').version")
           UPDATED_CAPTURE_SDK_VERSION="${{ inputs.version }}"
           
-          PREVIOUS_CAPTURE_SDK_VERSION="${{ steps.previous-capture-version.outputs.previous_capture_sdk_version }}"
+          PREVIOUS_CAPTURE_SDK_VERSION="${{ steps.previous-capture-sdk-version.outputs.previous_capture_sdk_version }}"
           
           CURRENT_RN_MAJOR=$(echo "$CURRENT_RN_VERSION" | cut -d. -f1)
           CURRENT_RN_MINOR=$(echo "$CURRENT_RN_VERSION" | cut -d. -f2)

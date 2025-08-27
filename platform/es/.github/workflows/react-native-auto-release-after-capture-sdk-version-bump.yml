@@ -1,4 +1,4 @@
-name: Auto release React Native after upon a new capture-sdk release
+name: React Native auto release upon a new capture-sdk release
 on:
   pull_request:
     types: [closed]
