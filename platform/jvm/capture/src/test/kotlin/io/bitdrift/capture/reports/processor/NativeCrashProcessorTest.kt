@@ -64,10 +64,10 @@ class NativeCrashProcessorTest {
     fun makeReport(tombstone: TombstoneProtos.Tombstone): Report {
         val out = ByteArrayOutputStream()
         tombstone.writeTo(out)
-        val tombstone = ByteArrayInputStream(out.toByteArray())
+        val tombstoneStream = ByteArrayInputStream(out.toByteArray())
 
         val flatBufferBuilder = FlatBufferBuilder()
-        val reportOffset = NativeCrashProcessor.process(flatBufferBuilder, 0, 0, 0, "description", tombstone)
+        val reportOffset = NativeCrashProcessor.process(flatBufferBuilder, 0, 0, 0, "description", tombstoneStream)
 
         flatBufferBuilder.finish(reportOffset)
 
