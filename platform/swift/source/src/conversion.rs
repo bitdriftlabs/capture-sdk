@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::ffi::{make_nsstring, nsstring_into_string};
-use bd_bonjson::decoder::Value;
+use bd_bonjson::Value;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use std::collections::HashMap;
@@ -230,14 +230,18 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
         value_id,
         map_id,
       } => {
-        let value = results.remove(&value_id).unwrap();
+        let value = results
+          .remove(&value_id)
+          .ok_or_else(|| anyhow::anyhow!("Missing value for dict insertion (id: {})", value_id))?;
         if let Some(Value::Object(ref mut map)) = results.get_mut(&map_id) {
           map.insert(key_str, value);
         }
       },
 
       ObjcToRustWorkItem::InsertArrayValue { value_id, array_id } => {
-        let value = results.remove(&value_id).unwrap();
+        let value = results
+          .remove(&value_id)
+          .ok_or_else(|| anyhow::anyhow!("Missing value for array insertion (id: {})", value_id))?;
         if let Some(Value::Array(ref mut vec)) = results.get_mut(&array_id) {
           // Push to maintain order (items are processed in reverse due to stack)
           vec.push(value);
@@ -246,7 +250,9 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
 
       ObjcToRustWorkItem::FinalizeDictionary { map_id, result_id } => {
         // Move the completed map to the final result
-        let final_map = results.remove(&map_id).unwrap();
+        let final_map = results
+          .remove(&map_id)
+          .ok_or_else(|| anyhow::anyhow!("Missing map for finalization (id: {})", map_id))?;
         results.insert(result_id, final_map);
       },
 
@@ -255,7 +261,9 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
         result_id,
       } => {
         // Move the completed array to the final result
-        let final_array = results.remove(&array_id).unwrap();
+        let final_array = results
+          .remove(&array_id)
+          .ok_or_else(|| anyhow::anyhow!("Missing array for finalization (id: {})", array_id))?;
         results.insert(result_id, final_array);
       },
     }
@@ -413,7 +421,7 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
             }
           },
 
-          Value::Null | Value::None => {
+          Value::Null => {
             let null_class = class!(NSNull);
             let null_obj = msg_send![null_class, null];
             results.insert(result_id, StrongPtr::retain(null_obj));
@@ -426,20 +434,30 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
         value_id,
         dict_id,
       } => {
-        let value_obj = results.remove(&value_id).unwrap();
-        let dict_obj = results.get(&dict_id).unwrap();
+        let value_obj = results
+          .remove(&value_id)
+          .ok_or_else(|| anyhow::anyhow!("Missing value for dict insertion (id: {})", value_id))?;
+        let dict_obj = results
+          .get(&dict_id)
+          .ok_or_else(|| anyhow::anyhow!("Missing dict for insertion (id: {})", dict_id))?;
         let ns_key = make_nsstring(&key)?;
         let () = msg_send![**dict_obj, setObject: *value_obj forKey: *ns_key];
       },
 
       RustToObjcWorkItem::InsertArrayValue { value_id, array_id } => {
-        let value_obj = results.remove(&value_id).unwrap();
-        let array_obj = results.get(&array_id).unwrap();
+        let value_obj = results
+          .remove(&value_id)
+          .ok_or_else(|| anyhow::anyhow!("Missing value for array insertion (id: {})", value_id))?;
+        let array_obj = results
+          .get(&array_id)
+          .ok_or_else(|| anyhow::anyhow!("Missing array for insertion (id: {})", array_id))?;
         let () = msg_send![**array_obj, addObject: *value_obj];
       },
 
       RustToObjcWorkItem::FinalizeDict { dict_id, result_id } => {
-        let mutable_dict = results.remove(&dict_id).unwrap();
+        let mutable_dict = results
+          .remove(&dict_id)
+          .ok_or_else(|| anyhow::anyhow!("Missing dict for finalization (id: {})", dict_id))?;
         let dict_class = class!(NSDictionary);
         let immutable_dict = msg_send![dict_class, dictionaryWithDictionary: *mutable_dict];
         results.insert(result_id, StrongPtr::retain(immutable_dict));
@@ -449,7 +467,9 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
         array_id,
         result_id,
       } => {
-        let mutable_array = results.remove(&array_id).unwrap();
+        let mutable_array = results
+          .remove(&array_id)
+          .ok_or_else(|| anyhow::anyhow!("Missing array for finalization (id: {})", array_id))?;
         let array_class = class!(NSArray);
         let immutable_array = msg_send![array_class, arrayWithArray: *mutable_array];
         results.insert(result_id, StrongPtr::retain(immutable_array));

@@ -9,7 +9,7 @@
 // The actual conversion functions require the Objective-C runtime to be available, so they
 // cannot be tested as pure Rust unit tests.
 
-use bd_bonjson::decoder::Value;
+use bd_bonjson::Value;
 use objc::runtime::Object;
 use std::collections::HashMap;
 use swift_bridge::conversion::{objc_value_to_rust, rust_value_to_objc};

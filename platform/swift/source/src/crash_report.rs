@@ -8,13 +8,32 @@
 use crate::conversion::{objc_value_to_rust, rust_value_to_objc};
 use crate::ffi::nsstring_into_string;
 use anyhow;
-use bd_bonjson::decoder::{decode_value, Value};
+use bd_bonjson::decoder::DecodeError;
+use bd_bonjson::{decoder, Value};
 use bd_error_reporter::reporter::with_handle_unexpected_or;
 use objc::runtime::Object;
 use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+
+#[derive(Debug)]
+enum DocumentLoadError {
+  Io(std::io::Error),
+  Decode(DecodeError),
+}
+
+impl From<std::io::Error> for DocumentLoadError {
+  fn from(error: std::io::Error) -> Self {
+    Self::Io(error)
+  }
+}
+
+impl From<DecodeError> for DocumentLoadError {
+  fn from(error: DecodeError) -> Self {
+    Self::Decode(error)
+  }
+}
 
 struct NamedThread {
   name: String,
@@ -33,12 +52,6 @@ pub enum CacheResult {
   PartialSuccess     = 2,
   /// Successfully cached the complete document
   Success            = 3,
-}
-
-#[derive(Debug)]
-pub struct PartialDecodeResult {
-  pub partial_value: Value, // The value decoded so far, which will be incomplete or possibly None.
-  pub error: anyhow::Error, // The error that occurred during decoding.
 }
 
 // Global cache for the most recently loaded KSCrash report.
@@ -63,14 +76,10 @@ extern "C" fn capture_cache_kscrash_report(kscrash_report_path_ptr: *const Objec
 extern "C" fn capture_enhance_metrickit_diagnostic_report(
   metrickit_report_ptr: *const Object,
 ) -> *const Object {
-  with_handle_unexpected_or(
-    || -> anyhow::Result<*const Object> {
-      enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr)
-        .map(|result| result.unwrap_or(metrickit_report_ptr))
-    },
-    metrickit_report_ptr,
-    "enhance metrickit diagnostic report",
-  )
+  enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr)
+    .inspect_err(|e| log::error!("Failed to enhance MetricKit report: {e}"))
+    .unwrap_or(Some(metrickit_report_ptr))
+    .unwrap_or(metrickit_report_ptr)
 }
 
 // Implementation
@@ -92,14 +101,25 @@ fn capture_cache_kscrash_report_impl(
         "KSCrash report is not a valid object/hashmap"
       ))
     },
-    Err(partial_result) => match partial_result.partial_value {
-      Value::None => return Ok(CacheResult::Failure),
+    Err(DocumentLoadError::Io(io_error)) => {
+      return Err(anyhow::anyhow!(
+        "Failed to read KSCrash report file: {}",
+        io_error
+      ))
+    },
+    Err(DocumentLoadError::Decode(DecodeError::Partial {
+      partial_value,
+      error: _,
+    })) => match partial_value {
       Value::Object(hashmap) => (hashmap, true),
       _ => {
         return Err(anyhow::anyhow!(
           "KSCrash report is not a valid object/hashmap"
         ))
       },
+    },
+    Err(DocumentLoadError::Decode(DecodeError::Fatal(_))) => {
+      return Err(anyhow::anyhow!("Failed to decode KSCrash report"))
     },
   };
 
@@ -114,19 +134,10 @@ fn capture_cache_kscrash_report_impl(
   )
 }
 
-fn load_bonjson_document<P: AsRef<Path>>(path: &P) -> Result<Value, PartialDecodeResult> {
-  let file_contents = fs::read(path).map_err(|io_error| PartialDecodeResult {
-    partial_value: Value::None,
-    error: anyhow::anyhow!("Failed to read file: {io_error}"),
-  })?;
-
-  decode_value(&file_contents).map_err(|bd_error| {
-    let error_msg = format!("Failed to decode BONJSON: {bd_error:?}");
-    PartialDecodeResult {
-      partial_value: bd_error.partial_value,
-      error: anyhow::anyhow!(error_msg),
-    }
-  })
+fn load_bonjson_document<P: AsRef<Path>>(path: &P) -> Result<Value, DocumentLoadError> {
+  let file_contents = fs::read(path)?;
+  let value = decoder::decode(&file_contents)?;
+  Ok(value)
 }
 
 fn enhance_metrickit_diagnostic_report_impl(
