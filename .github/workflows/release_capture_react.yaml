@@ -29,6 +29,6 @@ jobs:
           --raw-field version=${{ inputs.version }}
         env:
           GH_TOKEN: ${{ steps.org-read-write.outputs.token }}
-          # "Update Capture SDK version" workflow id in the capture-es repo.
-          WORKFLOW_ID: 183994602
+          # "React Native Update Version" workflow id in the capture-es repo.
+          WORKFLOW_ID: 184625065 
 
