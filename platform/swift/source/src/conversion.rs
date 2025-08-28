@@ -7,6 +7,7 @@
 
 use crate::ffi::{make_nsstring, nsstring_into_string};
 use bd_bonjson::Value;
+use bd_client_common::error::InvariantError;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use std::collections::HashMap;
@@ -230,18 +231,14 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
         value_id,
         map_id,
       } => {
-        let value = results
-          .remove(&value_id)
-          .ok_or_else(|| anyhow::anyhow!("Missing value for dict insertion (id: {})", value_id))?;
+        let value = results.remove(&value_id).ok_or(InvariantError::Invariant)?;
         if let Some(Value::Object(ref mut map)) = results.get_mut(&map_id) {
           map.insert(key_str, value);
         }
       },
 
       ObjcToRustWorkItem::InsertArrayValue { value_id, array_id } => {
-        let value = results
-          .remove(&value_id)
-          .ok_or_else(|| anyhow::anyhow!("Missing value for array insertion (id: {})", value_id))?;
+        let value = results.remove(&value_id).ok_or(InvariantError::Invariant)?;
         if let Some(Value::Array(ref mut vec)) = results.get_mut(&array_id) {
           // Push to maintain order (items are processed in reverse due to stack)
           vec.push(value);
@@ -250,9 +247,7 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
 
       ObjcToRustWorkItem::FinalizeDictionary { map_id, result_id } => {
         // Move the completed map to the final result
-        let final_map = results
-          .remove(&map_id)
-          .ok_or_else(|| anyhow::anyhow!("Missing map for finalization (id: {})", map_id))?;
+        let final_map = results.remove(&map_id).ok_or(InvariantError::Invariant)?;
         results.insert(result_id, final_map);
       },
 
@@ -261,9 +256,7 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
         result_id,
       } => {
         // Move the completed array to the final result
-        let final_array = results
-          .remove(&array_id)
-          .ok_or_else(|| anyhow::anyhow!("Missing array for finalization (id: {})", array_id))?;
+        let final_array = results.remove(&array_id).ok_or(InvariantError::Invariant)?;
         results.insert(result_id, final_array);
       },
     }
@@ -271,7 +264,7 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
 
   results
     .remove(&root_id)
-    .ok_or_else(|| anyhow::anyhow!("Failed to find root result"))
+    .ok_or_else(|| anyhow::Error::from(InvariantError::Invariant))
 }
 
 fn extract_nsnumber_value(ptr: *const Object) -> anyhow::Result<Value> {
@@ -436,10 +429,10 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
       } => {
         let value_obj = results
           .remove(&value_id)
-          .ok_or_else(|| anyhow::anyhow!("Missing value for dict insertion (id: {})", value_id))?;
+          .ok_or_else(|| anyhow::Error::from(InvariantError::Invariant))?;
         let dict_obj = results
           .get(&dict_id)
-          .ok_or_else(|| anyhow::anyhow!("Missing dict for insertion (id: {})", dict_id))?;
+          .ok_or_else(|| anyhow::Error::from(InvariantError::Invariant))?;
         let ns_key = make_nsstring(&key)?;
         let () = msg_send![**dict_obj, setObject: *value_obj forKey: *ns_key];
       },
@@ -447,17 +440,17 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
       RustToObjcWorkItem::InsertArrayValue { value_id, array_id } => {
         let value_obj = results
           .remove(&value_id)
-          .ok_or_else(|| anyhow::anyhow!("Missing value for array insertion (id: {})", value_id))?;
+          .ok_or_else(|| anyhow::Error::from(InvariantError::Invariant))?;
         let array_obj = results
           .get(&array_id)
-          .ok_or_else(|| anyhow::anyhow!("Missing array for insertion (id: {})", array_id))?;
+          .ok_or_else(|| anyhow::Error::from(InvariantError::Invariant))?;
         let () = msg_send![**array_obj, addObject: *value_obj];
       },
 
       RustToObjcWorkItem::FinalizeDict { dict_id, result_id } => {
         let mutable_dict = results
           .remove(&dict_id)
-          .ok_or_else(|| anyhow::anyhow!("Missing dict for finalization (id: {})", dict_id))?;
+          .ok_or_else(|| anyhow::Error::from(InvariantError::Invariant))?;
         let dict_class = class!(NSDictionary);
         let immutable_dict = msg_send![dict_class, dictionaryWithDictionary: *mutable_dict];
         results.insert(result_id, StrongPtr::retain(immutable_dict));
@@ -469,7 +462,7 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
       } => {
         let mutable_array = results
           .remove(&array_id)
-          .ok_or_else(|| anyhow::anyhow!("Missing array for finalization (id: {})", array_id))?;
+          .ok_or_else(|| anyhow::Error::from(InvariantError::Invariant))?;
         let array_class = class!(NSArray);
         let immutable_array = msg_send![array_class, arrayWithArray: *mutable_array];
         results.insert(result_id, StrongPtr::retain(immutable_array));
@@ -479,5 +472,5 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
 
   results
     .remove(&root_id)
-    .ok_or_else(|| anyhow::anyhow!("Failed to find root result"))
+    .ok_or_else(|| anyhow::Error::from(InvariantError::Invariant))
 }
