@@ -234,17 +234,26 @@ public final class Logger {
         #if targetEnvironment(simulator)
         Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
         #else
-        Logger.issueReporterInitResult = measureTime {
-            guard let outputDir = Logger.reportCollectionDirectory() else {
-                return .initialized(.missingReportsDirectory)
-            }
-            if configuration.enableFatalIssueReporting {
+        if !configuration.enableFatalIssueReporting {
+            Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
+        } else {
+            Logger.issueReporterInitResult = measureTime {
+                guard let runtimeConfig = Logger.cachedReportConfig() else {
+                    return .initialized(.runtimeNotSet)
+                }
+                guard let enabled = runtimeConfig[RuntimeVariable.crashReporting.name] as? Bool, enabled else {
+                    return .initialized(.runtimeNotEnabled)
+                }
+                guard let outputDir = Logger.reportCollectionDirectory() else {
+                    return .initialized(.missingReportsDirectory)
+                }
+                var monitoringFailures: String?
                 if let kscrashReportDir = Logger.kscrashReportDirectory() {
                     do {
                         try BitdriftKSCrashWrapper.configure(withCrashReportDirectory: kscrashReportDir)
                         try BitdriftKSCrashWrapper.startCrashReporter()
                     } catch {
-                        log(level: .debug, message: "Failed to set up KSCrash reporter", error: error)
+                        monitoringFailures = "\(error)"
                     }
                 }
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
@@ -259,9 +268,11 @@ public final class Logger {
                     val = reporter
                 }
                 MXMetricManager.shared.add(reporter)
+                if let context = monitoringFailures {
+                    return .initialized(.monitoringWithFailures(context))
+                }
                 return .initialized(.monitoring)
             }
-            return .initialized(.notEnabled)
         }
         #endif
     }
@@ -379,7 +390,7 @@ public final class Logger {
 
     static func reportConfigPath() -> URL? {
         return captureSDKDirectory()?
-            .appendingPathComponent("reports/config", isDirectory: false)
+            .appendingPathComponent("reports/config.csv", isDirectory: false)
     }
 
     static func kscrashReportDirectory() -> URL? {
@@ -393,6 +404,16 @@ public final class Logger {
     }
 
     // MARK: - Private
+
+    private static func cachedReportConfig() -> [String: Any]? {
+        guard let configPath = Logger.reportConfigPath(),
+              let data = FileManager.default.contents(atPath: configPath.path),
+              let contents = String(data: data, encoding: .utf8)
+        else {
+            return nil
+        }
+        return readCachedValues(contents)
+    }
 
     private static func normalizedAPIURL(apiURL: URL) -> URL {
         // We can assume a properly formatted api url is being used, so we can follow the same pattern
