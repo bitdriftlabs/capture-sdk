@@ -244,7 +244,7 @@ jobs:
             const soBaseline = process.env.SO_BASELINE_KB;
             const soDiff = process.env.SO_DIFF_KB;
 
-            let body = '## Size Comparison Report\n\n';
+            let body = '## Size Comparison Report (x86_64)\n\n';
 
             // Combined table for both APK and SO sizes
             if ((apkBaseline && apkBaseline !== '') || (soBaseline && soBaseline !== '')) {
