@@ -95,6 +95,7 @@ packages/core/*.node
 packages/core/npm
 packages/core/**/*.node
 packages/core/artifacts/
+packages/core/sdk_directory/
 
 # Expo
 node_modules/
