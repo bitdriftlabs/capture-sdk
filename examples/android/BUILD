@@ -13,7 +13,6 @@ _maven_deps = [
     artifact("androidx.appcompat:appcompat"),
     artifact("androidx.activity:activity-compose"),
     artifact("androidx.compose.material:material"),
-    artifact("com.google.code.gson:gson"),
     artifact("com.google.flatbuffers:flatbuffers-java"),
     artifact("com.google.protobuf:protobuf-javalite"),
     artifact("com.google.protobuf:protobuf-kotlin-lite"),
@@ -27,6 +26,10 @@ _maven_deps = [
     artifact("org.jetbrains.kotlin:kotlin-stdlib"),
     artifact("org.jetbrains:annotations"),
     artifact("androidx.metrics:metrics-performance"),
+    artifact("org.jetbrains.kotlinx:kotlinx-serialization-json"),
+    artifact("org.jetbrains.kotlinx:kotlinx-serialization-core"),
+    artifact("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm"),
+    artifact("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm"),
 ]
 
 aar_import(

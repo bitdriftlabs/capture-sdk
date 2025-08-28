@@ -9,11 +9,11 @@ assertjCore             = "3.22.0"
 detektPlugin            = "1.23.7"
 dokkaPlugin             = "1.9.20"
 flatbuffers             = "25.2.10"
-gson                    = "2.10.1"
 jsr305                  = "3.0.2"
 junit                   = "4.13.2"
 kotlin                  = "2.1.21"
 kotlinResultJvm         = "1.1.18"
+kotlinxSerialization    = "1.5.0"
 lifecycleCommon         = "2.8.7"
 material3Android        = "1.2.1"
 mavenPublishPlugin      = "0.28.0"
@@ -42,8 +42,9 @@ androidx-ui                = { module = "androidx.compose.ui:ui", version.ref = 
 apollo-runtime             = { module = "com.apollographql.apollo:apollo-runtime", version.ref = "apollo" }
 assertj-core               = { module = "org.assertj:assertj-core", version.ref = "assertjCore" }
 flatbuffers                = { module = "com.google.flatbuffers:flatbuffers-java", version.ref = "flatbuffers" }
-gson                       = { module = "com.google.code.gson:gson", version.ref = "gson" }
 jsr305                     = { module = "com.google.code.findbugs:jsr305", version.ref = "jsr305" }
+kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 junit                      = { module = "junit:junit", version.ref = "junit" }
 kotlin-mockito-kotlin      = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockitoKotlinVersion" }
 kotlin-result-jvm          = { module = "com.michael-bull.kotlin-result:kotlin-result-jvm", version.ref = "kotlinResultJvm" }
@@ -68,5 +69,6 @@ detekt              = { id = "io.gitlab.arturbosch.detekt", version.ref = "detek
 dokka               = { id = "org.jetbrains.dokka", version.ref = "dokkaPlugin" }
 kotlin              = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-android      = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 maven-publish       = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublishPlugin" }
 rust-android        = { id = "com.github.willir.rust.cargo-ndk-android", version.ref = "rustAndroidPlugin" }
