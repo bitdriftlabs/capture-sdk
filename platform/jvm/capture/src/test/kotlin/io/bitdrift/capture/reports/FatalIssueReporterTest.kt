@@ -24,6 +24,7 @@ import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.utils.SdkDirectory
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,6 +37,7 @@ import java.io.File
 class FatalIssueReporterTest {
     private lateinit var fatalIssueReporter: FatalIssueReporter
     private lateinit var reportsDir: File
+    private lateinit var configFile: File
 
     private lateinit var sdkDirectory: String
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
@@ -51,13 +53,40 @@ class FatalIssueReporterTest {
     fun setup() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
-        reportsDir = File(APP_CONTEXT.filesDir, "bitdrift_capture/reports/")
+        reportsDir = File(APP_CONTEXT.filesDir, "bitdrift_capture/reports/").apply { if (!exists()) mkdirs() }
+        configFile = File(reportsDir, "config.csv")
+        configFile.writeText("crash_reporting.enabled,true")
         sdkDirectory = SdkDirectory.getPath(APP_CONTEXT)
         fatalIssueReporter = buildReporter()
     }
 
+    @After
+    fun teardown() {
+        reportsDir.delete()
+    }
+
     @Test
-    fun initialize_whenBuiltInMechanism_shouldInitCrashHandlerAndFetchAppExitReason() {
+    fun initialize_whenDisabledViaConfig_shouldNotInit() {
+        configFile.writeText("crash_reporting.enabled,false")
+        fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
+
+        fatalIssueReporter.fatalIssueReporterState.assert(
+            FatalIssueReporterState.RuntimeDisabled::class.java,
+        )
+    }
+
+    @Test
+    fun initialize_whenConfigNotPresent_shouldNotInit() {
+        configFile.delete()
+        fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
+
+        fatalIssueReporter.fatalIssueReporterState.assert(
+            FatalIssueReporterState.RuntimeDisabled::class.java,
+        )
+    }
+
+    @Test
+    fun initialize_whenEnabled_shouldInitCrashHandlerAndFetchAppExitReason() {
         fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         verify(captureUncaughtExceptionHandler).install(eq(fatalIssueReporter))
