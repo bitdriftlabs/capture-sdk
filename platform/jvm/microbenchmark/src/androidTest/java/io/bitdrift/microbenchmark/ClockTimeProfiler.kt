@@ -71,6 +71,7 @@ class ClockTimeProfiler {
 
                         override fun initBuiltInMode(
                             appContext: Context,
+                            sdkDirectory: String,
                             clientAttributes: IClientAttributes,
                             completedReportsProcessor: ICompletedReportsProcessor,
                         ) {
