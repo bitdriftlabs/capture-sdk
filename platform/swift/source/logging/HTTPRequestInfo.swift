@@ -178,7 +178,7 @@ extension HTTPRequestInfo {
     ///
     /// - parameter task: The task to initialize the request info with.
     /// - parameter extraFields: Additional fields user may want to append to Requests
-    public init?(task: URLSessionTask, extraFields: Fields?) {
+    public init?(task: URLSessionTask, extraFields: Fields? = nil) {
         if let request = task.originalRequest {
             if task is URLSessionDataTask {
                 // For basic data tasks we just use `countOfBytesExpectedToSend` for request body estimate.
