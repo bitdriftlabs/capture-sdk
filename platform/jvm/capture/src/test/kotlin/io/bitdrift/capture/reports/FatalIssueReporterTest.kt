@@ -19,13 +19,10 @@ import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
-import io.bitdrift.capture.providers.FieldValue
-import io.bitdrift.capture.providers.toFieldValue
-import io.bitdrift.capture.reports.FatalIssueReporter.Companion.buildFieldsMap
-import io.bitdrift.capture.reports.FatalIssueReporter.Companion.getDuration
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
+import io.bitdrift.capture.utils.SdkDirectory
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -39,6 +36,8 @@ import java.io.File
 class FatalIssueReporterTest {
     private lateinit var fatalIssueReporter: FatalIssueReporter
     private lateinit var reportsDir: File
+
+    private lateinit var sdkDirectory: String
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
     private val lifecycleOwner: LifecycleOwner = mock()
 
@@ -53,45 +52,37 @@ class FatalIssueReporterTest {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
         reportsDir = File(APP_CONTEXT.filesDir, "bitdrift_capture/reports/")
+        sdkDirectory = SdkDirectory.getPath(APP_CONTEXT)
         fatalIssueReporter = buildReporter()
     }
 
     @Test
     fun initialize_whenBuiltInMechanism_shouldInitCrashHandlerAndFetchAppExitReason() {
-        fatalIssueReporter.initBuiltInMode(appContext, clientAttributes, completedReportsProcessor)
+        fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         verify(captureUncaughtExceptionHandler).install(eq(fatalIssueReporter))
         verify(latestAppExitInfoProvider).get(any())
-        fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.BuiltIn::class.java,
+        fatalIssueReporter.fatalIssueReporterState.assert(
+            FatalIssueReporterState.Initialized::class.java,
         )
         verify(completedReportsProcessor).processCrashReports()
     }
 
-    private fun FatalIssueReporterStatus.assert(
+    private fun FatalIssueReporterState.assert(
         expectedType: Class<*>,
         crashFileExist: Boolean = false,
     ) {
-        assertThat(state).isInstanceOf(expectedType)
-        val expectedMap: Map<String, FieldValue> =
-            buildMap {
-                getDuration()?.let {
-                    put("_fatal_issue_reporting_duration_ms", it)
-                }
-                put("_fatal_issue_reporting_state", state.readableType.toFieldValue())
-            }
-        assertThat(duration).isNotNull()
-        assertThat(buildFieldsMap()).isEqualTo(expectedMap)
+        assertThat(this).isInstanceOf(expectedType)
         assertCrashFile(crashFileExist)
     }
 
     @Test
-    fun initBuiltInMode_whenAppExitInfoFails_shouldCallOnErrorOccurred() {
+    fun init_whenAppExitInfoFails_shouldCallOnErrorOccurred() {
         val exception = RuntimeException("test error")
         whenever(latestAppExitInfoProvider.get(any()))
             .thenThrow(exception)
 
-        fatalIssueReporter.initBuiltInMode(appContext, clientAttributes, completedReportsProcessor)
+        fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         verify(completedReportsProcessor).onReportProcessingError(
             any(),

@@ -22,19 +22,12 @@ sealed class FatalIssueReporterState(
     data object NotInitialized : FatalIssueReporterState("NOT_INITIALIZED")
 
     /**
-     * Represents initialization states for [io.bitdrift.capture.reports.FatalIssueMechanism.BuiltIn]
+     * Represents a successful initialized state
      */
-    sealed class BuiltIn(
-        override val readableType: String,
-    ) : FatalIssueReporterState(readableType) {
-        /**
-         * Represents the initialized state when [io.bitdrift.capture.reports.FatalIssueMechanism.BuiltIn] is configured
-         */
-        data object Initialized : BuiltIn("BUILT_IN_MODE_INITIALIZED")
+    data object Initialized : FatalIssueReporterState("INITIALIZED")
 
-        /**
-         * Represents the failed initialization state when [io.bitdrift.capture.reports.FatalIssueMechanism.BuiltIn] is configured
-         */
-        data object InitializationFailed : BuiltIn("BUILT_IN_MODE_FAILED")
-    }
+    /**
+     * Represents a failed initialization attempt state
+     */
+    data object InitializationFailed : FatalIssueReporterState("FAILED_TO_INITIALIZED")
 }

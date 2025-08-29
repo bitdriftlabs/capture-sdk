@@ -255,7 +255,7 @@ internal class LoggerImpl(
                 runtime,
                 errorHandler,
                 memoryMetricsProvider = memoryMetricsProvider,
-                isFatalIssueReporterEnabled = configuration.enableFatalIssueReporting,
+                fatalIssueReporter = fatalIssueReporter,
             )
 
         // Install the app exit logger before the Capture logger is started to ensure
@@ -266,7 +266,12 @@ internal class LoggerImpl(
         CaptureJniLibrary.startLogger(this.loggerId)
 
         // fatal issue reporter needs to be initialized after appExitLogger and the jniLogger
-        fatalIssueReporter?.initBuiltInMode(context, clientAttributes, this)
+        fatalIssueReporter?.init(
+            appContext = context,
+            sdkDirectory = sdkDirectory,
+            clientAttributes = clientAttributes,
+            completedReportsProcessor = this,
+        )
     }
 
     override fun processCrashReports() {
