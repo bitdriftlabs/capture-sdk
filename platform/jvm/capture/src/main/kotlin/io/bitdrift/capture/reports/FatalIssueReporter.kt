@@ -30,6 +30,7 @@ import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.threading.CaptureDispatchers
 import java.io.File
+import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.TimeSource
 
@@ -49,14 +50,14 @@ internal class FatalIssueReporter(
 ) : IFatalIssueReporter,
     IJvmCrashListener {
     @VisibleForTesting
-    internal var fatalIssueReporterStatus: FatalIssueReporterStatus = FatalIssueReporterStatus(NotInitialized)
+    internal var fatalIssueReporterState: FatalIssueReporterState = NotInitialized
         private set
+    private var initializationDuration: Duration? = null
 
     private lateinit var fatalIssueReporterProcessor: FatalIssueReporterProcessor
 
     /**
-     * Initializes a BuiltIn Fatal Issue reporting mechanism that doesn't depend on any 3rd party
-     * libraries
+     * Initializes the FatalIssueReporter handler once we have the required dependencies available
      */
     override fun init(
         appContext: Context,
@@ -64,7 +65,7 @@ internal class FatalIssueReporter(
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
     ) {
-        if (fatalIssueReporterStatus.state is NotInitialized) {
+        if (fatalIssueReporterState is NotInitialized) {
             runCatching {
                 val duration = TimeSource.Monotonic.markNow()
                 val destinationDirectory = getFatalIssueDirectories(sdkDirectory)
@@ -80,24 +81,20 @@ internal class FatalIssueReporter(
                         persistLastExitReasonIfNeeded(appContext)
                         completedReportsProcessor.processCrashReports()
                     }.onSuccess {
-                        fatalIssueReporterStatus =
-                            FatalIssueReporterStatus(
-                                FatalIssueReporterState.Initialized,
-                                duration.elapsedNow(),
-                            )
+                        fatalIssueReporterState =
+                            FatalIssueReporterState.Initialized
+                        initializationDuration = duration.elapsedNow()
                     }.onFailure {
                         logError(completedReportsProcessor, it)
-                        fatalIssueReporterStatus =
-                            FatalIssueReporterStatus(
-                                FatalIssueReporterState.InitializationFailed,
-                                duration.elapsedNow(),
-                            )
+                        fatalIssueReporterState =
+                            FatalIssueReporterState.InitializationFailed
+                        initializationDuration = duration.elapsedNow()
                     }
                 }
             }.getOrElse {
                 logError(completedReportsProcessor, it)
-                fatalIssueReporterStatus =
-                    FatalIssueReporterStatus(FatalIssueReporterState.InitializationFailed)
+                fatalIssueReporterState =
+                    FatalIssueReporterState.InitializationFailed
             }
         } else {
             Log.e(LOG_TAG, "Fatal issue reporting already being initialized")
@@ -107,11 +104,10 @@ internal class FatalIssueReporter(
     /**
      * Returns the current init state
      */
-    override fun initializationState(): FatalIssueReporterState = fatalIssueReporterStatus.state
+    override fun initializationState(): FatalIssueReporterState = fatalIssueReporterState
 
     /**
-     * Applicable when [FatalIssueMechanism.BuiltIn] is available, given that registration
-     * only occurs for calls like initialize(FatalIssueMechanism.BUILT_IN)
+     * Persists any JVM crash
      */
     override fun onJvmCrash(
         thread: Thread,
@@ -132,9 +128,9 @@ internal class FatalIssueReporter(
 
     override fun getLogStatusFieldsMap(): Map<String, FieldValue> =
         buildMap {
-            put(FATAL_ISSUE_REPORTING_STATE_KEY, fatalIssueReporterStatus.state.readableType.toFieldValue())
-            fatalIssueReporterStatus.getDuration()?.let { duration ->
-                put(FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY, duration)
+            put(FATAL_ISSUE_REPORTING_STATE_KEY, fatalIssueReporterState.readableType.toFieldValue())
+            initializationDuration?.toFieldValue(DurationUnit.MILLISECONDS)?.let {
+                put(FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY, it)
             }
         }
 
@@ -185,19 +181,5 @@ internal class FatalIssueReporter(
         private const val FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY = "_fatal_issue_reporting_duration_ms"
         private const val FATAL_ISSUE_REPORTING_STATE_KEY = "_fatal_issue_reporting_state"
         private const val DESTINATION_FILE_PATH = "/reports/new"
-
-        /**
-         * Returns the fields map with latest [FatalIssueReporterStatus]
-         */
-        internal fun FatalIssueReporterStatus.buildFieldsMap(): Map<String, FieldValue> =
-            buildMap {
-                put(FATAL_ISSUE_REPORTING_STATE_KEY, state.readableType.toFieldValue())
-                getDuration()?.let {
-                    put(FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY, it)
-                }
-            }
-
-        @VisibleForTesting
-        fun FatalIssueReporterStatus.getDuration(): FieldValue? = duration?.toFieldValue(DurationUnit.MILLISECONDS)
     }
 }

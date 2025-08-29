@@ -27,7 +27,7 @@ sealed class FatalIssueReporterState(
     data object Initialized : FatalIssueReporterState("INITIALIZED")
 
     /**
-     * Represents a failed initialization state upon an attempted initialization
+     * Represents a failed initialization attempt state
      */
     data object InitializationFailed : FatalIssueReporterState("FAILED_TO_INITIALIZED")
 }
