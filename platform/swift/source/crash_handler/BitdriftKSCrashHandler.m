@@ -108,18 +108,17 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     }
 
     self.kscrashReportFilePath = crashReportFile;
-    if (![fm fileExistsAtPath:crashReportFile]) {
-        return YES;
-    }
 
-    switch (capture_cache_kscrash_report(crashReportFile)) {
+    BOOL result = YES;
+
+    switch (capture_cache_kscrash_report(self.kscrashReportFilePath)) {
         case CacheResultReportDoesNotExist:
             // KSCrash didn't detect a crash last launch.
             break;
         case CacheResultSuccess:
             break;
         case CacheResultPartialSuccess:
-            // It may have enough information anyway, so this is fine.
+            // We got a partial document, which might have at least some info we could use.
             break;
         case CacheResultFailure:
             *error = [NSError errorWithDomain:@"BitdriftKSCrashHandler" code:0 userInfo:@{
@@ -127,14 +126,13 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
              NSLocalizedFailureReasonErrorKey:[NSString stringWithFormat:@"Error caching kscrash report at \"%@\"",
                                                self.kscrashReportFilePath],
             }];
-            return NO;
+            result = NO;
+            break;
     }
 
-    if ([fm fileExistsAtPath:crashReportFile]) {
-        [fm removeItemAtPath:crashReportFile error:nil];
-    }
+    [fm removeItemAtPath:crashReportFile error:nil];
 
-    return YES;
+    return result;
 }
 
 + (BOOL)startCrashReporterWithError:(NSError **)error {
