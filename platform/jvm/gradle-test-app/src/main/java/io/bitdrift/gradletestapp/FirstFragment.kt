@@ -38,6 +38,7 @@ import io.bitdrift.capture.apollo.CaptureApolloInterceptor
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
+import io.bitdrift.capture.network.okhttp.OkHttpRequestFieldProvider
 import io.bitdrift.gradletestapp.databinding.FragmentFirstBinding
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
@@ -155,8 +156,19 @@ class FirstFragment : Fragment() {
         okHttpClient =
             OkHttpClient
                 .Builder()
-                .eventListenerFactory(CaptureOkHttpEventListenerFactory())
-                .build()
+                .eventListenerFactory(
+                    CaptureOkHttpEventListenerFactory(
+                        extraFieldsProvider =
+                            OkHttpRequestFieldProvider { request ->
+                                mapOf(
+                                    "_additional_extra_field" to
+                                        System
+                                            .currentTimeMillis()
+                                            .toString(),
+                                )
+                            },
+                    ),
+                ).build()
 
         apolloClient =
             ApolloClient
