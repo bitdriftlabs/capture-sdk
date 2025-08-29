@@ -57,6 +57,7 @@ public final class LoggerIntegrator {
     ///
     /// - parameter integrations:     The list of integrations to enable.
     /// - parameter disableSwizzling: Whether integrations is allowed to do swizzling.
+    /// - parameter requestFieldProvider: Provider for extra fields appended to HTTP requests.
     ///
     /// - returns: The configured logger. This is the same instance that can be accessed via the
     ///            `Logger.shared` property, but it's returned in a non-optional form here.

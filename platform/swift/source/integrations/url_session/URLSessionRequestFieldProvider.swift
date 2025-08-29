@@ -6,20 +6,26 @@
 
 import Foundation
 
-/// Provides additional custom fields to add to http request logs automatically sent
+/// Provides additional custom fields to add to HTTP request logs automatically sent
 /// by using the URLSession integration.
 public protocol URLSessionRequestFieldProvider {
-    /// @return a map of fields to add to the http request log that will be sent
-    /// by the URLSession integration for this request.
+    /// Provides extra fields for a given request.
+    ///
+    /// - Parameter request: The `URLRequest` being logged.
+    /// - Returns: A dictionary of key-value pairs to add to the request log
+    ///            that will be sent by the URLSession integration.
     func provideExtraFields(for request: URLRequest) -> [String: String]
 }
 
-/// Default implementation that provides no extra fields
+/// Default implementation that provides no extra fields.
 public struct DefaultURLSessionRequestFieldProvider: URLSessionRequestFieldProvider {
     public init() {}
-    
-    public func provideExtraFields(for request: URLRequest) -> [String: String] {
+
+    /// Always returns an empty dictionary, meaning no extra fields are added.
+    ///
+    /// - Parameter request: The `URLRequest` being logged.
+    /// - Returns: An empty dictionary.
+    public func provideExtraFields(for _: URLRequest) -> [String: String] {
         return [:]
     }
 }
-
