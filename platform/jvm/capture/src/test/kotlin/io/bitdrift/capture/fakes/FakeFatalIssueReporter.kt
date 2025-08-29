@@ -19,6 +19,7 @@ class FakeFatalIssueReporter(
 ) : IFatalIssueReporter {
     override fun initBuiltInMode(
         appContext: Context,
+        sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
     ) {

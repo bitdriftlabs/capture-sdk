@@ -266,7 +266,12 @@ internal class LoggerImpl(
         CaptureJniLibrary.startLogger(this.loggerId)
 
         // fatal issue reporter needs to be initialized after appExitLogger and the jniLogger
-        fatalIssueReporter?.initBuiltInMode(context, clientAttributes, this)
+        fatalIssueReporter?.initBuiltInMode(
+            appContext = context,
+            sdkDirectory = sdkDirectory,
+            clientAttributes = clientAttributes,
+            completedReportsProcessor = this,
+        )
     }
 
     override fun processCrashReports() {

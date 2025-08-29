@@ -26,6 +26,7 @@ import io.bitdrift.capture.reports.FatalIssueReporter.Companion.getDuration
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
+import io.bitdrift.capture.utils.SdkDirectory
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -39,6 +40,8 @@ import java.io.File
 class FatalIssueReporterTest {
     private lateinit var fatalIssueReporter: FatalIssueReporter
     private lateinit var reportsDir: File
+
+    private lateinit var sdkDirectory: String
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
     private val lifecycleOwner: LifecycleOwner = mock()
 
@@ -53,12 +56,13 @@ class FatalIssueReporterTest {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
         reportsDir = File(APP_CONTEXT.filesDir, "bitdrift_capture/reports/")
+        sdkDirectory = SdkDirectory.getPath(APP_CONTEXT)
         fatalIssueReporter = buildReporter()
     }
 
     @Test
     fun initialize_whenBuiltInMechanism_shouldInitCrashHandlerAndFetchAppExitReason() {
-        fatalIssueReporter.initBuiltInMode(appContext, clientAttributes, completedReportsProcessor)
+        fatalIssueReporter.initBuiltInMode(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         verify(captureUncaughtExceptionHandler).install(eq(fatalIssueReporter))
         verify(latestAppExitInfoProvider).get(any())
@@ -91,7 +95,7 @@ class FatalIssueReporterTest {
         whenever(latestAppExitInfoProvider.get(any()))
             .thenThrow(exception)
 
-        fatalIssueReporter.initBuiltInMode(appContext, clientAttributes, completedReportsProcessor)
+        fatalIssueReporter.initBuiltInMode(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         verify(completedReportsProcessor).onReportProcessingError(
             any(),

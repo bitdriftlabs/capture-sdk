@@ -29,7 +29,6 @@ import io.bitdrift.capture.reports.persistence.FatalIssueReporterStorage
 import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.threading.CaptureDispatchers
-import io.bitdrift.capture.utils.SdkDirectory
 import java.io.File
 import kotlin.time.DurationUnit
 import kotlin.time.TimeSource
@@ -61,13 +60,14 @@ internal class FatalIssueReporter(
      */
     override fun initBuiltInMode(
         appContext: Context,
+        sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
     ) {
         if (fatalIssueReporterStatus.state is NotInitialized) {
             runCatching {
                 val duration = TimeSource.Monotonic.markNow()
-                val destinationDirectory = getFatalIssueDirectories(appContext)
+                val destinationDirectory = getFatalIssueDirectories(sdkDirectory)
                 fatalIssueReporterProcessor =
                     FatalIssueReporterProcessor(
                         FatalIssueReporterStorage(destinationDirectory.destinationDirectory),
@@ -172,8 +172,7 @@ internal class FatalIssueReporter(
             mechanism = FatalIssueMechanism.BuiltIn,
         )
 
-    private fun getFatalIssueDirectories(appContext: Context): FatalIssueDirectories {
-        val sdkDirectory: String = SdkDirectory.getPath(appContext)
+    private fun getFatalIssueDirectories(sdkDirectory: String): FatalIssueDirectories {
         val destinationDirectory = File(sdkDirectory, DESTINATION_FILE_PATH).apply { if (!exists()) mkdirs() }
         return FatalIssueDirectories(sdkDirectory, destinationDirectory)
     }
