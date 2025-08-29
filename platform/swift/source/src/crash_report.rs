@@ -78,9 +78,9 @@ fn capture_cache_kscrash_report_impl(
 
   let file_contents = fs::read(&kscrash_report_path)?;
 
-  let (hashmap, was_partial) = match decoder::decode(&file_contents) {
-    Ok(Value::Object(hashmap)) => (hashmap, false),
-    Ok(_) => {
+  let (hashmap, was_partial) = match decoder::from_slice(&file_contents) {
+    Ok((_, Value::Object(hashmap))) => (hashmap, false),
+    Ok((..)) => {
       return Err(anyhow::anyhow!(
         "KSCrash report is not a valid object/hashmap"
       ))
