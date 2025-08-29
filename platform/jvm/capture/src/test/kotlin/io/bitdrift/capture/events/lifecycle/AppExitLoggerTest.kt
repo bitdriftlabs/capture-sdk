@@ -25,6 +25,7 @@ import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
+import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.SESSION_ID
@@ -33,6 +34,7 @@ import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EMPTY_LIST_MESSAGE
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE
@@ -281,7 +283,7 @@ class AppExitLoggerTest {
 
     @Test
     fun onJvmCrash_whenBuiltInFatalIssueMechanism_shouldNotSendAppExitCrashLog() {
-        val appExitLogger = buildAppExitLogger(isFatalIssueReporterEnabled = true)
+        val appExitLogger = buildAppExitLogger(FatalIssueReporterState.Initialized)
         whenever(runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_CRASH)).thenReturn(true)
 
         appExitLogger.onJvmCrash(Thread.currentThread(), IllegalStateException("Simulated Crash"))
@@ -298,7 +300,7 @@ class AppExitLoggerTest {
         verify(logger, never()).flush(any())
     }
 
-    private fun buildAppExitLogger(isFatalIssueReporterEnabled: Boolean = false) =
+    private fun buildAppExitLogger(fatalReporterInitState: FatalIssueReporterState = FatalIssueReporterState.NotInitialized) =
         AppExitLogger(
             logger,
             activityManager,
@@ -309,7 +311,7 @@ class AppExitLoggerTest {
             backgroundThreadHandler,
             lastExitInfo,
             captureUncaughtExceptionHandler,
-            isFatalIssueReporterEnabled,
+            FakeFatalIssueReporter(fatalReporterInitState),
         )
 
     private fun buildExpectedAnrFields(): Map<String, FieldValue> =

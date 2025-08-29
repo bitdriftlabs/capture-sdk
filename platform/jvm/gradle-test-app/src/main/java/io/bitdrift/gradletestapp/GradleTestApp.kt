@@ -59,7 +59,6 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.getFatalIssueSourceConfig
@@ -107,7 +106,7 @@ class GradleTestApp : Application() {
             return
         }
         val configuration =
-            if (fatalIssueMechanism == FatalIssueMechanism.BuiltIn.displayName) {
+            if (fatalIssueMechanism == "CONFIGURED") {
                 Configuration(
                     enableFatalIssueReporting = true,
                     enableNativeCrashReporting = true,

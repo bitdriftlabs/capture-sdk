@@ -62,12 +62,12 @@ class FatalIssueReporterTest {
 
     @Test
     fun initialize_whenBuiltInMechanism_shouldInitCrashHandlerAndFetchAppExitReason() {
-        fatalIssueReporter.initBuiltInMode(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
+        fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         verify(captureUncaughtExceptionHandler).install(eq(fatalIssueReporter))
         verify(latestAppExitInfoProvider).get(any())
         fatalIssueReporter.fatalIssueReporterStatus.assert(
-            FatalIssueReporterState.BuiltIn::class.java,
+            FatalIssueReporterState.Initialized::class.java,
         )
         verify(completedReportsProcessor).processCrashReports()
     }
@@ -90,12 +90,12 @@ class FatalIssueReporterTest {
     }
 
     @Test
-    fun initBuiltInMode_whenAppExitInfoFails_shouldCallOnErrorOccurred() {
+    fun init_whenAppExitInfoFails_shouldCallOnErrorOccurred() {
         val exception = RuntimeException("test error")
         whenever(latestAppExitInfoProvider.get(any()))
             .thenThrow(exception)
 
-        fatalIssueReporter.initBuiltInMode(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
+        fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         verify(completedReportsProcessor).onReportProcessingError(
             any(),

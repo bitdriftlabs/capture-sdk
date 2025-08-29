@@ -21,8 +21,4 @@ data class FatalIssueReporterStatus(
      * Total duration for init the reporting
      */
     val duration: Duration? = null,
-    /**
-     * The mechanism selected
-     */
-    val mechanism: FatalIssueMechanism,
 )

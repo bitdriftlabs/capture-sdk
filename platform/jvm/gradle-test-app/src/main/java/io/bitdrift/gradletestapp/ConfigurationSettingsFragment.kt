@@ -17,7 +17,6 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
-import io.bitdrift.capture.reports.FatalIssueMechanism
 import kotlin.system.exitProcess
 
 class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
@@ -77,7 +76,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
                 FATAL_ISSUE_SOURCE_PREFS_KEY,
                 FATAL_ISSUE_TYPE_TITLE,
                 FATAL_ISSUE_REPORTING_TYPES,
-                FatalIssueMechanism.BuiltIn.displayName,
+                "CONFIGURED",
                 context,
             )
         backendCategory.addPreference(sessionStrategyPref)
@@ -125,7 +124,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         private const val FATAL_ISSUE_TYPE_TITLE = "Fatal Issue Mechanism"
         private val FATAL_ISSUE_REPORTING_TYPES =
             arrayOf(
-                FatalIssueMechanism.BuiltIn.displayName,
+                "CONFIGURED",
                 "NONE",
             )
 

@@ -49,7 +49,7 @@ internal class FatalIssueReporter(
 ) : IFatalIssueReporter,
     IJvmCrashListener {
     @VisibleForTesting
-    internal var fatalIssueReporterStatus: FatalIssueReporterStatus = buildDefaultReporterStatus()
+    internal var fatalIssueReporterStatus: FatalIssueReporterStatus = FatalIssueReporterStatus(NotInitialized)
         private set
 
     private lateinit var fatalIssueReporterProcessor: FatalIssueReporterProcessor
@@ -58,7 +58,7 @@ internal class FatalIssueReporter(
      * Initializes a BuiltIn Fatal Issue reporting mechanism that doesn't depend on any 3rd party
      * libraries
      */
-    override fun initBuiltInMode(
+    override fun init(
         appContext: Context,
         sdkDirectory: String,
         clientAttributes: IClientAttributes,
@@ -82,27 +82,22 @@ internal class FatalIssueReporter(
                     }.onSuccess {
                         fatalIssueReporterStatus =
                             FatalIssueReporterStatus(
-                                FatalIssueReporterState.BuiltIn.Initialized,
+                                FatalIssueReporterState.Initialized,
                                 duration.elapsedNow(),
-                                FatalIssueMechanism.BuiltIn,
                             )
                     }.onFailure {
                         logError(completedReportsProcessor, it)
                         fatalIssueReporterStatus =
                             FatalIssueReporterStatus(
-                                FatalIssueReporterState.BuiltIn.InitializationFailed,
+                                FatalIssueReporterState.InitializationFailed,
                                 duration.elapsedNow(),
-                                FatalIssueMechanism.BuiltIn,
                             )
                     }
                 }
             }.getOrElse {
                 logError(completedReportsProcessor, it)
                 fatalIssueReporterStatus =
-                    FatalIssueReporterStatus(
-                        FatalIssueReporterState.BuiltIn.InitializationFailed,
-                        mechanism = FatalIssueMechanism.BuiltIn,
-                    )
+                    FatalIssueReporterStatus(FatalIssueReporterState.InitializationFailed)
             }
         } else {
             Log.e(LOG_TAG, "Fatal issue reporting already being initialized")
@@ -110,9 +105,9 @@ internal class FatalIssueReporter(
     }
 
     /**
-     * Returns the configured [io.bitdrift.capture.reports.FatalIssueMechanism]
+     * Returns the current init state
      */
-    override fun getReportingMechanism(): FatalIssueMechanism = fatalIssueReporterStatus.mechanism
+    override fun initializationState(): FatalIssueReporterState = fatalIssueReporterStatus.state
 
     /**
      * Applicable when [FatalIssueMechanism.BuiltIn] is available, given that registration
@@ -130,7 +125,7 @@ internal class FatalIssueReporter(
                 allThreads = Thread.getAllStackTraces(),
             )
         }.getOrElse {
-            val errorMessage = "Error while initializing reporter for ${FatalIssueMechanism.BuiltIn}. $it"
+            val errorMessage = "Error while persisting JVM crash. $it"
             Log.e(LOG_TAG, errorMessage)
         }
     }
@@ -166,12 +161,6 @@ internal class FatalIssueReporter(
         }
     }
 
-    private fun buildDefaultReporterStatus(): FatalIssueReporterStatus =
-        FatalIssueReporterStatus(
-            FatalIssueReporterState.NotInitialized,
-            mechanism = FatalIssueMechanism.BuiltIn,
-        )
-
     private fun getFatalIssueDirectories(sdkDirectory: String): FatalIssueDirectories {
         val destinationDirectory = File(sdkDirectory, DESTINATION_FILE_PATH).apply { if (!exists()) mkdirs() }
         return FatalIssueDirectories(sdkDirectory, destinationDirectory)
@@ -182,7 +171,7 @@ internal class FatalIssueReporter(
         throwable: Throwable,
     ) {
         val errorMessage =
-            "Error while initializing reporter for ${FatalIssueMechanism.BuiltIn}. $throwable"
+            "Error while initializing reporter. $throwable"
         completedReportsProcessor.onReportProcessingError(errorMessage, throwable)
         Log.e(LOG_TAG, errorMessage, throwable)
     }
