@@ -49,13 +49,11 @@ import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.IFatalIssueReporter
-import io.bitdrift.capture.reports.persistence.ReporterConfigCache
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
 import okhttp3.HttpUrl
-import java.io.File
 import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
@@ -250,8 +248,6 @@ internal class LoggerImpl(
 
         addJankStatsMonitorTarget(windowManager, context)
 
-        val issueReporterRuntimeEnabled = isFatalIssueReportingRuntimeEnabled(sdkDirectory)
-
         appExitLogger =
             AppExitLogger(
                 logger = this,
@@ -259,7 +255,7 @@ internal class LoggerImpl(
                 runtime,
                 errorHandler,
                 memoryMetricsProvider = memoryMetricsProvider,
-                isFatalIssueReporterEnabled = configuration.enableFatalIssueReporting && issueReporterRuntimeEnabled,
+                isFatalIssueReporterEnabled = configuration.enableFatalIssueReporting,
             )
 
         // Install the app exit logger before the Capture logger is started to ensure
@@ -269,10 +265,8 @@ internal class LoggerImpl(
 
         CaptureJniLibrary.startLogger(this.loggerId)
 
-        if (issueReporterRuntimeEnabled) {
-            // fatal issue reporter needs to be initialized after appExitLogger and the jniLogger
-            fatalIssueReporter?.initBuiltInMode(context, clientAttributes, this)
-        }
+        // fatal issue reporter needs to be initialized after appExitLogger and the jniLogger
+        fatalIssueReporter?.initBuiltInMode(context, clientAttributes, this)
     }
 
     override fun processCrashReports() {
@@ -322,11 +316,6 @@ internal class LoggerImpl(
     @SuppressLint("NewApi")
     private fun appExitSaveCurrentSessionId(sessionId: String? = null) {
         appExitLogger.saveCurrentSessionId(sessionId)
-    }
-
-    private fun isFatalIssueReportingRuntimeEnabled(sdkDirectory: String): Boolean {
-        val configFile = File(sdkDirectory, "reports/config.csv")
-        return ReporterConfigCache.readValues(configFile)?.get("crash_reporting.enabled") == true
     }
 
     override fun logAppLaunchTTI(duration: Duration) {
