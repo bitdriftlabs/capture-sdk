@@ -9,7 +9,6 @@ package io.bitdrift.gradletestapp
 
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
@@ -17,6 +16,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
+import androidx.preference.SwitchPreference
 import kotlin.system.exitProcess
 
 class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
@@ -63,45 +63,37 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
             exitProcess(0)
         }
 
-        val sessionStrategyPref =
-            buildListPreference(
-                SESSION_STRATEGY_PREFS_KEY,
-                SESSION_STRATEGY_TITLE,
-                SESSION_STRATEGY_ENTRIES,
-                SessionStrategyPreferences.FIXED.displayName,
-                context,
-            )
-        val fatalIssueReportingSource =
-            buildListPreference(
-                FATAL_ISSUE_SOURCE_PREFS_KEY,
-                FATAL_ISSUE_TYPE_TITLE,
-                FATAL_ISSUE_REPORTING_TYPES,
-                "CONFIGURED",
-                context,
-            )
-        backendCategory.addPreference(sessionStrategyPref)
-        backendCategory.addPreference(fatalIssueReportingSource)
+        backendCategory.addPreference(buildSessionStrategyList(context))
+        backendCategory.addPreference(buildSwitchPreference(context))
 
         screen.addPreference(restartPreference)
 
         preferenceScreen = screen
     }
 
-    private fun buildListPreference(
-        keyName: String,
-        title: String,
-        entries: Array<String>,
-        defaultValue: String,
-        context: Context,
-    ): ListPreference {
+    private fun buildSessionStrategyList(context: Context): ListPreference {
         val listPreference = ListPreference(context)
-        listPreference.key = keyName
-        listPreference.title = title
-        listPreference.entries = entries
-        listPreference.entryValues = entries
+        listPreference.key = SESSION_STRATEGY_PREFS_KEY
+        listPreference.title = SESSION_STRATEGY_TITLE
+        listPreference.entries = SESSION_STRATEGY_ENTRIES
+        listPreference.entryValues = SESSION_STRATEGY_ENTRIES
         listPreference.summary = SELECTION_SUMMARY
-        listPreference.setDefaultValue(defaultValue)
+        listPreference.setDefaultValue(SessionStrategyPreferences.FIXED.displayName)
         return listPreference
+    }
+
+    private fun buildSwitchPreference(context: Context): SwitchPreference {
+        val switchPreference = SwitchPreference(context)
+        switchPreference.key = FATAL_ISSUE_ENABLED_PREFS_KEY
+        switchPreference.title = FATAL_ISSUE_TITLE
+        switchPreference.summary = SELECTION_SUMMARY
+        switchPreference.setDefaultValue(true)
+        switchPreference.setOnPreferenceChangeListener { _, newValue ->
+            val summaryText = if (newValue == true) "Enabled" else "Disabled"
+            switchPreference.summary = "$summaryText - $SELECTION_SUMMARY"
+            true
+        }
+        return switchPreference
     }
 
     private fun showApiKeysDialog(context: Context) {
@@ -118,20 +110,15 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
 
     companion object {
         const val SESSION_STRATEGY_PREFS_KEY = "sessionStrategy"
-        const val FATAL_ISSUE_SOURCE_PREFS_KEY = "fatalIssueSource"
+        const val FATAL_ISSUE_ENABLED_PREFS_KEY = "fatalIssueEnabled"
         private const val SELECTION_SUMMARY = "App needs to be restarted for changes to take effect"
         private const val SESSION_STRATEGY_TITLE = "Session Strategy"
-        private const val FATAL_ISSUE_TYPE_TITLE = "Fatal Issue Mechanism"
-        private val FATAL_ISSUE_REPORTING_TYPES =
-            arrayOf(
-                "CONFIGURED",
-                "NONE",
-            )
+        private const val FATAL_ISSUE_TITLE = "Fatal Issue Reporter"
 
         private val SESSION_STRATEGY_ENTRIES =
-            arrayOf(SessionStrategyPreferences.FIXED.displayName, SessionStrategyPreferences.ACTIVITY_BASED.displayName)
-
-        fun getFatalIssueSourceConfig(sharedPreferences: SharedPreferences): String =
-            sharedPreferences.getString(FATAL_ISSUE_SOURCE_PREFS_KEY, null) ?: ""
+            arrayOf(
+                SessionStrategyPreferences.FIXED.displayName,
+                SessionStrategyPreferences.ACTIVITY_BASED.displayName,
+            )
     }
 }
