@@ -17,24 +17,6 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
-#[derive(Debug)]
-enum DocumentLoadError {
-  Io(std::io::Error),
-  Decode(DecodeError),
-}
-
-impl From<std::io::Error> for DocumentLoadError {
-  fn from(error: std::io::Error) -> Self {
-    Self::Io(error)
-  }
-}
-
-impl From<DecodeError> for DocumentLoadError {
-  fn from(error: DecodeError) -> Self {
-    Self::Decode(error)
-  }
-}
-
 struct NamedThread {
   name: String,
   call_stack: Vec<u64>,
@@ -94,23 +76,19 @@ fn capture_cache_kscrash_report_impl(
     return Ok(CacheResult::ReportDoesNotExist);
   }
 
-  let (hashmap, was_partial) = match load_bonjson_document(&kscrash_report_path) {
+  let file_contents = fs::read(&kscrash_report_path)?;
+
+  let (hashmap, was_partial) = match decoder::decode(&file_contents) {
     Ok(Value::Object(hashmap)) => (hashmap, false),
     Ok(_) => {
       return Err(anyhow::anyhow!(
         "KSCrash report is not a valid object/hashmap"
       ))
     },
-    Err(DocumentLoadError::Io(io_error)) => {
-      return Err(anyhow::anyhow!(
-        "Failed to read KSCrash report file: {}",
-        io_error
-      ))
-    },
-    Err(DocumentLoadError::Decode(DecodeError::Partial {
+    Err(DecodeError::Partial {
       partial_value,
       error: _,
-    })) => match partial_value {
+    }) => match partial_value {
       Value::Object(hashmap) => (hashmap, true),
       _ => {
         return Err(anyhow::anyhow!(
@@ -118,9 +96,7 @@ fn capture_cache_kscrash_report_impl(
         ))
       },
     },
-    Err(DocumentLoadError::Decode(DecodeError::Fatal(_))) => {
-      return Err(anyhow::anyhow!("Failed to decode KSCrash report"))
-    },
+    Err(DecodeError::Fatal(_)) => return Err(anyhow::anyhow!("Failed to decode KSCrash report")),
   };
 
   CACHED_KSCRASH_REPORT.lock().replace(hashmap);
@@ -132,12 +108,6 @@ fn capture_cache_kscrash_report_impl(
       CacheResult::Success
     },
   )
-}
-
-fn load_bonjson_document<P: AsRef<Path>>(path: &P) -> Result<Value, DocumentLoadError> {
-  let file_contents = fs::read(path)?;
-  let value = decoder::decode(&file_contents)?;
-  Ok(value)
 }
 
 fn enhance_metrickit_diagnostic_report_impl(
