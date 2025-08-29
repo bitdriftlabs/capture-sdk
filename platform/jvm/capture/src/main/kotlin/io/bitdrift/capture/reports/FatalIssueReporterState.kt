@@ -22,12 +22,12 @@ sealed class FatalIssueReporterState(
     data object NotInitialized : FatalIssueReporterState("NOT_INITIALIZED")
 
     /**
-     * Represents the initialized state when is successfully initialized
+     * Represents a successful initialized state
      */
     data object Initialized : FatalIssueReporterState("INITIALIZED")
 
     /**
-     * Represents the failed initialization state when [io.bitdrift.capture.reports.FatalIssueMechanism.BuiltIn] is configured
+     * Represents a failed initialization state upon an attempted initialization
      */
     data object InitializationFailed : FatalIssueReporterState("FAILED_TO_INITIALIZED")
 }
