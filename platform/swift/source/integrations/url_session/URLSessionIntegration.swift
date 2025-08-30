@@ -27,13 +27,17 @@ extension Integration {
     ///              the integration as early in the app's lifecycle as possible, or use the
     ///              `URLSession.capture_makeSession(configuration:delegate:delegateQueue:)` method to create
     ///              `URLSession` instances.
+    /// - parameter requestFieldProvider: A provider that supplies additional key-value fields for each `URLRequest` logged by the integration.
+    ///                                   Defaults to `DefaultURLSessionRequestFieldProvider()` if not specified.
     ///
     /// - returns: The `URLSession` integration.
-    public static func urlSession() -> Integration {
-        .init { logger, disableSwizzling in
+    ///
+    public static func urlSession(requestFieldProvider: URLSessionRequestFieldProvider = DefaultURLSessionRequestFieldProvider()) -> Integration {
+        .init { logger, disableSwizzling, _ in
             URLSessionIntegration.shared.start(
                 logger: logger,
-                disableSwizzling: disableSwizzling
+                disableSwizzling: disableSwizzling,
+                requestFieldProvider: requestFieldProvider
             )
         }
     }
@@ -42,15 +46,24 @@ extension Integration {
 final class URLSessionIntegration {
     /// The instance of Capture logger the library should use for logging.
     private let underlyingLogger = Atomic<Logging?>(nil)
+    /// The field provider for adding custom fields to request logs
+    private let underlyingRequestFieldProvider = Atomic<URLSessionRequestFieldProvider>(
+      DefaultURLSessionRequestFieldProvider()
+    )
     fileprivate static var swizzled = Atomic(false)
     static let shared = URLSessionIntegration()
 
     var logger: Logging? {
         return self.underlyingLogger.load()
     }
+    
+    var requestFieldProvider: URLSessionRequestFieldProvider {
+        return self.underlyingRequestFieldProvider.load()
+    }
 
-    func start(logger: Logging, disableSwizzling: Bool) {
+    func start(logger: Logging, disableSwizzling: Bool, requestFieldProvider: URLSessionRequestFieldProvider) {
         self.underlyingLogger.update { $0 = logger }
+        self.underlyingRequestFieldProvider.update { $0 = requestFieldProvider }
         if disableSwizzling || Self.swizzled.load() {
             return
         }

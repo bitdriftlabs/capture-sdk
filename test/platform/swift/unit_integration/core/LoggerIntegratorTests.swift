@@ -1,6 +1,5 @@
 // capture-sdk - bitdrift's client SDK
-// Copyright Bitdrift, Inc. All rights reserved.
-//
+// Copyright Bitdrift, Inc.
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
@@ -13,7 +12,7 @@ import XCTest
 final class LoggerIntegratorTests: XCTestCase {
     func testIntegrationsAreStartedAtMostOnce() {
         var integrationStartsCount = 0
-        let integration = Integration { _, _ in
+        let integration = Integration { _, _, _ in
             integrationStartsCount += 1
         }
 
@@ -28,7 +27,7 @@ final class LoggerIntegratorTests: XCTestCase {
 
     func testDisableSwizzlingIsPassed() throws {
         var disableSwizzling: Bool?
-        let integration = Integration { _, currentDisableSwizzling in
+        let integration = Integration { _, currentDisableSwizzling, _ in
             disableSwizzling = currentDisableSwizzling
         }
 
@@ -40,7 +39,7 @@ final class LoggerIntegratorTests: XCTestCase {
 
     func testSwizzlingEnabledByDefault() throws {
         var disableSwizzling: Bool?
-        let integration = Integration { _, currentDisableSwizzling in
+        let integration = Integration { _, currentDisableSwizzling, _ in
             disableSwizzling = currentDisableSwizzling
         }
 
@@ -48,5 +47,44 @@ final class LoggerIntegratorTests: XCTestCase {
 
         integrator.enableIntegrations([integration])
         XCTAssertFalse(try XCTUnwrap(disableSwizzling))
+    }
+
+    func testCustomRequestFieldProviderIsPassed() throws {
+        var receivedFields: [String: String]?
+        let fakeProvider = FakeURLSessionRequestFieldProvider()
+
+        let integration = Integration { _, _, provider in
+            // Call provider manually to simulate usage
+            let request = URLRequest(url: URL(string: "https://example.com")!)
+            receivedFields = provider.provideExtraFields(for: request)
+        }
+
+        let integrator = LoggerIntegrator(logger: MockLogging())
+        integrator.enableIntegrations([integration], requestFieldProvider: fakeProvider)
+
+        XCTAssertEqual(receivedFields?["mock_field"], "mock_value")
+    }
+
+    func testDefaultRequestFieldProviderIsUsedWhenNoneProvided() throws {
+        var receivedFields: [String: String]?
+        let integration = Integration { _, _, provider in
+            let request = URLRequest(url: URL(string: "https://example.com")!)
+            receivedFields = provider.provideExtraFields(for: request)
+        }
+
+        let integrator = LoggerIntegrator(logger: MockLogging())
+        // Don’t pass custom provider → should fallback to DefaultURLSessionRequestFieldProvider
+        integrator.enableIntegrations([integration])
+
+        // DefaultURLSessionRequestFieldProvider returns an empty dictionary by default
+        XCTAssertTrue(receivedFields?.isEmpty ?? false)
+    }
+}
+
+// MARK: - Fake URLSessionRequestFieldProvider
+
+private class FakeURLSessionRequestFieldProvider: URLSessionRequestFieldProvider {
+    func provideExtraFields(for request: URLRequest) -> [String: String] {
+        return ["mock_field": "mock_value"]
     }
 }

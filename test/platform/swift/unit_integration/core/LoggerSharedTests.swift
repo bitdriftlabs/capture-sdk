@@ -22,7 +22,7 @@ final class LoggerSharedTests: XCTestCase {
 
     func testIntegrationsAreEnabledOnlyOnce() throws {
         var integrationStartsCount = 0
-        let integration = Integration { _, _ in
+        let integration = Integration { _, _, _ in
             integrationStartsCount += 1
         }
 

@@ -95,8 +95,11 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
                 fieldProviders: [CustomFieldProvider()],
                 apiURL: apiURL
             )?
-            .enableIntegrations([.urlSession()], disableSwizzling: true)
-
+            .enableIntegrations(
+                [.urlSession(requestFieldProvider: CustomNetworkFieldProvider())], 
+                disableSwizzling: true
+        )
+        
         Logger.addField(withKey: "field_container_field_key", value: "field_container_value")
         Logger.logInfo("App launched. Logger configured.")
 
@@ -211,6 +214,15 @@ final class CustomFieldProvider: FieldProvider {
             "app": "hello_world",
             "user_id": self.userID,
             "invalid_utf8": invalidUTF8String,
+        ]
+    }
+}
+
+// Provides additional fields for each network request
+struct CustomNetworkFieldProvider: URLSessionRequestFieldProvider {
+    func provideExtraFields(for request: URLRequest) -> [String: String] {
+        return [
+            "additional_network_request_field": request.debugDescription,
         ]
     }
 }
