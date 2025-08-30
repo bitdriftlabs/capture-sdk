@@ -31,6 +31,7 @@ extension Integration {
     ///                                   Defaults to `DefaultURLSessionRequestFieldProvider()` if not specified.
     ///
     /// - returns: The `URLSession` integration.
+    ///
     public static func urlSession(requestFieldProvider: URLSessionRequestFieldProvider = DefaultURLSessionRequestFieldProvider()) -> Integration {
         .init { logger, disableSwizzling, _ in
             URLSessionIntegration.shared.start(

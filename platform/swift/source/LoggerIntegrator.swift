@@ -21,9 +21,9 @@ public final class Integration {
 
     /// Starts the integration.
     ///
-    /// - parameter logger:           The logger instance that should be used by the integration being
-    ///                               started to emit Capture SDK logs.
-    /// - parameter disableSwizzling: Whether the integration is allowed to do swizzling.
+    /// - parameter logger:               The logger instance that should be used by the integration being
+    ///                                   started to emit Capture SDK logs.
+    /// - parameter disableSwizzling:     Whether the integration is allowed to do swizzling.
     /// - parameter requestFieldProvider: Provider for extra request fields.
     public func start(
         with logger: Logging,

@@ -178,8 +178,8 @@ extension HTTPRequestInfo {
     /// Initializes a new instance of the receiver using a provided `URLSessionTask`. The initialization
     /// succeeds as long as `originalRequest` property of the passed task is not equal to `nil`.
     ///
-    /// - parameter task: The task to initialize the request info with.
-    /// - parameter extraFields: Additional fields user may want to append to Requests
+    /// - parameter task:        The task to initialize the request info with.
+    /// - parameter extraFields: Additional fields user may want to append to requests.
     public init?(task: URLSessionTask, extraFields: Fields? = nil) {
         if let request = task.originalRequest {
             if task is URLSessionDataTask {
