@@ -11,8 +11,8 @@ import Foundation
 public protocol URLSessionRequestFieldProvider {
     /// Provides extra fields for a given request.
     ///
-    /// - Parameter request: The `URLRequest` being logged.
-    /// - Returns: A dictionary of key-value pairs to add to the request log
+    /// - parameter request: The `URLRequest` being logged.
+    /// - returns: A dictionary of key-value pairs to add to the request log
     ///            that will be sent by the URLSession integration.
     func provideExtraFields(for request: URLRequest) -> [String: String]
 }
@@ -23,8 +23,8 @@ public struct DefaultURLSessionRequestFieldProvider: URLSessionRequestFieldProvi
 
     /// Always returns an empty dictionary, meaning no extra fields are added.
     ///
-    /// - Parameter request: The `URLRequest` being logged.
-    /// - Returns: An empty dictionary.
+    /// - parameter request: The `URLRequest` being logged.
+    /// - returns: An empty dictionary.
     public func provideExtraFields(for _: URLRequest) -> [String: String] {
         return [:]
     }
