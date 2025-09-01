@@ -23,7 +23,7 @@ internal object ConfigCache {
      *
      * @return The values or Exception which occurred during parsing
      *
-     * @throws IOException, CacheFormattingError
+     * @throws java.io.IOException, CacheFormattingError
      */
     fun readValues(file: File): Map<String, Any> = readValues(file.readText())
 
