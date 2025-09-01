@@ -1,0 +1,57 @@
+name: Release CocoaPods
+on:
+  workflow_call:
+  workflow_dispatch:
+jobs:
+  release-cocoapods:
+    name: Publish CocoaPods specs
+    runs-on: macos-14
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up CI
+        run: ./platform/swift/tools/ci/mac_ci_setup.sh
+      - name: Publish primary CocoaPods spec
+        # succeed if already pushed
+        run: pod trunk push platform/swift/BitdriftCapture.podspec --verbose || ./platform/swift/tools/ci/verify_release_cocoapods.sh
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+
+  verify-cocoapods-release:
+    name: Verify primary spec is available
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: release-cocoapods
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check if primary spec available
+        uses: nick-fields/retry@v3
+        id: retry
+        with:
+          timeout_seconds: 30
+          retry_wait_seconds: 600
+          max_attempts: 4
+          command: ./platform/swift/tools/ci/verify_release_cocoapods.sh
+
+  release-cocoapods-dep-specs:
+    name: Publish integration CocoaPods specs
+    runs-on: macos-14
+    permissions:
+      contents: read
+    needs: verify-cocoapods-release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up CI
+        run: ./platform/swift/tools/ci/mac_ci_setup.sh
+      - name: Publish integration CocoaPods specs
+        run: |
+          pod trunk push platform/swift/CaptureSwiftyBeaver.podspec --verbose
+          pod trunk push platform/swift/CaptureCocoaLumberjack.podspec --verbose
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+

@@ -1,0 +1,47 @@
+name: Update SDK version
+on:
+    workflow_call:
+      inputs:
+        version:
+          description: 'The SDK version to release, ex: 0.9.113'
+          required: true
+          type: string
+    workflow_dispatch:
+      inputs:
+        version:
+          description: 'The SDK version to release, ex: 0.9.113'
+          required: true
+          type: string
+jobs: 
+  version_update:
+    name: Update Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Update .version file
+        id: state
+        run: | 
+            echo -n "${{ inputs.version }}" > .version
+            echo "Generated new '.version' file:"
+            cat .version
+      - name: Update Package.swift file
+        run: ./tools/ci/swift_pm_package_update.sh ${{ inputs.version }}
+      - name: Update CocoaPods podspec file
+        run: ./tools/ci/update_cocoapods.sh ${{ inputs.version }}
+
+      - name: Create Pull Request
+        id: create-pr
+        # v5.0.2
+        uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: Update version to ${{ inputs.version }}
+          commit-message: Update version to ${{ inputs.version }}
+          committer: GitHub Action <noreply@github.com>
+          base: main
+          delete-branch: true
+          branch: update-version-${{ inputs.version }}
