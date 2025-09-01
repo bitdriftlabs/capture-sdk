@@ -35,7 +35,6 @@ class ConfigCacheTest {
 
     @Test
     fun testReadNonexistentFile() {
-        val input = File("doesnotexist.txt")
         assertThatThrownBy {
             ConfigCache.readValues(File("doesnotexist.txt"))
         }.isInstanceOf(IOException::class.java)

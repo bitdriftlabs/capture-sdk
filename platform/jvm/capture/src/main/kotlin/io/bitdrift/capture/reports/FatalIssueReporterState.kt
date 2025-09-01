@@ -35,9 +35,4 @@ sealed class FatalIssueReporterState(
      * Reporting not enabled because server-side configuration is disabled or unset
      */
     data object RuntimeDisabled : FatalIssueReporterState("RUNTIME_CONFIG_DISABLED")
-
-    /**
-     * Reporting not enabled because server-side configuration is disabled or unset
-     */
-    data object RuntimeCacheFailure : FatalIssueReporterState("RUNTIME_CONFIG_CORRUPT")
 }
