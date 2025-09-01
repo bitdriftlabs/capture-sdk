@@ -11,8 +11,6 @@ Pod::Spec.new do |s|
 
     s.authors = {
       'Bitdrift, Inc.' => 'info@bitdrift.io',
-      'Rafal Augustyniak' => 'rafal@bitdrift.io',
-      'Miguel Angel Juarez Lopez' => 'miguel@bitdrift.io',
     }
 
     s.source = {
