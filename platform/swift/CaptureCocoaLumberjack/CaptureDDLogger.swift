@@ -1,8 +1,8 @@
 import Capture
 #if SWIFT_PACKAGE
-    import CocoaLumberjackSwift
+import CocoaLumberjackSwift
 #else
-    import CocoaLumberjack
+import CocoaLumberjack
 #endif
 import os
 
