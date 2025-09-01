@@ -73,7 +73,9 @@ internal class FatalIssueReporter(
 
         runCatching {
             val duration = TimeSource.Monotonic.markNow()
-            if (!isFatalIssueReportingRuntimeEnabled(sdkDirectory)) {
+
+            val configFile = File(sdkDirectory, "reports/config.csv")
+            if (!ConfigCache.getBooleanFlag(configFile, "crash_reporting.enabled")) {
                 fatalIssueReporterState =
                     FatalIssueReporterState.RuntimeDisabled
                 initializationDuration = duration.elapsedNow()
@@ -169,12 +171,6 @@ internal class FatalIssueReporter(
     private fun getFatalIssueDirectories(sdkDirectory: String): FatalIssueDirectories {
         val destinationDirectory = File(sdkDirectory, DESTINATION_FILE_PATH).apply { if (!exists()) mkdirs() }
         return FatalIssueDirectories(sdkDirectory, destinationDirectory)
-    }
-
-    private fun isFatalIssueReportingRuntimeEnabled(sdkDirectory: String): Boolean {
-        val configFile = File(sdkDirectory, "reports/config.csv")
-        val configMap = ConfigCache.readValues(configFile)
-        return configMap["crash_reporting.enabled"]?.equals("true", ignoreCase = true) ?: false
     }
 
     private fun logError(
