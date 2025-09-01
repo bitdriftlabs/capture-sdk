@@ -34,7 +34,7 @@ sealed class FatalIssueReporterState(
     /**
      * Represents a failed initialization attempt state
      */
-    data object InitializationFailed : FatalIssueReporterState("FAILED_TO_INITIALIZED")
+    data object InitializationFailed : FatalIssueReporterState("FAILED_TO_INITIALIZE")
 
     /**
      * Reporting not enabled because server-side configuration is disabled or unset
