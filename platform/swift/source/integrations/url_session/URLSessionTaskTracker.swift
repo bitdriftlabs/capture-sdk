@@ -67,12 +67,11 @@ final class URLSessionTaskTracker {
             guard let requestInfo = HTTPRequestInfo(task: task, extraFields: extraFields) else {
                 return
             }
-            
+
             task.cap_requestInfo = requestInfo
             URLSessionIntegration.shared.logger?.log(requestInfo, file: nil, line: nil, function: nil)
         }
     }
-    
 
     // Observation: This method is called on `URLSession` delegate queue.
     func task(_ task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {

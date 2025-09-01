@@ -96,10 +96,10 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
                 apiURL: apiURL
             )?
             .enableIntegrations(
-                [.urlSession(requestFieldProvider: CustomNetworkFieldProvider())], 
+                [.urlSession(requestFieldProvider: CustomNetworkFieldProvider())],
                 disableSwizzling: true
-        )
-        
+            )
+
         Logger.addField(withKey: "field_container_field_key", value: "field_container_value")
         Logger.logInfo("App launched. Logger configured.")
 

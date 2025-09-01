@@ -49,7 +49,7 @@ final class URLSessionIntegration {
     private let underlyingLogger = Atomic<Logging?>(nil)
     /// The field provider for adding custom fields to request logs
     private let underlyingRequestFieldProvider = Atomic<URLSessionRequestFieldProvider>(
-      DefaultURLSessionRequestFieldProvider()
+        DefaultURLSessionRequestFieldProvider()
     )
     fileprivate static var swizzled = Atomic(false)
     static let shared = URLSessionIntegration()
@@ -57,7 +57,7 @@ final class URLSessionIntegration {
     var logger: Logging? {
         return self.underlyingLogger.load()
     }
-    
+
     var requestFieldProvider: URLSessionRequestFieldProvider {
         return self.underlyingRequestFieldProvider.load()
     }

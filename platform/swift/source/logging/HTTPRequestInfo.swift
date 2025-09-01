@@ -155,7 +155,7 @@ extension HTTPRequestInfo {
     ///                                       If not provided, the implementation uses to the number of
     ///                                       bytes of request's `httpBody`.
     /// - parameter extraFields:              Additional custom fields to append to the request log.
-    // 
+    //
     public init(urlRequest: URLRequest, bytesExpectedToSendCount: Int64? = nil, extraFields: Fields?) {
         let bytesExpectedToSendCount =
             bytesExpectedToSendCount ?? urlRequest.httpBody.flatMap { Int64($0.count) }
