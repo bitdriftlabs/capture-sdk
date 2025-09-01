@@ -55,8 +55,8 @@ public final class LoggerIntegrator {
     /// - important: The SDK doesn't do any swizzling unless the `Integration.urlSession` integration is
     ///              enabled.
     ///
-    /// - parameter integrations:     The list of integrations to enable.
-    /// - parameter disableSwizzling: Whether integrations is allowed to do swizzling.
+    /// - parameter integrations:         The list of integrations to enable.
+    /// - parameter disableSwizzling:     Whether integrations is allowed to do swizzling.
     /// - parameter requestFieldProvider: Provider for extra fields appended to HTTP requests.
     ///
     /// - returns: The configured logger. This is the same instance that can be accessed via the

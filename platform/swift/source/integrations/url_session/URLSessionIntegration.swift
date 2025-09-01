@@ -27,6 +27,7 @@ extension Integration {
     ///              the integration as early in the app's lifecycle as possible, or use the
     ///              `URLSession.capture_makeSession(configuration:delegate:delegateQueue:)` method to create
     ///              `URLSession` instances.
+    ///
     /// - parameter requestFieldProvider: A provider that supplies additional key-value fields for each `URLRequest` logged by the integration.
     ///                                   Defaults to `DefaultURLSessionRequestFieldProvider()` if not specified.
     ///
