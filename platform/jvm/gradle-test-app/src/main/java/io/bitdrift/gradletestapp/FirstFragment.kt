@@ -161,10 +161,8 @@ class FirstFragment : Fragment() {
                         extraFieldsProvider =
                             OkHttpRequestFieldProvider { request ->
                                 mapOf(
-                                    "_additional_extra_field" to
-                                        System
-                                            .currentTimeMillis()
-                                            .toString(),
+                                    "additional_network_request_field" to
+                                        request.url.host,
                                 )
                             },
                     ),
