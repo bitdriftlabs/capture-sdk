@@ -77,10 +77,9 @@ class FatalIssueReporterTest {
             FatalIssueReporterState.RuntimeDisabled::class.java,
         )
         assertThat(
-            fatalIssueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"]
+            fatalIssueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
         ).isNotNull
     }
-
 
     @Test
     fun initialize_whenConfigCorrupt_shouldNotInit() {
@@ -91,7 +90,7 @@ class FatalIssueReporterTest {
             FatalIssueReporterState.InitializationFailed::class.java,
         )
         assertThat(
-            fatalIssueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"]
+            fatalIssueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
         ).isNotNull
 
         verify(completedReportsProcessor).onReportProcessingError(
@@ -109,7 +108,7 @@ class FatalIssueReporterTest {
             FatalIssueReporterState.InitializationFailed::class.java,
         )
         assertThat(
-            fatalIssueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"]
+            fatalIssueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
         ).isNotNull
 
         verify(completedReportsProcessor).onReportProcessingError(
