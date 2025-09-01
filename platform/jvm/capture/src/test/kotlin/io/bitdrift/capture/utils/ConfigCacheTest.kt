@@ -8,6 +8,7 @@
 package io.bitdrift.capture.utils
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.Test
 import java.io.File
 import java.io.IOException
@@ -16,11 +17,9 @@ class ConfigCacheTest {
     @Test
     fun testReadValues() {
         val input = "key,true\nother,false\nmore.stuff,a bit of cheese"
-        val result = ConfigCache.readValues(input)
-        assertThat(result.isSuccess).isTrue
+        val values = ConfigCache.readValues(input)
 
-        val values = result.getOrNull()
-        assertThat(values!!["key"]).isEqualTo(true)
+        assertThat(values["key"]).isEqualTo(true)
         assertThat(values["other"]).isEqualTo(false)
         assertThat(values["more.stuff"]).isEqualTo("a bit of cheese")
         assertThat(values["<not here>"]).isNull()
@@ -28,18 +27,17 @@ class ConfigCacheTest {
 
     @Test
     fun testReadValuesCorrupt() {
-        // missing value on first line
-        val input = "key\nother,false\nmore.stuff,a bit of cheese"
-        val result = ConfigCache.readValues(input)
-        assertThat(result.isFailure).isTrue
-        assertThat(result.exceptionOrNull()).isInstanceOf(CacheFormattingError::class.java)
+        assertThatThrownBy {
+            // missing value on first line
+            ConfigCache.readValues("key\nother,false\nmore.stuff,a bit of cheese")
+        }.isInstanceOf(CacheFormattingError::class.java)
     }
 
     @Test
     fun testReadNonexistentFile() {
         val input = File("doesnotexist.txt")
-        val result = ConfigCache.readValues(input)
-        assertThat(result.isFailure).isTrue
-        assertThat(result.exceptionOrNull()).isInstanceOf(IOException::class.java)
+        assertThatThrownBy {
+            ConfigCache.readValues(File("doesnotexist.txt"))
+        }.isInstanceOf(IOException::class.java)
     }
 }

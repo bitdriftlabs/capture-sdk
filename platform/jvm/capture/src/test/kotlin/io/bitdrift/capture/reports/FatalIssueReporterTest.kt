@@ -81,7 +81,7 @@ class FatalIssueReporterTest {
         fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         fatalIssueReporter.fatalIssueReporterState.assert(
-            FatalIssueReporterState.RuntimeDisabled::class.java,
+            FatalIssueReporterState.InitializationFailed::class.java,
         )
     }
 

@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.utils
 
+import androidx.annotation.VisibleForTesting
 import java.io.File
 
 internal class CacheFormattingError : Exception()
@@ -21,13 +22,10 @@ internal object ConfigCache {
      * @param file File to read
      *
      * @return The values or Exception which occurred during parsing
+     *
+     * @throws IOException, CacheFormattingError
      */
-    fun readValues(file: File): Result<Map<String, Any>> =
-        try {
-            readValues(file.readText())
-        } catch (exc: Exception) {
-            Result.failure(exc)
-        }
+    fun readValues(file: File): Map<String, Any> = readValues(file.readText())
 
     /**
      * Read configuration values from text
@@ -35,8 +33,11 @@ internal object ConfigCache {
      * @param text to parse
      *
      * @return The values or Exception which occurred during parsing
+     *
+     * @throws CacheFormattingError if the file format does not match
      */
-    fun readValues(text: String): Result<Map<String, Any>> {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    fun readValues(text: String): Map<String, Any> {
         val values = HashMap<String, Any>()
         for (line in text.split("\n")) {
             val pair = line.split(",", limit = 2)
@@ -48,9 +49,9 @@ internal object ConfigCache {
                         else -> pair[1]
                     }
             } else {
-                return Result.failure(CacheFormattingError())
+                throw CacheFormattingError()
             }
         }
-        return Result.success(values)
+        return values
     }
 }
