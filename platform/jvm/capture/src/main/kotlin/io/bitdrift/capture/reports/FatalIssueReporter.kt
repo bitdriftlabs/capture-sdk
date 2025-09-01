@@ -70,25 +70,16 @@ internal class FatalIssueReporter(
             Log.e(LOG_TAG, "Fatal issue reporting already being initialized")
             return
         }
-        val duration = TimeSource.Monotonic.markNow()
-        try {
+
+        runCatching {
+            val duration = TimeSource.Monotonic.markNow()
             if (!isFatalIssueReportingRuntimeEnabled(sdkDirectory)) {
                 fatalIssueReporterState =
                     FatalIssueReporterState.RuntimeDisabled
                 initializationDuration = duration.elapsedNow()
                 return
             }
-        } catch (e: Exception) {
-            logError(completedReportsProcessor, e)
-            // failure to successfully read the cache should also terminate
-            // initialization
-            fatalIssueReporterState =
-                FatalIssueReporterState.RuntimeCacheFailure
-            initializationDuration = duration.elapsedNow()
-            return
-        }
 
-        runCatching {
             val destinationDirectory = getFatalIssueDirectories(sdkDirectory)
             fatalIssueReporterProcessor =
                 FatalIssueReporterProcessor(
@@ -182,8 +173,8 @@ internal class FatalIssueReporter(
 
     private fun isFatalIssueReportingRuntimeEnabled(sdkDirectory: String): Boolean {
         val configFile = File(sdkDirectory, "reports/config.csv")
-        val config = ConfigCache.readValues(configFile).getOrNull()
-        return config?.get("crash_reporting.enabled") == true
+        val configMap = ConfigCache.readValues(configFile)
+        return configMap["crash_reporting.enabled"]?.equals("true", ignoreCase = true) ?: false
     }
 
     private fun logError(

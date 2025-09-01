@@ -9,31 +9,26 @@ package io.bitdrift.capture.utils
 
 import java.io.File
 
-internal class CacheFormattingError: Exception()
+internal class CacheFormattingError(
+    message: String,
+) : Exception(message)
 
 internal object ConfigCache {
-    fun readValues(file: File): Result<Map<String, Any>> =
-        try {
-            readValues(file.readText())
-        } catch (exc: Exception) {
-            Result.failure(exc)
-        }
+    private val cachedValues = mutableMapOf<File, Map<String, String>>()
 
-    fun readValues(text: String): Result<Map<String, Any>> {
-        val values = HashMap<String, Any>()
-        for (line in text.split("\n")) {
-            val pair = line.split(",", limit = 2)
-            if (pair.size == 2) {
-                values[pair[0]] =
-                    when (pair[1]) {
-                        "true" -> true
-                        "false" -> false
-                        else -> pair[1]
-                    }
-            } else {
-                return Result.failure(CacheFormattingError())
+    fun readValues(file: File): Map<String, String> = cachedValues.getOrPut(file) { parse(file) }
+
+    private fun parse(file: File): Map<String, String> {
+        val values = mutableMapOf<String, String>()
+        file.useLines { lines ->
+            lines.forEachIndexed { idx, line ->
+                val parts = line.split(",", limit = 2)
+                if (parts.size != 2) {
+                    throw CacheFormattingError("Malformed config at line ${idx + 1}: '$line'")
+                }
+                values[parts[0].trim()] = parts[1].trim()
             }
         }
-        return Result.success(values)
+        return values
     }
 }
