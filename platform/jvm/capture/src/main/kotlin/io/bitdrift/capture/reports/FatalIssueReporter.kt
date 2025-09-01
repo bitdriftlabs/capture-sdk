@@ -38,9 +38,9 @@ import kotlin.time.TimeSource
  * Handles internal reporting of crashes
  * @param enableNativeCrashReporting Flag to enable native NDK crash reporting.
  * Note: This is a temporary flag that may be removed in the future.
- * @param backgroundThreadHandler Handler for background thread operations
- * @param latestAppExitInfoProvider Provider for retrieving latest app exit information
- * @param captureUncaughtExceptionHandler Handler for uncaught exceptions
+ * @param backgroundThreadHandler Handler for background thread operations.
+ * @param latestAppExitInfoProvider Provider for retrieving latest app exit information.
+ * @param captureUncaughtExceptionHandler Handler for uncaught exceptions.
  */
 internal class FatalIssueReporter(
     private val enableNativeCrashReporting: Boolean = false,
