@@ -52,9 +52,7 @@ final class LoggerIntegratorTests: XCTestCase {
     func testCustomRequestFieldProviderIsPassed() throws {
         var receivedFields: [String: String]?
         let fakeProvider = FakeURLSessionRequestFieldProvider()
-
         let integration = Integration { _, _, provider in
-            // Call provider manually to simulate usage
             let request = URLRequest(url: URL(string: "https://example.com")!)
             receivedFields = provider.provideExtraFields(for: request)
         }
@@ -65,7 +63,7 @@ final class LoggerIntegratorTests: XCTestCase {
         XCTAssertEqual(receivedFields?["mock_field"], "mock_value")
     }
 
-    func testDefaultRequestFieldProviderIsUsedWhenNoneProvided() throws {
+    func testDefaultRequestFieldProviderShouldReturnEmptyExtraFields() throws {
         var receivedFields: [String: String]?
         let integration = Integration { _, _, provider in
             let request = URLRequest(url: URL(string: "https://example.com")!)
@@ -73,10 +71,8 @@ final class LoggerIntegratorTests: XCTestCase {
         }
 
         let integrator = LoggerIntegrator(logger: MockLogging())
-        // Don’t pass custom provider → should fallback to DefaultURLSessionRequestFieldProvider
         integrator.enableIntegrations([integration])
 
-        // DefaultURLSessionRequestFieldProvider returns an empty dictionary by default
         XCTAssertTrue(receivedFields?.isEmpty ?? false)
     }
 }
