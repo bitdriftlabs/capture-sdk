@@ -22,6 +22,11 @@ sealed class FatalIssueReporterState(
     data object NotInitialized : FatalIssueReporterState("NOT_INITIALIZED")
 
     /**
+     * Initialization is currently in progress
+     */
+    data object Initializing : FatalIssueReporterState("INITIALIZING")
+
+    /**
      * Represents a successful initialized state
      */
     data object Initialized : FatalIssueReporterState("INITIALIZED")

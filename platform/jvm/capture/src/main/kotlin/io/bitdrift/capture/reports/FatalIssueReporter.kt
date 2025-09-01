@@ -70,37 +70,37 @@ internal class FatalIssueReporter(
             Log.e(LOG_TAG, "Fatal issue reporting already being initialized")
             return
         }
+        // setting immediate value to avoid re-initializing if the first state check takes time
+        fatalIssueReporterState = FatalIssueReporterState.Initializing
 
         val duration = TimeSource.Monotonic.markNow()
         runCatching {
-            var fileCheckPassed = true
             if (!isFatalIssueReportingRuntimeEnabled(sdkDirectory)) {
-                fileCheckPassed = false
                 fatalIssueReporterState =
                     FatalIssueReporterState.RuntimeDisabled
+                initializationDuration = duration.elapsedNow()
+                return
             }
 
-            if (fileCheckPassed) {
-                val destinationDirectory = getFatalIssueDirectories(sdkDirectory)
-                fatalIssueReporterProcessor =
-                    FatalIssueReporterProcessor(
-                        FatalIssueReporterStorage(destinationDirectory.destinationDirectory),
-                        clientAttributes,
-                    )
-                captureUncaughtExceptionHandler.install(this)
+            val destinationDirectory = getFatalIssueDirectories(sdkDirectory)
+            fatalIssueReporterProcessor =
+                FatalIssueReporterProcessor(
+                    FatalIssueReporterStorage(destinationDirectory.destinationDirectory),
+                    clientAttributes,
+                )
+            captureUncaughtExceptionHandler.install(this)
 
-                backgroundThreadHandler.runAsync {
-                    runCatching {
-                        persistLastExitReasonIfNeeded(appContext)
-                        completedReportsProcessor.processCrashReports()
-                    }.onSuccess {
-                        fatalIssueReporterState =
-                            FatalIssueReporterState.Initialized
-                    }.onFailure {
-                        logError(completedReportsProcessor, it)
-                        fatalIssueReporterState =
-                            FatalIssueReporterState.InitializationFailed
-                    }
+            backgroundThreadHandler.runAsync {
+                runCatching {
+                    persistLastExitReasonIfNeeded(appContext)
+                    completedReportsProcessor.processCrashReports()
+                }.onSuccess {
+                    fatalIssueReporterState =
+                        FatalIssueReporterState.Initialized
+                }.onFailure {
+                    logError(completedReportsProcessor, it)
+                    fatalIssueReporterState =
+                        FatalIssueReporterState.InitializationFailed
                 }
             }
         }.getOrElse {

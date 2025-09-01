@@ -12,6 +12,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.eq
+import com.nhaarman.mockitokotlin2.isA
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
@@ -22,6 +23,7 @@ import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
+import io.bitdrift.capture.utils.CacheFormattingError
 import io.bitdrift.capture.utils.SdkDirectory
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
@@ -31,6 +33,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
+import java.io.IOException
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [30]) // needs API 30 to use ApplicationExitInfo
@@ -73,6 +76,28 @@ class FatalIssueReporterTest {
         fatalIssueReporter.fatalIssueReporterState.assert(
             FatalIssueReporterState.RuntimeDisabled::class.java,
         )
+        assertThat(
+            fatalIssueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"]
+        ).isNotNull
+    }
+
+
+    @Test
+    fun initialize_whenConfigCorrupt_shouldNotInit() {
+        configFile.writeText("crash_reporting.enabled")
+        fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
+
+        fatalIssueReporter.fatalIssueReporterState.assert(
+            FatalIssueReporterState.InitializationFailed::class.java,
+        )
+        assertThat(
+            fatalIssueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"]
+        ).isNotNull
+
+        verify(completedReportsProcessor).onReportProcessingError(
+            any(),
+            isA<CacheFormattingError>(),
+        )
     }
 
     @Test
@@ -82,6 +107,14 @@ class FatalIssueReporterTest {
 
         fatalIssueReporter.fatalIssueReporterState.assert(
             FatalIssueReporterState.InitializationFailed::class.java,
+        )
+        assertThat(
+            fatalIssueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"]
+        ).isNotNull
+
+        verify(completedReportsProcessor).onReportProcessingError(
+            any(),
+            isA<IOException>(),
         )
     }
 
