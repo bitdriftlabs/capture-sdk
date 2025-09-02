@@ -58,11 +58,9 @@ final class URLSessionTaskTracker {
                 return
             }
 
-            let extraFields: [String: String]
+            var extraFields: Fields?
             if let originalRequest = task.originalRequest {
-                extraFields = URLSessionIntegration.shared.requestFieldProvider.provideExtraFields(for: originalRequest)
-            } else {
-                extraFields = [:]
+                extraFields = URLSessionIntegration.shared.requestFieldProvider?.provideExtraFields(for: originalRequest)
             }
             guard let requestInfo = HTTPRequestInfo(task: task, extraFields: extraFields) else {
                 return

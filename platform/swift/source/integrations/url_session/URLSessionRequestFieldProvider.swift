@@ -18,17 +18,3 @@ public protocol URLSessionRequestFieldProvider {
     ///            that will be sent by the URLSession integration.
     func provideExtraFields(for request: URLRequest) -> [String: String]
 }
-
-/// Default implementation that provides no extra fields.
-public struct DefaultURLSessionRequestFieldProvider: URLSessionRequestFieldProvider {
-    public init() {}
-
-    /// Always returns an empty dictionary, meaning no extra fields are added.
-    ///
-    /// - parameter _: The `URLRequest` being logged (unused in this implementation).
-    ///
-    /// - returns: An empty dictionary.
-    public func provideExtraFields(for _: URLRequest) -> [String: String] {
-        return [:]
-    }
-}

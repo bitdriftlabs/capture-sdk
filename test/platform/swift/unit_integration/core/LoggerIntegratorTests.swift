@@ -55,7 +55,7 @@ final class LoggerIntegratorTests: XCTestCase {
         let fakeProvider = FakeURLSessionRequestFieldProvider()
         let integration = Integration { _, _, provider in
             let request = URLRequest(url: URL(string: "https://example.com")!)
-            receivedFields = provider.provideExtraFields(for: request)
+            receivedFields = provider?.provideExtraFields(for: request)
         }
 
         let integrator = LoggerIntegrator(logger: MockLogging())
@@ -68,7 +68,7 @@ final class LoggerIntegratorTests: XCTestCase {
         var receivedFields: [String: String]?
         let integration = Integration { _, _, provider in
             let request = URLRequest(url: URL(string: "https://example.com")!)
-            receivedFields = provider.provideExtraFields(for: request)
+            receivedFields = provider?.provideExtraFields(for: request)
         }
 
         let integrator = LoggerIntegrator(logger: MockLogging())
