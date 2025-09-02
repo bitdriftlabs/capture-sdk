@@ -37,21 +37,22 @@ internal object ConfigCache {
      * @throws CacheFormattingError if the file format does not match
      */
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    fun readValues(text: String): Map<String, Any> {
-        val values = HashMap<String, Any>()
-        for (line in text.split("\n")) {
-            val pair = line.split(",", limit = 2)
-            if (pair.size == 2) {
-                values[pair[0]] =
-                    when (pair[1]) {
-                        "true" -> true
-                        "false" -> false
-                        else -> pair[1]
-                    }
-            } else {
-                throw CacheFormattingError()
-            }
-        }
-        return values
-    }
+    fun readValues(text: String): Map<String, Any> =
+        text
+            .lines()
+            .map { line ->
+                val pair = line.split(",", limit = 2)
+                if (pair.size == 2) {
+                    Pair(
+                        pair[0],
+                        when (pair[1]) {
+                            "true" -> true
+                            "false" -> false
+                            else -> pair[1]
+                        },
+                    )
+                } else {
+                    throw CacheFormattingError()
+                }
+            }.associate { it.first to it.second }
 }
