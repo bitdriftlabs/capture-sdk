@@ -66,7 +66,7 @@ final class HTTPRequestInfoTests: XCTestCase {
         request.addValue("value", forHTTPHeaderField: "key")
         request.addValue("/test/{explicit_id}", forHTTPHeaderField: kCapturePathTemplateHeaderKey)
 
-        let info = HTTPRequestInfo(urlRequest: request)
+        let info = HTTPRequestInfo(urlRequest: request, extraFields: nil)
         var fields = try XCTUnwrap(info.toFields() as? [String: String])
 
         XCTAssertNotNil(fields.removeValue(forKey: "_span_id"))

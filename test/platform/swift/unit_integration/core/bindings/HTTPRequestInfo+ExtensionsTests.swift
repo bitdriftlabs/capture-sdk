@@ -15,7 +15,7 @@ final class HTTPRequestInfoExtensionsTests: XCTestCase {
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringCacheData, timeoutInterval: 15.0)
         request.httpMethod = "POST"
 
-        let requestInfo = HTTPRequestInfo(urlRequest: request)
+        let requestInfo = HTTPRequestInfo(urlRequest: request, extraFields: nil)
 
         XCTAssertEqual("foo.com", requestInfo.host)
         XCTAssertEqual("/ping", requestInfo.path?.value)
