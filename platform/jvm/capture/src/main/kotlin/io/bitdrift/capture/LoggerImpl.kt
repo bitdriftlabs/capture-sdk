@@ -553,6 +553,8 @@ internal class LoggerImpl(
                     put("_logger_build_duration_ms", sdkConfiguredDuration.loggerImplBuildDuration.toFieldValue(DurationUnit.MILLISECONDS))
                     fatalIssueReporter?.let {
                         putAll(it.getLogStatusFieldsMap())
+                    } ?: run {
+                        putAll(FatalIssueReporter.getDisabledStatusFieldsMap())
                     }
                 }
 

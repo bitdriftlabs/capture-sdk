@@ -18,14 +18,14 @@ enum IssueReporterInitState: Equatable {
 enum ReporterInitResolution: Equatable, Error {
     /// Enabled monitoring for reports, may or may not detect any
     case monitoring
-    /// Enabled monitoring, but without additional enhancements explained in the error
-    case monitoringWithFailures(String)
     /// Disabled due to hardware limitations
     case unsupportedHardware
     /// Core functionality disabled by Configuration
     case clientNotEnabled
     /// Core functionality disabled by runtime variable
     case runtimeNotEnabled
+    /// Runtime config contents are not key/value pairs
+    case runtimeInvalid
     /// No runtime config found on disk
     case runtimeNotSet
     /// No directory available for delivering reports, cannot continue
@@ -53,10 +53,10 @@ extension IssueReporterInitState: CustomStringConvertible {
             switch resolution {
             case .monitoring:
                 return "CRASH_REPORT_MONITORING"
-            case .monitoringWithFailures(let error):
-                return "CRASH_REPORT_MONITORING: \(error)"
             case .clientNotEnabled:
                 return "CLIENT_CONFIG_DISABLED"
+            case .runtimeInvalid:
+                return "RUNTIME_CONFIG_INVALID"
             case .runtimeNotSet:
                 return "RUNTIME_CONFIG_UNSET"
             case .runtimeNotEnabled:

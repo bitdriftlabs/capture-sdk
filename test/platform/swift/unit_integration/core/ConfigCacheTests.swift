@@ -13,9 +13,16 @@ final class ConfigCacheTests: XCTestCase {
     func testReadValues() {
         let input = "key,true\nother,false\nmore.stuff,a bit of cheese"
         let values = readCachedValues(input)
-        XCTAssert(values != nil)
+        XCTAssertNotNil(values)
         XCTAssertEqual(true, values!["key"] as! Bool)
         XCTAssertEqual(false, values!["other"] as! Bool)
         XCTAssertEqual("a bit of cheese", values!["more.stuff"] as! String)
+    }
+
+    func testReadInvalidValues() {
+        // no pair on first line
+        let input = "key\nother,false\nmore.stuff,a bit of cheese"
+        let values = readCachedValues(input)
+        XCTAssertNil(values)
     }
 }

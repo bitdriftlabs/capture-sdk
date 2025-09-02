@@ -31,6 +31,7 @@ import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.ConfigCache
 import java.io.File
+import java.io.FileNotFoundException
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.TimeSource
@@ -75,9 +76,20 @@ internal class FatalIssueReporter(
 
         val duration = TimeSource.Monotonic.markNow()
         runCatching {
-            if (!isFatalIssueReportingRuntimeEnabled(sdkDirectory)) {
+            runCatching {
+                if (!isFatalIssueReportingRuntimeEnabled(sdkDirectory)) {
+                    fatalIssueReporterState = FatalIssueReporterState.RuntimeDisabled
+                    initializationDuration = duration.elapsedNow()
+                    return
+                }
+            }.onFailure {
+                logError(completedReportsProcessor, it)
                 fatalIssueReporterState =
-                    FatalIssueReporterState.RuntimeDisabled
+                    if (it is FileNotFoundException) {
+                        FatalIssueReporterState.RuntimeUnset
+                    } else {
+                        FatalIssueReporterState.RuntimeInvalid
+                    }
                 initializationDuration = duration.elapsedNow()
                 return
             }
@@ -197,5 +209,10 @@ internal class FatalIssueReporter(
         private const val FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY = "_fatal_issue_reporting_duration_ms"
         private const val FATAL_ISSUE_REPORTING_STATE_KEY = "_fatal_issue_reporting_state"
         private const val DESTINATION_FILE_PATH = "/reports/new"
+
+        fun getDisabledStatusFieldsMap(): Map<String, FieldValue> =
+            buildMap {
+                put(FATAL_ISSUE_REPORTING_STATE_KEY, FatalIssueReporterState.ClientDisabled.readableType.toFieldValue())
+            }
     }
 }

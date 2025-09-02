@@ -87,7 +87,7 @@ class FatalIssueReporterTest {
         fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         fatalIssueReporter.fatalIssueReporterState.assert(
-            FatalIssueReporterState.InitializationFailed::class.java,
+            FatalIssueReporterState.RuntimeInvalid::class.java,
         )
         assertThat(
             fatalIssueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
@@ -105,7 +105,7 @@ class FatalIssueReporterTest {
         fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         fatalIssueReporter.fatalIssueReporterState.assert(
-            FatalIssueReporterState.InitializationFailed::class.java,
+            FatalIssueReporterState.RuntimeUnset::class.java,
         )
         assertThat(
             fatalIssueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
