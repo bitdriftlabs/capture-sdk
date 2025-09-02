@@ -74,7 +74,7 @@ final class LoggerIntegratorTests: XCTestCase {
         let integrator = LoggerIntegrator(logger: MockLogging())
         integrator.enableIntegrations([integration])
 
-        XCTAssertTrue(receivedFields?.isEmpty ?? false)
+        XCTAssertNil(receivedFields)
     }
 }
 
