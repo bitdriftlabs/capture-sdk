@@ -29,7 +29,6 @@ import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
 
 internal object ComposeTreeParser {
-
     internal fun parse(androidComposeView: View): ScannableView {
         val semanticsOwner =
             if (androidComposeView is AndroidComposeView) {
