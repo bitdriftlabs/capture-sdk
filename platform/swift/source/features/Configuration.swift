@@ -26,7 +26,7 @@ public struct Configuration {
     public init(
         sessionReplayConfiguration: SessionReplayConfiguration = .init(),
         sleepMode: SleepMode = .inactive,
-        enableFatalIssueReporting: Bool = false
+        enableFatalIssueReporting: Bool = true
     ) {
         self.sessionReplayConfiguration = sessionReplayConfiguration
         self.sleepMode = sleepMode
