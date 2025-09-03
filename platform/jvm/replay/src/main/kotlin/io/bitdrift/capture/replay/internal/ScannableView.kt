@@ -24,15 +24,16 @@
  * limitations under the License.
  */
 
+@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+
 package io.bitdrift.capture.replay.internal
 
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.ui.platform.AndroidComposeView
 import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.internal.ScannableView.AndroidView
-import io.bitdrift.capture.replay.internal.ScannableView.ComposeView
 import io.bitdrift.capture.replay.internal.compose.ComposeTreeParser
-import io.bitdrift.capture.replay.internal.compose.ComposeTreeParser.mightBeComposeView
 
 /**
  * Represents a logic view that can be rendered as a node in the view tree.
@@ -70,6 +71,19 @@ internal sealed class ScannableView {
         children = emptySequence(),
     )
 }
+
+/** Reflectively tries to determine if Compose is on the classpath. */
+private val isComposeAvailable by lazy(LazyThreadSafetyMode.PUBLICATION) {
+    try {
+        Class.forName("androidx.compose.ui.platform.AndroidComposeView")
+        true
+    } catch (_: Throwable) {
+        false
+    }
+}
+
+private val View.mightBeComposeView: Boolean
+    get() = isComposeAvailable && this is AndroidComposeView
 
 /**
  * Lazily builds a tree of ScannableView nodes which represent the view hierarchy rooted at this level
