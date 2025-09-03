@@ -16,4 +16,5 @@ fn main() {
 
   fs::write(&dest_path, format!("\"{version}\"")).unwrap();
   println!("cargo::rerun-if-changed=build.rs");
+  println!("cargo::rerun-if-changed=.sdk_version");
 }
