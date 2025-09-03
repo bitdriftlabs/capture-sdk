@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.reports
 
+import android.R
 import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
@@ -63,6 +64,7 @@ internal class FatalIssueReporter(
      */
     override fun init(
         appContext: Context,
+        isVersionUpdated: Boolean,
         sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
@@ -77,7 +79,7 @@ internal class FatalIssueReporter(
         val duration = TimeSource.Monotonic.markNow()
         runCatching {
             runCatching {
-                if (!isFatalIssueReportingRuntimeEnabled(sdkDirectory)) {
+                if (!isFatalIssueReportingRuntimeEnabled(sdkDirectory, isVersionUpdated)) {
                     fatalIssueReporterState = FatalIssueReporterState.RuntimeDisabled
                     initializationDuration = duration.elapsedNow()
                     return
@@ -184,10 +186,16 @@ internal class FatalIssueReporter(
         return FatalIssueDirectories(sdkDirectory, destinationDirectory)
     }
 
-    private fun isFatalIssueReportingRuntimeEnabled(sdkDirectory: String): Boolean {
+    private fun isFatalIssueReportingRuntimeEnabled(
+        sdkDirectory: String,
+        isVersionUpdated: Boolean,
+    ): Boolean {
         val configFile = File(sdkDirectory, "reports/config.csv")
+        if (!configFile.exists() && isVersionUpdated) {
+            return true
+        }
         val config = ConfigCache.readValues(configFile)
-        return config.get("crash_reporting.enabled") == true
+        return config["crash_reporting.enabled"] == true
     }
 
     private fun logError(

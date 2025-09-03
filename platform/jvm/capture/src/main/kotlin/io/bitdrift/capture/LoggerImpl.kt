@@ -268,6 +268,7 @@ internal class LoggerImpl(
         // fatal issue reporter needs to be initialized after appExitLogger and the jniLogger
         fatalIssueReporter?.init(
             appContext = context,
+            isVersionUpdated = shouldLogAppUpdate(clientAttributes.appVersion, clientAttributes.appVersionCode),
             sdkDirectory = sdkDirectory,
             clientAttributes = clientAttributes,
             completedReportsProcessor = this,

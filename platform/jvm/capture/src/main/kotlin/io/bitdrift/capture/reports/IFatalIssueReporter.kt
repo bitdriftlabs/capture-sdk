@@ -21,6 +21,7 @@ interface IFatalIssueReporter {
      */
     fun init(
         appContext: Context,
+        isVersionUpdated: Boolean,
         sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
