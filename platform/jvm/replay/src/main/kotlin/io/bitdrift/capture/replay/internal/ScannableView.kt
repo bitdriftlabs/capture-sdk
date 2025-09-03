@@ -73,11 +73,7 @@ internal sealed class ScannableView {
 }
 
 /** Reflectively tries to determine if Compose is on the classpath. */
-private val isComposeAvailable by lazy(LazyThreadSafetyMode.PUBLICATION) {
-    try {
-        Class.forName("androidx.compose.ui.platform.AndroidComposeView")
-        true
-    } catch (_: Throwable) {
+    } catch (_: ClassNotFoundException) {
         false
     }
 }
