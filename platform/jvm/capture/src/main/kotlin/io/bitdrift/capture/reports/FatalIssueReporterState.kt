@@ -22,6 +22,11 @@ sealed class FatalIssueReporterState(
     data object NotInitialized : FatalIssueReporterState("NOT_INITIALIZED")
 
     /**
+     * Initialization is currently in progress
+     */
+    data object Initializing : FatalIssueReporterState("INITIALIZING")
+
+    /**
      * Represents a successful initialized state
      */
     data object Initialized : FatalIssueReporterState("INITIALIZED")
@@ -29,5 +34,25 @@ sealed class FatalIssueReporterState(
     /**
      * Represents a failed initialization attempt state
      */
-    data object InitializationFailed : FatalIssueReporterState("FAILED_TO_INITIALIZED")
+    data object InitializationFailed : FatalIssueReporterState("FAILED_TO_INITIALIZE")
+
+    /**
+     * Reporting not enabled because client-side configuration is disabled
+     */
+    data object ClientDisabled : FatalIssueReporterState("CLIENT_CONFIG_DISABLED")
+
+    /**
+     * Reporting not enabled because server-side configuration is disabled
+     */
+    data object RuntimeDisabled : FatalIssueReporterState("RUNTIME_CONFIG_DISABLED")
+
+    /**
+     * Reporting not enabled because server-side configuration is unset
+     */
+    data object RuntimeUnset : FatalIssueReporterState("RUNTIME_CONFIG_UNSET")
+
+    /**
+     * Reporting not enabled because server-side configuration is corrupted
+     */
+    data object RuntimeInvalid : FatalIssueReporterState("RUNTIME_CONFIG_INVALID")
 }

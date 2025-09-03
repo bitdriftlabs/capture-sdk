@@ -88,6 +88,11 @@ extension RuntimeVariable<Bool> {
         name: "client_feature.ios.logger_flushing_on_force_quit",
         defaultValue: true
     )
+
+    static let crashReporting = RuntimeVariable(
+        name: "crash_reporting.enabled",
+        defaultValue: false
+    )
 }
 
 extension RuntimeVariable<UInt32> {

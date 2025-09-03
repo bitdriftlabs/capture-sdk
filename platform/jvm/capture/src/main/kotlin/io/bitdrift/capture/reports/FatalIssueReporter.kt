@@ -29,7 +29,9 @@ import io.bitdrift.capture.reports.persistence.FatalIssueReporterStorage
 import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.threading.CaptureDispatchers
+import io.bitdrift.capture.utils.ConfigCache
 import java.io.File
+import java.io.FileNotFoundException
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.TimeSource
@@ -65,40 +67,60 @@ internal class FatalIssueReporter(
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
     ) {
-        if (fatalIssueReporterState is NotInitialized) {
-            runCatching {
-                val duration = TimeSource.Monotonic.markNow()
-                val destinationDirectory = getFatalIssueDirectories(sdkDirectory)
-                fatalIssueReporterProcessor =
-                    FatalIssueReporterProcessor(
-                        FatalIssueReporterStorage(destinationDirectory.destinationDirectory),
-                        clientAttributes,
-                    )
-                captureUncaughtExceptionHandler.install(this)
+        if (fatalIssueReporterState != NotInitialized) {
+            Log.e(LOG_TAG, "Fatal issue reporting already being initialized")
+            return
+        }
+        // setting immediate value to avoid re-initializing if the first state check takes time
+        fatalIssueReporterState = FatalIssueReporterState.Initializing
 
-                backgroundThreadHandler.runAsync {
-                    runCatching {
-                        persistLastExitReasonIfNeeded(appContext)
-                        completedReportsProcessor.processCrashReports()
-                    }.onSuccess {
-                        fatalIssueReporterState =
-                            FatalIssueReporterState.Initialized
-                        initializationDuration = duration.elapsedNow()
-                    }.onFailure {
-                        logError(completedReportsProcessor, it)
-                        fatalIssueReporterState =
-                            FatalIssueReporterState.InitializationFailed
-                        initializationDuration = duration.elapsedNow()
-                    }
+        val duration = TimeSource.Monotonic.markNow()
+        runCatching {
+            runCatching {
+                if (!isFatalIssueReportingRuntimeEnabled(sdkDirectory)) {
+                    fatalIssueReporterState = FatalIssueReporterState.RuntimeDisabled
+                    initializationDuration = duration.elapsedNow()
+                    return
                 }
-            }.getOrElse {
+            }.onFailure {
                 logError(completedReportsProcessor, it)
                 fatalIssueReporterState =
-                    FatalIssueReporterState.InitializationFailed
+                    if (it is FileNotFoundException) {
+                        FatalIssueReporterState.RuntimeUnset
+                    } else {
+                        FatalIssueReporterState.RuntimeInvalid
+                    }
+                initializationDuration = duration.elapsedNow()
+                return
             }
-        } else {
-            Log.e(LOG_TAG, "Fatal issue reporting already being initialized")
+
+            val destinationDirectory = getFatalIssueDirectories(sdkDirectory)
+            fatalIssueReporterProcessor =
+                FatalIssueReporterProcessor(
+                    FatalIssueReporterStorage(destinationDirectory.destinationDirectory),
+                    clientAttributes,
+                )
+            captureUncaughtExceptionHandler.install(this)
+
+            backgroundThreadHandler.runAsync {
+                runCatching {
+                    persistLastExitReasonIfNeeded(appContext)
+                    completedReportsProcessor.processCrashReports()
+                }.onSuccess {
+                    fatalIssueReporterState =
+                        FatalIssueReporterState.Initialized
+                }.onFailure {
+                    logError(completedReportsProcessor, it)
+                    fatalIssueReporterState =
+                        FatalIssueReporterState.InitializationFailed
+                }
+            }
+        }.getOrElse {
+            logError(completedReportsProcessor, it)
+            fatalIssueReporterState =
+                FatalIssueReporterState.InitializationFailed
         }
+        initializationDuration = duration.elapsedNow()
     }
 
     /**
@@ -162,6 +184,12 @@ internal class FatalIssueReporter(
         return FatalIssueDirectories(sdkDirectory, destinationDirectory)
     }
 
+    private fun isFatalIssueReportingRuntimeEnabled(sdkDirectory: String): Boolean {
+        val configFile = File(sdkDirectory, "reports/config.csv")
+        val config = ConfigCache.readValues(configFile)
+        return config.get("crash_reporting.enabled") == true
+    }
+
     private fun logError(
         completedReportsProcessor: ICompletedReportsProcessor,
         throwable: Throwable,
@@ -181,5 +209,10 @@ internal class FatalIssueReporter(
         private const val FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY = "_fatal_issue_reporting_duration_ms"
         private const val FATAL_ISSUE_REPORTING_STATE_KEY = "_fatal_issue_reporting_state"
         private const val DESTINATION_FILE_PATH = "/reports/new"
+
+        fun getDisabledStatusFieldsMap(): Map<String, FieldValue> =
+            buildMap {
+                put(FATAL_ISSUE_REPORTING_STATE_KEY, FatalIssueReporterState.ClientDisabled.readableType.toFieldValue())
+            }
     }
 }
