@@ -53,12 +53,16 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
 {
   NSString* apiURL = options[@"url"];
   BOOL enableNetworkInstrumentation = [options[@"enableNetworkInstrumentation"] boolValue];
+  
+  NSDictionary* crashReportingOptions = options[@"crashReporting"];
+  BOOL enableNativeFatalIssues = [crashReportingOptions[@"enableNativeFatalIssues"] boolValue];
 
   [CAPRNLogger
     startWithKey:apiKey
     sessionStrategy:sessionStrategy
     url:apiURL
     enableNetworkInstrumentation:enableNetworkInstrumentation
+    enableNativeFatalIssues:enableNativeFatalIssues
   ];
 }
 
@@ -69,12 +73,19 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
   options:(JS::NativeBdReactNative::InitOptions& )options)
 {
   BOOL enableNetworkInstrumentation = options.enableNetworkInstrumentation().has_value() ? options.enableNetworkInstrumentation().value() : false;
+  
+  BOOL enableNativeFatalIssues = false;
+  if (options.crashReporting().has_value()) {
+    auto crashReporting = options.crashReporting().value();
+    enableNativeFatalIssues = crashReporting.enableNativeFatalIssues().has_value() ? crashReporting.enableNativeFatalIssues().value() : false;
+  }
 
   [CAPRNLogger
     startWithKey:apiKey
     sessionStrategy:sessionStrategy
     url:options.url()
     enableNetworkInstrumentation:enableNetworkInstrumentation
+    enableNativeFatalIssues:enableNativeFatalIssues
   ];
 }
 

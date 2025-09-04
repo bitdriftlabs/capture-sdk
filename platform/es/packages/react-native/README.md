@@ -18,7 +18,12 @@ Capture library and log messages at different log levels. Note that this initial
 
 ```js
 import { init, trace, debug, info, warn, error, SessionStrategy } from '@bitdrift/react-native';
-init('<api key>', SessionStrategy.Activity); // Specify either `Activity` or `Fixed` session strategy
+
+init('<api key>', SessionStrategy.Activity, {
+  crashReporting: {
+    enableNativeFatalIssues: true, // Enable native crash reporting (crashes, ANRs, etc.)
+  },
+});
 
 info('Hello, World!');
 ```
@@ -69,6 +74,22 @@ For Android, perform the initialization in `onCreate` in your `MainApplication.k
 ```
 
 To add custom log messages from your React Native app, import the log level functions from the `@bitdrift/react-native` package and use them to log messages at the desired log level.
+
+## Configuration Options
+
+### Crash Reporting
+
+The `crashReporting` option allows you to configure crash and error reporting behavior:
+
+```js
+init('<api key>', SessionStrategy.Activity, {
+  crashReporting: {
+    enableNativeFatalIssues: true, // Enable native crash reporting (crashes, ANRs, etc.)
+  }
+});
+```
+
+- `enableNativeFatalIssues`: When `true`, enables reporting of native fatal issues including crashes, ANRs (Application Not Responding), and other critical errors. Defaults to `false`.
 
 ```js
 import { trace, debug, info, warn, error } from '@bitdrift/react-native';
