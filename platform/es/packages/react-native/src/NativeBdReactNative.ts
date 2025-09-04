@@ -13,9 +13,15 @@ export enum SessionStrategy {
   Activity = 'activity',
   Fixed = 'fixed',
 }
+export type CrashReportingOptions = {
+  /** Enable native fatal issues reporting (e.g. JVM crashes, JNI crashes, etc) */
+  enableNativeFatalIssues?: boolean;
+};
+
 export type InitOptions = {
   url?: string;
   enableNetworkInstrumentation?: boolean;
+  crashReporting?: CrashReportingOptions;
 };
 
 export interface Spec extends TurboModule {

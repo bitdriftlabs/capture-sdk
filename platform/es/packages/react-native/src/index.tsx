@@ -6,9 +6,9 @@ import {
   Serializable,
   LogLevel,
 } from './log';
-import { InitOptions, SessionStrategy } from './NativeBdReactNative';
+import { InitOptions, SessionStrategy, CrashReportingOptions } from './NativeBdReactNative';
 import NativeBdReactNative from './NativeBdReactNative';
-export { SessionStrategy } from './NativeBdReactNative';
+export { SessionStrategy, CrashReportingOptions } from './NativeBdReactNative';
 
 let api_url: string;
 let api_key: string;

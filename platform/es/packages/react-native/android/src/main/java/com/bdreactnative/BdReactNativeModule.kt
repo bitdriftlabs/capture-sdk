@@ -17,6 +17,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
+import io.bitdrift.capture.Configuration
 
 class BdReactNativeModule internal constructor(context: ReactApplicationContext) :
   BdReactNativeSpec(context) {
@@ -28,6 +29,8 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
   @ReactMethod
   override fun init(key: String, sessionStrategy: String, options: ReadableMap?) {
     val apiUrl = options?.getString("url") ?: "https://api.bitdrift.io"
+    val crashReportingOptions = options?.getMap("crashReporting")
+    val enableNativeFatalIssues = crashReportingOptions?.getBoolean("enableNativeFatalIssues") ?: false
 
     val strategy =
     when (sessionStrategy) {
@@ -36,7 +39,13 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
       else -> throw IllegalArgumentException("Invalid session strategy: $sessionStrategy")
     }
 
-    Capture.Logger.start(apiKey = key, apiUrl = apiUrl.toHttpUrl(), sessionStrategy = strategy)
+    val configuration = if (enableNativeFatalIssues) {
+      Configuration(enableFatalIssueReporting = true, enableNativeCrashReporting = true)
+    } else {
+      Configuration()
+    }
+
+    Capture.Logger.start(apiKey = key, apiUrl = apiUrl.toHttpUrl(), sessionStrategy = strategy, configuration = configuration)
   }
 
   @ReactMethod

@@ -16,6 +16,9 @@ if (BITDRIFT_API_KEY && BITDRIFT_API_URL) {
   init(BITDRIFT_API_KEY, SessionStrategy.Activity, {
     url: BITDRIFT_API_URL,
     enableNetworkInstrumentation: true,
+    crashReporting: {
+      enableNativeFatalIssues: true,
+    },
   });
 
   getSessionID().then((sessionID) => {

@@ -9,7 +9,7 @@ import Capture
 
 @objc public class CAPRNLogger: NSObject {
     @objc public static func start(
-        key: String, sessionStrategy: String, url: String?, enableNetworkInstrumentation: Bool
+        key: String, sessionStrategy: String, url: String?, enableNetworkInstrumentation: Bool, enableNativeFatalIssues: Bool
     ) {
         let strategy =
             switch sessionStrategy {
@@ -21,9 +21,16 @@ import Capture
                 SessionStrategy.fixed()
             }
 
+        let configuration = if enableNativeFatalIssues {
+            Configuration(enableFatalIssueReporting: true)
+        } else {
+            Configuration(enableFatalIssueReporting: false)
+        }
+
         let integrator = Capture.Logger.start(
             withAPIKey: key,
             sessionStrategy: strategy,
+            configuration: configuration,
             apiURL: URL(string: url ?? "https://api.bitdrift.io")!
         )
 
