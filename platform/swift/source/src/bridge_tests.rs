@@ -117,7 +117,7 @@ async fn no_capacity_sends_error_with_runtime() {
 
   setup
     .runtime
-    .update_snapshot(&bd_test_helpers::runtime::make_simple_update(vec![(
+    .update_snapshot(bd_test_helpers::runtime::make_simple_update(vec![(
       crate::bridge::flags::ReportSendDataTimeoutError::path(),
       ValueKind::Bool(true),
     )]))
@@ -141,7 +141,7 @@ async fn runtime_configured_deadline() {
 
   setup
     .runtime
-    .update_snapshot(&bd_test_helpers::runtime::make_simple_update(vec![(
+    .update_snapshot(bd_test_helpers::runtime::make_simple_update(vec![(
       crate::bridge::flags::SendDataTimeout::path(),
       ValueKind::Int(1),
     )]))
