@@ -92,22 +92,24 @@ const HomeScreen = () => {
         />
       )}
 
-      <View style={styles.inlineContainer}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.button,
-            pressed && styles.buttonActive,
-          ]}
-          onPress={handleGenerateTemporaryDeviceCode}
-        >
-          <Text style={styles.buttonText}>Generate Temporary Device Code</Text>
-        </Pressable>
-        {temporaryDeviceCode && (
-          <Text selectable style={{ margin: 10 }}>
-            {temporaryDeviceCode}
-          </Text>
-        )}
-      </View>
+      {hasAPIKeyConfigured && (
+        <View style={styles.inlineContainer}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              pressed && styles.buttonActive,
+            ]}
+            onPress={handleGenerateTemporaryDeviceCode}
+          >
+            <Text style={styles.buttonText}>Generate Temporary Device Code</Text>
+          </Pressable>
+          {temporaryDeviceCode && (
+            <Text selectable style={{ margin: 10 }}>
+              {temporaryDeviceCode}
+            </Text>
+          )}
+        </View>
+      )}
 
       <Pressable
         style={({ pressed }) => [styles.button, pressed && styles.buttonActive]}
