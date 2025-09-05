@@ -84,8 +84,8 @@ jobs:
           fi
           
           NEW_RN_VERSION="$NEW_RN_MAJOR.$NEW_RN_MINOR.$NEW_RN_PATCH"
-          echo "new_rn_version=$NEW_RN_VERSION" >> $GITHUB_OUTPUT
-          echo "Calculated new React Native version: $NEW_RN_VERSION"
+          echo "$NEW_RN_VERSION" > .auto-release-react-version
+          echo "Created .auto-release-react-version file with version: $NEW_RN_VERSION"
 
       - name: Create Pull Request with Capture SDK version bump
         uses: peter-evans/create-pull-request@v6
@@ -101,10 +101,5 @@ jobs:
             This PR updates the Capture SDK to version ${{ inputs.version }}.
             
             https://github.com/bitdriftlabs/capture-sdk/releases/tag/v${{ inputs.version }}
-
-      - name: Store expected React Native version for auto-release
-        run: |
-          echo "${{ steps.update-rn-version.outputs.new_rn_version }}" > .auto-release-react-version
-          echo "Stored expected React Native version: ${{ steps.update-rn-version.outputs.new_rn_version }}"
 
 
