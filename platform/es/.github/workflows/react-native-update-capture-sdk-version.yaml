@@ -85,28 +85,26 @@ jobs:
           
           NEW_RN_VERSION="$NEW_RN_MAJOR.$NEW_RN_MINOR.$NEW_RN_PATCH"
           echo "new_rn_version=$NEW_RN_VERSION" >> $GITHUB_OUTPUT
+          echo "Calculated new React Native version: $NEW_RN_VERSION"
 
-      - name: Update React Native package version
-        run: |
-          NEW_VERSION="${{ steps.update-rn-version.outputs.new_rn_version }}"
-          
-          # Update package.json
-          npm version $NEW_VERSION --workspace=packages/react-native --no-git-tag-version
-          
-          # Update package-lock.json
-          npm install --package-lock-only
-          
-          echo "Updated React Native package version to $NEW_VERSION"
-
-      - name: Create Pull Request after successful E2E tests
+      - name: Create Pull Request with Capture SDK version bump
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: Update version to ${{ inputs.version }} and bump React Native to ${{ steps.update-rn-version.outputs.new_rn_version }}
-          commit-message: Update React Native version with Capture SDK ${{ inputs.version }} and bump RN package to ${{ steps.update-rn-version.outputs.new_rn_version }}
+          title: "Update Capture SDK to ${{ inputs.version }}"
+          commit-message: Update Capture SDK version to ${{ inputs.version }}
           committer: GitHub Action <noreply@github.com>
           base: main
           delete-branch: true
-          branch: update-rn-capture-version-${{ inputs.version }}
+          branch: update-capture-sdk-${{ inputs.version }}
+          body: |
+            This PR updates the Capture SDK to version ${{ inputs.version }}.
+            
+            https://github.com/bitdriftlabs/capture-sdk/releases/tag/v${{ inputs.version }}
+
+      - name: Store expected React Native version for auto-release
+        run: |
+          echo "${{ steps.update-rn-version.outputs.new_rn_version }}" > .auto-release-react-version
+          echo "Stored expected React Native version: ${{ steps.update-rn-version.outputs.new_rn_version }}"
 
 
