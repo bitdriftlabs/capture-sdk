@@ -6,7 +6,7 @@ on:
 
 jobs:
   auto-publish:
-    if: github.event.pull_request.merged == true && contains(github.event.pull_request.title, 'Update React Native version with Capture SDK') && github.event.pull_request.user.login == 'github-actions[bot]'
+    if: github.event.pull_request.merged == true && contains(github.event.pull_request.title, 'Update Capture SDK version to') && github.event.pull_request.user.login == 'github-actions[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -18,13 +18,20 @@ jobs:
       - name: Setup Node.js
         uses: ./.github/actions/javascript-setup
         
-      - name: Get React Native version from package.json
+      - name: Read expected React Native version from file
         id: extract-version
         run: |
-          # Get the current version from package.json after the PR is merged
-          CURRENT_RN_VERSION=$(node -p "require('./packages/react-native/package.json').version")
-          echo "rn_version=$CURRENT_RN_VERSION" >> $GITHUB_OUTPUT
-          echo "Current React Native version from package.json: $CURRENT_RN_VERSION"
+          if [ -f ".auto-release-react-version" ]; then
+            RN_VERSION=$(cat .auto-release-react-version | tr -d '\n\r')
+            echo "Read expected React Native version from file: $RN_VERSION"
+          else
+            echo "ERROR: .auto-release-react-version file not found!"
+            echo "This should have been created by the update workflow"
+            exit 1
+          fi
+          
+          echo "rn_version=$RN_VERSION" >> $GITHUB_OUTPUT
+          echo "Using React Native version: $RN_VERSION"
                     
       - name: Trigger React Native release workflow
         uses: actions/github-script@v7
