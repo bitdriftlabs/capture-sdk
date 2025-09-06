@@ -1,0 +1,58 @@
+name: Generate Swift PM Package.swift Manifest file
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'The SDK version to release, ex: 0.9.102'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The SDK version to release, ex: 0.9.102'
+        required: true
+        type: string
+jobs: 
+  generate-package-swift:
+    name: Generate Package.Swift
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Package.swift
+        run: |
+          CHECKSUM=$(curl "https://dl.bitdrift.io/sdk/ios/capture-$VERSION/Capture.zip.sha256")
+
+          sed -e "s#\(capture-\)\(.*\)\(/Capture\.zip\)#\1$VERSION\3#g" platform/swift/Package.swift \
+          | sed -e "s#\(checksum: \"\)\(.*\)\(\"\)#\1$CHECKSUM\3#g" \
+          > Package_tmp.swift
+
+          mv Package_tmp.swift platform/swift/Package.swift
+
+          echo "Generate Package.swift:"
+          cat platform/swift/Package.swift
+        env:
+          VERSION: ${{ inputs.version }}
+      - name: Check for Changes
+        id: state
+        run: |
+          if ! git diff-index --quiet HEAD --; then
+            echo "Detected changes..."
+            echo "dirty=true" >> $GITHUB_OUTPUT
+          fi
+      - name: Create Pull Request
+        id: create-pr
+        if: steps.state.outputs.dirty == 'true'
+        # v5.0.2
+        uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: Generate Package.swift for ${{ inputs.version }}
+          commit-message: |
+              Generate Package.swift for ${{ inputs.version }}
+          committer: GitHub Action <noreply@github.com>
+          base: main
+          delete-branch: true
+          branch: generate-package-swift-${{ inputs.version }}
