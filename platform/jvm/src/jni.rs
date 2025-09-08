@@ -16,6 +16,7 @@ use crate::{
   ffi,
   key_value_storage,
   new_global,
+  report_processing,
   resource_utilization,
   session,
 };
@@ -31,15 +32,6 @@ use bd_error_reporter::reporter::{
   UnexpectedErrorHandler,
 };
 use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields, LogType};
-use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
-  AppBuildNumber,
-  AppBuildNumberArgs,
-  AppMetricsArgs,
-  DeviceMetricsArgs,
-  OSBuild,
-  OSBuildArgs,
-};
-use flatbuffers::FlatBufferBuilder;
 use futures_util::FutureExt;
 use jni::descriptors::Desc;
 use jni::objects::{
@@ -336,6 +328,7 @@ fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
   events::initialize(&mut env)?;
   ffi::initialize(&mut env)?;
   session::initialize(&mut env)?;
+  report_processing::initialize(&mut env)?;
   resource_utilization::initialize(&mut env)?;
   session_replay::initialize(&mut env)?;
 
@@ -1206,7 +1199,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processCrashRe
 
 #[no_mangle]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_reportANR(
-  mut env: JNIEnv<'_>,
+  env: JNIEnv<'_>,
   _class: JClass<'_>,
   stream: JObject<'_>,
   destination: JString<'_>,
@@ -1218,106 +1211,18 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_reportANR(
   app_version: JString<'_>,
   version_code: jlong,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let mut stream_bytes = vec![];
-      read_stream(&mut env, stream, &mut stream_bytes)?;
-      let stream_slice = stream_bytes.as_slice();
-      let input = std::str::from_utf8(unsafe { std::mem::transmute(stream_slice as &[i8]) })?;
-      let mut builder = FlatBufferBuilder::new();
-      let destination = unsafe { env.get_string_unchecked(&destination) }
-        .map_err(|e| anyhow::anyhow!("failed to parse destination: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let manufacturer = unsafe { env.get_string_unchecked(&manufacturer) }
-        .map_err(|e| anyhow::anyhow!("failed to parse manufacturer: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let model = unsafe { env.get_string_unchecked(&model) }
-        .map_err(|e| anyhow::anyhow!("failed to parse model: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let os_brand = unsafe { env.get_string_unchecked(&os_brand) }
-        .map_err(|e| anyhow::anyhow!("failed to parse os_brand: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let os_version = unsafe { env.get_string_unchecked(&os_version) }
-        .map_err(|e| anyhow::anyhow!("failed to parse os_version: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let os_build = OSBuildArgs {
-        brand: Some(builder.create_string(&os_brand)),
-        version: Some(builder.create_string(&os_version)),
-        ..Default::default()
-      };
-      let mut device_info = DeviceMetricsArgs {
-        manufacturer: Some(builder.create_string(&manufacturer)),
-        model: Some(builder.create_string(&model)),
-        os_build: Some(OSBuild::create(&mut builder, &os_build)),
-        ..Default::default()
-      };
-      let build_number = Some(AppBuildNumber::create(
-        &mut builder,
-        &AppBuildNumberArgs {
-          version_code: version_code.into(),
-          ..Default::default()
-        },
-      ));
-      let app_id = unsafe { env.get_string_unchecked(&app_id) }
-        .map_err(|e| anyhow::anyhow!("failed to parse app_id: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let app_version = unsafe { env.get_string_unchecked(&app_version) }
-        .map_err(|e| anyhow::anyhow!("failed to parse app_version: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let mut app_info = AppMetricsArgs {
-        app_id: Some(builder.create_string(&app_id)),
-        version: Some(builder.create_string(&app_version)),
-        build_number,
-        ..Default::default()
-      };
-      let mut event_time = None;
-      let (_, report_offset) = bd_report_parsers::android::build_anr(
-        &mut builder,
-        &mut app_info,
-        &mut device_info,
-        &mut event_time,
-        input,
-      )?;
-
-      builder.finish(report_offset, None);
-      let contents = builder.finished_data();
-      std::fs::write(destination, contents)?;
-      Ok(())
-    },
-    "jni process ANR",
+  report_processing::report_anr(
+    env,
+    &stream,
+    &destination,
+    &manufacturer,
+    &model,
+    &os_version,
+    &os_brand,
+    &app_id,
+    &app_version,
+    version_code,
   );
-}
-
-fn read_stream(
-  env: &mut JNIEnv<'_>,
-  stream: JObject<'_>,
-  contents: &mut Vec<i8>,
-) -> anyhow::Result<()> {
-  const BUFFER_SIZE: i32 = 8192;
-  let buffer = env.new_byte_array(BUFFER_SIZE)?;
-
-  loop {
-    let bytes_read = env
-      .call_method(&stream, "read", "([B)I", &[(&buffer).into()])?
-      .i()?;
-
-    if bytes_read <= 0 {
-      break;
-    }
-
-    let buffer_elements =
-      unsafe { env.get_array_elements(&buffer, jni::objects::ReleaseMode::NoCopyBack)? };
-    contents.extend_from_slice(&buffer_elements[.. bytes_read as usize]);
-  }
-  contents.push(0);
-  Ok(())
 }
 
 fn exception_stacktrace(

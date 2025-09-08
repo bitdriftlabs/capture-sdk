@@ -19,6 +19,7 @@ pub mod executor;
 pub mod ffi;
 pub mod jni;
 pub mod key_value_storage;
+mod report_processing;
 pub mod resource_utilization;
 mod session;
 pub mod session_replay;
