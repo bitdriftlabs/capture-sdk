@@ -22,9 +22,13 @@ impl Default for UserDefaultsStorage {
   fn default() -> Self {
     let mut user_defaults = {
       let defaults: *mut Object = unsafe { msg_send![class!(NSUserDefaults), alloc] };
-      let suite_name = make_nsstring("io.bitdrift.storage");
-      let defaults: *mut Object = unsafe { msg_send![defaults, initWithSuiteName:*suite_name] };
-      unsafe { StrongPtr::new(defaults) }
+      make_nsstring("io.bitdrift.storage").map_or_else(
+        |_| unsafe { StrongPtr::new(std::ptr::null_mut()) },
+        |suite_name| {
+          let defaults: *mut Object = unsafe { msg_send![defaults, initWithSuiteName:*suite_name] };
+          unsafe { StrongPtr::new(defaults) }
+        },
+      )
     };
 
     if user_defaults.is_null() {
@@ -44,35 +48,37 @@ unsafe impl Send for UserDefaultsStorage {}
 impl bd_key_value::Storage for UserDefaultsStorage {
   fn set_string(&self, key: &str, value: &str) -> anyhow::Result<()> {
     objc::rc::autoreleasepool(|| {
-      let key = make_nsstring(key);
-      let value = make_nsstring(value);
+      let key = make_nsstring(key)?;
+      let value = make_nsstring(value)?;
 
       unsafe {
         let () = msg_send![*self.user_defaults, setObject:*value forKey:*key];
-      }
-    });
+      };
+      Ok::<_, anyhow::Error>(())
+    })?;
 
     Ok(())
   }
 
   fn get_string(&self, key: &str) -> anyhow::Result<Option<String>> {
-    Ok(objc::rc::autoreleasepool(|| {
-      let key = make_nsstring(key);
+    objc::rc::autoreleasepool(|| {
+      let key = make_nsstring(key)?;
       let value: *const Object = unsafe { msg_send![*self.user_defaults, objectForKey:*key] };
 
       if value.is_null() {
-        return None;
+        return Ok(None);
       }
 
-      unsafe { nsstring_into_string(value) }.ok()
-    }))
+      unsafe { nsstring_into_string(value) }.map(Some)
+    })
   }
 
   fn delete(&self, key: &str) -> anyhow::Result<()> {
     objc::rc::autoreleasepool(|| {
-      let key = make_nsstring(key);
-      let () = unsafe { msg_send![*self.user_defaults, removeObjectForKey:*key] };
-    });
+      let key = make_nsstring(key)?;
+      unsafe { msg_send![*self.user_defaults, removeObjectForKey:*key] }
+      Ok::<_, anyhow::Error>(())
+    })?;
 
     Ok(())
   }

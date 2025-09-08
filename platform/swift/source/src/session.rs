@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::ffi::{self, make_nsstring};
+use anyhow::bail;
 use bd_session::activity_based::{
   Callbacks as ActivityBasedStrategyCallbacks,
   Strategy as ActivityBasedStrategy,
@@ -32,8 +33,8 @@ impl SessionStrategy {
     }
   }
 
-  pub(crate) fn create(self, store: Arc<bd_session::Store>) -> Arc<Strategy> {
-    Arc::new(match self.session_strategy_type() {
+  pub(crate) fn create(self, store: Arc<bd_session::Store>) -> anyhow::Result<Arc<Strategy>> {
+    Ok(Arc::new(match self.session_strategy_type() {
       0 => Strategy::Fixed(FixedStrategy::new(store, Arc::new(self))),
       1 => {
         let inactivity_threshold_mins = self.inactivity_threshold_mins();
@@ -44,8 +45,8 @@ impl SessionStrategy {
           Arc::new(bd_time::SystemTimeProvider {}),
         ))
       },
-      _ => panic!("Invalid session strategy type"),
-    })
+      _ => bail!("Invalid session strategy type"),
+    }))
   }
 }
 
@@ -79,7 +80,9 @@ impl ActivityBasedStrategyCallbacks for SessionStrategy {
     // Safety: Since we receive `ActivityBasedStrategyCallbacks` as a typed protocol, we know that
     // it responds to `sessionIdChanged:` and will take a NSString.
     objc::rc::autoreleasepool(|| unsafe {
-      let session_id = make_nsstring(session_id);
+      let Ok(session_id) = make_nsstring(session_id) else {
+        return;
+      };
       let () = msg_send![*self.swift_object, sessionIDChanged:*session_id];
     });
   }

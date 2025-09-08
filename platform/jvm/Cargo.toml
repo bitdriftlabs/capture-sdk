@@ -13,6 +13,7 @@ bd-api.workspace                = true
 bd-client-common.workspace      = true
 bd-client-stats-store.workspace = true
 bd-device.workspace             = true
+bd-error-reporter.workspace     = true
 bd-key-value.workspace          = true
 bd-logger.workspace             = true
 bd-runtime.workspace            = true

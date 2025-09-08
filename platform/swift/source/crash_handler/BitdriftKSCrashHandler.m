@@ -1,0 +1,210 @@
+// capture-sdk - bitdrift's client SDK
+// Copyright Bitdrift, Inc. All rights reserved.
+//
+// Use of this source code is governed by a source available license that can be found in the
+// LICENSE file or at:
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+
+#import "BitdriftKSCrashHandler.h"
+
+#import "KSCrashMonitor.h"
+#import "KSCrashMonitor_CPPException.h"
+#import "KSCrashMonitor_NSException.h"
+#import "KSCrashMonitor_Signal.h"
+#import "KSCrashMonitor_MachException.h"
+#import "KSBinaryImageCache.h"
+#import "KSThreadCache.h"
+#import "ReportWriter.h"
+#import "ReportContext.h"
+
+#import <UIKit/UIKit.h>
+#import <stdatomic.h>
+#import <string.h>
+#import <sys/sysctl.h>
+#import <sys/utsname.h>
+
+// Temporary fix for an internal dependency in KSCrashMonitor_Signal
+// to KSCrashMonitor_Memory (whose code we don't want to include).
+void ksmemory_notifyUnhandledFatalSignal(void) {}
+
+#pragma mark Rust Bridge
+
+typedef enum {
+    /// The report was not cached due to an error
+    CacheResultFailure = 0,
+    /// The crash report file does not exist
+    CacheResultReportDoesNotExist = 1,
+    /// Successfully cached a partial document
+    CacheResultPartialSuccess = 2,
+    /// Successfully cached the complete document
+    CacheResultSuccess = 3
+} CacheResult;
+
+/** Cache a KSCrash report, which will be used later for report enhancement. */
+CacheResult capture_cache_kscrash_report(NSString *reportPath);
+
+/** Enhance a MetricKit report using the cached KSCrash report. */
+NSDictionary *_Nullable capture_enhance_metrickit_diagnostic_report(const NSDictionary *_Nullable report);
+
+#pragma mark Crash Handling
+
+static ReportContext g_crashHandlerReportContext;
+
+static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
+    bool expectReceived = false;
+    if (!atomic_compare_exchange_strong(&g_crashHandlerReportContext.hasReceivedCrashNotification,
+                                        &expectReceived, true)) {
+        // We only want to handle one crash. Don't write any reports if more come in.
+        return;
+    }
+
+    g_crashHandlerReportContext.metadata.time = time(NULL);
+    g_crashHandlerReportContext.monitorContext = monitorContext;
+    bitdrift_writeKSCrashReport(&g_crashHandlerReportContext);
+}
+
+#pragma mark API
+
+@interface BitdriftKSCrashHandler ()
+@property(nonatomic, strong) NSString *kscrashReportFilePath;
+@property(class, nonatomic, readonly, strong) BitdriftKSCrashHandler *sharedInstance;
+@end
+
+@implementation BitdriftKSCrashHandler
+
++ (instancetype)sharedInstance {
+    static BitdriftKSCrashHandler *instance = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        instance = [[self alloc] init];
+    });
+    return instance;
+}
+
++ (BOOL)configureWithCrashReportDirectory:(NSURL *)crashReportDir error:(NSError **)error {
+    return [BitdriftKSCrashHandler.sharedInstance configureWithCrashReportDirectory:crashReportDir error:error];
+}
+
+- (BOOL)configureWithCrashReportDirectory:(NSURL *)crashReportDir error:(NSError **)error {
+    if (crashReportDir == nil) {
+        *error = [NSError errorWithDomain:@"BitdriftKSCrashHandler" code:0 userInfo:@{
+                NSLocalizedDescriptionKey:@"Configuration failed",
+         NSLocalizedFailureReasonErrorKey:@"crashReportDir is nil",
+        }];
+        return NO;
+    }
+
+    NSString *crashReportFile = [crashReportDir.absoluteURL.path stringByAppendingPathComponent:@"lastCrash.bjn"];
+
+    NSFileManager *fm = NSFileManager.defaultManager;
+    NSString *dir = crashReportDir.absoluteURL.path;
+    if (![fm fileExistsAtPath:dir]) {
+        if (![fm createDirectoryAtPath:dir
+           withIntermediateDirectories:YES
+                            attributes:nil
+                                 error:error]) {
+            return NO;
+        }
+    }
+
+    self.kscrashReportFilePath = crashReportFile;
+
+    BOOL result = YES;
+
+    switch (capture_cache_kscrash_report(self.kscrashReportFilePath)) {
+        case CacheResultReportDoesNotExist:
+            // KSCrash didn't detect a crash last launch.
+            break;
+        case CacheResultSuccess:
+            break;
+        case CacheResultPartialSuccess:
+            // We got a partial document, which might have at least some info we could use.
+            break;
+        case CacheResultFailure:
+            *error = [NSError errorWithDomain:@"BitdriftKSCrashHandler" code:0 userInfo:@{
+                    NSLocalizedDescriptionKey:@"Configuration failed",
+             NSLocalizedFailureReasonErrorKey:[NSString stringWithFormat:@"Error caching kscrash report at \"%@\"",
+                                               self.kscrashReportFilePath],
+            }];
+            result = NO;
+            break;
+    }
+
+    [fm removeItemAtPath:crashReportFile error:nil];
+
+    return result;
+}
+
++ (BOOL)startCrashReporterWithError:(NSError **)error {
+    return [self.sharedInstance startCrashReporterWithError:error];
+}
+
+- (BOOL)startCrashReporterWithError:(NSError **)error {
+    if (self.kscrashReportFilePath == nil) {
+        *error = [NSError errorWithDomain:@"BitdriftKSCrashHandler" code:0 userInfo:@{
+                NSLocalizedDescriptionKey:@"Start failed",
+                NSLocalizedFailureReasonErrorKey:@"Must call configureWithCrashReportPath first"
+        }];
+        return NO;
+    }
+    
+    static atomic_bool isStarted = false;
+    bool expectStarted = false;
+    if (!atomic_compare_exchange_strong(&isStarted, &expectStarted, true)) {
+        return YES; // Already started
+    }
+    
+    memset(&g_crashHandlerReportContext, 0, sizeof(g_crashHandlerReportContext));
+    // This gets allocated once and lives forever.
+    g_crashHandlerReportContext.reportPath = strdup(self.kscrashReportFilePath.UTF8String);
+    g_crashHandlerReportContext.metadata.pid = NSProcessInfo.processInfo.processIdentifier;
+    
+#define ERROR_IF_FALSE(A) do { \
+    if(!(A)) { \
+        *error = [NSError errorWithDomain:@"BitdriftKSCrashHandler" code:0 userInfo:@{ \
+                NSLocalizedDescriptionKey:@"Start failed", \
+         NSLocalizedFailureReasonErrorKey:@"Function returned unexpected false: " #A \
+        }]; \
+        isStarted = false; \
+        return NO; \
+    } \
+} while(0)
+
+    ERROR_IF_FALSE(bdcrw_open_writer(&g_crashHandlerReportContext.writer, g_crashHandlerReportContext.reportPath));
+
+    const int threadCachePollIntervalSecs = 10;
+    ksbic_init();
+    kstc_init(threadCachePollIntervalSecs);
+    kscm_setEventCallback(onCrash);
+
+    ERROR_IF_FALSE(kscm_addMonitor(kscm_cppexception_getAPI()));
+    ERROR_IF_FALSE(kscm_addMonitor(kscm_machexception_getAPI()));
+    ERROR_IF_FALSE(kscm_addMonitor(kscm_nsexception_getAPI()));
+    ERROR_IF_FALSE(kscm_addMonitor(kscm_signal_getAPI()));
+    ERROR_IF_FALSE(kscm_activateMonitors());
+
+#undef ERROR_IF_FALSE
+    return YES;
+}
+
++ (void)stopCrashReporter {
+    [self.sharedInstance stopCrashReporter];
+}
+
+- (void)stopCrashReporter {
+    kscm_disableAllMonitors();
+}
+
++ (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport {
+    return [self.sharedInstance enhancedMetricKitReport:metricKitReport];
+}
+
+- (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport {
+    if (self.kscrashReportFilePath == nil) {
+        return metricKitReport;
+    }
+
+    return capture_enhance_metrickit_diagnostic_report(metricKitReport);
+}
+
+@end

@@ -16,6 +16,9 @@ flatbuffer_library_public(
     outs = [
         "buffer_log.schema.json",
     ],
+    # This seems crazy hacky
+    include_paths = ["external/+_repo_rules3+bitdrift_api/src"],
+    includes = ["@bitdrift_api//:common"],
     language_flag = "--jsonschema",
 )
 
@@ -26,6 +29,20 @@ flatbuffer_library_public(
     ],
     outs = [
         "report_generated.swift",
+    ],
+    # This seems crazy hacky
+    include_paths = ["external/+_repo_rules3+bitdrift_api/src"],
+    includes = ["@bitdrift_api//:common"],
+    language_flag = "--swift",
+)
+
+flatbuffer_library_public(
+    name = "gen_common_swift",
+    srcs = [
+        "@bitdrift_api//:common",
+    ],
+    outs = [
+        "common_generated.swift",
     ],
     language_flag = "--swift",
 )
@@ -53,11 +70,30 @@ genrule(
 )
 
 genrule(
-    name = "report_swift_source",
+    name = "report_swift",
     srcs = [":gen_report_swift"],
     outs = ["Report.swift"],
     # you'd think that the generated file would include all of the imports
     # needed, and you would be wrong.
     cmd = "echo import FlatBuffers > $(OUTS) && cat $(location :gen_report_swift) >> $(OUTS)",
+    visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "common_swift",
+    srcs = [":gen_common_swift"],
+    outs = ["Common.swift"],
+    # you'd think that the generated file would include all of the imports
+    # needed, and you would be wrong.
+    cmd = "echo import FlatBuffers > $(OUTS) && cat $(location :gen_common_swift) >> $(OUTS)",
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "report_swift_source",
+    srcs = [
+        ":common_swift",
+        ":report_swift",
+    ],
     visibility = ["//visibility:public"],
 )

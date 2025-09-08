@@ -51,7 +51,6 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import com.bugsnag.android.Bugsnag
-import com.bugsnag.android.Logger
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.Configuration
@@ -59,10 +58,9 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueMechanism
 import io.bitdrift.capture.timber.CaptureTree
+import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.FATAL_ISSUE_ENABLED_PREFS_KEY
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
-import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.getFatalIssueSourceConfig
 import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED
 import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BITDRIFT_API_KEY
 import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BUG_SNAG_SDK_API_KEY
@@ -99,22 +97,19 @@ class GradleTestApp : Application() {
 
     private fun initLogging() {
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
-        val fatalIssueMechanism = getFatalIssueSourceConfig(sharedPreferences)
         val stringApiUrl = sharedPreferences.getString("apiUrl", null)
         val apiUrl = stringApiUrl?.toHttpUrlOrNull()
         if (apiUrl == null) {
             Log.e("GradleTestApp", "Failed to initialize bitdrift logger due to invalid API URL: $stringApiUrl")
             return
         }
+        val fatalIssueReporterEnabled =
+            sharedPreferences.getBoolean(FATAL_ISSUE_ENABLED_PREFS_KEY, true)
         val configuration =
-            if (fatalIssueMechanism == FatalIssueMechanism.BuiltIn.displayName) {
-                Configuration(
-                    enableFatalIssueReporting = true,
-                    enableNativeCrashReporting = true,
-                )
-            } else {
-                Configuration()
-            }
+            Configuration(
+                enableFatalIssueReporting = fatalIssueReporterEnabled,
+                enableNativeCrashReporting = fatalIssueReporterEnabled,
+            )
         BitdriftInit.initBitdriftCaptureInJava(
             apiUrl,
             sharedPreferences.getString(BITDRIFT_API_KEY, ""),

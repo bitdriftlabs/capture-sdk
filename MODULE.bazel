@@ -36,21 +36,14 @@ new_git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl"
 
 bazel_dep(name = "rules_robolectric", version = "4.14.1.2")
 bazel_dep(name = "rules_multirun", version = "0.10.0")
-bazel_dep(name = "apple_support", version = "1.22.0", repo_name = "build_bazel_apple_support")
-bazel_dep(name = "rules_swift", version = "2.8.2")
-
-git_override(
-    module_name = "apple_support",
-    commit = "017ad5dbc25cc4c5d345a5e7e3c9e9b6b7414b3a",
-    remote = "https://github.com/Reflejo/apple_support.git",
-)
-
+bazel_dep(name = "apple_support", version = "1.22.1", repo_name = "build_bazel_apple_support")
+bazel_dep(name = "rules_swift", version = "2.9.0")
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
 bazel_dep(name = "rules_xcodeproj", version = "2.12.1")
-bazel_dep(name = "rules_apple", version = "3.21.1")
+bazel_dep(name = "rules_apple", version = "4.1.1")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
-bazel_dep(name = "rules_cc", version = "0.1.0")
-bazel_dep(name = "rules_java", version = "8.6.3")
+bazel_dep(name = "rules_cc", version = "0.1.1")
+bazel_dep(name = "rules_java", version = "8.11.0")
 bazel_dep(name = "rules_android", version = "0.6.4")
 bazel_dep(name = "rules_android_ndk", version = "0.1.3")
 bazel_dep(name = "rules_jvm_external", version = "6.6")
@@ -60,7 +53,7 @@ bazel_dep(name = "platforms", version = "0.0.11")
 bazel_dep(name = "rules_kotlin", version = "2.1.9")
 bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "protobuf", version = "29.3")
-bazel_dep(name = "rules_rust", version = "0.61.0")
+bazel_dep(name = "rules_rust", version = "0.62.0")
 bazel_dep(name = "rules_shell", version = "0.4.0")
 
 # Required by android_artifacts for pom_file, it's not in bazel central registry
@@ -74,9 +67,16 @@ http_jar(
 
 new_git_repository(
     name = "bitdrift_api",
-    branch = "main",
     build_file = "//bazel:BUILD.bitdriftlabs_api",
+    commit = "250f755b39343c90742250a1ae8d9f73b8423df7",
     remote = "https://github.com/bitdriftlabs/api.git",
+)
+
+new_git_repository(
+    name = "kscrash",
+    build_file = "//bazel:BUILD.kscrash",
+    commit = "f0241a44f723a6b29c9db2a303917e89256a2557",
+    remote = "https://github.com/kstenerud/KSCrash.git",
 )
 
 git_override(
@@ -172,7 +172,7 @@ maven.install(
         "androidx.collection:collection:1.4.5",
         "androidx.metrics:metrics-performance:1.0.0-beta01",
         "com.google.flatbuffers:flatbuffers-java:25.2.10",
-        "com.google.protobuf:protobuf-kotlin-lite:3.24.2",
+        "com.google.protobuf:protobuf-kotlin-lite:4.31.1",
 
         # Compose
         "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:{}".format(KOTLIN_COMPILE_VERSION),
@@ -349,6 +349,8 @@ crate.from_cargo(
         "x86_64-unknown-linux-gnu",
     ],
 )
+
+# File generation must be skipped because of https://github.com/bazelbuild/rules_rust/issues/3552
 crate.annotation(
     build_script_env = {"SKIP_PROTO_GEN": "1"},
     crate = "bd-grpc",
@@ -364,6 +366,10 @@ crate.annotation(
 crate.annotation(
     build_script_env = {"SKIP_FILE_GEN": "1"},
     crate = "bd-report-writer",
+)
+crate.annotation(
+    build_script_env = {"SKIP_FILE_GEN": "1"},
+    crate = "bd-bonjson",
 )
 
 # A recent rustix update seems to have broken something here, so manually add in the crates we need to build under Bazel.

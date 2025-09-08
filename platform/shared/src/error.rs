@@ -18,7 +18,7 @@ impl SessionProvider {
   }
 }
 
-impl bd_client_common::error::SessionProvider for SessionProvider {
+impl bd_error_reporter::reporter::SessionProvider for SessionProvider {
   fn session_id(&self) -> String {
     self.strategy.session_id()
   }

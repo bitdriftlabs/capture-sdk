@@ -19,7 +19,7 @@ bd-shutdown.workspace      = true
 bd-test-helpers.workspace  = true
 criterion                  = "0.7.0"
 protobuf.workspace         = true
-tempdir.workspace          = true
+tempfile.workspace         = true
 time.workspace             = true
 
 [[bin]]

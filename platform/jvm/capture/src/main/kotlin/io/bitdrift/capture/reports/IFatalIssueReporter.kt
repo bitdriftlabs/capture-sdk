@@ -17,18 +17,19 @@ import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
  */
 interface IFatalIssueReporter {
     /**
-     * Initializes the BuiltIn reporter
+     * Initializes the FatalIssueReporter
      */
-    fun initBuiltInMode(
+    fun init(
         appContext: Context,
+        sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
     )
 
     /**
-     * Returns the configured [io.bitdrift.capture.reports.FatalIssueMechanism]
+     * Returns the current initialization state
      */
-    fun getReportingMechanism(): FatalIssueMechanism
+    fun initializationState(): FatalIssueReporterState
 
     /**
      * Generates the [InternalFieldsMap] to be reported upon Capture.Logger.start with

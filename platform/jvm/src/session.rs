@@ -14,7 +14,8 @@ use crate::jni::{
   JValueWrapper,
 };
 use anyhow::anyhow;
-use bd_client_common::error::with_handle_unexpected;
+use bd_client_common::error::InvariantError;
+use bd_error_reporter::reporter::with_handle_unexpected;
 use bd_session::{activity_based, fixed, Strategy};
 use jni::signature::{Primitive, ReturnType};
 use jni::JNIEnv;
@@ -29,39 +30,40 @@ static SESSION_STRATEGY_INACTIVITY_THRESHOLD_MINS: OnceLock<CachedMethod> = Once
 static SESSION_STRATEGY_GENERATE_SESSION_ID: OnceLock<CachedMethod> = OnceLock::new();
 static SESSION_STRATEGY_SESSION_ID_CHANGED: OnceLock<CachedMethod> = OnceLock::new();
 
-pub(crate) fn initialize(env: &mut JNIEnv<'_>) {
+pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   let session_strategy_fixed = initialize_class(
     env,
     "io/bitdrift/capture/providers/session/SessionStrategyConfiguration$Fixed",
     Some(&SESSION_STRATEGY_FIXED),
-  );
+  )?;
   initialize_method_handle(
     env,
     &session_strategy_fixed.class,
     "generateSessionId",
     "()Ljava/lang/String;",
     &SESSION_STRATEGY_GENERATE_SESSION_ID,
-  );
+  )?;
 
   let session_strategy_activity_based = initialize_class(
     env,
     "io/bitdrift/capture/providers/session/SessionStrategyConfiguration$ActivityBased",
     None,
-  );
+  )?;
   initialize_method_handle(
     env,
     &session_strategy_activity_based.class,
     "inactivityThresholdMins",
     "()J",
     &SESSION_STRATEGY_INACTIVITY_THRESHOLD_MINS,
-  );
+  )?;
   initialize_method_handle(
     env,
     &session_strategy_activity_based.class,
     "sessionIdChanged",
     "(Ljava/lang/String;)V",
     &SESSION_STRATEGY_SESSION_ID_CHANGED,
-  );
+  )?;
+  Ok(())
 }
 
 define_object_wrapper!(SessionStrategyConfigurationHandle);
@@ -76,13 +78,16 @@ impl SessionStrategyConfigurationHandle {
       Ok(Arc::new(
         if e.is_instance_of(
           session_strategy_configuration,
-          &SESSION_STRATEGY_FIXED.get().unwrap().class,
+          &SESSION_STRATEGY_FIXED
+            .get()
+            .ok_or(InvariantError::Invariant)?
+            .class,
         )? {
           Strategy::Fixed(fixed::Strategy::new(store, callbacks))
         } else {
           let inactivity_threshold_mins = SESSION_STRATEGY_INACTIVITY_THRESHOLD_MINS
             .get()
-            .unwrap()
+            .ok_or(InvariantError::Invariant)?
             .call_method(
               e,
               session_strategy_configuration,
@@ -109,7 +114,7 @@ impl fixed::Callbacks for SessionStrategyConfigurationHandle {
     self.execute(|e, session_strategy_configuration| {
       let session_id = SESSION_STRATEGY_GENERATE_SESSION_ID
         .get()
-        .unwrap()
+        .ok_or(InvariantError::Invariant)?
         .call_method(e, session_strategy_configuration, ReturnType::Object, &[])?
         .l()?;
 
@@ -131,7 +136,7 @@ impl activity_based::Callbacks for SessionStrategyConfigurationHandle {
 
           SESSION_STRATEGY_SESSION_ID_CHANGED
             .get()
-            .unwrap()
+            .ok_or(InvariantError::Invariant)?
             .call_method(
               e,
               session_configuration,

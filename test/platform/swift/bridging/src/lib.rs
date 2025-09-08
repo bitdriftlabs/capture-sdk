@@ -8,7 +8,7 @@
 #[macro_use]
 extern crate objc;
 
-use bd_client_common::error::Reporter;
+use bd_error_reporter::reporter::Reporter;
 use bd_logger::StringOrBytes;
 use bd_test_helpers::config_helper::make_benchmarking_configuration_with_workflows_update;
 use bd_test_helpers::test_api_server::{Event, ExpectedStreamEvent};
@@ -23,6 +23,9 @@ use swift_bridge::bridge::SwiftErrorReporter;
 use swift_bridge::ffi::make_nsstring;
 use swift_bridge::key_value_storage::UserDefaultsStorage;
 use time::Duration;
+
+#[path = "./conversion_tests.rs"]
+mod conversion_tests;
 
 #[ctor::ctor]
 fn setup() {
@@ -147,7 +150,7 @@ unsafe extern "C" fn test_stream_closed(
 /// Helper for validating the expected output from the end to end test in LoggerTest.swift.
 macro_rules! set_string {
   ($log:ident, $msg:ident, $rust_str:expr) => {
-    let () = msg_send![$log, $msg: make_nsstring($rust_str)];
+    let () = msg_send![$log, $msg: make_nsstring($rust_str).unwrap()];
   };
 }
 
@@ -186,16 +189,16 @@ unsafe extern "C" fn next_uploaded_log(uploaded_log: *mut Object) -> bool {
     set_string!(uploaded_log, setSessionID, received_log.session_id());
 
     for (key, value) in received_log.typed_fields() {
-      let key = make_nsstring(&key);
+      let key = make_nsstring(&key).unwrap();
 
       match value {
         StringOrBytes::String(s) => {
-          let value = make_nsstring(&s);
+          let value = make_nsstring(&s).unwrap();
 
           let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
         },
         StringOrBytes::SharedString(s) => {
-          let value = make_nsstring(&s);
+          let value = make_nsstring(&s).unwrap();
 
           let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
         },

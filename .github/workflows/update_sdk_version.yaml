@@ -40,6 +40,12 @@ jobs:
       version: ${{ inputs.version }}
     needs: public-release
     secrets: inherit
+  capture-react-release:
+    uses: ./.github/workflows/release_capture_react.yaml
+    with:
+      version: ${{ inputs.version }}
+    needs: public-release
+    secrets: inherit
 
   update-sdk-version:
     name: Update SDK version

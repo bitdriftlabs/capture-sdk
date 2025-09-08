@@ -19,7 +19,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use protobuf::Message;
 use std::sync::Arc;
 use std::time::Duration;
-use tempdir::TempDir;
+use tempfile::tempdir;
 
 // TODO(mattklein123): #[allow(unused)] has been put on a bunch of things so that benchmarks can
 // be manually removed from criterion_group! below. The main issue is that criterion filtering only
@@ -129,7 +129,7 @@ fn with_matcher_and_buffer(c: &mut Criterion) {
 }
 
 fn buffer_write_and_read(c: &mut Criterion) {
-  let temp_dir = TempDir::new("buffer_perf").unwrap();
+  let temp_dir = tempdir().unwrap();
   let stats = Arc::new(RingBufferStats::default());
   let buffer = AggregateRingBuffer::new(
     "test",

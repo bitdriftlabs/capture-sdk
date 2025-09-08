@@ -78,7 +78,7 @@ jobs:
         if: env.run_tests == 'true'
         run: ./ci/run_tests.sh
 
-  build_and_compare_apk:
+  build_and_compare_sizes:
     runs-on: ubuntu-latest
     if: needs.pre_check.outputs.should_run == 'true'
     needs: pre_check
@@ -88,9 +88,33 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Build Bazel APK 
+      - name: Cache LLVM Installation
+        uses: actions/cache@v4
+        id: llvm-cache
+        with:
+          path: /usr/lib/llvm-*
+          key: llvm-cache-${{ runner.os }}
+
+      - name: Install llvm-strip if needed
+        if: steps.llvm-cache.outputs.cache-hit != 'true'
+        run: |
+          if command -v llvm-strip &> /dev/null; then
+            echo "llvm-strip is already installed."
+          else
+            echo "llvm-strip not found. Installing now..."
+            sudo apt update && sudo apt install -y llvm
+          fi
+
+      - name: Verify llvm-strip version
+        run: llvm-strip --version
+
+      - name: Build Bazel APK and AAR
         timeout-minutes: 30
-        run: ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
+        run: |
+          # Build APK for x86_64 (this also builds the AAR dependency)
+          ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
+          # Build AAR for x86_64 to match the APK architecture and reuse build artifacts
+          ./bazelw build :capture_aar --config ci --config release-android --android_platforms=@rules_android//:x86_64
 
       - name: Upload PR APK
         uses: actions/upload-artifact@v4
@@ -98,14 +122,21 @@ jobs:
           name: android_app.apk
           path: ./bazel-bin/examples/android/android_app.apk
 
-      - name: Save APK size baseline and push to branch (main only)
+      - name: Save size baselines and push to branch (main only)
         if: github.ref == 'refs/heads/main' && success()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Get APK size
           APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
-          SIZE_FILE=ci/baseline_binary_size.txt
-          stat -c%s "$APK_PATH" > "$SIZE_FILE"
+          APK_SIZE_FILE=ci/baseline_binary_size.txt
+          stat -c%s "$APK_PATH" > "$APK_SIZE_FILE"
+
+          # Get AAR SO size
+          ./tools/capture_so_size.sh x86_64 > so_size_output.txt
+          SO_SIZE_KB=$(grep "SO_SIZE_KB=" so_size_output.txt | cut -d'=' -f2)
+          SO_SIZE_FILE=ci/baseline_so_size_x86_64_kb.txt
+          echo "$SO_SIZE_KB" > "$SO_SIZE_FILE"
 
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
@@ -113,27 +144,31 @@ jobs:
           git fetch origin binary-size-baseline
           git worktree add temp-worktree origin/binary-size-baseline
 
-          cp "$SIZE_FILE" temp-worktree/ci/
+          cp "$APK_SIZE_FILE" temp-worktree/ci/
+          cp "$SO_SIZE_FILE" temp-worktree/ci/
 
           cd temp-worktree
-          git add ci/baseline_binary_size.txt
+          git add ci/baseline_binary_size.txt ci/baseline_so_size_x86_64_kb.txt
 
           if ! git diff --cached --quiet; then
-            git commit -m "ci: update Bazel APK size baseline [skip ci]"
+            git commit -m "ci: update APK and AAR SO size baselines [skip ci]"
             git push origin HEAD:binary-size-baseline
           else
-            echo "No changes to baseline size."
+            echo "No changes to baseline sizes."
           fi
 
           cd ..
           git worktree remove temp-worktree --force
 
-      - name: Fetch APK size baseline from branch (PR only)
+      - name: Fetch size baselines from branch (PR only)
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         run: |
           git fetch origin binary-size-baseline
           git worktree add temp-baseline origin/binary-size-baseline
           cp temp-baseline/ci/baseline_binary_size.txt ci/
+          if [ -f temp-baseline/ci/baseline_so_size_x86_64_kb.txt ]; then
+            cp temp-baseline/ci/baseline_so_size_x86_64_kb.txt ci/
+          fi
           git worktree remove temp-baseline --force
 
       - name: Compute and compare APK size
@@ -144,7 +179,7 @@ jobs:
           BASELINE_PATH=ci/baseline_binary_size.txt
 
           if [ -z "$APK_PATH" ]; then
-            echo "❌ Current APK file not found!"
+            echo "Current APK file not found!"
             exit 1
           fi
 
@@ -163,42 +198,93 @@ jobs:
             echo "diff_kb=$DIFF_KB" >> $GITHUB_OUTPUT
           fi
 
-      - name: Report APK size on PR
+      - name: Compute and compare AAR SO size
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        id: so_size
+        run: |
+          # Run the capture_so_size script to get the current SO size
+          ./tools/capture_so_size.sh x86_64 > so_size_output.txt
+          SO_SIZE_KB=$(grep "SO_SIZE_KB=" so_size_output.txt | cut -d'=' -f2)
+          BASELINE_PATH=ci/baseline_so_size_x86_64_kb.txt
+
+          if [ -z "$SO_SIZE_KB" ]; then
+            echo "Current SO size not found!"
+            exit 1
+          fi
+
+          echo "current_kb=$SO_SIZE_KB" >> $GITHUB_OUTPUT
+
+          if [ ! -f "$BASELINE_PATH" ]; then
+            echo "baseline_kb=" >> $GITHUB_OUTPUT
+            echo "diff_kb=" >> $GITHUB_OUTPUT
+          else
+            BASELINE_KB=$(cat "$BASELINE_PATH")
+            DIFF_KB=$((SO_SIZE_KB - BASELINE_KB))
+            echo "baseline_kb=$BASELINE_KB" >> $GITHUB_OUTPUT
+            echo "diff_kb=$DIFF_KB" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Report sizes on PR
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
         uses: actions/github-script@v6
         env:
-          CURRENT_KB: ${{ steps.apk_size.outputs.current_kb }}
-          BASELINE_KB: ${{ steps.apk_size.outputs.baseline_kb }}
-          DIFF_KB: ${{ steps.apk_size.outputs.diff_kb }}
+          APK_CURRENT_KB: ${{ steps.apk_size.outputs.current_kb }}
+          APK_BASELINE_KB: ${{ steps.apk_size.outputs.baseline_kb }}
+          APK_DIFF_KB: ${{ steps.apk_size.outputs.diff_kb }}
+          SO_CURRENT_KB: ${{ steps.so_size.outputs.current_kb }}
+          SO_BASELINE_KB: ${{ steps.so_size.outputs.baseline_kb }}
+          SO_DIFF_KB: ${{ steps.so_size.outputs.diff_kb }}
         with:
           script: |
-            const current = process.env.CURRENT_KB;
-            const baseline = process.env.BASELINE_KB;
-            const diff = process.env.DIFF_KB;
+            const apkCurrent = process.env.APK_CURRENT_KB;
+            const apkBaseline = process.env.APK_BASELINE_KB;
+            const apkDiff = process.env.APK_DIFF_KB;
+            const soCurrent = process.env.SO_CURRENT_KB;
+            const soBaseline = process.env.SO_BASELINE_KB;
+            const soDiff = process.env.SO_DIFF_KB;
 
-            let body = '';
+            let body = '## Size Comparison Report (x86_64)\n\n';
 
-            if (baseline && baseline !== '') {
-              body = `
-              ### 📦 Bazel APK(x86_64) Size Report
-
-              | Metric     | Size (KB) |
-              |------------|-----------|
-              | Baseline   | ${baseline} |
-              | Current    | ${current} |
-              | Difference | ${diff} |
-
+            // Combined table for both APK and SO sizes
+            if ((apkBaseline && apkBaseline !== '') || (soBaseline && soBaseline !== '')) {
+              body += `
+              | Metric     | APK (KB) | SO (KB) |
+              |------------|-----------|---------|`;
+              
+              if (apkBaseline && apkBaseline !== '') {
+                body += `
+              | Baseline   | ${apkBaseline} | ${soBaseline || 'N/A'} |`;
+              }
+              
+              body += `
+              | Current    | ${apkCurrent} | ${soCurrent} |
+              | Difference | ${apkDiff || 'N/A'} | ${soDiff || 'N/A'} |
               `;
 
-              if (parseInt(diff, 10) > 0) {
-                body += `> ❌ Bazel APK(x86_64) size increased by ${diff} KB.`;
-              } else if (parseInt(diff, 10) < 0) {
-                body += `> ✅ Bazel APK(x86_64) size decreased by ${Math.abs(diff)} KB.`;
-              } else {
-                body += `> ✅ Bazel APK(x86_64) size unchanged.`;
+              // Summary for APK
+              if (apkBaseline && apkBaseline !== '') {
+                if (parseInt(apkDiff, 10) > 0) {
+                  body += `\n> APK size increased by ${apkDiff} KB.`;
+                } else if (parseInt(apkDiff, 10) < 0) {
+                  body += `\n> APK size decreased by ${Math.abs(apkDiff)} KB.`;
+                } else {
+                  body += `\n> APK size unchanged.`;
+                }
+              }
+
+              // Summary for SO
+              if (soBaseline && soBaseline !== '') {
+                if (parseInt(soDiff, 10) > 0) {
+                  body += ` SO size increased by ${soDiff} KB.`;
+                } else if (parseInt(soDiff, 10) < 0) {
+                  body += ` SO size decreased by ${Math.abs(soDiff)} KB.`;
+                } else {
+                  body += ` SO size unchanged.`;
+                }
               }
             } else {
-              body = `📌 Current Bazel APK(x86_64) size: ${current} KB (No baseline available for comparison).`;
+              body += `Current sizes: APK ${apkCurrent} KB, SO ${soCurrent} KB (No baselines available for comparison).`;
             }
 
             github.rest.issues.createComment({
@@ -295,7 +381,7 @@ jobs:
         script: cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test; adb uninstall io.bitdrift.gradletestapp; cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm gradle-test-app:check gradle-test-app:connectedCheck --stacktrace
 
   verify_android_hello_world_per_version:
-    needs: build_and_compare_apk
+    needs: build_and_compare_sizes
     runs-on: ubuntu-latest-8-cores
     strategy:
       matrix:
@@ -358,7 +444,7 @@ jobs:
   # job completing, we are able to gate it on all the previous jobs without explicitly enumerating them.
   verify_android:
     runs-on: ubuntu-latest
-    needs: ["pre_check", "build_and_compare_apk", "verify_android_hello_world_per_version", "gradle_tests"]
+    needs: ["pre_check", "build_and_compare_sizes", "verify_android_hello_world_per_version", "gradle_tests"]
     if: always()
     steps:
     # Checkout repo to Github Actions runner
@@ -367,4 +453,4 @@ jobs:
       with:
         fetch-depth: 1
     - name: check result
-      run: ./ci/check_result.sh ${{ needs.pre_check.result }} && ./ci/check_result.sh ${{ needs.build_and_compare_apk.result }} && ./ci/check_result.sh ${{ needs.verify_android_hello_world_per_version.result }} && ./ci/check_result.sh ${{ needs.gradle_tests.result }}
+      run: ./ci/check_result.sh ${{ needs.pre_check.result }} && ./ci/check_result.sh ${{ needs.build_and_compare_sizes.result }} && ./ci/check_result.sh ${{ needs.verify_android_hello_world_per_version.result }} && ./ci/check_result.sh ${{ needs.gradle_tests.result }}

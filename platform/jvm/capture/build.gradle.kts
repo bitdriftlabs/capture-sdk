@@ -127,7 +127,7 @@ detekt {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:3.24.2"
+        artifact = "com.google.protobuf:protoc:4.31.1"
     }
     generateProtoTasks {
         all().configureEach {

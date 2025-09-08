@@ -175,7 +175,7 @@ public final class LoggerObjc: NSObject {
         apiURL: URL = URL(string: "https://api.bitdrift.io")!,
         enableURLSessionIntegration: Bool = true,
         sleepMode: SleepMode = .inactive,
-        enableFatalIssueReporting: Bool = false
+        enableFatalIssueReporting: Bool = true
     ) {
         let logger = Capture.Logger
             .start(

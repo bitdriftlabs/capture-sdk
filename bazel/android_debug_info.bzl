@@ -1,5 +1,5 @@
 """
-Rule to create objdump debug info from a native dynamic library built for
+Rule to create objcopy debug info from a native dynamic library built for
 Android.
 
 This is a workaround for generally not being able to produce dwp files for
@@ -15,7 +15,7 @@ load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
 
 def _impl(ctx):
     library_outputs = []
-    objdump_outputs = []
+    objcopy_outputs = []
     for platform, dep in ctx.split_attr.dep.items():
         # When --android_platforms isn't set, the platform is None
         if len(dep.files.to_list()) != 1:
@@ -24,12 +24,12 @@ def _impl(ctx):
         cc_toolchain = ctx.split_attr._cc_toolchain[platform][cc_common.CcToolchainInfo]
         lib = dep.files.to_list()[0]
         platform_name = platform or ctx.fragments.android.android_cpu
-        objdump_output = ctx.actions.declare_file(platform_name + "/" + platform_name + ".objdump.gz")
+        objcopy_output = ctx.actions.declare_file(platform_name + "/" + platform_name + ".debug.gz")
 
         ctx.actions.run_shell(
             inputs = [lib],
-            outputs = [objdump_output],
-            command = cc_toolchain.objdump_executable + " --syms " + lib.path + "| gzip -c >" + objdump_output.path,
+            outputs = [objcopy_output],
+            command = cc_toolchain.objcopy_executable + " --compress-debug-sections=zlib --only-keep-debug " + lib.path + " - | gzip -c >" + objcopy_output.path,
             tools = [cc_toolchain.all_files],
             progress_message = "Generating symbol map " + platform_name,
         )
@@ -44,11 +44,11 @@ def _impl(ctx):
         )
 
         library_outputs.append(strip_output)
-        objdump_outputs.append(objdump_output)
+        objcopy_outputs.append(objcopy_output)
 
     return [
         DefaultInfo(files = depset(library_outputs)),
-        OutputGroupInfo(objdump = objdump_outputs),
+        OutputGroupInfo(objcopy = objcopy_outputs),
     ]
 
 android_debug_info = rule(

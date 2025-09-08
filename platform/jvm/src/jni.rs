@@ -19,9 +19,13 @@ use crate::{
   resource_utilization,
   session,
 };
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use bd_api::{Platform, PlatformNetworkStream, StreamEvent};
-use bd_client_common::error::{
+use bd_client_common::error::InvariantError;
+use bd_error_reporter::reporter::{
+  handle_unexpected,
+  handle_unexpected_error_with_details,
+  with_handle_unexpected,
   with_handle_unexpected_or,
   MetadataErrorReporter,
   UnexpectedErrorHandler,
@@ -40,7 +44,7 @@ use jni::objects::{
   JValueOwned,
 };
 use jni::signature::{Primitive, ReturnType};
-use jni::sys::{jboolean, jbyteArray, jdouble, jint, jlong, jobject, jvalue, JNI_TRUE};
+use jni::sys::{jboolean, jbyteArray, jdouble, jint, jlong, jobject, jvalue, JNI_ERR, JNI_TRUE};
 use jni::{JNIEnv, JavaVM};
 use platform_shared::metadata::Mobile;
 use platform_shared::{LoggerHolder, LoggerId};
@@ -195,19 +199,22 @@ pub(crate) fn initialize_method_handle<
   method_name: &str,
   signature: &str,
   handle: &OnceLock<CachedMethod>,
-) {
+) -> anyhow::Result<()> {
   let method_id = CachedMethod::new(env, class, method_name, signature);
 
   let Ok(cached_id) = method_id else {
     log::error!("failed to resolve {class:?}::{method_name} with signature {signature}");
     check_exception(env);
-    panic!("failed to resolve method");
+    bail!("failed to resolve method");
   };
 
   // Safety: As long as this is called from within JNI_OnLoad this is called immediately following
   // dlopen for this JNI library. This means that it is guaranteed to complete before any other
-  // JNI function from this library is invoked, making it safe to unwrap here.
-  handle.set(cached_id).expect("double init");
+  // JNI function from this library is invoked.
+  handle
+    .set(cached_id)
+    .map_err(|_| InvariantError::Invariant)?;
+  Ok(())
 }
 
 pub(crate) fn initialize_class(
@@ -216,21 +223,23 @@ pub(crate) fn initialize_class(
   // Optional reference to `OnceLock` for cases when we don't want to store the cached value using
   // `OnceLock` to limit the number of locks we perform.
   handle: Option<&OnceLock<CachedClass>>,
-) -> CachedClass {
+) -> anyhow::Result<CachedClass> {
   let Ok(cached_class) = CachedClass::new(env, class) else {
     log::error!("failed to find {class} class");
     check_exception(env);
-    panic!("failed to find class");
+    bail!("failed to find class");
   };
 
   // Safety: As long as this is called from within JNI_OnLoad this is called immediately following
   // dlopen for this JNI library. This means that it is guaranteed to complete before any other
-  // JNI function from this library is invoked, making it safe to unwrap here.
+  // JNI function from this library is invoked.
   if let Some(handle) = handle {
-    handle.set(cached_class.clone()).expect("cached class");
+    handle
+      .set(cached_class.clone())
+      .map_err(|_| InvariantError::Invariant)?;
   }
 
-  cached_class
+  Ok(cached_class)
 }
 
 fn check_exception(env: &mut JNIEnv<'_>) {
@@ -243,11 +252,11 @@ fn check_exception(env: &mut JNIEnv<'_>) {
   }
 }
 
-#[no_mangle]
-pub extern "system" fn JNI_OnLoad(vm: JavaVM, _: *mut c_void) -> jint {
-  let mut env = vm.get_env().expect("Cannot get reference to the JNIEnv");
+fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
+  let mut env = vm.get_env()?;
 
-  let metadata_provider = initialize_class(&mut env, "io/bitdrift/capture/IMetadataProvider", None);
+  let metadata_provider =
+    initialize_class(&mut env, "io/bitdrift/capture/IMetadataProvider", None)?;
 
   initialize_method_handle(
     &mut env,
@@ -255,21 +264,21 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _: *mut c_void) -> jint {
     "timestamp",
     "()J",
     &METADATA_PROVIDER_TIMESTAMP,
-  );
+  )?;
   initialize_method_handle(
     &mut env,
     &metadata_provider.class,
     "ootbFields",
     "()Ljava/util/List;",
     &METADATA_PROVIDER_OOTB_FIELDS,
-  );
+  )?;
   initialize_method_handle(
     &mut env,
     &metadata_provider.class,
     "customFields",
     "()Ljava/util/List;",
     &METADATA_PROVIDER_CUSTOM_FIELDS,
-  );
+  )?;
 
   initialize_method_handle(
     &mut env,
@@ -277,9 +286,10 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _: *mut c_void) -> jint {
     "startStream",
     "(JLjava/util/Map;)Lio/bitdrift/capture/network/ICaptureStream;",
     &NETWORK_START_STREAM,
-  );
+  )?;
 
-  let stream_class = initialize_class(&mut env, "io/bitdrift/capture/network/ICaptureStream", None);
+  let stream_class =
+    initialize_class(&mut env, "io/bitdrift/capture/network/ICaptureStream", None)?;
 
   initialize_method_handle(
     &mut env,
@@ -287,7 +297,7 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _: *mut c_void) -> jint {
     "sendData",
     "([B)V",
     &STREAM_SEND_DATA,
-  );
+  )?;
 
   initialize_method_handle(
     &mut env,
@@ -295,7 +305,7 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _: *mut c_void) -> jint {
     "shutdown",
     "()V",
     &STREAM_SHUTDOWN,
-  );
+  )?;
 
   initialize_method_handle(
     &mut env,
@@ -303,7 +313,7 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _: *mut c_void) -> jint {
     "reportError",
     "(Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)V",
     &ERROR_REPORTER_REPORT_ERROR,
-  );
+  )?;
 
   initialize_method_handle(
     &mut env,
@@ -311,16 +321,21 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _: *mut c_void) -> jint {
     "invoke",
     "()Ljava/lang/String;",
     &STACK_TRACE_PROVIDER_INVOKE,
-  );
+  )?;
 
-  key_value_storage::initialize(&mut env);
-  events::initialize(&mut env);
-  ffi::initialize(&mut env);
-  session::initialize(&mut env);
-  resource_utilization::initialize(&mut env);
-  session_replay::initialize(&mut env);
+  key_value_storage::initialize(&mut env)?;
+  events::initialize(&mut env)?;
+  ffi::initialize(&mut env)?;
+  session::initialize(&mut env)?;
+  resource_utilization::initialize(&mut env)?;
+  session_replay::initialize(&mut env)?;
 
-  env.get_version().unwrap().into()
+  Ok(env.get_version()?.into())
+}
+
+#[no_mangle]
+pub extern "system" fn JNI_OnLoad(vm: JavaVM, _: *mut c_void) -> jint {
+  jni_load_inner(&vm).unwrap_or(JNI_ERR)
 }
 
 //
@@ -368,7 +383,7 @@ impl bd_api::PlatformNetworkManager<bd_runtime::runtime::ConfigLoader> for Netwo
 
       let handle = NETWORK_START_STREAM
         .get()
-        .unwrap()
+        .ok_or(InvariantError::Invariant)?
         .call_method(
           e,
           network,
@@ -401,7 +416,7 @@ impl bd_api::PlatformNetworkStream for StreamHandle {
 
       STREAM_SEND_DATA
         .get()
-        .unwrap()
+        .ok_or(InvariantError::Invariant)?
         .call_method(
           e,
           stream,
@@ -415,11 +430,11 @@ impl bd_api::PlatformNetworkStream for StreamHandle {
 
 impl Drop for StreamHandle {
   fn drop(&mut self) {
-    bd_client_common::error::handle_unexpected(
+    handle_unexpected(
       self.execute(|e, stream| {
         STREAM_SHUTDOWN
           .get()
-          .unwrap()
+          .ok_or(InvariantError::Invariant)?
           .call_method(e, stream, ReturnType::Primitive(Primitive::Void), &[])
           .map(|_| ())
       }),
@@ -439,7 +454,7 @@ extern "system" fn Java_io_bitdrift_capture_network_Jni_onApiChunkReceived(
 ) {
   let stream_state: &StreamState = unsafe { &*(stream_id as *const StreamState) };
 
-  bd_client_common::error::with_handle_unexpected(
+  with_handle_unexpected(
     || -> anyhow::Result<()> {
       let slice = env.convert_byte_array(unsafe { JPrimitiveArray::from_raw(data) })?;
 
@@ -462,7 +477,7 @@ pub extern "system" fn Java_io_bitdrift_capture_network_Jni_onApiStreamClosed(
 ) {
   let stream_state: &StreamState = unsafe { &*(stream_id as *const StreamState) };
 
-  bd_client_common::error::with_handle_unexpected(
+  with_handle_unexpected(
     || -> anyhow::Result<()> {
       let rust_str = unsafe { env.get_string_unchecked(&reason)? }.into();
 
@@ -490,7 +505,7 @@ pub extern "system" fn Java_io_bitdrift_capture_network_Jni_releaseApiStream(
 
 define_object_wrapper!(ErrorReporterHandle);
 
-impl bd_client_common::error::Reporter for ErrorReporterHandle {
+impl bd_error_reporter::reporter::Reporter for ErrorReporterHandle {
   fn report(
     &self,
     message: &str,
@@ -511,7 +526,7 @@ impl bd_client_common::error::Reporter for ErrorReporterHandle {
 
       ERROR_REPORTER_REPORT_ERROR
         .get()
-        .unwrap()
+        .ok_or(InvariantError::Invariant)?
         .call_method(
           e,
           error_reporter,
@@ -535,7 +550,7 @@ impl bd_logger::MetadataProvider for MetadataProvider {
     self.execute(|e, provider| {
       let millis_since_utc_epoch = METADATA_PROVIDER_TIMESTAMP
         .get()
-        .unwrap()
+        .ok_or(InvariantError::Invariant)?
         .call_method(e, provider, ReturnType::Primitive(Primitive::Long), &[])?
         .j()?;
 
@@ -547,14 +562,14 @@ impl bd_logger::MetadataProvider for MetadataProvider {
     self.execute(|e, provider| {
       let ootb_fields = METADATA_PROVIDER_OOTB_FIELDS
         .get()
-        .unwrap()
+        .ok_or(InvariantError::Invariant)?
         .call_method(e, provider, ReturnType::Object, &[])?
         .l()?;
       let ootb_fields = ffi::jobject_list_to_fields(e, &ootb_fields)?;
 
       let custom_fields = METADATA_PROVIDER_CUSTOM_FIELDS
         .get()
-        .unwrap()
+        .ok_or(InvariantError::Invariant)?
         .call_method(e, provider, ReturnType::Object, &[])?
         .l()?;
       let custom_fields = ffi::jobject_list_to_fields(e, &custom_fields)?;
@@ -585,7 +600,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
 ) -> jlong {
   initialize_logging();
 
-  bd_client_common::error::with_handle_unexpected_or(
+  with_handle_unexpected_or(
     || {
       let sdk_directory = PathBuf::from(
         unsafe { env.get_string_unchecked(&directory) }?
@@ -653,7 +668,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       // the error reporter is set up.
       UnexpectedErrorHandler::set_reporter(Arc::new(error_reporter));
 
-      let executor = jni::Executor::new(Arc::new(env.get_java_vm().unwrap()));
+      let executor = jni::Executor::new(Arc::new(env.get_java_vm()?));
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory,
         api_key: unsafe { env.get_string_unchecked(&api_key) }?.into(),
@@ -674,16 +689,14 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         LoggerHolder::new(
           logger,
           async move {
-            executor
-              .with_attached(|_| {
-                // When we first attach the runtime thread the JVM will rename the thread since
-                // the jni crate won't let us pass a thread name through to the attach function.
-                // To work around this we attach and then immediatley rename the thread again.
-                set_thread_name("bd-tokio");
+            executor.with_attached(|_| {
+              // When we first attach the runtime thread the JVM will rename the thread since
+              // the jni crate won't let us pass a thread name through to the attach function.
+              // To work around this we attach and then immediately rename the thread again.
+              set_thread_name("bd-tokio");
 
-                Ok::<(), anyhow::Error>(())
-              })
-              .unwrap();
+              Ok::<(), anyhow::Error>(())
+            })?;
             future.await
           }
           .boxed(),
@@ -707,7 +720,9 @@ fn set_thread_name(name: &str) {
   );
   unsafe {
     let thread = libc::pthread_self();
-    libc::pthread_setname_np(thread, CString::new(name).unwrap().as_ptr());
+    if let Ok(name) = CString::new(name) {
+      libc::pthread_setname_np(thread, name.as_ptr());
+    }
   }
 }
 
@@ -717,8 +732,10 @@ fn set_thread_name(name: &str) {
     name.len() <= 15,
     "Thread name must be at most 15 characters long, got: {name}"
   );
-  unsafe {
-    libc::pthread_setname_np(CString::new(name).unwrap().as_ptr());
+  if let Ok(name) = CString::new(name) {
+    unsafe {
+      libc::pthread_setname_np(name.as_ptr());
+    }
   }
 }
 
@@ -756,7 +773,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getSessionId<'
   _class: JClass<'_>,
   logger_id: LoggerId<'_>,
 ) -> JString<'a> {
-  bd_client_common::error::with_handle_unexpected_or(
+  with_handle_unexpected_or(
     || Ok(env.new_string(logger_id.session_id())?),
     JObject::null().into(),
     "jni get_session_id",
@@ -769,7 +786,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getDeviceId<'a
   _class: JClass<'_>,
   logger_id: LoggerId<'_>,
 ) -> JString<'a> {
-  bd_client_common::error::with_handle_unexpected_or(
+  with_handle_unexpected_or(
     || Ok(env.new_string(logger_id.device_id())?),
     JObject::null().into(),
     "jni get_device_id",
@@ -784,7 +801,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_addLogField(
   key: JString<'_>,
   value: JString<'_>,
 ) {
-  bd_client_common::error::with_handle_unexpected(
+  with_handle_unexpected(
     || -> anyhow::Result<()> {
       let key = unsafe { env.get_string_unchecked(&key) }?
         .to_string_lossy()
@@ -809,7 +826,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_removeLogField
   logger_id: jlong,
   key: JString<'_>,
 ) {
-  bd_client_common::error::with_handle_unexpected(
+  with_handle_unexpected(
     || -> anyhow::Result<()> {
       let key = unsafe { env.get_string_unchecked(&key) }?
         .to_string_lossy()
@@ -841,7 +858,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   blocking: jboolean,
 ) {
   // This should only fail if the JVM is in a bad state.
-  bd_client_common::error::with_handle_unexpected(
+  with_handle_unexpected(
     || -> anyhow::Result<()> {
       let fields = ffi::jobject_map_to_fields(&mut env, &fields, LogFieldKind::Ootb)?;
       let matching_fields =
@@ -902,7 +919,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
   fields: JObject<'_>,
   duration_s: jdouble,
 ) {
-  bd_client_common::error::with_handle_unexpected(
+  with_handle_unexpected(
     || -> anyhow::Result<()> {
       let fields = ffi::jobject_map_to_fields(&mut env, &fields, LogFieldKind::Ootb)?;
 
@@ -923,7 +940,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
   fields: JObject<'_>,
   duration_s: jdouble,
 ) {
-  bd_client_common::error::with_handle_unexpected(
+  with_handle_unexpected(
     || -> anyhow::Result<()> {
       let fields = ffi::jobject_map_to_fields(&mut env, &fields, LogFieldKind::Ootb)?;
 
@@ -944,7 +961,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeResourceU
   fields: JObject<'_>,
   duration_s: jdouble,
 ) {
-  bd_client_common::error::with_handle_unexpected(
+  with_handle_unexpected(
     || -> anyhow::Result<()> {
       let fields = ffi::jobject_map_to_fields(&mut env, &fields, LogFieldKind::Ootb)?;
 
@@ -965,7 +982,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSDKStartL
   fields: JObject<'_>,
   duration_s: jdouble,
 ) {
-  bd_client_common::error::with_handle_unexpected(
+  with_handle_unexpected(
     || -> anyhow::Result<()> {
       let fields = ffi::jobject_map_to_fields(&mut env, &fields, LogFieldKind::Ootb)?;
 
@@ -1015,7 +1032,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppUpdate
   app_install_size_bytes: jlong,
   duration_s: f64,
 ) {
-  bd_client_common::error::with_handle_unexpected(
+  with_handle_unexpected(
     || -> anyhow::Result<()> {
       let app_version = unsafe { env.get_string_unchecked(&app_version)? }
         .to_string_lossy()
@@ -1043,7 +1060,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppLaunch
   logger_id: jlong,
   duration_s: f64,
 ) {
-  bd_client_common::error::with_handle_unexpected(
+  with_handle_unexpected(
     || -> anyhow::Result<()> {
       let logger = unsafe { LoggerId::from_raw(logger_id) };
       logger.log_app_launch_tti(Duration::seconds_f64(duration_s));
@@ -1061,7 +1078,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeScreenVie
   logger_id: jlong,
   screen_name: JString<'_>,
 ) {
-  bd_client_common::error::with_handle_unexpected(
+  with_handle_unexpected(
     || -> anyhow::Result<()> {
       let screen_name = unsafe { env.get_string_unchecked(&screen_name)? }
         .to_string_lossy()
@@ -1082,7 +1099,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_flush(
   logger_id: jlong,
   blocking: jboolean,
 ) {
-  bd_client_common::error::with_handle_unexpected(
+  with_handle_unexpected(
     || -> anyhow::Result<()> {
       let logger = unsafe { LoggerId::from_raw(logger_id) };
       logger.flush_state(blocking == JNI_TRUE);
@@ -1123,13 +1140,14 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_reportError(
   stack_trace_provider: JObject<'_>,
 ) {
   if let Ok(message) = unsafe { env.get_string_unchecked(&message) } {
-    bd_client_common::error::handle_unexpected_error_with_details(
+    handle_unexpected_error_with_details(
       anyhow!(message.to_string_lossy().to_string()),
       "jni reported",
       || {
         exception_stacktrace(&mut env, &stack_trace_provider).unwrap_or_else(|_| {
-          let msg = crate::executor::check_exception(&mut env).unwrap();
-          log::warn!("failed to extract stacktrace: {msg:?}");
+          if let Ok(msg) = crate::executor::check_exception(&mut env) {
+            log::warn!("failed to extract stacktrace: {msg:?}");
+          }
           None
         })
       },
@@ -1144,7 +1162,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setSleepModeEn
   logger_id: jlong,
   enabled: jboolean,
 ) {
-  bd_client_common::error::with_handle_unexpected(
+  with_handle_unexpected(
     || -> anyhow::Result<()> {
       let logger = unsafe { LoggerId::from_raw(logger_id) };
       logger.transition_sleep_mode(enabled == JNI_TRUE);
@@ -1161,7 +1179,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processCrashRe
   _class: JClass<'_>,
   mut logger_id: LoggerId<'_>,
 ) {
-  bd_client_common::error::with_handle_unexpected(
+  with_handle_unexpected(
     || -> anyhow::Result<()> {
       logger_id
         .deref_mut()
@@ -1178,7 +1196,7 @@ fn exception_stacktrace(
 ) -> anyhow::Result<Option<String>> {
   let stacktrace = &STACK_TRACE_PROVIDER_INVOKE
     .get()
-    .unwrap()
+    .ok_or(InvariantError::Invariant)?
     .call_method(env, stack_trace_provider, ReturnType::Object, &[])?
     .l()?
     .into();
@@ -1195,7 +1213,7 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_isRuntimeEnabled(
   feature: JString<'_>,
   default_value: jboolean,
 ) -> jboolean {
-  bd_client_common::error::with_handle_unexpected_or(
+  with_handle_unexpected_or(
     || {
       // We default the feature to default_value to so that we don't require sending anything over
       // the wire in order to enable a feature (the default), leaving this as a kill switch in
@@ -1223,7 +1241,7 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeValue(
   variable_name: JString<'_>,
   default_value: jint,
 ) -> jint {
-  bd_client_common::error::with_handle_unexpected_or(
+  with_handle_unexpected_or(
     || {
       let logger = unsafe { LoggerId::from_raw(logger_id) };
       let binding = unsafe { env.get_string_unchecked(&variable_name) }?;
