@@ -24,6 +24,27 @@ import java.io.InputStream
  * and converts to a FlatBuffer Report.
  */
 internal object NativeCrashProcessor {
+    private val obfuscatedJvmPatterns =
+        listOf(
+            // e.g. "a.b"
+            Regex("^[a-z][a-z0-9]*\\.[a-z][a-z0-9]*$"),
+            // e.g. "cn2.a.a", "a1.b2.c3"
+            Regex("^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*){2,}$"),
+            // e.g. "a$b", "cn2$a$b"
+            Regex("^[a-z][a-z0-9]*(\\$[a-z][a-z0-9]*)+$"),
+        )
+
+    private val jvmExtensions = listOf(".dex", ".jar", ".oat", ".odex")
+
+    private val jvmLibraries =
+        listOf(
+            "libart.so",
+            "libjvm.so",
+            "libopenjdk.so",
+            "libopenjdkjvm.so",
+            "core-libart.jar",
+            "core-oj.jar",
+        )
     private val signalDescriptions =
         mapOf(
             "SIGABRT" to "Abort program",
@@ -61,6 +82,18 @@ internal object NativeCrashProcessor {
                             referencedBuildIds.add(frame.buildId)
                         }
 
+                        val mappingName =
+                            tombstone.memoryMappingsList
+                                .find { it.buildId == frame.buildId }
+                                ?.mappingName
+                        val isJvmFrame = isJvmFrame(frame.functionName, mappingName)
+                        val frameType =
+                            when {
+                                isJvmFrame -> FrameType.JVM
+                                isNativeFrame -> FrameType.AndroidNative
+                                else -> FrameType.AndroidNative
+                            }
+
                         val frameData =
                             FrameData(
                                 symbolName = frame.functionName,
@@ -69,7 +102,7 @@ internal object NativeCrashProcessor {
                                 frameAddress = frameAddress,
                             )
                         ReportFrameBuilder.build(
-                            FrameType.AndroidNative,
+                            frameType,
                             builder,
                             frameData,
                         )
@@ -100,20 +133,27 @@ internal object NativeCrashProcessor {
                 ThreadDetails.createThreadsVector(builder, threadOffsets.toIntArray()),
             )
 
-        referencedBuildIds.forEach { buildId ->
+        val allReferencedMappings =
             tombstone.memoryMappingsList
-                .filter { it.buildId == buildId }
-                .minByOrNull { it.beginAddress }
-                ?.let {
-                    binaryImageOffsets.add(
-                        BinaryImage.createBinaryImage(
-                            builder,
-                            builder.createString(buildId),
-                            builder.createString(it.mappingName),
-                            it.beginAddress.toULong(),
-                        ),
-                    )
+                .filter { mapping ->
+                    mapping.buildId.isNotEmpty() ||
+                        referencedBuildIds.contains(mapping.buildId)
+                }.groupBy { it.buildId }
+                .mapValues { (_, mappings) ->
+                    mappings.minByOrNull { it.beginAddress }
                 }
+
+        allReferencedMappings.forEach { (buildId, mapping) ->
+            mapping?.let {
+                binaryImageOffsets.add(
+                    BinaryImage.createBinaryImage(
+                        builder,
+                        builder.createString(buildId.ifEmpty { "unknown" }),
+                        builder.createString(it.mappingName),
+                        it.beginAddress.toULong(),
+                    ),
+                )
+            }
         }
         return Report.createReport(
             builder,
@@ -155,4 +195,31 @@ internal object NativeCrashProcessor {
         threadId: Int,
         tombstone: Tombstone,
     ): Boolean = threadId == tombstone.tid
+
+    /**
+     * Detects if a frame represents a JVM/Java frame based on function name patterns
+     * and image file extensions.
+     */
+    private fun isJvmFrame(
+        functionName: String?,
+        mappingName: String?,
+    ): Boolean {
+        if (functionName.isNullOrEmpty()) return false
+
+        if (obfuscatedJvmPatterns.any { it.matches(functionName) }) {
+            return true
+        }
+
+        mappingName?.let { name ->
+            val lowerName = name.lowercase()
+
+            if (jvmExtensions.any { lowerName.endsWith(it) } ||
+                jvmLibraries.any { lowerName.endsWith(it) }
+            ) {
+                return true
+            }
+        }
+
+        return false
+    }
 }

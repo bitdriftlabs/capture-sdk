@@ -61,7 +61,46 @@ class NativeCrashProcessorTest {
         assertThat(report.binaryImages(0)?.loadAddress).isEqualTo(100.toULong())
     }
 
-    fun makeReport(tombstone: TombstoneProtos.Tombstone): Report {
+    @Test
+    fun `detects JVM frames based on obfuscated function names`() {
+        val tombstone =
+            createTombstoneWithFrame(
+                functionName = "cn2.a.a",
+                buildId = "jvm-build-id",
+                mappingName = "/system/framework/oat/arm64/app.odex",
+            )
+
+        val frame = getFirstFrame(tombstone)
+        assertThat(frame?.type).isEqualTo(JVM_FRAME_TYPE)
+    }
+
+    @Test
+    fun `detects JVM frames based on JVM-related image files`() {
+        val tombstone =
+            createTombstoneWithFrame(
+                functionName = "someMethod",
+                buildId = "art-build-id",
+                mappingName = "/apex/com.android.art/lib64/libart.so",
+            )
+
+        val frame = getFirstFrame(tombstone)
+        assertThat(frame?.type).isEqualTo(JVM_FRAME_TYPE)
+    }
+
+    @Test
+    fun `detects native frames`() {
+        val tombstone =
+            createTombstoneWithFrame(
+                functionName = "native_function",
+                buildId = "native-build-id",
+                mappingName = "/system/lib64/libc.so",
+            )
+
+        val frame = getFirstFrame(tombstone)
+        assertThat(frame?.type).isEqualTo(NATIVE_FRAME_TYPE)
+    }
+
+    private fun makeReport(tombstone: TombstoneProtos.Tombstone): Report {
         val out = ByteArrayOutputStream()
         tombstone.writeTo(out)
         val tombstoneStream = ByteArrayInputStream(out.toByteArray())
@@ -72,5 +111,49 @@ class NativeCrashProcessorTest {
         flatBufferBuilder.finish(reportOffset)
 
         return Report.getRootAsReport(flatBufferBuilder.dataBuffer())
+    }
+
+    private fun createTombstoneWithFrame(
+        functionName: String,
+        buildId: String,
+        mappingName: String,
+    ): TombstoneProtos.Tombstone =
+        TombstoneProtos.Tombstone
+            .newBuilder()
+            .setTid(1)
+            .also {
+                it.putThreads(
+                    1,
+                    TombstoneProtos.Thread
+                        .newBuilder()
+                        .setId(1)
+                        .addCurrentBacktrace(
+                            TombstoneProtos.BacktraceFrame
+                                .newBuilder()
+                                .setPc(0x1000)
+                                .setFunctionName(functionName)
+                                .setBuildId(buildId),
+                        ).build(),
+                )
+
+                it.addMemoryMappings(
+                    TombstoneProtos.MemoryMapping
+                        .newBuilder()
+                        .setBuildId(buildId)
+                        .setMappingName(mappingName)
+                        .setBeginAddress(100),
+                )
+            }.build()
+
+    private fun getFirstFrame(tombstone: TombstoneProtos.Tombstone): io.bitdrift.capture.reports.binformat.v1.Frame? {
+        val report = makeReport(tombstone)
+        val thread = report.threadDetails?.threads(0)
+        assertThat(thread).isNotNull()
+        return thread?.stackTrace(0)
+    }
+
+    private companion object {
+        const val JVM_FRAME_TYPE: Byte = 1 // FrameType.JVM = 1
+        const val NATIVE_FRAME_TYPE: Byte = 3 // FrameType.AndroidNative = 3
     }
 }
