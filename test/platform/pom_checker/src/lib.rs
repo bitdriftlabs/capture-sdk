@@ -22,7 +22,6 @@ mod test {
     let required_deps = vec![
       "androidx.appcompat:appcompat",
       "androidx.core:core",
-      "androidx.compose.ui:ui",
       "androidx.lifecycle:lifecycle-common",
       "androidx.lifecycle:lifecycle-process",
       "androidx.metrics:metrics-performance",

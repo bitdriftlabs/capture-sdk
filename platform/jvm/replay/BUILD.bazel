@@ -23,6 +23,7 @@ bitdrift_kt_android_library(
     exports = [
         artifact("androidx.appcompat:appcompat"),
         artifact("org.jetbrains.kotlin:kotlin-stdlib"),
+        artifact("com.squareup.okhttp3:okhttp"),
     ],
 )
 
