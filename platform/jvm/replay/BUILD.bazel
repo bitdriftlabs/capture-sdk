@@ -13,15 +13,15 @@ bitdrift_kt_android_library(
     plugins = ["//:jetpack_compose_compiler_plugin"],
     require_javadocs = True,
     visibility = ["//visibility:public"],
+    exports = [
+        artifact("androidx.appcompat:appcompat"),
+        artifact("org.jetbrains.kotlin:kotlin-stdlib"),
+        artifact("com.squareup.okhttp3:okhttp"),
+    ],
     deps = [
         "//platform/jvm/common:lib",
         artifact("androidx.appcompat:appcompat"),
         artifact("androidx.compose.ui:ui"),
-        artifact("org.jetbrains.kotlin:kotlin-stdlib"),
-        artifact("com.squareup.okhttp3:okhttp"),
-    ],
-    exports = [
-        artifact("androidx.appcompat:appcompat"),
         artifact("org.jetbrains.kotlin:kotlin-stdlib"),
         artifact("com.squareup.okhttp3:okhttp"),
     ],
