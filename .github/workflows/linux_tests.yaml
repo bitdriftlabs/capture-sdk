@@ -39,7 +39,7 @@ jobs:
 
       - name: Check for workflow file changes
         id: workflow_check
-        run: ./ci/files_changed.sh .github/workflows/linux_test.yaml
+        run: ./ci/files_changed.sh .github/workflows/linux_tests.yaml
         continue-on-error: true
 
       - name: test
