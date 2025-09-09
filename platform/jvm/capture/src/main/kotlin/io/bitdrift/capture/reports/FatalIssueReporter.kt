@@ -83,7 +83,6 @@ internal class FatalIssueReporter(
                     return
                 }
             }.onFailure {
-                logError(completedReportsProcessor, it)
                 fatalIssueReporterState =
                     if (it is FileNotFoundException) {
                         FatalIssueReporterState.RuntimeUnset
