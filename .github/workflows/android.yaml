@@ -224,6 +224,11 @@ jobs:
             echo "diff_kb=$DIFF_KB" >> $GITHUB_OUTPUT
           fi
 
+      - name: Validate POM dependencies
+        run: |
+          echo "Running POM checker test..."
+          ./bazelw test //test/platform/pom_checker:pom_checker_test --test_output=all --test_arg=--nocapture
+
       - name: Report sizes on PR
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         continue-on-error: true
