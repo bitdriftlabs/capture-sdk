@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-readonly bazelisk_version="1.25.0"
+readonly bazelisk_version="1.27.0"
 
 if [[ $OSTYPE == darwin* ]]; then
   readonly bazel_os="darwin"
