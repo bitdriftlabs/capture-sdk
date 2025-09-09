@@ -133,27 +133,20 @@ internal object NativeCrashProcessor {
                 ThreadDetails.createThreadsVector(builder, threadOffsets.toIntArray()),
             )
 
-        val allReferencedMappings =
+        referencedBuildIds.forEach { buildId ->
             tombstone.memoryMappingsList
-                .filter { mapping ->
-                    mapping.buildId.isNotEmpty() ||
-                        referencedBuildIds.contains(mapping.buildId)
-                }.groupBy { it.buildId }
-                .mapValues { (_, mappings) ->
-                    mappings.minByOrNull { it.beginAddress }
+                .filter { it.buildId == buildId }
+                .minByOrNull { it.beginAddress }
+                ?.let {
+                    binaryImageOffsets.add(
+                        BinaryImage.createBinaryImage(
+                            builder,
+                            builder.createString(buildId),
+                            builder.createString(it.mappingName),
+                            it.beginAddress.toULong(),
+                        ),
+                    )
                 }
-
-        allReferencedMappings.forEach { (buildId, mapping) ->
-            mapping?.let {
-                binaryImageOffsets.add(
-                    BinaryImage.createBinaryImage(
-                        builder,
-                        builder.createString(buildId.ifEmpty { "unknown" }),
-                        builder.createString(it.mappingName),
-                        it.beginAddress.toULong(),
-                    ),
-                )
-            }
         }
         return Report.createReport(
             builder,
