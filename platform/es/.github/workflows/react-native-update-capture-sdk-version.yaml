@@ -91,7 +91,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Update Capture SDK to ${{ inputs.version }}"
+          title: "Update Capture SDK version to ${{ inputs.version }}"
           commit-message: Update Capture SDK version to ${{ inputs.version }}
           committer: GitHub Action <noreply@github.com>
           base: main
