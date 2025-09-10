@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-readonly bazelisk_version="1.25.0"
+readonly bazelisk_version="1.27.0"
 
 if [[ $OSTYPE == darwin* ]]; then
   readonly bazel_os="darwin"
@@ -19,22 +19,23 @@ fi
 
 bazel_platform="$bazel_os-$bazel_arch"
 case "$bazel_platform" in
-  darwin-arm64)
-    readonly bazel_version_sha="b13dd89c6ecd90944ca3539f5a2c715a18f69b7458878c471a902a8e482ceb4b"
-    ;;
-  darwin-amd64)
-    readonly bazel_version_sha="0af019eeb642fa70744419d02aa32df55e6e7a084105d49fb26801a660aa56d3"
-    ;;
-  linux-arm64)
-    readonly bazel_version_sha="4c8d966e40ac2c4efcc7f1a5a5cceef2c0a2f16b957e791fa7a867cce31e8fcb"
-    ;;
-  linux-amd64)
-    readonly bazel_version_sha="fd8fdff418a1758887520fa42da7e6ae39aefc788cf5e7f7bb8db6934d279fc4"
-    ;;
+darwin-arm64)
+  readonly bazel_version_sha="8bf08c894ccc19ef37f286e58184c3942c58cb08da955e990522703526ddb720"
+  ;;
+darwin-amd64)
+  readonly bazel_version_sha="8fcd7ba828f673ba4b1529425e01e15ac42599ef566c17f320d8cbfe7b96a167"
+  ;;
+linux-arm64)
+  readonly bazel_version_sha="bb608519a440d45d10304eb684a73a2b6bb7699c5b0e5434361661b25f113a5d"
+  ;;
+linux-amd64)
+  readonly bazel_version_sha="e1508323f347ad1465a887bc5d2bfb91cffc232d11e8e997b623227c6b32fb76"
+  ;;
 
-  *)
-    echo "Unsupported platform $OSTYPE $raw_arch" >&2
-    exit 1
+*)
+  echo "Unsupported platform $OSTYPE $raw_arch" >&2
+  exit 1
+  ;;
 esac
 
 readonly bazel_version_url="https://github.com/bazelbuild/bazelisk/releases/download/v$bazelisk_version/bazelisk-$bazel_platform"
