@@ -16,6 +16,7 @@ use crate::{
   ffi,
   key_value_storage,
   new_global,
+  report_processing,
   resource_utilization,
   session,
 };
@@ -327,6 +328,7 @@ fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
   events::initialize(&mut env)?;
   ffi::initialize(&mut env)?;
   session::initialize(&mut env)?;
+  report_processing::initialize(&mut env)?;
   resource_utilization::initialize(&mut env)?;
   session_replay::initialize(&mut env)?;
 
@@ -1187,6 +1189,34 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processCrashRe
       Ok(())
     },
     "jni process crash reports",
+  );
+}
+
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_reportANR(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  stream: JObject<'_>,
+  destination: JString<'_>,
+  manufacturer: JString<'_>,
+  model: JString<'_>,
+  os_version: JString<'_>,
+  os_brand: JString<'_>,
+  app_id: JString<'_>,
+  app_version: JString<'_>,
+  version_code: jlong,
+) {
+  report_processing::report_anr(
+    env,
+    &stream,
+    &destination,
+    &manufacturer,
+    &model,
+    &os_version,
+    &os_brand,
+    &app_id,
+    &app_version,
+    version_code,
   );
 }
 
