@@ -47,24 +47,21 @@ internal object NativeCrashProcessor {
         val threadOffsets = mutableListOf<Int>()
         val binaryImageOffsets = mutableListOf<Int>()
 
-        val referencedBuildIds = mutableSetOf<String>()
+        val referencedFileNames = mutableSetOf<String>()
 
         tombstone.threadsMap.forEach { (tid, thread) ->
             val frameOffsets =
                 thread.currentBacktraceList
                     .map { frame ->
                         val frameAddress = frame.pc.toULong()
-                        val isNativeFrame = frame.pc != 0L
-                        val imageId: String? = if (isNativeFrame) frame.buildId else null
+                        val imageId: String? = frame.buildId.ifBlank { frame.fileName }
 
-                        if (!frame.buildId.isNullOrEmpty()) {
-                            referencedBuildIds.add(frame.buildId)
-                        }
+                        referencedFileNames.add(frame.fileName)
 
                         val frameData =
                             FrameData(
                                 symbolName = frame.functionName,
-                                fileName = if (!isNativeFrame) frame.fileName else null,
+                                fileName = null,
                                 imageId = imageId,
                                 frameAddress = frameAddress,
                             )
@@ -100,15 +97,15 @@ internal object NativeCrashProcessor {
                 ThreadDetails.createThreadsVector(builder, threadOffsets.toIntArray()),
             )
 
-        referencedBuildIds.forEach { buildId ->
+        referencedFileNames.forEach { filename ->
             tombstone.memoryMappingsList
-                .filter { it.buildId == buildId }
+                .filter { it.mappingName == filename }
                 .minByOrNull { it.beginAddress }
                 ?.let {
                     binaryImageOffsets.add(
                         BinaryImage.createBinaryImage(
                             builder,
-                            builder.createString(buildId),
+                            builder.createString(it.buildId.ifEmpty { it.mappingName }),
                             builder.createString(it.mappingName),
                             it.beginAddress.toULong(),
                         ),
