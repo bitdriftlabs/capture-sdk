@@ -10,7 +10,6 @@ package io.bitdrift.capture.reports.processor
 import android.os.Build
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.BuildConstants
-import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.reports.binformat.v1.AppBuildNumber
@@ -33,6 +32,7 @@ import kotlin.time.toDuration
 internal class FatalIssueReporterProcessor(
     private val fatalIssueReporterStorage: IFatalIssueReporterStorage,
     private val clientAttributes: IClientAttributes,
+    private val streamingReportsProcessor: IStreamingReportProcessor,
 ) {
     /**
      * Process AppTerminations due to ANRs and native crashes into packed format
@@ -53,7 +53,7 @@ internal class FatalIssueReporterProcessor(
     ) {
         if (fatalIssueType == ReportType.AppNotResponding) {
             val destination = fatalIssueReporterStorage.generateFilePath()
-            CaptureJniLibrary.reportANR(
+            streamingReportsProcessor.reportANR(
                 traceInputStream,
                 destination,
                 Build.MANUFACTURER,
