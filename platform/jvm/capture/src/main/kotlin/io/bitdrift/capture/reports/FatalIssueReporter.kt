@@ -13,6 +13,7 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.Capture.LOG_TAG
+import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.providers.FieldValue
@@ -98,6 +99,7 @@ internal class FatalIssueReporter(
                 FatalIssueReporterProcessor(
                     FatalIssueReporterStorage(destinationDirectory.destinationDirectory),
                     clientAttributes,
+                    CaptureJniLibrary,
                 )
             captureUncaughtExceptionHandler.install(this)
 
