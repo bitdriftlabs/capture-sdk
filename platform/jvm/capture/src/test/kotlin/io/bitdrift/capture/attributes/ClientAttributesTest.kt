@@ -233,6 +233,16 @@ class ClientAttributesTest {
         assertThat(fields).containsEntry("os_version", "7.0")
     }
 
+    @Test
+    fun osApiLevel_withStartedLifecycle_shouldMatchConfigSdkInt() {
+        val clientAttributes =
+            ClientAttributes(appContext, obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED))
+
+        val fields = clientAttributes.invoke()
+
+        assertThat(fields).containsEntry("osApiLevel", "24")
+    }
+
     private fun assertInstallationSource(
         hasValidInstallationSource: Boolean,
         expectedInstallationSource: String,
