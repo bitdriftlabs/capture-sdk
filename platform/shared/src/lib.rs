@@ -16,6 +16,7 @@
 
 pub mod error;
 pub mod feature_flags;
+pub mod ffi_wrapper;
 pub mod metadata;
 
 use bd_error_reporter::reporter::handle_unexpected;
@@ -30,78 +31,12 @@ use bd_logger::{
 use bd_runtime::runtime::Snapshot;
 use parking_lot::Once;
 use std::future::Future;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 use std::pin::Pin;
 use std::sync::Arc;
 
-
-/// This is the logger ID that is passed to the platform code. It is a typed wrapper around an i64
-/// that encodes the pointer to the `LoggerHolder` object.
-///
-/// We use a fixed size representation to ensure that we can always fit a pointer in it regardless
-/// of the platform (assuming 32 or 64 bit pointers).
-///
-/// We use a signed type since the JVM doesn't support unsigned, though it doesn't matter too much
-/// since it's really just an opaque 64 bit value.
-///
-/// Thanks to the captured lifetime, it is not possible to send or outside of the current function
-/// scope when provided as `LoggerId<'_>` (note that `LoggerId<'static>` bypasses this .
-///
-/// ```compile_fail
-/// fn f(logger: platform_shared::LoggerId<'_>) {
-///   std::thread::spawn(move || {
-///     logger.logger_holder().shutdown(false);
-///   });
-/// }
-/// ```
-///
-/// This means that it is relatively safe to use `LoggerId<'_>` in FFI functions, as it is treated
-/// exactly like a `i64` in terms of memory layout and passing it around but we get an automatic
-/// conversion to a `LoggerHolder` when we provide it over FFI. As the FFI calls are fundamentally
-/// unsafe, this seems no worse than passing i64 and doing an unsafe call at the start of the
-/// function.
-#[repr(transparent)]
-pub struct LoggerId<'a> {
-  value: i64,
-  // A fake lifetime to allow us to link a non-static lifetime to the type, which allows us to
-  // limit its usage outside of the current function scope.
-  _lifetime: std::marker::PhantomData<&'a ()>,
-}
-
-impl LoggerId<'_> {
-  /// Creates a new `LoggerId` from a raw pointer to a `LoggerHolder`. Use this in cases where you
-  /// need a manual conversion from an i64 to a `LoggerId`.
-  ///
-  /// # Safety
-  /// The provided pointer *must* be a valid pointer to a `LoggerHolder` object.
-  #[must_use]
-  pub const unsafe fn from_raw(value: i64) -> Self {
-    Self {
-      value,
-      _lifetime: std::marker::PhantomData,
-    }
-  }
-
-  /// Returns a reference to the `LoggerHolder` object that this `LoggerId` represents. This is
-  /// safe because all instances of `LoggerId` are assumed to wrap a valid `LoggerHolder` object.
-  const fn logger_holder(&self) -> &LoggerHolder {
-    unsafe { &*(self.value as *const LoggerHolder) }
-  }
-}
-
-impl Deref for LoggerId<'_> {
-  type Target = LoggerHolder;
-
-  fn deref(&self) -> &Self::Target {
-    self.logger_holder()
-  }
-}
-
-impl DerefMut for LoggerId<'_> {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    unsafe { &mut *(self.value as *mut LoggerHolder) }
-  }
-}
+// Use the generic FFI ID system for LoggerId
+crate::ffi_id_for!(LoggerHolder, LoggerId);
 
 pub type LoggerFuture =
   Pin<Box<dyn Future<Output = anyhow::Result<()>> + 'static + std::marker::Send>>;
@@ -152,10 +87,7 @@ impl LoggerHolder {
   /// in order to avoid leaks the caller must ensure that the `destroy` is called with the returned
   /// value.
   pub fn into_raw<'a>(self) -> LoggerId<'a> {
-    LoggerId {
-      value: Box::into_raw(Box::new(self)) as i64,
-      _lifetime: std::marker::PhantomData,
-    }
+    unsafe { LoggerId::from_raw(Box::into_raw(Box::new(self)) as i64) }
   }
 
   /// Shuts down the logger, blocking until the logger has finished shutdown if `block` is true.
@@ -234,11 +166,5 @@ impl LoggerHolder {
       bd_logger::Block::No,
       bd_logger::CaptureSession::default(),
     );
-  }
-}
-
-impl<'a> From<LoggerId<'a>> for i64 {
-  fn from(logger: LoggerId<'a>) -> Self {
-    logger.value
   }
 }
