@@ -240,7 +240,7 @@ class ClientAttributesTest {
 
         val fields = clientAttributes.invoke()
 
-        assertThat(fields).containsEntry("osApiLevel", "24")
+        assertThat(fields).containsEntry("_os_api_level", "24")
     }
 
     private fun assertInstallationSource(
