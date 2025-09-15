@@ -8,6 +8,7 @@
 package io.bitdrift.capture.reports.processor
 
 import com.google.flatbuffers.FlatBufferBuilder
+import io.bitdrift.capture.TombstoneProtos
 import io.bitdrift.capture.TombstoneProtos.Tombstone
 import io.bitdrift.capture.reports.binformat.v1.BinaryImage
 import io.bitdrift.capture.reports.binformat.v1.Error
@@ -47,7 +48,7 @@ internal object NativeCrashProcessor {
         val threadOffsets = mutableListOf<Int>()
         val binaryImageOffsets = mutableListOf<Int>()
 
-        val referencedFileNames = mutableSetOf<String>()
+        val referencedMappings = mutableSetOf<TombstoneProtos.MemoryMapping>()
 
         tombstone.threadsMap.forEach { (tid, thread) ->
             val frameOffsets =
@@ -56,7 +57,17 @@ internal object NativeCrashProcessor {
                         val frameAddress = frame.pc.toULong()
                         val imageId: String? = frame.buildId.ifBlank { frame.fileName }
 
-                        referencedFileNames.add(frame.fileName)
+                        val binaryImageIndex =
+                            tombstone.memoryMappingsList.binarySearch {
+                                when {
+                                    frameAddress < it.beginAddress.toULong() -> 1 // look left
+                                    frameAddress >= it.endAddress.toULong() -> -1 // look right
+                                    else -> 0
+                                }
+                            }
+                        if (binaryImageIndex >= 0) {
+                            referencedMappings.add(tombstone.memoryMappingsList[binaryImageIndex])
+                        }
 
                         val frameData =
                             FrameData(
@@ -97,20 +108,15 @@ internal object NativeCrashProcessor {
                 ThreadDetails.createThreadsVector(builder, threadOffsets.toIntArray()),
             )
 
-        referencedFileNames.forEach { filename ->
-            tombstone.memoryMappingsList
-                .filter { it.mappingName == filename }
-                .minByOrNull { it.beginAddress }
-                ?.let {
-                    binaryImageOffsets.add(
-                        BinaryImage.createBinaryImage(
-                            builder,
-                            builder.createString(it.buildId.ifEmpty { it.mappingName }),
-                            builder.createString(it.mappingName),
-                            it.beginAddress.toULong(),
-                        ),
-                    )
-                }
+        referencedMappings.forEach {
+            binaryImageOffsets.add(
+                BinaryImage.createBinaryImage(
+                    builder,
+                    builder.createString(it.buildId.ifEmpty { it.mappingName }),
+                    builder.createString(it.mappingName),
+                    it.beginAddress.toULong(),
+                ),
+            )
         }
         return Report.createReport(
             builder,
