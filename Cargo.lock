@@ -2918,6 +2918,7 @@ dependencies = [
  "bd-client-common",
  "bd-device",
  "bd-error-reporter",
+ "bd-feature-flags",
  "bd-key-value",
  "bd-log",
  "bd-log-primitives",

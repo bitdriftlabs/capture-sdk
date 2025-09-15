@@ -15,6 +15,7 @@ use crate::key_value_storage::UserDefaultsStorage;
 use crate::{events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
 use bd_api::{Platform, PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
+use bd_feature_flags::FeatureFlags;
 use bd_error_reporter::reporter::{
   handle_unexpected,
   with_handle_unexpected,
@@ -872,6 +873,52 @@ mod flags {
 //
 // Feature Flags FFI Functions
 //
+
+/// Creates a new feature flags instance with persistent storage.
+///
+/// This constructor creates a new feature flags manager backed by a resilient key-value store
+/// at the specified path. Any existing flags stored at this location will be automatically
+/// loaded and made available for retrieval.
+///
+/// # Arguments
+///
+/// * `base_path` - The filesystem path to the file basename where feature flags will be stored
+/// * `buffer_size` - The size of the underlying storage buffer in bytes
+/// * `high_water_mark_ratio` - Optional ratio (0.0-1.0) for buffer high water mark. When the
+///   buffer reaches this percentage full, older data may be compacted. If negative, a default
+///   value of 0.8 will be used.
+///
+/// # Returns
+///
+/// Returns a `FeatureFlagsId` on success, or -1 on error.
+#[no_mangle]
+extern "C" fn capture_create_feature_flags(
+  base_path: *const Object,
+  buffer_size: usize,
+  high_water_mark_ratio: f32,
+) -> FeatureFlagsId<'static> {
+  with_handle_unexpected_or(
+    || -> anyhow::Result<FeatureFlagsId<'static>> {
+      let base_path = unsafe { nsstring_into_string(base_path) }?;
+      let high_water_mark_ratio = if high_water_mark_ratio < 0.0 {
+        None
+      } else {
+        Some(high_water_mark_ratio)
+      };
+
+      let feature_flags = FeatureFlags::new(
+        base_path,
+        buffer_size,
+        high_water_mark_ratio,
+      )?;
+
+      let holder = FeatureFlagsHolder::new(feature_flags);
+      Ok(holder.into_raw())
+    },
+    unsafe { FeatureFlagsId::from_raw(-1) },
+    "swift create feature flags",
+  )
+}
 
 /// Destroys a feature flags holder and frees the memory associated with it.
 ///
