@@ -15,6 +15,7 @@
 )]
 
 pub mod error;
+pub mod feature_flags;
 pub mod metadata;
 
 use bd_error_reporter::reporter::handle_unexpected;
