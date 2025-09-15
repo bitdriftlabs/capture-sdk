@@ -2265,6 +2265,7 @@ version = "1.0.0"
 dependencies = [
  "anyhow",
  "bd-api",
+ "bd-bonjson",
  "bd-client-common",
  "bd-client-stats-store",
  "bd-error-reporter",
