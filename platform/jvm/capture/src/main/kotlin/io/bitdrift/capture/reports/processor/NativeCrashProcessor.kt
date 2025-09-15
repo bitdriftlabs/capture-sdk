@@ -70,9 +70,7 @@ internal object NativeCrashProcessor {
                             if (binaryImageIndex >= 0) {
                                 val binaryImage = tombstone.memoryMappingsList[binaryImageIndex]
                                 referencedMappings.add(binaryImage)
-                                binaryImage.buildId
-                                    .ifBlank { binaryImage.mappingName }
-                                    .ifBlank { binaryImage.anonymousImageId() }
+                                binaryImage.imageId()
                             } else {
                                 // This shouldn't really happen but if it does at least keep the filename as reported
                                 // on the tombstone for debugging purposes.
@@ -122,12 +120,8 @@ internal object NativeCrashProcessor {
             binaryImageOffsets.add(
                 BinaryImage.createBinaryImage(
                     builder,
-                    builder.createString(
-                        it.buildId
-                            .ifBlank { it.mappingName }
-                            .ifBlank { it.anonymousImageId() },
-                    ),
-                    builder.createString(it.mappingName.ifBlank { it.anonymousImageId() }),
+                    builder.createString(it.imageId()),
+                    builder.createString(it.path()),
                     it.beginAddress.toULong(),
                 ),
             )
@@ -172,7 +166,23 @@ internal object NativeCrashProcessor {
     ): Boolean = threadId == tombstone.tid
 }
 
-/** Returns a generated name for a MemoryMapping without an explicit name. This mimics the behavior
-of the Android tombstone parser.
+/**
+ * Returns the imageId to use in the generated Report for a MemoryMapping. Ideally we want the BuildID,
+ * but if this is not possible we'll use the mapping name (e.g. the filename) or generate a name if no other
+ * data is available.
  */
-fun TombstoneProtos.MemoryMapping.anonymousImageId(): String = "<anonymous:${beginAddress.toHexString()}>"
+fun TombstoneProtos.MemoryMapping.imageId(): String =
+    buildId.ifBlank { mappingName }.ifBlank {
+        anonymousName()
+    }
+
+/**
+ * Returns the path to use in the generated Report for a MemoryMapping. If a mapping name is not provided,
+ * generate an anonymous name.
+ */
+fun TombstoneProtos.MemoryMapping.path(): String = mappingName.ifBlank { anonymousName() }
+
+/**
+ * An anonymous name for a MemoryMapping. This mimics how the Android tombstone parser handles these images.
+ */
+fun TombstoneProtos.MemoryMapping.anonymousName(): String = "<anonymous:${beginAddress.toHexString()}>"
