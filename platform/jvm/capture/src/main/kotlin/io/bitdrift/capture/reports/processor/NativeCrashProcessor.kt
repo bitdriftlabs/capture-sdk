@@ -54,27 +54,34 @@ internal object NativeCrashProcessor {
             val frameOffsets =
                 thread.currentBacktraceList
                     .map { frame ->
-                        val frameAddress = frame.pc.toULong()
-                        val imageId: String? = frame.buildId.ifBlank { frame.fileName }
-
+                        // Attempt to retrieve the binary image based on the program counter of the
+                        // current frame. Use a binary search as the list of mappings can be somewhat large.
                         val binaryImageIndex =
                             tombstone.memoryMappingsList.binarySearch {
                                 when {
-                                    frameAddress < it.beginAddress.toULong() -> 1 // look left
-                                    frameAddress >= it.endAddress.toULong() -> -1 // look right
+                                    frame.pc < it.beginAddress -> 1 // look left
+                                    frame.pc >= it.endAddress -> -1 // look right
                                     else -> 0
                                 }
                             }
-                        if (binaryImageIndex >= 0) {
-                            referencedMappings.add(tombstone.memoryMappingsList[binaryImageIndex])
-                        }
+
+                        val imageId =
+                            if (binaryImageIndex >= 0) {
+                                val binaryImage = tombstone.memoryMappingsList[binaryImageIndex]
+                                referencedMappings.add(binaryImage)
+                                binaryImage.buildId.ifBlank { binaryImage.mappingName }.ifBlank { "anonymous" }
+                            } else {
+                                // This shouldn't really happen but if it does at least keep the filename as reported
+                                // on the tombstone for debugging purposes.
+                                frame.fileName
+                            }
 
                         val frameData =
                             FrameData(
                                 symbolName = frame.functionName,
                                 fileName = null,
                                 imageId = imageId,
-                                frameAddress = frameAddress,
+                                frameAddress = frame.pc.toULong(),
                             )
                         ReportFrameBuilder.build(
                             FrameType.AndroidNative,
@@ -113,7 +120,7 @@ internal object NativeCrashProcessor {
                 BinaryImage.createBinaryImage(
                     builder,
                     builder.createString(it.buildId.ifEmpty { it.mappingName }),
-                    builder.createString(it.mappingName),
+                    builder.createString(it.mappingName.ifBlank { "anonymous" }),
                     it.beginAddress.toULong(),
                 ),
             )
@@ -137,13 +144,11 @@ internal object NativeCrashProcessor {
         frameOffsets: IntArray,
     ): Int {
         val signalName = tombstone.signalInfo.name
-        val reason =
-            builder.createString(signalName.ifEmpty { description })
+        val reason = builder.createString(signalName.ifEmpty { description })
         val causeText =
-            tombstone.causesList.firstOrNull()?.humanReadable
-                ?: tombstone.abortMessage.ifEmpty {
-                    signalDescriptions[signalName] ?: "Native crash"
-                }
+            tombstone.causesList.firstOrNull()?.humanReadable ?: tombstone.abortMessage.ifEmpty {
+                signalDescriptions[signalName] ?: "Native crash"
+            }
         val cause = builder.createString(causeText)
         return Error.createError(
             builder,
