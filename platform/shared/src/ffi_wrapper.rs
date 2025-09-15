@@ -101,3 +101,23 @@ macro_rules! impl_holder_deref {
     }
   };
 }
+
+/// Convenience macro for implementing `into_raw` method for holder types.
+///
+/// This generates an `into_raw` method that converts the holder into its corresponding
+/// FFI ID type, following the standard pattern of boxing the holder and converting
+/// the pointer to an i64.
+#[macro_export]
+macro_rules! impl_holder_into_raw {
+  ($holder_type:ty, $id_type:ident) => {
+    impl $holder_type {
+      /// Consumes the holder and returns the raw pointer to it as an FFI ID. This effectively leaks the object, so
+      /// in order to avoid leaks the caller must ensure that the `destroy` is called with the returned
+      /// value.
+      #[must_use]
+      pub fn into_raw<'a>(self) -> $id_type<'a> {
+        unsafe { $id_type::from_raw(Box::into_raw(Box::new(self)) as i64) }
+      }
+    }
+  };
+}

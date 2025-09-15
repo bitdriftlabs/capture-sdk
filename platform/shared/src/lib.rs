@@ -54,6 +54,7 @@ pub struct LoggerHolder {
 }
 
 crate::impl_holder_deref!(LoggerHolder, handle, bd_logger::LoggerHandle);
+crate::impl_holder_into_raw!(LoggerHolder, LoggerId);
 
 impl LoggerHolder {
   pub fn new(logger: bd_logger::Logger, future: LoggerFuture) -> Self {
@@ -66,6 +67,17 @@ impl LoggerHolder {
     }
   }
 
+  /// Given a valid logger ID, destroys the logger and frees the memory associated with it.
+  ///
+  /// # Safety
+  /// The provided id *must* correspond to the pointer of a valid `LoggerHolder` as returned by
+  /// `into_raw`. This function *cannot* be called multiple times for the same id.
+  pub unsafe fn destroy(id: i64) {
+    let holder = Box::from_raw(id as *mut Self);
+    holder.shutdown(false);
+    drop(holder);
+  }
+
   pub fn start(&self) {
     let Some(future) = self.future.lock().take() else {
       return;
@@ -73,13 +85,6 @@ impl LoggerHolder {
 
     // Start the logger runtime using the defaults provided by the logger builder.
     handle_unexpected(LoggerBuilder::run_logger_runtime(future), "logger runtime");
-  }
-
-  /// Consumes the logger and returns the raw pointer to it. This effectively leaks the object, so
-  /// in order to avoid leaks the caller must ensure that the `destroy` is called with the returned
-  /// value.
-  pub fn into_raw<'a>(self) -> LoggerId<'a> {
-    unsafe { LoggerId::from_raw(Box::into_raw(Box::new(self)) as i64) }
   }
 
   /// Shuts down the logger, blocking until the logger has finished shutdown if `block` is true.
@@ -90,17 +95,6 @@ impl LoggerHolder {
   /// Returns a snapshot of the runtime state of the logger.
   pub fn runtime_snapshot(&self) -> Arc<Snapshot> {
     self.logger.runtime_snapshot()
-  }
-
-  /// Given a valid logger ID, destroys the logger and frees the memory associated with it.
-  ///
-  /// # Safety
-  /// The provided id *must* correspond to the pointer of a valid `LoggerHolder` as returned by
-  /// `into_raw`. This function *cannot* be called multiple times for the same id.
-  pub unsafe fn destroy(id: i64) {
-    let holder = Box::from_raw(id as *mut Self);
-    holder.shutdown(false);
-    drop(holder);
   }
 
   /// Logs an out-of-the-box app launch TTI log event. The method should be called only once.

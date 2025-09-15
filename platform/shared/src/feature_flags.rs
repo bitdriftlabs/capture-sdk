@@ -21,19 +21,12 @@ pub struct FeatureFlagsHolder {
 }
 
 crate::impl_holder_deref!(FeatureFlagsHolder, feature_flags, FeatureFlags);
+crate::impl_holder_into_raw!(FeatureFlagsHolder, FeatureFlagsId);
 
 impl FeatureFlagsHolder {
   #[must_use]
   pub const fn new(feature_flags: FeatureFlags) -> Self {
     Self { feature_flags }
-  }
-
-  /// Consumes the feature flags holder and returns the raw pointer to it. This effectively leaks the object, so
-  /// in order to avoid leaks the caller must ensure that the `destroy` is called with the returned
-  /// value.
-  #[must_use]
-  pub fn into_raw<'a>(self) -> FeatureFlagsId<'a> {
-    unsafe { FeatureFlagsId::from_raw(Box::into_raw(Box::new(self)) as i64) }
   }
 
   /// Given a valid feature flags ID, destroys the feature flags holder and frees the memory associated with it.
