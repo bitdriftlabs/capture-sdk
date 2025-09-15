@@ -19,8 +19,20 @@ interface IClientAttributes {
     /** A positive integer used as an internal version number. This helps determine version recency. */
     val appVersionCode: Long
 
-    /** The operating system version (e.g. 12.1). */
+    /**
+     * The operating system version (e.g. 12.1, 16, 16 Beta, etc).
+     *
+     * This corresponds to android.os.Build.VERSION.RELEASE.
+     */
     val osVersion: String
+
+    /**
+     * The API level of the operating system currently running on the device
+     * (for example, 31 for Android 12, 35 for Android 15).
+     *
+     * This corresponds to android.os.Build.VERSION.SDK_INT.
+     */
+    val osApiLevel: Int
 
     /** A list of the currently supported ABIs. */
     val supportedAbis: List<String>

@@ -38,11 +38,13 @@ internal class ClientAttributes(
         }
     }
 
-    override val supportedAbis: List<String> = Build.SUPPORTED_ABIS.toList()
+    override val supportedAbis: List<String> by lazy { Build.SUPPORTED_ABIS.toList() }
 
     override val architecture = supportedAbis.firstOrNull() ?: "unknown"
 
-    override val osVersion: String = Build.VERSION.RELEASE
+    override val osVersion: String by lazy { Build.VERSION.RELEASE }
+
+    override val osApiLevel: Int by lazy { Build.VERSION.SDK_INT }
 
     @Suppress("SwallowedException")
     private val packageInfo: PackageInfo? by lazy {
@@ -61,6 +63,8 @@ internal class ClientAttributes(
             "os" to "Android",
             // The operating system version (e.g. 12.1)
             "os_version" to osVersion,
+            // The SDK level (e.g. 35)
+            "osApiLevel" to osApiLevel.toString(),
             // The version of this package, as specified by the manifest's `versionName` attribute
             // (e.g. 1.2.33).
             "app_version" to appVersion,
