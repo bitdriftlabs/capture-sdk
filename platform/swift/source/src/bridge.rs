@@ -935,52 +935,44 @@ extern "C" fn capture_destroy_feature_flags(feature_flags_id: i64) {
 /// Retrieves a feature flag by name.
 ///
 /// Returns true if the flag exists, false otherwise.
-/// If no flag with the given name is found, returns false.
+/// If the flag exists and has a variant, the variant string is stored in the provided pointer.
+/// If the flag exists but has no variant, NULL is stored in the provided pointer.
+/// If the flag doesn't exist, the pointer is not modified.
 ///
 /// # Arguments
 ///
 /// * `feature_flags_id` - The feature flags ID
 /// * `key` - The name of the feature flag to retrieve
+/// * `variant_out` - Pointer to store the variant `NSString` (or NULL if no variant)
 #[no_mangle]
-extern "C" fn capture_feature_flags_get_bool(
+extern "C" fn capture_feature_flags_get(
   feature_flags_id: FeatureFlagsId<'_>,
   key: *const Object,
+  variant_out: *mut *const Object,
 ) -> bool {
   with_handle_unexpected_or(
     move || {
       let key = unsafe { nsstring_into_string(key) }?;
-      Ok(feature_flags_id.get(&key).is_some())
+      if let Some(flag) = feature_flags_id.get(&key) {
+        let variant_ptr = flag.variant.map_or(std::ptr::null(), |variant| {
+          make_nsstring(&variant)
+            .unwrap_or_else(|_| make_empty_nsstring())
+            .autorelease()
+        });
+        unsafe {
+          *variant_out = variant_ptr;
+        }
+        Ok(true)
+      } else {
+        Ok(false)
+      }
     },
     false,
-    "swift feature flags get bool",
+    "swift feature flags get variant",
   )
 }
 
-/// Retrieves a feature flag variant by name.
-///
-/// Returns the variant string if the flag exists and has a variant,
-/// otherwise returns NULL.
-///
-/// # Arguments
-///
-/// * `feature_flags_id` - The feature flags ID
-/// * `key` - The name of the feature flag to retrieve
-#[no_mangle]
-extern "C" fn capture_feature_flags_get_variant(
-  feature_flags_id: FeatureFlagsId<'_>,
-  key: *const Object,
-) -> *const Object {
-  if let Ok(key) = unsafe { nsstring_into_string(key) } {
-    if let Some(flag) = feature_flags_id.get(&key) {
-      if let Some(variant) = flag.variant {
-        return make_nsstring(&variant)
-          .unwrap_or_else(|_| make_empty_nsstring())
-          .autorelease();
-      }
-    }
-  }
-  std::ptr::null()
-}/// Sets or updates a feature flag.
+/// Sets or updates a feature flag.
 ///
 /// Creates a new feature flag with the given name and variant, or updates an existing flag.
 /// The flag is immediately stored in persistent storage.
