@@ -870,6 +870,13 @@ mod flags {
   int_feature_flag!(SendDataTimeout, "ios.report_send_data_timeout_s", 60 * 3);
 }
 
+fn unix_milliseconds_to_date(millis_since_utc_epoch: i64) -> anyhow::Result<OffsetDateTime> {
+  let seconds = millis_since_utc_epoch / 1000;
+  let nano = (millis_since_utc_epoch % 1000) * 10_i64.pow(6);
+
+  Ok(time::OffsetDateTime::from_unix_timestamp(seconds)? + Duration::nanoseconds(nano))
+}
+
 //
 // Feature Flags FFI Functions
 //
@@ -1039,11 +1046,4 @@ extern "C" fn capture_feature_flags_sync(feature_flags_id: FeatureFlagsId<'_>) {
     },
     "swift feature flags sync",
   );
-}
-
-fn unix_milliseconds_to_date(millis_since_utc_epoch: i64) -> anyhow::Result<OffsetDateTime> {
-  let seconds = millis_since_utc_epoch / 1000;
-  let nano = (millis_since_utc_epoch % 1000) * 10_i64.pow(6);
-
-  Ok(time::OffsetDateTime::from_unix_timestamp(seconds)? + Duration::nanoseconds(nano))
 }
