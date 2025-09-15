@@ -92,11 +92,11 @@ class NativeCrashProcessorTest {
         assertThat(report.binaryImagesLength).isEqualTo(1)
         val file = report.binaryImages(0)!!
         assertThat(file.loadAddress).isEqualTo(400.toULong())
-        assertThat(file.path).isEqualTo("anonymous")
+        assertThat(file.path).isEqualTo("<anonymous:190>")
 
         val frame =
             report.threadDetails!!.threads(0)!!.stackTrace(0)!!
-        assertThat(frame.imageId).isEqualTo("anonymous")
+        assertThat(frame.imageId).isEqualTo("<anonymous:190>")
     }
 
     data class SimpleMapping(

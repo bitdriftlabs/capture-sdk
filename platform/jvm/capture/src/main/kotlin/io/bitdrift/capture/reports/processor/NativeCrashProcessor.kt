@@ -18,6 +18,7 @@ import io.bitdrift.capture.reports.binformat.v1.Report
 import io.bitdrift.capture.reports.binformat.v1.ReportType
 import io.bitdrift.capture.reports.binformat.v1.Thread
 import io.bitdrift.capture.reports.binformat.v1.ThreadDetails
+import okhttp3.internal.toHexString
 import java.io.InputStream
 
 /**
@@ -69,7 +70,9 @@ internal object NativeCrashProcessor {
                             if (binaryImageIndex >= 0) {
                                 val binaryImage = tombstone.memoryMappingsList[binaryImageIndex]
                                 referencedMappings.add(binaryImage)
-                                binaryImage.buildId.ifBlank { binaryImage.mappingName }.ifBlank { "anonymous" }
+                                binaryImage.buildId
+                                    .ifBlank { binaryImage.mappingName }
+                                    .ifBlank { binaryImage.anonymousImageId() }
                             } else {
                                 // This shouldn't really happen but if it does at least keep the filename as reported
                                 // on the tombstone for debugging purposes.
@@ -119,8 +122,12 @@ internal object NativeCrashProcessor {
             binaryImageOffsets.add(
                 BinaryImage.createBinaryImage(
                     builder,
-                    builder.createString(it.buildId.ifEmpty { it.mappingName }),
-                    builder.createString(it.mappingName.ifBlank { "anonymous" }),
+                    builder.createString(
+                        it.buildId
+                            .ifBlank { it.mappingName }
+                            .ifBlank { it.anonymousImageId() },
+                    ),
+                    builder.createString(it.mappingName.ifBlank { it.anonymousImageId() }),
                     it.beginAddress.toULong(),
                 ),
             )
@@ -164,3 +171,8 @@ internal object NativeCrashProcessor {
         tombstone: Tombstone,
     ): Boolean = threadId == tombstone.tid
 }
+
+/** Returns a generated name for a MemoryMapping without an explicit name. This mimics the behavior
+of the Android tombstone parser.
+ */
+fun TombstoneProtos.MemoryMapping.anonymousImageId(): String = "<anonymous:${beginAddress.toHexString()}>"
