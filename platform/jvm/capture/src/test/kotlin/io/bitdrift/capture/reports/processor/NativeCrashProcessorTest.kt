@@ -17,7 +17,101 @@ import java.io.ByteArrayOutputStream
 
 class NativeCrashProcessorTest {
     @Test
-    fun `dedupes by build-id and picks the lowest address memory map for report`() {
+    fun `populates buildId for binary images`() {
+        val tombstone =
+            makeTombstone(
+                "file1",
+                110,
+                "build-id",
+                listOf(
+                    SimpleMapping("file1", 100, 149, "build-id"),
+                    SimpleMapping("file1", 150, 199, "build-id"),
+                    SimpleMapping("mapping", 200, 250, "build-id"),
+                ),
+            )
+
+        val report = makeReport(tombstone)
+
+        assertThat(report.binaryImagesLength).isEqualTo(1)
+
+        val file1 = report.binaryImages(0)!!
+        assertThat(file1.loadAddress).isEqualTo(100.toULong())
+        assertThat(file1.path).isEqualTo("file1")
+        assertThat(file1.id).isEqualTo("build-id")
+
+        val frame =
+            report.threadDetails!!.threads(0)!!.stackTrace(0)!!
+        assertThat(frame.imageId).isEqualTo("build-id")
+    }
+
+    @Test
+    fun `handles missing buildId in binary images`() {
+        val tombstone =
+            makeTombstone(
+                "file",
+                410,
+                null,
+                listOf(
+                    SimpleMapping("mapping", 400, 449),
+                    SimpleMapping("mapping", 450, 499),
+                    SimpleMapping("mapping", 500, 505),
+                ),
+            )
+
+        val report = makeReport(tombstone)
+
+        assertThat(report.binaryImagesLength).isEqualTo(1)
+
+        val file = report.binaryImages(0)!!
+        assertThat(file.loadAddress).isEqualTo(400.toULong())
+        assertThat(file.path).isEqualTo("mapping")
+
+        val frame =
+            report.threadDetails!!.threads(0)!!.stackTrace(0)!!
+        assertThat(frame.imageId).isEqualTo("mapping")
+    }
+
+    @Test
+    fun `tracks filename for frames without a resolved mmap`() {
+        val tombstone = makeTombstone("file", 410, null, emptyList())
+
+        val report = makeReport(tombstone)
+
+        assertThat(report.binaryImagesLength).isEqualTo(0)
+        val frame =
+            report.threadDetails!!.threads(0)!!.stackTrace(0)!!
+        assertThat(frame.imageId).isEqualTo("file")
+    }
+
+    @Test
+    fun `handles anonymous mmap regions`() {
+        val tombstone = makeTombstone("file", 410, null, listOf(SimpleMapping("", 400, 450)))
+
+        val report = makeReport(tombstone)
+
+        assertThat(report.binaryImagesLength).isEqualTo(1)
+        val file = report.binaryImages(0)!!
+        assertThat(file.loadAddress).isEqualTo(400.toULong())
+        assertThat(file.path).isEqualTo("<anonymous:190>")
+
+        val frame =
+            report.threadDetails!!.threads(0)!!.stackTrace(0)!!
+        assertThat(frame.imageId).isEqualTo("<anonymous:190>")
+    }
+
+    data class SimpleMapping(
+        val name: String,
+        val start: Long,
+        val end: Long,
+        val buildId: String? = null,
+    )
+
+    fun makeTombstone(
+        frameFileName: String,
+        framePc: Long,
+        frameBuildId: String?,
+        memoryMappings: List<SimpleMapping>,
+    ): TombstoneProtos.Tombstone {
         val tombstone =
             TombstoneProtos.Tombstone
                 .newBuilder()
@@ -31,34 +125,33 @@ class NativeCrashProcessorTest {
                             .addCurrentBacktrace(
                                 TombstoneProtos.BacktraceFrame
                                     .newBuilder()
-                                    .setBuildId("build-id"),
+                                    .also {
+                                        it.fileName = frameFileName
+                                        it.pc = framePc
+                                        if (frameBuildId != null) {
+                                            it.buildId = frameBuildId
+                                        }
+                                    }.build(),
                             ).build(),
                     )
 
-                    it.addMemoryMappings(
-                        TombstoneProtos.MemoryMapping
-                            .newBuilder()
-                            .setBuildId("build-id")
-                            .setBeginAddress(200),
-                    )
-                    it.addMemoryMappings(
-                        TombstoneProtos.MemoryMapping
-                            .newBuilder()
-                            .setBuildId("build-id")
-                            .setBeginAddress(150),
-                    )
-                    it.addMemoryMappings(
-                        TombstoneProtos.MemoryMapping
-                            .newBuilder()
-                            .setBuildId("build-id")
-                            .setBeginAddress(100),
-                    )
+                    for (mapping in memoryMappings) {
+                        it.addMemoryMappings(
+                            TombstoneProtos.MemoryMapping
+                                .newBuilder()
+                                .also {
+                                    it.mappingName = mapping.name
+                                    it.beginAddress = mapping.start
+                                    it.endAddress = mapping.end
+                                    if (mapping.buildId != null) {
+                                        it.buildId = mapping.buildId
+                                    }
+                                }.build(),
+                        )
+                    }
                 }.build()
 
-        val report = makeReport(tombstone)
-
-        assertThat(report.binaryImagesLength).isEqualTo(1)
-        assertThat(report.binaryImages(0)?.loadAddress).isEqualTo(100.toULong())
+        return tombstone
     }
 
     fun makeReport(tombstone: TombstoneProtos.Tombstone): Report {
@@ -67,7 +160,8 @@ class NativeCrashProcessorTest {
         val tombstoneStream = ByteArrayInputStream(out.toByteArray())
 
         val flatBufferBuilder = FlatBufferBuilder()
-        val reportOffset = NativeCrashProcessor.process(flatBufferBuilder, 0, 0, 0, "description", tombstoneStream)
+        val reportOffset =
+            NativeCrashProcessor.process(flatBufferBuilder, 0, 0, 0, "description", tombstoneStream)
 
         flatBufferBuilder.finish(reportOffset)
 

@@ -8,6 +8,7 @@
 package io.bitdrift.capture.reports.processor
 
 import com.google.flatbuffers.FlatBufferBuilder
+import io.bitdrift.capture.TombstoneProtos
 import io.bitdrift.capture.TombstoneProtos.Tombstone
 import io.bitdrift.capture.reports.binformat.v1.BinaryImage
 import io.bitdrift.capture.reports.binformat.v1.Error
@@ -17,6 +18,7 @@ import io.bitdrift.capture.reports.binformat.v1.Report
 import io.bitdrift.capture.reports.binformat.v1.ReportType
 import io.bitdrift.capture.reports.binformat.v1.Thread
 import io.bitdrift.capture.reports.binformat.v1.ThreadDetails
+import okhttp3.internal.toHexString
 import java.io.InputStream
 
 /**
@@ -47,26 +49,40 @@ internal object NativeCrashProcessor {
         val threadOffsets = mutableListOf<Int>()
         val binaryImageOffsets = mutableListOf<Int>()
 
-        val referencedBuildIds = mutableSetOf<String>()
+        val referencedMappings = mutableSetOf<TombstoneProtos.MemoryMapping>()
 
         tombstone.threadsMap.forEach { (tid, thread) ->
             val frameOffsets =
                 thread.currentBacktraceList
                     .map { frame ->
-                        val frameAddress = frame.pc.toULong()
-                        val isNativeFrame = frame.pc != 0L
-                        val imageId: String? = if (isNativeFrame) frame.buildId else null
+                        // Attempt to retrieve the binary image based on the program counter of the
+                        // current frame. Use a binary search as the list of mappings can be somewhat large.
+                        val binaryImageIndex =
+                            tombstone.memoryMappingsList.binarySearch {
+                                when {
+                                    frame.pc < it.beginAddress -> 1 // look left
+                                    frame.pc >= it.endAddress -> -1 // look right
+                                    else -> 0
+                                }
+                            }
 
-                        if (!frame.buildId.isNullOrEmpty()) {
-                            referencedBuildIds.add(frame.buildId)
-                        }
+                        val imageId =
+                            if (binaryImageIndex >= 0) {
+                                val binaryImage = tombstone.memoryMappingsList[binaryImageIndex]
+                                referencedMappings.add(binaryImage)
+                                binaryImage.imageId()
+                            } else {
+                                // This shouldn't really happen but if it does at least keep the filename as reported
+                                // on the tombstone for debugging purposes.
+                                frame.fileName
+                            }
 
                         val frameData =
                             FrameData(
                                 symbolName = frame.functionName,
-                                fileName = if (!isNativeFrame) frame.fileName else null,
+                                fileName = null,
                                 imageId = imageId,
-                                frameAddress = frameAddress,
+                                frameAddress = frame.pc.toULong(),
                             )
                         ReportFrameBuilder.build(
                             FrameType.AndroidNative,
@@ -100,20 +116,15 @@ internal object NativeCrashProcessor {
                 ThreadDetails.createThreadsVector(builder, threadOffsets.toIntArray()),
             )
 
-        referencedBuildIds.forEach { buildId ->
-            tombstone.memoryMappingsList
-                .filter { it.buildId == buildId }
-                .minByOrNull { it.beginAddress }
-                ?.let {
-                    binaryImageOffsets.add(
-                        BinaryImage.createBinaryImage(
-                            builder,
-                            builder.createString(buildId),
-                            builder.createString(it.mappingName),
-                            it.beginAddress.toULong(),
-                        ),
-                    )
-                }
+        referencedMappings.forEach {
+            binaryImageOffsets.add(
+                BinaryImage.createBinaryImage(
+                    builder,
+                    builder.createString(it.imageId()),
+                    builder.createString(it.path()),
+                    it.beginAddress.toULong(),
+                ),
+            )
         }
         return Report.createReport(
             builder,
@@ -134,13 +145,11 @@ internal object NativeCrashProcessor {
         frameOffsets: IntArray,
     ): Int {
         val signalName = tombstone.signalInfo.name
-        val reason =
-            builder.createString(signalName.ifEmpty { description })
+        val reason = builder.createString(signalName.ifEmpty { description })
         val causeText =
-            tombstone.causesList.firstOrNull()?.humanReadable
-                ?: tombstone.abortMessage.ifEmpty {
-                    signalDescriptions[signalName] ?: "Native crash"
-                }
+            tombstone.causesList.firstOrNull()?.humanReadable ?: tombstone.abortMessage.ifEmpty {
+                signalDescriptions[signalName] ?: "Native crash"
+            }
         val cause = builder.createString(causeText)
         return Error.createError(
             builder,
@@ -156,3 +165,24 @@ internal object NativeCrashProcessor {
         tombstone: Tombstone,
     ): Boolean = threadId == tombstone.tid
 }
+
+/**
+ * Returns the imageId to use in the generated Report for a MemoryMapping. Ideally we want the BuildID,
+ * but if this is not possible we'll use the mapping name (e.g. the filename) or generate a name if no other
+ * data is available.
+ */
+fun TombstoneProtos.MemoryMapping.imageId(): String =
+    buildId.ifBlank { mappingName }.ifBlank {
+        anonymousName()
+    }
+
+/**
+ * Returns the path to use in the generated Report for a MemoryMapping. If a mapping name is not provided,
+ * generate an anonymous name.
+ */
+fun TombstoneProtos.MemoryMapping.path(): String = mappingName.ifBlank { anonymousName() }
+
+/**
+ * An anonymous name for a MemoryMapping. This mimics how the Android tombstone parser handles these images.
+ */
+fun TombstoneProtos.MemoryMapping.anonymousName(): String = "<anonymous:${beginAddress.toHexString()}>"
