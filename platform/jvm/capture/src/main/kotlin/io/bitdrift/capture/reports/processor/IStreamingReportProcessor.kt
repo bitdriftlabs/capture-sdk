@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 package io.bitdrift.capture.reports.processor
 
+import io.bitdrift.capture.attributes.IClientAttributes
 import java.io.InputStream
 
 /**
@@ -15,15 +16,9 @@ interface IStreamingReportProcessor {
     /**
      * Call to convert a trace input stream into a report file
      */
-    fun reportANR(
+    fun persistANR(
         stream: InputStream,
         destination: String,
-        manufacturer: String,
-        model: String,
-        osVersion: String,
-        osBrand: String,
-        appId: String,
-        appVersion: String,
-        versionCode: Long,
+        attributes: IClientAttributes,
     )
 }

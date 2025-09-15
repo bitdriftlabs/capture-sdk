@@ -19,6 +19,9 @@ interface IClientAttributes {
     /** A positive integer used as an internal version number. This helps determine version recency. */
     val appVersionCode: Long
 
+    /** Consumer-facing operating system brand name */
+    val osBrand: String
+
     /**
      * The operating system version (e.g. 12.1, 16, 16 Beta, etc).
      *
@@ -39,4 +42,10 @@ interface IClientAttributes {
 
     /** The current architecture (e.g. arm64-v8a). */
     val architecture: String
+
+    /** Device manufacturer name */
+    val manufacturer: String
+
+    /** Device model name */
+    val model: String
 }

@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.reports.processor
 
-import android.os.Build
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.BuildConstants
 import io.bitdrift.capture.attributes.ClientAttributes
@@ -53,16 +52,10 @@ internal class FatalIssueReporterProcessor(
     ) {
         if (fatalIssueType == ReportType.AppNotResponding) {
             val destination = fatalIssueReporterStorage.generateFilePath()
-            streamingReportsProcessor.reportANR(
+            streamingReportsProcessor.persistANR(
                 traceInputStream,
                 destination,
-                Build.MANUFACTURER,
-                Build.MODEL,
-                clientAttributes.osVersion,
-                Build.BRAND,
-                clientAttributes.appId,
-                clientAttributes.appVersion,
-                clientAttributes.appVersionCode,
+                clientAttributes,
             )
         } else if (fatalIssueType == ReportType.NativeCrash && enableNativeCrashReporting) {
             val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)

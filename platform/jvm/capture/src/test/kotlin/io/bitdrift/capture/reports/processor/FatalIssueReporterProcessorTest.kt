@@ -44,6 +44,7 @@ import java.nio.file.Paths
 @Config(sdk = [31])
 class FatalIssueReporterProcessorTest {
     private lateinit var fatalIssueReporterProcessor: FatalIssueReporterProcessor
+    private lateinit var attributes: ClientAttributes
     private val fatalIssueReporterStorage: IFatalIssueReporterStorage = mock()
     private val streamingReportProcessor: IStreamingReportProcessor = mock()
     private val lifecycleOwner: LifecycleOwner = mock()
@@ -54,10 +55,11 @@ class FatalIssueReporterProcessorTest {
     fun setUp() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
+        attributes = ClientAttributes(APP_CONTEXT, lifecycleOwner)
         fatalIssueReporterProcessor =
             FatalIssueReporterProcessor(
                 fatalIssueReporterStorage,
-                ClientAttributes(APP_CONTEXT, lifecycleOwner),
+                attributes,
                 streamingReportProcessor,
             )
     }
@@ -141,16 +143,10 @@ class FatalIssueReporterProcessorTest {
             trace,
         )
 
-        verify(streamingReportProcessor).reportANR(
+        verify(streamingReportProcessor).persistANR(
             eq(trace),
             eq("/some/path/foo.cap"),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
+            eq(attributes),
         )
     }
 

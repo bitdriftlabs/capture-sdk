@@ -19,12 +19,18 @@ use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
 use flatbuffers::FlatBufferBuilder;
 use jni::objects::{JObject, JString};
 use jni::signature::{Primitive, ReturnType};
-use jni::sys::jlong;
 use jni::JNIEnv;
 use std::sync::OnceLock;
 
 const BUFFER_SIZE: i32 = 8192;
 static INPUT_STREAM_READ: OnceLock<CachedMethod> = OnceLock::new();
+static CLIENT_ATTRS_APP_ID: OnceLock<CachedMethod> = OnceLock::new();
+static CLIENT_ATTRS_APP_VERSION: OnceLock<CachedMethod> = OnceLock::new();
+static CLIENT_ATTRS_VERSIONCODE: OnceLock<CachedMethod> = OnceLock::new();
+static CLIENT_ATTRS_MANUFACTURER: OnceLock<CachedMethod> = OnceLock::new();
+static CLIENT_ATTRS_MODEL: OnceLock<CachedMethod> = OnceLock::new();
+static CLIENT_ATTRS_OS_VERSION: OnceLock<CachedMethod> = OnceLock::new();
+static CLIENT_ATTRS_OS_BRAND: OnceLock<CachedMethod> = OnceLock::new();
 
 pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   initialize_method_handle(
@@ -35,20 +41,70 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
     &INPUT_STREAM_READ,
   )?;
 
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/attributes/IClientAttributes",
+    "getAppId",
+    "()Ljava/lang/String;",
+    &CLIENT_ATTRS_APP_ID,
+  )?;
+
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/attributes/IClientAttributes",
+    "getAppVersion",
+    "()Ljava/lang/String;",
+    &CLIENT_ATTRS_APP_VERSION,
+  )?;
+
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/attributes/IClientAttributes",
+    "getAppVersionCode",
+    "()J",
+    &CLIENT_ATTRS_VERSIONCODE,
+  )?;
+
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/attributes/IClientAttributes",
+    "getManufacturer",
+    "()Ljava/lang/String;",
+    &CLIENT_ATTRS_MANUFACTURER,
+  )?;
+
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/attributes/IClientAttributes",
+    "getModel",
+    "()Ljava/lang/String;",
+    &CLIENT_ATTRS_MODEL,
+  )?;
+
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/attributes/IClientAttributes",
+    "getOsVersion",
+    "()Ljava/lang/String;",
+    &CLIENT_ATTRS_OS_VERSION,
+  )?;
+
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/attributes/IClientAttributes",
+    "getOsBrand",
+    "()Ljava/lang/String;",
+    &CLIENT_ATTRS_OS_BRAND,
+  )?;
+
   Ok(())
 }
 
-pub(crate) fn report_anr(
+pub(crate) fn persist_anr(
   mut env: JNIEnv<'_>,
   stream: &JObject<'_>,
   destination: &JString<'_>,
-  manufacturer: &JString<'_>,
-  model: &JString<'_>,
-  os_version: &JString<'_>,
-  os_brand: &JString<'_>,
-  app_id: &JString<'_>,
-  app_version: &JString<'_>,
-  version_code: jlong,
+  attributes: &JObject<'_>,
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
@@ -63,22 +119,14 @@ pub(crate) fn report_anr(
         .map_err(|e| anyhow::anyhow!("failed to parse destination: {e}"))?
         .to_string_lossy()
         .to_string();
-      let manufacturer = unsafe { env.get_string_unchecked(manufacturer) }
-        .map_err(|e| anyhow::anyhow!("failed to parse manufacturer: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let model = unsafe { env.get_string_unchecked(model) }
-        .map_err(|e| anyhow::anyhow!("failed to parse model: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let os_brand = unsafe { env.get_string_unchecked(os_brand) }
-        .map_err(|e| anyhow::anyhow!("failed to parse os_brand: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let os_version = unsafe { env.get_string_unchecked(os_version) }
-        .map_err(|e| anyhow::anyhow!("failed to parse os_version: {e}"))?
-        .to_string_lossy()
-        .to_string();
+      let manufacturer = read_string(&mut env, attributes, &CLIENT_ATTRS_MANUFACTURER)
+        .map_err(|e| anyhow::anyhow!("failed to parse manufacturer: {e}"))?;
+      let model = read_string(&mut env, attributes, &CLIENT_ATTRS_MODEL)
+        .map_err(|e| anyhow::anyhow!("failed to parse model: {e}"))?;
+      let os_brand = read_string(&mut env, attributes, &CLIENT_ATTRS_OS_BRAND)
+        .map_err(|e| anyhow::anyhow!("failed to parse brand: {e}"))?;
+      let os_version = read_string(&mut env, attributes, &CLIENT_ATTRS_OS_VERSION)
+        .map_err(|e| anyhow::anyhow!("failed to parse os version: {e}"))?;
       let os_build = OSBuildArgs {
         brand: Some(builder.create_string(&os_brand)),
         version: Some(builder.create_string(&os_version)),
@@ -90,6 +138,16 @@ pub(crate) fn report_anr(
         os_build: Some(OSBuild::create(&mut builder, &os_build)),
         ..Default::default()
       };
+      let version_code = CLIENT_ATTRS_VERSIONCODE
+        .get()
+        .ok_or(InvariantError::Invariant)?
+        .call_method(
+          &mut env,
+          attributes,
+          ReturnType::Primitive(Primitive::Long),
+          &[],
+        )?
+        .j()?;
       let build_number = Some(AppBuildNumber::create(
         &mut builder,
         &AppBuildNumberArgs {
@@ -97,14 +155,10 @@ pub(crate) fn report_anr(
           ..Default::default()
         },
       ));
-      let app_id = unsafe { env.get_string_unchecked(app_id) }
-        .map_err(|e| anyhow::anyhow!("failed to parse app_id: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let app_version = unsafe { env.get_string_unchecked(app_version) }
-        .map_err(|e| anyhow::anyhow!("failed to parse app_version: {e}"))?
-        .to_string_lossy()
-        .to_string();
+      let app_id = read_string(&mut env, attributes, &CLIENT_ATTRS_APP_ID)
+        .map_err(|e| anyhow::anyhow!("failed to parse app_id: {e}"))?;
+      let app_version = read_string(&mut env, attributes, &CLIENT_ATTRS_APP_VERSION)
+        .map_err(|e| anyhow::anyhow!("failed to parse app_version: {e}"))?;
       let mut app_info = AppMetricsArgs {
         app_id: Some(builder.create_string(&app_id)),
         version: Some(builder.create_string(&app_version)),
@@ -127,6 +181,24 @@ pub(crate) fn report_anr(
     },
     "jni process ANR",
   );
+}
+
+fn read_string(
+  env: &mut JNIEnv<'_>,
+  attributes: &JObject<'_>,
+  method: &OnceLock<CachedMethod>,
+) -> anyhow::Result<String> {
+  let value = method
+    .get()
+    .ok_or(InvariantError::Invariant)?
+    .call_method(env, attributes, ReturnType::Object, &[])?
+    .l()?;
+
+  Ok(
+    unsafe { env.get_string_unchecked(&value.into())? }
+      .to_string_lossy()
+      .to_string(),
+  )
 }
 
 fn read_stream(

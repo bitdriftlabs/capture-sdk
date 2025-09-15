@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture
 
+import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.FieldValue
@@ -331,15 +332,9 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param stream      The InputStream containing ANR details
      * @param destination Target file path to write the report
      */
-    external override fun reportANR(
+    external override fun persistANR(
         stream: InputStream,
         destination: String,
-        manufacturer: String,
-        model: String,
-        osVersion: String,
-        osBrand: String,
-        appId: String,
-        appVersion: String,
-        versionCode: Long,
+        attributes: IClientAttributes,
     )
 }

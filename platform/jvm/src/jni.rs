@@ -1198,31 +1198,14 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processCrashRe
 }
 
 #[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_reportANR(
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_persistANR(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
   stream: JObject<'_>,
   destination: JString<'_>,
-  manufacturer: JString<'_>,
-  model: JString<'_>,
-  os_version: JString<'_>,
-  os_brand: JString<'_>,
-  app_id: JString<'_>,
-  app_version: JString<'_>,
-  version_code: jlong,
+  attributes: JObject<'_>,
 ) {
-  report_processing::report_anr(
-    env,
-    &stream,
-    &destination,
-    &manufacturer,
-    &model,
-    &os_version,
-    &os_brand,
-    &app_id,
-    &app_version,
-    version_code,
-  );
+  report_processing::persist_anr(env, &stream, &destination, &attributes);
 }
 
 fn exception_stacktrace(
