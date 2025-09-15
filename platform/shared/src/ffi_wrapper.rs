@@ -73,18 +73,31 @@ impl<T> From<FfiId<'_, T>> for i64 {
 }
 
 /// Convenience macro for creating type-specific FFI ID aliases.
-///
-/// This generates a type alias for a specific holder type, making the API
-/// more ergonomic and self-documenting.
-///
-/// # Example
-/// ```rust
-/// // This generates FeatureFlagsId<'a> as an alias for FfiId<'a, FeatureFlagsHolder>
-/// ffi_id_for!(FeatureFlagsHolder, FeatureFlagsId);
-/// ```
 #[macro_export]
 macro_rules! ffi_id_for {
   ($holder_type:ty, $id_type:ident) => {
     pub type $id_type<'a> = $crate::ffi_wrapper::FfiId<'a, $holder_type>;
+  };
+}
+
+/// Convenience macro for implementing `Deref` and `DerefMut` for holder types.
+///
+/// This generates both `Deref` and `DerefMut` implementations that forward to a specific field.
+#[macro_export]
+macro_rules! impl_holder_deref {
+  ($holder_type:ty, $field_name:ident, $target_type:ty) => {
+    impl std::ops::Deref for $holder_type {
+      type Target = $target_type;
+
+      fn deref(&self) -> &Self::Target {
+        &self.$field_name
+      }
+    }
+
+    impl std::ops::DerefMut for $holder_type {
+      fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.$field_name
+      }
+    }
   };
 }

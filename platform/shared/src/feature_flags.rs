@@ -6,9 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use bd_feature_flags::FeatureFlags;
-use std::ops::{Deref, DerefMut};
 
-// Use the generic FFI ID system for FeatureFlagsId
 crate::ffi_id_for!(FeatureFlagsHolder, FeatureFlagsId);
 
 //
@@ -22,19 +20,7 @@ pub struct FeatureFlagsHolder {
   feature_flags: FeatureFlags,
 }
 
-impl Deref for FeatureFlagsHolder {
-  type Target = FeatureFlags;
-
-  fn deref(&self) -> &Self::Target {
-    &self.feature_flags
-  }
-}
-
-impl DerefMut for FeatureFlagsHolder {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.feature_flags
-  }
-}
+crate::impl_holder_deref!(FeatureFlagsHolder, feature_flags, FeatureFlags);
 
 impl FeatureFlagsHolder {
   #[must_use]

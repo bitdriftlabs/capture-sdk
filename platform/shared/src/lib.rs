@@ -31,11 +31,9 @@ use bd_logger::{
 use bd_runtime::runtime::Snapshot;
 use parking_lot::Once;
 use std::future::Future;
-use std::ops::Deref;
 use std::pin::Pin;
 use std::sync::Arc;
 
-// Use the generic FFI ID system for LoggerId
 crate::ffi_id_for!(LoggerHolder, LoggerId);
 
 pub type LoggerFuture =
@@ -55,13 +53,7 @@ pub struct LoggerHolder {
   app_launch_tti_log: Once,
 }
 
-impl Deref for LoggerHolder {
-  type Target = bd_logger::LoggerHandle;
-
-  fn deref(&self) -> &Self::Target {
-    &self.handle
-  }
-}
+crate::impl_holder_deref!(LoggerHolder, handle, bd_logger::LoggerHandle);
 
 impl LoggerHolder {
   pub fn new(logger: bd_logger::Logger, future: LoggerFuture) -> Self {
