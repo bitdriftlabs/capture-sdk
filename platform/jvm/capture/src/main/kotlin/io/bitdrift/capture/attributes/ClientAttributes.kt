@@ -38,7 +38,7 @@ internal class ClientAttributes(
         }
     }
 
-    override val supportedAbis: List<String> = Build.SUPPORTED_ABIS.toList()
+    override val supportedAbis: List<String> by lazy { Build.SUPPORTED_ABIS.toList() }
 
     override val architecture = supportedAbis.firstOrNull() ?: "unknown"
 
