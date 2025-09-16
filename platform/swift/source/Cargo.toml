@@ -15,6 +15,7 @@ bd-bonjson.workspace         = true
 bd-client-common.workspace   = true
 bd-device.workspace          = true
 bd-error-reporter.workspace  = true
+bd-feature-flags.workspace   = true
 bd-key-value.workspace       = true
 bd-log.workspace             = true
 bd-log-primitives.workspace  = true

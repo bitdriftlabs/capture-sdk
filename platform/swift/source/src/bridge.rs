@@ -15,6 +15,7 @@ use crate::key_value_storage::UserDefaultsStorage;
 use crate::{events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
 use bd_api::{Platform, PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
+use bd_feature_flags::FeatureFlags;
 use bd_error_reporter::reporter::{
   handle_unexpected,
   with_handle_unexpected,
@@ -37,6 +38,7 @@ use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use platform_shared::metadata::{self, Mobile};
 use platform_shared::{LoggerHolder, LoggerId};
+use platform_shared::feature_flags::{FeatureFlagsHolder, FeatureFlagsId};
 use std::borrow::{Borrow, Cow};
 use std::boxed::Box;
 use std::collections::HashMap;
@@ -873,4 +875,175 @@ fn unix_milliseconds_to_date(millis_since_utc_epoch: i64) -> anyhow::Result<Offs
   let nano = (millis_since_utc_epoch % 1000) * 10_i64.pow(6);
 
   Ok(time::OffsetDateTime::from_unix_timestamp(seconds)? + Duration::nanoseconds(nano))
+}
+
+//
+// Feature Flags FFI Functions
+//
+
+/// Creates a new feature flags instance with persistent storage.
+///
+/// This constructor creates a new feature flags manager backed by a resilient key-value store
+/// at the specified path. Any existing flags stored at this location will be automatically
+/// loaded and made available for retrieval.
+///
+/// # Arguments
+///
+/// * `base_path` - The filesystem path to the file basename where feature flags will be stored
+/// * `buffer_size` - The size of the underlying storage buffer in bytes
+/// * `high_water_mark_ratio` - Optional ratio (0.0-1.0) for buffer high water mark. When the
+///   buffer reaches this percentage full, older data may be compacted. If negative, a default
+///   value of 0.8 will be used.
+///
+/// # Returns
+///
+/// Returns a `FeatureFlagsId` on success, or -1 on error.
+#[no_mangle]
+extern "C" fn capture_create_feature_flags(
+  base_path: *const Object,
+  buffer_size: usize,
+  high_water_mark_ratio: f32,
+) -> FeatureFlagsId<'static> {
+  with_handle_unexpected_or(
+    || -> anyhow::Result<FeatureFlagsId<'static>> {
+      let base_path = unsafe { nsstring_into_string(base_path) }?;
+      let high_water_mark_ratio = if high_water_mark_ratio < 0.0 {
+        None
+      } else {
+        Some(high_water_mark_ratio)
+      };
+
+      let feature_flags = FeatureFlags::new(
+        base_path,
+        buffer_size,
+        high_water_mark_ratio,
+      )?;
+
+      let holder = FeatureFlagsHolder::new(feature_flags);
+      Ok(holder.into_raw())
+    },
+    unsafe { FeatureFlagsId::from_raw(-1) },
+    "swift create feature flags",
+  )
+}
+
+/// Destroys a feature flags holder and frees the memory associated with it.
+///
+/// # Safety
+/// The provided `feature_flags_id` *must* correspond to the pointer of a valid `FeatureFlagsHolder`
+/// as returned by `into_raw`. This function *cannot* be called multiple times for the same id.
+#[no_mangle]
+extern "C" fn capture_destroy_feature_flags(feature_flags_id: i64) {
+  unsafe {
+    FeatureFlagsHolder::destroy(feature_flags_id);
+  }
+}
+
+/// Retrieves a feature flag by name.
+///
+/// Returns true if the flag exists, false otherwise.
+/// If the flag exists and has a variant, the variant string is stored in the provided pointer.
+/// If the flag exists but has no variant, NULL is stored in the provided pointer.
+/// If the flag doesn't exist, the pointer is not modified.
+///
+/// # Arguments
+///
+/// * `feature_flags_id` - The feature flags ID
+/// * `key` - The name of the feature flag to retrieve
+/// * `variant_out` - Pointer to store the variant `NSString` (or NULL if no variant)
+#[no_mangle]
+extern "C" fn capture_feature_flags_get(
+  feature_flags_id: FeatureFlagsId<'_>,
+  key: *const Object,
+  variant_out: *mut *const Object,
+) -> bool {
+  with_handle_unexpected_or(
+    move || {
+      let key = unsafe { nsstring_into_string(key) }?;
+      if let Some(flag) = feature_flags_id.get(&key) {
+        let variant_ptr = flag.variant.map_or(std::ptr::null(), |variant| {
+          make_nsstring(&variant)
+            .unwrap_or_else(|_| make_empty_nsstring())
+            .autorelease()
+        });
+        unsafe {
+          *variant_out = variant_ptr;
+        }
+        Ok(true)
+      } else {
+        Ok(false)
+      }
+    },
+    false,
+    "swift feature flags get variant",
+  )
+}
+
+/// Sets or updates a feature flag.
+///
+/// Creates a new feature flag with the given name and variant, or updates an existing flag.
+/// The flag is immediately stored in persistent storage.
+///
+/// # Arguments
+///
+/// * `feature_flags_id` - The feature flags ID
+/// * `key` - The name of the feature flag to set or update
+/// * `variant` - The variant value for the flag (NULL for simple boolean flag)
+#[no_mangle]
+extern "C" fn capture_feature_flags_set(
+  mut feature_flags_id: FeatureFlagsId<'_>,
+  key: *const Object,
+  variant: *const Object,
+) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      let key = unsafe { nsstring_into_string(key) }?;
+      let variant = if variant.is_null() {
+        None
+      } else {
+        Some(unsafe { nsstring_into_string(variant) }?)
+      };
+      feature_flags_id.deref_mut().set(&key, variant.as_deref())?;
+      Ok(())
+    },
+    "swift feature flags set",
+  );
+}
+
+/// Removes all feature flags from persistent storage.
+///
+/// This method deletes all feature flags, clearing the persistent storage.
+/// This operation cannot be undone.
+///
+/// # Arguments
+///
+/// * `feature_flags_id` - The feature flags ID
+#[no_mangle]
+extern "C" fn capture_feature_flags_clear(mut feature_flags_id: FeatureFlagsId<'_>) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      feature_flags_id.deref_mut().clear()?;
+      Ok(())
+    },
+    "swift feature flags clear",
+  );
+}
+
+/// Synchronizes in-memory changes to persistent storage.
+///
+/// This method ensures that all feature flag changes made since the last sync
+/// are written to disk.
+///
+/// # Arguments
+///
+/// * `feature_flags_id` - The feature flags ID
+#[no_mangle]
+extern "C" fn capture_feature_flags_sync(feature_flags_id: FeatureFlagsId<'_>) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      feature_flags_id.sync()?;
+      Ok(())
+    },
+    "swift feature flags sync",
+  );
 }
