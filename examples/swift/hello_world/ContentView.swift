@@ -51,6 +51,12 @@ struct ContentView: View {
                 }) {
                     Text("Simulate Navigation to Screen").frame(maxWidth: .infinity)
                 }
+                Button(action: { self.loggerCustomer.setFeatureFlag(flag: "MyFlag", variant: "MyVariant") }) {
+                    Text("Set feature flag 'MyFlag' to 'MyVariant'").frame(maxWidth: .infinity)
+                }
+                Button(action: { self.loggerCustomer.removeFeatureFlag(flag: "MyFlag") }) {
+                    Text("Remove feature flag 'MyFlag'").frame(maxWidth: .infinity)
+                }
                 Button(action: { Thread.sleep(forTimeInterval: 5.0) }) {
                     Text("Simulate ANR (5s)").frame(maxWidth: .infinity)
                 }
