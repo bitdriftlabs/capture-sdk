@@ -145,6 +145,7 @@ class FatalIssueReporterProcessorTest {
 
         verify(streamingReportProcessor).persistANR(
             eq(trace),
+            eq(FAKE_TIME_STAMP),
             eq("/some/path/foo.cap"),
             eq(attributes),
         )

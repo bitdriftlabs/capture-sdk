@@ -54,6 +54,7 @@ internal class FatalIssueReporterProcessor(
             val destination = fatalIssueReporterStorage.generateFilePath()
             streamingReportsProcessor.persistANR(
                 traceInputStream,
+                timestamp,
                 destination,
                 clientAttributes,
             )

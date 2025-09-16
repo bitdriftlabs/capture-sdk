@@ -50,6 +50,7 @@ futures-util = "0.3.31"
 jni = "0.21.1"
 libc = "0.2.175"
 log = { version = "0.4.28", features = ["max_level_trace", "release_max_level_info"] }
+memmap2 = "0.9.8"
 objc = "0.2.7"
 objc-foundation = "0.1.1"
 parameterized = "2.0.0"

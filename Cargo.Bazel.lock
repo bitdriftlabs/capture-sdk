@@ -1,5 +1,5 @@
 {
-  "checksum": "2337f8198694a92b398df221b6bc800c5c71efaaa242c0b7d61b3e9daacd3a37",
+  "checksum": "d294d371c4c01badcb9848e50e3c375a62002e8b0b110638db16f3b6be316f58",
   "crates": {
     "addr2line 0.24.2": {
       "name": "addr2line",
@@ -6250,6 +6250,14 @@
             {
               "id": "log 0.4.28",
               "target": "log"
+            },
+            {
+              "id": "memmap2 0.9.8",
+              "target": "memmap2"
+            },
+            {
+              "id": "tempfile 3.22.0",
+              "target": "tempfile"
             },
             {
               "id": "time 0.3.43",
@@ -24988,6 +24996,7 @@
     "jni 0.21.1",
     "libc 0.2.175",
     "log 0.4.28",
+    "memmap2 0.9.8",
     "objc 0.2.7",
     "objc-foundation 0.1.1",
     "parking_lot 0.12.4",

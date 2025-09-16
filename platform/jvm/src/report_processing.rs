@@ -7,7 +7,6 @@
 
 use crate::jni::{initialize_method_handle, CachedMethod, JValueWrapper};
 use bd_client_common::error::InvariantError;
-use bd_error_reporter::reporter::with_handle_unexpected;
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
   AppBuildNumber,
   AppBuildNumberArgs,
@@ -15,11 +14,14 @@ use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
   DeviceMetricsArgs,
   OSBuild,
   OSBuildArgs,
+  Timestamp,
 };
 use flatbuffers::FlatBufferBuilder;
-use jni::objects::{JObject, JString};
+use jni::objects::JObject;
 use jni::signature::{Primitive, ReturnType};
+use jni::sys::jlong;
 use jni::JNIEnv;
+use std::io::{Seek, Write};
 use std::sync::OnceLock;
 
 const BUFFER_SIZE: i32 = 8192;
@@ -101,86 +103,91 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
 }
 
 pub(crate) fn persist_anr(
-  mut env: JNIEnv<'_>,
-  stream: &JObject<'_>,
-  destination: &JString<'_>,
+  env: &mut JNIEnv<'_>,
+  source_stream: &JObject<'_>,
+  timestamp_millis: jlong,
+  destination: &str,
   attributes: &JObject<'_>,
-) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let mut stream_bytes = vec![];
-      read_stream(&mut env, stream, &mut stream_bytes)?;
-      let stream_slice = stream_bytes.as_slice();
-      let input = std::str::from_utf8(unsafe {
-        &*(std::ptr::from_ref::<[i8]>(stream_slice as &[i8]) as *const [u8])
-      })?;
-      let mut builder = FlatBufferBuilder::new();
-      let destination = unsafe { env.get_string_unchecked(destination) }
-        .map_err(|e| anyhow::anyhow!("failed to parse destination: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let manufacturer = read_string(&mut env, attributes, &CLIENT_ATTRS_MANUFACTURER)
-        .map_err(|e| anyhow::anyhow!("failed to parse manufacturer: {e}"))?;
-      let model = read_string(&mut env, attributes, &CLIENT_ATTRS_MODEL)
-        .map_err(|e| anyhow::anyhow!("failed to parse model: {e}"))?;
-      let os_brand = read_string(&mut env, attributes, &CLIENT_ATTRS_OS_BRAND)
-        .map_err(|e| anyhow::anyhow!("failed to parse brand: {e}"))?;
-      let os_version = read_string(&mut env, attributes, &CLIENT_ATTRS_OS_VERSION)
-        .map_err(|e| anyhow::anyhow!("failed to parse os version: {e}"))?;
-      let os_build = OSBuildArgs {
-        brand: Some(builder.create_string(&os_brand)),
-        version: Some(builder.create_string(&os_version)),
-        ..Default::default()
-      };
-      let mut device_info = DeviceMetricsArgs {
-        manufacturer: Some(builder.create_string(&manufacturer)),
-        model: Some(builder.create_string(&model)),
-        os_build: Some(OSBuild::create(&mut builder, &os_build)),
-        ..Default::default()
-      };
-      let version_code = CLIENT_ATTRS_VERSIONCODE
-        .get()
-        .ok_or(InvariantError::Invariant)?
-        .call_method(
-          &mut env,
-          attributes,
-          ReturnType::Primitive(Primitive::Long),
-          &[],
-        )?
-        .j()?;
-      let build_number = Some(AppBuildNumber::create(
-        &mut builder,
-        &AppBuildNumberArgs {
-          version_code,
-          ..Default::default()
-        },
-      ));
-      let app_id = read_string(&mut env, attributes, &CLIENT_ATTRS_APP_ID)
-        .map_err(|e| anyhow::anyhow!("failed to parse app_id: {e}"))?;
-      let app_version = read_string(&mut env, attributes, &CLIENT_ATTRS_APP_VERSION)
-        .map_err(|e| anyhow::anyhow!("failed to parse app_version: {e}"))?;
-      let mut app_info = AppMetricsArgs {
-        app_id: Some(builder.create_string(&app_id)),
-        version: Some(builder.create_string(&app_version)),
-        build_number,
-        ..Default::default()
-      };
-      let mut event_time = None;
-      let (_, report_offset) = bd_report_parsers::android::build_anr(
-        &mut builder,
-        &mut app_info,
-        &mut device_info,
-        &mut event_time,
-        input,
-      )?;
-
-      builder.finish(report_offset, None);
-      let contents = builder.finished_data();
-      std::fs::write(destination, contents)?;
-      Ok(())
-    },
-    "jni process ANR",
+) -> anyhow::Result<()> {
+  let mut builder = FlatBufferBuilder::new();
+  let source_file = read_stream_to_file(env, source_stream)?;
+  let source_memmap = unsafe { memmap2::Mmap::map(&source_file)? };
+  let source_view = bd_report_parsers::MemmapView::new(&source_memmap);
+  let timestamp = Timestamp::new(
+    u64::try_from(timestamp_millis / 1_000).unwrap_or_default(),
+    u32::try_from((timestamp_millis % 1_000) * 1_000).unwrap_or_default(),
   );
+  let mut device_info = build_device_metrics(env, &mut builder, attributes, &timestamp)?;
+  let mut app_info = build_app_metrics(env, &mut builder, attributes)?;
+  let (_, report_offset) = bd_report_parsers::android::build_anr(
+    &mut builder,
+    &mut app_info,
+    &mut device_info,
+    source_view,
+  )
+  .map_err(|e| anyhow::anyhow!("failed to parse ANR report: {e}"))?;
+
+  builder.finish(report_offset, None);
+  std::fs::write(destination, builder.finished_data())?;
+  log::trace!("persisted report from {timestamp_millis}");
+  Ok(())
+}
+
+fn build_device_metrics<'fbb>(
+  env: &mut JNIEnv<'_>,
+  builder: &mut FlatBufferBuilder<'fbb>,
+  attributes: &JObject<'_>,
+  timestamp: &'fbb Timestamp,
+) -> anyhow::Result<DeviceMetricsArgs<'fbb>> {
+  let manufacturer = read_string(env, attributes, &CLIENT_ATTRS_MANUFACTURER)
+    .map_err(|e| anyhow::anyhow!("failed to parse manufacturer: {e}"))?;
+  let model = read_string(env, attributes, &CLIENT_ATTRS_MODEL)
+    .map_err(|e| anyhow::anyhow!("failed to parse model: {e}"))?;
+  let os_brand = read_string(env, attributes, &CLIENT_ATTRS_OS_BRAND)
+    .map_err(|e| anyhow::anyhow!("failed to parse brand: {e}"))?;
+  let os_version = read_string(env, attributes, &CLIENT_ATTRS_OS_VERSION)
+    .map_err(|e| anyhow::anyhow!("failed to parse os version: {e}"))?;
+  let os_build = OSBuildArgs {
+    brand: Some(builder.create_string(&os_brand)),
+    version: Some(builder.create_string(&os_version)),
+    ..Default::default()
+  };
+  Ok(DeviceMetricsArgs {
+    manufacturer: Some(builder.create_string(&manufacturer)),
+    model: Some(builder.create_string(&model)),
+    os_build: Some(OSBuild::create(builder, &os_build)),
+    time: Some(timestamp),
+    ..Default::default()
+  })
+}
+
+fn build_app_metrics<'fbb>(
+  env: &mut JNIEnv<'_>,
+  builder: &mut FlatBufferBuilder<'fbb>,
+  attributes: &JObject<'_>,
+) -> anyhow::Result<AppMetricsArgs<'fbb>> {
+  let version_code = CLIENT_ATTRS_VERSIONCODE
+    .get()
+    .ok_or(InvariantError::Invariant)?
+    .call_method(env, attributes, ReturnType::Primitive(Primitive::Long), &[])?
+    .j()?;
+  let build_number = Some(AppBuildNumber::create(
+    builder,
+    &AppBuildNumberArgs {
+      version_code,
+      ..Default::default()
+    },
+  ));
+  let app_id = read_string(env, attributes, &CLIENT_ATTRS_APP_ID)
+    .map_err(|e| anyhow::anyhow!("failed to parse app_id: {e}"))?;
+  let app_version = read_string(env, attributes, &CLIENT_ATTRS_APP_VERSION)
+    .map_err(|e| anyhow::anyhow!("failed to parse app_version: {e}"))?;
+  Ok(AppMetricsArgs {
+    app_id: Some(builder.create_string(&app_id)),
+    version: Some(builder.create_string(&app_version)),
+    build_number,
+    ..Default::default()
+  })
 }
 
 fn read_string(
@@ -201,11 +208,11 @@ fn read_string(
   )
 }
 
-fn read_stream(
+fn read_stream_to_file(
   env: &mut JNIEnv<'_>,
   stream: &JObject<'_>,
-  contents: &mut Vec<i8>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<std::fs::File> {
+  let mut file = tempfile::tempfile()?;
   let buffer = env.new_byte_array(BUFFER_SIZE)?;
   let reader = INPUT_STREAM_READ.get().ok_or(InvariantError::Invariant)?;
 
@@ -225,9 +232,15 @@ fn read_stream(
 
     let buffer_elements =
       unsafe { env.get_array_elements(&buffer, jni::objects::ReleaseMode::NoCopyBack)? };
-    #[allow(clippy::cast_sign_loss)]
-    contents.extend_from_slice(&buffer_elements[.. bytes_read as usize]);
+    let file_contents = unsafe {
+      #[allow(clippy::cast_sign_loss)]
+      &*(std::ptr::from_ref::<[i8]>(&buffer_elements[.. bytes_read as usize]) as *const [u8])
+    };
+    let bytes_written = file.write(file_contents)?;
+    if i32::try_from(bytes_written).unwrap_or_default() != bytes_read {
+      anyhow::bail!("failed to write bytes read");
+    }
   }
-  contents.push(0);
-  Ok(())
+  file.seek(std::io::SeekFrom::Start(0))?;
+  Ok(file)
 }

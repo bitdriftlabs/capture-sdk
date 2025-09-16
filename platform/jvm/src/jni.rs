@@ -1199,13 +1199,25 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processCrashRe
 
 #[no_mangle]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_persistANR(
-  env: JNIEnv<'_>,
+  mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   stream: JObject<'_>,
+  timestamp: jlong,
   destination: JString<'_>,
   attributes: JObject<'_>,
 ) {
-  report_processing::persist_anr(env, &stream, &destination, &attributes);
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let destination = unsafe { env.get_string_unchecked(&destination) }
+        .map_err(|e| anyhow::anyhow!("failed to parse destination: {e}"))?
+        .to_string_lossy()
+        .to_string();
+
+      report_processing::persist_anr(&mut env, &stream, timestamp, &destination, &attributes)?;
+      Ok(())
+    },
+    "jni persist ANR",
+  );
 }
 
 fn exception_stacktrace(
