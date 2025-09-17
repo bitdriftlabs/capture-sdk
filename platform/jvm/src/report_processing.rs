@@ -232,10 +232,21 @@ fn read_stream_to_file(
 
     let buffer_elements =
       unsafe { env.get_array_elements(&buffer, jni::objects::ReleaseMode::NoCopyBack)? };
-    let file_contents = unsafe {
-      #[allow(clippy::cast_sign_loss)]
-      &*(std::ptr::from_ref::<[i8]>(&buffer_elements[.. bytes_read as usize]) as *const [u8])
-    };
+
+    // Safety: `bytes_read` is already verified to by greater than zero
+    #[allow(clippy::cast_sign_loss)]
+    let byte_slice = &buffer_elements[.. bytes_read as usize];
+
+    // Safety: conversion between i8 and u8 is inherently safe, as the types are
+    // equal in size and in the perverse case that a file somehow contains a
+    // negative byte (??), the sign bit would be interpreted as an additional
+    // value bit instead. Conversion using `as` is also possible between the two
+    // types directly though not through additional layers of references, as we
+    // need here.
+    //
+    // For our purposes, encountering a negative byte means potential parsing
+    // failure but not any catastrophic failure modes.
+    let file_contents = unsafe { &*(std::ptr::from_ref(byte_slice) as *const [u8]) };
     let bytes_written = file.write(file_contents)?;
     if i32::try_from(bytes_written).unwrap_or_default() != bytes_read {
       anyhow::bail!("failed to write bytes read");
