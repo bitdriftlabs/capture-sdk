@@ -76,21 +76,25 @@ internal class ClientAttributes(
         )
     }
 
+    private val foregroundAttributes: Fields by lazy { constantAttributesMap + (FOREGROUND_FIELD_KEY to "1") }
+    private val backgroundAttributes: Fields by lazy { constantAttributesMap + (FOREGROUND_FIELD_KEY to "0") }
+
     override fun invoke(): Fields =
-        constantAttributesMap.toMutableMap().apply {
-            // Whether or not the app was in the background by the time the log was fired.
-            this["foreground"] = isForeground()
+        if (isForeground()) {
+            foregroundAttributes
+        } else {
+            backgroundAttributes
         }
 
-    private fun isForeground(): String {
+    private fun isForeground(): Boolean {
         // refer to lifecycle states https://developer.android.com/topic/libraries/architecture/lifecycle#lc
         val appState = processLifecycleOwner.lifecycle.currentState
         return if (appState.isAtLeast(Lifecycle.State.STARTED)) {
             // onStart call happened - app is in foreground
-            "1"
+            true
         } else {
             // onStop call happened - app is in background
-            "0"
+            false
         }
     }
 
@@ -141,5 +145,7 @@ internal class ClientAttributes(
         private const val UNKNOWN_FIELD_VALUE = "unknown"
 
         private const val DEBUG_BUILD_INSTALLATION_MESSAGE = "Debug build installation"
+
+        private const val FOREGROUND_FIELD_KEY = "foreground"
     }
 }
