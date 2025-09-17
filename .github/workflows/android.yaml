@@ -88,12 +88,34 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache LLVM Installation
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}
+          repository-cache: true
+
+      - name: Cache llvm-strip Installation
         uses: actions/cache@v4
         id: llvm-cache
         with:
-          path: /usr/lib/llvm-*
-          key: llvm-cache-${{ runner.os }}
+          path: ${{ runner.temp }}/llvm-bin
+          key: llvm-strip-${{ runner.os }}
+
+      - name: Populate llvm-strip cache if missing
+        if: steps.llvm-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/llvm-bin"
+          if command -v llvm-strip &> /dev/null; then
+            cp -f "$(command -v llvm-strip)" "$RUNNER_TEMP/llvm-bin/"
+          else
+            sudo apt update && sudo apt install -y llvm
+            cp -f "$(command -v llvm-strip)" "$RUNNER_TEMP/llvm-bin/"
+          fi
+
+      - name: Add llvm-strip to PATH
+        run: echo "$RUNNER_TEMP/llvm-bin" >> $GITHUB_PATH
 
       - name: Install llvm-strip if needed
         if: steps.llvm-cache.outputs.cache-hit != 'true'
