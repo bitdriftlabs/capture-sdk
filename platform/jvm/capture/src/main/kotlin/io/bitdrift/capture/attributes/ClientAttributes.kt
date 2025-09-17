@@ -63,7 +63,7 @@ internal class ClientAttributes(
             "os" to "Android",
             // The operating system version (e.g. 12.1)
             "os_version" to osVersion,
-            // The SDK level (e.g. 35)
+            // The SDK level (e.g. 35).
             "_os_api_level" to osApiLevel.toString(),
             // The version of this package, as specified by the manifest's `versionName` attribute
             // (e.g. 1.2.33).
