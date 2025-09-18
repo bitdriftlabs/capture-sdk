@@ -331,12 +331,12 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      *
      * @param stream          The InputStream containing ANR details
      * @param timestampMillis The time at which the event took place
-     * @param destination     Target file path to write the report
+     * @param destinationPath Target file path to write the report
      */
     external override fun persistANR(
         stream: InputStream,
         timestampMillis: Long,
-        destination: String,
+        destinationPath: String,
         attributes: IClientAttributes,
     )
 }

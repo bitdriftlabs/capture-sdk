@@ -19,7 +19,7 @@ interface IStreamingReportProcessor {
     fun persistANR(
         stream: InputStream,
         timestampMillis: Long,
-        destination: String,
+        destinationPath: String,
         attributes: IClientAttributes,
     )
 }

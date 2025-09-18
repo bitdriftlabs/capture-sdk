@@ -51,11 +51,10 @@ internal class FatalIssueReporterProcessor(
         traceInputStream: InputStream,
     ) {
         if (fatalIssueType == ReportType.AppNotResponding) {
-            val destination = fatalIssueReporterStorage.generateFilePath()
             streamingReportsProcessor.persistANR(
                 traceInputStream,
                 timestamp,
-                destination,
+                fatalIssueReporterStorage.generateFilePath(),
                 clientAttributes,
             )
         } else if (fatalIssueType == ReportType.NativeCrash && enableNativeCrashReporting) {
