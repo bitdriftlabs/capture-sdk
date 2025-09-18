@@ -1,5 +1,5 @@
 {
-  "checksum": "3274368592bafc30f19832ff889eb639b66871b39f75fa1d45fc118f51ca8f00",
+  "checksum": "3136766306827ac43e9e987a3aa96dbb485d1dfbfaa20687a2fa4047f8ed147c",
   "crates": {
     "addr2line 0.24.2": {
       "name": "addr2line",
@@ -6086,21 +6086,8 @@
       "version": "1.0.0",
       "package_url": null,
       "repository": null,
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "capture",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "capture",
+      "targets": [],
+      "library_target_name": null,
       "common_attrs": {
         "compile_data_glob": [
           "**"

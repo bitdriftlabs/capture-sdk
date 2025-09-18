@@ -29,5 +29,5 @@ tracing-subscriber.workspace    = true
 uuid.workspace                  = true
 
 [lib]
-crate-type = ["lib", "cdylib"]
+crate-type = ["cdylib"]
 name       = "capture"
