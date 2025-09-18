@@ -46,6 +46,12 @@ internal class ClientAttributes(
 
     override val osApiLevel: Int by lazy { Build.VERSION.SDK_INT }
 
+    override val osBrand: String = Build.BRAND
+
+    override val model: String = Build.MODEL
+
+    override val manufacturer: String = Build.MANUFACTURER
+
     @Suppress("SwallowedException")
     private val packageInfo: PackageInfo? by lazy {
         try {

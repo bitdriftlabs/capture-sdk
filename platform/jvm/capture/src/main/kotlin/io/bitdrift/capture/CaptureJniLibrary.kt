@@ -7,10 +7,13 @@
 
 package io.bitdrift.capture
 
+import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
+import io.bitdrift.capture.reports.processor.IStreamingReportProcessor
+import java.io.InputStream
 
 // We use our own type here instead of a builtin function to allow us to avoid proguard-rewriting this class.
 
@@ -25,7 +28,7 @@ interface StackTraceProvider {
 }
 
 @Suppress("UndocumentedPublicClass")
-internal object CaptureJniLibrary : IBridge {
+internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     /**
      * Loads the shared library. This is safe to call multiple times.
      */
@@ -322,4 +325,18 @@ internal object CaptureJniLibrary : IBridge {
      * Sends a signal to the native layer to process existing reports
      */
     external fun processCrashReports(loggerId: LoggerId)
+
+    /**
+     * Synchronously report the ANR present in the stream with supplemental metadata
+     *
+     * @param stream          The InputStream containing ANR details
+     * @param timestampMillis The time at which the event took place
+     * @param destinationPath Target file path to write the report
+     */
+    external override fun persistANR(
+        stream: InputStream,
+        timestampMillis: Long,
+        destinationPath: String,
+        attributes: IClientAttributes,
+    )
 }

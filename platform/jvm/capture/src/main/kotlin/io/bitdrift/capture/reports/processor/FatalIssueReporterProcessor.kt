@@ -31,6 +31,7 @@ import kotlin.time.toDuration
 internal class FatalIssueReporterProcessor(
     private val fatalIssueReporterStorage: IFatalIssueReporterStorage,
     private val clientAttributes: IClientAttributes,
+    private val streamingReportsProcessor: IStreamingReportProcessor,
 ) {
     /**
      * Process AppTerminations due to ANRs and native crashes into packed format
@@ -49,39 +50,27 @@ internal class FatalIssueReporterProcessor(
         description: String? = null,
         traceInputStream: InputStream,
     ) {
-        val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
-        val sdk = createSDKInfo(builder)
-        val appMetrics = createAppMetrics(builder)
-        val deviceMetrics = createDeviceMetrics(builder, timestamp)
-
-        val report: Int? =
-            when {
-                fatalIssueType == ReportType.AppNotResponding -> {
-                    AppExitAnrTraceProcessor.process(
-                        builder,
-                        sdk,
-                        appMetrics,
-                        deviceMetrics,
-                        description,
-                        traceInputStream,
-                    )
-                }
-
-                fatalIssueType == ReportType.NativeCrash && enableNativeCrashReporting -> {
-                    NativeCrashProcessor.process(
-                        builder,
-                        sdk,
-                        appMetrics,
-                        deviceMetrics,
-                        description,
-                        traceInputStream,
-                    )
-                }
-
-                else -> null
-            }
-
-        report?.let {
+        if (fatalIssueType == ReportType.AppNotResponding) {
+            streamingReportsProcessor.persistANR(
+                traceInputStream,
+                timestamp,
+                fatalIssueReporterStorage.generateFilePath(),
+                clientAttributes,
+            )
+        } else if (fatalIssueType == ReportType.NativeCrash && enableNativeCrashReporting) {
+            val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
+            val sdk = createSDKInfo(builder)
+            val appMetrics = createAppMetrics(builder)
+            val deviceMetrics = createDeviceMetrics(builder, timestamp)
+            val report =
+                NativeCrashProcessor.process(
+                    builder,
+                    sdk,
+                    appMetrics,
+                    deviceMetrics,
+                    description,
+                    traceInputStream,
+                )
             persistReport(timestamp, builder, report, fatalIssueType)
         }
     }
