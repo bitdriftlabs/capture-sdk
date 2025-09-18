@@ -626,7 +626,11 @@ extern "C" fn capture_write_log(
         fields,
         matching_fields,
         attributes_overrides,
-        if blocking { Block::Yes } else { Block::No },
+        if blocking {
+          Block::Yes(std::time::Duration::from_secs(1))
+        } else {
+          Block::No
+        },
         CaptureSession::default(),
       );
 
@@ -836,6 +840,11 @@ extern "C" fn capture_remove_log_field(logger_id: LoggerId<'_>, key: *const c_ch
 extern "C" fn capture_flush(logger_id: LoggerId<'_>, blocking: bool) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
+      let blocking = if blocking {
+        Block::Yes(std::time::Duration::from_secs(1))
+      } else {
+        Block::No
+      };
       logger_id.flush_state(blocking);
 
       Ok(())
