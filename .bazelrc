@@ -73,6 +73,8 @@ build:release-common --config=abort-panic
 build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Ccodegen-units=1'
 build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Copt-level=s'
 build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Clto=fat'
+build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Zlocation-detail=none'
+build:release-common --action_env=RUSTC_BOOTSTRAP=1
 # Without the next line, rules_rust will add -Clinker-plugin-lto which would be amazing
 # but the ndk's lld won't support the output
 build:release-common --@rules_rust//rust/settings:lto='manual'
@@ -124,19 +126,5 @@ build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Cllvm-args=-sanitizer-
 build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=address
 build:fuzz --@rules_rust//rust/settings:extra_rustc_flag=--cfg=fuzzing
 build:fuzz --@rules_rust//rust/toolchain/channel=nightly
-
-build:fake-nightly --action_env=RUSTC_BOOTSTRAP=1
-
-# Enables TSAN for all targets. This does not currently work when targeting platforms where TSAN is not enabled in the Rust toolchain (e.g. ios-sim).
-build:tsan --config=fake-nightly
-build:tsan --features=tsan
-build:tsan --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=thread
-
-# Enables using TSAN with iOS tests. This does not enable tsan in Rust and may therefore result in false positivies.
-build:ios-tsan --features=tsan
-
-build:asan --config=fake-nightly
-build:asan --features=address
-build:asan --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=address
 
 try-import %workspace%/tmp/ci-bazelrc
