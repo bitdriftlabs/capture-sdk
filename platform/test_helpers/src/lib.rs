@@ -336,7 +336,7 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
       [].into(),
       [].into(),
       None,
-      Block::Yes,
+      Block::Yes(std::time::Duration::from_secs(1)),
       CaptureSession::default(),
     );
   }
