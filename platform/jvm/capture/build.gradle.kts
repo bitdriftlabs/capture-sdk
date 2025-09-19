@@ -30,7 +30,6 @@ dependencies {
     implementation(libs.androidx.startup.runtime)
     implementation(libs.jsr305)
     implementation(libs.gson)
-    implementation(libs.performance)
     implementation(libs.protobuf.kotlinlite)
 
     testImplementation(libs.junit)
