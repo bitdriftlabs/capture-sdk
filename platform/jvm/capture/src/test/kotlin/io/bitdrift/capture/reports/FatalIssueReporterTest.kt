@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.reports
 
+import android.app.ActivityManager
 import android.content.Context
 import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
@@ -35,6 +36,7 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [30]) // needs API 30 to use ApplicationExitInfo
 class FatalIssueReporterTest {
+    private lateinit var activityManager: ActivityManager
     private lateinit var fatalIssueReporter: FatalIssueReporter
     private lateinit var reportsDir: File
     private lateinit var configFile: File
@@ -52,7 +54,10 @@ class FatalIssueReporterTest {
     @Before
     fun setup() {
         val initializer = ContextHolder()
+        val appContext: Context = ApplicationProvider.getApplicationContext()
         initializer.create(ApplicationProvider.getApplicationContext())
+
+        activityManager = appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         reportsDir = File(APP_CONTEXT.filesDir, "bitdrift_capture/reports/").apply { if (!exists()) mkdirs() }
         configFile = File(reportsDir, "config.csv")
         configFile.writeText("crash_reporting.enabled,true")
@@ -68,7 +73,7 @@ class FatalIssueReporterTest {
     @Test
     fun initialize_whenDisabledViaConfig_shouldNotInit() {
         configFile.writeText("crash_reporting.enabled,false")
-        fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
+        fatalIssueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         fatalIssueReporter.fatalIssueReporterState.assert(
             FatalIssueReporterState.RuntimeDisabled::class.java,
@@ -81,7 +86,7 @@ class FatalIssueReporterTest {
     @Test
     fun initialize_whenConfigCorrupt_shouldNotInit() {
         configFile.writeText("crash_reporting.enabled")
-        fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
+        fatalIssueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         fatalIssueReporter.fatalIssueReporterState.assert(
             FatalIssueReporterState.RuntimeInvalid::class.java,
@@ -94,7 +99,7 @@ class FatalIssueReporterTest {
     @Test
     fun initialize_whenConfigNotPresent_shouldNotInit() {
         configFile.delete()
-        fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
+        fatalIssueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         fatalIssueReporter.fatalIssueReporterState.assert(
             FatalIssueReporterState.RuntimeUnset::class.java,
@@ -106,7 +111,7 @@ class FatalIssueReporterTest {
 
     @Test
     fun initialize_whenEnabled_shouldInitCrashHandlerAndFetchAppExitReason() {
-        fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
+        fatalIssueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         verify(captureUncaughtExceptionHandler).install(eq(fatalIssueReporter))
         verify(latestAppExitInfoProvider).get(any())
@@ -130,7 +135,7 @@ class FatalIssueReporterTest {
         whenever(latestAppExitInfoProvider.get(any()))
             .thenThrow(exception)
 
-        fatalIssueReporter.init(appContext, sdkDirectory, clientAttributes, completedReportsProcessor)
+        fatalIssueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         verify(completedReportsProcessor).onReportProcessingError(
             any(),

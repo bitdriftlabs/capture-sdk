@@ -7,7 +7,7 @@
 
 package io.bitdrift.capture.reports
 
-import android.content.Context
+import android.app.ActivityManager
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
@@ -20,7 +20,7 @@ interface IFatalIssueReporter {
      * Initializes the FatalIssueReporter
      */
     fun init(
-        appContext: Context,
+        activityManager: ActivityManager,
         sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,

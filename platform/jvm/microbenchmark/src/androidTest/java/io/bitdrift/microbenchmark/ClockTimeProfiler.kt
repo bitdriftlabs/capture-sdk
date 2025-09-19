@@ -9,7 +9,7 @@
 
 package io.bitdrift.microbenchmark
 
-import android.content.Context
+import android.app.ActivityManager
 import androidx.benchmark.junit4.BenchmarkRule
 import androidx.benchmark.junit4.measureRepeated
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -70,7 +70,7 @@ class ClockTimeProfiler {
                         override fun getLogStatusFieldsMap(): Map<String, FieldValue> = emptyMap()
 
                         override fun init(
-                            appContext: Context,
+                            activityManager: ActivityManager,
                             sdkDirectory: String,
                             clientAttributes: IClientAttributes,
                             completedReportsProcessor: ICompletedReportsProcessor,

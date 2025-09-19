@@ -8,7 +8,6 @@
 package io.bitdrift.capture.reports
 
 import android.app.ActivityManager
-import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.annotation.VisibleForTesting
@@ -63,7 +62,7 @@ internal class FatalIssueReporter(
      * Initializes the FatalIssueReporter handler once we have the required dependencies available
      */
     override fun init(
-        appContext: Context,
+        activityManager: ActivityManager,
         sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
@@ -105,7 +104,7 @@ internal class FatalIssueReporter(
 
             backgroundThreadHandler.runAsync {
                 runCatching {
-                    persistLastExitReasonIfNeeded(appContext)
+                    persistLastExitReasonIfNeeded(activityManager)
                     completedReportsProcessor.processCrashReports()
                 }.onSuccess {
                     fatalIssueReporterState =
@@ -157,12 +156,10 @@ internal class FatalIssueReporter(
             }
         }
 
-    private fun persistLastExitReasonIfNeeded(appContext: Context) {
+    private fun persistLastExitReasonIfNeeded(activityManager: ActivityManager) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return
         }
-        val activityManager: ActivityManager =
-            appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val lastReasonResult = latestAppExitInfoProvider.get(activityManager)
         if (lastReasonResult is LatestAppExitReasonResult.Valid) {
             val lastReason = lastReasonResult.applicationExitInfo
