@@ -52,7 +52,6 @@ mockito-kotlin             = { module = "com.nhaarman.mockitokotlin2:mockito-kot
 mockito-kotlin-inline      = { module = "org.mockito:mockito-inline", version.ref = "mockitoCore" }
 mockwebserver              = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttp" }
 okhttp                     = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
-performance                = { module = "androidx.metrics:metrics-performance", version.ref = "performance" }
 protobuf-kotlinlite        = { module = "com.google.protobuf:protobuf-kotlin-lite", version.ref = "protobufKotlinLite" }
 robolectric                = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 timber                     = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
