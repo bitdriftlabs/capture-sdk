@@ -87,6 +87,17 @@ public protocol Logging {
     /// - parameter key: The name of the field to remove.
     func removeField(withKey key: String)
 
+    /// Sets a feature flag with an optional variant.
+    ///
+    /// - parameter flag:    The name of the flag to set
+    /// - parameter variant: An optional variant to set the flag to
+    func setFeatureFlag(withFlag flag: String, variant: String?)
+
+    /// Removes a feature flag.
+    ///
+    /// - parameter flag: The name of the flag to remove
+    func removeFeatureFlag(withFlag flag: String)
+
     /// Creates a temporary device code that can be fed into bitdrift `bd` CLI tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with
     /// the bitdrift remote service.

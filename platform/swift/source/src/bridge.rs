@@ -508,6 +508,8 @@ extern "C" fn capture_create_logger(
         device,
         static_metadata,
         start_in_sleep_mode,
+        feature_flags_file_size_bytes: 1024 * 1024,
+        feature_flags_high_watermark: 0.8,
       })
       .with_internal_logger(true)
       .build()
@@ -850,6 +852,44 @@ extern "C" fn capture_flush(logger_id: LoggerId<'_>, blocking: bool) {
       Ok(())
     },
     "swift flush state",
+  );
+}
+
+#[no_mangle]
+extern "C" fn capture_set_feature_flag(
+  logger_id: LoggerId<'_>,
+  flag: *const c_char,
+  variant: *const c_char,
+) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      let flag = unsafe { CStr::from_ptr(flag) }.to_str()?;
+      let variant = if variant.is_null() {
+        None
+      } else {
+        unsafe { CStr::from_ptr(variant) }
+          .to_str()
+          .ok()
+          .map(std::string::ToString::to_string)
+      };
+      logger_id.set_feature_flag(flag.to_string(), variant);
+
+      Ok(())
+    },
+    "swift set feature flag",
+  );
+}
+
+#[no_mangle]
+extern "C" fn capture_remove_feature_flag(logger_id: LoggerId<'_>, flag: *const c_char) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      let flag = unsafe { CStr::from_ptr(flag) }.to_str()?;
+      logger_id.remove_feature_flag(flag.to_string());
+
+      Ok(())
+    },
+    "swift remove feature flag",
   );
 }
 

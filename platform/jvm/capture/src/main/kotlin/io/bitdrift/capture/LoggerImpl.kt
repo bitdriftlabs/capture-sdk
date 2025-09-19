@@ -386,6 +386,17 @@ internal class LoggerImpl(
         CaptureJniLibrary.removeLogField(this.loggerId, key)
     }
 
+    override fun setFeatureFlag(
+        flag: String,
+        variant: String?,
+    ) {
+        CaptureJniLibrary.setFeatureFlag(this.loggerId, flag, variant)
+    }
+
+    override fun removeFeatureFlag(flag: String) {
+        CaptureJniLibrary.removeFeatureFlag(this.loggerId, flag)
+    }
+
     override fun setSleepMode(sleepMode: SleepMode) {
         CaptureJniLibrary.setSleepModeEnabled(this.loggerId, sleepMode == SleepMode.ACTIVE)
     }

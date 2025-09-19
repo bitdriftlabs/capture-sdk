@@ -145,4 +145,8 @@ extension MockLogging: Logging {
     public func setSleepMode(_ mode: Capture.SleepMode) {
         sleepMode = mode
     }
+
+    public func setFeatureFlag(withFlag flag: String, variant: String?) {}
+
+    public func removeFeatureFlag(withFlag flag: String) {}
 }

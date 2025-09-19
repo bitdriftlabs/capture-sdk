@@ -413,6 +413,21 @@ extension Logger {
         Self.getShared()?.removeField(withKey: key)
     }
 
+    /// Sets a feature flag with an optional variant.
+    ///
+    /// - parameter flag:    The name of the flag to set
+    /// - parameter variant: An optional variant to set the flag to
+    public static func setFeatureFlag(withFlag flag: String, variant: String?) {
+        Self.getShared()?.setFeatureFlag(withFlag: flag, variant: variant)
+    }
+
+    /// Removes a feature flag.
+    ///
+    /// - parameter flag: The name of the flag to remove
+    public static func removeFeatureFlag(withFlag flag: String) {
+        Self.getShared()?.removeFeatureFlag(withFlag: flag)
+    }
+
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with
     /// the bitdrift remote service.

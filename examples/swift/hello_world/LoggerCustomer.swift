@@ -114,6 +114,14 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         Logger.createTemporaryDeviceCode(completion: completion)
     }
 
+    func setFeatureFlag(flag: String, variant: String?) {
+        Capture.Logger.setFeatureFlag(withFlag: flag, variant: variant)
+    }
+
+    func removeFeatureFlag(flag: String) {
+        Capture.Logger.removeFeatureFlag(withFlag: flag)
+    }
+
     func performRandomNetworkRequestUsingDataTask() {
         let session = URLSession(
             instrumentedSessionWithConfiguration: .default,

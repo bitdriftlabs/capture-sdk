@@ -393,6 +393,23 @@ public final class LoggerObjc: NSObject {
         Capture.Logger.removeField(withKey: key)
     }
 
+    /// Sets a feature flag with an optional variant.
+    ///
+    /// - parameter flag:    The name of the flag to set
+    /// - parameter variant: An optional variant to set the flag to
+    @objc
+    public static func setFeatureFlag(withFlag flag: String, variant: String?) {
+        Capture.Logger.setFeatureFlag(withFlag: flag, variant: variant)
+    }
+
+    /// Removes a feature flag.
+    ///
+    /// - parameter flag: The name of the flag to remove
+    @objc
+    public static func removeFeatureFlag(withFlag flag: String) {
+        Capture.Logger.removeFeatureFlag(withFlag: flag)
+    }
+
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with
     /// the bitdrift remote service.

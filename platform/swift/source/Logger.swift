@@ -541,6 +541,14 @@ extension Logger: Logging {
         self.underlyingLogger.removeField(withKey: key)
     }
 
+    public func setFeatureFlag(withFlag flag: String, variant: String?) {
+        self.underlyingLogger.setFeatureFlag(withFlag: flag, variant: variant)
+    }
+
+    public func removeFeatureFlag(withFlag flag: String) {
+        self.underlyingLogger.removeFeatureFlag(withFlag: flag)
+    }
+
     public func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void) {
         // Access the `deviceID` when it is needed for creating the device code, rather than
         // at Logger's initialization time. Accessing it later almost guarantees that the
