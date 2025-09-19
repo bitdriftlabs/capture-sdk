@@ -18,9 +18,12 @@ internal class DeviceAttributes(
 ) : FieldProvider {
     fun model(): String = Build.MODEL
 
-    override fun invoke(): Fields =
+    private val constantAttributesMap by lazy {
         mapOf(
             "model" to model(),
             "_locale" to ConfigurationCompat.getLocales(context.resources.configuration)[0].toString(),
         )
+    }
+
+    override fun invoke(): Fields = constantAttributesMap
 }
