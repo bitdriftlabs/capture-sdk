@@ -6,7 +6,6 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::events::ListenerTargetHandler as EventsListenerTargetHandler;
-use crate::key_value_storage::PreferencesHandle;
 use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
 use crate::session::SessionStrategyConfigurationHandle;
 use crate::session_replay::{self, TargetHandler as SessionReplayTargetHandler};
@@ -57,6 +56,8 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, OnceLock};
 use time::{Duration, OffsetDateTime};
+
+static STORAGE_BUFFER_SIZE: usize = 1024 * 1024;
 
 // If we are running on Android, we need to initialize the logging system to send logs to
 // `android_log` instead of `stderr. Use a compile time flag to determine if we are running on
@@ -596,7 +597,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   application_version: JString<'_>,
   model: JString<'_>,
   network: JObject<'_>,
-  preferences: JObject<'_>,
   error_reporter: JObject<'_>,
   start_in_sleep_mode: jboolean,
 ) -> jlong {
@@ -609,13 +609,22 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
           .to_string_lossy()
           .to_string(),
       );
+
+      // Create the SDK directory if it doesn't exist
+      std::fs::create_dir_all(&sdk_directory)?;
+
       let network_manager = Box::new(Network {
         handle: new_global!(NetworkHandle, &mut env, network)?,
         active_streams: Arc::new(AtomicU32::new(0)),
       });
 
-      let preferences = new_global!(PreferencesHandle, &mut env, preferences)?;
-      let store = Arc::new(bd_key_value::Store::new(Box::new(preferences)));
+      let storage = Box::new(bd_key_value::resilient_kv::ResilientKvStorage::new(
+        sdk_directory.join("storage"),
+        STORAGE_BUFFER_SIZE,
+        None,
+        None,
+      )?);
+      let store = Arc::new(bd_key_value::Store::new(storage));
       let previous_run_global_state = read_global_state_snapshot(store.clone());
 
       let session_strategy = Arc::new(new_global!(

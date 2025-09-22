@@ -24,7 +24,6 @@ internal interface IBridge {
         applicationVersion: String,
         model: String,
         network: ICaptureNetwork,
-        preferences: IPreferences,
         errorReporter: IErrorReporter,
         startInSleepMode: Boolean,
     ): Long

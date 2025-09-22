@@ -8,6 +8,7 @@ version      = "1.0.0"
 
 [dependencies]
 bd-bonjson                = { workspace = true }
+bd-bonjson-ffi            = { workspace = true }
 bd-client-common          = { workspace = true }
 bd-error-reporter         = { workspace = true }
 bd-key-value              = { workspace = true }

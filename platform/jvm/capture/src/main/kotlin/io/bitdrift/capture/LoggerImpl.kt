@@ -201,7 +201,6 @@ internal class LoggerImpl(
                 clientAttributes.appVersion,
                 deviceAttributes.model(),
                 network,
-                preferences,
                 localErrorReporter,
                 configuration.sleepMode == SleepMode.ACTIVE,
             )
