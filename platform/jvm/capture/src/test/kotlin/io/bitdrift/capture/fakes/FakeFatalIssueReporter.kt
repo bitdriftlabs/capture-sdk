@@ -7,7 +7,7 @@
 
 package io.bitdrift.capture.fakes
 
-import android.content.Context
+import android.app.ActivityManager
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.reports.FatalIssueReporterState
@@ -18,7 +18,7 @@ class FakeFatalIssueReporter(
     private val initializationState: FatalIssueReporterState,
 ) : IFatalIssueReporter {
     override fun init(
-        appContext: Context,
+        activityManager: ActivityManager,
         sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
