@@ -249,6 +249,23 @@ void capture_remove_log_field(logger_id logger_id, const char *key);
  */
 void capture_flush(logger_id logger_id, bool blocking);
 
+/*
+ * Sets a feature flag with an optional variant.
+ *
+ * @param logger_id the logger to set the feature flag on.
+ * @param flag the flag to set.
+ * @param variant the variant to set (if null, the flag will be set with no variant).
+ */
+void capture_set_feature_flag(logger_id logger_id, const char *flag, const char* _Nullable variant);
+
+/*
+ * Removes a feature flag.
+ *
+ * @param logger_id the logger to remove the feature flag on.
+ * @param flag the flag to remove.
+ */
+void capture_remove_feature_flag(logger_id logger_id, const char *flag);
+
 /**
  * Signals the specified logger to shut down.
  *

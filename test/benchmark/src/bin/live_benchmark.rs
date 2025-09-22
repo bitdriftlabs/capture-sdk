@@ -50,6 +50,8 @@ fn test_live_match_performance(c: &mut Criterion) {
     events_listener_target: Box::new(bd_test_helpers::events::NoOpListenerTarget),
     device,
     start_in_sleep_mode: false,
+    feature_flags_file_size_bytes: 1024 * 1024,
+    feature_flags_high_watermark: 0.8,
   })
   .build()
   .unwrap()

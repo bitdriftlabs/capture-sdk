@@ -684,6 +684,8 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         network: network_manager,
         static_metadata,
         start_in_sleep_mode: start_in_sleep_mode == JNI_TRUE,
+        feature_flags_file_size_bytes: 1024 * 1024,
+        feature_flags_high_watermark: 0.8,
       })
       .with_internal_logger(true)
       .build()
@@ -840,6 +842,60 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_removeLogField
       Ok(())
     },
     "jni add log field",
+  );
+}
+
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlag(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  key: JString<'_>,
+  variant: JString<'_>,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let key = unsafe { env.get_string_unchecked(&key) }?
+        .to_string_lossy()
+        .to_string();
+      let variant = if variant.is_null() {
+        None
+      } else {
+        Some(
+          unsafe { env.get_string_unchecked(&variant) }?
+            .to_string_lossy()
+            .to_string(),
+        )
+      };
+
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.set_feature_flag(key, variant);
+
+      Ok(())
+    },
+    "jni set feature flag",
+  );
+}
+
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_removeFeatureFlag(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  key: JString<'_>,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let key = unsafe { env.get_string_unchecked(&key) }?
+        .to_string_lossy()
+        .to_string();
+
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.remove_feature_flag(key);
+
+      Ok(())
+    },
+    "jni remove feature flag",
   );
 }
 
