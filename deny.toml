@@ -2,6 +2,7 @@
 all-features        = false
 no-default-features = false
 targets             = []
+exclude             = ["bd-workspace-hack"]
 
 [output]
 feature-depth = 1
