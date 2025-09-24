@@ -17,6 +17,7 @@
 pub mod error;
 pub mod metadata;
 
+use bd_crash_handler::global_state;
 use bd_error_reporter::reporter::handle_unexpected;
 use bd_logger::{
   log_level,
@@ -117,6 +118,7 @@ pub struct LoggerHolder {
   handle: bd_logger::LoggerHandle,
   future: parking_lot::Mutex<Option<LoggerFuture>>,
   app_launch_tti_log: Once,
+  pub previous_run_global_state: bd_logger::LogFields,
 }
 
 impl Deref for LoggerHolder {
@@ -128,13 +130,18 @@ impl Deref for LoggerHolder {
 }
 
 impl LoggerHolder {
-  pub fn new(logger: bd_logger::Logger, future: LoggerFuture) -> Self {
+  pub fn new(
+    logger: bd_logger::Logger,
+    future: LoggerFuture,
+    store: Arc<bd_key_value::Store>,
+  ) -> Self {
     let handle = logger.new_logger_handle();
     Self {
       logger,
       handle,
       future: parking_lot::Mutex::new(Some(future)),
       app_launch_tti_log: Once::new(),
+      previous_run_global_state: global_state::Reader::new(store).global_state_fields(),
     }
   }
 

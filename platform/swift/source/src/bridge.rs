@@ -449,6 +449,7 @@ extern "C" fn capture_create_logger(
     || {
       let storage = Box::<UserDefaultsStorage>::default();
       let store = Arc::new(bd_key_value::Store::new(storage));
+      let logger_store = store.clone();
 
       let session_strategy =
         crate::session::SessionStrategy::new(session_strategy).create(store.clone())?;
@@ -513,7 +514,7 @@ extern "C" fn capture_create_logger(
       })
       .with_internal_logger(true)
       .build()
-      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future))?;
+      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future, logger_store))?;
 
       Ok(logger.into_raw())
     },
