@@ -1,5 +1,5 @@
 {
-  "checksum": "80112831bfc9a0a33c101a1de8d5fc8e0a7cf1b94d0aaa912e256b82785bd6d4",
+  "checksum": "f82c53dbe0d8bcfb4edf75508e8596220b4ff1dc97dd37f49f86e8a61af24c73",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -14190,8 +14190,16 @@
               "target": "bd_client_stats_store"
             },
             {
+              "id": "bd-crash-handler 1.0.0",
+              "target": "bd_crash_handler"
+            },
+            {
               "id": "bd-error-reporter 1.0.0",
               "target": "bd_error_reporter"
+            },
+            {
+              "id": "bd-key-value 1.0.0",
+              "target": "bd_key_value"
             },
             {
               "id": "bd-log-primitives 1.0.0",
@@ -25496,6 +25504,7 @@
     "bd-buffer 1.0.0",
     "bd-client-common 1.0.0",
     "bd-client-stats-store 1.0.0",
+    "bd-crash-handler 1.0.0",
     "bd-device 1.0.0",
     "bd-error-reporter 1.0.0",
     "bd-hyper-network 1.0.0",
