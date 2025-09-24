@@ -616,6 +616,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
 
       let preferences = new_global!(PreferencesHandle, &mut env, preferences)?;
       let store = Arc::new(bd_key_value::Store::new(Box::new(preferences)));
+      let logger_store = store.clone();
 
       let session_strategy = Arc::new(new_global!(
         SessionStrategyConfigurationHandle,
@@ -704,6 +705,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
             future.await
           }
           .boxed(),
+          logger_store,
         )
       })?;
 
@@ -945,6 +947,20 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
       };
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let global_state_fields = logger
+        .previous_run_global_state
+        .iter()
+        .map(|(key, value)| {
+          (
+            key.clone(),
+            bd_logger::AnnotatedLogField::new_ootb(value.clone()),
+          )
+        })
+        .collect();
+      let fields = [global_state_fields, fields]
+        .into_iter()
+        .flatten()
+        .collect();
       logger.log(
         log_level as u32,
         LogType(log_type as u32),
