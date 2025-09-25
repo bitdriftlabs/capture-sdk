@@ -71,16 +71,18 @@ build:release-common --config=abort-panic
 # Size optimizations, codegen-units=1 go along side LTO, which accounts for
 # about 10% reduction; -z has a non-zero smaller impact (a few pp).
 build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Ccodegen-units=1'
-build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Copt-level=s'
-build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Clto=fat'
+build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Copt-level=z'
+# build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Clto=thin'
+# build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Cembed-bitcode'
+# build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Clinker-plugin-lto'
 # Without the next line, rules_rust will add -Clinker-plugin-lto which would be amazing
 # but the ndk's lld won't support the output
-build:release-common --@rules_rust//rust/settings:lto='manual'
+build:release-common --@rules_rust//rust/settings:lto='fat'
 
 build:release-android --define android_strip_symbols=true
 build:release-android --android_platforms=@rules_android//:armeabi-v7a,@rules_android//:arm64-v8a,@rules_android//:x86,@rules_android//:x86_64
 build:release-android --config=release-common
-build:release-android --copt=-flto=thin --linkopt=-flto=thin
+# build:release-android --copt=-flto=thin --linkopt=-flto=thin
 build:release-android --config=android
 build:release-android --linkopt=-Wl,--pack-dyn-relocs=android
 # build:release-android --linkopt=-Wl,--use-android-relr-tags
