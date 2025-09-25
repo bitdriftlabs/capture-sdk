@@ -4,7 +4,7 @@ module(name = "capture-sdk")
 # Constants
 ####################
 
-RUST_VERSION = "1.88.0"
+RUST_VERSION = "1.90.0"
 
 OKHTTP_VERSION = "4.12.0"
 
