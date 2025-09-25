@@ -1,5 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary")
-load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
+load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library", "bitdrift_rust_shared_library")
 
 exports_files(["AndroidManifest.xml"])
 
@@ -9,44 +8,47 @@ exports_files(["AndroidManifest.xml"])
 # at src/platform/jvm named either libcapture.so or libcapture.dylib depending on the platform.
 # This allows the JniLibrary to load this with the name "capture" when the library path is set
 # to src/platform/jvm.
-cc_binary(
-    name = "capture",
-    linkopts = [
-        "-lm",  # Required to avoid dlopen runtime failures unrelated to rust
-        "-lz",  # Link against system zlib library
+bitdrift_rust_shared_library(
+    name = "capture_shared",
+    compile_data = [
+        "jni_symbols.lds",
+    ],
+    crate_name = "capture",
+    crate_root = "src/lib.rs",
+    rustc_flags = [
+        "-Clink-args=-lm",  # Required to avoid dlopen runtime failures unrelated to rust
+        "-Clink-args=-lz",  # Link against system zlib library
     ] + select({
         "@platforms//os:android": [
-            "-Wl,-z,max-page-size=16384",  # enable 16 KB ELF alignment on Android to support API 35+
-            "-Wl,--retain-symbols-file=$(location :jni_symbols.lds)",
-            "-Wl,--build-id",  # Include build id in the binary
+            "-Clink-args=-Wl,-z,max-page-size=16384",  # enable 16 KB ELF alignment on Android to support API 35+
+            "-Clink-args=-Wl,--retain-symbols-file=$(location :jni_symbols.lds)",
+            "-Clink-args=-Wl,--build-id",  # Include build id in the binary
         ],
         "@platforms//os:linux": ["-Wl,--retain-symbols-file=$(location :jni_symbols.lds)"],
         # The linker on macos doesn't support the same options or file formats as linux, so use a pattern match here (not availabile on linux).
         # We could use another file which prefixes all the symbols with _, but this seems easier.
         "@platforms//os:macos": [
-            "-Wl,-exported_symbol,_Java_io_bitdrift_capture_network*",
-            "-Wl,-exported_symbol,_Java_io_bitdrift_capture_CaptureJni*",
-            "-Wl,-exported_symbol,_Java_io_bitdrift_capture_Jni*",
-            "-Wl,-exported_symbol,_JNI_OnLoad",
-            "-Wl,-framework,Security",
+            "-Clink-args=-Wl,-exported_symbol,_Java_io_bitdrift_capture_network*",
+            "-Clink-args=-Wl,-exported_symbol,_Java_io_bitdrift_capture_CaptureJni*",
+            "-Clink-args=-Wl,-exported_symbol,_Java_io_bitdrift_capture_Jni*",
+            "-Clink-args=-Wl,-exported_symbol,_JNI_OnLoad",
+            "-Clink-args=-Wl,-framework,Security",
         ],
         "//conditions:default": ["@platforms//:incompatible"],
     }),
-    linkshared = True,
     tags = [
         "no-cache",
         "no-remote",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "jni_symbols.lds",
-        ":capture_jni",
+        "//platform/shared:platform-shared",
     ],
 )
 
 # This is Rust JNI implementation. Most of the logic lives here.
 bitdrift_rust_library(
-    name = "capture_jni",
+    name = "capture",
     visibility = ["//visibility:public"],
     deps = [
         "//platform/shared:platform-shared",
