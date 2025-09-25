@@ -1,5 +1,5 @@
 load("@crates//:defs.bzl", "aliases", "all_crate_deps")
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_library", "rust_test", "rust_shared_library")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_library", "rust_shared_library", "rust_test")
 
 def bitdrift_rust_binary(name, srcs = None, deps = [], proc_macro_deps = [], **args):
     rust_binary(

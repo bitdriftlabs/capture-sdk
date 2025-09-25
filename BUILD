@@ -96,7 +96,7 @@ android_artifacts(
 
 android_debug_info(
     name = "capture.debug_info",
-    dep = "//platform/jvm:capture",
+    dep = "//platform/jvm:capture_shared",
     tags = ["manual"],
 )
 
