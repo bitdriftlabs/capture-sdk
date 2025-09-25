@@ -279,6 +279,30 @@ object Capture {
         }
 
         /**
+         * Sets a feature flag with an optional variant.
+         *
+         * @param flag the name of the flag to set
+         * @param variant an optional variant
+         */
+        @JvmStatic
+        fun setFeatureFlag(
+            flag: String,
+            variant: String? = null,
+        ) {
+            logger()?.setFeatureFlag(flag, variant)
+        }
+
+        /**
+         * Removes a feature flag.
+         *
+         * @param flag the name of the flag to remove
+         */
+        @JvmStatic
+        fun removeFeatureFlag(flag: String) {
+            logger()?.removeFeatureFlag(flag)
+        }
+
+        /**
          * Logs a message at trace level.
          *
          * @param fields an optional map of additional data to include with the log.

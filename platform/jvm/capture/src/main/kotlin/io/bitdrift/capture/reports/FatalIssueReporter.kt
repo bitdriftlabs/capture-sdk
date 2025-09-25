@@ -8,11 +8,11 @@
 package io.bitdrift.capture.reports
 
 import android.app.ActivityManager
-import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.Capture.LOG_TAG
+import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.providers.FieldValue
@@ -62,7 +62,7 @@ internal class FatalIssueReporter(
      * Initializes the FatalIssueReporter handler once we have the required dependencies available
      */
     override fun init(
-        appContext: Context,
+        activityManager: ActivityManager,
         sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
@@ -98,12 +98,13 @@ internal class FatalIssueReporter(
                 FatalIssueReporterProcessor(
                     FatalIssueReporterStorage(destinationDirectory.destinationDirectory),
                     clientAttributes,
+                    CaptureJniLibrary,
                 )
             captureUncaughtExceptionHandler.install(this)
 
             backgroundThreadHandler.runAsync {
                 runCatching {
-                    persistLastExitReasonIfNeeded(appContext)
+                    persistLastExitReasonIfNeeded(activityManager)
                     completedReportsProcessor.processCrashReports()
                 }.onSuccess {
                     fatalIssueReporterState =
@@ -155,12 +156,10 @@ internal class FatalIssueReporter(
             }
         }
 
-    private fun persistLastExitReasonIfNeeded(appContext: Context) {
+    private fun persistLastExitReasonIfNeeded(activityManager: ActivityManager) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return
         }
-        val activityManager: ActivityManager =
-            appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val lastReasonResult = latestAppExitInfoProvider.get(activityManager)
         if (lastReasonResult is LatestAppExitReasonResult.Valid) {
             val lastReason = lastReasonResult.applicationExitInfo

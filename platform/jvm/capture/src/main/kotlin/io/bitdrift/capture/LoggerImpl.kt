@@ -267,7 +267,7 @@ internal class LoggerImpl(
 
         // fatal issue reporter needs to be initialized after appExitLogger and the jniLogger
         fatalIssueReporter?.init(
-            appContext = context,
+            activityManager = activityManager,
             sdkDirectory = sdkDirectory,
             clientAttributes = clientAttributes,
             completedReportsProcessor = this,
@@ -384,6 +384,17 @@ internal class LoggerImpl(
 
     override fun removeField(key: String) {
         CaptureJniLibrary.removeLogField(this.loggerId, key)
+    }
+
+    override fun setFeatureFlag(
+        flag: String,
+        variant: String?,
+    ) {
+        CaptureJniLibrary.setFeatureFlag(this.loggerId, flag, variant)
+    }
+
+    override fun removeFeatureFlag(flag: String) {
+        CaptureJniLibrary.removeFeatureFlag(this.loggerId, flag)
     }
 
     override fun setSleepMode(sleepMode: SleepMode) {

@@ -10,6 +10,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.argumentCaptor
+import com.nhaarman.mockitokotlin2.doReturn
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
@@ -43,7 +44,9 @@ import java.nio.file.Paths
 @Config(sdk = [31])
 class FatalIssueReporterProcessorTest {
     private lateinit var fatalIssueReporterProcessor: FatalIssueReporterProcessor
+    private lateinit var attributes: ClientAttributes
     private val fatalIssueReporterStorage: IFatalIssueReporterStorage = mock()
+    private val streamingReportProcessor: IStreamingReportProcessor = mock()
     private val lifecycleOwner: LifecycleOwner = mock()
     private val fatalIssueReportCaptor = argumentCaptor<ByteArray>()
     private val reportTypeCaptor = argumentCaptor<Byte>()
@@ -52,8 +55,13 @@ class FatalIssueReporterProcessorTest {
     fun setUp() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
+        attributes = ClientAttributes(APP_CONTEXT, lifecycleOwner)
         fatalIssueReporterProcessor =
-            FatalIssueReporterProcessor(fatalIssueReporterStorage, ClientAttributes(APP_CONTEXT, lifecycleOwner))
+            FatalIssueReporterProcessor(
+                fatalIssueReporterStorage,
+                attributes,
+                streamingReportProcessor,
+            )
     }
 
     @Test
@@ -89,7 +97,7 @@ class FatalIssueReporterProcessorTest {
             "persistJvmCrash_withFakeException_shouldCreateNonEmptyErrorModel",
         )
         assertThat(error.stackTrace(0)!!.sourceFile!!.path).isEqualTo("FatalIssueReporterProcessorTest.kt")
-        assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(62)
+        assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(fakeException.stackTrace[0].lineNumber.toLong())
         assertThat(error.stackTrace(0)!!.sourceFile!!.column).isEqualTo(0)
     }
 
@@ -124,203 +132,22 @@ class FatalIssueReporterProcessorTest {
     }
 
     @Test
-    fun persistAppExitReport_whenAnr_shouldCreateNonEmptyErrorModel() {
-        val description = APP_EXIT_DESCRIPTION_ANR
-        val traceInputStream = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt")
-
+    fun persistAppExitReport_whenAnr() {
+        doReturn("/some/path/foo.cap").`when`(fatalIssueReporterStorage).generateFilePath()
+        val trace = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt")
         fatalIssueReporterProcessor.persistAppExitReport(
             fatalIssueType = ReportType.AppNotResponding,
             enableNativeCrashReporting = true,
             FAKE_TIME_STAMP,
-            description,
-            traceInputStream,
+            "Input Dispatching Timed Out",
+            trace,
         )
 
-        verify(fatalIssueReporterStorage).persistFatalIssue(
+        verify(streamingReportProcessor).persistANR(
+            eq(trace),
             eq(FAKE_TIME_STAMP),
-            fatalIssueReportCaptor.capture(),
-            reportTypeCaptor.capture(),
-        )
-        val buffer = ByteBuffer.wrap(fatalIssueReportCaptor.firstValue)
-        val report = Report.getRootAsReport(buffer)
-        val error = report.errors(0)!!
-        assertThat(error.name).isEqualTo("User Perceived ANR")
-        assertThat(error.reason).isEqualTo(APP_EXIT_DESCRIPTION_ANR)
-
-        // Entries below corresponds to sample `app_exit_anr_deadlock_anr.txt`
-        assertThat(error.stackTrace(0)!!.type).isEqualTo(1)
-        assertThat(error.stackTrace(0)!!.stateLength).isEqualTo(0)
-        assertThat(error.stackTrace(0)!!.className).isEqualTo("io.bitdrift.capture.FatalIssueGenerator")
-        assertThat(error.stackTrace(0)!!.symbolName).isEqualTo("startProcessing")
-        assertThat(error.stackTrace(0)!!.sourceFile!!.path).isEqualTo("FatalIssueGenerator.kt")
-        assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(106)
-        assertThat(error.stackTrace(0)!!.sourceFile!!.column).isEqualTo(0)
-
-        val blockedThread = report.threadDetails!!.threads(0)!!
-        assertThat(blockedThread.name).isEqualTo("background_thread_for_deadlock_demo")
-        assertThat(blockedThread.active).isEqualTo(false)
-        assertThat(blockedThread.state).isEqualTo("Blocked")
-        assertThat(blockedThread.index).isEqualTo(4U)
-        assertThat(blockedThread.priority).isEqualTo(5F)
-        assertThat(blockedThread.stackTrace(0)!!.className).contains("io.bitdrift.capture.FatalIssueGenerator")
-        assertThat(blockedThread.stackTrace(0)!!.symbolName).isEqualTo("run")
-        assertThat(blockedThread.stackTrace(0)!!.sourceFile!!.path).isEqualTo("FatalIssueGenerator.kt")
-        assertThat(blockedThread.stackTrace(0)!!.sourceFile!!.line).isEqualTo(91)
-        assertThat(blockedThread.stackTrace(0)!!.sourceFile!!.column).isEqualTo(0)
-
-        val activeThread = report.threadDetails!!.threads(5)!!
-        assertThat(activeThread.name).isEqualTo("Signal Catcher")
-        assertThat(activeThread.active).isEqualTo(true)
-        assertThat(activeThread.state).isEqualTo("Runnable")
-        assertThat(activeThread.index).isEqualTo(2U)
-        assertThat(activeThread.priority).isEqualTo(10F)
-        assertThat(activeThread.stackTrace(0)!!.className).contains("/apex/com.android.art/lib64/libart.so")
-    }
-
-    @Test
-    fun persistAppExitReport_whenUserPerceivedAnr_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit = "Input Dispatching Timed Out",
-            expectedMessage = "User Perceived ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenAnrDialogShown_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit =
-                "user request after error",
-            expectedMessage = "User Perceived ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenBroadcastReceiverAnr_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit =
-                "Broadcast of Intent { act=android.intent.action.MAIN " +
-                    "cmp=com.example.app/.MainActivity}",
-            expectedMessage = "Broadcast Receiver ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenExecutingServiceAnr_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit =
-                "Executing service. { act=android.intent.action.MAIN \" +\n" +
-                    "                    \"cmp=com.example.app/.MainActivity}",
-            expectedMessage = "Service ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenStartServiceForegroundAnr_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit = "Service.StartForeground() not called.{ act=android.intent.action.MAIN}",
-            expectedMessage = "Service ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenServiceBindTimeoutAnr_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit = "user request after error: Timed out while trying to bind",
-            expectedMessage = "Service ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenContentProviderTimeoutAnr_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit = "My Application. Content Provider Timeout",
-            expectedMessage = "Content Provider ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenAppRegisteredTimeoutAnr_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit = "My Application. App Registered Timeout",
-            expectedMessage = "App Registered ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenAppStartupTimeOut_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit = "App start timeout. Timeout=5000ms",
-            expectedMessage = "App Start ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenServiceStartTimeout_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit = "Service start timeout. Timeout=5000ms",
-            expectedMessage = "Service ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenShortFgsTimeoutAnr_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit = "Foreground service ANR. Short FGS Timeout. Duration=5000ms",
-            expectedMessage = "Service ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenSystemJobServiceTimeoutAnr_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit = "SystemJobService. Job Service Timeout",
-            expectedMessage = "Service ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenJobServiceStartTimeout_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit = "job service timeout",
-            expectedMessage = "Service ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenJobServiceStopTimeout_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit = "user request after error: No response to onStopJob",
-            expectedMessage = "Service ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenBackgroundAnr_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit = "It's full moon ANR",
-            expectedMessage = "Undetermined ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenGenericAnrTimeout_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit =
-                "bg anr: Process " +
-                    "ProcessRecord{9707291 4609:io.bitdrift.gradletestapp/u0a207} " +
-                    "failed to complete startup\n",
-            expectedMessage = "Background ANR",
-        )
-    }
-
-    @Test
-    fun persistAppExitReport_whenBgAnrAndInputDispatchingTimeout_shouldMatchAnrReason() {
-        assertAnrReason(
-            descriptionFromAppExit =
-                "bg anr: Input dispatching timed out (85a07c0 " +
-                    "com.acme.app/com.acme.app.MainActivity is not responding. " +
-                    "Waited 5001ms for MotionEvent)\n",
-            expectedMessage = "Background ANR",
+            eq("/some/path/foo.cap"),
+            eq(attributes),
         )
     }
 
@@ -404,30 +231,6 @@ class FatalIssueReporterProcessorTest {
 
         verify(fatalIssueReporterStorage, never())
             .persistFatalIssue(any(), any(), any())
-    }
-
-    private fun assertAnrReason(
-        descriptionFromAppExit: String,
-        expectedMessage: String,
-    ) {
-        fatalIssueReporterProcessor.persistAppExitReport(
-            fatalIssueType = ReportType.AppNotResponding,
-            enableNativeCrashReporting = true,
-            FAKE_TIME_STAMP,
-            descriptionFromAppExit,
-            buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt"),
-        )
-
-        verify(fatalIssueReporterStorage).persistFatalIssue(
-            eq(FAKE_TIME_STAMP),
-            fatalIssueReportCaptor.capture(),
-            reportTypeCaptor.capture(),
-        )
-        val report = Report.getRootAsReport(ByteBuffer.wrap(fatalIssueReportCaptor.firstValue))
-        assertThat(report.errors(0)).isNotNull
-        report.errors(0)?.let { error ->
-            assertThat(error.name).isEqualTo(expectedMessage)
-        }
     }
 
     private fun buildTraceInputStringFromFile(rawFilePath: String): InputStream {
