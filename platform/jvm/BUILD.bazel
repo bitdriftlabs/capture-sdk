@@ -10,7 +10,8 @@ exports_files(["AndroidManifest.xml"])
 # This allows the JniLibrary to load this with the name "capture" when the library path is set
 # to src/platform/jvm.
 bitdrift_rust_shared_library(
-    name = "capture",
+    name = "capture_shared",
+    crate_name = "capture",
     rustc_flags = [
         "-Clink-args=-lm",  # Required to avoid dlopen runtime failures unrelated to rust
         "-Clink-args=-lz",  # Link against system zlib library
@@ -48,7 +49,7 @@ bitdrift_rust_shared_library(
 
 # This is Rust JNI implementation. Most of the logic lives here.
 bitdrift_rust_library(
-    name = "capture_jni",
+    name = "capture",
     visibility = ["//visibility:public"],
     deps = [
         "//platform/shared:platform-shared",

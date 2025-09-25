@@ -88,7 +88,7 @@ android_artifacts(
     native_deps = select({
         # When targeting an optimized build, use the stripped binary. The symbols are collected prior to stripping and exposed via capture_symbols below.
         "//bazel/android:strip_symbols": [":capture.debug_info"],
-        "//conditions:default": ["//platform/jvm:capture"],
+        "//conditions:default": ["//platform/jvm:capture_shared"],
     }),
     proguard_rules = "//platform/jvm:proguard",
     visibility = ["//visibility:public"],
