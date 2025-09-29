@@ -77,9 +77,10 @@ build:release-common --@rules_rust//rust/settings:lto='fat'
 build:release-android --define android_strip_symbols=true
 build:release-android --android_platforms=@rules_android//:armeabi-v7a,@rules_android//:arm64-v8a,@rules_android//:x86,@rules_android//:x86_64
 build:release-android --config=release-common
-# build:release-android --copt=-flto=thin --linkopt=-flto=thin
 build:release-android --config=android
 build:release-android --linkopt=-Wl,--pack-dyn-relocs=android
+# TODO(snowp): This should do better but requires a certain version of Android. 
+# Investigate what this is and track when we can use it.
 # build:release-android --linkopt=-Wl,--use-android-relr-tags
 
 # Custom iOS release configuration
