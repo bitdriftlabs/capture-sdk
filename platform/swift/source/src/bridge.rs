@@ -155,7 +155,7 @@ struct UrlSessionStreamWriter(objc::rc::StrongPtr);
 
 // StrongPtr is Send iff T is sync, which we assume for the Stream implementation. Sending data
 // and closing the stream is all safe to do from any thread, and the fact that we send everything
-// from the event loop means that we won't interleave data.
+// from the event loop means that we won't interleave data..
 // TODO(snowp): objc2 allows describing this better as Id<T> is generic, fix if we switch over.
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for UrlSessionStreamWriter {}

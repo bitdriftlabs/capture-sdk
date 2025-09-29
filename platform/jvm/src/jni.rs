@@ -90,7 +90,7 @@ const fn initialize_logging() {}
 // JValueWrapper
 //
 
-// Wrapper around jni related types that simplifies their conversion into a `jvalue`.
+// Wrapper around jni related types that simplifies their conversion into a `jvalue`..
 #[derive(Debug)]
 pub enum JValueWrapper<'a> {
   Boolean(jboolean),
