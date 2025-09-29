@@ -12,6 +12,7 @@ anyhow.workspace             = true
 async-trait.workspace        = true
 bd-api.workspace             = true
 bd-bonjson.workspace         = true
+bd-bonjson-ffi.workspace     = true
 bd-client-common.workspace   = true
 bd-device.workspace          = true
 bd-error-reporter.workspace  = true

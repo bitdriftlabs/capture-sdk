@@ -369,7 +369,7 @@ crate.annotation(
 )
 crate.annotation(
     build_script_env = {"SKIP_FILE_GEN": "1"},
-    crate = "bd-bonjson",
+    crate = "bd-bonjson-ffi",
 )
 
 # A recent rustix update seems to have broken something here, so manually add in the crates we need to build under Bazel.
