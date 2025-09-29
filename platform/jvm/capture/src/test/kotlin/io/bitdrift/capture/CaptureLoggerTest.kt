@@ -17,7 +17,6 @@ import com.nhaarman.mockitokotlin2.spy
 import com.nhaarman.mockitokotlin2.timeout
 import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.attributes.ClientAttributes
-import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.network.HttpRequestInfo
@@ -492,6 +491,5 @@ class CaptureLoggerTest {
             ContextHolder.APP_CONTEXT,
             ProcessLifecycleOwner.get(),
         ).invoke().toFields() +
-            NetworkAttributes(ContextHolder.APP_CONTEXT).invoke().toFields() +
-            DeviceAttributes(ContextHolder.APP_CONTEXT).invoke().toFields()
+            NetworkAttributes(ContextHolder.APP_CONTEXT).invoke().toFields()
 }

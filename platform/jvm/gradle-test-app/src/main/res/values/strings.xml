@@ -19,4 +19,9 @@
 
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
     <string name="switch_app_theme">Switch App Theme</string>
+
+    <string name="copy_session_url">Copy Session URL</string>
+    <string name="start_new_session">Start New Session</string>
+    <string name="generate_temp_device_code">Generate Temporary Device Code</string>
+    <string name="no_code_generated">No Code Generated</string>
 </resources>
