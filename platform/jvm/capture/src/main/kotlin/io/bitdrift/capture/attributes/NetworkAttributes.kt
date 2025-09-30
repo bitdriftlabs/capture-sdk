@@ -37,7 +37,6 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.threading.CaptureDispatchers
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.atomic.AtomicReference
 
 @SuppressLint("MissingPermission")
 internal class NetworkAttributes(
@@ -63,10 +62,6 @@ internal class NetworkAttributes(
             NETWORK_TYPE_UNKNOWN to "unknown",
         )
 
-    private val currentNetworkType: AtomicReference<String> = AtomicReference("unknown")
-    private val currentCarrier: AtomicReference<String> = AtomicReference("unknown")
-    private val currentRadioType: AtomicReference<String> = AtomicReference("unknown")
-
     private val telephonyManager by lazy {
         context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
     }
@@ -74,11 +69,8 @@ internal class NetworkAttributes(
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     }
 
-    private var cachedCarrier: String? = null
-    private var cachedRadioType: String? = null
-    private var cachedNetworkType: String? = null
-
-    private val cachedFields: HashMap<String, String> by lazy { HashMap(DEFAULT_FIELDS_SIZE) }
+    @Volatile
+    private var currentFields: Map<String, String> = emptyMap()
 
     init {
         executor.execute {
@@ -86,30 +78,11 @@ internal class NetworkAttributes(
         }
     }
 
-    override fun invoke(): Fields {
-        cachedCarrier = updateField(KEY_CARRIER, currentCarrier.get(), cachedCarrier)
-        cachedNetworkType = updateField(KEY_NETWORK_TYPE, currentNetworkType.get(), cachedNetworkType)
-        cachedRadioType = updateField(KEY_RADIO_TYPE, currentRadioType.get(), cachedRadioType)
-        return cachedFields
-    }
-
-    private fun updateField(
-        key: String,
-        newValue: String,
-        oldValue: String?,
-    ): String? =
-        if (oldValue != newValue) {
-            cachedFields[key] = newValue
-            newValue
-        } else {
-            oldValue
-        }
+    override fun invoke(): Fields = currentFields
 
     @SuppressLint("NewApi")
     @Suppress("SwallowedException")
     private fun monitorNetworkType() {
-        // TODO(snowp): Can we end up with this permission later on? Consider responding to permission
-        //  changes and adding in the callback when available.
         if (ContextCompat.checkSelfPermission(context, ACCESS_NETWORK_STATE) == PackageManager.PERMISSION_GRANTED) {
             try {
                 connectivityManager.activeNetwork?.let { network ->
@@ -118,7 +91,6 @@ internal class NetworkAttributes(
                 connectivityManager.registerDefaultNetworkCallback(this)
             } catch (e: Throwable) {
                 // Issue with some versions of Android: https://issuetracker.google.com/issues/175055271
-                // can sometime throw an exception: "package does not belong to 10006"
                 updateNetworkType(NetworkCapabilities(null))
             }
         }
@@ -133,7 +105,7 @@ internal class NetworkAttributes(
     }
 
     private fun updateNetworkType(networkCapabilities: NetworkCapabilities?) {
-        currentNetworkType.set(
+        val type =
             networkCapabilities?.run {
                 when {
                     hasTransport(TRANSPORT_WIFI) -> "wlan"
@@ -141,21 +113,30 @@ internal class NetworkAttributes(
                     hasTransport(TRANSPORT_ETHERNET) -> "ethernet"
                     else -> "other"
                 }
-            } ?: "unknown",
-        )
+            } ?: "unknown"
+
+        updateFields(networkType = type)
     }
 
     private fun updateTelephonyAttributes() {
-        val newCarrier = telephonyManager.networkOperatorName ?: "unknown"
-        val newRadioType = permissiveOperation({ radioType() }, READ_PHONE_STATE)
+        val carrier = telephonyManager.networkOperatorName ?: "unknown"
+        val radioType = permissiveOperation({ radioType() }, READ_PHONE_STATE)
 
-        if (currentCarrier.get() != newCarrier) {
-            currentCarrier.set(newCarrier)
-        }
+        updateFields(carrier = carrier, radioType = radioType)
+    }
 
-        if (currentRadioType.get() != newRadioType) {
-            currentRadioType.set(newRadioType)
-        }
+    private fun updateFields(
+        carrier: String? = null,
+        networkType: String? = null,
+        radioType: String? = null,
+    ) {
+        val updated =
+            currentFields.toMutableMap().apply {
+                carrier?.let { this[KEY_CARRIER] = it }
+                networkType?.let { this[KEY_NETWORK_TYPE] = it }
+                radioType?.let { this[KEY_RADIO_TYPE] = it }
+            }
+        currentFields = updated.toMap()
     }
 
     private fun radioType(): String {
@@ -177,9 +158,8 @@ internal class NetworkAttributes(
     }
 
     private companion object {
-        const val DEFAULT_FIELDS_SIZE = 3
-        const val KEY_CARRIER = "carrier"
-        const val KEY_NETWORK_TYPE = "network_type"
-        const val KEY_RADIO_TYPE = "radio_type"
+        private const val KEY_CARRIER = "carrier"
+        private const val KEY_NETWORK_TYPE = "network_type"
+        private const val KEY_RADIO_TYPE = "radio_type"
     }
 }

@@ -57,7 +57,7 @@ class NetworkAttributesTest {
 
         val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).invoke()
 
-        assertThat(networkAttributes).containsEntry("network_type", "unknown")
+        assertThat(networkAttributes).doesNotContainKey("network_type")
     }
 
     @Test
