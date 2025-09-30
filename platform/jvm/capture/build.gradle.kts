@@ -49,7 +49,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        minSdk = 24
+        minSdk = 21
         ndkVersion = "27"
         consumerProguardFiles("consumer-rules.pro")
     }
