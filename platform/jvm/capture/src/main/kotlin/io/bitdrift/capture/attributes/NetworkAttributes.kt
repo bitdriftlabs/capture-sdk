@@ -130,13 +130,12 @@ internal class NetworkAttributes(
         networkType: String? = null,
         radioType: String? = null,
     ) {
-        val updated =
+        currentFields =
             currentFields.toMutableMap().apply {
                 carrier?.let { this[KEY_CARRIER] = it }
                 networkType?.let { this[KEY_NETWORK_TYPE] = it }
                 radioType?.let { this[KEY_RADIO_TYPE] = it }
             }
-        currentFields = updated.toMap()
     }
 
     private fun radioType(): String {

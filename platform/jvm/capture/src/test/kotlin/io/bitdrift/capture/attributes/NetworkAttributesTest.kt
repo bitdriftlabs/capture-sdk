@@ -12,6 +12,10 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
+import android.net.NetworkCapabilities.TRANSPORT_CELLULAR
+import android.net.NetworkCapabilities.TRANSPORT_ETHERNET
+import android.net.NetworkCapabilities.TRANSPORT_WIFI
+import android.telephony.TelephonyManager
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.verify
@@ -23,6 +27,7 @@ import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
+import org.mockito.Mockito.`when`
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows
@@ -107,6 +112,78 @@ class NetworkAttributesTest {
         assertThat(result).containsEntry("radio_type", "forbidden")
     }
 
+    @Test
+    fun invoke_whenWifiNetworkTransport_shouldMatchType() {
+        val fields = invokeWithNetworkCapabilities(NetworkTransport.WIFI)
+
+        assertThat(fields).containsEntry("network_type", "wlan")
+    }
+
+    @Test
+    fun invoke_whenCellularNetworkTransport_shouldMatchType() {
+        val fields = invokeWithNetworkCapabilities(NetworkTransport.CELLULAR)
+
+        assertThat(fields).containsEntry("network_type", "wwan")
+    }
+
+    @Test
+    fun invoke_whenEthernetNetworkTransport_shouldMatchType() {
+        val fields = invokeWithNetworkCapabilities(NetworkTransport.ETHERNET)
+
+        assertThat(fields).containsEntry("network_type", "ethernet")
+    }
+
+    @Test
+    fun invoke_whenOtherNetworkTransport_shouldMatchType() {
+        val fields = invokeWithNetworkCapabilities(NetworkTransport.OTHER)
+
+        assertThat(fields).containsEntry("network_type", "other")
+    }
+
+    @Test
+    fun invoke_whenLte_shouldMatchType() {
+        grantPermissions(Manifest.permission.READ_PHONE_STATE)
+
+        val result =
+            invokeWithNetworkCapabilities(
+                radioType = TelephonyManager.NETWORK_TYPE_LTE,
+            )
+
+        assertThat(result).containsEntry("radio_type", "lte")
+    }
+
+    @Test
+    fun invoke_whenGsm_shouldMatchType() {
+        grantPermissions(Manifest.permission.READ_PHONE_STATE)
+
+        val result =
+            invokeWithNetworkCapabilities(
+                radioType = TelephonyManager.NETWORK_TYPE_GSM,
+            )
+
+        assertThat(result).containsEntry("radio_type", "gsm")
+    }
+
+    private fun invokeWithNetworkCapabilities(
+        transport: NetworkTransport = NetworkTransport.WIFI,
+        radioType: Int = TelephonyManager.NETWORK_TYPE_UNKNOWN,
+    ): Map<String, String> {
+        val context = spy(ApplicationProvider.getApplicationContext<Context>())
+        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService())
+        val network = mock(Network::class.java)
+        val capabilities = mock(NetworkCapabilities::class.java)
+        val telephonyManager = mock(TelephonyManager::class.java)
+
+        `when`(capabilities.hasTransport(TRANSPORT_WIFI)).thenReturn(transport == NetworkTransport.WIFI)
+        `when`(capabilities.hasTransport(TRANSPORT_CELLULAR)).thenReturn(transport == NetworkTransport.CELLULAR)
+        `when`(capabilities.hasTransport(TRANSPORT_ETHERNET)).thenReturn(transport == NetworkTransport.ETHERNET)
+        `when`(context.getSystemService(Context.TELEPHONY_SERVICE)).thenReturn(telephonyManager)
+        `when`(telephonyManager.networkType).thenReturn(radioType)
+
+        networkAttributes.onCapabilitiesChanged(network, capabilities)
+        return networkAttributes.invoke()
+    }
+
     private fun grantPermissions(vararg permissionNames: String) {
         val app = Shadows.shadowOf(RuntimeEnvironment.getApplication())
         app.grantPermissions(*permissionNames)
@@ -130,5 +207,12 @@ class NetworkAttributesTest {
         val network = mock(Network::class.java)
         networkAttributes.onCapabilitiesChanged(network, capabilities)
         return networkAttributes
+    }
+
+    private enum class NetworkTransport {
+        WIFI,
+        CELLULAR,
+        ETHERNET,
+        OTHER,
     }
 }
