@@ -11,6 +11,7 @@ import android.Manifest
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
+import android.net.NetworkCapabilities
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.verify
@@ -33,10 +34,11 @@ class NetworkAttributesTest {
     @Test
     fun carrier() {
         val context = ApplicationProvider.getApplicationContext<Context>()
+        val networkAttributes = buildNetworkAttributes(context)
 
-        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).invoke()
+        val result = networkAttributes.invoke()
 
-        assertThat(networkAttributes).containsEntry("carrier", "")
+        assertThat(result).containsEntry("carrier", "")
     }
 
     @Test
@@ -88,19 +90,21 @@ class NetworkAttributesTest {
     fun radio_type_read_phone_state_granted() {
         grantPermissions(Manifest.permission.READ_PHONE_STATE)
         val context = ApplicationProvider.getApplicationContext<Context>()
+        val networkAttributes = buildNetworkAttributes(context)
 
-        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).invoke()
+        val result = networkAttributes.invoke()
 
-        assertThat(networkAttributes).containsEntry("radio_type", "unknown")
+        assertThat(result).containsEntry("radio_type", "unknown")
     }
 
     @Test
     fun radio_type_read_phone_state_not_granted() {
         val context = ApplicationProvider.getApplicationContext<Context>()
+        val networkAttributes = buildNetworkAttributes(context)
 
-        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).invoke()
+        val result = networkAttributes.invoke()
 
-        assertThat(networkAttributes).containsEntry("radio_type", "forbidden")
+        assertThat(result).containsEntry("radio_type", "forbidden")
     }
 
     private fun grantPermissions(vararg permissionNames: String) {
@@ -118,5 +122,13 @@ class NetworkAttributesTest {
         val mockedNetwork: Network = mock(Network::class.java)
         doReturn(mockedNetwork).`when`(connectivityManager).activeNetwork
         return mockedNetwork
+    }
+
+    private fun buildNetworkAttributes(context: Context): NetworkAttributes {
+        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService())
+        val capabilities = NetworkCapabilities()
+        val network = mock(Network::class.java)
+        networkAttributes.onCapabilitiesChanged(network, capabilities)
+        return networkAttributes
     }
 }

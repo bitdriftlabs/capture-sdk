@@ -62,7 +62,11 @@ internal class NetworkAttributes(
             NETWORK_TYPE_UMTS to "umts",
             NETWORK_TYPE_UNKNOWN to "unknown",
         )
+
     private val currentNetworkType: AtomicReference<String> = AtomicReference("unknown")
+    private val currentCarrier: AtomicReference<String> = AtomicReference("unknown")
+    private val currentRadioType: AtomicReference<String> = AtomicReference("unknown")
+
     private val telephonyManager by lazy {
         context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
     }
@@ -70,18 +74,36 @@ internal class NetworkAttributes(
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     }
 
+    private var cachedCarrier: String? = null
+    private var cachedRadioType: String? = null
+    private var cachedNetworkType: String? = null
+
+    private val cachedFields: HashMap<String, String> by lazy { HashMap(DEFAULT_FIELDS_SIZE) }
+
     init {
         executor.execute {
             monitorNetworkType()
         }
     }
 
-    override fun invoke(): Fields =
-        mapOf(
-            "carrier" to telephonyManager.networkOperatorName,
-            "network_type" to currentNetworkType.get(),
-            "radio_type" to permissiveOperation({ radioType() }, READ_PHONE_STATE),
-        )
+    override fun invoke(): Fields {
+        cachedCarrier = updateField(KEY_CARRIER, currentCarrier.get(), cachedCarrier)
+        cachedNetworkType = updateField(KEY_NETWORK_TYPE, currentNetworkType.get(), cachedNetworkType)
+        cachedRadioType = updateField(KEY_RADIO_TYPE, currentRadioType.get(), cachedRadioType)
+        return cachedFields
+    }
+
+    private fun updateField(
+        key: String,
+        newValue: String,
+        oldValue: String?,
+    ): String? =
+        if (oldValue != newValue) {
+            cachedFields[key] = newValue
+            newValue
+        } else {
+            oldValue
+        }
 
     @SuppressLint("NewApi")
     @Suppress("SwallowedException")
@@ -107,6 +129,7 @@ internal class NetworkAttributes(
         networkCapabilities: NetworkCapabilities,
     ) {
         updateNetworkType(networkCapabilities)
+        updateTelephonyAttributes()
     }
 
     private fun updateNetworkType(networkCapabilities: NetworkCapabilities?) {
@@ -120,6 +143,19 @@ internal class NetworkAttributes(
                 }
             } ?: "unknown",
         )
+    }
+
+    private fun updateTelephonyAttributes() {
+        val newCarrier = telephonyManager.networkOperatorName ?: "unknown"
+        val newRadioType = permissiveOperation({ radioType() }, READ_PHONE_STATE)
+
+        if (currentCarrier.get() != newCarrier) {
+            currentCarrier.set(newCarrier)
+        }
+
+        if (currentRadioType.get() != newRadioType) {
+            currentRadioType.set(newRadioType)
+        }
     }
 
     private fun radioType(): String {
@@ -138,5 +174,12 @@ internal class NetworkAttributes(
         } else {
             func()
         }
+    }
+
+    private companion object {
+        const val DEFAULT_FIELDS_SIZE = 3
+        const val KEY_CARRIER = "carrier"
+        const val KEY_NETWORK_TYPE = "network_type"
+        const val KEY_RADIO_TYPE = "radio_type"
     }
 }
