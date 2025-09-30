@@ -106,6 +106,11 @@ public protocol Logging {
     ///                         main queue.
     func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void)
 
+    /// Starts debug operations if needed. This is typically called once during app launch and will
+    /// start debug operations (such as creating a device code) if the heuristics indicate that the app is
+    /// running in a debug-like environment.
+    func startDebugOperationsAsNeeded()
+
     // MARK: - Predefined logs
 
     /// Writes an app launch TTI log event. This event should be logged only once per Logger configuration.
@@ -359,4 +364,11 @@ extension Logging {
     ) {
         self.log(response, file: file, line: line, function: function)
     }
+
+    /// Starts debug operations if needed. This is typically called once during app launch and will
+    /// start debug operations (such as creating a device code) if the heuristics indicate that the app is
+    /// running in a debug-like environment.
+    ///
+    /// This implementation does nothing and can be overridden by conforming types.
+    public func startDebugOperationsAsNeeded() {}
 }

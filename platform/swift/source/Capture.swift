@@ -83,7 +83,7 @@ extension Logger {
     ) -> LoggerIntegrator?
     {
         return self.createOnce {
-            return Logger(
+            let logger = Logger(
                 withAPIKey: apiKey,
                 apiURL: apiURL,
                 configuration: configuration,
@@ -92,6 +92,9 @@ extension Logger {
                 fieldProviders: fieldProviders,
                 loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
             )
+
+            logger?.startDebugOperationsAsNeeded()
+            return logger
         }
     }
 
