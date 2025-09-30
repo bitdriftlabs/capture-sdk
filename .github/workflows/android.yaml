@@ -308,13 +308,25 @@ jobs:
             } else {
               body += `Current sizes: APK ${apkCurrent} KB, SO ${soCurrent} KB (No baselines available for comparison).`;
             }
-
-            github.rest.issues.createComment({
+            const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.pull_request.number,
-              body: body
             });
+
+            const foundComment = comments.data.find((x) => x.user.login === 'github-actions[bot]');
+            const comment = {
+              issue_number: context.payload.pull_request.number,
+              comment_id: foundComment?.id,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body,
+            };
+            if (foundComment?.id) {
+              await github.rest.issues.updateComment(comment);
+            } else {
+              await github.rest.issues.createComment(comment);
+            }
 
   gradle_tests:
     # Requires a "larger runner", for nested virtualization support
