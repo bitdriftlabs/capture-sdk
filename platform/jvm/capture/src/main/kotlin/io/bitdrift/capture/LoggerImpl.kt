@@ -610,8 +610,9 @@ internal class LoggerImpl(
     }
 
     private fun startDebugOperationsAsNeeded(context: Context) {
-        if (!BuildTypeChecker.isDebuggable(context))
+        if (!BuildTypeChecker.isDebuggable(context)) {
             return
+        }
 
         createTemporaryDeviceCode { result ->
             if (result is CaptureResult.Success) {
