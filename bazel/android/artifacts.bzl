@@ -315,7 +315,7 @@ def _manifest(package_name):
     package="{}" >
 
     <uses-sdk
-            android:minSdkVersion="24"
+            android:minSdkVersion="23"
             android:targetSdkVersion="35"/>
 </manifest>
 """.format(package_name)
