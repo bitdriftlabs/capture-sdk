@@ -92,6 +92,7 @@ build:force-xcode-version --ios_simulator_device="iPhone 15"
 build:force-xcode-version --ios_simulator_version=18.2
 build:force-xcode-version --xcode_version=16.2
 build:release-ios --config=release-common --config=force-xcode-version
+build:release-ios --feature=swift.full_lto
 
 # Allows disabling the cache for cases where the cache might be slow, e.g. slow networks.
 build:nocache --remote_accept_cached=false
