@@ -141,7 +141,7 @@ class NetworkAttributesTest {
     }
 
     @Test
-    fun invoke_whenLte_shouldMatchType() {
+    fun invoke_whenLte_shouldSetLteRadioType() {
         grantPermissions(Manifest.permission.READ_PHONE_STATE)
 
         val result =
@@ -153,7 +153,7 @@ class NetworkAttributesTest {
     }
 
     @Test
-    fun invoke_whenGsm_shouldMatchType() {
+    fun invoke_whenGsm_shouldSetGsmRadioType() {
         grantPermissions(Manifest.permission.READ_PHONE_STATE)
 
         val result =
@@ -162,6 +162,18 @@ class NetworkAttributesTest {
             )
 
         assertThat(result).containsEntry("radio_type", "gsm")
+    }
+
+    @Test
+    fun invoke_whenOnLost_shouldSetUnknown() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService())
+        val network = mock(Network::class.java)
+        networkAttributes.onLost(network)
+
+        val result = networkAttributes.invoke()
+
+        assertThat(result).containsEntry("network_type", "unknown")
     }
 
     private fun invokeWithNetworkCapabilities(

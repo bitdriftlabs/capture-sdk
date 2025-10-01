@@ -59,7 +59,7 @@ internal class NetworkAttributes(
             NETWORK_TYPE_NR to "nr",
             NETWORK_TYPE_TD_SCDMA to "tdScdma",
             NETWORK_TYPE_UMTS to "umts",
-            NETWORK_TYPE_UNKNOWN to "unknown",
+            NETWORK_TYPE_UNKNOWN to UNKNOWN_FIELD_VALUE,
         )
 
     private val telephonyManager by lazy {
@@ -104,6 +104,10 @@ internal class NetworkAttributes(
         updateTelephonyAttributes()
     }
 
+    override fun onLost(network: Network) {
+        updateFields(networkType = UNKNOWN_FIELD_VALUE)
+    }
+
     private fun updateNetworkType(networkCapabilities: NetworkCapabilities?) {
         val type =
             networkCapabilities?.run {
@@ -113,13 +117,13 @@ internal class NetworkAttributes(
                     hasTransport(TRANSPORT_ETHERNET) -> "ethernet"
                     else -> "other"
                 }
-            } ?: "unknown"
+            } ?: UNKNOWN_FIELD_VALUE
 
         updateFields(networkType = type)
     }
 
     private fun updateTelephonyAttributes() {
-        val carrier = telephonyManager.networkOperatorName ?: "unknown"
+        val carrier = telephonyManager.networkOperatorName ?: UNKNOWN_FIELD_VALUE
         val radioType = permissiveOperation({ radioType() }, READ_PHONE_STATE)
 
         updateFields(carrier = carrier, radioType = radioType)
@@ -140,7 +144,7 @@ internal class NetworkAttributes(
 
     private fun radioType(): String {
         @Suppress("DEPRECATION")
-        return radioTypeNameMap[telephonyManager.networkType] ?: "unknown"
+        return radioTypeNameMap[telephonyManager.networkType] ?: UNKNOWN_FIELD_VALUE
     }
 
     private fun permissiveOperation(
@@ -160,5 +164,6 @@ internal class NetworkAttributes(
         private const val KEY_CARRIER = "carrier"
         private const val KEY_NETWORK_TYPE = "network_type"
         private const val KEY_RADIO_TYPE = "radio_type"
+        private const val UNKNOWN_FIELD_VALUE = "unknown"
     }
 }
