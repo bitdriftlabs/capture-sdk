@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">Bitdrift Gradle Test App</string>
+    <string name="action_settings">Configuración</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="first_fragment_label">Primer Fragment</string>
+    <string name="second_fragment_label">Segundo Fragment</string>
+    <string name="web_view_fragment_label">WebView Fragment</string>
+    <string name="config_fragment_label">Fragment de Configuración</string>
+    <string name="navigate_config">Navegar a Configuración</string>
+    <string name="okhttp">OkHttp Request</string>
+    <string name="graphql">Apollo GraphQL Request</string>
+    <string name="compat_multiline_txt">Texto en AppCompatTextView\nSegunda Línea en la misma línea de Texto</string>
+    <string name="log_msg">Mensaje de Registro</string>
+    <string name="app_exit">Forzar AppExit</string>
+    <string name="navigate_second">Navegar a Pantalla Compose</string>
+    <string name="navigate_to_web_view">Abrir WebView</string>
+    <string name="previous">Volver Atrás</string>
+    <string name="log_level_label">Log Level</string>
+    <string name="hello_second_fragment">Hola segundo Fragment. Arg: %1$s</string>
+    <string name="switch_app_theme">Cambiar Theme de la Aplicación</string>
+    <string name="copy_session_url">Copiar timeline URL</string>
+    <string name="start_new_session">Iniciar Nueva Sesión</string>
+    <string name="generate_temp_device_code">Generar Código Temporal</string>
+    <string name="no_code_generated">Ningún Código Generado</string>
+</resources>

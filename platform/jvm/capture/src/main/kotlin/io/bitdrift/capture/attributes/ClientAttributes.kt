@@ -8,9 +8,12 @@
 package io.bitdrift.capture.attributes
 
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Build
+import androidx.core.os.ConfigurationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import io.bitdrift.capture.ErrorHandler
@@ -23,6 +26,12 @@ internal class ClientAttributes(
     private val processLifecycleOwner: LifecycleOwner,
 ) : IClientAttributes,
     FieldProvider {
+    private val resources = context.resources
+    private var cachedForegroundState: ForegroundState? = null
+    private var cachedConfiguration: Configuration = Configuration(resources.configuration)
+
+    private var cachedLocale: String? = null
+
     override val appId = context.packageName ?: UNKNOWN_FIELD_VALUE
 
     override val appVersion by lazy {
@@ -40,7 +49,7 @@ internal class ClientAttributes(
 
     override val supportedAbis: List<String> by lazy { Build.SUPPORTED_ABIS.toList() }
 
-    override val architecture = supportedAbis.firstOrNull() ?: "unknown"
+    override val architecture = supportedAbis.firstOrNull() ?: UNKNOWN_FIELD_VALUE
 
     override val osVersion: String by lazy { Build.VERSION.RELEASE }
 
@@ -49,6 +58,8 @@ internal class ClientAttributes(
     override val osBrand: String = Build.BRAND
 
     override val model: String = Build.MODEL
+
+    override val locale: String by lazy { getCurrentLocale() }
 
     override val manufacturer: String = Build.MANUFACTURER
 
@@ -61,14 +72,16 @@ internal class ClientAttributes(
         }
     }
 
-    private val constantAttributesMap by lazy {
-        mapOf(
+    private val cachedAttributes by lazy {
+        mutableMapOf(
             // The package name which identifies the running app (e.g. me.foobar.android)
             "app_id" to appId,
             // Operating system. Always Android for this code path.
             "os" to "Android",
             // The operating system version (e.g. 12.1)
             "os_version" to osVersion,
+            // Device model name
+            "model" to model,
             // The SDK level (e.g. 35)
             "_os_api_level" to osApiLevel.toString(),
             // The version of this package, as specified by the manifest's `versionName` attribute
@@ -82,15 +95,35 @@ internal class ClientAttributes(
         )
     }
 
-    private val foregroundAttributes: Fields by lazy { constantAttributesMap + (FOREGROUND_FIELD_KEY to "1") }
-    private val backgroundAttributes: Fields by lazy { constantAttributesMap + (FOREGROUND_FIELD_KEY to "0") }
+    override fun invoke(): Fields {
+        updateForegroundState()
+        updateLocaleIfNeeded()
+        return cachedAttributes
+    }
 
-    override fun invoke(): Fields =
-        if (isForeground()) {
-            foregroundAttributes
-        } else {
-            backgroundAttributes
+    private fun updateForegroundState() {
+        val currentState = if (isForeground()) ForegroundState.Foreground else ForegroundState.Background
+
+        if (cachedForegroundState != currentState) {
+            cachedForegroundState = currentState
+            cachedAttributes["foreground"] = currentState.value
         }
+    }
+
+    private fun updateLocaleIfNeeded() {
+        val currentConfig = resources.configuration
+        val configDiff = currentConfig.diff(cachedConfiguration)
+
+        if (cachedLocale == null || (configDiff and ActivityInfo.CONFIG_LOCALE == ActivityInfo.CONFIG_LOCALE)) {
+            val updatedLocale = getCurrentLocale()
+
+            if (cachedLocale != updatedLocale) {
+                cachedLocale = updatedLocale
+                cachedAttributes["_locale"] = updatedLocale
+            }
+            cachedConfiguration = Configuration(currentConfig)
+        }
+    }
 
     private fun isForeground(): Boolean {
         // refer to lifecycle states https://developer.android.com/topic/libraries/architecture/lifecycle#lc
@@ -113,6 +146,18 @@ internal class ClientAttributes(
         } else {
             getPackageInfo(packageName, flags)
         }
+
+    /**
+     * Gets the current locale string.
+     */
+    private fun getCurrentLocale(): String {
+        val locales = ConfigurationCompat.getLocales(resources.configuration)
+        return if (!locales.isEmpty) {
+            locales[0].toString()
+        } else {
+            UNKNOWN_FIELD_VALUE
+        }
+    }
 
     /**
      * Returns the installation source (e.g. `com.android.vending` will be shown when
@@ -140,6 +185,18 @@ internal class ClientAttributes(
             UNKNOWN_FIELD_VALUE
         }
 
+    private sealed interface ForegroundState {
+        val value: String
+
+        object Foreground : ForegroundState {
+            override val value: String = "1"
+        }
+
+        object Background : ForegroundState {
+            override val value: String = "0"
+        }
+    }
+
     /**
      * Holds constants for Client attributes
      */
@@ -151,7 +208,5 @@ internal class ClientAttributes(
         private const val UNKNOWN_FIELD_VALUE = "unknown"
 
         private const val DEBUG_BUILD_INSTALLATION_MESSAGE = "Debug build installation"
-
-        private const val FOREGROUND_FIELD_KEY = "foreground"
     }
 }

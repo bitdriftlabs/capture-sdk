@@ -16,7 +16,6 @@ import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.bitdrift.capture.attributes.ClientAttributes
-import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeFeature
@@ -126,7 +125,6 @@ internal class LoggerImpl(
                 .build()
 
         val networkAttributes = NetworkAttributes(context)
-        val deviceAttributes = DeviceAttributes(context)
 
         metadataProvider =
             MetadataProvider(
@@ -137,7 +135,6 @@ internal class LoggerImpl(
                     listOf(
                         clientAttributes,
                         networkAttributes,
-                        deviceAttributes,
                     ),
                 errorHandler = errorHandler,
                 customFieldProviders = fieldProviders,
@@ -200,7 +197,7 @@ internal class LoggerImpl(
                 eventsListenerTarget,
                 clientAttributes.appId,
                 clientAttributes.appVersion,
-                deviceAttributes.model(),
+                clientAttributes.model,
                 network,
                 preferences,
                 localErrorReporter,
