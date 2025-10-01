@@ -48,4 +48,7 @@ interface IClientAttributes {
 
     /** Device model name */
     val model: String
+
+    /** Current Locale (e.g. en-US) */
+    val locale: String
 }

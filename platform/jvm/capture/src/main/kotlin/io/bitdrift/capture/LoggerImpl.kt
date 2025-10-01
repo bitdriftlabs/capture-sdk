@@ -12,10 +12,10 @@ import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
 import android.system.Os
+import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.bitdrift.capture.attributes.ClientAttributes
-import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeFeature
@@ -125,7 +125,6 @@ internal class LoggerImpl(
                 .build()
 
         val networkAttributes = NetworkAttributes(context)
-        val deviceAttributes = DeviceAttributes(context)
 
         metadataProvider =
             MetadataProvider(
@@ -136,7 +135,6 @@ internal class LoggerImpl(
                     listOf(
                         clientAttributes,
                         networkAttributes,
-                        deviceAttributes,
                     ),
                 errorHandler = errorHandler,
                 customFieldProviders = fieldProviders,
@@ -199,7 +197,7 @@ internal class LoggerImpl(
                 eventsListenerTarget,
                 clientAttributes.appId,
                 clientAttributes.appVersion,
-                deviceAttributes.model(),
+                clientAttributes.model,
                 network,
                 preferences,
                 localErrorReporter,
@@ -272,6 +270,8 @@ internal class LoggerImpl(
             clientAttributes = clientAttributes,
             completedReportsProcessor = this,
         )
+
+        startDebugOperationsAsNeeded(context)
     }
 
     override fun processCrashReports() {
@@ -602,6 +602,18 @@ internal class LoggerImpl(
                 runCatching {
                     Os.setenv("RUST_LOG", internalLogLevel, true)
                 }
+            }
+        }
+    }
+
+    private fun startDebugOperationsAsNeeded(context: Context) {
+        if (!BuildTypeChecker.isDebuggable(context)) {
+            return
+        }
+
+        createTemporaryDeviceCode { result ->
+            if (result is CaptureResult.Success) {
+                Log.i("capture", "Temporary device code: ${result.value}")
             }
         }
     }

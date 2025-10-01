@@ -48,10 +48,10 @@ use jni::signature::{Primitive, ReturnType};
 use jni::sys::{jboolean, jbyteArray, jdouble, jint, jlong, jobject, jvalue, JNI_ERR, JNI_TRUE};
 use jni::{JNIEnv, JavaVM};
 use platform_shared::metadata::Mobile;
-use platform_shared::{LoggerHolder, LoggerId};
+use platform_shared::{read_global_state_snapshot, LoggerHolder, LoggerId};
 use std::borrow::{Borrow, Cow};
 use std::collections::HashMap;
-use std::ffi::{c_void, CString};
+use std::ffi::c_void;
 use std::ops::DerefMut;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -616,6 +616,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
 
       let preferences = new_global!(PreferencesHandle, &mut env, preferences)?;
       let store = Arc::new(bd_key_value::Store::new(Box::new(preferences)));
+      let previous_run_global_state = read_global_state_snapshot(store.clone());
 
       let session_strategy = Arc::new(new_global!(
         SessionStrategyConfigurationHandle,
@@ -693,17 +694,19 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         LoggerHolder::new(
           logger,
           async move {
-            executor.with_attached(|_| {
-              // When we first attach the runtime thread the JVM will rename the thread since
-              // the jni crate won't let us pass a thread name through to the attach function.
-              // To work around this we attach and then immediately rename the thread again.
-              set_thread_name("bd-tokio");
-
-              Ok::<(), anyhow::Error>(())
-            })?;
+            handle_unexpected(
+              executor.with_attached(|env| {
+                // When we first attach the runtime thread the JVM will rename the thread since
+                // the jni crate won't let us pass a thread name through to the attach function.
+                // To work around this we attach and then immediately rename the thread again.
+                set_thread_name(env, "bd-tokio")
+              }),
+              "jni set thread name",
+            );
             future.await
           }
           .boxed(),
+          previous_run_global_state,
         )
       })?;
 
@@ -714,33 +717,23 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   )
 }
 
-// On Android pthread_setname_np in the libc crate takes two arguments so we need to use a different
-// implementation for Android and other platforms.
-#[cfg(any(target_os = "android", target_os = "linux"))]
-fn set_thread_name(name: &str) {
-  debug_assert!(
-    name.len() <= 15,
-    "Thread name must be at most 15 characters long, got: {name}"
-  );
-  unsafe {
-    let thread = libc::pthread_self();
-    if let Ok(name) = CString::new(name) {
-      libc::pthread_setname_np(thread, name.as_ptr());
-    }
-  }
-}
+fn set_thread_name(env: &mut JNIEnv<'_>, name: &str) -> anyhow::Result<()> {
+  let thread = env.call_static_method(
+    "java/lang/Thread",
+    "currentThread",
+    "()Ljava/lang/Thread;",
+    &[],
+  )?;
 
-#[cfg(not(any(target_os = "android", target_os = "linux")))]
-fn set_thread_name(name: &str) {
-  debug_assert!(
-    name.len() <= 15,
-    "Thread name must be at most 15 characters long, got: {name}"
-  );
-  if let Ok(name) = CString::new(name) {
-    unsafe {
-      libc::pthread_setname_np(name.as_ptr());
-    }
-  }
+  let name = env.new_string(name)?;
+  env.call_method(
+    thread.l()?,
+    "setName",
+    "(Ljava/lang/String;)V",
+    &[JValueGen::Object(&name)],
+  )?;
+
+  Ok(())
 }
 
 #[no_mangle]
@@ -945,6 +938,20 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
       };
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let global_state_fields = logger
+        .previous_run_global_state
+        .iter()
+        .map(|(key, value)| {
+          (
+            key.clone(),
+            bd_logger::AnnotatedLogField::new_ootb(value.clone()),
+          )
+        })
+        .collect();
+      let fields = [global_state_fields, fields]
+        .into_iter()
+        .flatten()
+        .collect();
       logger.log(
         log_level as u32,
         LogType(log_type as u32),

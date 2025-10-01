@@ -37,7 +37,6 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.threading.CaptureDispatchers
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.atomic.AtomicReference
 
 @SuppressLint("MissingPermission")
 internal class NetworkAttributes(
@@ -60,9 +59,9 @@ internal class NetworkAttributes(
             NETWORK_TYPE_NR to "nr",
             NETWORK_TYPE_TD_SCDMA to "tdScdma",
             NETWORK_TYPE_UMTS to "umts",
-            NETWORK_TYPE_UNKNOWN to "unknown",
+            NETWORK_TYPE_UNKNOWN to UNKNOWN_FIELD_VALUE,
         )
-    private val currentNetworkType: AtomicReference<String> = AtomicReference("unknown")
+
     private val telephonyManager by lazy {
         context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
     }
@@ -70,24 +69,20 @@ internal class NetworkAttributes(
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     }
 
+    @Volatile
+    private var currentFields: Map<String, String> = emptyMap()
+
     init {
         executor.execute {
             monitorNetworkType()
         }
     }
 
-    override fun invoke(): Fields =
-        mapOf(
-            "carrier" to telephonyManager.networkOperatorName,
-            "network_type" to currentNetworkType.get(),
-            "radio_type" to permissiveOperation({ radioType() }, READ_PHONE_STATE),
-        )
+    override fun invoke(): Fields = currentFields
 
     @SuppressLint("NewApi")
     @Suppress("SwallowedException")
     private fun monitorNetworkType() {
-        // TODO(snowp): Can we end up with this permission later on? Consider responding to permission
-        //  changes and adding in the callback when available.
         if (ContextCompat.checkSelfPermission(context, ACCESS_NETWORK_STATE) == PackageManager.PERMISSION_GRANTED) {
             try {
                 connectivityManager.activeNetwork?.let { network ->
@@ -96,7 +91,6 @@ internal class NetworkAttributes(
                 connectivityManager.registerDefaultNetworkCallback(this)
             } catch (e: Throwable) {
                 // Issue with some versions of Android: https://issuetracker.google.com/issues/175055271
-                // can sometime throw an exception: "package does not belong to 10006"
                 updateNetworkType(NetworkCapabilities(null))
             }
         }
@@ -107,10 +101,15 @@ internal class NetworkAttributes(
         networkCapabilities: NetworkCapabilities,
     ) {
         updateNetworkType(networkCapabilities)
+        updateTelephonyAttributes()
+    }
+
+    override fun onLost(network: Network) {
+        updateFields(networkType = UNKNOWN_FIELD_VALUE)
     }
 
     private fun updateNetworkType(networkCapabilities: NetworkCapabilities?) {
-        currentNetworkType.set(
+        val type =
             networkCapabilities?.run {
                 when {
                     hasTransport(TRANSPORT_WIFI) -> "wlan"
@@ -118,13 +117,34 @@ internal class NetworkAttributes(
                     hasTransport(TRANSPORT_ETHERNET) -> "ethernet"
                     else -> "other"
                 }
-            } ?: "unknown",
-        )
+            } ?: UNKNOWN_FIELD_VALUE
+
+        updateFields(networkType = type)
+    }
+
+    private fun updateTelephonyAttributes() {
+        val carrier = telephonyManager.networkOperatorName ?: UNKNOWN_FIELD_VALUE
+        val radioType = permissiveOperation({ radioType() }, READ_PHONE_STATE)
+
+        updateFields(carrier = carrier, radioType = radioType)
+    }
+
+    private fun updateFields(
+        carrier: String? = null,
+        networkType: String? = null,
+        radioType: String? = null,
+    ) {
+        currentFields =
+            currentFields.toMutableMap().apply {
+                carrier?.let { this[KEY_CARRIER] = it }
+                networkType?.let { this[KEY_NETWORK_TYPE] = it }
+                radioType?.let { this[KEY_RADIO_TYPE] = it }
+            }
     }
 
     private fun radioType(): String {
         @Suppress("DEPRECATION")
-        return radioTypeNameMap[telephonyManager.networkType] ?: "unknown"
+        return radioTypeNameMap[telephonyManager.networkType] ?: UNKNOWN_FIELD_VALUE
     }
 
     private fun permissiveOperation(
@@ -138,5 +158,12 @@ internal class NetworkAttributes(
         } else {
             func()
         }
+    }
+
+    private companion object {
+        private const val KEY_CARRIER = "carrier"
+        private const val KEY_NETWORK_TYPE = "network_type"
+        private const val KEY_RADIO_TYPE = "radio_type"
+        private const val UNKNOWN_FIELD_VALUE = "unknown"
     }
 }

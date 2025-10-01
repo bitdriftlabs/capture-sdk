@@ -533,7 +533,12 @@ object Capture {
         try {
             val startSdkTimer = TimeSource.Monotonic.markNow()
 
-            val appContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
+            if (!ContextHolder.isInitialized && context != null) {
+                // Make sure the global context is set if no Initializer was used
+                ContextHolder.APP_CONTEXT = context.applicationContext
+            }
+
+            val appContext = ContextHolder.APP_CONTEXT
 
             val nativeLoadDuration =
                 measureTime {
