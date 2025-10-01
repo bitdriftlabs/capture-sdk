@@ -73,10 +73,10 @@ jobs:
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
-      - run: ./bazelw build --config ios-hello-world --config ci //examples/swift/hello_world:ios_app
+      - run: ./bazelw build --config ci --config release-ios //examples/swift/hello_world:ios_app
         name: "Build app"
       # TODO(snowp): Add some kind of assertion that the app does that it's supposed to
-      - run: ./bazelw run --config ios-hello-world --config ci //examples/swift/hello_world:ios_app &> /tmp/envoy.log &
+      - run: ./bazelw run --config ci --config release-ios //examples/swift/hello_world:ios_app &> /tmp/envoy.log &
         name: "Run app"
   macos_tsan:
     # Note: tsan has been disabled because it's too flaky.
