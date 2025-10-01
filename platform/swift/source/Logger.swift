@@ -589,6 +589,14 @@ extension Logger: Logging {
             parentSpanID: parentSpanID
         )
     }
+
+    public func startDebugOperationsAsNeeded() {
+        if !DebugHeuristics.isDebugLikeEnvironment {
+            return
+        }
+
+        self.deviceCodeController.createCodeOnDebugConsole(for: self.deviceID)
+    }
 }
 
 // MARK: - Features
