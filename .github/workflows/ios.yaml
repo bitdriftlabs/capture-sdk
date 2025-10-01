@@ -29,7 +29,7 @@ jobs:
       - name: Check for workflow file changes
         id: workflow_check
         run: |
-          ./ci/files_changed.sh .github/workflows/ios.yaml
+          ./ci/files_changed.sh .github/workflows/ios.yaml MODULE.bazel MODULE.bazel.lock
         continue-on-error: true
       - name: Determine if tests should run
         id: check_changes_separate
