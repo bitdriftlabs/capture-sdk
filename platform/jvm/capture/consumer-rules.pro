@@ -52,6 +52,10 @@
    public <methods>;
 }
 
+-keep, includedescriptorclasses class io.bitdrift.capture.attributes.IClientAttributes {
+   public <methods>;
+}
+
 -keep, includedescriptorclasses class io.bitdrift.capture.IEventsListenerTarget {
    public <methods>;
 }
