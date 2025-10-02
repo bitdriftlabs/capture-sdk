@@ -50,7 +50,7 @@ class HelloWorldApp : Application() {
         Log.v("HelloWorldApp", "Android Bitdrift app launched with session url=${Logger.sessionUrl}")
 
         Handler(Looper.getMainLooper()).postDelayed({
-            Log.i("HelloWorldApp", "Capture Logger has been running for $kLoggerRunningDurationThreshold ms")
+            Log.i("HelloWorldApp", getCaptureSdkInitializedMessage())
         }, kLoggerRunningDurationThreshold)
     }
 
@@ -60,5 +60,18 @@ class HelloWorldApp : Application() {
             Log.w("HelloWorldApp", "Uncaught exception in thread ${thread.name}", throwable)
             ogHandler?.uncaughtException(thread, throwable)
         }
+    }
+
+    private fun getCaptureSdkInitializedMessage():String{
+        return if (Logger.sessionUrl != null) {
+           SDK_STARTED_MESSAGE
+        } else {
+           SDK_NOT_STARTED_MESSAGE
+        }
+    }
+
+    private companion object {
+       private const val SDK_STARTED_MESSAGE = "Capture SDK properly initialized"
+       private const val SDK_NOT_STARTED_MESSAGE = "Capture SDK not started yet"
     }
 }
