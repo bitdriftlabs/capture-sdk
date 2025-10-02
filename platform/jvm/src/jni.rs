@@ -193,7 +193,7 @@ static STACK_TRACE_PROVIDER_INVOKE: OnceLock<CachedMethod> = OnceLock::new();
 pub(crate) fn initialize_method_handle<
   'local,
   'other_local,
-  T: Desc<'local, JClass<'other_local>> + std::fmt::Debug + Copy,
+  T: Desc<'local, JClass<'other_local>>,
 >(
   env: &mut JNIEnv<'local>,
   class: T,
@@ -204,7 +204,6 @@ pub(crate) fn initialize_method_handle<
   let method_id = CachedMethod::new(env, class, method_name, signature);
 
   let Ok(cached_id) = method_id else {
-    log::error!("failed to resolve {class:?}::{method_name} with signature {signature}");
     check_exception(env);
     bail!("failed to resolve method");
   };
