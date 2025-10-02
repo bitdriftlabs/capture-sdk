@@ -279,13 +279,15 @@ object Capture {
         }
 
         /**
+         * NOTE: This is not yet ready for production.
+         *
          * Sets a feature flag with an optional variant.
          *
          * @param flag the name of the flag to set
          * @param variant an optional variant
          */
         @JvmStatic
-        fun setFeatureFlag(
+        internal fun setFeatureFlag(
             flag: String,
             variant: String? = null,
         ) {
@@ -293,12 +295,14 @@ object Capture {
         }
 
         /**
+         * NOTE: This is not yet ready for production.
+         *
          * Removes a feature flag.
          *
          * @param flag the name of the flag to remove
          */
         @JvmStatic
-        fun removeFeatureFlag(flag: String) {
+        internal fun removeFeatureFlag(flag: String) {
             logger()?.removeFeatureFlag(flag)
         }
 
