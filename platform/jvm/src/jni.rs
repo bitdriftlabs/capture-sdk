@@ -337,7 +337,10 @@ fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
 
 #[no_mangle]
 pub extern "system" fn JNI_OnLoad(vm: JavaVM, _: *mut c_void) -> jint {
-  jni_load_inner(&vm).unwrap_or(JNI_ERR)
+  initialize_logging();
+  jni_load_inner(&vm)
+    .inspect_err(|e| log::error!("JNI_OnLoad failed: {e}"))
+    .unwrap_or(JNI_ERR)
 }
 
 //
@@ -600,8 +603,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   error_reporter: JObject<'_>,
   start_in_sleep_mode: jboolean,
 ) -> jlong {
-  initialize_logging();
-
   with_handle_unexpected_or(
     || {
       let sdk_directory = PathBuf::from(
