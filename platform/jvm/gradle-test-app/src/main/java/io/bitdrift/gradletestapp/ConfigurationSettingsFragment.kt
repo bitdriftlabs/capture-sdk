@@ -65,6 +65,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
 
         backendCategory.addPreference(buildSessionStrategyList(context))
         backendCategory.addPreference(buildSwitchPreference(context))
+        backendCategory.addPreference(buildDeferredStartSwitch(context))
 
         screen.addPreference(restartPreference)
 
@@ -96,6 +97,20 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         return switchPreference
     }
 
+    private fun buildDeferredStartSwitch(context: Context): SwitchPreference {
+        val switchPreference = SwitchPreference(context)
+        switchPreference.key = DEFERRED_START_PREFS_KEY
+        switchPreference.title = DEFERRED_START_TITLE
+        switchPreference.summary = SELECTION_SUMMARY
+        switchPreference.setDefaultValue(false)
+        switchPreference.setOnPreferenceChangeListener { _, newValue ->
+            val summaryText = if (newValue == true) "Enabled" else "Disabled"
+            switchPreference.summary = "$summaryText - $SELECTION_SUMMARY"
+            true
+        }
+        return switchPreference
+    }
+
     private fun showApiKeysDialog(context: Context) {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
         SettingsApiKeysDialogFragment(sharedPreferences).show(parentFragmentManager, "")
@@ -111,9 +126,11 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     companion object {
         const val SESSION_STRATEGY_PREFS_KEY = "sessionStrategy"
         const val FATAL_ISSUE_ENABLED_PREFS_KEY = "fatalIssueEnabled"
+        const val DEFERRED_START_PREFS_KEY = "deferredStart"
         private const val SELECTION_SUMMARY = "App needs to be restarted for changes to take effect"
         private const val SESSION_STRATEGY_TITLE = "Session Strategy"
         private const val FATAL_ISSUE_TITLE = "Fatal Issue Reporter"
+        private const val DEFERRED_START_TITLE = "Deferred SDK Start"
 
         private val SESSION_STRATEGY_ENTRIES =
             arrayOf(

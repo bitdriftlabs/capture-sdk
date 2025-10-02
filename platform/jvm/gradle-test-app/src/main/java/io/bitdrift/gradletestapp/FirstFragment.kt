@@ -11,6 +11,7 @@ import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -18,6 +19,8 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Spinner
 import android.widget.Toast
+import androidx.preference.PreferenceManager
+import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.DEFERRED_START_PREFS_KEY
 //noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.MaterialTheme
 //noinspection UsingMaterialAndMaterial3Libraries
@@ -89,6 +92,8 @@ class FirstFragment : Fragment() {
     private lateinit var clipboardManager: ClipboardManager
     private lateinit var okHttpClient: OkHttpClient
     private lateinit var apolloClient: ApolloClient
+    private lateinit var sharedPreferences: SharedPreferences
+
     private var firstFragmentToCopySessionSpan: Span? = null
 
     override fun onCreateView(
@@ -126,6 +131,8 @@ class FirstFragment : Fragment() {
         savedInstanceState: Bundle?,
     ) {
         super.onViewCreated(view, savedInstanceState)
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(view.context)
+
         Logger.logScreenView("first_fragment")
         binding.btnNavigateConfiguration.setOnClickListener {
             Logger.logScreenView("config_fragment")
@@ -148,10 +155,16 @@ class FirstFragment : Fragment() {
             findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
         }
 
-        binding.textviewFirst.text = Logger.sessionId
-
         setSpinnerAdapter(binding.spnAppExitOptions, AppExitReason.entries)
         setSpinnerAdapter(binding.logLevelItems, LogLevel.entries.map { it.name }.toList())
+
+        if (sharedPreferences.getBoolean(DEFERRED_START_PREFS_KEY, false)) {
+            binding.btnStartSdk.setOnClickListener(this::startSdkManually)
+            binding.btnStartSdk.visibility = View.VISIBLE
+            binding.textviewSdkStatus.visibility = View.VISIBLE
+        } else {
+            binding.textviewFirst.text = Logger.sessionId
+        }
 
         okHttpClient =
             OkHttpClient
@@ -324,6 +337,13 @@ class FirstFragment : Fragment() {
                 android.R.layout.simple_spinner_dropdown_item,
                 items,
             )
+    }
+
+    private fun startSdkManually(view: View) {
+        BitdriftInit.initFromPreferences(sharedPreferences, view.context)
+        binding.btnStartSdk.visibility = View.GONE
+        binding.textviewSdkStatus.visibility = View.GONE
+        binding.textviewFirst.text = Logger.sessionId
     }
 
     enum class AppExitReason {

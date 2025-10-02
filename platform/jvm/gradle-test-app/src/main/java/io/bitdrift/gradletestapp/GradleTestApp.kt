@@ -47,27 +47,20 @@ import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
-import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import com.bugsnag.android.Bugsnag
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
-import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
-import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.timber.CaptureTree
-import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.FATAL_ISSUE_ENABLED_PREFS_KEY
-import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
-import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED
-import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BITDRIFT_API_KEY
+import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.DEFERRED_START_PREFS_KEY
 import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BUG_SNAG_SDK_API_KEY
 import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.SENTRY_SDK_DSN_KEY
 import io.sentry.android.core.SentryAndroid
 import io.sentry.android.core.SentryAndroidOptions
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import papa.AppLaunchType
 import papa.PapaEvent
 import papa.PapaEventListener
@@ -87,6 +80,7 @@ class GradleTestApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         Timber.i("Hello World!")
         setupStrictMode()
         initLogging()
@@ -96,46 +90,18 @@ class GradleTestApp : Application() {
     }
 
     private fun initLogging() {
-        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
-        val stringApiUrl = sharedPreferences.getString("apiUrl", null)
-        val apiUrl = stringApiUrl?.toHttpUrlOrNull()
-        if (apiUrl == null) {
-            Log.e("GradleTestApp", "Failed to initialize bitdrift logger due to invalid API URL: $stringApiUrl")
+        if (sharedPreferences.getBoolean(DEFERRED_START_PREFS_KEY, false)) {
             return
         }
-        val fatalIssueReporterEnabled =
-            sharedPreferences.getBoolean(FATAL_ISSUE_ENABLED_PREFS_KEY, true)
-        val configuration =
-            Configuration(
-                enableFatalIssueReporting = fatalIssueReporterEnabled,
-                enableNativeCrashReporting = fatalIssueReporterEnabled,
-            )
-        BitdriftInit.initBitdriftCaptureInJava(
-            apiUrl,
-            sharedPreferences.getString(BITDRIFT_API_KEY, ""),
-            getSessionStrategy(),
-            configuration,
-            this,
-        )
-        // Timber
-        if (BuildConfig.DEBUG) {
-            Timber.plant(Timber.DebugTree())
+        if (BitdriftInit.initFromPreferences(sharedPreferences, this)) {
+            // Timber
+            if (BuildConfig.DEBUG) {
+                Timber.plant(Timber.DebugTree())
+            }
+            Timber.plant(CaptureTree())
+            Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
         }
-        Timber.plant(CaptureTree())
-        Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
     }
-
-    private fun getSessionStrategy(): SessionStrategy =
-        if (sharedPreferences.getString(SESSION_STRATEGY_PREFS_KEY, FIXED.displayName) == "Fixed") {
-            SessionStrategy.Fixed()
-        } else {
-            SessionStrategy.ActivityBased(
-                inactivityThresholdMins = 60L,
-                onSessionIdChanged = { sessionId ->
-                    Timber.i("Bitdrift Logger session id updated: $sessionId")
-                },
-            )
-        }
 
     private fun trackAppLaunch() {
         // ApplicationStartInfo
