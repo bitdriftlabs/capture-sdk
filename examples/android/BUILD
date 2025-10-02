@@ -2,6 +2,31 @@ load("@rules_android//android:rules.bzl", "aar_import", "android_binary")
 load("@rules_jvm_external//:defs.bzl", "artifact")
 load("@rules_kotlin//kotlin:android.bzl", "kt_android_library")
 
+genrule(
+    name = "generate_capture_sdk_config",
+    outs = ["CaptureSdkConfig.kt"],
+    cmd = """
+set -euo pipefail
+
+# Escape for Kotlin string literals
+escape() {
+  printf '%s' "$$1" | sed -e 's/\\\\/\\\\\\\\/g' -e 's/\"/\\\"/g'
+}
+
+API_KEY_ESC=$$(escape "$${CAPTURE_SDK_API_KEY:-}")
+API_URL_ESC=$$(escape "$${CAPTURE_SDK_API_URL:-https://api.bitdrift.io}")
+
+cat > $@ <<EOF
+package io.bitdrift.capture.helloworld
+
+object CaptureSdkConfig {
+    const val API_KEY: String = "$$API_KEY_ESC"
+    const val API_URL: String = "$$API_URL_ESC"
+}
+EOF
+""",
+)
+
 _maven_deps = [
     artifact("com.google.code.findbugs:jsr305"),
     artifact("com.squareup.okhttp3:okhttp"),
@@ -40,6 +65,7 @@ kt_android_library(
     srcs = [
         "HelloWorldApp.kt",
         "MainActivity.kt",
+        ":generate_capture_sdk_config",
     ],
     custom_package = "io.bitdrift.capture.helloworld",
     manifest = "AndroidManifest.xml",
