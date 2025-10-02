@@ -14,6 +14,7 @@ import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.DateProvider
@@ -285,6 +286,7 @@ object Capture {
          * @param variant an optional variant
          */
         @JvmStatic
+        @ExperimentalBitdriftApi
         fun setFeatureFlag(
             flag: String,
             variant: String? = null,
@@ -297,6 +299,7 @@ object Capture {
          *
          * @param flag the name of the flag to remove
          */
+        @ExperimentalBitdriftApi
         @JvmStatic
         fun removeFeatureFlag(flag: String) {
             logger()?.removeFeatureFlag(flag)
