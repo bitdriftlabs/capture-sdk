@@ -19,7 +19,7 @@ interface IClientAttributes {
     /** A positive integer used as an internal version number. This helps determine version recency. */
     val appVersionCode: Long
 
-    /** Consumer-facing operating system brand name */
+    /** Consumer-facing operating system brand name. */
     val osBrand: String
 
     /**
