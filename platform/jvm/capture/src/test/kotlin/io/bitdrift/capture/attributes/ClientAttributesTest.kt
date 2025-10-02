@@ -260,7 +260,6 @@ class ClientAttributesTest {
 
         val fields = clientAttributes.invoke()
 
-        println("FRAN_TAG: all fields ----> " + fields.toString())
         assertThat(fields).containsEntry("_locale", "en_US")
     }
 

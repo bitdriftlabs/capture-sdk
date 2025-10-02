@@ -85,8 +85,6 @@ class ReplayRectTest {
     fun testRectToByteEncoding_negative_x() {
         val expected = byteArrayOf(128.toByte(), 252.toByte(), 24.toByte(), 2.toByte(), 3.toByte(), 4.toByte())
         val actual = ReplayRect(ReplayType.Label, -1000, 2, 3, 4).toByteArray()
-        println("expected: $expected")
-        println("actual: $actual")
         Assert.assertEquals(expected.size, actual.size)
         for ((i, e) in expected.withIndex()) {
             Assert.assertEquals(e, actual[i])
@@ -97,8 +95,6 @@ class ReplayRectTest {
     fun testRectToByteEncoding_negative_y() {
         val expected = byteArrayOf(64.toByte(), 1.toByte(), 252.toByte(), 24.toByte(), 3.toByte(), 4.toByte())
         val actual = ReplayRect(ReplayType.Label, 1, -1000, 3, 4).toByteArray()
-        println("expected: $expected")
-        println("actual: $actual")
         Assert.assertEquals(expected.size, actual.size)
         for ((i, e) in expected.withIndex()) {
             Assert.assertEquals(e, actual[i])
