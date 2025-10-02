@@ -33,6 +33,10 @@ static CLIENT_ATTRS_MANUFACTURER: OnceLock<CachedMethod> = OnceLock::new();
 static CLIENT_ATTRS_MODEL: OnceLock<CachedMethod> = OnceLock::new();
 static CLIENT_ATTRS_OS_VERSION: OnceLock<CachedMethod> = OnceLock::new();
 static CLIENT_ATTRS_OS_BRAND: OnceLock<CachedMethod> = OnceLock::new();
+static CLIENT_ATTRS_OS_API_LEVEL: OnceLock<CachedMethod> = OnceLock::new();
+static CLIENT_ATTRS_SUPPORTED_ABIS: OnceLock<CachedMethod> = OnceLock::new();
+static CLIENT_ATTRS_ARCHITECTURE: OnceLock<CachedMethod> = OnceLock::new();
+static CLIENT_ATTRS_LOCALE: OnceLock<CachedMethod> = OnceLock::new();
 
 pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   initialize_method_handle(
@@ -97,6 +101,38 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
     "getOsBrand",
     "()Ljava/lang/String;",
     &CLIENT_ATTRS_OS_BRAND,
+  )?;
+
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/attributes/IClientAttributes",
+    "getOsApiLevel",
+    "()I",
+    &CLIENT_ATTRS_OS_API_LEVEL,
+  )?;
+
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/attributes/IClientAttributes",
+    "getSupportedAbis",
+    "()Ljava/util/List;",
+    &CLIENT_ATTRS_SUPPORTED_ABIS,
+  )?;
+
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/attributes/IClientAttributes",
+    "getArchitecture",
+    "()Ljava/lang/String;",
+    &CLIENT_ATTRS_ARCHITECTURE,
+  )?;
+
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/attributes/IClientAttributes",
+    "getLocale",
+    "()Ljava/lang/String;",
+    &CLIENT_ATTRS_LOCALE,
   )?;
 
   Ok(())
