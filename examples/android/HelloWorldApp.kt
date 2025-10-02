@@ -63,7 +63,7 @@ class HelloWorldApp : Application() {
     }
 
     private fun getCaptureSdkInitializedMessage():String{
-        return if (Capture.Logger.sessionUrl != null) {
+        return if (Logger.sessionUrl != null) {
            SDK_STARTED_MESSAGE
         } else {
            SDK_NOT_STARTED_MESSAGE
