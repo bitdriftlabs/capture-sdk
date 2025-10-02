@@ -22,4 +22,6 @@
     <string name="start_new_session">Iniciar Nueva Sesión</string>
     <string name="generate_temp_device_code">Generar Código Temporal</string>
     <string name="no_code_generated">Ningún Código Generado</string>
+    <string name="start_sdk">Iniciar SDK</string>
+    <string name="sdk_not_started">SDK no inicializado. Iniciar SDK manualmente</string>
 </resources>

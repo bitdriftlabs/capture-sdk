@@ -22,6 +22,21 @@
             android:layout_height="wrap_content"
             android:text="@string/navigate_config" />
 
+        <Button
+            android:id="@+id/btnStartSdk"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/start_sdk"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/textview_sdk_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sdk_not_started"
+            android:visibility="gone" />
+
         <include layout="@layout/divider" />
 
         <androidx.compose.ui.platform.ComposeView
