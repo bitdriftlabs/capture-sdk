@@ -59,3 +59,6 @@ ios-test:
 android-build-app:
 	./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app :capture_aar
 
+.PHONY: linux-test
+linux-test:
+	./bazelw test //core/... //platform/... //test/... --config ci --config nomacos --config libunwind --test_output=errors --test_env=RUST_LOG=debug
