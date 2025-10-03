@@ -32,20 +32,20 @@ class HelloWorldApp : Application() {
 
         val userID = UUID.randomUUID().toString();
 
-        // Logger.start(
-        //     apiKey = bitdriftAPIKey,
-        //     apiUrl = BITDRIFT_URL,
-        //     sessionStrategy = SessionStrategy.Fixed { UUID.randomUUID().toString() },
-        //     configuration = Configuration(enableNativeCrashReporting = true),
-        //     fieldProviders = listOf(
-        //         FieldProvider {
-        //             mapOf(
-        //                 "foo" to "bar",
-        //                 "user_id" to userID
-        //             )
-        //         }
-        //     )
-        // )
+        Logger.start(
+            apiKey = bitdriftAPIKey,
+            apiUrl = BITDRIFT_URL,
+            sessionStrategy = SessionStrategy.Fixed { UUID.randomUUID().toString() },
+            configuration = Configuration(enableNativeCrashReporting = true),
+            fieldProviders = listOf(
+                FieldProvider {
+                    mapOf(
+                        "foo" to "bar",
+                        "user_id" to userID
+                    )
+                }
+            )
+        )
 
         Log.v("HelloWorldApp", "Android Bitdrift app launched with session url=${Logger.sessionUrl}")
 
