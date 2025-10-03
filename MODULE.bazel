@@ -313,6 +313,7 @@ rust.toolchain(
     ],
     versions = [
         RUST_VERSION,
+        "nightly/2025-10-02",
     ],
 )
 use_repo(rust, "rust_toolchains")
