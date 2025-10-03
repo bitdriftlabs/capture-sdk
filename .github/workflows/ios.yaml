@@ -88,10 +88,10 @@ jobs:
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
-      - run: make make-ios-app
+      - run: make ios-build-app
         name: "Build app"
       # TODO(snowp): Add some kind of assertion that the app does that it's supposed to
-      - run: make run-ios-app &> /tmp/envoy.log &
+      - run: make ios-run-app &> /tmp/envoy.log &
         name: "Run app"
   macos_tsan:
     # Note: tsan has been disabled because it's too flaky.
@@ -114,7 +114,7 @@ jobs:
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
       - name: Run iOS tests (tsan)
-        run: env -u ANDROID_NDK_HOME make test-ios
+        run: env -u ANDROID_NDK_HOME make ios-test
   verify_ios:
     runs-on: ubuntu-latest
     needs: ["macos_tsan", "swift_hello_world"]
