@@ -42,3 +42,20 @@ repin:
 
 .PHONY: push-additional-images
 push-additional-images:
+
+.PHONY: ios-run-app
+ios-run-app:
+	./bazelw run --config ci --config release-ios //examples/swift/hello_world:ios_app
+
+.PHONY: ios-build-app
+ios-build-app:
+	./bazelw build --config ci --config release-ios //examples/swift/hello_world:ios_app
+
+.PHONY: ios-test
+ios-test:
+	./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/core/...)') --test_tag_filters=macos_only --test_output=errors --config ci --config ios
+
+.PHONY: android-build-app
+android-build-app:
+	./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app :capture_aar
+
