@@ -25,6 +25,9 @@ build --features=swift.use_global_module_cache
 # Gate the references to androidndk behind a flag to support building on arm linux.
 build:android --android_crosstool_top=@androidndk//:toolchain
 
+# TODO(snowp): Remove this once the below issues are resolved.
+# https://github.com/bazelbuild/rules_rust/issues/3564
+# https://github.com/bazelbuild/rules_rust/issues/3627
 build:ios --config=fake-nightly
 build:ios --@rules_rust//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols
 
