@@ -53,7 +53,7 @@ ios-build-app:
 
 .PHONY: ios-test
 ios-test:
-	./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/core/...)') --test_tag_filters=macos_only --test_output=errors --config ci --config ios
+	./bazelw test $(shell ./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/core/...)') --test_tag_filters=macos_only --test_output=errors --config=ci --config=ios
 
 .PHONY: android-build-app
 android-build-app:
