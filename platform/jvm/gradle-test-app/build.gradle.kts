@@ -64,7 +64,7 @@ android {
 
     defaultConfig {
         applicationId = "io.bitdrift.gradletestapp"
-        minSdk = 21
+        minSdk = 23
         targetSdk = 36
         versionCode = 66
         versionName = "1.0"
