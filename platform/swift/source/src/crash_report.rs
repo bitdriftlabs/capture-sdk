@@ -267,8 +267,7 @@ fn parse_address_value(address: &Value) -> anyhow::Result<u64> {
       })
       .ok_or_else(|| anyhow::anyhow!("Address value is negative: {address}")),
     _ => Err(anyhow::anyhow!(
-      "Address value is not a valid number (got {:?})",
-      address
+      "Address value is not a valid number (got {address:?})"
     )),
   }
 }

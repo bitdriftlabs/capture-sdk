@@ -1,5 +1,5 @@
 {
-  "checksum": "f82c53dbe0d8bcfb4edf75508e8596220b4ff1dc97dd37f49f86e8a61af24c73",
+  "checksum": "17babf02f978c40081fc31e0f9091d487e0424ee0165fa275af861b01fad5a70",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -19146,6 +19146,10 @@
             {
               "id": "bd-bonjson 1.0.0",
               "target": "bd_bonjson"
+            },
+            {
+              "id": "bd-bonjson-ffi 1.0.0",
+              "target": "bd_bonjson_ffi"
             },
             {
               "id": "bd-client-common 1.0.0",

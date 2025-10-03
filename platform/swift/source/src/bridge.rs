@@ -11,7 +11,6 @@ mod bridge_tests;
 
 use crate::bridge::ffi::make_nsstring;
 use crate::ffi::{make_empty_nsstring, nsstring_into_string};
-use crate::key_value_storage::UserDefaultsStorage;
 use crate::{events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
 use bd_api::{Platform, PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
@@ -51,6 +50,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
 
+static STORAGE_BUFFER_SIZE: usize = 1024 * 1024;
 static LOGGING_INIT: Once = Once::new();
 
 fn initialize_logging() {
@@ -447,7 +447,13 @@ extern "C" fn capture_create_logger(
 
   with_handle_unexpected_or(
     || {
-      let storage = Box::<UserDefaultsStorage>::default();
+      let path = unsafe { CStr::from_ptr(path) }.to_str()?;
+      let storage = Box::new(bd_key_value::resilient_kv::ResilientKvStorage::new(
+        format!("{path}/storage"),
+        STORAGE_BUFFER_SIZE,
+        None,
+        None,
+      )?);
       let store = Arc::new(bd_key_value::Store::new(storage));
       let previous_run_global_state = read_global_state_snapshot(store.clone());
 
@@ -493,7 +499,6 @@ extern "C" fn capture_create_logger(
           })
         };
 
-      let path = unsafe { CStr::from_ptr(path) }.to_str()?;
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory: path.into(),
         api_key: unsafe { CStr::from_ptr(api_key) }.to_str()?.to_string(),
