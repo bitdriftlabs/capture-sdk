@@ -1,6 +1,7 @@
 #pragma once
 
 #import <Foundation/Foundation.h>
+#include <Foundation/NSArray.h>
 #include <Foundation/NSData.h>
 #include <Foundation/NSString.h>
 #include <Foundation/NSDictionary.h>
@@ -257,6 +258,14 @@ void capture_flush(logger_id logger_id, bool blocking);
  * @param variant the variant to set (if null, the flag will be set with no variant).
  */
 void capture_set_feature_flag(logger_id logger_id, const char *flag, const char* _Nullable variant);
+
+/*
+ * Sets feature flags (with optional variants).
+ *
+ * @param logger_id the logger to set the feature flag on.
+ * @param flags the flags to set.
+ */
+void capture_set_feature_flags(logger_id logger_id, NSArray *flags);
 
 /*
  * Removes a feature flag.

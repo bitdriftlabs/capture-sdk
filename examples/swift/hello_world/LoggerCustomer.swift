@@ -118,6 +118,10 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         Capture.Logger.setFeatureFlag(withFlag: flag, variant: variant)
     }
 
+    func setFeatureFlags(_ flags: [(flag: String, variant: String?)]) {
+        Capture.Logger.setFeatureFlags(flags)
+    }
+
     func removeFeatureFlag(flag: String) {
         Capture.Logger.removeFeatureFlag(withFlag: flag)
     }
