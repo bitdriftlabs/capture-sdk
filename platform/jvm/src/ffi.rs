@@ -218,3 +218,45 @@ pub(crate) fn map_to_jmap<'a, S: std::hash::BuildHasher>(
 
   Ok(jmap_object)
 }
+
+/// Converts a Java List of feature flag objects into a `Vec<(String, Option<String>)>`.
+/// Each feature flag object should have `getFlag()` and `getVariant()` methods.
+pub(crate) fn jobject_list_to_feature_flags(
+  env: &mut JNIEnv<'_>,
+  object: &JObject<'_>,
+) -> anyhow::Result<Vec<(String, Option<String>)>> {
+  let list = JList::from_env(env, object)?;
+  let size = list.size(env)?;
+
+  // SAFETY: the size of an array should always be >= 0.
+  let mut flags = Vec::with_capacity(size.try_into()?);
+
+  let mut iter = list.iter(env)?;
+  while let Some(obj) = iter.next(env)? {
+    let obj: AutoLocal<'_, JObject<'_>> = env.auto_local(obj);
+
+    // Get flag name
+    let flag_obj = env.call_method(&obj, "getFlag", "()Ljava/lang/String;", &[])?
+      .l()?;
+    let flag = unsafe { env.get_string_unchecked(&flag_obj.into()) }?
+      .to_string_lossy()
+      .to_string();
+
+    // Get variant (which can be null)
+    let variant_obj = env.call_method(&obj, "getVariant", "()Ljava/lang/String;", &[])?
+      .l()?;
+    let variant = if variant_obj.is_null() {
+      None
+    } else {
+      Some(
+        unsafe { env.get_string_unchecked(&variant_obj.into()) }?
+          .to_string_lossy()
+          .to_string(),
+      )
+    };
+
+    flags.push((flag, variant));
+  }
+
+  Ok(flags)
+}

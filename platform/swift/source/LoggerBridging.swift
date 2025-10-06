@@ -71,6 +71,11 @@ protocol LoggerBridging {
     /// - parameter variant: An optional variant to set the flag to
     func setFeatureFlag(withFlag flag: String, variant: String?)
 
+    /// Sets multiple feature flags (each with a name and optional variant).
+    ///
+    /// - parameter flags:    The flags to set
+    func setFeatureFlags(_ flags: [(flag: String, variant: String?)])
+
     /// Removes a feature flag.
     ///
     /// - parameter flag: The name of the flag to remove

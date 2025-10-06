@@ -424,6 +424,13 @@ extension Logger {
         Self.getShared()?.setFeatureFlag(withFlag: flag, variant: variant)
     }
 
+    /// Sets multiple feature flags (each with a name and optional variant).
+    ///
+    /// - parameter flags:    The flags to set
+    public static func setFeatureFlags(_ flags: [(flag: String, variant: String?)]) {
+        Self.getShared()?.setFeatureFlags(flags)
+    }
+
     /// Removes a feature flag.
     ///
     /// - parameter flag: The name of the flag to remove.
