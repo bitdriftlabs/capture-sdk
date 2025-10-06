@@ -17,6 +17,7 @@ import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import okhttp3.Call
+import okhttp3.EventListener
 import okhttp3.Headers.Companion.toHeaders
 import okhttp3.Protocol
 import okhttp3.Request
@@ -33,6 +34,8 @@ class CaptureOkHttpEventListenerFactoryTest {
     private val endpoint = "https://api.bitdrift.io/my_path/12345?my_query=my_value"
     private val clock: IClock = mock()
     private val logger: ILogger = mock()
+
+    private val call: Call = mock()
 
     @Test
     fun testRequestAndResponseReuseCommonInfo() {
@@ -604,5 +607,35 @@ class CaptureOkHttpEventListenerFactoryTest {
         val httpRequestInfo = httpRequestInfoCapture.firstValue
 
         assertThat(httpRequestInfo.fields["requestMetadata"].toString()).isEqualTo(requestMetadata)
+    }
+
+    @Test
+    fun create_withNullLoggerAndNullTargetListener_whenNoLoggerAndNoTarget() {
+        val factory =
+            CaptureOkHttpEventListenerFactory(
+                targetEventListenerCreator = null,
+                logger = null,
+                clock = clock,
+            )
+
+        val noOpEventListener = factory.create(call)
+        val listener2 = factory.create(call)
+
+        assertThat(noOpEventListener).isInstanceOf(CaptureOkHttpEventListenerFactory.NoOpEventListener::class.java)
+    }
+
+    @Test
+    fun create_withNullLogAndValidTargetListener_returnsTargetListener() {
+        val targetEventListener: EventListener = mock()
+        val factory =
+            CaptureOkHttpEventListenerFactory(
+                targetEventListenerCreator = { targetEventListener },
+                logger = null,
+                clock = clock,
+            )
+
+        val listener = factory.create(call)
+
+        assertThat(listener).isSameAs(targetEventListener)
     }
 }

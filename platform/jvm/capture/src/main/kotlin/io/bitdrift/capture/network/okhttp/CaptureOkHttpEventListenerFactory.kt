@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.network.okhttp
 
+import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.common.DefaultClock
@@ -37,6 +38,8 @@ class CaptureOkHttpEventListenerFactory internal constructor(
             emptyMap()
         },
 ) : EventListener.Factory {
+    private val noOpEventListener: NoOpEventListener by lazy { NoOpEventListener() }
+
     /**
      * Initializes a new instance of the Capture event listener.
      */
@@ -80,13 +83,22 @@ class CaptureOkHttpEventListenerFactory internal constructor(
         extraFieldsProvider = extraFieldsProvider,
     )
 
-    override fun create(call: Call): EventListener =
-        CaptureOkHttpEventListener(
-            logger = getLogger(),
+    override fun create(call: Call): EventListener {
+        val currentLogger = getLogger()
+        val targetEventListener = targetEventListenerCreator?.invoke(call)
+        if (currentLogger == null) {
+            return targetEventListener ?: noOpEventListener
+        }
+        return CaptureOkHttpEventListener(
+            logger = currentLogger,
             clock = clock,
-            targetEventListener = targetEventListenerCreator?.invoke(call),
+            targetEventListener = targetEventListener,
             extraFieldsProvider = extraFieldsProvider,
         )
+    }
+
+    @VisibleForTesting
+    internal class NoOpEventListener : EventListener()
 
     // attempts to get the latest logger if one wasn't found at construction time
     private fun getLogger(): ILogger? = logger ?: Capture.logger()
