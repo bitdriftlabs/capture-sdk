@@ -14,7 +14,6 @@ import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
-import androidx.annotation.WorkerThread
 import io.bitdrift.capture.InternalFieldsMap
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
@@ -67,7 +66,6 @@ internal class AppExitLogger(
     }
 
     @SuppressLint("NewApi")
-    @WorkerThread
     fun installAppExitLogger() {
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)) {
             return
