@@ -29,11 +29,6 @@ sealed class RuntimeFeature(
     data object APP_UPDATE_EVENTS : RuntimeFeature("client_feature.android.application_update_reporting", defaultValue = true)
 
     /**
-     * Whether memory pressure monitoring is enabled.
-     */
-    data object APP_MEMORY_PRESSURE : RuntimeFeature("client_feature.android.memory_pressure_reporting", defaultValue = true)
-
-    /**
      * Whether device state monitoring is enabled.
      */
     data object DEVICE_STATE_EVENTS : RuntimeFeature("client_features.android.device_lifecycle_reporting", defaultValue = true)
