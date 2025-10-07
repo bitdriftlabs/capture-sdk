@@ -619,7 +619,6 @@ class CaptureOkHttpEventListenerFactoryTest {
             )
 
         val noOpEventListener = factory.create(call)
-        val listener2 = factory.create(call)
 
         assertThat(noOpEventListener).isInstanceOf(CaptureOkHttpEventListenerFactory.NoOpEventListener::class.java)
     }
