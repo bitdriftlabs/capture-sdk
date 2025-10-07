@@ -27,14 +27,12 @@ internal object CaptureUncaughtExceptionHandler : ICaptureUncaughtExceptionHandl
         thread: Thread,
         throwable: Throwable,
     ) {
-        // avoid re-entry
-        if (!crashing.compareAndSet(false, true)) {
-            return
-        }
-
         try {
-            crashListeners.forEach {
-                it.onJvmCrash(thread, throwable)
+            val shouldNotifyListeners = crashing.compareAndSet(false, true)
+            if (shouldNotifyListeners) {
+                crashListeners.forEach {
+                    it.onJvmCrash(thread, throwable)
+                }
             }
         } catch (_: Throwable) {
             // explicitly ignore any errors caused by us
