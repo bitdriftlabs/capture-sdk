@@ -610,7 +610,7 @@ class CaptureOkHttpEventListenerFactoryTest {
     }
 
     @Test
-    fun create_withNullLoggerAndNullTargetListener_whenNoLoggerAndNoTarget() {
+    fun create_withNullLoggerAndNullTargetListener_shouldReturnNoOpListener() {
         val factory =
             CaptureOkHttpEventListenerFactory(
                 targetEventListenerCreator = null,
