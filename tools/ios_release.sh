@@ -25,6 +25,15 @@ echo "+++ Building Capture.xcframework"
   --define ios_produce_framework_plist=true \
   //:ios_dist
 
-mkdir -p dist
+echo "+++ Building Capture.doccarchive"
 
+./bazelw build \
+  --announce_rc \
+  --config=ci \
+  --config=release-ios \
+  --define ios_produce_framework_plist=true \
+  //:ios_doccarchive
+
+mkdir -p dist
 mv -f bazel-bin/Capture.ios.zip dist/Capture.ios.zip
+mv -f bazel-bin/Capture.ios.doccarchive.zip dist/Capture.ios.doccarchive.zip
