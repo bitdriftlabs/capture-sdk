@@ -79,11 +79,6 @@ android {
             ndk {
                 debugSymbolLevel = "SYMBOL_TABLE" // Using this to reduce output .so size
             }
-            packaging {
-                jniLibs {
-                    keepDebugSymbols += "**/*.so"
-                }
-            }
         }
         release {
             ndk {
