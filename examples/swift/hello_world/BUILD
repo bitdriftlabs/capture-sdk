@@ -17,9 +17,7 @@ genrule(
         "Capture.xcframework/ios-arm64/Capture.framework/Capture",
         "Capture.xcframework/Info.plist",
     ],
-    cmd = "unzip -o $< -d $(RULEDIR)",
-    stamp = True,
-    tags = ["local"],
+    cmd = "rsync -a $< $(RULEDIR)",
 )
 
 apple_static_xcframework_import(
