@@ -44,7 +44,7 @@ pkg_zip(
 
 pkg_zip(
     name = "ios_doccarchive",
-    srcs = ["//platform/swift/source:Capture.doccarchive" ],
+    srcs = ["//platform/swift/source:Capture.doccarchive"],
     out = "Capture.doccarchive.ios.zip",
     tags = ["local"],
     visibility = ["//visibility:public"],
