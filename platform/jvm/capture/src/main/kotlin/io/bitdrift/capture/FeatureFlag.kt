@@ -44,6 +44,7 @@ data class FeatureFlag(
      */
     fun getVariant(): String? = variant
 
+    /** Constructors */
     companion object {
         /**
          * Creates a feature flag with just a flag name (no variant).

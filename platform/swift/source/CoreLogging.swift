@@ -150,8 +150,8 @@ protocol CoreLogging: AnyObject {
 
     /// Sets multiple feature flags (each with a name and optional variant).
     ///
-    /// - parameter flags:    The flags to set
-    func setFeatureFlags(_ flags: [(flag: String, variant: String?)]);
+    /// - parameter flags: The flags to set
+    func setFeatureFlags(_ flags: [(flag: String, variant: String?)])
 
     /// Removes a feature flag.
     ///

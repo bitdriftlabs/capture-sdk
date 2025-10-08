@@ -416,7 +416,7 @@ public final class LoggerObjc: NSObject {
 
     /// Sets multiple feature flags (each with a name and optional variant).
     ///
-    /// - parameter flags:    The flags to set
+    /// - parameter flags: The flags to set
     @objc
     public static func setFeatureFlags(_ flags: [FeatureFlag]) {
         Capture.Logger.setFeatureFlags(flags.map { flag in

@@ -426,7 +426,7 @@ extension Logger {
 
     /// Sets multiple feature flags (each with a name and optional variant).
     ///
-    /// - parameter flags:    The flags to set
+    /// - parameter flags: The flags to set
     public static func setFeatureFlags(_ flags: [(flag: String, variant: String?)]) {
         Self.getShared()?.setFeatureFlags(flags)
     }
