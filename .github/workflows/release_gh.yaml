@@ -43,10 +43,15 @@ jobs:
         run: |
           ./tools/ios_release.sh Capture "${{ inputs.version }}"
           mv ./dist/Capture.ios.zip ./Capture.ios.zip
+          mv ./dist/Capture.doccarchive.ios.zip ./Capture.doccarchive.ios.zip
       - uses: actions/upload-artifact@v4
         with:
           name: Capture.ios.zip
           path: ./Capture.ios.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Capture.doccarchive.ios.zip
+          path: ./Capture.doccarchive.ios.zip
   build-ios-example-apps:
     needs: ["verify-version"]
     permissions:
