@@ -6,19 +6,11 @@ on:
         description: 'The new version to tag, ex: 0.9.102'
         required: true
         type: string
-      sha:
-        description: '[Optional] Commit SHA1, branch or tag to build. The latest SHA1 on a given branch is used if no value is provided.'
-        required: false
-        type: string
   workflow_dispatch:
     inputs:
       version:
         description: 'The new version to tag, ex: 0.9.102'
         required: true
-        type: string
-      sha:
-        description: '[Optional] Commit SHA1, branch or tag to build. The latest SHA1 on a given branch is used if no value is provided.'
-        required: false
         type: string
 jobs:
   verify-version:
@@ -103,6 +95,7 @@ jobs:
     with:
       version: ${{ inputs.version }}
     secrets: inherit
+
   create-release:
     permissions:
       contents: write
@@ -118,7 +111,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.sha }}
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+
       # Download all artifacts to current working directory
       - name: Download Android Capture artifacts
         uses: actions/download-artifact@v4
@@ -160,6 +155,39 @@ jobs:
         run: ./ci/gh_prepare_ios_artifacts.sh "$VERSION"
         env:
           VERSION: ${{ inputs.version }}
+
+      - name: 'Update the content of platform/shared/.sdk_version'
+        if: ${{ github.ref_name == 'main' }}
+        run: |
+          echo -n '${{ inputs.version }}' > $file
+          echo "Updated content of '$file' file:"
+          cat $file
+        env:
+          file: 'platform/shared/.sdk_version'
+
+      - name: 'Create Github Token'
+        if: ${{ github.ref_name == 'main' }}
+        id: org-pr-create-token
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
+        with:
+          app_id: ${{ secrets.OPEN_CAPTURE_SDK_PRS_APP_ID }}
+          private_key: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}
+
+      - name: 'Commit & push to main only'
+        if: ${{ github.ref_name == 'main' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git add platform/shared/.sdk_version
+          git \
+            -c author.name="${{ github.actor }}" \
+            -c author.email="${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com" \
+            -c user.name="GitHub Action" \
+            -c user.email="noreply@github.com" \
+            commit \
+            -m 'Update SDK version to ${{ inputs.version }}'
+          git push origin "HEAD:refs/heads/main"
+
         # Upload artifacts to the newly created release.
         # Prefix release version with "v".
       - name: Create release
