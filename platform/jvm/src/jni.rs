@@ -967,7 +967,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
         } else {
           Block::No
         },
-        CaptureSession::default(),
+        &CaptureSession::default(),
       );
 
       Ok(())

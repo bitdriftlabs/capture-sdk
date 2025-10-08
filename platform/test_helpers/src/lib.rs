@@ -337,7 +337,7 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
       [].into(),
       None,
       Block::Yes(std::time::Duration::from_secs(1)),
-      CaptureSession::default(),
+      &CaptureSession::default(),
     );
   }
 
@@ -374,7 +374,7 @@ pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: Logger
           [].into(),
           None,
           bd_logger::Block::No,
-          CaptureSession::default(),
+          &CaptureSession::default(),
         );
       }
 
@@ -419,7 +419,7 @@ pub extern "C" fn run_aggressive_upload_test(logger_id: LoggerId<'_>) {
       [].into(),
       None,
       bd_logger::Block::No,
-      CaptureSession::default(),
+      &CaptureSession::default(),
     );
   }
 
