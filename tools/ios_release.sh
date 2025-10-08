@@ -22,7 +22,6 @@ echo "+++ Building Capture.xcframework"
   --announce_rc \
   --config=ci \
   --config=release-ios \
-  --embed_label "$version" \
   --define ios_produce_framework_plist=true \
   //:ios_dist
 
