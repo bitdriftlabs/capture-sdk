@@ -393,6 +393,10 @@ internal class LoggerImpl(
         CaptureJniLibrary.setFeatureFlag(this.loggerId, flag, variant)
     }
 
+    override fun setFeatureFlags(flags: List<FeatureFlag>) {
+        CaptureJniLibrary.setFeatureFlags(this.loggerId, flags)
+    }
+
     override fun removeFeatureFlag(flag: String) {
         CaptureJniLibrary.removeFeatureFlag(this.loggerId, flag)
     }

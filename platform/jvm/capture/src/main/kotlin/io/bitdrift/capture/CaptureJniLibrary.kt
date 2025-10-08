@@ -150,6 +150,16 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     )
 
     /**
+     * Sets multiple feature flags (with an optional variants).
+     *
+     * @param flags the flags to set
+     */
+    external fun setFeatureFlags(
+        loggerId: Long,
+        flags: List<FeatureFlag>,
+    )
+
+    /**
      * Removes a feature flag.
      *
      * @param flag the name of the flag to remove

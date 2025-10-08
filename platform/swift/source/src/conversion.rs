@@ -449,7 +449,7 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
                 // Schedule insertion of tuple into array
                 work_stack.push(RustToObjcWorkItem::InsertArrayValue {
                   value_id: tuple_id,
-                  array_id
+                  array_id,
                 });
 
                 // Create NSArray tuple containing the key and value strings
@@ -469,7 +469,7 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
                 let value_id = get_next_id();
                 work_stack.push(RustToObjcWorkItem::InsertArrayValue {
                   value_id,
-                  array_id: tuple_array_id
+                  array_id: tuple_array_id,
                 });
                 work_stack.push(RustToObjcWorkItem::ProcessValue {
                   value: value.clone(),
@@ -480,7 +480,7 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
                 let key_id = get_next_id();
                 work_stack.push(RustToObjcWorkItem::InsertArrayValue {
                   value_id: key_id,
-                  array_id: tuple_array_id
+                  array_id: tuple_array_id,
                 });
                 work_stack.push(RustToObjcWorkItem::ProcessValue {
                   value: Value::String(key.clone()),

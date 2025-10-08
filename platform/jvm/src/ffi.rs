@@ -236,14 +236,16 @@ pub(crate) fn jobject_list_to_feature_flags(
     let obj: AutoLocal<'_, JObject<'_>> = env.auto_local(obj);
 
     // Get flag name
-    let flag_obj = env.call_method(&obj, "getFlag", "()Ljava/lang/String;", &[])?
+    let flag_obj = env
+      .call_method(&obj, "getFlag", "()Ljava/lang/String;", &[])?
       .l()?;
     let flag = unsafe { env.get_string_unchecked(&flag_obj.into()) }?
       .to_string_lossy()
       .to_string();
 
     // Get variant (which can be null)
-    let variant_obj = env.call_method(&obj, "getVariant", "()Ljava/lang/String;", &[])?
+    let variant_obj = env
+      .call_method(&obj, "getVariant", "()Ljava/lang/String;", &[])?
       .l()?;
     let variant = if variant_obj.is_null() {
       None
