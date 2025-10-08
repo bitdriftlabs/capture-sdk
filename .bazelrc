@@ -86,7 +86,7 @@ build:release-android --config=release-common
 build:release-android --config=android
 build:release-android --@rules_rust//rust/settings:lto='fat'
 build:release-android --linkopt=-Wl,--pack-dyn-relocs=android
-# TODO(snowp): This should do better but requires a certain version of Android. 
+# TODO(snowp): This should do better but requires a certain version of Android.
 # Investigate what this is and track when we can use it.
 # build:release-android --linkopt=-Wl,--use-android-relr-tags
 
@@ -98,6 +98,9 @@ build:release-ios --config=ios
 build:release-ios --config=release-common --config=force-xcode-version
 build:release-ios --features=swift.enable_library_evolution
 build:release-ios --features=swift.emit_swiftinterface
+# Make sure __.SYMDEF does not have a timestamp for iOS (for reproducibility)
+build:release-ios --action_env=ZERO_AR_DATE=1
+build:release-ios --repo_env=ZERO_AR_DATE=1
 
 # Allows disabling the cache for cases where the cache might be slow, e.g. slow networks.
 build:nocache --remote_accept_cached=false

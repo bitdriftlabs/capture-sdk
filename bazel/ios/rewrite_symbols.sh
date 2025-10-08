@@ -2,19 +2,24 @@
 
 set -euxo pipefail
 
+AR=$(xcrun --find ar)
+LIPO=$(xcrun --find lipo)
+RANLIB=$(xcrun --find ranlib)
+
+# Ensure that ar/ranlib creates deterministic archives.
+export ZERO_AR_DATE=1
+
 remove_rmeta () {
   local -r bin="$1"
 
-  ar d "$bin" $(ar t "$bin"| grep "lib\.r")
+  if $AR t "$bin"| grep "lib\.r"; then
+    $AR d "$bin" $($AR t "$bin"| grep "lib\.r")
+  fi
 
   # Do not exit on error.
   set +e
 
-  # Look for a 'lib.rmeta' with 'e' character replaceed with either one of the
-  # following: new line, tab or a space character.
-  ar d "$bin" "$(echo "lib.rm\x0ata")" "$(echo "lib.rm\x09ta")" "$(echo "lib.rm\x20ta")"
-
-  if ar t "$bin"| grep "lib\.r"; then
+  if $AR t "$bin"| grep "lib\.r"; then
     # Method succeeded which means that it found
     # one of the unexpected object references which means that
     # we were not able to remove all of the revevant `lib.rmeta`
@@ -29,7 +34,7 @@ remove_rmeta () {
   return 0
 }
 
-framework_to_rewrite="$2"
+framework_to_rewrite="$1"
 framework_base=$(basename $framework_to_rewrite)
 framework_name=${framework_base%.*}
 
@@ -41,16 +46,17 @@ fi
 
 for binary in $(find $framework_to_rewrite -type f -name $framework_name);
 do
-  if lipo -info $binary | grep -q x86_64; then
+  if $LIPO -info $binary | grep -q x86_64; then
     x86_slice=$(mktemp -d)/$framework_name
     arm_slice=$(mktemp -d)/$framework_name
-    lipo -thin x86_64 "$binary" -output "$x86_slice"
-    lipo -thin arm64 "$binary" -output "$arm_slice"
+    $LIPO -thin x86_64 "$binary" -output "$x86_slice"
+    $LIPO -thin arm64 "$binary" -output "$arm_slice"
 
     remove_rmeta "$x86_slice"
     remove_rmeta "$arm_slice"
 
-    lipo -create "$x86_slice" "$arm_slice" -output "$binary"
+    $LIPO -create "$x86_slice" "$arm_slice" -output "$binary"
+    $RANLIB "$binary"
   else
     remove_rmeta "$binary"
   fi

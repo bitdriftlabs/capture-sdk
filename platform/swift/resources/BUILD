@@ -28,21 +28,24 @@ filegroup(
 
 genrule(
     name = "info_plist",
-    srcs = [":info_plist_template"],
+    srcs = [
+        ":info_plist_template",
+        "//platform/shared:sdk_version",
+    ],
     outs = ["Info.plist"],
     cmd = """
-# bazel-out/stable-status.txt is created when stamp = True
-# Value of BUILD_EMBED_LABEL key comes from --embed_label on the command line
-version="$$(grep BUILD_EMBED_LABEL bazel-out/stable-status.txt | cut -d ' ' -f 2)"
+set -euo pipefail
 
-# plists don't allow for characters such as "-" in version numbers and we use them for versions like 0.9.112-rc.1.
-IFS='-' read -r version string <<< "$$version"
+template="$(location :info_plist_template)"
+sdk_version_file="$(location //platform/shared:sdk_version)"
 
-# Set a reasonable default if no version was specified
-if [ -z "$$version" ]; then version="0.9"; fi
+# Read version from the sdk_version file (strip newline)
+version="$$(tr -d '\\n' < "$$sdk_version_file")"
 
-sed -e "s/{version}/$$version/g" $< > $@
+# plists don't allow for "-" in version numbers (e.g., 0.9.112-rc.1)
+IFS='-' read -r version _ <<< "$$version"
+
+sed -e "s/{version}/$$version/g" "$$template" > "$@"
 """,
-    stamp = True,
     visibility = ["//visibility:public"],
 )

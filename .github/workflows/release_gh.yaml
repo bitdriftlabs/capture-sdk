@@ -150,7 +150,7 @@ jobs:
         with:
           name: iOS Example Apps
       - name: Prepare iOS artifacts
-        run: ./ci/gh_prepare_ios_artifacts.sh "$VERSION"
+        run: mv Capture.ios.zip Capture-$VERSION.ios.zip
         env:
           VERSION: ${{ inputs.version }}
 
