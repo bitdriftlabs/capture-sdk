@@ -95,7 +95,6 @@ jobs:
         run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/core/...)') --test_tag_filters=macos_only --test_output=errors --config ci --config ios
   update-sdk-version:
     name: Update SDK version
-    needs: public-release
     permissions:
       contents: write
       pull-requests: write
