@@ -156,15 +156,6 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
 
-      - name: 'Update the content of platform/shared/.sdk_version'
-        if: ${{ github.ref_name == 'main' }}
-        run: |
-          echo -n '${{ inputs.version }}' > $file
-          echo "Updated content of '$file' file:"
-          cat $file
-        env:
-          file: 'platform/shared/.sdk_version'
-
       - name: 'Create Github Token'
         if: ${{ github.ref_name == 'main' }}
         id: org-pr-create-token
