@@ -19,9 +19,15 @@ jobs:
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
+
       - name: "Build app"
         run: |
           ./tools/ios_release.sh
           ls -la dist/Capture.ios.zip
           unzip -lv dist/Capture.ios.zip
           sha256sum dist/Capture.ios.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Capture.ios.zip
+          path: ./dist/Capture.ios.zip
