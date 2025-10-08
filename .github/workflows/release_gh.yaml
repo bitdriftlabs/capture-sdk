@@ -6,19 +6,11 @@ on:
         description: 'The new version to tag, ex: 0.9.102'
         required: true
         type: string
-      sha:
-        description: '[Optional] Commit SHA1, branch or tag to build. The latest SHA1 on a given branch is used if no value is provided.'
-        required: false
-        type: string
   workflow_dispatch:
     inputs:
       version:
         description: 'The new version to tag, ex: 0.9.102'
         required: true
-        type: string
-      sha:
-        description: '[Optional] Commit SHA1, branch or tag to build. The latest SHA1 on a given branch is used if no value is provided.'
-        required: false
         type: string
 jobs:
   verify-version:
@@ -103,6 +95,7 @@ jobs:
     with:
       version: ${{ inputs.version }}
     secrets: inherit
+
   create-release:
     permissions:
       contents: write
@@ -160,6 +153,34 @@ jobs:
         run: ./ci/gh_prepare_ios_artifacts.sh "$VERSION"
         env:
           VERSION: ${{ inputs.version }}
+
+      - name: 'Create Github Token'
+        if: ${{ github.ref_name == 'main' }}
+        id: org-pr-create-token
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
+        with:
+          app_id: ${{ secrets.OPEN_CAPTURE_SDK_PRS_APP_ID }}
+          private_key: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}
+
+      - name: 'Commit & push to main only'
+        if: ${{ github.ref_name == 'main' }}
+        env:
+          GH_TOKEN: ${{ steps.org-pr-create-token.outputs.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          content=$(echo -n "$VERSION" | base64)
+          sha=$(gh api \
+            repos/${GITHUB_REPOSITORY}/contents/platform/shared/.sdk_version \
+            -q .sha || true)
+
+          gh api \
+            --method PUT \
+            repos/${GITHUB_REPOSITORY}/contents/platform/shared/.sdk_version \
+            -f message="Update SDK version to ${VERSION}" \
+            -f content="${content}" \
+            -f sha="${sha}" \
+            -f branch="main"
+
         # Upload artifacts to the newly created release.
         # Prefix release version with "v".
       - name: Create release
