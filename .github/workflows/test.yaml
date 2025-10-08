@@ -36,11 +36,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          git add platform/shared/.sdk_version
           git \
             -c author.name="${{ github.actor }}" \
             -c author.email="${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com" \
             -c user.name="GitHub Action" \
             -c user.email="noreply@github.com" \
             commit \
-            -am 'Update SDK version to ${{ inputs.version }}'
-          git push origin
+            -m 'Update SDK version to ${{ inputs.version }}'
+          git push origin HEAD
