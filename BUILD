@@ -12,7 +12,7 @@ load(
 load("//bazel:android_debug_info.bzl", "android_debug_info")
 load("//bazel:framework_imports_extractor.bzl", "framework_imports_extractor")
 load("//bazel/android:artifacts.bzl", "android_artifacts")
-load("//bazel/ios:hack.bzl", "workaround_rust_symbols")
+load("//bazel/ios:hack.bzl", "rewrite_xcframework")
 
 alias(
     name = "ios_app",
@@ -24,9 +24,9 @@ alias(
     actual = "//examples/android:android_app",
 )
 
-workaround_rust_symbols(
+rewrite_xcframework(
     name = "ios_xcframework_with_rust_symbols",
-    out = "Capture.xcframework.zip",
+    rewrite_tool = "//bazel/ios:rewrite_symbols",
     visibility = ["//visibility:public"],
     xcframework = "//platform/swift/source:Capture",
 )

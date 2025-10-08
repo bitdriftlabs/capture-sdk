@@ -5,8 +5,6 @@ load(
     "xcode_provisioning_profile",
 )
 
-exports_files(["symbols_to_rewrite"])
-
 sh_binary(
     name = "rewrite_symbols",
     srcs = [
