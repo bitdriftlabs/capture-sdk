@@ -60,6 +60,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: main
 
       - name: 'Update the content of platform/shared/.sdk_version'
         run: |
@@ -80,20 +81,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git checkout -b "update-sdk-version-${{ inputs.version }}"
+          git add platform/shared/.sdk_version
           git \
             -c author.name="${{ github.actor }}" \
             -c author.email="${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com" \
             -c user.name="GitHub Action" \
             -c user.email="noreply@github.com" \
             commit \
-            -am 'Update SDK version to ${{ inputs.version }}'
-          git push origin "update-sdk-version-${{ inputs.version }}"
-
-      - name: 'Create Pull Request'
-        env:
-          GITHUB_TOKEN: ${{ steps.org-pr-create-token.outputs.token }}
-        run: |
-          # Create PR and capture the URL
-          PR_URL=$(gh pr create --fill --head update-sdk-version-${{ inputs.version }})
-          echo "PR created at $PR_URL"
+            -m 'Update SDK version to ${{ inputs.version }}'
+          git push origin main
