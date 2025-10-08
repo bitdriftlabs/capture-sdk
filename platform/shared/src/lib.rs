@@ -212,7 +212,7 @@ impl LoggerHolder {
         [].into(),
         None,
         bd_logger::Block::No,
-        bd_logger::CaptureSession::default(),
+        &bd_logger::CaptureSession::default(),
       );
     });
   }
@@ -238,7 +238,7 @@ impl LoggerHolder {
       [].into(),
       None,
       bd_logger::Block::No,
-      bd_logger::CaptureSession::default(),
+      &bd_logger::CaptureSession::default(),
     );
   }
 }

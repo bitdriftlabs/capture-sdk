@@ -71,7 +71,7 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         None,
         Block::No,
-        CaptureSession::default(),
+        &CaptureSession::default(),
       );
       handle.log(
         log_level::DEBUG,
@@ -81,7 +81,7 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         None,
         Block::No,
-        CaptureSession::default(),
+        &CaptureSession::default(),
       );
       handle.log(
         log_level::INFO,
@@ -91,7 +91,7 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         None,
         Block::No,
-        CaptureSession::default(),
+        &CaptureSession::default(),
       );
       handle.log(
         log_level::WARNING,
@@ -101,7 +101,7 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         None,
         Block::No,
-        CaptureSession::default(),
+        &CaptureSession::default(),
       );
       handle.log(
         log_level::ERROR,
@@ -111,7 +111,7 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         None,
         Block::No,
-        CaptureSession::default(),
+        &CaptureSession::default(),
       );
     });
   });
@@ -134,7 +134,7 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         None,
         Block::No,
-        CaptureSession::default(),
+        &CaptureSession::default(),
       );
     });
   });

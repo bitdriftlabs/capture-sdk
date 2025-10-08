@@ -634,7 +634,7 @@ extern "C" fn capture_write_log(
         } else {
           Block::No
         },
-        CaptureSession::default(),
+        &CaptureSession::default(),
       );
 
       Ok(())

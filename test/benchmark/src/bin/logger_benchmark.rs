@@ -36,7 +36,7 @@ fn do_log(logger: &LoggerHandle) {
     [].into(),
     None,
     Block::No,
-    CaptureSession::default(),
+    &CaptureSession::default(),
   );
 }
 

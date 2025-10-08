@@ -380,6 +380,10 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
             }
           },
 
+          Value::KVVec(_) => {
+            anyhow::bail!("Value::KVVec is not supported for conversion to Objective-C");
+          },
+
           Value::Object(map) => {
             if map.is_empty() {
               let dict_class = class!(NSDictionary);
