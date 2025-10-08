@@ -35,7 +35,6 @@ import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildVersionChecker
-import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
 
 internal class AppExitLogger(
@@ -158,14 +157,18 @@ internal class AppExitLogger(
     }
 
     private fun Throwable.getRootCause(): Throwable {
-        var error = this
-        while (error.cause != null) {
-            error = error.cause!!
+        val seenThrowables = mutableSetOf<Throwable>()
+        var currentThrowable: Throwable = this
+
+        while (currentThrowable.cause != null) {
+            val nextThrowable = currentThrowable.cause!!
+            val isAlreadySeen = seenThrowables.add(nextThrowable)
+            if (!isAlreadySeen) {
+                break
+            }
+            currentThrowable = nextThrowable
         }
-        if (error is InvocationTargetException) {
-            error = error.targetException
-        }
-        return error
+        return currentThrowable
     }
 
     private fun buildCrashAndMemoryFieldsMap(

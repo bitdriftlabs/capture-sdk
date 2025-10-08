@@ -300,6 +300,79 @@ class AppExitLoggerTest {
         verify(logger, never()).flush(any())
     }
 
+    @Test
+    fun onJvmCrash_withLinearExceptionChain_shouldLogRootCause() {
+        val appExitLogger = buildAppExitLogger()
+        val rootCauseException = IllegalArgumentException("root cause")
+        val middleException = RuntimeException("middle", rootCauseException)
+        val topException = IllegalStateException("top", middleException)
+
+        appExitLogger.onJvmCrash(Thread.currentThread(), topException)
+
+        verifyLoggedException(rootCauseException)
+    }
+
+    @Test
+    fun onJvmCrash_withExceptionCycle_shouldNotInfiniteLoop() {
+        val appExitLogger = buildAppExitLogger()
+        val rootCauseException = IllegalArgumentException("root")
+        val middleException = RuntimeException("middle", rootCauseException)
+        val topException = IllegalStateException("top", middleException)
+        // rootCause -> middle -> top -> rootCause
+        createExceptionCycle(rootCauseException, topException)
+
+        appExitLogger.onJvmCrash(Thread.currentThread(), topException)
+
+        verifyLoggedException(topException)
+    }
+
+    @Test
+    fun onJvmCrash_withSelfCycle_shouldNotInfiniteLoop() {
+        val appExitLogger = buildAppExitLogger()
+        val initialException = RuntimeException("Initial exception")
+        createExceptionCycle(initialException, initialException)
+
+        appExitLogger.onJvmCrash(Thread.currentThread(), initialException)
+
+        verifyLoggedException(initialException)
+    }
+
+    @Test
+    fun onJvmCrash_withInvocationTargetException_shouldReportIllegalArgException() {
+        val appExitLogger = buildAppExitLogger()
+        val illegalArgumentException = IllegalArgumentException("root cause")
+        val invocationTarget = java.lang.reflect.InvocationTargetException(illegalArgumentException)
+        val top = RuntimeException("top", invocationTarget)
+
+        appExitLogger.onJvmCrash(Thread.currentThread(), top)
+
+        verifyLoggedException(illegalArgumentException)
+    }
+
+    private fun verifyLoggedException(expected: Throwable) {
+        verify(logger).log(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.ERROR),
+            argThat { fields ->
+                fields["_app_exit_info"]?.toString() == expected.javaClass.name &&
+                    fields["_app_exit_details"]?.toString() == expected.message.orEmpty()
+            },
+            eq(null),
+            eq(null),
+            eq(true),
+            any(),
+        )
+    }
+
+    private fun createExceptionCycle(
+        target: Throwable,
+        cause: Throwable,
+    ) {
+        val causeField = Throwable::class.java.getDeclaredField("cause")
+        causeField.isAccessible = true
+        causeField.set(target, cause)
+    }
+
     private fun buildAppExitLogger(fatalReporterInitState: FatalIssueReporterState = FatalIssueReporterState.NotInitialized) =
         AppExitLogger(
             logger,
