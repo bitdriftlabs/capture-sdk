@@ -16,6 +16,7 @@ fi
   --config=ci \
   --config=release-android \
   --define=pom_version="$version" \
+  --embed_label "$version" \
   //:capture_aar_with_artifacts //:capture_symbols
 
 mkdir -p dist/

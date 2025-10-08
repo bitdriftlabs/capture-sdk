@@ -1,6 +1,8 @@
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_binary", "bitdrift_rust_library")
 
+DEFAULT_VERSION = "10.0.0-dev"
+
 bitdrift_rust_library(
     name = "platform-shared",
     srcs = glob(["src/**/*.rs"]),
@@ -21,10 +23,16 @@ cargo_build_script(
     edition = "2021",
 )
 
-filegroup(
+genrule(
     name = "sdk_version",
-    srcs = [".sdk_version"],
-    visibility = ["//visibility:public"],
+    outs = [".sdk_version"],
+    stamp = True,
+    cmd = (
+        "awk '$$1==\"BUILD_EMBED_LABEL\"{v=$$2} " +
+        "END{printf \"%s\", (v ? v : \"" + DEFAULT_VERSION + "\")}' " +
+        "bazel-out/stable-status.txt >$@"
+    ),
+    visibility = ["//visibility:private"],
 )
 
 genrule(

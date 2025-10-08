@@ -43,8 +43,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.sha }}
-      - name: 'Update the content of platform/shared/.sdk_version'
-        run: echo -n "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: 'Install dependencies'
         run: ./ci/mac_ci_setup.sh
       - name: Build xcframework + artifacts
@@ -74,8 +72,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.sha }}
-      - name: 'Update the content of platform/shared/.sdk_version'
-        run: echo -n "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: Install Clang
         run: sudo apt-get install -y clang
       - name: Build AAR + artifacts
