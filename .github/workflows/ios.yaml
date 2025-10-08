@@ -74,8 +74,14 @@ jobs:
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
 
-      - name: Test
-        run: ./bazelw test $(./bazelw query 'filter(":test", kind(".*test rule", test/platform/swift/...))') --test_output=streamed --config=ios
+      - name: Unit Test
+        run: ./bazelw test //test/platform/swift/unit_integration/core:test --test_output=streamed --config=ios
+
+      - name: Bridging Test
+        run: ./bazelw test //test/platform/swift/bridging:test_swift_bridge_test --test_output=streamed --config=ios
+
+      - name: Integrations Test
+        run: ./bazelw test //test/platform/swift/unit_integration/integrations:test --test_output=streamed --config=ios
 
       - run: ./bazelw build --config ci --config release-ios //examples/swift/hello_world:ios_app
         name: "Build app"
