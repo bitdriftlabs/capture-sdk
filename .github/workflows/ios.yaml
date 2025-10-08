@@ -73,22 +73,12 @@ jobs:
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
-
-      - name: Unit Test
-        run: ./bazelw test //test/platform/swift/unit_integration/core:test --test_output=streamed --config=ios
-
-      - name: Bridging Test
-        run: ./bazelw test //test/platform/swift/bridging:test_swift_bridge_test --test_output=streamed --config=ios
-
-      - name: Integrations Test
-        run: ./bazelw test //test/platform/swift/unit_integration/integrations:test --test_output=streamed --config=ios
-
       - run: ./bazelw build --config ci --config release-ios //examples/swift/hello_world:ios_app
         name: "Build app"
       # TODO(snowp): Add some kind of assertion that the app does that it's supposed to
       - run: ./bazelw run --config ci --config release-ios //examples/swift/hello_world:ios_app &> /tmp/envoy.log &
         name: "Run app"
-  macos_tsan:
+  ios_tests:
     # Note: tsan has been disabled because it's too flaky.
     # https://bitdrift.slack.com/archives/C058ZD2M2CQ/p1755792021318899?thread_ts=1755784965.888369&cid=C058ZD2M2CQ
     runs-on: macos-14
@@ -101,11 +91,12 @@ jobs:
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
-      - name: Run iOS tests (tsan)
-        run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/core/...)') --test_tag_filters=macos_only --test_output=errors --config ci --config ios
+      - name: Run iOS tests
+        # all test targets minus benchmarks
+        run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'filter(":test", kind(".*test rule", test/platform/swift/...))') --test_tag_filters=macos_only --test_output=errors --config ci --config ios
   verify_ios:
     runs-on: ubuntu-latest
-    needs: ["macos_tsan", "swift_hello_world"]
+    needs: ["ios_tests", "swift_hello_world"]
     if: always()
     steps:
       # Checkout repo to Github Actions runner
@@ -114,5 +105,5 @@ jobs:
         with:
           fetch-depth: 1
       - run: |
-          ./ci/check_result.sh ${{ needs.macos_tsan.result }} \
+          ./ci/check_result.sh ${{ needs.ios_tests.result }} \
           && ./ci/check_result.sh ${{ needs.swift_hello_world.result }}
