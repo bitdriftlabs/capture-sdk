@@ -6,7 +6,6 @@ on:
 jobs:
   update-sdk-version:
     name: Update SDK version
-    needs: public-release
     permissions:
       contents: write
       pull-requests: write
