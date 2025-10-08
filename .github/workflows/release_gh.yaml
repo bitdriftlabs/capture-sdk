@@ -176,17 +176,21 @@ jobs:
       - name: 'Commit & push to main only'
         if: ${{ github.ref_name == 'main' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.org-pr-create-token.outputs.token }}
+          VERSION: ${{ inputs.version }}
         run: |
-          git add platform/shared/.sdk_version
-          git \
-            -c author.name="${{ github.actor }}" \
-            -c author.email="${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com" \
-            -c user.name="GitHub Action" \
-            -c user.email="noreply@github.com" \
-            commit \
-            -m 'Update SDK version to ${{ inputs.version }}'
-          git push origin "HEAD:refs/heads/main"
+          content=$(echo -n "$VERSION" | base64)
+          sha=$(gh api \
+            repos/${GITHUB_REPOSITORY}/contents/platform/shared/.sdk_version \
+            -q .sha || true)
+
+          gh api \
+            --method PUT \
+            repos/${GITHUB_REPOSITORY}/contents/platform/shared/.sdk_version \
+            -f message="Update SDK version to ${VERSION}" \
+            -f content="${content}" \
+            -f sha="${sha}" \
+            -f branch="main"
 
         # Upload artifacts to the newly created release.
         # Prefix release version with "v".
