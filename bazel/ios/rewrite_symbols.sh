@@ -46,6 +46,10 @@ fi
 
 for binary in $(find $framework_to_rewrite -type f -name $framework_name);
 do
+  # NOTE: Apple broke their bitcode_strip tool and it's trying to open a `strip` file
+  touch strip
+  xcrun bitcode_strip -r "$binary" -o "$binary"
+
   if $LIPO -info $binary | grep -q x86_64; then
     x86_slice=$(mktemp -d)/$framework_name
     arm_slice=$(mktemp -d)/$framework_name
@@ -60,8 +64,4 @@ do
   else
     remove_rmeta "$binary"
   fi
-
-  # NOTE: Apple broke their bitcode_strip tool and it's trying to open a `strip` file
-  touch strip
-  xcrun bitcode_strip -r "$binary" -o "$binary"
 done
