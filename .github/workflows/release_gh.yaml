@@ -111,8 +111,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
-
+          ref: ${{ inputs.sha }}
       # Download all artifacts to current working directory
       - name: Download Android Capture artifacts
         uses: actions/download-artifact@v4
