@@ -36,9 +36,16 @@ pkg_zip(
     srcs = [
         ":ios_xcframework_with_rust_symbols",
         ":license",
-        "//platform/swift/source:Capture.doccarchive",
     ],
     out = "Capture.ios.zip",
+    tags = ["local"],
+    visibility = ["//visibility:public"],
+)
+
+pkg_zip(
+    name = "ios_doccarchive",
+    srcs = ["//platform/swift/source:Capture.doccarchive"],
+    out = "Capture.doccarchive.ios.zip",
     tags = ["local"],
     visibility = ["//visibility:public"],
 )

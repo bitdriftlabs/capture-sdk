@@ -1,10 +1,10 @@
 #!/bin/bash
 
-set -euxo pipefail
+set -euo pipefail
 
-AR=$(xcrun --find ar)
-LIPO=$(xcrun --find lipo)
-RANLIB=$(xcrun --find ranlib)
+: "${AR:?AR is not set or empty}"
+: "${RANLIB:?RANLIB is not set or empty}"
+: "${LIPO:?LIPO is not set or empty}"
 
 # Ensure that ar/ranlib creates deterministic archives.
 export ZERO_AR_DATE=1
@@ -13,7 +13,7 @@ remove_rmeta () {
   local -r bin="$1"
 
   if $AR t "$bin"| grep "lib\.r"; then
-    $AR d "$bin" $($AR t "$bin"| grep "lib\.r")
+    $AR dD "$bin" $($AR t "$bin"| grep "lib\.r")
   fi
 
   # Do not exit on error.
@@ -31,6 +31,7 @@ remove_rmeta () {
   # Revert back to previous behavior: exit on error.
   set -e
 
+  $RANLIB -D "$bin"
   return 0
 }
 
@@ -46,7 +47,11 @@ fi
 
 for binary in $(find $framework_to_rewrite -type f -name $framework_name);
 do
-  if $LIPO -info $binary | grep -q x86_64; then
+  # NOTE: Apple broke their bitcode_strip tool and it's trying to open a `strip` file
+  touch strip
+  xcrun bitcode_strip -r "$binary" -o "$binary" > /dev/null 2>&1
+
+  if file -b -- "$binary" | grep -q 'x86_64'; then
     x86_slice=$(mktemp -d)/$framework_name
     arm_slice=$(mktemp -d)/$framework_name
     $LIPO -thin x86_64 "$binary" -output "$x86_slice"
@@ -56,12 +61,7 @@ do
     remove_rmeta "$arm_slice"
 
     $LIPO -create "$x86_slice" "$arm_slice" -output "$binary"
-    $RANLIB "$binary"
   else
     remove_rmeta "$binary"
   fi
-
-  # NOTE: Apple broke their bitcode_strip tool and it's trying to open a `strip` file
-  touch strip
-  xcrun bitcode_strip -r "$binary" -o "$binary"
 done
