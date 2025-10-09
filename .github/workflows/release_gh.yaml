@@ -105,47 +105,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # Download all artifacts to current working directory
-      - name: Download Android Capture artifacts
+      - name: Download All artifacts
         uses: actions/download-artifact@v4
         with:
-          name: Capture.android.zip
-      - name: Download Android Example Apps
-        uses: actions/download-artifact@v4
-        with:
-          name: Android Example Apps
-      - name: Download Android Timber Integration
-        uses: actions/download-artifact@v4
-        with:
-          name: capture-timber-${{ inputs.version }}.android.zip
-      - name: Download Android Apollo Integration
-        uses: actions/download-artifact@v4
-        with:
-          name: capture-apollo-${{ inputs.version }}.android.zip
-      - name: Download Android Plugin Integration
-        uses: actions/download-artifact@v4
-        with:
-          name: capture-plugin-${{ inputs.version }}.android.zip
-      - name: Download Android Plugin Marker
-        uses: actions/download-artifact@v4
-        with:
-          name: capture-plugin-marker-${{ inputs.version }}.android.zip
+          merge-multiple: true
       - name: Prepare Android artifacts
         run: ./ci/gh_prepare_android_artifacts.sh "$VERSION"
         env:
           VERSION: ${{ inputs.version }}
-      - name: Download iOS Capture artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: Capture.ios.zip
-      - name: Download iOS Example Apps
-        uses: actions/download-artifact@v4
-        with:
-          name: iOS Example Apps
       - name: Prepare iOS artifacts
         run: mv Capture.ios.zip Capture-$VERSION.ios.zip
         env:
           VERSION: ${{ inputs.version }}
-
       - name: 'Create Github Token'
         if: ${{ github.ref_name == 'main' }}
         id: org-pr-create-token
@@ -182,6 +153,7 @@ jobs:
             --target "$GITHUB_REF_NAME" \
             --generate-notes \
             "Capture-$VERSION.ios.zip" \
+            "Capture-$VERSION.doccarchive.ios.zip" \
             "Capture-$VERSION.android.zip" \
             "example-apps.ios.zip" \
             "example-apps.android.zip" \
