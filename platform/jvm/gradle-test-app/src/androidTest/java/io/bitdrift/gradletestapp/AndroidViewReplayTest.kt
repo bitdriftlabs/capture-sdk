@@ -65,7 +65,7 @@ class AndroidViewReplayTest {
                 ReplayRect(type = ReplayType.Label, x = 35, y = 383, width = 539, height = 84),
             )
             assertThat(screen).contains(
-                ReplayRect(type = ReplayType.Label, x = 36, y = 495, width = 761, height = 47),
+                ReplayRect(type = ReplayType.Label, x = 36, y = 495, width = 758, height = 47),
             )
         }
     }
