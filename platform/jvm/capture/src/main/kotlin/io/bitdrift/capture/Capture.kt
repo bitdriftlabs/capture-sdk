@@ -7,7 +7,9 @@
 
 package io.bitdrift.capture
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.system.Os
 import android.util.Log
 import io.bitdrift.capture.Capture.Logger.startSpan
 import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
@@ -21,6 +23,7 @@ import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.utils.BuildTypeChecker
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -523,6 +526,35 @@ object Capture {
         private fun hasInvalidContext(context: Context? = null) = context == null && !ContextHolder.isInitialized
     }
 
+    /**
+     * Usage: adb shell setprop debug.bitdrift.internal_log_level debug
+     * Sets up the internal logging level for the rust library. This is done by reading a system
+     * property and propagating it as an environment variable within the same process.
+     * It swallows any failures and sets default to "info".
+     */
+    @Suppress("SpreadOperator")
+    @SuppressLint("PrivateApi")
+    private fun setUpInternalLogging(context: Context) {
+        if (BuildTypeChecker.isDebuggable(context)) {
+            val defaultLevel = "info"
+            runCatching {
+                // TODO(murki): Alternatively we could use JVM -D arg to pass properties
+                //  that can be read via System.getProperty() but that's less Android-idiomatic
+                // We follow the firebase approach https://firebase.google.com/docs/analytics/debugview#android
+                // We call the internal API android.os.SystemProperties.get(key, default) using reflection
+                Class
+                    .forName("android.os.SystemProperties")
+                    .getMethod("get", *arrayOf(String::class.java, String::class.java))
+                    .invoke(null, *arrayOf("debug.bitdrift.internal_log_level", defaultLevel)) as? String
+            }.getOrNull().let {
+                val internalLogLevel = it ?: defaultLevel
+                runCatching {
+                    Os.setenv("RUST_LOG", internalLogLevel, true)
+                }
+            }
+        }
+    }
+
     private fun initSdk(
         apiKey: String,
         sessionStrategy: SessionStrategy,
@@ -542,6 +574,10 @@ object Capture {
             }
 
             val appContext = ContextHolder.APP_CONTEXT
+
+            // This needs to happen before loading the native library as we set
+            // up logging during library initialization.
+            setUpInternalLogging(appContext)
 
             val nativeLoadDuration =
                 measureTime {

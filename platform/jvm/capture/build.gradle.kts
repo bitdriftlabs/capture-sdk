@@ -100,7 +100,15 @@ cargoNdk {
                 "-Z", "build-std=std,panic_abort",
                 "-Z", "build-std-features=optimize_for_size,panic_immediate_abort",
             )
-        }
+            // Annoyingly we have to repeat all the flags for the release build as
+            // the RUSTFLAGS values are not added together.
+            // TODO(snowp): See if we can make this a bit better
+            // enable 16 KB ELF alignment on Android to support API 35+
+            extraCargoEnv = mapOf(
+              "RUSTFLAGS" to "-C link-args=-Wl,-z,max-page-size=16384,--build-id -C codegen-units=1 -C embed-bitcode -C lto=fat -C opt-level=z",
+              "RUSTC_BOOTSTRAP" to "1" // Required for using unstable features in the Rust compiler
+            )
+          }
 
         getByName("debug") {
             buildType = "dev"
@@ -113,7 +121,7 @@ cargoNdk {
     targets = arrayListOf("arm64")
     // enable 16 KB ELF alignment on Android to support API 35+
     extraCargoEnv = mapOf(
-      "RUSTFLAGS" to "-C codegen-units=1 -C embed-bitcode -C lto=fat -C opt-level=z -C link-args=-Wl,-z,max-page-size=16384,--build-id",
+      "RUSTFLAGS" to "-C link-args=-Wl,-z,max-page-size=16384,--build-id",
       "RUSTC_BOOTSTRAP" to "1" // Required for using unstable features in the Rust compiler
     )
 }
