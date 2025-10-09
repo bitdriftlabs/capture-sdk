@@ -171,7 +171,7 @@ maven.install(
         "org.jetbrains.kotlin:kotlin-stdlib:{}".format(KOTLIN_STD_VERSION),
         "androidx.emoji2:emoji2:1.5.0",
         "androidx.collection:collection:1.4.5",
-        "androidx.metrics:metrics-performance:1.0.0-beta04",
+        "androidx.metrics:metrics-performance:1.0.0-beta02",
         "com.google.flatbuffers:flatbuffers-java:25.2.10",
         "com.google.protobuf:protobuf-kotlin-lite:4.31.1",
 
