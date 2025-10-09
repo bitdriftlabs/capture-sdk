@@ -31,6 +31,9 @@ static FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 static BINARY_FIELD_BYTE_ARRAY: OnceLock<CachedMethod> = OnceLock::new();
 static STRING_FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 
+static FEATURE_FLAG_GET_FLAG: OnceLock<CachedMethod> = OnceLock::new();
+static FEATURE_FLAG_GET_VARIANT: OnceLock<CachedMethod> = OnceLock::new();
+
 pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   let field_class = initialize_class(env, "io/bitdrift/capture/providers/Field", None)?;
   initialize_method_handle(
@@ -81,6 +84,21 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
     "getStringValue",
     "()Ljava/lang/String;",
     &STRING_FIELD_STRING,
+  )?;
+
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/FeatureFlag",
+    "getFlag",
+    "()Ljava/lang/String;",
+    &FEATURE_FLAG_GET_FLAG,
+  )?;
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/FeatureFlag",
+    "getVariant",
+    "()Ljava/lang/String;",
+    &FEATURE_FLAG_GET_VARIANT,
   )?;
 
   Ok(())
@@ -236,16 +254,20 @@ pub(crate) fn jobject_list_to_feature_flags(
     let obj: AutoLocal<'_, JObject<'_>> = env.auto_local(obj);
 
     // Get flag name
-    let flag_obj = env
-      .call_method(&obj, "getFlag", "()Ljava/lang/String;", &[])?
+    let flag_obj = FEATURE_FLAG_GET_FLAG
+      .get()
+      .ok_or(InvariantError::Invariant)?
+      .call_method(env, &obj, ReturnType::Object, &[])?
       .l()?;
     let flag = unsafe { env.get_string_unchecked(&flag_obj.into()) }?
       .to_string_lossy()
       .to_string();
 
     // Get variant (which can be null)
-    let variant_obj = env
-      .call_method(&obj, "getVariant", "()Ljava/lang/String;", &[])?
+    let variant_obj = FEATURE_FLAG_GET_VARIANT
+      .get()
+      .ok_or(InvariantError::Invariant)?
+      .call_method(env, &obj, ReturnType::Object, &[])?
       .l()?;
     let variant = if variant_obj.is_null() {
       None
