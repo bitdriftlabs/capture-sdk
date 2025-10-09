@@ -74,17 +74,17 @@ internal class ClientAttributes(
 
     private val cachedAttributes by lazy {
         mutableMapOf(
-            // The package name which identifies the running app (e.g. me.foobar.android)
+            // The package name which identifies the running app (e.g. me.foobar.android).
             "app_id" to appId,
             // Operating system. Always Android for this code path.
             "os" to "Android",
-            // The operating system version (e.g. 12.1)
+            // The operating system version (e.g. 12.1).
             "os_version" to osVersion,
-            // Device model name
+            // Device model name.
             "model" to model,
-            // The SDK level (e.g. 35)
+            // The SDK level (e.g. 35).
             "_os_api_level" to osApiLevel.toString(),
-            // The version of this package, as specified by the manifest's `versionName` attribute
+            // The version of this package, as specified by the manifest's `versionName` attribute.
             // (e.g. 1.2.33).
             "app_version" to appVersion,
             // A positive integer used as an internal version number.
