@@ -283,10 +283,9 @@ object Capture {
         }
 
         /**
-         * Sets a feature flag with an optional variant.
+         * Sets multiple feature flags with optional variants.
          *
-         * @param flag the name of the flag to set
-         * @param variant an optional variant
+         * @param flags the flags to set
          */
         @JvmStatic
         @ExperimentalBitdriftApi
@@ -295,6 +294,20 @@ object Capture {
             variant: String? = null,
         ) {
             logger()?.setFeatureFlag(flag, variant)
+        }
+
+        /**
+         * Sets a feature flag with an optional variant.
+         *
+         * @param flag the name of the flag to set
+         * @param variant an optional variant
+         */
+        @JvmStatic
+        @ExperimentalBitdriftApi
+        fun setFeatureFlags(
+            flags: List<FeatureFlag>,
+        ) {
+            logger()?.setFeatureFlags(flags)
         }
 
         /**
