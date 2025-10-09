@@ -21,11 +21,8 @@ jobs:
         run: |
           echo "$VERSION"
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+(\.[0-9]+)?)?$ ]]; then exit 1; fi
-      - name: Print entered "sha"
-        run: echo "$SHA"
     env:
       VERSION: ${{ inputs.version }}
-      SHA: ${{ inputs.sha }}
   # The iOS release build builds the xcframework in release mode and uploads it to the artifact store for later use.
   ios-release-build:
     name: Capture.xcframework with artifacts
@@ -33,8 +30,6 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.sha }}
       - name: 'Update the content of platform/shared/.sdk_version'
         run: echo -n "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: 'Install dependencies'
@@ -57,8 +52,6 @@ jobs:
     permissions:
       contents: write
     uses: ./.github/workflows/example_apps_ios.yaml
-    with:
-      sha: ${{ inputs.sha }}
     secrets: inherit
 
   # The Android release build builds capture.aar and accompanying artifacts, like the .pom xml and the symbols corresponding to the .so.
@@ -69,8 +62,6 @@ jobs:
     steps:
       # Checkout repo to Github Actions runner
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.sha }}
       - name: 'Update the content of platform/shared/.sdk_version'
         run: echo -n "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: Install Clang
@@ -88,8 +79,6 @@ jobs:
     permissions:
       contents: write
     uses: ./.github/workflows/example_apps_android.yaml
-    with:
-      sha: ${{ inputs.sha }}
     secrets: inherit
   build-android-integrations:
     name: Build Android Integrations
@@ -115,8 +104,6 @@ jobs:
     ]
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.sha }}
       # Download all artifacts to current working directory
       - name: Download Android Capture artifacts
         uses: actions/download-artifact@v4
