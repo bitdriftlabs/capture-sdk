@@ -114,8 +114,6 @@ internal class LoggerImpl(
     internal val loggerId: LoggerId
 
     init {
-        setUpInternalLogging(context)
-
         this.sessionUrlBase =
             HttpUrl
                 .Builder()
