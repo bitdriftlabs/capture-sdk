@@ -426,7 +426,7 @@ extension Logger {
 
     /// Removes a feature flag.
     ///
-    /// - parameter flag: The name of the flag to remove
+    /// - parameter flag: The name of the flag to remove.
     public static func removeFeatureFlag(withFlag flag: String) {
         Self.getShared()?.removeFeatureFlag(withFlag: flag)
     }
