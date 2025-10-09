@@ -162,8 +162,8 @@ internal class AppExitLogger(
 
         while (currentThrowable.cause != null) {
             val nextThrowable = currentThrowable.cause!!
-            val isAlreadySeen = seenThrowables.add(nextThrowable)
-            if (!isAlreadySeen) {
+            val isAlreadySeen = !seenThrowables.add(nextThrowable)
+            if (isAlreadySeen) {
                 break
             }
             currentThrowable = nextThrowable
