@@ -1,28 +1,9 @@
 name: Build Android example apps
 on:
   workflow_dispatch:
-    inputs:
-      sha:
-        description: '[Optional] Commit SHA1, branch or tag to build. The latest SHA1 on a given branch is used if no value is provided.'
-        required: false
-        type: string
   workflow_call:
-    inputs:
-      sha:
-        description: '[Optional] Commit SHA1, branch or tag to build. The latest SHA1 on a given branch is used if no value is provided.'
-        required: false
-        type: string
 
 jobs:
-  print_arguments:
-    name: Print arguments
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print entered "sha"
-        run: echo "$SHA"
-    env:
-      SHA: ${{ inputs.sha }}
-
   build:
     name: Build & upload
     runs-on: ubuntu-latest
@@ -39,7 +20,7 @@ jobs:
     - name: Setup Android cmd line tools + NDK
       uses: ./.github/actions/common-android-setup
     - name: Accept Android SDK licenses
-      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses    
+      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
     - name: Install Rust target
       run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
     - name: Build Android example app

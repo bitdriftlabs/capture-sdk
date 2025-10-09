@@ -7,10 +7,6 @@ on:
         description: 'The new version to release, ex: 0.12.0'
         required: true
         type: string
-      sha:
-        description: '[Optional] Commit SHA1, branch or tag to build. The latest SHA1 on a given branch is used if no value is provided.'
-        required: false
-        type: string
       emergency:
         type: boolean
         description: Ignore main branch requirement (SOC2 compliance)
@@ -22,7 +18,6 @@ jobs:
     uses: ./.github/workflows/release_gh.yaml
     with:
       version: ${{ inputs.version }}
-      sha: ${{ inputs.sha }}
     secrets: inherit
   public-release:
     permissions:
