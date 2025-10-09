@@ -9,7 +9,6 @@ package io.bitdrift.capture.events.performance
 
 import android.app.ActivityManager
 import android.os.Debug
-import io.bitdrift.capture.common.RuntimeFeature
 
 private const val KB = 1024L
 
@@ -18,18 +17,13 @@ internal class MemoryMetricsProvider(
 ) : IMemoryMetricsProvider {
     var runtime: io.bitdrift.capture.common.Runtime? = null
 
+    private val memoryInfo: ActivityManager.MemoryInfo by lazy {
+        ActivityManager.MemoryInfo()
+    }
+
     // We only save the threshold on first access since it's a constant value obtained via a rather expensive Binder call
     private val memoryThresholdBytes: Long by lazy {
-        return@lazy if (runtime?.isEnabled(RuntimeFeature.APP_MEMORY_PRESSURE) != false) {
-            ActivityManager
-                .MemoryInfo()
-                .also { memoryInfo ->
-                    activityManager.getMemoryInfo(memoryInfo)
-                }.threshold
-        } else {
-            // Use sentinel value
-            Long.MAX_VALUE
-        }
+        getCurrentMemoryInfo().threshold
     }
 
     override fun getMemoryAttributes(): Map<String, String> =
@@ -40,18 +34,13 @@ internal class MemoryMetricsProvider(
             put("_native_used_kb", allocatedNativeHeapSizeBytes().bToKb())
             put("_native_total_kb", totalNativeHeapSizeBytes().bToKb())
             put("_memory_class", memoryClassMB().toString())
-            memoryThresholdBytes.takeIf { it != Long.MAX_VALUE }?.let {
-                put("_threshold_mem_kb", memoryThresholdBytes.bToKb())
-                put("_is_memory_low", if (isMemoryLow()) "1" else "0")
-            }
+            put("_threshold_mem_kb", memoryThresholdBytes.bToKb())
+            put("_is_memory_low", if (isMemoryLow()) "1" else "0")
         }
 
     override fun getMemoryClass(): Map<String, String> = buildMap { put("_memory_class", memoryClassMB().toString()) }
 
-    override fun isMemoryLow(): Boolean {
-        val totalUsedMemoryByApp = usedJvmMemoryBytes() + allocatedNativeHeapSizeBytes()
-        return totalUsedMemoryByApp > memoryThresholdBytes
-    }
+    override fun isMemoryLow(): Boolean = availableDeviceMemory() <= memoryThresholdBytes
 
     private fun Long.bToKb(): String = (this / KB).toString()
 
@@ -66,4 +55,11 @@ internal class MemoryMetricsProvider(
     private fun totalNativeHeapSizeBytes(): Long = Debug.getNativeHeapSize()
 
     private fun memoryClassMB(): Int = activityManager.memoryClass
+
+    private fun availableDeviceMemory(): Long = getCurrentMemoryInfo().availMem
+
+    private fun getCurrentMemoryInfo(): ActivityManager.MemoryInfo {
+        activityManager.getMemoryInfo(memoryInfo)
+        return memoryInfo
+    }
 }
