@@ -18,6 +18,8 @@ import android.net.NetworkCapabilities
 import android.net.NetworkCapabilities.TRANSPORT_CELLULAR
 import android.net.NetworkCapabilities.TRANSPORT_ETHERNET
 import android.net.NetworkCapabilities.TRANSPORT_WIFI
+import android.net.NetworkRequest
+import android.os.Build
 import android.telephony.TelephonyManager
 import android.telephony.TelephonyManager.NETWORK_TYPE_EDGE
 import android.telephony.TelephonyManager.NETWORK_TYPE_GPRS
@@ -88,7 +90,12 @@ internal class NetworkAttributes(
                 connectivityManager.activeNetwork?.let { network ->
                     updateNetworkType(connectivityManager.getNetworkCapabilities(network))
                 }
-                connectivityManager.registerDefaultNetworkCallback(this)
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+                    // TODO(BIT-6619): Remove registerNetworkCallback once we have a min api level of 24+
+                    connectivityManager.registerNetworkCallback(NetworkRequest.Builder().build(), this)
+                } else {
+                    connectivityManager.registerDefaultNetworkCallback(this)
+                }
             } catch (e: Throwable) {
                 // Issue with some versions of Android: https://issuetracker.google.com/issues/175055271
                 updateNetworkType(NetworkCapabilities(null))
