@@ -30,8 +30,7 @@ build:android --android_crosstool_top=@androidndk//:toolchain
 # https://github.com/bazelbuild/rules_rust/issues/3627
 build:ios --config=fake-nightly
 build:ios --@rules_rust//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols
-build:_rules_xcodeproj_build --config=fake-nightly
-build:_rules_xcodeproj_build --@rules_rust//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols
+build:_rules_xcodeproj_build --config=ios
 
 build --@rules_rust//rust/settings:rustfmt.toml=//:rustfmt.toml
 build --@rules_rust//rust/settings:clippy.toml=//:.clippy.toml
@@ -57,6 +56,7 @@ build:ci --define build_config=ci
 build:dbg-common --compilation_mode=opt
 build:dbg-common --config=abort-panic
 
+build:dbg-ios --config=ios
 build:dbg-ios --config=dbg-common
 
 # Ensure that the output of the `ios_static_framework` rule is a zip as opposed to an unzipped
