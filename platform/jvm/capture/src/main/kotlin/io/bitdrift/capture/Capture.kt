@@ -301,9 +301,7 @@ object Capture {
          */
         @JvmStatic
         @ExperimentalBitdriftApi
-        fun setFeatureFlags(
-            flags: List<FeatureFlag>,
-        ) {
+        fun setFeatureFlags(flags: List<FeatureFlag>) {
             logger()?.setFeatureFlags(flags)
         }
 
