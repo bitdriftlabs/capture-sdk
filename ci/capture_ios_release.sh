@@ -29,8 +29,8 @@ function prepare_and_upload_library_artifacts() {
   echo "+++ Preparing $library artifacts"
 
   # For legacy reasons we publish these artifacts without the `.ios` suffix.
-  mv "$library.doccarchive.ios.zip" "$library.doccarchive.zip"
-  mv "$library.ios.zip" "$library.zip"
+  mv "$library-$version.doccarchive.ios.zip" "$library.doccarchive.zip"
+  mv "$library-$version.ios.zip" "$library.zip"
 
   files=(\
     "$library.doccarchive.zip" \
