@@ -17,8 +17,8 @@ def _rewrite_xcframework_impl(ctx):
         outputs = [outdir],
         env = {
             "AR": ctx.executable.ar.path,
-            "RANLIB": ctx.executable.ranlib.path,
             "LIPO": ctx.executable.lipo.path,
+            "RANLIB": ctx.executable.ranlib.path,
         },
         command = """
 set -euo pipefail
@@ -36,9 +36,6 @@ rsync -a "$DIR/" "{outdir}/"
 rewrite_xcframework = rule(
     implementation = _rewrite_xcframework_impl,
     attrs = {
-        "framwork_name": attr.string(default = "Capture"),
-        "rewrite_tool": attr.label(executable = True, cfg = "exec"),
-        "xcframework": attr.label(allow_single_file = [".zip"]),
 
         # Defaults wired to toolchains_llvm’s unpacked distro repo:
         # @llvm_toolchain_llvm//:bin/<tool>
@@ -48,17 +45,20 @@ rewrite_xcframework = rule(
             cfg = "exec",
             default = Label("@llvm_toolchain_llvm//:bin/llvm-ar"),
         ),
-        "ranlib": attr.label(
-            allow_single_file = True,
-            executable = True,
-            cfg = "exec",
-            default = Label("@llvm_toolchain_llvm//:bin/llvm-ranlib"),
-        ),
+        "framwork_name": attr.string(default = "Capture"),
         "lipo": attr.label(
             allow_single_file = True,
             executable = True,
             cfg = "exec",
             default = Label("@llvm_toolchain_llvm//:bin/llvm-lipo"),
         ),
+        "ranlib": attr.label(
+            allow_single_file = True,
+            executable = True,
+            cfg = "exec",
+            default = Label("@llvm_toolchain_llvm//:bin/llvm-ranlib"),
+        ),
+        "rewrite_tool": attr.label(executable = True, cfg = "exec"),
+        "xcframework": attr.label(allow_single_file = [".zip"]),
     },
 )

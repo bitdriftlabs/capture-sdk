@@ -386,10 +386,9 @@ crate.annotation(
 )
 use_repo(crate, "crates")
 
-
 # Register the LLVM toolchain for hermetic builds.
 llvm = use_extension("@toolchains_llvm//toolchain/extensions:llvm.bzl", "llvm")
 llvm.toolchain(
-   llvm_version = "20.1.4",
+    llvm_version = "20.1.4",
 )
 use_repo(llvm, "llvm_toolchain_llvm")
