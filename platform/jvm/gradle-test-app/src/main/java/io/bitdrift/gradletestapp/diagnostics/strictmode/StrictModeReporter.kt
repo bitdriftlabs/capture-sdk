@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.gradletestapp
+package io.bitdrift.gradletestapp.diagnostics.strictmode
 
 import android.os.Build
 import android.os.strictmode.Violation

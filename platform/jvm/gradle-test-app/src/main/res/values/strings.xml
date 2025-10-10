@@ -2,28 +2,42 @@
     <string name="app_name">Gradle Test App</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
-    <string name="first_fragment_label">First Fragment</string>
+    <string name="first_fragment_label">Capture SDK Gradle Test App</string>
     <string name="second_fragment_label">Second Fragment</string>
     <string name="web_view_fragment_label">WebView Fragment</string>
-    <string name="config_fragment_label">Configuration Settings Fragment</string>
+    <string name="config_fragment_label">Settings</string>
     <string name="navigate_config">Navigate to Configuration</string>
     <string name="okhttp">Perform OkHttp Request</string>
     <string name="graphql">Perform Apollo GraphQL Request</string>
     <string name="compat_multiline_txt">Text Label on AppCompatTextView\nSecond Line on same Text Label</string>
     <string name="log_msg">Log Message</string>
     <string name="app_exit">Force App Exit</string>
-    <string name="navigate_second">Navigate to Compose Screen</string>
-    <string name="navigate_to_web_view">Open WebView</string>
+    <string name="navigate_second">Compose</string>
+    <string name="navigate_to_web_view">WebView</string>
+    <string name="navigate_to_xml_view">XML</string>
     <string name="previous">Navigate Back</string>
     <string name="log_level_label">Log Level</string>
-
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
-    <string name="switch_app_theme">Switch App Theme</string>
-
     <string name="copy_session_url">Copy Session URL</string>
     <string name="start_new_session">Start New Session</string>
     <string name="generate_temp_device_code">Generate Temporary Device Code</string>
     <string name="no_code_generated">No Code Generated</string>
     <string name="start_sdk">Start SDK</string>
     <string name="sdk_not_started">SDK not started - Click on Start SDK Button</string>
+    <string name="sdk_status">SDK Status</string>
+    <string name="session_management">Session Management</string>
+    <string name="session_strategy">Session Strategy</string>
+    <string name="session_id">Session ID</string>
+    <string name="exit_reason">Exit Reason</string>
+    <string name="text_copy">Copy</string>
+    <string name="copy_url">Copy URL</string>
+    <string name="new_session">New Session</string>
+    <string name="generate_device_code">Generate Device Code</string>
+    <string name="network_testing">Network Testing</string>
+    <string name="navigation">Navigation to other screens</string>
+    <string name="started">Started</string>
+    <string name="not_started">Not Started</string>
+    <string name="testing_tools">Log Level and Fatal Issue Testing</string>
+    <string name="device_code_valid">Device code: Valid</string>
+    <string name="device_code_invalid">Device code: Invalid</string>
 </resources>

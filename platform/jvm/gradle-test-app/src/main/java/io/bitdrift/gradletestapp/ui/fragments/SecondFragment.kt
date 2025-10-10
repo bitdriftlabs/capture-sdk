@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.gradletestapp
+package io.bitdrift.gradletestapp.ui.fragments
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -15,6 +15,8 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import io.bitdrift.gradletestapp.R
+import io.bitdrift.gradletestapp.ui.compose.SecondScreen
 import io.bitdrift.gradletestapp.databinding.FragmentSecondBinding
 import timber.log.Timber
 

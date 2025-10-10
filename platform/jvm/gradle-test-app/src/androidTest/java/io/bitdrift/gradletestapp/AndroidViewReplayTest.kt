@@ -18,6 +18,7 @@ import io.bitdrift.capture.replay.ReplayPreviewClient
 import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import io.bitdrift.capture.replay.internal.ReplayRect
+import io.bitdrift.gradletestapp.ui.fragments.FirstFragment
 import org.junit.Before
 import org.junit.Test
 import java.util.concurrent.CountDownLatch

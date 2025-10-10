@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.gradletestapp
+package io.bitdrift.gradletestapp.ui.compose.components
 
 import android.content.SharedPreferences
 import android.os.Bundle
@@ -47,6 +47,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.DialogFragment
+import io.bitdrift.gradletestapp.R
 
 class SettingsApiKeysDialogFragment(
     private val sharedPreferences: SharedPreferences,
@@ -72,17 +73,14 @@ class SettingsApiKeysDialogFragment(
     ) {
         fun getCurrentApiKeyValue(key: String) = mutableStateOf(TextFieldValue(sharedPreferences.getString(key, "") ?: ""))
 
-        var captureSdkApiKey by remember { getCurrentApiKeyValue(BITDRIFT_API_KEY) }
         var bugSnagSdkApiKey by remember { getCurrentApiKeyValue(BUG_SNAG_SDK_API_KEY) }
         var sentrySdkDsnKey by remember { getCurrentApiKeyValue(SENTRY_SDK_DSN_KEY) }
         val localSoftwareKeyboardController = LocalSoftwareKeyboardController.current
 
         fun persistApiKeysAndDismiss() {
-            val captureSdkApiKeyTrimmed = captureSdkApiKey.text.trim()
             val bugSnagSdkApiKeyTrimmed = bugSnagSdkApiKey.text.trim()
             val sentrySdkApiKeyTrimmed = sentrySdkDsnKey.text.trim()
             with(sharedPreferences.edit()) {
-                putString(BITDRIFT_API_KEY, captureSdkApiKeyTrimmed)
                 putString(BUG_SNAG_SDK_API_KEY, bugSnagSdkApiKeyTrimmed)
                 putString(SENTRY_SDK_DSN_KEY, sentrySdkApiKeyTrimmed)
                 apply()
@@ -111,13 +109,6 @@ class SettingsApiKeysDialogFragment(
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState()),
                 ) {
-                    ApiKeyTextField(
-                        value = captureSdkApiKey,
-                        onValueChange = { captureSdkApiKey = it },
-                        label = "Bitdrift API key",
-                        onDoneAction = { persistApiKeysAndDismiss() },
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
                     ApiKeyTextField(
                         value = bugSnagSdkApiKey,
                         onValueChange = { bugSnagSdkApiKey = it },
@@ -177,7 +168,6 @@ class SettingsApiKeysDialogFragment(
     }
 
     companion object {
-        const val BITDRIFT_API_KEY = "capture_sdk_api_key"
         const val BUG_SNAG_SDK_API_KEY = "bugsnag_sdk_api_key"
         const val SENTRY_SDK_DSN_KEY = "sentry_sdk_dsn_key"
     }
