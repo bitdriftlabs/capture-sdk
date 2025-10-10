@@ -38,7 +38,7 @@ def _sources_javadocs_impl(ctx):
 
         original_directory=$PWD
         cd $tmp_dir
-        find . -type f | sort > $original_directory/filelist.txt
+        find . -type f -print | sed 's#^\./##' | sort > $original_directory/filelist.txt
         "$zipper" c "$original_directory/$output_jar" @$original_directory/filelist.txt
         """,
         arguments = [
