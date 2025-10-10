@@ -55,7 +55,6 @@ bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "protobuf", version = "29.3")
 bazel_dep(name = "rules_rust", version = "0.65.0")
 bazel_dep(name = "rules_shell", version = "0.4.0")
-bazel_dep(name = "toolchains_llvm", version = "1.5.0")
 
 # Required by android_artifacts for pom_file, it's not in bazel central registry
 bazel_dep(name = "google_bazel_common", version = "0.0.1")
@@ -385,10 +384,3 @@ crate.annotation(
     ],
 )
 use_repo(crate, "crates")
-
-# Register the LLVM toolchain for hermetic builds.
-llvm = use_extension("@toolchains_llvm//toolchain/extensions:llvm.bzl", "llvm")
-llvm.toolchain(
-    llvm_version = "20.1.4",
-)
-use_repo(llvm, "llvm_toolchain_llvm")
