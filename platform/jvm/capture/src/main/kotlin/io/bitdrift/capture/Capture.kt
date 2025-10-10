@@ -527,16 +527,20 @@ object Capture {
     }
 
     /**
-     * Usage: adb shell setprop debug.bitdrift.internal_log_level debug
-     * Sets up the internal logging level for the rust library. This is done by reading a system
+     * Usage: adb shell setprop debug.bitdrift.internal_rust_log debug
+     * Sets up the internal logging filter for the rust library. This is done by reading a system
      * property and propagating it as an environment variable within the same process.
      * It swallows any failures and sets default to "info".
+     *
+     * This supports normal rust log filters, so for example so look at trace logs for only bd
+     * crates to:
+     * adb shell setprop debug.bitdrift.internal_rust_log info,bd=trace
      */
     @Suppress("SpreadOperator")
     @SuppressLint("PrivateApi")
     private fun setUpInternalLogging(context: Context) {
         if (BuildTypeChecker.isDebuggable(context)) {
-            val defaultLevel = "info"
+            val defaultRustLog = "info"
             runCatching {
                 // TODO(murki): Alternatively we could use JVM -D arg to pass properties
                 //  that can be read via System.getProperty() but that's less Android-idiomatic
@@ -545,11 +549,11 @@ object Capture {
                 Class
                     .forName("android.os.SystemProperties")
                     .getMethod("get", *arrayOf(String::class.java, String::class.java))
-                    .invoke(null, *arrayOf("debug.bitdrift.internal_log_level", defaultLevel)) as? String
+                    .invoke(null, *arrayOf("debug.bitdrift.internal_rust_log", defaultRustLog)) as? String
             }.getOrNull().let {
-                val internalLogLevel = it ?: defaultLevel
+                val internalRustLog = it ?: defaultRustLog
                 runCatching {
-                    Os.setenv("RUST_LOG", internalLogLevel, true)
+                    Os.setenv("RUST_LOG", internalRustLog, true)
                 }
             }
         }
