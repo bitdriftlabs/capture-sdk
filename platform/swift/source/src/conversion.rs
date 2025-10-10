@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::ffi::{make_nsstring, nsstring_into_string};
+use ahash::AHashMap;
 use bd_bonjson::Value;
 use bd_client_common::error::InvariantError;
 use objc::rc::StrongPtr;
@@ -84,7 +85,7 @@ pub(crate) unsafe fn objc_obj_class_name(s: *const Object) -> anyhow::Result<Str
 /// - `NSNumber` (unsigned integers) → `Value::Unsigned`
 /// - `NSNumber` (floating point) → `Value::Float`
 /// - `NSArray` → `Value::Array`
-/// - `NSDictionary` → `Value::Object` (`HashMap<String, Value>`)
+/// - `NSDictionary` → `Value::Object` (`AHashMap<String, Value>`)
 /// - `NSNull` → `Value::Null`
 ///
 /// # Type preference when converting numbers
@@ -152,7 +153,7 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
 
           if count > 0 {
             let map_id = get_next_id();
-            results.insert(map_id, Value::Object(HashMap::new()));
+            results.insert(map_id, Value::Object(AHashMap::new()));
             let all_keys: *const Object = msg_send![ptr, allKeys];
 
             // Add a work item to finalize the dictionary after all items are processed
@@ -179,7 +180,7 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
             }
           } else {
             // Empty dictionary
-            results.insert(result_id, Value::Object(HashMap::new()));
+            results.insert(result_id, Value::Object(AHashMap::new()));
           }
         } else if msg_send![ptr, isKindOfClass: class!(NSArray)] {
           let count: usize = msg_send![ptr, count];
