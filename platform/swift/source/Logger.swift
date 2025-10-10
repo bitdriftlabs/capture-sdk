@@ -12,7 +12,7 @@ import Foundation
 // swiftlint:disable file_length
 public final class Logger {
     enum State {
-        // The logger has not yet been started.
+        // The logger has not yet been started
         case notStarted
         // The logger has been successfully started and is ready for use.
         // Subsequent attempts to start the logger will be ignored.
