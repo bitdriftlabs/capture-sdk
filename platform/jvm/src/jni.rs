@@ -63,7 +63,7 @@ use time::{Duration, OffsetDateTime};
 // Android to avoid setting this up in JVM tests where we want to log to stderr.
 #[cfg(target_os = "android")]
 fn initialize_logging() {
-  use android_logger::Config;
+  use android_logger::{Config, FilterBuilder};
   use log::LevelFilter;
   use std::sync::Once;
 
@@ -73,13 +73,14 @@ fn initialize_logging() {
     // TODO(snowp): Ideally we use a tracing subscriber which embeds the span information like we
     // do everywhere else, as that would let us use trace spans to provide context for the logs.
     // Look into forking `tracing-android`.
-    let level = std::env::var("RUST_LOG")
-      .unwrap_or_else(|_| "info".to_string())
-      .parse::<LevelFilter>()
-      .unwrap_or(LevelFilter::Info);
+    let rust_log = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string());
 
     // This can be called only once.
-    android_logger::init_once(Config::default().with_max_level(level));
+    android_logger::init_once(
+      Config::default()
+        .with_max_level(LevelFilter::Trace)
+        .with_filter(FilterBuilder::new().parse(&rust_log).build()),
+    );
   });
 }
 
