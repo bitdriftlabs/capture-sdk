@@ -260,7 +260,7 @@ void capture_flush(logger_id logger_id, bool blocking);
 void capture_set_feature_flag(logger_id logger_id, const char *flag, const char* _Nullable variant);
 
 /*
- * Sets feature flags (with optional variants).
+ * Sets multiple feature flags.
  *
  * @param logger_id the logger to set the feature flag on.
  * @param flags the flags to set.

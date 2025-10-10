@@ -150,7 +150,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     )
 
     /**
-     * Sets multiple feature flags (with an optional variants).
+     * Sets multiple feature flags.
      *
      * @param flags the flags to set
      */

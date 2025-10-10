@@ -140,7 +140,7 @@ extension MockLoggerBridging: LoggerBridging {
 
     public func setFeatureFlag(withFlag flag: String, variant: String?) {}
 
-    public func setFeatureFlags(_ flags: [(flag: String, variant: String?)]) {}
+    public func setFeatureFlags(_ flags: [FeatureFlag]) {}
 
     public func removeFeatureFlag(withFlag flag: String) {}
 }

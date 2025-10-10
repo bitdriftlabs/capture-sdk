@@ -166,7 +166,7 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.setFeatureFlag(withFlag: flag, variant: variant)
     }
 
-    func setFeatureFlags(_ flags: [(flag: String, variant: String?)]) {
+    func setFeatureFlags(_ flags: [FeatureFlag]) {
         self.underlyingLogger.setFeatureFlags(flags)
     }
 

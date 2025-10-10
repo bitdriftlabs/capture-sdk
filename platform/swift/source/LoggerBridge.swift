@@ -240,7 +240,7 @@ final class LoggerBridge: LoggerBridging {
         capture_set_feature_flag(self.loggerID, flag, variant)
     }
 
-    func setFeatureFlags(_ flags: [(flag: String, variant: String?)]) {
+    func setFeatureFlags(_ flags: [FeatureFlag]) {
         capture_set_feature_flags(self.loggerID, flags)
     }
 

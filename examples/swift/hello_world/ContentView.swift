@@ -54,6 +54,24 @@ struct ContentView: View {
                 Button(action: { self.loggerCustomer.setFeatureFlag(flag: "MyFlag", variant: "MyVariant") }) {
                     Text("Set feature flag 'MyFlag' to 'MyVariant'").frame(maxWidth: .infinity)
                 }
+                Button(action: {
+                    var flags = [FeatureFlag]()
+                    for i in 0 ... 2000 {
+                        flags.append(FeatureFlag(name: "Flag \(i)", variant: "\(i+1)"))
+                    }
+                    self.loggerCustomer.setFeatureFlags(flags)
+                }) {
+                    Text("Set 2000 feature flags").frame(maxWidth: .infinity)
+                }
+                Button(action: {
+                    var flags = [FeatureFlag]()
+                    for i in 0 ... 10000 {
+                        flags.append(FeatureFlag(name: "Flag \(i)", variant: "\(i+1)"))
+                    }
+                    self.loggerCustomer.setFeatureFlags(flags)
+                }) {
+                    Text("Set 10000 feature flags").frame(maxWidth: .infinity)
+                }
                 Button(action: { self.loggerCustomer.removeFeatureFlag(flag: "MyFlag") }) {
                     Text("Remove feature flag 'MyFlag'").frame(maxWidth: .infinity)
                 }
