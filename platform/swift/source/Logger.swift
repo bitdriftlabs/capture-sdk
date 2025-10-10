@@ -545,7 +545,7 @@ extension Logger: Logging {
         self.underlyingLogger.setFeatureFlag(withFlag: flag, variant: variant)
     }
 
-    public func setFeatureFlags(_ flags: [(flag: String, variant: String?)]) {
+    public func setFeatureFlags(_ flags: [FeatureFlag]) {
         self.underlyingLogger.setFeatureFlags(flags)
     }
 

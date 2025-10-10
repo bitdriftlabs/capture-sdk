@@ -232,7 +232,7 @@ pub unsafe fn convert_feature_flags_array(
     let feature_flag: *const Object = msg_send![ptr, objectAtIndex: i];
 
     // Extract flag name
-    let flag_obj: *const Object = msg_send![feature_flag, flag];
+    let flag_obj: *const Object = msg_send![feature_flag, name];
     let flag = nsstring_into_string(flag_obj)?;
 
     // Extract variant (which can be nil)

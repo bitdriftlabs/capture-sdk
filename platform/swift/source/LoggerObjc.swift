@@ -38,7 +38,9 @@ public final class CAPConfiguration: NSObject {
 
 @objc
 public final class FeatureFlag: NSObject {
+    @objc
     let name: String
+    @objc
     let variant: String?
 
     @objc
@@ -414,14 +416,12 @@ public final class LoggerObjc: NSObject {
         Capture.Logger.setFeatureFlag(withFlag: flag, variant: variant)
     }
 
-    /// Sets multiple feature flags (each with a name and optional variant).
+    /// Sets multiple feature flags.
     ///
     /// - parameter flags: The flags to set
     @objc
     public static func setFeatureFlags(_ flags: [FeatureFlag]) {
-        Capture.Logger.setFeatureFlags(flags.map { flag in
-            (flag.name, flag.variant)
-        })
+        Capture.Logger.setFeatureFlags(flags)
     }
 
     /// Removes a feature flag.
