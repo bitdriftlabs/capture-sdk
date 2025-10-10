@@ -35,7 +35,7 @@ readonly install_android_sdk_packages_command=(
   "platform-tools"
   "ndk;$ndk_version"
   "platforms;android-36"
-  "build-tools;36.0.0"
+  "build-tools;36.1.0"
 )
 
 function download_android_sdk() {

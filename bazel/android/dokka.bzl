@@ -11,6 +11,7 @@ def _sources_javadocs_impl(ctx):
     output_jar = ctx.actions.declare_file("{}.jar".format(ctx.attr.name))
 
     ctx.actions.run_shell(
+        tools = [ctx.file._zipper],
         command = """
         set -euxo pipefail  # Added -x for printing commands
 
@@ -19,6 +20,7 @@ def _sources_javadocs_impl(ctx):
         plugin_classpath=$3
         sources_jar=$4
         output_jar=$5
+        zipper="$PWD/$6"
 
         sources_dir=$(mktemp -d)
         tmp_dir=$(mktemp -d)
@@ -32,11 +34,12 @@ def _sources_javadocs_impl(ctx):
             -moduleName "Capture" \
             -sourceSet "-src $sources_dir -noStdlibLink -noJdkLink" \
             -outputDir $tmp_dir > /dev/null \
-            -pluginsConfiguration "org.jetbrains.dokka.base.DokkaBase={\\"footerMessage\\": \\"© 2023 Bitdrift, Inc.\\", \\"separateInheritedMembers\\": true}"
+            -pluginsConfiguration "org.jetbrains.dokka.base.DokkaBase={\\"footerMessage\\": \\"\\u00A9 2025 bitdrift, Inc.\\", \\"separateInheritedMembers\\": true}"
 
         original_directory=$PWD
         cd $tmp_dir
-        zip -r $original_directory/$output_jar . > /dev/null
+        find . -type f | sort > $original_directory/filelist.txt
+        "$zipper" c "$original_directory/$output_jar" @$original_directory/filelist.txt
         """,
         arguments = [
             javabase.java_executable_exec_path,
@@ -44,6 +47,7 @@ def _sources_javadocs_impl(ctx):
             plugins_classpath,
             ctx.file.sources_jar.path,
             output_jar.path,
+            ctx.file._zipper.path,
         ],
         inputs = [
             ctx.file._dokka_analysis_kotlin_descriptors_jar,
@@ -91,6 +95,11 @@ sources_javadocs = rule(
         "_kotlinx_html_jar": attr.label(
             default = "@maven//:org_jetbrains_kotlinx_kotlinx_html_jvm",
             allow_single_file = True,
+        ),
+        "_zipper": attr.label(
+            default = Label("//bazel:zipper"),
+            allow_single_file = True,
+            cfg = "exec",
         ),
     },
 )
