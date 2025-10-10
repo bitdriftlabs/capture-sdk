@@ -55,7 +55,6 @@ bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "protobuf", version = "29.3")
 bazel_dep(name = "rules_rust", version = "0.65.0")
 bazel_dep(name = "rules_shell", version = "0.4.0")
-bazel_dep(name = "toolchains_llvm", version = "1.5.0")
 
 # Required by android_artifacts for pom_file, it's not in bazel central registry
 bazel_dep(name = "google_bazel_common", version = "0.0.1")
@@ -301,6 +300,12 @@ rust.toolchain(
         "rust-std-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "30d6e3008a288f779c90c92d867dcd4f05fd5107d7f3e69d4d37a5945878110a",
         "clippy-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "323a3ebca03d5aa7dc8d8d54ac05963e08a1c4fb22066ef6b05ee5398e397b12",
         "rustfmt-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "0fff92769fbe393468584232a30ae8e0ea01eb2242201122eea56593b30861ac",
+        "rustc-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "b22d65fd75f50cc036c0cb514500628253aaa815bf2e18ec65620acb8a1ad244",
+        "cargo-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "dc0f70c6e681776d0c5e01953b50488e8b2f972eed5aece6d094e497ea480ab0",
+        "llvm-tools-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "6c4a9d631daee2f182b891694e83b6151eea5d9d3ac35917089fde8da42e43d8",
+        "rust-std-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "81d7dad58adaf8a9904771d1aa1ea7e8dc732236fe0a1b148a068ceb502de7fb",
+        "clippy-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "0e1db6adef940dd21896dbd7a051e25056df2fede90591c583552f94e913af22",
+        "rustfmt-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "61407015edaeafa9b61b3ffefb5077624cd4017ac50be05e246bcadafbb56d99",
     },
     urls = [
         # NOTE: `urls` are technically mirrors so we want to make sure we always try our own first then the official ones.
@@ -385,10 +390,3 @@ crate.annotation(
     ],
 )
 use_repo(crate, "crates")
-
-# Register the LLVM toolchain for hermetic builds.
-llvm = use_extension("@toolchains_llvm//toolchain/extensions:llvm.bzl", "llvm")
-llvm.toolchain(
-    llvm_version = "20.1.4",
-)
-use_repo(llvm, "llvm_toolchain_llvm")

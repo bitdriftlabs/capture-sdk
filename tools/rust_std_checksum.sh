@@ -16,6 +16,8 @@ for arch in aarch64-apple-ios-sim aarch64-apple-ios x86_64-apple-ios aarch64-lin
 done
 
 # Now fetch the shas from the official releases
-for tool in rustc cargo llvm-tools rust-std clippy rustfmt; do
-  curl -Ls "https://static.rust-lang.org/dist/${tool}-${VERSION}-aarch64-apple-darwin.tar.gz.sha256" | awk "$AWK_FORMAT" | sed -e "$SED_REPLACE"
+for arch in aarch64-apple-darwin x86_64-unknown-linux-gnu; do
+  for tool in rustc cargo llvm-tools rust-std clippy rustfmt; do
+    curl -Ls "https://static.rust-lang.org/dist/${tool}-${VERSION}-${arch}.tar.gz.sha256" | awk "$AWK_FORMAT" | sed -e "$SED_REPLACE"
+  done
 done

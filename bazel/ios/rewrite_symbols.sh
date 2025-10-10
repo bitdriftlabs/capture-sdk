@@ -1,10 +1,10 @@
 #!/bin/bash
 
-set -euo pipefail
+set -euxo pipefail
 
-: "${AR:?AR is not set or empty}"
-: "${RANLIB:?RANLIB is not set or empty}"
-: "${LIPO:?LIPO is not set or empty}"
+AR=$(which llvm-ar)
+RANLIB=$(which llvm-ranlib)
+LIPO=$(which llvm-lipo)
 
 # Ensure that ar/ranlib creates deterministic archives.
 export ZERO_AR_DATE=1
