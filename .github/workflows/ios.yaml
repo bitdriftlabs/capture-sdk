@@ -1,8 +1,5 @@
 name: ios
 on:
-  push:
-    branches:
-      - main
   pull_request:
 # Cancel in-progress CI jobs when a new commit is pushed to a PR.
 concurrency:
