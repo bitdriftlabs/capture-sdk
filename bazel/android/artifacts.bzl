@@ -168,8 +168,6 @@ def _create_aar(name, classes_jar, jni_archive, proguard_rules, manifest, visibi
         cp $$original_directory/$$src_proguard_txt ./proguard.txt
         cp $$original_directory/$$src_manifest_xml AndroidManifest.xml
 
-
-        find . -type f -print | sed 's#^\\./##' | sort
         $$ZIPPER cC "$$original_directory/$@" $$(find . -type f -print | sed 's#^\\./##' | sort)
         """,
         visibility = visibility,
