@@ -168,7 +168,9 @@ def _create_aar(name, classes_jar, jni_archive, proguard_rules, manifest, visibi
         cp $$original_directory/$$src_proguard_txt ./proguard.txt
         cp $$original_directory/$$src_manifest_xml AndroidManifest.xml
 
-        $$ZIPPER c "$$original_directory/$@" $$(find . -type f -print | sed 's#^\\./##' | sort)
+
+        find . -type f -print | sed 's#^\\./##' | sort
+        $$ZIPPER cC "$$original_directory/$@" $$(find . -type f -print | sed 's#^\\./##' | sort)
         """,
         visibility = visibility,
     )
@@ -247,7 +249,7 @@ def _create_classes_jar(name, manifest, android_library):
         echo "Creating classes.jar from $(SRCS)"
         pushd $$classes_dir
           unzip $$original_directory/$(SRCS) "META-INF/platform*" io/bitdrift/capture/* > /dev/null
-          "$$ZIPPER" c classes.jar $$(find . -type f -print | sed 's#^\\./##' | sort)
+          "$$ZIPPER" Cc classes.jar $$(find . -type f -print | sed 's#^\\./##' | sort)
         popd
         cp $$classes_dir/classes.jar $@
         """,
