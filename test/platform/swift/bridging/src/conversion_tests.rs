@@ -9,9 +9,9 @@
 // The actual conversion functions require the Objective-C runtime to be available, so they
 // cannot be tested as pure Rust unit tests.
 
+use ahash::AHashMap;
 use bd_bonjson::Value;
 use objc::runtime::Object;
-use std::collections::HashMap;
 use swift_bridge::conversion::{objc_value_to_rust, rust_value_to_objc};
 
 /// Test helper: Convert an `NSString` to a Rust Value and back to `NSString`
@@ -90,7 +90,7 @@ pub unsafe extern "C" fn test_convert_nsnumber_to_rust_and_back(
 /// The returned pointer, if not null, points to a valid Objective-C object.
 #[no_mangle]
 pub unsafe extern "C" fn test_create_simple_objc_structure() -> *const Object {
-  let mut map = HashMap::new();
+  let mut map = AHashMap::new();
   map.insert("string".to_string(), Value::String("test".to_string()));
   map.insert("number".to_string(), Value::Signed(42));
   map.insert(
@@ -109,7 +109,7 @@ pub unsafe extern "C" fn test_create_simple_objc_structure() -> *const Object {
 #[no_mangle]
 pub extern "C" fn test_create_complex_objc_structure() -> *const Object {
   unsafe {
-    let mut map = HashMap::new();
+    let mut map = AHashMap::new();
     map.insert("string".to_string(), Value::String("test".to_string()));
     map.insert("number".to_string(), Value::Signed(42));
     map.insert(
@@ -171,7 +171,7 @@ pub extern "C" fn test_create_extremely_complex_nested_structure() -> *const Obj
       Value::Null,
     ]);
 
-    let mut level10_dict = HashMap::new();
+    let mut level10_dict = AHashMap::new();
     level10_dict.insert(
       "deepest_key".to_string(),
       Value::String("deepest_value".to_string()),
@@ -184,7 +184,7 @@ pub extern "C" fn test_create_extremely_complex_nested_structure() -> *const Obj
     level10_dict.insert("deepest_bool".to_string(), Value::Bool(false));
     level10_dict.insert("deepest_null".to_string(), Value::Null);
 
-    let mut level9_dict = HashMap::new();
+    let mut level9_dict = AHashMap::new();
     level9_dict.insert("level10_nest".to_string(), Value::Object(level10_dict));
     level9_dict.insert(
       "level9_data".to_string(),
@@ -211,7 +211,7 @@ pub extern "C" fn test_create_extremely_complex_nested_structure() -> *const Obj
       ]),
     ]);
 
-    let mut level7_dict = HashMap::new();
+    let mut level7_dict = AHashMap::new();
     level7_dict.insert("nested_array".to_string(), level8_array);
     level7_dict.insert(
       "numbers_showcase".to_string(),
@@ -265,7 +265,7 @@ pub extern "C" fn test_create_extremely_complex_nested_structure() -> *const Obj
       Value::Null,
     ]);
 
-    let mut level5_dict = HashMap::new();
+    let mut level5_dict = AHashMap::new();
     level5_dict.insert("0_key".to_string(), level6_array);
     level5_dict.insert(
       "1_key".to_string(),
@@ -301,16 +301,16 @@ pub extern "C" fn test_create_extremely_complex_nested_structure() -> *const Obj
     }
     let level4_array = Value::Array(level4_items);
 
-    let mut level3_dict = HashMap::new();
+    let mut level3_dict = AHashMap::new();
     level3_dict.insert("massive_array".to_string(), level4_array);
     level3_dict.insert("empty_array".to_string(), Value::Array(vec![]));
-    level3_dict.insert("empty_dict".to_string(), Value::Object(HashMap::new()));
+    level3_dict.insert("empty_dict".to_string(), Value::Object(AHashMap::new()));
     level3_dict.insert(
       "single_item_array".to_string(),
       Value::Array(vec![Value::String("lonely_item".to_string())]),
     );
     level3_dict.insert("single_item_dict".to_string(), {
-      let mut single_dict = HashMap::new();
+      let mut single_dict = AHashMap::new();
       single_dict.insert(
         "only_key".to_string(),
         Value::String("only_value".to_string()),
@@ -347,12 +347,12 @@ pub extern "C" fn test_create_extremely_complex_nested_structure() -> *const Obj
       Value::Null,
     ]);
 
-    let mut root_dict = HashMap::new();
+    let mut root_dict = AHashMap::new();
     root_dict.insert("complex_structure".to_string(), level2_array);
     root_dict.insert(
       "metadata".to_string(),
       Value::Object({
-        let mut meta = HashMap::new();
+        let mut meta = AHashMap::new();
         meta.insert("version".to_string(), Value::String("1.0.0".to_string()));
         meta.insert(
           "test_type".to_string(),
@@ -370,7 +370,7 @@ pub extern "C" fn test_create_extremely_complex_nested_structure() -> *const Obj
     root_dict.insert(
       "edge_cases".to_string(),
       Value::Object({
-        let mut edge_cases = HashMap::new();
+        let mut edge_cases = AHashMap::new();
         edge_cases.insert("max_signed".to_string(), Value::Signed(i64::MAX));
         edge_cases.insert("min_signed".to_string(), Value::Signed(i64::MIN));
         edge_cases.insert("max_unsigned".to_string(), Value::Unsigned(u64::MAX));

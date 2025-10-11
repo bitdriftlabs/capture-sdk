@@ -882,6 +882,21 @@ extern "C" fn capture_set_feature_flag(
 }
 
 #[no_mangle]
+extern "C" fn capture_set_feature_flags(logger_id: LoggerId<'_>, flags: *const Object) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      // Convert the Swift array of (flag: String, variant: String?) to Vec<(String,
+      // Option<String>)>
+      let flags_vec = unsafe { ffi::convert_feature_flags_array(flags) }?;
+      logger_id.set_feature_flags(flags_vec);
+
+      Ok(())
+    },
+    "swift set feature flags",
+  );
+}
+
+#[no_mangle]
 extern "C" fn capture_remove_feature_flag(logger_id: LoggerId<'_>, flag: *const c_char) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {

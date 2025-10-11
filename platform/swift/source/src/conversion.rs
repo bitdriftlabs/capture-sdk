@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::ffi::{make_nsstring, nsstring_into_string};
+use ahash::AHashMap;
 use bd_bonjson::Value;
 use bd_client_common::error::InvariantError;
 use objc::rc::StrongPtr;
@@ -84,7 +85,7 @@ pub(crate) unsafe fn objc_obj_class_name(s: *const Object) -> anyhow::Result<Str
 /// - `NSNumber` (unsigned integers) → `Value::Unsigned`
 /// - `NSNumber` (floating point) → `Value::Float`
 /// - `NSArray` → `Value::Array`
-/// - `NSDictionary` → `Value::Object` (`HashMap<String, Value>`)
+/// - `NSDictionary` → `Value::Object` (`AHashMap<String, Value>`)
 /// - `NSNull` → `Value::Null`
 ///
 /// # Type preference when converting numbers
@@ -152,7 +153,7 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
 
           if count > 0 {
             let map_id = get_next_id();
-            results.insert(map_id, Value::Object(HashMap::new()));
+            results.insert(map_id, Value::Object(AHashMap::new()));
             let all_keys: *const Object = msg_send![ptr, allKeys];
 
             // Add a work item to finalize the dictionary after all items are processed
@@ -179,7 +180,7 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
             }
           } else {
             // Empty dictionary
-            results.insert(result_id, Value::Object(HashMap::new()));
+            results.insert(result_id, Value::Object(AHashMap::new()));
           }
         } else if msg_send![ptr, isKindOfClass: class!(NSArray)] {
           let count: usize = msg_send![ptr, count];
@@ -380,10 +381,6 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
             }
           },
 
-          Value::KVVec(_) => {
-            anyhow::bail!("Value::KVVec is not supported for conversion to Objective-C");
-          },
-
           Value::Object(map) => {
             if map.is_empty() {
               let dict_class = class!(NSDictionary);
@@ -422,6 +419,72 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
             let null_class = class!(NSNull);
             let null_obj = msg_send![null_class, null];
             results.insert(result_id, StrongPtr::retain(null_obj));
+          },
+
+          Value::KVVec(kvvec) => {
+            if kvvec.is_empty() {
+              let array_class = class!(NSArray);
+              let empty_array = msg_send![array_class, array];
+              results.insert(result_id, StrongPtr::retain(empty_array));
+            } else {
+              let array_id = get_next_id();
+              let mutable_array_class = class!(NSMutableArray);
+              let ns_array: *mut Object =
+                msg_send![mutable_array_class, arrayWithCapacity: kvvec.len()];
+              results.insert(array_id, StrongPtr::retain(ns_array));
+
+              // Schedule finalization
+              work_stack.push(RustToObjcWorkItem::FinalizeArray {
+                array_id,
+                result_id,
+              });
+
+              // Process KVVec items in reverse order to maintain correct order with stack
+              for (_i, (key, value)) in kvvec.iter().enumerate().rev() {
+                let tuple_id = get_next_id();
+
+                // Schedule insertion of tuple into array
+                work_stack.push(RustToObjcWorkItem::InsertArrayValue {
+                  value_id: tuple_id,
+                  array_id,
+                });
+
+                // Create NSArray tuple containing the key and value strings
+                let tuple_array_id = get_next_id();
+                let tuple_mutable_array_class = class!(NSMutableArray);
+                let tuple_ns_array: *mut Object =
+                  msg_send![tuple_mutable_array_class, arrayWithCapacity: 2];
+                results.insert(tuple_array_id, StrongPtr::retain(tuple_ns_array));
+
+                // Schedule finalization of tuple array
+                work_stack.push(RustToObjcWorkItem::FinalizeArray {
+                  array_id: tuple_array_id,
+                  result_id: tuple_id,
+                });
+
+                // Add value string to tuple (second element)
+                let value_id = get_next_id();
+                work_stack.push(RustToObjcWorkItem::InsertArrayValue {
+                  value_id,
+                  array_id: tuple_array_id,
+                });
+                work_stack.push(RustToObjcWorkItem::ProcessValue {
+                  value: value.clone(),
+                  result_id: value_id,
+                });
+
+                // Add key string to tuple (first element)
+                let key_id = get_next_id();
+                work_stack.push(RustToObjcWorkItem::InsertArrayValue {
+                  value_id: key_id,
+                  array_id: tuple_array_id,
+                });
+                work_stack.push(RustToObjcWorkItem::ProcessValue {
+                  value: Value::String(key.clone()),
+                  result_id: key_id,
+                });
+              }
+            }
           },
         }
       },

@@ -298,6 +298,17 @@ object Capture {
         }
 
         /**
+         * Sets multiple feature flags.
+         *
+         * @param flags the flags to set
+         */
+        @JvmStatic
+        @ExperimentalBitdriftApi
+        fun setFeatureFlags(flags: List<FeatureFlag>) {
+            logger()?.setFeatureFlags(flags)
+        }
+
+        /**
          * Removes a feature flag.
          *
          * @param flag the name of the flag to remove

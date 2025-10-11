@@ -36,6 +36,20 @@ public final class CAPConfiguration: NSObject {
     }
 }
 
+@objc
+public final class FeatureFlag: NSObject {
+    @objc
+    let name: String
+    @objc
+    let variant: String?
+
+    @objc
+    public init(name: String, variant: String?) {
+        self.name = name
+        self.variant = variant
+    }
+}
+
 // Make this class not available to Swift code. It should be used by Objective-c code only.
 @available(swift, obsoleted: 1.0)
 @objc(CAPLogger)
@@ -400,6 +414,14 @@ public final class LoggerObjc: NSObject {
     @objc
     public static func setFeatureFlag(withFlag flag: String, variant: String?) {
         Capture.Logger.setFeatureFlag(withFlag: flag, variant: variant)
+    }
+
+    /// Sets multiple feature flags.
+    ///
+    /// - parameter flags: The flags to set
+    @objc
+    public static func setFeatureFlags(_ flags: [FeatureFlag]) {
+        Capture.Logger.setFeatureFlags(flags)
     }
 
     /// Removes a feature flag.
