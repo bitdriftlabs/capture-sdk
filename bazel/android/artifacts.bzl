@@ -143,6 +143,7 @@ def _create_aar(name, classes_jar, jni_archive, proguard_rules, manifest, visibi
             manifest,
             proguard_rules,
         ],
+        tools = ["//bazel:zipper"],
         cmd = """
         # Set source variables
         set -- $(SRCS)
@@ -150,6 +151,7 @@ def _create_aar(name, classes_jar, jni_archive, proguard_rules, manifest, visibi
         src_jni_archive_apk=$$2
         src_manifest_xml=$$3
         src_proguard_txt=$$4
+        ZIPPER="$$PWD/$(execpath //bazel:zipper)"
 
         original_directory=$$PWD
 
@@ -165,8 +167,8 @@ def _create_aar(name, classes_jar, jni_archive, proguard_rules, manifest, visibi
         fi
         cp $$original_directory/$$src_proguard_txt ./proguard.txt
         cp $$original_directory/$$src_manifest_xml AndroidManifest.xml
-        zip -r tmp.aar * > /dev/null
-        cp tmp.aar $$original_directory/$@
+
+        $$ZIPPER cC "$$original_directory/$@" $$(find . -type f -print | sed 's#^\\./##' | sort)
         """,
         visibility = visibility,
     )
@@ -237,13 +239,15 @@ def _create_classes_jar(name, manifest, android_library):
         name = name + "_classes_jar",
         outs = [name + "_classes.jar"],
         srcs = [android_binary_name + "_deploy.jar"],
+        tools = ["//bazel:zipper"],
         cmd = """
+        ZIPPER="$$PWD/$(execpath //bazel:zipper)"
         original_directory=$$PWD
         classes_dir=$$(mktemp -d)
         echo "Creating classes.jar from $(SRCS)"
         pushd $$classes_dir
-        unzip $$original_directory/$(SRCS) "META-INF/platform*" io/bitdrift/capture/* > /dev/null
-        zip -r classes.jar * > /dev/null
+          unzip $$original_directory/$(SRCS) "META-INF/platform*" io/bitdrift/capture/* > /dev/null
+          "$$ZIPPER" Cc classes.jar $$(find . -type f -print | sed 's#^\\./##' | sort)
         popd
         cp $$classes_dir/classes.jar $@
         """,

@@ -86,6 +86,7 @@ build:release-android --config=release-common
 build:release-android --config=android
 build:release-android --@rules_rust//rust/settings:lto='fat'
 build:release-android --linkopt=-Wl,--pack-dyn-relocs=android
+build:release-android --linkopt=-fuse-ld=lld
 # TODO(snowp): This should do better but requires a certain version of Android.
 # Investigate what this is and track when we can use it.
 # build:release-android --linkopt=-Wl,--use-android-relr-tags
