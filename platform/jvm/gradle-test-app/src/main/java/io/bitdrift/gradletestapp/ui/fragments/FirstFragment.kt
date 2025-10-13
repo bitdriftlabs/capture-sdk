@@ -5,10 +5,9 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.gradletestapp
+package io.bitdrift.gradletestapp.ui.fragments
 
 import android.annotation.SuppressLint
-import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.SharedPreferences
@@ -16,33 +15,32 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
-import android.widget.Spinner
-import android.widget.Toast
-import androidx.preference.PreferenceManager
-import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.DEFERRED_START_PREFS_KEY
-//noinspection UsingMaterialAndMaterial3Libraries
-import androidx.compose.material.MaterialTheme
-//noinspection UsingMaterialAndMaterial3Libraries
-import androidx.compose.material.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.fragment.findNavController
+import androidx.preference.PreferenceManager
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.network.okHttpClient
 import com.example.rocketreserver.BookTripsMutation
 import com.example.rocketreserver.LaunchListQuery
 import com.example.rocketreserver.LoginMutation
 import io.bitdrift.capture.Capture.Logger
-import io.bitdrift.capture.CaptureResult
-import io.bitdrift.capture.Error
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.apollo.CaptureApolloInterceptor
 import io.bitdrift.capture.events.span.Span
-import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.capture.network.okhttp.OkHttpRequestFieldProvider
-import io.bitdrift.gradletestapp.databinding.FragmentFirstBinding
+import io.bitdrift.gradletestapp.R
+import io.bitdrift.gradletestapp.data.model.AppExitReason
+import io.bitdrift.gradletestapp.data.repository.SdkRepository
+import io.bitdrift.gradletestapp.diagnostics.fatalissues.FatalIssueGenerator
+import io.bitdrift.gradletestapp.ui.compose.MainScreen
+import io.bitdrift.gradletestapp.ui.viewmodel.MainViewModel
+import io.bitdrift.gradletestapp.ui.viewmodel.MainViewModelFactory
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import okhttp3.Call
@@ -57,9 +55,14 @@ import java.io.IOException
 import kotlin.system.exitProcess
 
 /**
- * A simple [Fragment] subclass as the default destination in the navigation.
+ * Modern Fragment using Jetpack Compose following MVVM architecture
+ * Replaces the old XML-based implementation with a clean Compose UI
  */
 class FirstFragment : Fragment() {
+    private val viewModel: MainViewModel by activityViewModels {
+        MainViewModelFactory(SdkRepository(requireContext()))
+    }
+
     private data class RequestDefinition(
         val method: String,
         val host: String,
@@ -67,7 +70,7 @@ class FirstFragment : Fragment() {
         val query: Map<String, String> = emptyMap(),
     )
 
-    private var _binding: FragmentFirstBinding? = null
+    private var _composeView: ComposeView? = null
 
     private val requestDefinitions =
         listOf(
@@ -88,7 +91,7 @@ class FirstFragment : Fragment() {
         )
 
     // This property is only valid between onCreateView and onDestroyView.
-    private val binding get() = _binding!!
+    private val composeView get() = _composeView!!
     private lateinit var clipboardManager: ClipboardManager
     private lateinit var okHttpClient: OkHttpClient
     private lateinit var apolloClient: ApolloClient
@@ -103,27 +106,40 @@ class FirstFragment : Fragment() {
     ): View {
         firstFragmentToCopySessionSpan = Logger.startSpan("CreateFragmentToCopySessionClick", LogLevel.INFO)
 
-        _binding = FragmentFirstBinding.inflate(inflater, container, false)
-        val viewRoot = binding.root
+        _composeView = ComposeView(requireContext())
 
-        clipboardManager = viewRoot.context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboardManager = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-        binding.composeView.apply {
-            // Dispose of the Composition when the view's LifecycleOwner
-            // is destroyed
+        composeView.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
-                // In Compose world
                 MaterialTheme {
-                    Text(
-                        text = "Text in Compose",
-                        style = MaterialTheme.typography.h6,
-                        color = MaterialTheme.colors.secondary,
+                    MainScreen(
+                        onNavigateToConfig = {
+                            Logger.logScreenView("config_fragment")
+                            findNavController().navigate(R.id.action_FirstFragment_to_ConfigFragment)
+                        },
+                        onNavigateToWebView = {
+                            Logger.logScreenView("web_view_fragment")
+                            findNavController().navigate(R.id.action_FirstFragment_to_WebViewFragment)
+                        },
+                        onNavigateToCompose = {
+                            Logger.logScreenView("compose_second_fragment")
+                            findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
+                        },
+                        onNavigateToXml = {
+                            Logger.logScreenView("xml_demo_fragment")
+                            findNavController().navigate(R.id.action_FirstFragment_to_XmlFragment)
+                        },
+                        onPerformOkHttpRequest = { performOkHttpRequest() },
+                        onPerformGraphQlRequest = { performGraphQlRequest() },
+                        onForceAppExit = { reason -> forceAppExit(reason) },
+                        viewModel = viewModel,
                     )
                 }
             }
         }
-        return viewRoot
+        return composeView
     }
 
     override fun onViewCreated(
@@ -134,38 +150,8 @@ class FirstFragment : Fragment() {
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(view.context)
 
         Logger.logScreenView("first_fragment")
-        binding.btnNavigateConfiguration.setOnClickListener {
-            Logger.logScreenView("config_fragment")
-            findNavController().navigate(R.id.action_FirstFragment_to_ConfigFragment)
-        }
-        binding.btnCopySessionUrl.setOnClickListener(this::copySessionUrl)
-        binding.btnStartNewSession.setOnClickListener(this::startNewSession)
-        binding.btnTempDeviceCode.setOnClickListener(this::getTempDeviceCode)
-        binding.btnOkHttpRequest.setOnClickListener(this::performOkHttpRequest)
-        binding.btnGraphQlRequest.setOnClickListener(this::performGraphQlRequest)
-        binding.btnLogMessage.setOnClickListener(this::logMessage)
-        binding.btnAppExit.setOnClickListener(this::forceAppExit)
-        binding.btnNavigateToWebView.setOnClickListener {
-            Logger.logScreenView("web_view_fragment")
-            findNavController().navigate(R.id.action_FirstFragment_to_WebViewFragment)
-        }
-        binding.btnNavigateCompose.setOnClickListener {
-            Timber.i("Navigating to Compose Fragment")
-            Logger.logScreenView("compose_second_fragment")
-            findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
-        }
 
-        setSpinnerAdapter(binding.spnAppExitOptions, AppExitReason.entries)
-        setSpinnerAdapter(binding.logLevelItems, LogLevel.entries.map { it.name }.toList())
-
-        if (sharedPreferences.getBoolean(DEFERRED_START_PREFS_KEY, false)) {
-            binding.btnStartSdk.setOnClickListener(this::startSdkManually)
-            binding.btnStartSdk.visibility = View.VISIBLE
-            binding.textviewSdkStatus.visibility = View.VISIBLE
-        } else {
-            binding.textviewFirst.text = Logger.sessionId
-        }
-
+        // Initialize network clients
         okHttpClient =
             OkHttpClient
                 .Builder()
@@ -192,43 +178,12 @@ class FirstFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        _binding = null
+        _composeView = null
     }
 
-    private fun copySessionUrl(view: View) {
-        val data = ClipData.newPlainText("sessionUrl", Logger.sessionUrl)
-        clipboardManager.setPrimaryClip(data)
-        firstFragmentToCopySessionSpan?.end(SpanResult.SUCCESS)
-    }
+    // Network operation methods - these are called from the Compose UI
 
-    private fun startNewSession(view: View) {
-        Logger.startNewSession()
-        binding.textviewFirst.text = Logger.sessionId
-        Timber.i("Logger startNewSession with session url=${Logger.sessionUrl}")
-    }
-
-    private fun getTempDeviceCode(view: View) {
-        Logger.trackSpan("createTemporaryDeviceCode", LogLevel.INFO) {
-            Logger.createTemporaryDeviceCode { result ->
-                when (result) {
-                    is CaptureResult.Success -> updateDeviceCodeValue(result.value)
-                    is CaptureResult.Failure -> displayDeviceCodeError(result.error)
-                }
-            }
-        }
-    }
-
-    private fun updateDeviceCodeValue(deviceCode: String) {
-        binding.deviceCodeTextView.text = deviceCode
-        val data = ClipData.newPlainText("deviceCode", deviceCode)
-        clipboardManager.setPrimaryClip(data)
-    }
-
-    private fun displayDeviceCodeError(error: Error) {
-        binding.deviceCodeTextView.text = error.message
-    }
-
-    private fun performOkHttpRequest(view: View) {
+    private fun performOkHttpRequest() {
         val requestDef = requestDefinitions.random()
         Timber.i("Performing OkHttp Network Request: $requestDef")
 
@@ -280,7 +235,7 @@ class FirstFragment : Fragment() {
         )
     }
 
-    private fun performGraphQlRequest(view: View) {
+    private fun performGraphQlRequest() {
         val operation = graphQlOperations.random()
         MainScope().launch {
             try {
@@ -292,29 +247,14 @@ class FirstFragment : Fragment() {
         }
     }
 
-    private fun logMessage(view: View?) {
-        val logLevel = LogLevel.valueOf(binding.logLevelItems.selectedItem.toString())
-        val tag = "FirstFragment"
-        val exception = Exception("custom exception")
-        when (logLevel) {
-            LogLevel.TRACE -> Timber.tag(tag).v("'log message' with level=%s", logLevel)
-            LogLevel.DEBUG -> Timber.tag(tag).d("'log message' with level=%s", logLevel)
-            LogLevel.INFO -> Timber.tag(tag).i("'log message' with level=%s", logLevel)
-            LogLevel.WARNING -> Timber.tag(tag).w(exception, "'log message' with level=%s", logLevel)
-            LogLevel.ERROR -> Timber.tag(tag).e(exception, "'log message' with level=%s", logLevel)
-        }
-        Toast.makeText(view?.context, "'log message' with level=$logLevel", Toast.LENGTH_SHORT).show()
-    }
-
     @SuppressLint("VisibleForTests")
-    private fun forceAppExit(view: View) {
-        val selectedAppExitReason = binding.spnAppExitOptions.selectedItem.toString()
-        when (AppExitReason.valueOf(selectedAppExitReason)) {
+    private fun forceAppExit(reason: AppExitReason) {
+        when (reason) {
             AppExitReason.ANR_BLOCKING_GET -> FatalIssueGenerator.forceBlockingGetAnr()
-            AppExitReason.ANR_BROADCAST_RECEIVER -> FatalIssueGenerator.forceBroadcastReceiverAnr(view.context)
+            AppExitReason.ANR_BROADCAST_RECEIVER -> FatalIssueGenerator.forceBroadcastReceiverAnr(requireContext())
             AppExitReason.ANR_COROUTINES -> FatalIssueGenerator.forceCoroutinesAnr()
             AppExitReason.ANR_DEADLOCK -> FatalIssueGenerator.forceDeadlockAnr()
-            AppExitReason.ANR_GENERIC -> FatalIssueGenerator.forceGenericAnr(view.context)
+            AppExitReason.ANR_GENERIC -> FatalIssueGenerator.forceGenericAnr(requireContext())
             AppExitReason.ANR_SLEEP_MAIN_THREAD -> FatalIssueGenerator.forceThreadSleepAnr()
             AppExitReason.APP_CRASH_COROUTINE_EXCEPTION -> FatalIssueGenerator.forceCoroutinesCrash()
             AppExitReason.APP_CRASH_REGULAR_JVM_EXCEPTION -> FatalIssueGenerator.forceUnhandledException()
@@ -325,45 +265,5 @@ class FirstFragment : Fragment() {
             AppExitReason.NATIVE_SIGBUS -> FatalIssueGenerator.forceNativeBusError()
             AppExitReason.SYSTEM_EXIT -> exitProcess(0)
         }
-    }
-
-    private fun setSpinnerAdapter(
-        spinner: Spinner,
-        items: List<*>,
-    ) {
-        spinner.adapter =
-            ArrayAdapter(
-                requireContext(),
-                android.R.layout.simple_spinner_dropdown_item,
-                items,
-            )
-    }
-
-    private fun startSdkManually(view: View) {
-        BitdriftInit.initFromPreferences(sharedPreferences, view.context)
-        binding.btnStartSdk.visibility = View.GONE
-        binding.textviewSdkStatus.visibility = View.GONE
-        binding.textviewFirst.text = Logger.sessionId
-    }
-
-    enum class AppExitReason {
-        ANR_BLOCKING_GET,
-        ANR_BROADCAST_RECEIVER,
-        ANR_COROUTINES,
-        ANR_DEADLOCK,
-        ANR_GENERIC,
-        ANR_SLEEP_MAIN_THREAD,
-        APP_CRASH_COROUTINE_EXCEPTION,
-        APP_CRASH_REGULAR_JVM_EXCEPTION,
-        APP_CRASH_RX_JAVA_EXCEPTION,
-        APP_CRASH_OUT_OF_MEMORY,
-
-        NATIVE_CAPTURE_DESTROY_CRASH,
-
-        NATIVE_SIGSEGV,
-
-        NATIVE_SIGBUS,
-
-        SYSTEM_EXIT,
     }
 }

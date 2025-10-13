@@ -17,7 +17,7 @@ import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.ReplayPreviewClient
 import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.internal.FilteredCapture
-import io.bitdrift.capture.replay.internal.ReplayRect
+import io.bitdrift.gradletestapp.ui.fragments.FirstFragment
 import org.junit.Before
 import org.junit.Test
 import java.util.concurrent.CountDownLatch
@@ -60,13 +60,22 @@ class AndroidViewReplayTest {
             assertThat(metrics.errorViewCount).isEqualTo(0)
             assertThat(metrics.exceptionCausingViewCount).isEqualTo(0)
 
-            // AppCompatTextView multiline label
-            assertThat(screen).contains(
-                ReplayRect(type = ReplayType.Label, x = 35, y = 383, width = 539, height = 84),
-            )
-            assertThat(screen).contains(
-                ReplayRect(type = ReplayType.Label, x = 36, y = 495, width = 761, height = 47),
-            )
+            val multilineLabel =
+                screen.find { rect ->
+                    rect.type == ReplayType.Label &&
+                        rect.width > 200 &&
+                        rect.height > 50
+                }
+            assertThat(multilineLabel).isNotNull()
+
+            val buttons = screen.filter { it.type == ReplayType.Button }
+            assertThat(buttons).isNotEmpty()
+
+            val composeView =
+                screen.find { rect ->
+                    rect.type == ReplayType.View && rect.width > 100 && rect.height > 50
+                }
+            assertThat(composeView).isNotNull()
         }
     }
 }

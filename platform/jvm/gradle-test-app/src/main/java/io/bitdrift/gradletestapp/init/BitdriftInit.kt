@@ -5,18 +5,20 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.gradletestapp
+package io.bitdrift.gradletestapp.init
 
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import io.bitdrift.capture.Capture
+import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.FATAL_ISSUE_ENABLED_PREFS_KEY
-import io.bitdrift.gradletestapp.ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY
-import io.bitdrift.gradletestapp.SettingsApiKeysDialogFragment.Companion.BITDRIFT_API_KEY
+import io.bitdrift.capture.timber.CaptureTree
+import io.bitdrift.gradletestapp.BuildConfig
+import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
+import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
@@ -29,7 +31,30 @@ object BitdriftInit {
     /**
      * Init sdk with the persisted settings
      */
-    fun initFromPreferences(
+    fun init(
+        applicationContext: Context,
+        sharedPreferences: SharedPreferences,
+    ): Boolean {
+        val apiKey =
+            sharedPreferences.getString(BITDRIFT_API_KEY, null)
+        val apiUrl = sharedPreferences.getString("apiUrl", null)
+        if (apiKey.isNullOrBlank() || apiUrl.isNullOrBlank()) {
+            Timber.w("SDK initialization skipped - API key or URL not configured. Please set them in Settings.")
+            return false
+        }
+
+        if (initFromPreferences(sharedPreferences, applicationContext)) {
+            if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
+            Timber.plant(CaptureTree())
+            Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
+            return true
+        } else {
+            Timber.e("Failed to initialize Bitdrift SDK - check your API key and URL configuration")
+            return false
+        }
+    }
+
+    private fun initFromPreferences(
         sharedPreferences: SharedPreferences,
         context: Context,
     ): Boolean {
@@ -57,13 +82,20 @@ object BitdriftInit {
     }
 
     private fun getPersistedCaptureSdkSettings(sharedPreferences: SharedPreferences): SdkConfigResult {
-        val apiKey = sharedPreferences.getString(BITDRIFT_API_KEY, null)
+        val apiKey =
+            sharedPreferences.getString(
+                BITDRIFT_API_KEY,
+                null,
+            )
         val apiUrl = sharedPreferences.getString("apiUrl", null)?.toHttpUrlOrNull()
         if (apiUrl == null || apiKey == null) {
             return SdkConfigResult.Failed("Invalid settings. apiUrl: $apiUrl . apiKey: $apiKey")
         }
         val fatalIssueReporterEnabled =
-            sharedPreferences.getBoolean(FATAL_ISSUE_ENABLED_PREFS_KEY, true)
+            sharedPreferences.getBoolean(
+                ConfigurationSettingsFragment.Companion.FATAL_ISSUE_ENABLED_PREFS_KEY,
+                true,
+            )
 
         val sessionStrategy = getSessionStrategy(sharedPreferences)
         val configuration =
@@ -90,7 +122,7 @@ object BitdriftInit {
 
     private fun getSessionStrategy(sharedPreferences: SharedPreferences): SessionStrategy =
         if (sharedPreferences.getString(
-                SESSION_STRATEGY_PREFS_KEY,
+                ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY,
                 ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED.displayName,
             ) == "Fixed"
         ) {
@@ -99,7 +131,7 @@ object BitdriftInit {
             SessionStrategy.ActivityBased(
                 inactivityThresholdMins = 60L,
                 onSessionIdChanged = { sessionId ->
-                    Timber.i("Bitdrift Logger session id updated: $sessionId")
+                    Timber.Forest.i("Bitdrift Logger session id updated: $sessionId")
                 },
             )
         }

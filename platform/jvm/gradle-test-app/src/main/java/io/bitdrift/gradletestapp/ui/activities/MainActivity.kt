@@ -5,18 +5,18 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.gradletestapp
+package io.bitdrift.gradletestapp.ui.activities
 
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
+import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -33,7 +33,12 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
 
         navController = findNavController(R.id.nav_host_fragment_content_main)
-        navController.addOnDestinationChangedListener { _, _, _ ->
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            if (destination.id == R.id.FirstFragment) {
+                supportActionBar?.hide()
+            } else {
+                supportActionBar?.show()
+            }
             invalidateOptionsMenu()
         }
         appBarConfiguration = AppBarConfiguration(navController.graph)
@@ -56,17 +61,6 @@ class MainActivity : AppCompatActivity() {
             R.id.action_settings -> {
                 navController.navigate(R.id.action_FirstFragment_to_ConfigFragment)
                 true
-            }
-
-            R.id.switch_app_theme -> {
-                val appNightMode =
-                    if (AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES) {
-                        AppCompatDelegate.MODE_NIGHT_NO
-                    } else {
-                        AppCompatDelegate.MODE_NIGHT_YES
-                    }
-                AppCompatDelegate.setDefaultNightMode(appNightMode)
-                return true
             }
             else -> super.onOptionsItemSelected(item)
         }

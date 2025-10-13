@@ -7,7 +7,7 @@
 
 @file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 
-package io.bitdrift.gradletestapp
+package io.bitdrift.gradletestapp.diagnostics.fatalissues
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
@@ -23,7 +23,6 @@ import android.system.OsConstants
 import android.util.Log
 import androidx.core.content.ContextCompat
 import io.bitdrift.capture.Capture
-import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.LoggerImpl
 import io.reactivex.rxjava3.core.Observable
@@ -116,7 +115,7 @@ internal object FatalIssueGenerator {
     fun forceCaptureNativeCrash() {
         val logger = Capture.logger()
         CaptureJniLibrary.destroyLogger((logger as LoggerImpl).loggerId)
-        Logger.logInfo { "Forced native crash" }
+        Capture.Logger.logInfo { "Forced native crash" }
     }
 
     fun forceNativeSegmentationFault() {
