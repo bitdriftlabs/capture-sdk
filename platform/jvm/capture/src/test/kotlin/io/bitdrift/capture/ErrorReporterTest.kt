@@ -19,6 +19,7 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockWebServer
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
@@ -46,7 +47,7 @@ class ErrorReporterTest {
         server = MockWebServer()
         server.start()
 
-        val apiClient = OkHttpApiClient(server.url(""), "api-key")
+        val apiClient = OkHttpApiClient(server.url(""), "api-key", client = OkHttpClient())
 
         reporter =
             ErrorReporterService(

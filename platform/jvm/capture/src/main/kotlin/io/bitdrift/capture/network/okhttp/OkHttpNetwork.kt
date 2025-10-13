@@ -76,11 +76,12 @@ internal fun newDuplexRequestBody(contentType: MediaType): PipeDuplexRequestBody
 internal class OkHttpNetwork(
     apiBaseUrl: HttpUrl,
     timeoutSeconds: Long = 2L * 60,
+    private val okHttpClient: OkHttpClient,
     private val networkDispatcher: CaptureDispatchers.Network = CaptureDispatchers.Network,
 ) : ICaptureNetwork {
     private val client: OkHttpClient =
         run {
-            val builder = OkHttpClient().newBuilder()
+            val builder = okHttpClient.newBuilder()
             // Certain other libraries will manipulate the bytecode to have the OkHttpClientBuilder
             // constructor automatically add interceptors which tend to not work well with our bespoke
             // client implementation. Remove these extra interceptors here to ensure that we are using

@@ -35,8 +35,8 @@ internal class OkHttpApiClient(
     private val apiBaseUrl: HttpUrl,
     private val apiKey: String,
     private val gson: Gson = Gson(),
+    private val client: OkHttpClient,
 ) {
-    private val client: OkHttpClient = OkHttpClient()
     private val jsonContentType: MediaType = "application/json".toMediaType()
 
     inline fun <Rq, reified Rp> perform(

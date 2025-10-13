@@ -53,6 +53,7 @@ import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
 import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
 import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
@@ -77,7 +78,8 @@ internal class LoggerImpl(
             ProcessLifecycleOwner.get(),
         ),
     preferences: IPreferences = Preferences(context),
-    private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey),
+    sharedOkHttpClient: OkHttpClient = OkHttpClient(),
+    private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey, client = sharedOkHttpClient),
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     bridge: IBridge = CaptureJniLibrary,
@@ -140,6 +142,7 @@ internal class LoggerImpl(
         val network =
             OkHttpNetwork(
                 apiBaseUrl = apiUrl,
+                okHttpClient = sharedOkHttpClient,
             )
 
         val sdkDirectory = SdkDirectory.getPath(context)
