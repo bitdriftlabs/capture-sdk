@@ -43,12 +43,12 @@ interface IClientAttributes {
     /** The current architecture (e.g. arm64-v8a). */
     val architecture: String
 
-    /** Device manufacturer name */
+    /** Device manufacturer name. */
     val manufacturer: String
 
-    /** Device model name */
+    /** Device model name. */
     val model: String
 
-    /** Current Locale (e.g. en-US) */
+    /** Current Locale (e.g. en-US). */
     val locale: String
 }
