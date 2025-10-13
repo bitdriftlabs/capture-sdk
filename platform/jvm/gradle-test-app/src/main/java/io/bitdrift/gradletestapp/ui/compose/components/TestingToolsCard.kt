@@ -84,7 +84,7 @@ fun TestingToolsCard(
                 onClick = onForceAppExit,
                 colors =
                     ButtonDefaults.buttonColors(
-                        containerColor = Color.Red,
+                        containerColor = BitdriftColors.Error,
                         contentColor = BitdriftColors.TextBright,
                     ),
                 modifier = Modifier.fillMaxWidth(),

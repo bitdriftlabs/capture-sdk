@@ -19,4 +19,6 @@ object BitdriftColors {
     val TextTertiary = Color(0xFFa2a6b9)
     val TextBright = Color(0xFFF1F6EE)
     val Border = Color(0x19DFE9F5)
+
+    val Error = Color.Red
 }

@@ -34,7 +34,7 @@ class XmlDemoFragment : Fragment() {
         val button: Button = view.findViewById(R.id.actionButton)
         button.setOnClickListener {
             val text = input.text?.toString().orEmpty()
-            Toast.makeText(requireContext(), if (text.isBlank()) "Hello from XML!" else text, Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), text.ifBlank { "Hello from XML!" }, Toast.LENGTH_SHORT).show()
         }
     }
 }

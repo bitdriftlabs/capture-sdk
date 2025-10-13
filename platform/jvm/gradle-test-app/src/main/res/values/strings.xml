@@ -40,4 +40,7 @@
     <string name="testing_tools">Log Level and Fatal Issue Testing</string>
     <string name="device_code_valid">Device code: Valid</string>
     <string name="device_code_invalid">Device code: Invalid</string>
+    <string name="restart_warning_title">Restart the App to apply changes</string>
+    <string name="restart_warning_summary">Click here to restart and apply your configuration changes</string>
+    <string name="log_message_toast">Log message sent with level: %1$s</string>
 </resources>

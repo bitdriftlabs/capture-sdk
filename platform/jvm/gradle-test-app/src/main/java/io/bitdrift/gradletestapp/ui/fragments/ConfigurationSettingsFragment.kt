@@ -18,6 +18,7 @@ import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import androidx.preference.SwitchPreference
+import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.ui.compose.components.SettingsApiKeysDialogFragment
 import kotlin.system.exitProcess
 
@@ -46,14 +47,14 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         apiUrlPref.key = BITDRIFT_URL_KEY
         apiUrlPref.title = "API URL"
         val currentUrl = sharedPreferences.getString(BITDRIFT_URL_KEY, "") ?: ""
-        apiUrlPref.summary = if (currentUrl.isBlank()) "Enter API URL" else currentUrl
+        apiUrlPref.summary = currentUrl.ifBlank { "Enter API URL" }
         apiUrlPref.setOnBindEditTextListener { edit ->
             edit.hint = defaultApiUrl
         }
         apiUrlPref.setOnPreferenceChangeListener { _, newValue ->
             val apiUrl = newValue as? String ?: ""
-            val isValid = apiUrl.isNotBlank() && (apiUrl.startsWith("https://") || apiUrl.startsWith("http://"))
-            apiUrlPref.summary = if (isValid) "Valid API URL" else "Invalid API URL (must start with http:// or https://)"
+            val isValid = apiUrl.isNotBlank() && apiUrl.startsWith("https://")
+            apiUrlPref.summary = if (isValid) "Valid API URL" else "Invalid API URL (must start with https://)"
             true
         }
 
@@ -76,7 +77,6 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         val apiKeysPreference = Preference(context)
         apiKeysPreference.key = "api_keys"
         apiKeysPreference.title = "Other API Keys"
-        apiKeysPreference.summary = SELECTION_SUMMARY
         apiKeysPreference.setOnPreferenceClickListener {
             showApiKeysDialog(context)
             true
@@ -85,7 +85,9 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
 
         val restartPreference = Preference(context)
         restartPreference.key = "restart"
-        restartPreference.title = "Restart the App"
+        restartPreference.title = context.getString(R.string.restart_warning_title)
+        restartPreference.summary = context.getString(R.string.restart_warning_summary)
+        restartPreference.icon = context.getDrawable(android.R.drawable.ic_dialog_alert)
         restartPreference.setOnPreferenceClickListener {
             val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
             val restartIntent = Intent.makeRestartActivityTask(launchIntent!!.component)
@@ -111,38 +113,33 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         listPreference.title = SESSION_STRATEGY_TITLE
         listPreference.entries = SESSION_STRATEGY_ENTRIES
         listPreference.entryValues = SESSION_STRATEGY_ENTRIES
-        listPreference.summary = SELECTION_SUMMARY
         listPreference.setDefaultValue(SessionStrategyPreferences.FIXED.displayName)
         return listPreference
     }
 
-    private fun buildSwitchPreference(context: Context): SwitchPreference {
+    private fun buildSwitchPreference(
+        context: Context,
+        key: String,
+        title: String,
+        defaultValue: Boolean,
+    ): SwitchPreference {
         val switchPreference = SwitchPreference(context)
-        switchPreference.key = FATAL_ISSUE_ENABLED_PREFS_KEY
-        switchPreference.title = FATAL_ISSUE_TITLE
-        switchPreference.summary = SELECTION_SUMMARY
-        switchPreference.setDefaultValue(true)
+        switchPreference.key = key
+        switchPreference.title = title
+        switchPreference.setDefaultValue(defaultValue)
         switchPreference.setOnPreferenceChangeListener { _, newValue ->
             val summaryText = if (newValue == true) "Enabled" else "Disabled"
-            switchPreference.summary = "$summaryText - $SELECTION_SUMMARY"
+            switchPreference.summary = summaryText
             true
         }
         return switchPreference
     }
 
-    private fun buildDeferredStartSwitch(context: Context): SwitchPreference {
-        val switchPreference = SwitchPreference(context)
-        switchPreference.key = DEFERRED_START_PREFS_KEY
-        switchPreference.title = DEFERRED_START_TITLE
-        switchPreference.summary = SELECTION_SUMMARY
-        switchPreference.setDefaultValue(false)
-        switchPreference.setOnPreferenceChangeListener { _, newValue ->
-            val summaryText = if (newValue == true) "Enabled" else "Disabled"
-            switchPreference.summary = "$summaryText - $SELECTION_SUMMARY"
-            true
-        }
-        return switchPreference
-    }
+    private fun buildSwitchPreference(context: Context): SwitchPreference =
+        buildSwitchPreference(context, FATAL_ISSUE_ENABLED_PREFS_KEY, FATAL_ISSUE_TITLE, true)
+
+    private fun buildDeferredStartSwitch(context: Context): SwitchPreference =
+        buildSwitchPreference(context, DEFERRED_START_PREFS_KEY, DEFERRED_START_TITLE, false)
 
     private fun showApiKeysDialog(context: Context) {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -158,13 +155,10 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
 
     companion object {
         const val BITDRIFT_API_KEY = "api_key"
-
         const val BITDRIFT_URL_KEY = "apiUrl"
-
         const val SESSION_STRATEGY_PREFS_KEY = "sessionStrategy"
         const val FATAL_ISSUE_ENABLED_PREFS_KEY = "fatalIssueEnabled"
         const val DEFERRED_START_PREFS_KEY = "deferredStart"
-        private const val SELECTION_SUMMARY = "App needs to be restarted for changes to take effect"
         private const val SESSION_STRATEGY_TITLE = "Session Strategy"
         private const val FATAL_ISSUE_TITLE = "Fatal Issue Reporter"
         private const val DEFERRED_START_TITLE = "Deferred SDK Start"

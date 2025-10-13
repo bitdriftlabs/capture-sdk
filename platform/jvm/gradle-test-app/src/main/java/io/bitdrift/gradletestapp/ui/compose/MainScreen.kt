@@ -7,6 +7,7 @@
 
 package io.bitdrift.gradletestapp.ui.compose
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -159,7 +160,11 @@ fun MainScreen(
                             uiState = uiState,
                             onLogLevelChange = { viewModel.handleAction(ConfigAction.UpdateLogLevel(it)) },
                             onAppExitReasonChange = { viewModel.handleAction(DiagnosticsAction.UpdateAppExitReason(it)) },
-                            onLogMessage = { viewModel.handleAction(DiagnosticsAction.LogMessage) },
+                            onLogMessage = {
+                                viewModel.handleAction(DiagnosticsAction.LogMessage)
+                                val toasterText = context.getString(R.string.log_message_toast, uiState.config.selectedLogLevel)
+                                Toast.makeText(context, toasterText, Toast.LENGTH_SHORT).show()
+                            },
                             onForceAppExit = {
                                 viewModel.handleAction(DiagnosticsAction.ForceAppExit)
                                 onForceAppExit(uiState.diagnostics.selectedAppExitReason)
@@ -196,8 +201,6 @@ fun MainScreen(
                         }
                     }
                 }
-
-                // No custom scrollbar; rely on Android overscroll
             }
         }
     }

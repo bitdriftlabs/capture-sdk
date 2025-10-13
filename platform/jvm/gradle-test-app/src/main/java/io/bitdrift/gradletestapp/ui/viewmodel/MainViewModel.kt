@@ -47,6 +47,10 @@ class MainViewModel(
         }
         updateSdkState()
         checkAutoInitialization()
+
+        if (sdkRepository.isSdkInitialized()) {
+            runHealthCheck()
+        }
     }
 
     private fun checkAutoInitialization() {

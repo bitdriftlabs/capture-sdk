@@ -64,15 +64,16 @@ fun SdkStatusCard(
 
             val isValid = uiState.session.isDeviceCodeValid
             val error = uiState.session.deviceCodeError
+            val deviceStatusText =
+                if (isValid) {
+                    stringResource(id = R.string.device_code_valid)
+                } else {
+                    error ?: stringResource(id = R.string.device_code_invalid)
+                }
             Text(
-                text =
-                    if (isValid) {
-                        stringResource(id = R.string.device_code_valid)
-                    } else {
-                        error ?: stringResource(id = R.string.device_code_invalid)
-                    },
+                text = deviceStatusText,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (isValid) BitdriftColors.Primary else MaterialTheme.colorScheme.error,
+                color = if (isValid) BitdriftColors.Primary else BitdriftColors.Error,
             )
 
             if (uiState.config.isDeferredStart && !uiState.session.isSdkInitialized) {

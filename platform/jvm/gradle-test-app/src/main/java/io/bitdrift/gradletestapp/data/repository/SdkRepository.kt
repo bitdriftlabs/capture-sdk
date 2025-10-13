@@ -28,10 +28,11 @@ import kotlin.coroutines.resume
  * Repository that manages SDK state and operations
  */
 class SdkRepository(
-    private val context: Context,
+    context: Context,
 ) {
+    private val applicationContext = context.applicationContext
     private val sharedPreferences: SharedPreferences =
-        PreferenceManager.getDefaultSharedPreferences(context)
+        PreferenceManager.getDefaultSharedPreferences(applicationContext)
 
     suspend fun initializeSdk(
         apiKey: String,
@@ -44,7 +45,7 @@ class SdkRepository(
             }
         }
         return withContext(Dispatchers.Main.immediate) {
-            BitdriftInit.init(context, sharedPreferences)
+            BitdriftInit.init(applicationContext, sharedPreferences)
         }
     }
 
