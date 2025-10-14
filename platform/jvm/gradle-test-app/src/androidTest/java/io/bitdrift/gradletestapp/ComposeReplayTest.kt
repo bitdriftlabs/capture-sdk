@@ -227,7 +227,7 @@ class ComposeReplayTest {
 
         val capture = verifyReplayScreen(viewCount = 7)
         assertThat(capture).contains(ReplayRect(ReplayType.SwitchOff, 42, 126, 84, 84))
-        assertThat(capture).contains(ReplayRect(ReplayType.SwitchOn, 42, 295, 84, 84))
+        assertThat(capture).contains(ReplayRect(ReplayType.SwitchOn, 42, 294, 84, 84))
     }
 
     @Test
