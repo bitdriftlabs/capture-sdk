@@ -11,6 +11,7 @@ import io.bitdrift.capture.ApiError
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.DeviceCodeRequest
 import io.bitdrift.capture.DeviceCodeResponse
+import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.SocketPolicy
@@ -30,7 +31,7 @@ class OkHttpApiClientTest {
     fun setup() {
         server = MockWebServer()
         server.start()
-        apiClient = OkHttpApiClient(server.url(""), "api-key")
+        apiClient = OkHttpApiClient(server.url(""), "api-key", client = OkHttpClient())
     }
 
     @After
