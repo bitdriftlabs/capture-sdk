@@ -45,7 +45,7 @@ jobs:
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'react-native-release',
+              workflow_id: 139447071,
               ref: 'main',
               inputs: {
                 version: version
