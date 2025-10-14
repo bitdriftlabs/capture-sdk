@@ -9,6 +9,7 @@ package io.bitdrift.capture.events.performance
 
 import android.app.Activity
 import android.app.Application
+import android.os.Build
 import android.os.Bundle
 import android.view.Window
 import androidx.annotation.OpenForTesting
@@ -28,6 +29,7 @@ import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
@@ -37,6 +39,7 @@ import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
+import io.bitdrift.capture.threading.CaptureDispatchers
 import java.util.concurrent.TimeUnit
 
 /**
@@ -53,6 +56,7 @@ internal class JankStatsMonitor(
     private val windowManager: IWindowManager,
     private val errorHandler: ErrorHandler,
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
+    private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
 ) : IEventListenerLogger,
     Application.ActivityLifecycleCallbacks,
     LifecycleEventObserver,
@@ -108,7 +112,13 @@ internal class JankStatsMonitor(
             return
         }
 
-        frameData.sendJankFrameData()
+        // Below API 24 [onFrame(volatileFrameData)] call happens on the main thread
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            backgroundThreadHandler.runAsync { frameData.sendJankFrameData() }
+        } else {
+            // For >= 24 this happens on `FrameMetricsAggregator` thread
+            frameData.sendJankFrameData()
+        }
     }
 
     /**
