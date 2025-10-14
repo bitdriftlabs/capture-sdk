@@ -114,7 +114,9 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
       - name: Prepare iOS artifacts
-        run: mv Capture.ios.zip Capture-$VERSION.ios.zip
+        run: |
+          mv Capture.ios.zip Capture-$VERSION.ios.zip
+          mv Capture.doccarchive.ios.zip Capture-$VERSION.doccarchive.ios.zip
         env:
           VERSION: ${{ inputs.version }}
       - name: 'Create Github Token'
