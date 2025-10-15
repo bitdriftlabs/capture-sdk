@@ -7,6 +7,7 @@
 
 use crate::conversion::{objc_value_to_rust, rust_value_to_objc};
 use crate::ffi::nsstring_into_string;
+use ahash::AHashMap;
 use anyhow;
 use bd_bonjson::decoder::DecodeError;
 use bd_bonjson::{decoder, Value};
@@ -39,7 +40,7 @@ pub enum CacheResult {
 // Global cache for the most recently loaded KSCrash report.
 // This allows us to safely delete the report file so that it's not picked up next launch by
 // mistake.
-static CACHED_KSCRASH_REPORT: Mutex<Option<HashMap<String, Value>>> = Mutex::new(None);
+static CACHED_KSCRASH_REPORT: Mutex<Option<AHashMap<String, Value>>> = Mutex::new(None);
 
 // API
 
@@ -141,9 +142,9 @@ fn enhance_metrickit_diagnostic_report_impl(
 }
 
 fn enhance_report(
-  metrickit_report: &HashMap<String, Value>,
-  kscrash_report: &HashMap<String, Value>,
-) -> anyhow::Result<Option<HashMap<String, Value>>> {
+  metrickit_report: &AHashMap<String, Value>,
+  kscrash_report: &AHashMap<String, Value>,
+) -> anyhow::Result<Option<AHashMap<String, Value>>> {
   if !diagnostic_metadata_matches_in_reports(metrickit_report, kscrash_report) {
     return Ok(None);
   }
@@ -160,8 +161,8 @@ fn enhance_report(
 }
 
 fn diagnostic_metadata_matches_in_reports(
-  report_a: &HashMap<String, Value>,
-  report_b: &HashMap<String, Value>,
+  report_a: &AHashMap<String, Value>,
+  report_b: &AHashMap<String, Value>,
 ) -> bool {
   let (Some(a_meta), Some(b_meta)) = (
     report_a.get("diagnosticMetaData"),
@@ -180,7 +181,7 @@ fn diagnostic_metadata_matches_in_reports(
 }
 
 fn named_threads_from_kscrash_report(
-  kscrash_report: &HashMap<String, Value>,
+  kscrash_report: &AHashMap<String, Value>,
 ) -> anyhow::Result<Option<Vec<NamedThread>>> {
   let mut named_threads: Vec<NamedThread> = Vec::new();
 
@@ -223,7 +224,7 @@ fn named_threads_from_kscrash_report(
 }
 
 fn extract_call_stack_from_kcrash_thread(
-  kscrash_thread: &HashMap<String, Value>,
+  kscrash_thread: &AHashMap<String, Value>,
 ) -> anyhow::Result<Option<Vec<u64>>> {
   let Some(Value::Object(backtrace)) = kscrash_thread.get("backtrace") else {
     return Err(anyhow::anyhow!("Thread missing 'backtrace' object"));
@@ -276,9 +277,9 @@ fn parse_address_value(address: &Value) -> anyhow::Result<u64> {
 /// Injects thread names from a `KSCrash` report into a `MetricKit` report where their thread call
 /// stacks match.
 fn inject_thread_names_into_metrickit(
-  mut metrickit_report: HashMap<String, Value>,
+  mut metrickit_report: AHashMap<String, Value>,
   named_threads: &[NamedThread],
-) -> anyhow::Result<HashMap<String, Value>> {
+) -> anyhow::Result<AHashMap<String, Value>> {
   // Track how many times each named thread has been matched
   let mut usage_counts: HashMap<String, usize> = HashMap::new();
 
@@ -323,7 +324,7 @@ fn inject_thread_names_into_metrickit(
 }
 
 fn extract_call_stack_from_metrickit_thread(
-  thread: &HashMap<String, Value>,
+  thread: &AHashMap<String, Value>,
 ) -> anyhow::Result<Option<Vec<u64>>> {
   let Some(Value::Array(root_frames)) = thread.get("callStackRootFrames") else {
     return Err(anyhow::anyhow!(
@@ -361,7 +362,7 @@ fn extract_call_stack_from_metrickit_thread(
 
 /// Recursively extracts addresses from a `MetricKit` frame and its subFrames
 fn extract_call_stack_from_metrickit_frame(
-  metrickit_frame: &HashMap<String, Value>,
+  metrickit_frame: &AHashMap<String, Value>,
 ) -> anyhow::Result<Vec<u64>> {
   let mut addresses = Vec::new();
 

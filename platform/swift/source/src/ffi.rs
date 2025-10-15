@@ -210,3 +210,41 @@ unsafe fn convert_fields_helper<FieldValue>(
 
   Ok(fields)
 }
+
+/// Converts a `NSArray` of feature flag tuples into a `Vec<(String, Option<String>)>`.
+/// # Safety
+/// This assumes that the provided ptr refers to a `NSArray` of objects with `flag` and `variant`
+/// properties.
+pub unsafe fn convert_feature_flags_array(
+  ptr: *const Object,
+) -> anyhow::Result<Vec<(String, Option<String>)>> {
+  debug_check_class!(ptr, NSArray);
+
+  // Handle null array
+  if ptr.is_null() {
+    return Ok(Vec::new());
+  }
+
+  let count: usize = msg_send![ptr, count];
+  let mut flags = Vec::with_capacity(count);
+
+  for i in 0 .. count {
+    let feature_flag: *const Object = msg_send![ptr, objectAtIndex: i];
+
+    // Extract flag name
+    let flag_obj: *const Object = msg_send![feature_flag, name];
+    let flag = nsstring_into_string(flag_obj)?;
+
+    // Extract variant (which can be nil)
+    let variant_obj: *const Object = msg_send![feature_flag, variant];
+    let variant = if variant_obj.is_null() {
+      None
+    } else {
+      Some(nsstring_into_string(variant_obj)?)
+    };
+
+    flags.push((flag, variant));
+  }
+
+  Ok(flags)
+}

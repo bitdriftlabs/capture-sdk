@@ -140,13 +140,23 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     /**
      * Sets a feature flag with an optional variant.
      *
-     * @param flag the name of the flag to set
+     * @param name the name of the flag to set
      * @param variant an optional variant
      */
     external fun setFeatureFlag(
         loggerId: Long,
-        flag: String,
+        name: String,
         variant: String?,
+    )
+
+    /**
+     * Sets multiple feature flags.
+     *
+     * @param flags the flags to set
+     */
+    external fun setFeatureFlags(
+        loggerId: Long,
+        flags: List<FeatureFlag>,
     )
 
     /**

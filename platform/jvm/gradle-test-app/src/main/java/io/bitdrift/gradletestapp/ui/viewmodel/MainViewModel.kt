@@ -87,6 +87,9 @@ class MainViewModel(
             is NetworkTestAction.PerformOkHttpRequest -> performOkHttpRequest()
             is NetworkTestAction.PerformGraphQlRequest -> performGraphQlRequest()
 
+            is FeatureFlagsTestAction.AddOneFeatureFlag -> addOneFeatureFlag()
+            is FeatureFlagsTestAction.AddManyFeatureFlags -> addManyFeatureFlags()
+
             ClearError -> clearError()
         }
     }
@@ -202,6 +205,14 @@ class MainViewModel(
 
     private fun performGraphQlRequest() {
         Timber.i("Performing GraphQL request")
+    }
+
+    private fun addOneFeatureFlag() {
+        Timber.i("Adding one feature flag")
+    }
+
+    private fun addManyFeatureFlags() {
+        Timber.i("Adding many feature flags")
     }
 
     private fun logMessage() {

@@ -78,13 +78,20 @@ interface ILogger {
     /**
      * Sets a feature flag with an optional variant.
      *
-     * @param flag the name of the flag to set
+     * @param name the name of the flag to set
      * @param variant an optional variant
      */
     fun setFeatureFlag(
-        flag: String,
+        name: String,
         variant: String?,
     )
+
+    /**
+     * Sets multiple feature flags (with optional variants).
+     *
+     * @param flags the flags to set
+     */
+    fun setFeatureFlags(flags: List<FeatureFlag>)
 
     /**
      * Removes a feature flag.

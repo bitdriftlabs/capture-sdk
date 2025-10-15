@@ -29,8 +29,10 @@ import io.bitdrift.gradletestapp.data.model.AppExitReason
 import io.bitdrift.gradletestapp.data.model.ClearError
 import io.bitdrift.gradletestapp.data.model.ConfigAction
 import io.bitdrift.gradletestapp.data.model.DiagnosticsAction
+import io.bitdrift.gradletestapp.data.model.FeatureFlagsTestAction
 import io.bitdrift.gradletestapp.data.model.NetworkTestAction
 import io.bitdrift.gradletestapp.data.model.SessionAction
+import io.bitdrift.gradletestapp.ui.compose.components.FeatureFlagsTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.NavigationCard
 import io.bitdrift.gradletestapp.ui.compose.components.NetworkTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.SdkStatusCard
@@ -48,6 +50,8 @@ fun MainScreen(
     onNavigateToXml: () -> Unit,
     onPerformOkHttpRequest: () -> Unit,
     onPerformGraphQlRequest: () -> Unit,
+    onAddOneFeatureFlag: () -> Unit,
+    onAddManyFeatureFlags: () -> Unit,
     onForceAppExit: (AppExitReason) -> Unit,
     viewModel: MainViewModel,
 ) {
@@ -180,6 +184,18 @@ fun MainScreen(
                             onGraphQlRequest = {
                                 viewModel.handleAction(NetworkTestAction.PerformGraphQlRequest)
                                 onPerformGraphQlRequest()
+                            },
+                        )
+                    }
+                    item {
+                        FeatureFlagsTestingCard(
+                            onAddOneFeatureFlag = {
+                                viewModel.handleAction(FeatureFlagsTestAction.AddOneFeatureFlag)
+                                onAddOneFeatureFlag()
+                            },
+                            onAddManyFeatureFlags = {
+                                viewModel.handleAction(FeatureFlagsTestAction.AddManyFeatureFlags)
+                                onAddManyFeatureFlags()
                             },
                         )
                     }

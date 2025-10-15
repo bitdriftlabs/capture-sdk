@@ -29,6 +29,7 @@ import com.example.rocketreserver.BookTripsMutation
 import com.example.rocketreserver.LaunchListQuery
 import com.example.rocketreserver.LoginMutation
 import io.bitdrift.capture.Capture.Logger
+import io.bitdrift.capture.FeatureFlag
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.apollo.CaptureApolloInterceptor
 import io.bitdrift.capture.events.span.Span
@@ -133,6 +134,8 @@ class FirstFragment : Fragment() {
                         },
                         onPerformOkHttpRequest = { performOkHttpRequest() },
                         onPerformGraphQlRequest = { performGraphQlRequest() },
+                        onAddOneFeatureFlag = { addOneFeatureFlag() },
+                        onAddManyFeatureFlags = { addManyFeatureFlags() },
                         onForceAppExit = { reason -> forceAppExit(reason) },
                         viewModel = viewModel,
                     )
@@ -245,6 +248,15 @@ class FirstFragment : Fragment() {
                 Timber.e(e, "GraphQL request failed")
             }
         }
+    }
+
+    private fun addOneFeatureFlag() {
+        Logger.setFeatureFlag("myflag", "myvariant")
+    }
+
+    private fun addManyFeatureFlags() {
+        val flags = (1..10000).map { FeatureFlag.of("flag_" + it) }
+        Logger.setFeatureFlags(flags)
     }
 
     @SuppressLint("VisibleForTests")

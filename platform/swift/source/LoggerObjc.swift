@@ -36,6 +36,20 @@ public final class CAPConfiguration: NSObject {
     }
 }
 
+@objc
+public final class FeatureFlag: NSObject {
+    @objc
+    let name: String
+    @objc
+    let variant: String?
+
+    @objc
+    public init(name: String, variant: String?) {
+        self.name = name
+        self.variant = variant
+    }
+}
+
 // Make this class not available to Swift code. It should be used by Objective-c code only.
 @available(swift, obsoleted: 1.0)
 @objc(CAPLogger)
@@ -395,19 +409,27 @@ public final class LoggerObjc: NSObject {
 
     /// Sets a feature flag with an optional variant.
     ///
-    /// - parameter flag:    The name of the flag to set
+    /// - parameter name:    The name of the flag to set
     /// - parameter variant: An optional variant to set the flag to
     @objc
-    public static func setFeatureFlag(withFlag flag: String, variant: String?) {
-        Capture.Logger.setFeatureFlag(withFlag: flag, variant: variant)
+    public static func setFeatureFlag(withName name: String, variant: String?) {
+        Capture.Logger.setFeatureFlag(withName: name, variant: variant)
+    }
+
+    /// Sets multiple feature flags.
+    ///
+    /// - parameter flags: The flags to set
+    @objc
+    public static func setFeatureFlags(_ flags: [FeatureFlag]) {
+        Capture.Logger.setFeatureFlags(flags)
     }
 
     /// Removes a feature flag.
     ///
-    /// - parameter flag: The name of the flag to remove
+    /// - parameter name: The name of the flag to remove
     @objc
-    public static func removeFeatureFlag(withFlag flag: String) {
-        Capture.Logger.removeFeatureFlag(withFlag: flag)
+    public static func removeFeatureFlag(withName name: String) {
+        Capture.Logger.removeFeatureFlag(withName: name)
     }
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a

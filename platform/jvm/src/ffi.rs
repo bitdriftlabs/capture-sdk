@@ -31,6 +31,9 @@ static FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 static BINARY_FIELD_BYTE_ARRAY: OnceLock<CachedMethod> = OnceLock::new();
 static STRING_FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 
+static FEATURE_FLAG_GET_NAME: OnceLock<CachedMethod> = OnceLock::new();
+static FEATURE_FLAG_GET_VARIANT: OnceLock<CachedMethod> = OnceLock::new();
+
 pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   let field_class = initialize_class(env, "io/bitdrift/capture/providers/Field", None)?;
   initialize_method_handle(
@@ -81,6 +84,21 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
     "getStringValue",
     "()Ljava/lang/String;",
     &STRING_FIELD_STRING,
+  )?;
+
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/FeatureFlag",
+    "getName",
+    "()Ljava/lang/String;",
+    &FEATURE_FLAG_GET_NAME,
+  )?;
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/FeatureFlag",
+    "getVariant",
+    "()Ljava/lang/String;",
+    &FEATURE_FLAG_GET_VARIANT,
   )?;
 
   Ok(())
@@ -217,4 +235,52 @@ pub(crate) fn map_to_jmap<'a, S: std::hash::BuildHasher>(
   }
 
   Ok(jmap_object)
+}
+
+/// Converts a Java List of feature flag objects into a `Vec<(String, Option<String>)>`.
+/// Each feature flag object should have `getName()` and `getVariant()` methods.
+pub(crate) fn jobject_list_to_feature_flags(
+  env: &mut JNIEnv<'_>,
+  object: &JObject<'_>,
+) -> anyhow::Result<Vec<(String, Option<String>)>> {
+  let list = JList::from_env(env, object)?;
+  let size = list.size(env)?;
+
+  // SAFETY: the size of an array should always be >= 0.
+  let mut flags = Vec::with_capacity(size.try_into()?);
+
+  let mut iter = list.iter(env)?;
+  while let Some(obj) = iter.next(env)? {
+    let obj: AutoLocal<'_, JObject<'_>> = env.auto_local(obj);
+
+    // Get flag name
+    let flag_obj = FEATURE_FLAG_GET_NAME
+      .get()
+      .ok_or(InvariantError::Invariant)?
+      .call_method(env, &obj, ReturnType::Object, &[])?
+      .l()?;
+    let flag = unsafe { env.get_string_unchecked(&flag_obj.into()) }?
+      .to_string_lossy()
+      .to_string();
+
+    // Get variant (which can be null)
+    let variant_obj = FEATURE_FLAG_GET_VARIANT
+      .get()
+      .ok_or(InvariantError::Invariant)?
+      .call_method(env, &obj, ReturnType::Object, &[])?
+      .l()?;
+    let variant = if variant_obj.is_null() {
+      None
+    } else {
+      Some(
+        unsafe { env.get_string_unchecked(&variant_obj.into()) }?
+          .to_string_lossy()
+          .to_string(),
+      )
+    };
+
+    flags.push((flag, variant));
+  }
+
+  Ok(flags)
 }

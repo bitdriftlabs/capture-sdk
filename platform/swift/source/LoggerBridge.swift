@@ -236,11 +236,15 @@ final class LoggerBridge: LoggerBridging {
         capture_flush(self.loggerID, blocking)
     }
 
-    func setFeatureFlag(withFlag flag: String, variant: String?) {
+    func setFeatureFlag(withName flag: String, variant: String?) {
         capture_set_feature_flag(self.loggerID, flag, variant)
     }
 
-    func removeFeatureFlag(withFlag flag: String) {
+    func setFeatureFlags(_ flags: [FeatureFlag]) {
+        capture_set_feature_flags(self.loggerID, flags)
+    }
+
+    func removeFeatureFlag(withName flag: String) {
         capture_remove_feature_flag(self.loggerID, flag)
     }
 

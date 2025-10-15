@@ -114,12 +114,16 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         Logger.createTemporaryDeviceCode(completion: completion)
     }
 
-    func setFeatureFlag(flag: String, variant: String?) {
-        Capture.Logger.setFeatureFlag(withFlag: flag, variant: variant)
+    func setFeatureFlag(name: String, variant: String?) {
+        Capture.Logger.setFeatureFlag(withName: name, variant: variant)
+    }
+
+    func setFeatureFlags(_ flags: [FeatureFlag]) {
+        Capture.Logger.setFeatureFlags(flags)
     }
 
     func removeFeatureFlag(flag: String) {
-        Capture.Logger.removeFeatureFlag(withFlag: flag)
+        Capture.Logger.removeFeatureFlag(withName: flag)
     }
 
     func performRandomNetworkRequestUsingDataTask() {
