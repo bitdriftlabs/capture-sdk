@@ -51,7 +51,7 @@ struct ContentView: View {
                 }) {
                     Text("Simulate Navigation to Screen").frame(maxWidth: .infinity)
                 }
-                Button(action: { self.loggerCustomer.setFeatureFlag(flag: "MyFlag", variant: "MyVariant") }) {
+                Button(action: { self.loggerCustomer.setFeatureFlag(name: "MyFlag", variant: "MyVariant") }) {
                     Text("Set feature flag 'MyFlag' to 'MyVariant'").frame(maxWidth: .infinity)
                 }
                 Button(action: {

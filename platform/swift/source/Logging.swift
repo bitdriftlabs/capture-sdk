@@ -89,9 +89,9 @@ public protocol Logging {
 
     /// Sets a feature flag with an optional variant.
     ///
-    /// - parameter flag:    The name of the flag to set
+    /// - parameter name:    The name of the flag to set
     /// - parameter variant: An optional variant to set the flag to
-    func setFeatureFlag(withFlag flag: String, variant: String?)
+    func setFeatureFlag(withName name: String, variant: String?)
 
     /// Sets multiple feature flags.
     ///
@@ -100,8 +100,8 @@ public protocol Logging {
 
     /// Removes a feature flag.
     ///
-    /// - parameter flag: The name of the flag to remove
-    func removeFeatureFlag(withFlag flag: String)
+    /// - parameter name: The name of the flag to remove
+    func removeFeatureFlag(withName name: String)
 
     /// Creates a temporary device code that can be fed into bitdrift `bd` CLI tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with

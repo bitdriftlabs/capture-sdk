@@ -146,7 +146,7 @@ protocol CoreLogging: AnyObject {
     ///
     /// - parameter flag:    The name of the flag to set
     /// - parameter variant: An optional variant to set the flag to
-    func setFeatureFlag(withFlag flag: String, variant: String?)
+    func setFeatureFlag(withName flag: String, variant: String?)
 
     /// Sets multiple feature flags.
     ///
@@ -155,8 +155,8 @@ protocol CoreLogging: AnyObject {
 
     /// Removes a feature flag.
     ///
-    /// - parameter flag: The name of the flag to remove
-    func removeFeatureFlag(withFlag flag: String)
+    /// - parameter name: The name of the flag to remove
+    func removeFeatureFlag(withName name: String)
 
     /// Retrieves the value of a given runtime variable.
     ///

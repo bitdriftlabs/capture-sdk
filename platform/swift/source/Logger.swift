@@ -541,16 +541,16 @@ extension Logger: Logging {
         self.underlyingLogger.removeField(withKey: key)
     }
 
-    public func setFeatureFlag(withFlag flag: String, variant: String?) {
-        self.underlyingLogger.setFeatureFlag(withFlag: flag, variant: variant)
+    public func setFeatureFlag(withName flag: String, variant: String?) {
+        self.underlyingLogger.setFeatureFlag(withName: flag, variant: variant)
     }
 
     public func setFeatureFlags(_ flags: [FeatureFlag]) {
         self.underlyingLogger.setFeatureFlags(flags)
     }
 
-    public func removeFeatureFlag(withFlag flag: String) {
-        self.underlyingLogger.removeFeatureFlag(withFlag: flag)
+    public func removeFeatureFlag(withName name: String) {
+        self.underlyingLogger.removeFeatureFlag(withName: name)
     }
 
     public func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void) {

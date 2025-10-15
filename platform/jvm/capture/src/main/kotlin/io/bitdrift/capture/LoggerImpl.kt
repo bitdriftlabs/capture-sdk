@@ -14,6 +14,7 @@ import android.content.Context
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
+import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.IWindowManager
@@ -387,10 +388,10 @@ internal class LoggerImpl(
     }
 
     override fun setFeatureFlag(
-        flag: String,
+        name: String,
         variant: String?,
     ) {
-        CaptureJniLibrary.setFeatureFlag(this.loggerId, flag, variant)
+        CaptureJniLibrary.setFeatureFlag(this.loggerId, name, variant)
     }
 
     override fun setFeatureFlags(flags: List<FeatureFlag>) {

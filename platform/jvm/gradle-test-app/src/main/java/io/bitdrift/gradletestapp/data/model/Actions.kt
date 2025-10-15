@@ -52,4 +52,10 @@ sealed class NetworkTestAction : AppAction {
     object PerformGraphQlRequest : NetworkTestAction()
 }
 
+sealed class FeatureFlagsTestAction : AppAction {
+    object AddOneFeatureFlag : FeatureFlagsTestAction()
+
+    object AddManyFeatureFlags : FeatureFlagsTestAction()
+}
+
 object ClearError : AppAction

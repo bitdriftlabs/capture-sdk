@@ -138,9 +138,9 @@ extension MockLoggerBridging: LoggerBridging {
 
     public func processCrashReports() {}
 
-    public func setFeatureFlag(withFlag flag: String, variant: String?) {}
+    public func setFeatureFlag(withName flag: String, variant: String?) {}
 
     public func setFeatureFlags(_ flags: [FeatureFlag]) {}
 
-    public func removeFeatureFlag(withFlag flag: String) {}
+    public func removeFeatureFlag(withName flag: String) {}
 }
