@@ -76,14 +76,16 @@ internal object ComposeTreeParser {
             )
         }
 
+        val nodeBounds = this.unclippedGlobalBounds
+
         return ScannableView.ComposeView(
             replayRect =
                 ReplayRect(
                     type = type,
-                    x = this.unclippedGlobalBounds.left.toInt(),
-                    y = this.unclippedGlobalBounds.top.toInt(),
-                    width = this.unclippedGlobalBounds.width.toInt(),
-                    height = this.unclippedGlobalBounds.height.toInt(),
+                    x = nodeBounds.left.toInt(),
+                    y = nodeBounds.top.toInt(),
+                    width = nodeBounds.width.toInt(),
+                    height = nodeBounds.height.toInt(),
                 ),
             // The display name is not really used for anything
             displayName = "ComposeView",
