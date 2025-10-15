@@ -24,18 +24,18 @@ package io.bitdrift.capture
  * logger.setFeatureFlags(listOf(flag1, flag2, flag3, flag4))
  * ```
  *
- * @param flag the name of the feature flag
+ * @param name the name of the feature flag
  * @param variant the optional variant value
  */
 data class FeatureFlag(
-    private val flag: String,
+    private val name: String,
     private val variant: String?,
 ) {
     /**
      * Gets the flag name.
      * This method is called by the JNI layer.
      */
-    fun getFlag(): String = flag
+    fun getName(): String = name
 
     /**
      * Gets the variant value.
@@ -50,15 +50,15 @@ data class FeatureFlag(
          * Creates a feature flag with just a flag name (no variant).
          */
         @JvmStatic
-        fun of(flag: String): FeatureFlag = FeatureFlag(flag, null)
+        fun of(name: String): FeatureFlag = FeatureFlag(name, null)
 
         /**
          * Creates a feature flag with a flag name and variant.
          */
         @JvmStatic
         fun of(
-            flag: String,
+            name: String,
             variant: String?,
-        ): FeatureFlag = FeatureFlag(flag, variant)
+        ): FeatureFlag = FeatureFlag(name, variant)
     }
 }

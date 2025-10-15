@@ -31,7 +31,7 @@ static FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 static BINARY_FIELD_BYTE_ARRAY: OnceLock<CachedMethod> = OnceLock::new();
 static STRING_FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 
-static FEATURE_FLAG_GET_FLAG: OnceLock<CachedMethod> = OnceLock::new();
+static FEATURE_FLAG_GET_NAME: OnceLock<CachedMethod> = OnceLock::new();
 static FEATURE_FLAG_GET_VARIANT: OnceLock<CachedMethod> = OnceLock::new();
 
 pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
@@ -89,9 +89,9 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   initialize_method_handle(
     env,
     "io/bitdrift/capture/FeatureFlag",
-    "getFlag",
+    "getName",
     "()Ljava/lang/String;",
-    &FEATURE_FLAG_GET_FLAG,
+    &FEATURE_FLAG_GET_NAME,
   )?;
   initialize_method_handle(
     env,
@@ -238,7 +238,7 @@ pub(crate) fn map_to_jmap<'a, S: std::hash::BuildHasher>(
 }
 
 /// Converts a Java List of feature flag objects into a `Vec<(String, Option<String>)>`.
-/// Each feature flag object should have `getFlag()` and `getVariant()` methods.
+/// Each feature flag object should have `getName()` and `getVariant()` methods.
 pub(crate) fn jobject_list_to_feature_flags(
   env: &mut JNIEnv<'_>,
   object: &JObject<'_>,
@@ -254,7 +254,7 @@ pub(crate) fn jobject_list_to_feature_flags(
     let obj: AutoLocal<'_, JObject<'_>> = env.auto_local(obj);
 
     // Get flag name
-    let flag_obj = FEATURE_FLAG_GET_FLAG
+    let flag_obj = FEATURE_FLAG_GET_NAME
       .get()
       .ok_or(InvariantError::Invariant)?
       .call_method(env, &obj, ReturnType::Object, &[])?
