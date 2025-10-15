@@ -21,6 +21,7 @@ import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.utils.BuildTypeChecker
@@ -168,6 +169,7 @@ object Capture {
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             bridge: IBridge,
             context: Context? = null,
+            additionalSdkStartFields: Map<String, FieldValue>? = null,
         ) {
             // There's nothing we can do if we don't have yet access to the application context.
             if (hasInvalidContext(context)) {
@@ -189,6 +191,7 @@ object Capture {
                     apiUrl = apiUrl,
                     bridge = bridge,
                     context = context,
+                    additionalSdkStartFields = additionalSdkStartFields,
                 )
             } else {
                 Log.w(LOG_TAG, "Multiple attempts to start Capture")
@@ -568,6 +571,7 @@ object Capture {
         apiUrl: HttpUrl,
         bridge: IBridge,
         context: Context?,
+        additionalSdkStartFields: Map<String, FieldValue>?,
     ) {
         try {
             val startSdkTimer = TimeSource.Monotonic.markNow()
@@ -615,6 +619,7 @@ object Capture {
                 appContext = appContext,
                 sdkConfiguredDuration = sdkConfiguredDuration,
                 captureStartThread = Thread.currentThread().name,
+                additionalSdkStartFields = additionalSdkStartFields,
             )
         } catch (e: Throwable) {
             Log.w(LOG_TAG, "Failed to start Capture", e)

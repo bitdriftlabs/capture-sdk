@@ -546,6 +546,7 @@ internal class LoggerImpl(
         appContext: Context,
         sdkConfiguredDuration: SdkConfiguredDuration,
         captureStartThread: String,
+        additionalSdkStartFields: Map<String, FieldValue>?,
     ) {
         eventListenerDispatcher.executorService.execute {
             val installationSource =
@@ -567,6 +568,7 @@ internal class LoggerImpl(
                     } ?: run {
                         putAll(FatalIssueReporter.getDisabledStatusFieldsMap())
                     }
+                    additionalSdkStartFields?.let { putAll(it) }
                 }
 
             CaptureJniLibrary.writeSDKStartLog(
