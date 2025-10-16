@@ -28,6 +28,8 @@ interface IWindowManager {
      */
     fun getFirstRootView(): View?
 
+    fun getLastRootView(): View?
+
     /**
      * Returns all root views of the current window if available.
      *

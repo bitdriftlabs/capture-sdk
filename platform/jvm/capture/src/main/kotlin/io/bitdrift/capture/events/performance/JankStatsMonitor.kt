@@ -35,6 +35,7 @@ import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.common.phoneWindow
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.FieldValue
@@ -132,7 +133,10 @@ internal class JankStatsMonitor(
             return
         }
         if (event == Lifecycle.Event.ON_CREATE) {
-            windowManager.getCurrentWindow()?.let {
+            println("FRAN_TAG: current ON_CREATE + " + windowManager.getCurrentWindow())
+
+            findCurrentActivityWindow()?.let {
+                println("FRAN_TAG: current activity window " + it)
                 setJankStatsForCurrentWindow(it)
                 // We are done detecting initial Application ON_CREATE, we don't need to listen anymore
                 processLifecycleOwner.lifecycle.removeObserver(this)
@@ -140,7 +144,30 @@ internal class JankStatsMonitor(
         }
     }
 
+    private fun findCurrentActivityWindow(): Window? {
+        val current = windowManager.getCurrentWindow()
+        val first = windowManager.getFirstRootView()
+        val last = windowManager.getFirstRootView()
+        println("FRAN_TAG: current : ${current?.javaClass?.simpleName}")
+        println("FRAN_TAG: first : ${first?.javaClass?.simpleName}")
+        println("FRAN_TAG: last : ${last?.javaClass?.simpleName}")
+
+        val roots = windowManager.getAllRootViews()
+        for (i in roots.size - 1 downTo 0) {
+            val root = roots[i]
+            val win = root.phoneWindow ?: continue
+            println("FRAN_TAG: window class name: ${win.javaClass.simpleName}")
+            val activity = (win.callback as? Activity)
+            if (activity != null && !activity.isFinishing && !activity.isDestroyed) {
+                return win
+            }
+        }
+        return null
+    }
+
     override fun onActivityResumed(activity: Activity) {
+        println("FRAN_TAG: onActivityResumed ON_CREATE")
+
         if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
             return
         }
@@ -203,10 +230,11 @@ internal class JankStatsMonitor(
     }
 
     private fun stopCollection() {
-        jankStats?.isTrackingEnabled = false
-        performanceMetricsStateHolder?.state?.removeState(SCREEN_NAME_KEY)
-        jankStats = null
-        performanceMetricsStateHolder = null
+        System.out.println("FRAN_TAG: stop collection")
+//        jankStats?.isTrackingEnabled = false
+//        performanceMetricsStateHolder?.state?.removeState(SCREEN_NAME_KEY)
+//        jankStats = null
+//        performanceMetricsStateHolder = null
     }
 
     @WorkerThread

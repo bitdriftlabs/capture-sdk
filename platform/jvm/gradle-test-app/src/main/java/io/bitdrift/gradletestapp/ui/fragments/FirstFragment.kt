@@ -137,6 +137,7 @@ class FirstFragment : Fragment() {
                         onAddOneFeatureFlag = { addOneFeatureFlag() },
                         onAddManyFeatureFlags = { addManyFeatureFlags() },
                         onForceAppExit = { reason -> forceAppExit(reason) },
+                        onShowActivityDialog = { showActivityDialog() },
                         viewModel = viewModel,
                     )
                 }
@@ -257,6 +258,17 @@ class FirstFragment : Fragment() {
     private fun addManyFeatureFlags() {
         val flags = (1..10000).map { FeatureFlag.of("flag_" + it) }
         Logger.setFeatureFlags(flags)
+    }
+
+    private fun showActivityDialog() {
+        val dialog =
+            android.app.AlertDialog
+                .Builder(requireActivity())
+                .setTitle("Activity Dialog")
+                .setMessage("This dialog uses the Activity context and has its own Window")
+                .setPositiveButton(android.R.string.ok, null)
+                .create()
+        dialog.show()
     }
 
     @SuppressLint("VisibleForTests")

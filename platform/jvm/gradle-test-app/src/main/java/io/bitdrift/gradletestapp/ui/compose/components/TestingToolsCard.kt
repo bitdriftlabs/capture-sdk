@@ -32,6 +32,7 @@ fun TestingToolsCard(
     onAppExitReasonChange: (AppExitReason) -> Unit,
     onLogMessage: () -> Unit,
     onForceAppExit: () -> Unit,
+    onShowActivityDialog: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -90,6 +91,13 @@ fun TestingToolsCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Force App Exit")
+            }
+
+            Button(
+                onClick = onShowActivityDialog,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Show Activity Dialog")
             }
         }
     }

@@ -29,7 +29,7 @@ class WindowManager(
 
     override fun getFirstRootView(): View? = getAllRootViews().firstOrNull()
 
-    private fun getLastRootView(): View? = getAllRootViews().lastOrNull()
+    override fun getLastRootView(): View? = getAllRootViews().lastOrNull()
 
     private val windowManagerGlobal: Any? by lazy(LazyThreadSafetyMode.NONE) {
         global.getDeclaredMethod("getInstance").invoke(null)

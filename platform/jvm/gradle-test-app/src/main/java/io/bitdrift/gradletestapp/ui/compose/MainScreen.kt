@@ -53,6 +53,7 @@ fun MainScreen(
     onAddOneFeatureFlag: () -> Unit,
     onAddManyFeatureFlags: () -> Unit,
     onForceAppExit: (AppExitReason) -> Unit,
+    onShowActivityDialog: () -> Unit,
     viewModel: MainViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -173,6 +174,7 @@ fun MainScreen(
                                 viewModel.handleAction(DiagnosticsAction.ForceAppExit)
                                 onForceAppExit(uiState.diagnostics.selectedAppExitReason)
                             },
+                            onShowActivityDialog = onShowActivityDialog,
                         )
                     }
                     item {
