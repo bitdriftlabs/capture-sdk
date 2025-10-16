@@ -174,7 +174,8 @@ internal class JankStatsMonitor(
     }
 
     override fun onActivityDestroyed(activity: Activity) {
-        // no-op
+        // Safety net: ensure we clear references to the destroyed Activity's Window
+        stopCollection()
     }
 
     fun trackScreenNameChanged(screenName: String) {
