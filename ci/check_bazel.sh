@@ -34,9 +34,13 @@ bazel_path=$(pwd)/bazelw
 # If the only file that changed was .sdk_version, we don't need to run bazel-diff and just mark it as no changes detected.
 if ./ci/version_only_change.sh; then
   echo "Only change was platform/shared/.sdk-version, no Bazel changes detected."
-  echo "check_result=2" >> "$GITHUB_OUTPUT"
+  echo "check_result=2" >>"$GITHUB_OUTPUT"
   exit 1
 fi
+
+# Always run Bazel changes when the MODULE.bazel file changes. These changes don't seem to be reflected in the hashes,
+# so we need to explicitly check for changes to this file.
+./ci/files_changed.sh MODULE.bazel
 
 starting_hashes_json="/tmp/starting_hashes.json"
 final_hashes_json="/tmp/final_hashes.json"
@@ -58,8 +62,11 @@ $bazel_diff get-impacted-targets -sh $starting_hashes_json -fh $final_hashes_jso
 # First pretty print the targets for debugging
 
 impacted_targets=()
-IFS=$'\n' read -d '' -r -a impacted_targets < $impacted_targets_path || true
-formatted_impacted_targets="$(IFS=$'\n'; echo "${impacted_targets[*]}")"
+IFS=$'\n' read -d '' -r -a impacted_targets <$impacted_targets_path || true
+formatted_impacted_targets="$(
+  IFS=$'\n'
+  echo "${impacted_targets[*]}"
+)"
 
 # Piping the output through to grep is flaky and will cause a broken pipe. Write the contents to a file
 # and grep the file to avoid this.
@@ -75,8 +82,7 @@ pattern_impacted() {
 
 changes_detected=false
 
-for pattern in "$@"
-do
+for pattern in "$@"; do
   if pattern_impacted "$pattern"; then
     echo "$pattern changed!"
     changes_detected=true
@@ -86,10 +92,10 @@ done
 
 # Exit code based on whether changes were detected
 if [ "$changes_detected" = true ]; then
-  echo "check_result=0" >> "$GITHUB_OUTPUT"
-  exit 0  # Changes found
+  echo "check_result=0" >>"$GITHUB_OUTPUT"
+  exit 0 # Changes found
 else
   echo "No changes detected."
-  echo "check_result=2" >> "$GITHUB_OUTPUT"
+  echo "check_result=2" >>"$GITHUB_OUTPUT"
   exit 1
 fi
