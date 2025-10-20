@@ -69,7 +69,7 @@ class JankStatsMonitorTest {
         window = activity.window
 
         whenever(processLifecycleOwner.lifecycle).thenReturn(lifecycle)
-        whenever(windowManager.getCurrentWindow()).thenReturn(window)
+        whenever(windowManager.findCurrentActivity()).thenReturn(activity)
         whenever(windowManager.getFirstRootView()).thenReturn(window.decorView)
 
         whenever(runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)).thenReturn(true)

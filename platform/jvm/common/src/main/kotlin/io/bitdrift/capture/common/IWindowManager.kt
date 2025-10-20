@@ -7,20 +7,13 @@
 
 package io.bitdrift.capture.common
 
+import android.app.Activity
 import android.view.View
-import android.view.Window
 
 /**
  * Provides access the Global Window Views, or `null` if no window is available.
  */
 interface IWindowManager {
-    /**
-     * Returns the current [Window] if available.
-     *
-     * @return The current [Window], or `null` if no window is available.
-     */
-    fun getCurrentWindow(): Window?
-
     /**
      * Returns the root view of the current window if available.
      *
@@ -34,4 +27,11 @@ interface IWindowManager {
      * @return The root views of the current hierarchy, or an empty list if not available.
      */
     fun getAllRootViews(): List<View>
+
+    /**
+     * Finds the current Activity
+     *
+     * @return The current [Activity], or `null` if none found.
+     */
+    fun findCurrentActivity(): Activity?
 }
