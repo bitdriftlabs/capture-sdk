@@ -62,16 +62,26 @@ class WindowManager(
         }
     }
 
-    override fun findCurrentActivity(): Activity? {
-        val lastView = getAllRootViews().lastOrNull()
-        val lastWindow = lastView?.let { WindowSpy.pullWindow(it.rootView) } ?: return null
-        return lastWindow.context.unwrapToActivity()
-    }
+    override fun findCurrentActivity(): Activity? =
+        getAllRootViews().firstNotNullOfOrNull { view ->
+            val activity = view.unwrapToActivity()
+            //noinspection NewApi
+            if (activity != null && !activity.isDestroyed) {
+                activity
+            } else {
+                null
+            }
+        }
 
-    private fun Context.unwrapToActivity(): Activity? {
-        var current: Context = this
+    private fun View.unwrapToActivity(): Activity? {
+        val visited = mutableSetOf<Context>()
+        var current: Context? = WindowSpy.pullWindow(this)?.context
+
         while (current is ContextWrapper) {
             if (current is Activity) return current
+            if (!visited.add(current)) {
+                return null
+            }
             current = current.baseContext
         }
         return null
