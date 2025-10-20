@@ -7,9 +7,11 @@
 
 package io.bitdrift.capture.common
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.Build
 import android.view.View
-import android.view.Window
 import android.view.inspector.WindowInspector
 
 /**
@@ -24,8 +26,6 @@ class WindowManager(
         //noinspection PrivateApi
         Class.forName("android.view.WindowManagerGlobal")
     }
-
-    override fun getCurrentWindow(): Window? = getFirstRootView()?.phoneWindow
 
     override fun getFirstRootView(): View? = getAllRootViews().firstOrNull()
 
@@ -60,5 +60,20 @@ class WindowManager(
             errorHandler.handleError("Failed to retrieve windows", e)
             return emptyList()
         }
+    }
+
+    override fun findCurrentActivity(): Activity? {
+        val lastView = getAllRootViews().lastOrNull()
+        val lastWindow = lastView?.let { WindowSpy.pullWindow(it.rootView) } ?: return null
+        return lastWindow.context.unwrapToActivity()
+    }
+
+    private fun Context.unwrapToActivity(): Activity? {
+        var current: Context = this
+        while (current is ContextWrapper) {
+            if (current is Activity) return current
+            current = current.baseContext
+        }
+        return null
     }
 }

@@ -132,8 +132,8 @@ internal class JankStatsMonitor(
             return
         }
         if (event == Lifecycle.Event.ON_CREATE) {
-            windowManager.getCurrentWindow()?.let {
-                setJankStatsForCurrentWindow(it)
+            windowManager.findCurrentActivity()?.let {
+                setJankStatsForCurrentWindow(it.window)
                 // We are done detecting initial Application ON_CREATE, we don't need to listen anymore
                 processLifecycleOwner.lifecycle.removeObserver(this)
             }
