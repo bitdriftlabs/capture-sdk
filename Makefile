@@ -57,4 +57,4 @@ $(REPORT_KT): ../api/src/$(REPORT_FBS_PATH)/report.fbs
 	@flatc --gen-onefile --kotlin -I ../api/src $^
 	@mv $(REPORT_FBS_GEN_PATH)/report.kt $@
 	@python ci/license_header.py $@
-	@sed -i '' -e s/$(subst /,.,$(REPORT_FBS_GEN_PATH))/io.bitdrift.capture.reports.binformat/ $@
+	@sed -i '' -e s/$(subst /,.,$(REPORT_FBS_GEN_PATH))/io.bitdrift.capture.reports.binformat.v1/ $@
