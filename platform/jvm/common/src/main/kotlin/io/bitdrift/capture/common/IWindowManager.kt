@@ -29,9 +29,14 @@ interface IWindowManager {
     fun getAllRootViews(): List<View>
 
     /**
-     * Finds the current Activity
+     * Finds the first valid (non-destroyed) activity from all available root views.
      *
-     * @return The current [Activity], or `null` if none found.
+     * For most cases, this returns the currently visible activity.
+     *
+     * When multiple activities are present (split-screen, PiP, etc), this returns
+     * the first valid activity found in the iteration order.
+     *
+     * @return The first valid [android.app.Activity], or `null` if none found
      */
-    fun findCurrentActivity(): Activity?
+    fun findFirstValidActivity(): Activity?
 }

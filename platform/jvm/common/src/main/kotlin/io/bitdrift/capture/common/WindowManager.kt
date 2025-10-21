@@ -62,7 +62,7 @@ class WindowManager(
         }
     }
 
-    override fun findCurrentActivity(): Activity? =
+    override fun findFirstValidActivity(): Activity? =
         getAllRootViews().firstNotNullOfOrNull { view ->
             val activity = view.unwrapToActivity()
             //noinspection NewApi
