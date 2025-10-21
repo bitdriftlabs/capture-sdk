@@ -47,6 +47,7 @@ push-additional-images:
 
 REPORT_KT=platform/jvm/capture/src/main/kotlin/io/bitdrift/capture/reports/binformat/v1/Report.kt
 REPORT_FBS_PATH=bitdrift_public/fbs/issue-reporting/v1
+REPORT_FBS_GEN_PATH=$(subst -,_,$(REPORT_FBS_PATH))
 
 .PHONY: gen-flatbuffers
 gen-flatbuffers: $(REPORT_KT)
@@ -54,6 +55,6 @@ gen-flatbuffers: $(REPORT_KT)
 .PHONY: $(REPORT_KT) # ignore timestamp
 $(REPORT_KT): ../api/src/$(REPORT_FBS_PATH)/report.fbs
 	@flatc --gen-onefile --kotlin -I ../api/src $^
-	@mv $(subst -,_, $(REPORT_FBS_PATH))/report.kt $@
+	@mv $(REPORT_FBS_GEN_PATH)/report.kt $@
 	@python ci/license_header.py $@
-	@sed -i '' -e 's/bitdrift_public.fbs.issue_reporting/io.bitdrift.capture.reports.binformat/' $@
+	@sed -i '' -e s/$(subst /,.,$(REPORT_FBS_GEN_PATH))/io.bitdrift.capture.reports.binformat/ $@
