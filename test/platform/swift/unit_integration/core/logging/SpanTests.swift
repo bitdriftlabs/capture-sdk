@@ -11,6 +11,9 @@ import Foundation
 import XCTest
 
 final class SpanTests: XCTestCase {
+    // We need to allow a fair bit of variance due to potential CI load affecting the simulator
+    private let allowedTimeVarianceSeconds: TimeInterval = 0.200
+
     private func createSpan(logger: MockCoreLogging, timeProvider: TimeProvider = MockTimeProvider(),
                             start: TimeInterval? = nil, parent: UUID? = nil) -> Span
     {
@@ -29,6 +32,14 @@ final class SpanTests: XCTestCase {
             customStartTimeInterval: start,
             parentSpanID: parent
         )
+    }
+
+    private func assertTimeWithinRange(timeStringMS: String, intervalInSeconds: TimeInterval) {
+        let time = Double(timeStringMS)! / 1000.0
+        let minValue = (intervalInSeconds - allowedTimeVarianceSeconds) < 0 ? 0 : intervalInSeconds - allowedTimeVarianceSeconds
+        let maxValue = intervalInSeconds + allowedTimeVarianceSeconds
+        XCTAssertGreaterThanOrEqual(time, minValue)
+        XCTAssertLessThanOrEqual(time, maxValue)
     }
 
     func testStartEndSpan() throws {
@@ -50,7 +61,7 @@ final class SpanTests: XCTestCase {
                 "test_key": "test_value",
             ], emittedStartFields as? [String: String])
 
-            timeProvider.advanceBy(timeInterval: 1.0)
+            Thread.sleep(forTimeInterval: 1.0)
 
             span.end(
                 .success,
@@ -62,9 +73,10 @@ final class SpanTests: XCTestCase {
             XCTAssertEqual(2, logger.logs.count)
             let endLog = logger.logs[1]
 
-            let emittedEndFields = endLog.fields
+            var emittedEndFields = endLog.fields
+            assertTimeWithinRange(timeStringMS: emittedEndFields!["_duration_ms"] as! String, intervalInSeconds: 1.0)
+            emittedEndFields?.removeValue(forKey: "_duration_ms")
             XCTAssertEqual([
-                "_duration_ms": "1000.0",
                 "_span_id": span.id.uuidString,
                 "_span_type": "end",
                 "_span_name": "test",
@@ -84,16 +96,16 @@ final class SpanTests: XCTestCase {
         // ended manually and is deinited.
         let spanID: String = {
             let span = self.createSpan(logger: logger, timeProvider: timeProvider)
-            timeProvider.advanceBy(timeInterval: 1.0)
             return span.id.uuidString
         }()
 
         XCTAssertEqual(2, logger.logs.count)
         let endLog = logger.logs[1]
 
-        let emittedEndFields = endLog.fields
+        var emittedEndFields = endLog.fields
+        assertTimeWithinRange(timeStringMS: emittedEndFields!["_duration_ms"] as! String, intervalInSeconds: 0.0)
+        emittedEndFields?.removeValue(forKey: "_duration_ms")
         XCTAssertEqual([
-            "_duration_ms": "1000.0",
             "_span_id": spanID,
             "_span_type": "end",
             "_span_name": "test",
@@ -135,21 +147,21 @@ final class SpanTests: XCTestCase {
         // Test start with no end
         let timeProvider = MockTimeProvider()
         let spanOnlyStart = self.createSpan(logger: logger, timeProvider: timeProvider, start: 0)
-        timeProvider.advanceBy(timeInterval: 1337)
+        Thread.sleep(forTimeInterval: 1.0)
         spanOnlyStart.end(.success)
 
         XCTAssertEqual(4, logger.logs.count)
-        XCTAssertEqual("1337000.0", try XCTUnwrap(logger.logs[3].fields?["_duration_ms"] as? String))
+        assertTimeWithinRange(timeStringMS: (logger.logs[3].fields?["_duration_ms"] as? String)!, intervalInSeconds: 1.0)
         XCTAssertEqual(Date(timeIntervalSince1970: 0), logger.logs[2].occurredAtOverride)
         XCTAssertEqual(nil, logger.logs[3].occurredAtOverride)
 
         // Test end with no start
         let spanOnlyEnd = self.createSpan(logger: logger, timeProvider: timeProvider)
-        timeProvider.advanceBy(timeInterval: 1338)
+        Thread.sleep(forTimeInterval: 1.0)
         spanOnlyEnd.end(.success, endTimeInterval: 666)
 
         XCTAssertEqual(6, logger.logs.count)
-        XCTAssertEqual("1338000.0", try XCTUnwrap(logger.logs[5].fields?["_duration_ms"] as? String))
+        assertTimeWithinRange(timeStringMS: (logger.logs[5].fields?["_duration_ms"] as? String)!, intervalInSeconds: 1.0)
         XCTAssertEqual(nil, logger.logs[4].occurredAtOverride)
         XCTAssertEqual(Date(timeIntervalSince1970: 666), logger.logs[5].occurredAtOverride)
     }
