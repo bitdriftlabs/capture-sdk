@@ -134,9 +134,9 @@ internal class JankStatsMonitor(
         if (event == Lifecycle.Event.ON_CREATE) {
             windowManager.findFirstValidActivity()?.let {
                 setJankStatsForCurrentWindow(it.window)
-                // We are done detecting initial Application ON_CREATE, we don't need to listen anymore
-                processLifecycleOwner.lifecycle.removeObserver(this)
             }
+            // We are done detecting initial Application ON_CREATE, we don't need to listen anymore
+            processLifecycleOwner.lifecycle.removeObserver(this)
         }
     }
 

@@ -70,7 +70,6 @@ class JankStatsMonitorTest {
 
         whenever(processLifecycleOwner.lifecycle).thenReturn(lifecycle)
         whenever(windowManager.findFirstValidActivity()).thenReturn(activity)
-        whenever(windowManager.getFirstRootView()).thenReturn(window.decorView)
 
         whenever(runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)).thenReturn(true)
         whenever(runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS)).thenReturn(16)
