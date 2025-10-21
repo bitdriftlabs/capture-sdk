@@ -65,7 +65,6 @@ class WindowManager(
     override fun findFirstValidActivity(): Activity? =
         getAllRootViews().firstNotNullOfOrNull { view ->
             val activity = view.unwrapToActivity()
-            //noinspection NewApi
             if (activity != null && !activity.isDestroyed) {
                 activity
             } else {
