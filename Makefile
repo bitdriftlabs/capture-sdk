@@ -38,9 +38,11 @@ fix-swift:
 .PHONY: format
 format: lint-shell ktlint rustfmt buildifier fix-swift lint-yaml
 
+# Use repin when you get Error: Digests do not match
 .PHONY: repin
 repin:
-	CARGO_BAZEL_REPIN=true ./bazelw sync --only=crate_index
+    # This technically fails because there are no tests to find, but the repin still happens and it's fast.
+	CARGO_BAZEL_REPIN=true ./bazelw test --build_tests_only //platform/shared:platform-shared  >/dev/null 2>&1 || true
 
 .PHONY: push-additional-images
 push-additional-images:
@@ -58,3 +60,10 @@ $(REPORT_KT): ../api/src/$(REPORT_FBS_PATH)/report.fbs
 	@mv $(REPORT_FBS_GEN_PATH)/report.kt $@
 	@python ci/license_header.py $@
 	@sed -i '' -e s/$(subst /,.,$(REPORT_FBS_GEN_PATH))/io.bitdrift.capture.reports.binformat.v1/ $@
+
+.PHONY: xcframework
+xcframework:
+	echo "NOTE: --xcode_version is overridden in .bazelrc"
+	echo "NOTE: Make sure you brew install llvm, and follow its instructions to add it to your PATH."
+	./bazelw build //:ios_dist
+	echo "XCFramework is archived at dist/Capture.ios.zip"
