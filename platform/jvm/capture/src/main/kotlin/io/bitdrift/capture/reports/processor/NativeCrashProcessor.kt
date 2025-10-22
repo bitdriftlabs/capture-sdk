@@ -10,14 +10,14 @@ package io.bitdrift.capture.reports.processor
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.TombstoneProtos
 import io.bitdrift.capture.TombstoneProtos.Tombstone
-import io.bitdrift.capture.reports.binformat.v1.BinaryImage
-import io.bitdrift.capture.reports.binformat.v1.Error
-import io.bitdrift.capture.reports.binformat.v1.ErrorRelation
-import io.bitdrift.capture.reports.binformat.v1.FrameType
-import io.bitdrift.capture.reports.binformat.v1.Report
-import io.bitdrift.capture.reports.binformat.v1.ReportType
-import io.bitdrift.capture.reports.binformat.v1.Thread
-import io.bitdrift.capture.reports.binformat.v1.ThreadDetails
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.BinaryImage
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Error
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ErrorRelation
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.FrameType
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Report
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Thread
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ThreadDetails
 import okhttp3.internal.toHexString
 import java.io.InputStream
 
@@ -101,6 +101,7 @@ internal object NativeCrashProcessor {
                     0f,
                     0,
                     Thread.createStackTraceVector(builder, frameOffsets),
+                    summaryOffset = 0,
                 )
             threadOffsets.add(threadOffset)
 
@@ -135,6 +136,8 @@ internal object NativeCrashProcessor {
             Report.createErrorsVector(builder, nativeErrors.toIntArray()),
             threadDetailsOffset,
             Report.createBinaryImagesVector(builder, binaryImageOffsets.toIntArray()),
+            stateOffset = 0,
+            featureFlagsOffset = 0,
         )
     }
 

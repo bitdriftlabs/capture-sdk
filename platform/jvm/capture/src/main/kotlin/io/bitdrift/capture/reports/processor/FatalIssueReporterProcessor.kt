@@ -11,15 +11,15 @@ import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.BuildConstants
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IClientAttributes
-import io.bitdrift.capture.reports.binformat.v1.AppBuildNumber
-import io.bitdrift.capture.reports.binformat.v1.Architecture
-import io.bitdrift.capture.reports.binformat.v1.DeviceMetrics
-import io.bitdrift.capture.reports.binformat.v1.DeviceMetrics.Companion.createCpuAbisVector
-import io.bitdrift.capture.reports.binformat.v1.OSBuild
-import io.bitdrift.capture.reports.binformat.v1.Platform
-import io.bitdrift.capture.reports.binformat.v1.ReportType
-import io.bitdrift.capture.reports.binformat.v1.SDKInfo
-import io.bitdrift.capture.reports.binformat.v1.Timestamp
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppBuildNumber
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Architecture
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.DeviceMetrics
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.DeviceMetrics.Companion.createCpuAbisVector
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.OSBuild
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Platform
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.SDKInfo
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Timestamp
 import io.bitdrift.capture.reports.persistence.IFatalIssueReporterStorage
 import java.io.InputStream
 import kotlin.time.DurationUnit
@@ -126,15 +126,15 @@ internal class FatalIssueReporterProcessor(
             AppBuildNumber.createAppBuildNumber(builder, clientAttributes.appVersionCode, 0)
         val appId = builder.createString(clientAttributes.appId)
         val appVersion = builder.createString(clientAttributes.appVersion)
-        io.bitdrift.capture.reports.binformat.v1.AppMetrics
+        io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .startAppMetrics(builder)
-        io.bitdrift.capture.reports.binformat.v1.AppMetrics
+        io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .addAppId(builder, appId)
-        io.bitdrift.capture.reports.binformat.v1.AppMetrics
+        io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .addVersion(builder, appVersion)
-        io.bitdrift.capture.reports.binformat.v1.AppMetrics
+        io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .addBuildNumber(builder, buildNumber)
-        return io.bitdrift.capture.reports.binformat.v1.AppMetrics
+        return io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .endAppMetrics(builder)
     }
 
