@@ -8,12 +8,12 @@
 package io.bitdrift.capture.reports.persistence
 
 import com.google.flatbuffers.FlatBufferBuilder
-import io.bitdrift.capture.reports.binformat.v1.Error
-import io.bitdrift.capture.reports.binformat.v1.ErrorRelation
-import io.bitdrift.capture.reports.binformat.v1.Report
-import io.bitdrift.capture.reports.binformat.v1.ReportType
-import io.bitdrift.capture.reports.binformat.v1.SDKInfo
-import io.bitdrift.capture.reports.binformat.v1.ThreadDetails
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Error
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ErrorRelation
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Report
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.SDKInfo
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ThreadDetails
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
@@ -102,6 +102,8 @@ class FatalIssueReporterStorageTest {
                 0,
                 Report.createErrorsVector(builder, errors.toIntArray()),
                 ThreadDetails.createThreadDetails(builder, 1u, 0),
+                0,
+                0,
                 0,
             )
         builder.finish(report)
