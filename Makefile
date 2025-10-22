@@ -1,4 +1,6 @@
 .ONESHELL: # support multiline commands
+# support loop constructs
+SHELL=bash
 
 .PHONY: build
 build:
@@ -48,18 +50,21 @@ repin:
 push-additional-images:
 
 REPORT_KT=platform/jvm/capture/src/main/kotlin/io/bitdrift/capture/reports/binformat/v1/Report.kt
-REPORT_FBS_PATH=bitdrift_public/fbs/issue-reporting/v1
-REPORT_FBS_GEN_PATH=$(subst -,_,$(REPORT_FBS_PATH))
 
 .PHONY: gen-flatbuffers
 gen-flatbuffers: $(REPORT_KT)
 
 .PHONY: $(REPORT_KT) # ignore timestamp
-$(REPORT_KT): ../api/src/$(REPORT_FBS_PATH)/report.fbs
+$(REPORT_KT): ../api/src/bitdrift_public/fbs/issue-reporting/v1/report.fbs ../api/src/bitdrift_public/fbs/common/v1/common.fbs
 	@flatc --gen-onefile --kotlin -I ../api/src $^
-	@mv $(REPORT_FBS_GEN_PATH)/report.kt $@
-	@python ci/license_header.py $@
-	@sed -i '' -e s/$(subst /,.,$(REPORT_FBS_GEN_PATH))/io.bitdrift.capture.reports.binformat.v1/ $@
+	@for f in $$(find bitdrift_public -type f); do \
+		python3 ci/license_header.py $$f >/dev/null; \
+		sed -i '' -E 's/bitdrift_public.[._[:alpha:]]*\.([_[:alpha:]]+)\.v1/io.bitdrift.capture.reports.binformat.v1.\1/g' $$f; \
+		DEST=$(@D)/$$(basename $$(dirname $$(dirname $$f)))/$$(basename $$f | awk '{$$1=toupper(substr($$1,0,1))substr($$1,2)}1'); \
+		mkdir -p $$(dirname $$DEST); \
+		mv $$f $$DEST; \
+		echo Generated $$DEST; \
+	done
 
 .PHONY: xcframework
 xcframework:
