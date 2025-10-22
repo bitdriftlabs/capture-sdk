@@ -60,7 +60,7 @@ $(REPORT_KT): ../api/src/bitdrift_public/fbs/issue-reporting/v1/report.fbs ../ap
 	@for f in $$(find bitdrift_public -type f); do \
 		python3 ci/license_header.py $$f >/dev/null; \
 		sed -i '' -E 's/bitdrift_public.[._[:alpha:]]*\.([_[:alpha:]]+)\.v1/io.bitdrift.capture.reports.binformat.v1.\1/g' $$f; \
-		DEST=$(@D)/$$(basename $$f .kt)/$$(basename $$f | awk '{$$1=toupper(substr($$1,0,1))substr($$1,2)}1'); \
+		DEST=$(@D)/$$(basename $$(dirname $$(dirname $$f)))/$$(basename $$f | awk '{$$1=toupper(substr($$1,0,1))substr($$1,2)}1'); \
 		mkdir -p $$(dirname $$DEST); \
 		mv $$f $$DEST; \
 		echo Generated $$DEST; \
