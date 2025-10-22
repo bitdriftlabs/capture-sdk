@@ -58,9 +58,12 @@ gen-flatbuffers: $(REPORT_KT)
 $(REPORT_KT): ../api/src/bitdrift_public/fbs/issue-reporting/v1/report.fbs ../api/src/bitdrift_public/fbs/common/v1/common.fbs
 	@flatc --gen-onefile --kotlin -I ../api/src $^
 	@for f in $$(find bitdrift_public -type f); do \
-		python ci/license_header.py $$f; \
-		sed -i '' -e 's/bitdrift_public.[._[:alpha:]]*.v1/io.bitdrift.capture.reports.binformat.v1/g' $$f; \
-		mv $$f $(@D)/$$(echo $$(basename $$f) | awk '{$$1=toupper(substr($$1,0,1))substr($$1,2)}1'); \
+		python3 ci/license_header.py $$f >/dev/null; \
+		sed -i '' -E 's/bitdrift_public.[._[:alpha:]]*\.([_[:alpha:]]+)\.v1/io.bitdrift.capture.reports.binformat.v1.\1/g' $$f; \
+		DEST=$(@D)/$$(basename $$f .kt)/$$(basename $$f | awk '{$$1=toupper(substr($$1,0,1))substr($$1,2)}1'); \
+		mkdir -p $$(dirname $$DEST); \
+		mv $$f $$DEST; \
+		echo Generated $$DEST; \
 	done
 
 .PHONY: xcframework
