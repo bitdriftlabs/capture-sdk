@@ -7,7 +7,7 @@
 
 package io.bitdrift.capture.reports.persistence
 
-import io.bitdrift.capture.reports.binformat.v1.ReportType
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 import java.io.File
 import java.util.UUID
 

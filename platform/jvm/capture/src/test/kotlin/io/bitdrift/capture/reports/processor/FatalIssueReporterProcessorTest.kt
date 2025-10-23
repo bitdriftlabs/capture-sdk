@@ -20,10 +20,10 @@ import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.fakes.FakeJvmException
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.createTraceInputStream
-import io.bitdrift.capture.reports.binformat.v1.Architecture
-import io.bitdrift.capture.reports.binformat.v1.Platform
-import io.bitdrift.capture.reports.binformat.v1.Report
-import io.bitdrift.capture.reports.binformat.v1.ReportType
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Architecture
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Platform
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Report
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 import io.bitdrift.capture.reports.persistence.IFatalIssueReporterStorage
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
