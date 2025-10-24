@@ -157,7 +157,8 @@ internal class FatalIssueReporter(
         }
 
     override fun persistJvmError(rawValue: String) {
-        println("FRAN_TAG: $rawValue")
+        fatalIssueReporterProcessor.persistAndProcessJsError(rawValue)
+        println("FRAN_TAG: size ${rawValue.length} [$rawValue]")
     }
 
     private fun persistLastExitReasonIfNeeded(activityManager: ActivityManager) {
