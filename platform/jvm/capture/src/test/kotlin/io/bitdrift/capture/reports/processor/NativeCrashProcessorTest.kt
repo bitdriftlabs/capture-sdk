@@ -12,11 +12,9 @@ import io.bitdrift.capture.TombstoneProtos
 import io.bitdrift.capture.reports.binformat.v1.BinaryImage
 import io.bitdrift.capture.reports.binformat.v1.Report
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import java.io.InputStream
 import java.nio.file.Paths
 
 class NativeCrashProcessorTest {
