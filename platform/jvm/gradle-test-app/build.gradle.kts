@@ -9,7 +9,7 @@ dependencies {
     implementation(project(":capture"))
     implementation(project(":capture-apollo"))
     implementation(project(":capture-timber"))
-    implementation(libs.androidx.material3.android)
+    implementation("androidx.compose.material3:material3-android:1.2.1")
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.compose.ui:ui:1.7.8")
     implementation("androidx.compose.material:material:1.7.8")
@@ -38,6 +38,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.0")
     implementation("androidx.compose.foundation:foundation:1.7.8")
+    implementation("androidx.webkit:webkit:1.14.0")
 
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.4.0")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")

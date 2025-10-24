@@ -33,6 +33,7 @@ import io.bitdrift.capture.FeatureFlag
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.apollo.CaptureApolloInterceptor
 import io.bitdrift.capture.events.span.Span
+import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.capture.network.okhttp.OkHttpRequestFieldProvider
 import io.bitdrift.gradletestapp.R
@@ -177,6 +178,8 @@ class FirstFragment : Fragment() {
                 .okHttpClient(okHttpClient)
                 .addInterceptor(CaptureApolloInterceptor())
                 .build()
+
+        firstFragmentToCopySessionSpan?.end(SpanResult.SUCCESS)
     }
 
     override fun onDestroyView() {
