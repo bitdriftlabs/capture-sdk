@@ -10,6 +10,7 @@ package io.bitdrift.gradletestapp
 import android.app.Application
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
+import io.bitdrift.capture.Capture
 import io.bitdrift.gradletestapp.diagnostics.fatalissues.CrashSdkInitializer
 import io.bitdrift.gradletestapp.diagnostics.lifecycle.ActivitySpanCallbacks
 import io.bitdrift.gradletestapp.diagnostics.papa.PapaTelemetry
@@ -26,6 +27,7 @@ class GradleTestApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        Capture.Logger.persistGlobalJsError("")
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
 
         if (hasDeferredSdkStartConfigured(sharedPreferences)) {

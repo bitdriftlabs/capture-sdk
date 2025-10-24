@@ -17,7 +17,7 @@ plugins {
 
 group = "io.bitdrift"
 
-version = "local-js-script"
+version = "1.0.0"
 
 dependencies {
     api(project(":replay"))
