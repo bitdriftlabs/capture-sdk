@@ -20,7 +20,6 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.ErrorHandler
-import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
@@ -33,7 +32,6 @@ import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
-import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.nio.charset.StandardCharsets
 
@@ -44,7 +42,6 @@ internal class AppExitLogger(
     private val errorHandler: ErrorHandler,
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
     private val memoryMetricsProvider: IMemoryMetricsProvider,
-    private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
     private val fatalIssueReporter: IFatalIssueReporter?,
@@ -69,11 +66,9 @@ internal class AppExitLogger(
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)) {
             return
         }
-        backgroundThreadHandler.runAsync {
-            captureUncaughtExceptionHandler.install(this)
-            saveCurrentSessionId()
-            logPreviousExitReasonIfAny()
-        }
+        captureUncaughtExceptionHandler.install(this)
+        saveCurrentSessionId()
+        logPreviousExitReasonIfAny()
     }
 
     fun uninstallAppExitLogger() {
