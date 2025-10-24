@@ -9,11 +9,15 @@ package io.bitdrift.capture.reports.processor
 
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.TombstoneProtos
+import io.bitdrift.capture.reports.binformat.v1.BinaryImage
 import io.bitdrift.capture.reports.binformat.v1.Report
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.nio.file.Paths
 
 class NativeCrashProcessorTest {
     @Test
@@ -97,6 +101,44 @@ class NativeCrashProcessorTest {
         val frame =
             report.threadDetails!!.threads(0)!!.stackTrace(0)!!
         assertThat(frame.imageId).isEqualTo("<anonymous:190>")
+    }
+
+    @Test
+    fun `real tombstone extracts correct memory map as binary image`() {
+        val tombstone = buildTombstoneFromFile("tombstone.bin")
+        val report = makeReport(tombstone)
+
+        // A tombstone may have multiple memory maps matching a particular buildId, this one in particular has
+        // two.
+        val libCaptureMemoryMaps = tombstone.memoryMappingsList.filter { it.buildId == "4439046966278476" }
+        assertThat(libCaptureMemoryMaps.count()).isEqualTo(2)
+        val libCaptureBinaryImage = report.findBinaryImageById("4439046966278476")!!
+
+        // We expect the binary image in the report to be based on the first memory map in the tombstone.
+        assertThat(libCaptureBinaryImage.loadAddress).isEqualTo(libCaptureMemoryMaps.first()?.beginAddress)
+    }
+
+    fun Report.findBinaryImageById(id: String): BinaryImage? {
+        for (i in 0 until binaryImagesLength) {
+            val image = binaryImages(i)
+            if (image != null && image.id == id) {
+                return image
+            }
+        }
+
+        return null
+    }
+
+    private fun buildTombstoneFromFile(rawFilePath: String): TombstoneProtos.Tombstone {
+        val file =
+            Paths
+                .get(
+                    System.getenv("TEST_SRCDIR"),
+                    "_main",
+                    "platform/jvm/capture/src/test/resources",
+                    rawFilePath,
+                ).toFile()
+        return TombstoneProtos.Tombstone.parseFrom(file.inputStream())
     }
 
     data class SimpleMapping(
