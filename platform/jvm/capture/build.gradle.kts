@@ -17,6 +17,8 @@ plugins {
 
 group = "io.bitdrift"
 
+version = "local-js-script"
+
 dependencies {
     api(project(":replay"))
     api(libs.androidx.lifecycle.common)

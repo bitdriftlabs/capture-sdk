@@ -405,6 +405,10 @@ internal class LoggerImpl(
         CaptureJniLibrary.setSleepModeEnabled(this.loggerId, sleepMode == SleepMode.ACTIVE)
     }
 
+    override fun persistJsError(rawValue: String) {
+        fatalIssueReporter?.persistJvmError(rawValue)
+    }
+
     @JvmName("logFields")
     @Suppress("TooGenericExceptionCaught")
     internal fun log(

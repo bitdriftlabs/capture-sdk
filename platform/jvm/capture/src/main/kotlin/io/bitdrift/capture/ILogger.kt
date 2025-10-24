@@ -179,4 +179,9 @@ interface ILogger {
      * @param sleepMode mode to use
      */
     fun setSleepMode(sleepMode: SleepMode)
+
+    /**
+     * docs
+     */
+    fun persistJsError(rawValue: String)
 }

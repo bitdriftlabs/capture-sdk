@@ -156,6 +156,10 @@ internal class FatalIssueReporter(
             }
         }
 
+    override fun persistJvmError(rawValue: String) {
+        println("FRAN_TAG: $rawValue")
+    }
+
     private fun persistLastExitReasonIfNeeded(activityManager: ActivityManager) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return
