@@ -9,8 +9,8 @@ package io.bitdrift.capture.reports.processor
 
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.TombstoneProtos
-import io.bitdrift.capture.reports.binformat.v1.BinaryImage
-import io.bitdrift.capture.reports.binformat.v1.Report
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.BinaryImage
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Report
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import java.io.ByteArrayInputStream

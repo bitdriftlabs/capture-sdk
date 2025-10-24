@@ -7,20 +7,13 @@
 
 package io.bitdrift.capture.common
 
+import android.app.Activity
 import android.view.View
-import android.view.Window
 
 /**
  * Provides access the Global Window Views, or `null` if no window is available.
  */
 interface IWindowManager {
-    /**
-     * Returns the current [Window] if available.
-     *
-     * @return The current [Window], or `null` if no window is available.
-     */
-    fun getCurrentWindow(): Window?
-
     /**
      * Returns the root view of the current window if available.
      *
@@ -34,4 +27,16 @@ interface IWindowManager {
      * @return The root views of the current hierarchy, or an empty list if not available.
      */
     fun getAllRootViews(): List<View>
+
+    /**
+     * Finds the first valid (non-destroyed) activity from all available root views.
+     *
+     * For most cases, this returns the currently visible activity.
+     *
+     * When multiple activities are present (split-screen, PiP, etc), this returns
+     * the first valid activity found in the iteration order.
+     *
+     * @return The first valid [android.app.Activity], or `null` if none found
+     */
+    fun findFirstValidActivity(): Activity?
 }
