@@ -7,39 +7,22 @@
 
 import Foundation
 
+/// High resolution wall clock that continues ticking through device sleep and is unaffected by clock adjustments.
 struct Uptime {
-    private let uptime: TimeInterval
+    private static let timebase: mach_timebase_info_data_t = getTimebase()
 
-    /// Returns a high-resolution measurement of system uptime, that continues ticking through device sleep
-    /// *and* user- or system-generated clock adjustments. This allows for stable differences to be calculated
-    /// between timestamps.
-    ///
-    /// - returns: Expressed in seconds measurement of system uptime.
-    static func get() -> TimeInterval {
-        var mib: [Int32] = [CTL_KERN, KERN_BOOTTIME]
-        var size: size_t = MemoryLayout<timeval>.stride
-
-        var now = timeval()
-        let systemTimeError = gettimeofday(&now, nil) != 0
-        assert(!systemTimeError, "timing: system time unavailable")
-
-        var bootTime = timeval()
-        let bootTimeError = sysctl(&mib, 2, &bootTime, &size, nil, 0) != 0 || bootTime.tv_sec == 0
-        assert(!bootTimeError, "timing: kernel boot time unavailable")
-
-        let seconds = Double(now.tv_sec - bootTime.tv_sec)
-        assert(seconds >= 0, "timing: system time precedes boot time")
-
-        let microseconds = Double(now.tv_usec - bootTime.tv_usec)
-
-        return seconds + microseconds / 1_000_000
+    private static func getTimebase() -> mach_timebase_info_data_t {
+        var timebase: mach_timebase_info_data_t = mach_timebase_info_data_t()
+        let timebaseError = mach_timebase_info(&timebase) != KERN_SUCCESS
+        assert(!timebaseError, "Uptime: could not get timebase")
+        return timebase
     }
 
-    /// Captures the current uptime.
-    ///
-    /// - parameter uptime: The uptime.
-    init(uptime: TimeInterval = Uptime.get()) {
-        self.uptime = uptime
+    private let startTime: UInt64 = mach_continuous_time()
+
+    private func ticksToSeconds(_ ticks: UInt64) -> TimeInterval {
+        let elapsedNanos = ticks * UInt64(Uptime.timebase.numer) / UInt64(Uptime.timebase.denom)
+        return TimeInterval(elapsedNanos) / 1_000_000_000.0
     }
 
     /// Calculates the duration of time that passed between now and the provided timing.
@@ -48,6 +31,6 @@ struct Uptime {
     ///
     /// - returns: The duration of time.
     func timeIntervalSince(_ uptime: Uptime) -> TimeInterval {
-        return self.uptime - uptime.uptime
+        return ticksToSeconds(mach_continuous_time() - uptime.startTime)
     }
 }

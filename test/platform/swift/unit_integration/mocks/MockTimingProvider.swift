@@ -21,7 +21,7 @@ public final class MockTimeProvider {
 }
 
 extension MockTimeProvider: TimeProvider {
-    public func uptime() -> Uptime { Uptime(uptime: self.timeIntervalSince1970) }
+    public func uptime() -> Uptime { Uptime() }
 
     public func now() -> Date { Date(timeIntervalSince1970: self.timeIntervalSince1970) }
 }
