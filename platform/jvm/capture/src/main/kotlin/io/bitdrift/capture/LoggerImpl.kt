@@ -327,6 +327,11 @@ internal class LoggerImpl(
         appExitLogger.saveCurrentSessionId(sessionId)
     }
 
+    override fun persistJsError(rawValue: String) {
+        println("FRAN_TAG: persistJsError called, fatalIssueReporter is ${if (fatalIssueReporter == null) "NULL" else "initialized"}")
+        fatalIssueReporter?.persistJvmError(rawValue)
+    }
+
     override fun logAppLaunchTTI(duration: Duration) {
         CaptureJniLibrary.writeAppLaunchTTILog(this.loggerId, duration.toDouble(DurationUnit.SECONDS))
     }

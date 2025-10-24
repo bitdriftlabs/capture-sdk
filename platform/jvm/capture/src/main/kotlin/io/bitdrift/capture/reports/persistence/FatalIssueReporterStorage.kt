@@ -21,7 +21,9 @@ internal class FatalIssueReporterStorage(
     ) {
         val fileName = "${terminationTimeStampInMilli}_${mapToReadableType(reportType)}_${UUID.randomUUID()}.cap"
         val outputFile = File(destinationDirectory, fileName)
+        println("FRAN_TAG: generating $fileName")
         outputFile.writeBytes(data)
+        println("FRAN_TAG: done writeBytes $fileName")
     }
 
     override fun generateFilePath(): String = destinationDirectory.path + "/${UUID.randomUUID()}.cap"
@@ -31,6 +33,8 @@ internal class FatalIssueReporterStorage(
             ReportType.AppNotResponding -> "anr"
             ReportType.JVMCrash -> "crash"
             ReportType.NativeCrash -> "native_crash"
+            ReportType.JavaScriptNonFatalError -> "javascript_non_fatal_error"
+            ReportType.JavaScriptFatalError -> "javascript_fatal_error"
             else -> "unknown"
         }
 }

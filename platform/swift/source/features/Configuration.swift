@@ -9,7 +9,7 @@ import Foundation
 
 /// A configuration representing the feature set enabled for Capture.
 public struct Configuration {
-    /// The session replay configuration. Pass `nil` to disable session replay.
+    /// The session replay configuration.
     public var sessionReplayConfiguration: SessionReplayConfiguration?
 
     /// .enabled if Capture should initialize in minimal activity mode

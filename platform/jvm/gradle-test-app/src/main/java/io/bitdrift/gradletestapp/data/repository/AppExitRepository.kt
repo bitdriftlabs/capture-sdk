@@ -21,6 +21,7 @@ class AppExitRepository {
         reason: AppExitReason,
     ) {
         when (reason) {
+            AppExitReason.JAVA_SCRIPT_ERROR -> { /*To implement*/ }
             AppExitReason.ANR_BLOCKING_GET -> FatalIssueGenerator.forceBlockingGetAnr()
             AppExitReason.ANR_BROADCAST_RECEIVER ->
                 FatalIssueGenerator.forceBroadcastReceiverAnr(

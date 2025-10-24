@@ -537,6 +537,14 @@ object Capture {
         }
 
         /**
+         * Docs
+         */
+        @JvmStatic
+        fun persistGlobalJsError(rawValue: String) {
+            logger()?.persistJsError(rawValue)
+        }
+
+        /**
          * Used for testing purposes.
          */
         internal fun resetShared() {

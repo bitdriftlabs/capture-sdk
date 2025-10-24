@@ -36,4 +36,9 @@ interface IFatalIssueReporter {
      * details of FatalIssueReporter state
      */
     fun getLogStatusFieldsMap(): Map<String, FieldValue>
+
+    /**
+     * Docs
+     */
+    fun persistJvmError(rawValue: String)
 }

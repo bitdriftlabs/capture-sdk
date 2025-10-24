@@ -34,6 +34,35 @@ internal class FatalIssueReporterProcessor(
     private val streamingReportsProcessor: IStreamingReportProcessor,
 ) {
     /**
+     * Process JavaScript errors into a packed format
+     * @param rawStackTrace Raw JavaScript error stack trace string
+     */
+    fun persistAndProcessJsError(rawStackTrace: String) {
+        val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
+        val sdk = createSDKInfo(builder)
+        val appMetrics = createAppMetrics(builder)
+        val timestamp = System.currentTimeMillis()
+        val deviceMetrics = createDeviceMetrics(builder, timestamp)
+
+        val report =
+            JavaScriptErrorProcessor.getJavaScriptErrorReport(
+                builder,
+                sdk,
+                appMetrics,
+                deviceMetrics,
+                rawStackTrace,
+            )
+
+        println("FRAN_TAG: report generated")
+        persistReport(
+            timestamp = timestamp,
+            builder = builder,
+            reportOffset = report,
+            ReportType.JavaScriptNonFatalError,
+        )
+    }
+
+    /**
      * Process AppTerminations due to ANRs and native crashes into packed format
      * @param fatalIssueType The flatbuffer type of fatal issue being processed
      * (e.g. [ReportType.AppNotResponding] or [ReportType.NativeCrash])

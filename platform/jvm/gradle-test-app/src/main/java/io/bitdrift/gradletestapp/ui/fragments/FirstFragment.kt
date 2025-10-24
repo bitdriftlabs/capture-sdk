@@ -24,6 +24,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import androidx.preference.PreferenceManager
+import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
@@ -141,6 +142,7 @@ class FirstFragment : Fragment() {
     @SuppressLint("VisibleForTests")
     private fun forceAppExit(reason: AppExitReason) {
         when (reason) {
+            AppExitReason.JAVA_SCRIPT_ERROR -> Capture.Logger.persistGlobalJsError("Test")
             AppExitReason.ANR_BLOCKING_GET -> FatalIssueGenerator.forceBlockingGetAnr()
             AppExitReason.ANR_BROADCAST_RECEIVER ->
                 FatalIssueGenerator.forceBroadcastReceiverAnr(

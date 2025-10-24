@@ -17,3 +17,11 @@ data class SessionReplayConfiguration
     constructor(
         val categorizers: Map<ReplayType, List<String>>? = null,
     )
+
+sealed class SessionReplayOptions {
+    object Disabled : SessionReplayOptions()
+
+    data class Enabled(
+        val categorizers: Map<ReplayType, List<String>>? = null,
+    ) : SessionReplayOptions()
+}
