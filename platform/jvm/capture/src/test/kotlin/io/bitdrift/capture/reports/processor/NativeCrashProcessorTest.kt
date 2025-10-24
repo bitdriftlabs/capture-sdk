@@ -113,7 +113,7 @@ class NativeCrashProcessorTest {
         val libCaptureBinaryImage = report.findBinaryImageById("4439046966278476")!!
 
         // We expect the binary image in the report to be based on the first memory map in the tombstone.
-        assertThat(libCaptureBinaryImage.loadAddress).isEqualTo(libCaptureMemoryMaps.first()?.beginAddress)
+        assertThat(libCaptureBinaryImage.loadAddress.toLong()).isEqualTo(libCaptureMemoryMaps.first()?.beginAddress)
     }
 
     fun Report.findBinaryImageById(id: String): BinaryImage? {
@@ -168,6 +168,7 @@ class NativeCrashProcessorTest {
                                     .also {
                                         it.fileName = frameFileName
                                         it.pc = framePc
+                                        it.relPc = 10
                                         if (frameBuildId != null) {
                                             it.buildId = frameBuildId
                                         }
