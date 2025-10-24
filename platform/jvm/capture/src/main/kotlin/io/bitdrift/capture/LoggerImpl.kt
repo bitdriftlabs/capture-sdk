@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture
 
-import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
@@ -43,6 +42,8 @@ import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
+import io.bitdrift.capture.providers.session.ISessionPersistence
+import io.bitdrift.capture.providers.session.SessionPersistenceImpl
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
@@ -99,6 +100,8 @@ internal class LoggerImpl(
     private val diskUsageMonitor: DiskUsageMonitor
     private val memoryMetricsProvider: MemoryMetricsProvider
     private val appExitLogger: AppExitLogger
+    private val sessionPersistence: ISessionPersistence = SessionPersistenceImpl(preferences)
+
     private val runtime: JniRuntime
     private var jankStatsMonitor: JankStatsMonitor? = null
 
@@ -184,7 +187,7 @@ internal class LoggerImpl(
             bridge.createLogger(
                 sdkDirectory,
                 apiKey,
-                sessionStrategy.createSessionStrategyConfiguration { appExitSaveCurrentSessionId(it) },
+                sessionStrategy.createSessionStrategyConfiguration { sessionPersistence.saveCurrentSessionId(it) },
                 metadataProvider,
                 // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
                 //  and `eventsListenerTarget` as part of `startLogger` method call instead.
@@ -253,9 +256,11 @@ internal class LoggerImpl(
                 runtime,
                 errorHandler,
                 memoryMetricsProvider = memoryMetricsProvider,
+                sessionPersistence = sessionPersistence,
                 fatalIssueReporter = fatalIssueReporter,
             )
 
+        sessionPersistence.saveCurrentSessionId(sessionId)
         // Install the app exit logger before the Capture logger is started to ensure
         // that logs emitted during the installation are the first logs emitted by the
         // Capture logger.
@@ -302,7 +307,7 @@ internal class LoggerImpl(
 
     override fun startNewSession() {
         CaptureJniLibrary.startNewSession(this.loggerId)
-        appExitSaveCurrentSessionId()
+        sessionPersistence.saveCurrentSessionId(sessionId)
     }
 
     override fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {
@@ -316,11 +321,6 @@ internal class LoggerImpl(
              */
             deviceCodeService.createTemporaryDeviceCode(deviceId, completion)
         } ?: completion(CaptureResult.Failure(SdkNotStartedError))
-    }
-
-    @SuppressLint("NewApi")
-    private fun appExitSaveCurrentSessionId(sessionId: String? = null) {
-        appExitLogger.saveCurrentSessionId(sessionId)
     }
 
     override fun logAppLaunchTTI(duration: Duration) {

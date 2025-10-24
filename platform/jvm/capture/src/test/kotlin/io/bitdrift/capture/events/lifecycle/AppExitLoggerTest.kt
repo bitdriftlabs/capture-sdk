@@ -24,7 +24,6 @@ import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
@@ -33,6 +32,7 @@ import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_ST
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
 import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.session.ISessionPersistence
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EMPTY_LIST_MESSAGE
@@ -44,7 +44,6 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
 import java.io.IOException
-import java.nio.charset.StandardCharsets
 
 class AppExitLoggerTest {
     private val logger: LoggerImpl = mock()
@@ -54,9 +53,10 @@ class AppExitLoggerTest {
     private val errorHandler: ErrorHandler = mock()
     private val versionChecker: BuildVersionChecker = mock()
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
+    private val sessionPersistence: ISessionPersistence = mock()
+
     private val memoryMetricsProvider = FakeMemoryMetricsProvider()
     private val lastExitInfo = FakeLatestAppExitInfoProvider()
-    private val backgroundThreadHandler = FakeBackgroundThreadHandler()
 
     private lateinit var appExitLogger: AppExitLogger
 
@@ -64,6 +64,7 @@ class AppExitLoggerTest {
     fun setUp() {
         whenever(runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)).thenReturn(true)
         whenever(versionChecker.isAtLeast(anyInt())).thenReturn(true)
+        whenever(sessionPersistence.getPreviousSessionId()).thenReturn(SESSION_ID)
         appExitLogger = buildAppExitLogger()
         lastExitInfo.reset()
     }
@@ -81,62 +82,17 @@ class AppExitLoggerTest {
     }
 
     @Test
-    fun testLoggerIsInstalledWhenRuntimeEnabled() {
-        // ARRANGE
-        whenever(logger.sessionId).thenReturn("test-session-id")
-
-        // ACT
+    fun installAppExitLogger_whenRuntimeEnabled_shouldInstallCaptureUncaughtHandler() {
         appExitLogger.installAppExitLogger()
-        // ASSERT
+
         verify(captureUncaughtExceptionHandler).install(appExitLogger)
-        verify(activityManager).setProcessStateSummary(any())
     }
 
     @Test
-    fun testHandlerIsUninstalled() {
-        // ARRANGE
-
-        // ACT
+    fun uninstallAppExitLogger_whenRuntimeEnabled_shouldUninstallCaptureUncaughtHandler() {
         appExitLogger.uninstallAppExitLogger()
 
-        // ASSERT
         verify(captureUncaughtExceptionHandler).uninstall()
-    }
-
-    @Test
-    fun testSavePassedSessionId() {
-        // ARRANGE
-
-        // ACT
-        appExitLogger.saveCurrentSessionId("test-session-id")
-
-        // ASSERT
-        verify(activityManager).setProcessStateSummary("test-session-id".toByteArray(StandardCharsets.UTF_8))
-    }
-
-    @Test
-    fun testSaveCurrentSessionId() {
-        // ARRANGE
-        whenever(logger.sessionId).thenReturn("test-session-id")
-
-        // ACT
-        appExitLogger.saveCurrentSessionId()
-
-        // ASSERT
-        verify(activityManager).setProcessStateSummary("test-session-id".toByteArray(StandardCharsets.UTF_8))
-    }
-
-    @Test
-    fun testSaveCurrentSessionIdReportsError() {
-        val error = RuntimeException("test exception")
-        // ARRANGE
-        whenever(activityManager.setProcessStateSummary(any())).thenThrow(error)
-
-        // ACT
-        appExitLogger.saveCurrentSessionId("test-session-id")
-
-        // ASSERT
-        verify(errorHandler).handleError(any(), eq(error))
     }
 
     @Test
@@ -165,10 +121,10 @@ class AppExitLoggerTest {
     @Test
     fun logPreviousExitReasonIfAny_withValidReasonAndInvalidProcessSummary_shouldReportErrorOnly() {
         // ARRANGE
+        whenever(sessionPersistence.getPreviousSessionId()).thenReturn(null)
         lastExitInfo.setAsValidReason(
             exitReasonType = ApplicationExitInfo.REASON_ANR,
             description = "test-description",
-            processStateSummary = null,
         )
 
         // ACT
@@ -184,7 +140,7 @@ class AppExitLoggerTest {
             any(),
             any(),
         )
-        verify(errorHandler).handleError("AppExitLogger: processStateSummary from test-process-name is null.")
+        verify(errorHandler).handleError("AppExitLogger: sessionPersistence.getPreviousSessionId() is null.")
     }
 
     @Test
@@ -381,10 +337,10 @@ class AppExitLoggerTest {
             runtime,
             errorHandler,
             versionChecker,
-            backgroundThreadHandler,
             memoryMetricsProvider,
             lastExitInfo,
             captureUncaughtExceptionHandler,
+            sessionPersistence,
             FakeFatalIssueReporter(fatalReporterInitState),
         )
 
