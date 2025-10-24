@@ -33,6 +33,7 @@ internal class FatalIssueReporterStorage(
             ReportType.AppNotResponding -> "anr"
             ReportType.JVMCrash -> "crash"
             ReportType.NativeCrash -> "native_crash"
+            ReportType.JavaScriptError -> "javascript_error"
             else -> "unknown"
         }
 }

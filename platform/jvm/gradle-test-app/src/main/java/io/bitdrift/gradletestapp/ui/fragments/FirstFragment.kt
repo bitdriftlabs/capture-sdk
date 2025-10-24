@@ -28,6 +28,7 @@ import com.apollographql.apollo.network.okHttpClient
 import com.example.rocketreserver.BookTripsMutation
 import com.example.rocketreserver.LaunchListQuery
 import com.example.rocketreserver.LoginMutation
+import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.FeatureFlag
 import io.bitdrift.capture.LogLevel
@@ -262,6 +263,7 @@ class FirstFragment : Fragment() {
     @SuppressLint("VisibleForTests")
     private fun forceAppExit(reason: AppExitReason) {
         when (reason) {
+            AppExitReason.JAVA_SCRIPT_ERROR -> Capture.Logger.persistGlobalJsError(TEST)
             AppExitReason.ANR_BLOCKING_GET -> FatalIssueGenerator.forceBlockingGetAnr()
             AppExitReason.ANR_BROADCAST_RECEIVER -> FatalIssueGenerator.forceBroadcastReceiverAnr(requireContext())
             AppExitReason.ANR_COROUTINES -> FatalIssueGenerator.forceCoroutinesAnr()
@@ -277,5 +279,26 @@ class FirstFragment : Fragment() {
             AppExitReason.NATIVE_SIGBUS -> FatalIssueGenerator.forceNativeBusError()
             AppExitReason.SYSTEM_EXIT -> exitProcess(0)
         }
+    }
+
+    companion object {
+        private const val TEST =
+            "\"Error: Triggered Global JS Error - Intentional for testing\n" +
+                "    at triggerGlobalJsError (http://localhost:8081/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=com.bitdrift.io.expoExample&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&transform.routerRoot=src%2Fapp&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:118065:26)\n" +
+                "    at _performTransitionSideEffects (http://localhost:8081/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=com.bitdrift.io.expoExample&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&transform.routerRoot=src%2Fapp&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:71447:22)\n" +
+                "    at _receiveSignal (http://localhost:8081/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=com.bitdrift.io.expoExample&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&transform.routerRoot=src%2Fapp&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:71403:45)\n" +
+                "    at onResponderRelease (http://localhost:8081/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=com.bitdrift.io.expoExample&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&transform.routerRoot=src%2Fapp&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:71260:34)\n" +
+                "    at executeDispatch (http://localhost:8081/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=com.bitdrift.io.expoExample&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&transform.routerRoot=src%2Fapp&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:22153:19)\n" +
+                "    at executeDispatchesInOrder (http://localhost:8081/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=com.bitdrift.io.expoExample&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&transform.routerRoot=src%2Fapp&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:22181:26)\n" +
+                "    at executeDispatchesAndRelease (http://localhost:8081/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=com.bitdrift.io.expoExample&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&transform.routerRoot=src%2Fapp&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:24139:35)\n" +
+                "    at executeDispatchesAndReleaseTopLevel (http://localhost:8081/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=com.bitdrift.io.expoExample&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&transform.routerRoot=src%2Fapp&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:24147:43)\n" +
+                "    at forEach (native)\n" +
+                "    at forEachAccumulated (http://localhost:8081/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=com.bitdrift.io.expoExample&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&transform.routerRoot=src%2Fapp&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:22792:22)\n" +
+                "    at runEventsInBatch (http://localhost:8081/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=com.bitdrift.io.expoExample&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&transform.routerRoot=src%2Fapp&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:24160:27)\n" +
+                "    at runExtractedPluginEventsInBatch (http://localhost:8081/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=com.bitdrift.io.expoExample&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&transform.routerRoot=src%2Fapp&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:24193:25)\n" +
+                "    at anonymous (http://localhost:8081/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=com.bitdrift.io.expoExample&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&transform.routerRoot=src%2Fapp&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:24237:42)\n" +
+                "    at batchedUpdates (http://localhost:8081/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=com.bitdrift.io.expoExample&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&transform.routerRoot=src%2Fapp&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:38869:20)\n" +
+                "    at batchedUpdates\$1 (http://localhost:8081/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=com.bitdrift.io.expoExample&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&transform.routerRoot=src%2Fapp&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:24115:36)\n" +
+                "    at dispatchEvent (http://localhost:8081/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=com.bitdrift.io.expoExample&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&transform.routerRoot=src%2Fapp&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:24206:25)\""
     }
 }

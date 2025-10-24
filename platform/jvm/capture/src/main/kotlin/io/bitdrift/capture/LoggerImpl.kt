@@ -406,6 +406,7 @@ internal class LoggerImpl(
     }
 
     override fun persistJsError(rawValue: String) {
+        println("FRAN_TAG: persistJsError called, fatalIssueReporter is ${if (fatalIssueReporter == null) "NULL" else "initialized"}")
         fatalIssueReporter?.persistJvmError(rawValue)
     }
 

@@ -9,13 +9,14 @@ package io.bitdrift.gradletestapp.data.model
 
 /** Diagnostics/testing feature state */
 data class DiagnosticsState(
-    val selectedAppExitReason: AppExitReason = AppExitReason.ANR_BLOCKING_GET,
+    val selectedAppExitReason: AppExitReason = AppExitReason.JAVA_SCRIPT_ERROR,
 )
 
 /**
  * Represents different ways the app can exit for testing purposes
  */
 enum class AppExitReason {
+    JAVA_SCRIPT_ERROR,
     ANR_BLOCKING_GET,
     ANR_BROADCAST_RECEIVER,
     ANR_COROUTINES,
