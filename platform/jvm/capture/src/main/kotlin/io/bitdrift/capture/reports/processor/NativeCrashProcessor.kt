@@ -57,18 +57,14 @@ internal object NativeCrashProcessor {
                     .map { frame ->
                         // The tombstone doesn't tell us the load offset of the image directly, so compute it using
                         // what we got.
-                        val imageLoadOffset = frame.pc - frame.relPc;
+                        val imageLoadOffset = frame.pc - frame.relPc
 
                         // Since the memory maps list can be fairly long, we rely on it being sorted and use a binary search
                         // to look for a candidate.
                         val binaryImageIndex =
-                                tombstone.memoryMappingsList.binarySearchBy(imageLoadOffset, selector = { it.beginAddress })
-
-                        val binaryImage = if (binaryImageIndex >= 0) {
-                            tombstone.memoryMappingsList[binaryImageIndex]
-                        } else {
-                            null
-                        }
+                            tombstone.memoryMappingsList.binarySearchBy(imageLoadOffset) { it.beginAddress }
+                        val binaryImage =
+                            tombstone.memoryMappingsList.getOrNull(binaryImageIndex)
 
                         val imageId =
                             if (binaryImage != null) {
