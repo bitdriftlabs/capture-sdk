@@ -80,13 +80,19 @@ class CaptureOkHttpEventListenerFactory internal constructor(
         extraFieldsProvider = extraFieldsProvider,
     )
 
-    override fun create(call: Call): EventListener =
-        CaptureOkHttpEventListener(
-            logger = getLogger(),
+    override fun create(call: Call): EventListener {
+        val currentLogger = getLogger()
+        val targetEventListener = targetEventListenerCreator?.invoke(call)
+        if (currentLogger == null) {
+            return targetEventListener ?: EventListener.NONE
+        }
+        return CaptureOkHttpEventListener(
+            logger = currentLogger,
             clock = clock,
-            targetEventListener = targetEventListenerCreator?.invoke(call),
+            targetEventListener = targetEventListener,
             extraFieldsProvider = extraFieldsProvider,
         )
+    }
 
     // attempts to get the latest logger if one wasn't found at construction time
     private fun getLogger(): ILogger? = logger ?: Capture.logger()

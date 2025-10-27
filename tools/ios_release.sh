@@ -22,10 +22,9 @@ echo "+++ Building Capture.xcframework"
   --announce_rc \
   --config=ci \
   --config=release-ios \
-  --embed_label "$version" \
   --define ios_produce_framework_plist=true \
-  //:ios_dist
+  //:ios_dist //:ios_doccarchive
 
 mkdir -p dist
-
 mv -f bazel-bin/Capture.ios.zip dist/Capture.ios.zip
+mv -f bazel-bin/Capture.doccarchive.ios.zip dist/Capture.doccarchive.ios.zip

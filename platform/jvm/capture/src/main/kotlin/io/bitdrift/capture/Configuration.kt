@@ -22,7 +22,7 @@ data class Configuration
     @JvmOverloads
     constructor(
         val sessionReplayConfiguration: SessionReplayConfiguration = SessionReplayConfiguration(),
-        val enableFatalIssueReporting: Boolean = false,
+        val enableFatalIssueReporting: Boolean = true,
         val enableNativeCrashReporting: Boolean = false,
         val sleepMode: SleepMode = SleepMode.INACTIVE,
     )

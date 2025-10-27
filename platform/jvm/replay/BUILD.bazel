@@ -13,6 +13,11 @@ bitdrift_kt_android_library(
     plugins = ["//:jetpack_compose_compiler_plugin"],
     require_javadocs = True,
     visibility = ["//visibility:public"],
+    exports = [
+        artifact("androidx.appcompat:appcompat"),
+        artifact("org.jetbrains.kotlin:kotlin-stdlib"),
+        artifact("com.squareup.okhttp3:okhttp"),
+    ],
     deps = [
         "//platform/jvm/common:lib",
         artifact("androidx.appcompat:appcompat"),
@@ -25,10 +30,9 @@ bitdrift_kt_android_library(
 bitdrift_kt_android_local_test(
     name = "test",
     associates = [
-        ":lib_kt",
+        ":lib",
     ],
     deps = [
-        ":lib",
         artifact("junit:junit"),
         artifact("org.robolectric:robolectric"),
         "@rules_robolectric//bazel:android-all",

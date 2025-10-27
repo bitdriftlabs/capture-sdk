@@ -14,7 +14,6 @@ import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
-import androidx.annotation.WorkerThread
 import io.bitdrift.capture.InternalFieldsMap
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
@@ -26,7 +25,7 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.reports.FatalIssueMechanism
+import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
@@ -36,7 +35,6 @@ import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildVersionChecker
-import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
 
 internal class AppExitLogger(
@@ -45,8 +43,8 @@ internal class AppExitLogger(
     private val runtime: Runtime,
     private val errorHandler: ErrorHandler,
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
-    private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
+    private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
     private val fatalIssueReporter: IFatalIssueReporter?,
@@ -67,15 +65,14 @@ internal class AppExitLogger(
     }
 
     @SuppressLint("NewApi")
-    @WorkerThread
     fun installAppExitLogger() {
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)) {
             return
         }
+        captureUncaughtExceptionHandler.install(this)
+        logPreviousExitReasonIfAny()
         backgroundThreadHandler.runAsync {
-            captureUncaughtExceptionHandler.install(this)
             saveCurrentSessionId()
-            logPreviousExitReasonIfAny()
         }
     }
 
@@ -137,9 +134,9 @@ internal class AppExitLogger(
         thread: Thread,
         throwable: Throwable,
     ) {
-        // When FatalIssueMechanism.BuiltIn is configured will rely on shared-core to emit the related JVM crash log
+        // When FatalIssueReporterState is Initialized will rely on shared-core to emit the related JVM crash log
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) ||
-            fatalIssueReporter?.getReportingMechanism() == FatalIssueMechanism.BuiltIn
+            FatalIssueReporterState.Initialized == fatalIssueReporter?.initializationState()
         ) {
             return
         }
@@ -160,14 +157,18 @@ internal class AppExitLogger(
     }
 
     private fun Throwable.getRootCause(): Throwable {
-        var error = this
-        while (error.cause != null) {
-            error = error.cause!!
+        val seenThrowables = mutableSetOf<Throwable>()
+        var currentThrowable: Throwable = this
+
+        while (currentThrowable.cause != null) {
+            val nextThrowable = currentThrowable.cause!!
+            val isAlreadySeen = !seenThrowables.add(nextThrowable)
+            if (isAlreadySeen) {
+                break
+            }
+            currentThrowable = nextThrowable
         }
-        if (error is InvocationTargetException) {
-            error = error.targetException
-        }
-        return error
+        return currentThrowable
     }
 
     private fun buildCrashAndMemoryFieldsMap(

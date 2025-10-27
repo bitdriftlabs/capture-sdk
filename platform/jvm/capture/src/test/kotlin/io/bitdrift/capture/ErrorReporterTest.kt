@@ -19,6 +19,7 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockWebServer
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
@@ -46,7 +47,7 @@ class ErrorReporterTest {
         server = MockWebServer()
         server.start()
 
-        val apiClient = OkHttpApiClient(server.url(""), "api-key")
+        val apiClient = OkHttpApiClient(server.url(""), "api-key", client = OkHttpClient())
 
         reporter =
             ErrorReporterService(
@@ -117,11 +118,18 @@ class ErrorReporterTest {
 
         errorHandler.handleError("something", Throwable("some exception"))
 
-        val r = server.takeRequest(1, TimeUnit.SECONDS)
+        var r = server.takeRequest(1, TimeUnit.SECONDS)
         assertThat(r).isNotNull
 
         val jsonPayload = r?.body?.readString(Charset.defaultCharset())!!
         val typedRequest = Gson().fromJson<ErrorReportRequest>(jsonPayload, object : TypeToken<ErrorReportRequest>() {}.type)
+
+        // potentially more than one request in queue
+        if (!typedRequest.message.contains("'something'")) {
+            r = server.takeRequest()
+            assertThat(r).isNotNull
+        }
+
         assertThat(typedRequest.message).isEqualTo(
             "jni reported: 'something' failed: java.lang.Throwable: some exception",
         )

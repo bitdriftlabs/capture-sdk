@@ -22,19 +22,37 @@ sealed class FatalIssueReporterState(
     data object NotInitialized : FatalIssueReporterState("NOT_INITIALIZED")
 
     /**
-     * Represents initialization states for [io.bitdrift.capture.reports.FatalIssueMechanism.BuiltIn]
+     * Initialization is currently in progress
      */
-    sealed class BuiltIn(
-        override val readableType: String,
-    ) : FatalIssueReporterState(readableType) {
-        /**
-         * Represents the initialized state when [io.bitdrift.capture.reports.FatalIssueMechanism.BuiltIn] is configured
-         */
-        data object Initialized : BuiltIn("BUILT_IN_MODE_INITIALIZED")
+    data object Initializing : FatalIssueReporterState("INITIALIZING")
 
-        /**
-         * Represents the failed initialization state when [io.bitdrift.capture.reports.FatalIssueMechanism.BuiltIn] is configured
-         */
-        data object InitializationFailed : BuiltIn("BUILT_IN_MODE_FAILED")
-    }
+    /**
+     * Represents a successful initialized state
+     */
+    data object Initialized : FatalIssueReporterState("INITIALIZED")
+
+    /**
+     * Represents a failed initialization attempt state
+     */
+    data object InitializationFailed : FatalIssueReporterState("FAILED_TO_INITIALIZE")
+
+    /**
+     * Reporting not enabled because client-side configuration is disabled
+     */
+    data object ClientDisabled : FatalIssueReporterState("CLIENT_CONFIG_DISABLED")
+
+    /**
+     * Reporting not enabled because server-side configuration is disabled
+     */
+    data object RuntimeDisabled : FatalIssueReporterState("RUNTIME_CONFIG_DISABLED")
+
+    /**
+     * Reporting not enabled because server-side configuration is unset
+     */
+    data object RuntimeUnset : FatalIssueReporterState("RUNTIME_CONFIG_UNSET")
+
+    /**
+     * Reporting not enabled because server-side configuration is corrupted
+     */
+    data object RuntimeInvalid : FatalIssueReporterState("RUNTIME_CONFIG_INVALID")
 }

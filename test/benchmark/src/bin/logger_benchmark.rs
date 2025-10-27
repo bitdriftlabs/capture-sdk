@@ -19,7 +19,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use protobuf::Message;
 use std::sync::Arc;
 use std::time::Duration;
-use tempdir::TempDir;
+use tempfile::tempdir;
 
 // TODO(mattklein123): #[allow(unused)] has been put on a bunch of things so that benchmarks can
 // be manually removed from criterion_group! below. The main issue is that criterion filtering only
@@ -36,7 +36,7 @@ fn do_log(logger: &LoggerHandle) {
     [].into(),
     None,
     Block::No,
-    CaptureSession::default(),
+    &CaptureSession::default(),
   );
 }
 
@@ -68,6 +68,8 @@ fn simple_log(c: &mut Criterion) {
     network: Box::new(NoopNetwork {}),
     static_metadata: Arc::new(EmptyMetadata),
     start_in_sleep_mode: false,
+    feature_flags_file_size_bytes: 1024 * 1024,
+    feature_flags_high_watermark: 0.8,
   })
   .build()
   .unwrap()
@@ -113,6 +115,8 @@ fn with_matcher_and_buffer(c: &mut Criterion) {
     network: Box::new(NoopNetwork {}),
     static_metadata: Arc::new(EmptyMetadata),
     start_in_sleep_mode: false,
+    feature_flags_file_size_bytes: 1024 * 1024,
+    feature_flags_high_watermark: 0.8,
   })
   .build()
   .unwrap()
@@ -129,7 +133,7 @@ fn with_matcher_and_buffer(c: &mut Criterion) {
 }
 
 fn buffer_write_and_read(c: &mut Criterion) {
-  let temp_dir = TempDir::new("buffer_perf").unwrap();
+  let temp_dir = tempdir().unwrap();
   let stats = Arc::new(RingBufferStats::default());
   let buffer = AggregateRingBuffer::new(
     "test",

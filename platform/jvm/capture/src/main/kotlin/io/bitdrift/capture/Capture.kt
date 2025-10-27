@@ -7,22 +7,23 @@
 
 package io.bitdrift.capture
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.system.Os
 import android.util.Log
-import androidx.lifecycle.ProcessLifecycleOwner
+import io.bitdrift.capture.Capture.Logger.startSpan
 import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
-import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueReporterFactory
-import io.bitdrift.capture.reports.IFatalIssueReporter
+import io.bitdrift.capture.utils.BuildTypeChecker
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -108,9 +109,10 @@ object Capture {
          * @return the version as a String
          */
         @JvmStatic
-        val sdkVersion: String get() {
-            return BuildConstants.SDK_VERSION
-        }
+        val sdkVersion: String
+            get() {
+                return BuildConstants.SDK_VERSION
+            }
 
         /**
          * Initializes the Capture SDK with the specified API key, providers, and configuration.
@@ -152,6 +154,8 @@ object Capture {
             )
         }
 
+        // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
+        // while subsequent logger access relies on volatile reads.
         @Synchronized
         @JvmStatic
         @JvmOverloads
@@ -165,9 +169,6 @@ object Capture {
             bridge: IBridge,
             context: Context? = null,
         ) {
-            // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
-            // while subsequent logger access relies on volatile reads.
-
             // There's nothing we can do if we don't have yet access to the application context.
             if (hasInvalidContext(context)) {
                 Log.w(
@@ -279,6 +280,43 @@ object Capture {
         @JvmStatic
         fun removeField(key: String) {
             logger()?.removeField(key)
+        }
+
+        /**
+         * Sets a feature flag with an optional variant.
+         *
+         * @param name the name of the flag to set
+         * @param variant an optional variant
+         */
+        @JvmStatic
+        @ExperimentalBitdriftApi
+        fun setFeatureFlag(
+            name: String,
+            variant: String? = null,
+        ) {
+            logger()?.setFeatureFlag(name, variant)
+        }
+
+        /**
+         * Sets multiple feature flags.
+         *
+         * @param flags the flags to set
+         */
+        @JvmStatic
+        @ExperimentalBitdriftApi
+        fun setFeatureFlags(flags: List<FeatureFlag>) {
+            logger()?.setFeatureFlags(flags)
+        }
+
+        /**
+         * Removes a feature flag.
+         *
+         * @param flag the name of the flag to remove
+         */
+        @ExperimentalBitdriftApi
+        @JvmStatic
+        fun removeFeatureFlag(flag: String) {
+            logger()?.removeFeatureFlag(flag)
         }
 
         /**
@@ -499,6 +537,39 @@ object Capture {
         private fun hasInvalidContext(context: Context? = null) = context == null && !ContextHolder.isInitialized
     }
 
+    /**
+     * Usage: adb shell setprop debug.bitdrift.internal_rust_log debug
+     * Sets up the internal logging filter for the rust library. This is done by reading a system
+     * property and propagating it as an environment variable within the same process.
+     * It swallows any failures and sets default to "info".
+     *
+     * This supports normal rust log filters, so for example so look at trace logs for only bd
+     * crates to:
+     * adb shell setprop debug.bitdrift.internal_rust_log info,bd=trace
+     */
+    @Suppress("SpreadOperator")
+    @SuppressLint("PrivateApi")
+    private fun setUpInternalLogging(context: Context) {
+        if (BuildTypeChecker.isDebuggable(context)) {
+            val defaultRustLog = "info"
+            runCatching {
+                // TODO(murki): Alternatively we could use JVM -D arg to pass properties
+                //  that can be read via System.getProperty() but that's less Android-idiomatic
+                // We follow the firebase approach https://firebase.google.com/docs/analytics/debugview#android
+                // We call the internal API android.os.SystemProperties.get(key, default) using reflection
+                Class
+                    .forName("android.os.SystemProperties")
+                    .getMethod("get", *arrayOf(String::class.java, String::class.java))
+                    .invoke(null, *arrayOf("debug.bitdrift.internal_rust_log", defaultRustLog)) as? String
+            }.getOrNull().let {
+                val internalRustLog = it ?: defaultRustLog
+                runCatching {
+                    Os.setenv("RUST_LOG", internalRustLog, true)
+                }
+            }
+        }
+    }
+
     private fun initSdk(
         apiKey: String,
         sessionStrategy: SessionStrategy,
@@ -512,20 +583,21 @@ object Capture {
         try {
             val startSdkTimer = TimeSource.Monotonic.markNow()
 
-            val appContext = context?.applicationContext ?: ContextHolder.APP_CONTEXT
+            if (!ContextHolder.isInitialized && context != null) {
+                // Make sure the global context is set if no Initializer was used
+                ContextHolder.APP_CONTEXT = context.applicationContext
+            }
 
-            val clientAttributes =
-                ClientAttributes(
-                    appContext,
-                    ProcessLifecycleOwner.get(),
-                )
+            val appContext = ContextHolder.APP_CONTEXT
+
+            // This needs to happen before loading the native library as we set
+            // up logging during library initialization.
+            setUpInternalLogging(appContext)
 
             val nativeLoadDuration =
                 measureTime {
                     CaptureJniLibrary.load()
                 }
-
-            val fatalIssueReporter: IFatalIssueReporter? = FatalIssueReporterFactory.create(configuration)
 
             val (loggerImpl, loggerImplBuildDuration) =
                 measureTimedValue {
@@ -533,19 +605,15 @@ object Capture {
                         apiKey = apiKey,
                         apiUrl = apiUrl,
                         context = appContext,
-                        clientAttributes = clientAttributes,
                         fieldProviders = fieldProviders,
                         dateProvider = dateProvider ?: SystemDateProvider(),
                         configuration = configuration,
                         sessionStrategy = sessionStrategy,
                         bridge = bridge,
-                        fatalIssueReporter = fatalIssueReporter,
                     )
                 }
 
             default.set(LoggerState.Started(loggerImpl))
-
-            fatalIssueReporter?.initBuiltInMode(appContext, clientAttributes, loggerImpl)
 
             val sdkConfiguredDuration =
                 SdkConfiguredDuration(

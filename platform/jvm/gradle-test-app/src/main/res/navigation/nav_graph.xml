@@ -7,9 +7,8 @@
 
     <fragment
         android:id="@+id/FirstFragment"
-        android:name="io.bitdrift.gradletestapp.FirstFragment"
-        android:label="@string/first_fragment_label"
-        tools:layout="@layout/fragment_first">
+        android:name="io.bitdrift.gradletestapp.ui.fragments.FirstFragment"
+        android:label="@string/first_fragment_label">
 
         <action
             android:id="@+id/action_FirstFragment_to_SecondFragment"
@@ -21,26 +20,31 @@
         <action
             android:id="@+id/action_FirstFragment_to_WebViewFragment"
             app:destination="@id/WebViewFragment" />
+        <action
+            android:id="@+id/action_FirstFragment_to_XmlFragment"
+            app:destination="@id/XmlFragment" />
     </fragment>
     <fragment
         android:id="@+id/SecondFragment"
-        android:name="io.bitdrift.gradletestapp.SecondFragment"
+        android:name="io.bitdrift.gradletestapp.ui.fragments.SecondFragment"
         android:label="@string/second_fragment_label"
         tools:layout="@layout/fragment_second">
 
         <action
             android:id="@+id/action_SecondFragment_to_FirstFragment"
-            app:destination="@id/FirstFragment" />
+            app:destination="@id/FirstFragment"
+            app:popUpTo="@id/FirstFragment"
+            app:popUpToInclusive="true" />
     </fragment>
     <fragment
         android:id="@+id/ConfigurationSettingsFragment"
-        android:name="io.bitdrift.gradletestapp.ConfigurationSettingsFragment"
+        android:name="io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment"
         android:label="@string/config_fragment_label">
     </fragment>
 
     <fragment
         android:id="@+id/WebViewFragment"
-        android:name="io.bitdrift.gradletestapp.WebViewFragment"
+        android:name="io.bitdrift.gradletestapp.ui.fragments.WebViewFragment"
         android:label="@string/web_view_fragment_label"
         tools:layout="@layout/fragment_web_view">
 
@@ -49,7 +53,22 @@
             app:destination="@id/WebViewFragment" />
         <action
             android:id="@+id/action_WebViewFragment_to_FirstFragment"
-            app:destination="@id/FirstFragment" />
+            app:destination="@id/FirstFragment"
+            app:popUpTo="@id/FirstFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/XmlFragment"
+        android:name="io.bitdrift.gradletestapp.ui.fragments.XmlDemoFragment"
+        android:label="XML Demo"
+        tools:layout="@layout/fragment_xml_demo">
+
+        <action
+            android:id="@+id/action_XmlFragment_to_FirstFragment"
+            app:destination="@id/FirstFragment"
+            app:popUpTo="@id/FirstFragment"
+            app:popUpToInclusive="true" />
     </fragment>
 
 </navigation>

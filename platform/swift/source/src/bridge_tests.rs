@@ -81,8 +81,8 @@ impl Setup {
         timeout: self.timeout.clone(),
       },
       stream_state_rx: self.stream_state_tx.subscribe(),
-      emit_send_data_timeout_error: self.runtime.register_watch().unwrap(),
-      send_data_timeout: self.runtime.register_watch().unwrap(),
+      emit_send_data_timeout_error: self.runtime.register_bool_watch(),
+      send_data_timeout: self.runtime.register_int_watch(),
     }
   }
 
@@ -117,11 +117,12 @@ async fn no_capacity_sends_error_with_runtime() {
 
   setup
     .runtime
-    .update_snapshot(&bd_test_helpers::runtime::make_simple_update(vec![(
+    .update_snapshot(bd_test_helpers::runtime::make_simple_update(vec![(
       crate::bridge::flags::ReportSendDataTimeoutError::path(),
       ValueKind::Bool(true),
     )]))
-    .await;
+    .await
+    .unwrap();
 
   let mut stream = setup.stream();
 
@@ -141,11 +142,12 @@ async fn runtime_configured_deadline() {
 
   setup
     .runtime
-    .update_snapshot(&bd_test_helpers::runtime::make_simple_update(vec![(
+    .update_snapshot(bd_test_helpers::runtime::make_simple_update(vec![(
       crate::bridge::flags::SendDataTimeout::path(),
       ValueKind::Int(1),
     )]))
-    .await;
+    .await
+    .unwrap();
 
   let mut stream = setup.stream();
 

@@ -10,12 +10,12 @@
 mod bridge_tests;
 
 use crate::bridge::ffi::make_nsstring;
-use crate::ffi::nsstring_into_string;
+use crate::ffi::{make_empty_nsstring, nsstring_into_string};
 use crate::key_value_storage::UserDefaultsStorage;
 use crate::{events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
 use bd_api::{Platform, PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
-use bd_client_common::error::{
+use bd_error_reporter::reporter::{
   handle_unexpected,
   with_handle_unexpected,
   with_handle_unexpected_or,
@@ -36,7 +36,7 @@ use bd_noop_network::NoopNetwork;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use platform_shared::metadata::{self, Mobile};
-use platform_shared::{LoggerHolder, LoggerId};
+use platform_shared::{read_global_state_snapshot, LoggerHolder, LoggerId};
 use std::borrow::{Borrow, Cow};
 use std::boxed::Box;
 use std::collections::HashMap;
@@ -109,20 +109,20 @@ impl PlatformNetworkManager<bd_runtime::runtime::ConfigLoader> for SwiftNetworkH
     }));
 
     let stream = objc::rc::autoreleasepool(|| {
-      let objc_headers = ffi::convert_map(headers);
+      let objc_headers = ffi::convert_map(headers)?;
 
-      unsafe {
+      Ok::<_, anyhow::Error>(unsafe {
         objc::rc::StrongPtr::retain(
           msg_send![*self.network_nsobject, startStream:stream_state headers:*objc_headers],
         )
-      }
-    });
+      })
+    })?;
 
     Ok(Box::new(SwiftNetworkStream {
       stream_writer: UrlSessionStreamWriter(stream),
       stream_state_rx,
-      emit_send_data_timeout_error: runtime.register_watch().unwrap(),
-      send_data_timeout: runtime.register_watch().unwrap(),
+      emit_send_data_timeout_error: runtime.register_bool_watch(),
+      send_data_timeout: runtime.register_int_watch(),
     }))
   }
 }
@@ -332,7 +332,7 @@ unsafe impl Sync for SwiftErrorReporter {}
 // TODO(snowp): objc2 allows describing this better as Id<T> is generic, fix if we switch over.
 unsafe impl Send for SwiftErrorReporter {}
 
-impl bd_client_common::error::Reporter for SwiftErrorReporter {
+impl bd_error_reporter::reporter::Reporter for SwiftErrorReporter {
   #[inline(never)]
   fn report(
     &self,
@@ -344,16 +344,17 @@ impl bd_client_common::error::Reporter for SwiftErrorReporter {
       // This should never fail in safe code because this only fails when there is an internal null
       // character, but we want to be super safe in this error handler.
       if let Ok(c_str) = std::ffi::CString::new(message) {
-        let fields = ffi::convert_map::<std::hash::RandomState>(
+        if let Ok(fields) = ffi::convert_map::<std::hash::RandomState>(
           &fields
             .iter()
             .map(|(k, v)| (k.borrow(), v.borrow()))
             .collect(),
-        );
-        unsafe {
-          let () =
-            msg_send![*self.error_reporter_nsobject, reportError:c_str.as_ptr() fields:*fields];
-        };
+        ) {
+          unsafe {
+            let () =
+              msg_send![*self.error_reporter_nsobject, reportError:c_str.as_ptr() fields:*fields];
+          };
+        }
       }
     });
   }
@@ -412,7 +413,9 @@ impl MetadataProvider for LogMetadataProvider {
 
 #[no_mangle]
 extern "C" fn capture_report_error(error_message: *const c_char) {
-  let error_message = unsafe { CStr::from_ptr(error_message) }.to_str().unwrap();
+  let error_message = unsafe { CStr::from_ptr(error_message) }
+    .to_str()
+    .unwrap_or_default();
   handle_unexpected::<(), anyhow::Error>(
     std::result::Result::Err(anyhow!(error_message)),
     "swift_platform_layer",
@@ -446,9 +449,10 @@ extern "C" fn capture_create_logger(
     || {
       let storage = Box::<UserDefaultsStorage>::default();
       let store = Arc::new(bd_key_value::Store::new(storage));
+      let previous_run_global_state = read_global_state_snapshot(store.clone());
 
       let session_strategy =
-        crate::session::SessionStrategy::new(session_strategy).create(store.clone());
+        crate::session::SessionStrategy::new(session_strategy).create(store.clone())?;
 
       let device: Arc<bd_device::Device> = Arc::new(bd_device::Device::new(store.clone()));
 
@@ -505,10 +509,12 @@ extern "C" fn capture_create_logger(
         device,
         static_metadata,
         start_in_sleep_mode,
+        feature_flags_file_size_bytes: 1024 * 1024,
+        feature_flags_high_watermark: 0.8,
       })
       .with_internal_logger(true)
       .build()
-      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future))?;
+      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future, previous_run_global_state))?;
 
       Ok(logger.into_raw())
     },
@@ -623,8 +629,12 @@ extern "C" fn capture_write_log(
         fields,
         matching_fields,
         attributes_overrides,
-        if blocking { Block::Yes } else { Block::No },
-        CaptureSession::default(),
+        if blocking {
+          Block::Yes(std::time::Duration::from_secs(1))
+        } else {
+          Block::No
+        },
+        &CaptureSession::default(),
       );
 
       Ok(())
@@ -778,17 +788,23 @@ extern "C" fn capture_start_new_session(logger_id: LoggerId<'_>) {
 
 #[no_mangle]
 extern "C" fn capture_get_session_id(logger_id: LoggerId<'_>) -> *const Object {
-  make_nsstring(&logger_id.session_id()).autorelease()
+  make_nsstring(&logger_id.session_id())
+    .unwrap_or_else(|_| make_empty_nsstring())
+    .autorelease()
 }
 
 #[no_mangle]
 extern "C" fn capture_get_device_id(logger_id: LoggerId<'_>) -> *const Object {
-  make_nsstring(&logger_id.device_id()).autorelease()
+  make_nsstring(&logger_id.device_id())
+    .unwrap_or_else(|_| make_empty_nsstring())
+    .autorelease()
 }
 
 #[no_mangle]
 extern "C" fn capture_get_sdk_version() -> *const Object {
-  make_nsstring(&metadata::SDK_VERSION).autorelease()
+  make_nsstring(&metadata::SDK_VERSION)
+    .unwrap_or_else(|_| make_empty_nsstring())
+    .autorelease()
 }
 
 #[no_mangle]
@@ -827,11 +843,69 @@ extern "C" fn capture_remove_log_field(logger_id: LoggerId<'_>, key: *const c_ch
 extern "C" fn capture_flush(logger_id: LoggerId<'_>, blocking: bool) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
+      let blocking = if blocking {
+        Block::Yes(std::time::Duration::from_secs(1))
+      } else {
+        Block::No
+      };
       logger_id.flush_state(blocking);
 
       Ok(())
     },
     "swift flush state",
+  );
+}
+
+#[no_mangle]
+extern "C" fn capture_set_feature_flag(
+  logger_id: LoggerId<'_>,
+  flag: *const c_char,
+  variant: *const c_char,
+) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      let flag = unsafe { CStr::from_ptr(flag) }.to_str()?;
+      let variant = if variant.is_null() {
+        None
+      } else {
+        unsafe { CStr::from_ptr(variant) }
+          .to_str()
+          .ok()
+          .map(std::string::ToString::to_string)
+      };
+      logger_id.set_feature_flag(flag.to_string(), variant);
+
+      Ok(())
+    },
+    "swift set feature flag",
+  );
+}
+
+#[no_mangle]
+extern "C" fn capture_set_feature_flags(logger_id: LoggerId<'_>, flags: *const Object) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      // Convert the Swift array of (flag: String, variant: String?) to Vec<(String,
+      // Option<String>)>
+      let flags_vec = unsafe { ffi::convert_feature_flags_array(flags) }?;
+      logger_id.set_feature_flags(flags_vec);
+
+      Ok(())
+    },
+    "swift set feature flags",
+  );
+}
+
+#[no_mangle]
+extern "C" fn capture_remove_feature_flag(logger_id: LoggerId<'_>, flag: *const c_char) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      let flag = unsafe { CStr::from_ptr(flag) }.to_str()?;
+      logger_id.remove_feature_flag(flag.to_string());
+
+      Ok(())
+    },
+    "swift remove feature flag",
   );
 }
 

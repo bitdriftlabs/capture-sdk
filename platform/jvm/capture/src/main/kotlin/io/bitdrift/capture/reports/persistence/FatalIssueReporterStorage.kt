@@ -7,7 +7,7 @@
 
 package io.bitdrift.capture.reports.persistence
 
-import io.bitdrift.capture.reports.binformat.v1.ReportType
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 import java.io.File
 import java.util.UUID
 
@@ -23,6 +23,8 @@ internal class FatalIssueReporterStorage(
         val outputFile = File(destinationDirectory, fileName)
         outputFile.writeBytes(data)
     }
+
+    override fun generateFilePath(): String = destinationDirectory.path + "/${UUID.randomUUID()}.cap"
 
     private fun mapToReadableType(reportType: Byte): String =
         when (reportType) {

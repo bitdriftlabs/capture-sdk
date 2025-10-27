@@ -65,6 +65,22 @@ protocol LoggerBridging {
     /// - parameter blocking: Whether the method should return only after the flushing completes.
     func flush(blocking: Bool)
 
+    /// Sets a feature flag with an optional variant.
+    ///
+    /// - parameter name:    The name of the flag to set
+    /// - parameter variant: An optional variant to set the flag to
+    func setFeatureFlag(withName name: String, variant: String?)
+
+    /// Sets multiple feature flags.
+    ///
+    /// - parameter flags: The flags to set
+    func setFeatureFlags(_ flags: [FeatureFlag])
+
+    /// Removes a feature flag.
+    ///
+    /// - parameter name: The name of the flag to remove
+    func removeFeatureFlag(withName name: String)
+
     /// Retrieves a given runtime variable.
     ///
     /// - parameter feature: The runtime variable.

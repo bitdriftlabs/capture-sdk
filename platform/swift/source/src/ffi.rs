@@ -8,6 +8,7 @@
 // Helpers for safely interacting with Objective-C types.
 use crate::ffi;
 use ahash::AHashMap;
+use anyhow::bail;
 use bd_log_primitives::LogFieldKey;
 use bd_logger::{
   AnnotatedLogField,
@@ -89,24 +90,26 @@ pub(crate) unsafe fn nsstring_into_string(s: *const Object) -> anyhow::Result<St
     cstr
   };
 
-  Ok(CStr::from_ptr(cstr).to_str().unwrap().to_string())
+  Ok(CStr::from_ptr(cstr).to_str()?.to_string())
 }
 
 /// Converts a Rust `String` into a `NSString`. Returned `StrongPtr` holds a strong reference to
 /// an underlying `NSString` instance that's also autoreleased. Note that the implementations
 /// does two copies of the s bytes.
 ///
-/// # Panics
-/// Trailing 0 byte will be appended by this function; the provided data should not
-/// contain any 0 bytes in it.
-///
 /// # Safety
 /// The call to the method needs to be wrapped in an autorelease pool.
-#[must_use]
-pub fn make_nsstring(s: &str) -> StrongPtr {
+pub fn make_nsstring(s: &str) -> anyhow::Result<StrongPtr> {
   let string_cls = class!(NSString);
-  let c_str = CString::new(s).unwrap();
-  unsafe { StrongPtr::retain(msg_send![string_cls, stringWithUTF8String: c_str.as_ptr()]) }
+  let c_str = CString::new(s)?;
+  Ok(unsafe { StrongPtr::retain(msg_send![string_cls, stringWithUTF8String: c_str.as_ptr()]) })
+}
+
+/// Creates an empty `NSString`.
+#[must_use]
+pub fn make_empty_nsstring() -> StrongPtr {
+  let string_cls = class!(NSString);
+  unsafe { StrongPtr::retain(msg_send![string_cls, string]) }
 }
 
 /// Specifies a conversion between a Objective-C Object and a arbitrary Rust type.
@@ -133,16 +136,18 @@ impl<'a> FromObjcObject<'a> for [u8] {
   }
 }
 
-#[must_use]
-pub fn convert_map<S: ::std::hash::BuildHasher>(map: &HashMap<&str, &str, S>) -> StrongPtr {
+pub fn convert_map<S: ::std::hash::BuildHasher>(
+  map: &HashMap<&str, &str, S>,
+) -> anyhow::Result<StrongPtr> {
   let objc_headers = unsafe { StrongPtr::new(msg_send![class!(NSMutableDictionary), new]) };
   for (key, value) in map {
     unsafe {
-      let () = msg_send![*objc_headers, setObject:*make_nsstring(value) forKey:*make_nsstring(key)];
+      let () =
+        msg_send![*objc_headers, setObject:*make_nsstring(value)? forKey:*make_nsstring(key)?];
     };
   }
 
-  objc_headers
+  Ok(objc_headers)
 }
 
 const FIELD_TYPE_STRING: usize = 0;
@@ -197,11 +202,49 @@ unsafe fn convert_fields_helper<FieldValue>(
         let data_value = FromObjcObject::from_objc(field_value)? as &[u8];
         StringOrBytes::Bytes(data_value.to_vec())
       },
-      _ => panic!("unknown field value type: {field_type:?}"),
+      _ => bail!("unknown field value type: {field_type:?}"),
     };
 
     fields.insert(field_key.into(), converter(value));
   }
 
   Ok(fields)
+}
+
+/// Converts a `NSArray` of feature flag tuples into a `Vec<(String, Option<String>)>`.
+/// # Safety
+/// This assumes that the provided ptr refers to a `NSArray` of objects with `flag` and `variant`
+/// properties.
+pub unsafe fn convert_feature_flags_array(
+  ptr: *const Object,
+) -> anyhow::Result<Vec<(String, Option<String>)>> {
+  debug_check_class!(ptr, NSArray);
+
+  // Handle null array
+  if ptr.is_null() {
+    return Ok(Vec::new());
+  }
+
+  let count: usize = msg_send![ptr, count];
+  let mut flags = Vec::with_capacity(count);
+
+  for i in 0 .. count {
+    let feature_flag: *const Object = msg_send![ptr, objectAtIndex: i];
+
+    // Extract flag name
+    let flag_obj: *const Object = msg_send![feature_flag, name];
+    let flag = nsstring_into_string(flag_obj)?;
+
+    // Extract variant (which can be nil)
+    let variant_obj: *const Object = msg_send![feature_flag, variant];
+    let variant = if variant_obj.is_null() {
+      None
+    } else {
+      Some(nsstring_into_string(variant_obj)?)
+    };
+
+    flags.push((flag, variant));
+  }
+
+  Ok(flags)
 }

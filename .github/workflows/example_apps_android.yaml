@@ -1,28 +1,9 @@
 name: Build Android example apps
 on:
   workflow_dispatch:
-    inputs:
-      sha:
-        description: '[Optional] Commit SHA1, branch or tag to build. The latest SHA1 on a given branch is used if no value is provided.'
-        required: false
-        type: string
   workflow_call:
-    inputs:
-      sha:
-        description: '[Optional] Commit SHA1, branch or tag to build. The latest SHA1 on a given branch is used if no value is provided.'
-        required: false
-        type: string
 
 jobs:
-  print_arguments:
-    name: Print arguments
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print entered "sha"
-        run: echo "$SHA"
-    env:
-      SHA: ${{ inputs.sha }}
-
   build:
     name: Build & upload
     runs-on: ubuntu-latest

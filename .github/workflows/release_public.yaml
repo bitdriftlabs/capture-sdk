@@ -1,4 +1,4 @@
-name: Release to dl.bitdrift.io
+name: Release to public
 on:
   workflow_call:
     inputs:
@@ -58,7 +58,7 @@ jobs:
       env:
         VERSION: ${{ inputs.version }}
   release-android:
-    name: Upload Android artifacts to dl.bitdrift.io
+    name: Upload Android artifacts to bitdrif maven and maven central
     permissions:
       id-token: write # required to use OIDC authentication (set up aws credentials)
       contents: read
@@ -93,6 +93,93 @@ jobs:
       env:
         VERSION: ${{ inputs.version }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Upload Android Artifacts to aws bucket
+    - name: Upload Android Artifacts to aws bucket and prepare Maven Central bundles
+      env:
+        # GPG signing configuration (existing repo/org secrets)
+        GPG_PRIVATE_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+        GPG_PASSPHRASE: ${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}
       run: ./ci/capture_android_release.sh ${{ inputs.version }} "Capture-${{ inputs.version }}.android.zip" "capture-timber-${{ inputs.version }}.android.zip" "capture-apollo-${{ inputs.version }}.android.zip" "capture-plugin-${{ inputs.version }}.android.zip" "capture-plugin-marker-${{ inputs.version }}.android.zip"
+    - name: Upload bundles to Maven Central
+      env:
+        MAVEN_CENTRAL_TOKEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_TOKEN_USERNAME }}
+        MAVEN_CENTRAL_TOKEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN_PASSWORD }}
+      run: |
+        # Avoid echoing commands to logs; keep credentials out of output
+        set -euo pipefail
+        set +x
+        if [[ -z "${MAVEN_CENTRAL_TOKEN_USERNAME:-}" || -z "${MAVEN_CENTRAL_TOKEN_PASSWORD:-}" ]]; then
+          echo "Maven Central tokens not provided; skipping upload."
+          exit 0
+        fi
+        if [[ ! -d dist/maven-central ]]; then
+          echo "No Maven Central bundles directory found; skipping."
+          exit 0
+        fi
+        cd dist/maven-central
+        shopt -s nullglob
+        bundles=( *.maven-central.zip )
+        shopt -u nullglob
+        if (( ${#bundles[@]} == 0 )); then
+          echo "No bundle zips found to upload."
+          exit 0
+        fi
+        : > deployment_ids.txt
+        for b in "${bundles[@]}"; do
+          [[ -f "$b" ]] || continue
+          echo "Uploading $b to Sonatype Central Portal..."
+          resp=$(curl -sS -u "${MAVEN_CENTRAL_TOKEN_USERNAME}:${MAVEN_CENTRAL_TOKEN_PASSWORD}" \
+            -F "bundle=@${b}" \
+            "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC" || true)
+          # Echo server response for visibility
+          printf '%s\n' "$resp" | tee /dev/stderr
+          # Try to extract a UUID-like deployment id and save for the polling step
+          dep_id=$(printf '%s' "$resp" | grep -Eo '[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}' | head -n1 || true)
+          if [[ -n "$dep_id" ]]; then
+            echo "$dep_id" >> deployment_ids.txt
+          fi
+        done
+        echo "Saved deployment IDs (if any) to dist/maven-central/deployment_ids.txt"
+
+    - name: Poll Maven Central deployment status
+      env:
+        MAVEN_CENTRAL_TOKEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_TOKEN_USERNAME }}
+        MAVEN_CENTRAL_TOKEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN_PASSWORD }}
+      run: |
+        set -euo pipefail
+        set +x
+        ids_file="dist/maven-central/deployment_ids.txt"
+        if [[ ! -f "$ids_file" ]]; then
+          echo "No deployment IDs file found; nothing to poll."
+          exit 0
+        fi
+        mapfile -t ids < "$ids_file" || true
+        if (( ${#ids[@]} == 0 )); then
+          echo "No deployment IDs captured; nothing to poll."
+          exit 0
+        fi
+        for id in "${ids[@]}"; do
+          echo "Polling deployment status for $id..."
+          deadline=$((SECONDS + 300)) # 5 minutes per artifact
+          while (( SECONDS < deadline )); do
+            resp=$(curl -sS -X POST -u "${MAVEN_CENTRAL_TOKEN_USERNAME}:${MAVEN_CENTRAL_TOKEN_PASSWORD}" \
+              "https://central.sonatype.com/api/v1/publisher/status?id=$id" || true)
+            state=$(printf '%s' "$resp" | sed -n 's/.*"deploymentState"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+            if [[ -z "$state" ]]; then
+              state="UNKNOWN"
+            fi
+            echo "Deployment $id state: $state"
+            if [[ "$state" == "FAILED" ]]; then
+              echo "Deployment $id failed." >&2
+              exit 1
+            fi
+            if [[ "$state" == "VALIDATED" || "$state" == "PUBLISHING" || "$state" == "PUBLISHED" ]]; then
+              break
+            fi
+            sleep 15
+          done
+          if (( SECONDS >= deadline )); then
+            echo "Deployment $id polling timed out after 5 minutes." >&2
+            exit 1
+          fi
+        done
 

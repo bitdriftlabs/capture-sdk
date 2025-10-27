@@ -26,6 +26,12 @@ jobs:
           sudo chmod 777 /cores
           # Core filenames will be of the form executable.pid.timestamp:
           sudo bash -c 'echo "/cores/%e.%p.%t" > /proc/sys/kernel/core_pattern'
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}
+          repository-cache: true
       - name: Check for Bazel build file changes
         id: bazel_check
         run: ./ci/check_bazel.sh //platform/... //core/... //test/...
@@ -33,7 +39,7 @@ jobs:
 
       - name: Check for workflow file changes
         id: workflow_check
-        run: ./ci/files_changed.sh .github/workflows/linux_test.yaml
+        run: ./ci/files_changed.sh .github/workflows/linux_tests.yaml
         continue-on-error: true
 
       - name: test

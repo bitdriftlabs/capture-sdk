@@ -12,15 +12,16 @@ import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
+import io.bitdrift.gradletestapp.ui.activities.MainActivity
 import org.junit.Test
 
 class AppLaunchTest {
     @Test
     fun appLaunchesSuccessfully() {
         // Launch the activity using ActivityScenario
-        launchActivity<MainActivity>().use {
-            // Dumb matcher logic to check if a view is displayed, i.e. if the app launched successfully
-            onView(withId(R.id.toolbar)).check(matches(isDisplayed()))
+        launchActivity<MainActivity>().use { scenario ->
+            // Check if the main content area is displayed (indicates app launched successfully)
+            onView(withId(android.R.id.content)).check(matches(isDisplayed()))
         }
     }
 }

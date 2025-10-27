@@ -13,6 +13,11 @@ android {
 
     compileSdk = 36
 
+    defaultConfig {
+        minSdk = 23
+        consumerProguardFiles("consumer-rules.pro")
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
@@ -32,6 +37,7 @@ android {
         checkDependencies = true
         checkReleaseBuilds = true
         disable.add("GradleDependency")
+        disable.add("AndroidGradlePluginVersion")
     }
 }
 

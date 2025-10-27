@@ -69,8 +69,7 @@ class JankStatsMonitorTest {
         window = activity.window
 
         whenever(processLifecycleOwner.lifecycle).thenReturn(lifecycle)
-        whenever(windowManager.getCurrentWindow()).thenReturn(window)
-        whenever(windowManager.getFirstRootView()).thenReturn(window.decorView)
+        whenever(windowManager.findFirstValidActivity()).thenReturn(activity)
 
         whenever(runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)).thenReturn(true)
         whenever(runtime.getConfigValue(RuntimeConfig.MIN_JANK_FRAME_THRESHOLD_MS)).thenReturn(16)

@@ -8,8 +8,8 @@
 package io.bitdrift.capture.reports.processor
 
 import com.google.flatbuffers.FlatBufferBuilder
-import io.bitdrift.capture.reports.binformat.v1.Frame
-import io.bitdrift.capture.reports.binformat.v1.SourceFile
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Frame
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.SourceFile
 
 /**
  * A builder that allows you to create a [io.bitdrift.capture.reports.binformat.v1.Frame] with
@@ -43,6 +43,7 @@ internal object ReportFrameBuilder {
             originalIndex = 0u,
             inApp = false,
             symbolicatedNameOffset = 0,
+            jsBundlePathOffset = 0,
         )
     }
 

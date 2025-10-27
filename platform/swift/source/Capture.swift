@@ -83,7 +83,7 @@ extension Logger {
     ) -> LoggerIntegrator?
     {
         return self.createOnce {
-            return Logger(
+            let logger = Logger(
                 withAPIKey: apiKey,
                 apiURL: apiURL,
                 configuration: configuration,
@@ -92,6 +92,9 @@ extension Logger {
                 fieldProviders: fieldProviders,
                 loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
             )
+
+            logger?.startDebugOperationsAsNeeded()
+            return logger
         }
     }
 
@@ -411,6 +414,28 @@ extension Logger {
     /// - parameter key: The name of the field to remove.
     public static func removeField(withKey key: String) {
         Self.getShared()?.removeField(withKey: key)
+    }
+
+    /// Sets a feature flag with an optional variant.
+    ///
+    /// - parameter flag:    The name of the flag to set
+    /// - parameter variant: An optional variant to set the flag to
+    public static func setFeatureFlag(withName flag: String, variant: String?) {
+        Self.getShared()?.setFeatureFlag(withName: flag, variant: variant)
+    }
+
+    /// Sets multiple feature flags.
+    ///
+    /// - parameter flags: The flags to set
+    public static func setFeatureFlags(_ flags: [FeatureFlag]) {
+        Self.getShared()?.setFeatureFlags(flags)
+    }
+
+    /// Removes a feature flag.
+    ///
+    /// - parameter flag: The name of the flag to remove.
+    public static func removeFeatureFlag(withName flag: String) {
+        Self.getShared()?.removeFeatureFlag(withName: flag)
     }
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a

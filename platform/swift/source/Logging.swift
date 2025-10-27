@@ -87,6 +87,22 @@ public protocol Logging {
     /// - parameter key: The name of the field to remove.
     func removeField(withKey key: String)
 
+    /// Sets a feature flag with an optional variant.
+    ///
+    /// - parameter name:    The name of the flag to set
+    /// - parameter variant: An optional variant to set the flag to
+    func setFeatureFlag(withName name: String, variant: String?)
+
+    /// Sets multiple feature flags.
+    ///
+    /// - parameter flags: The flags to set
+    func setFeatureFlags(_ flags: [FeatureFlag])
+
+    /// Removes a feature flag.
+    ///
+    /// - parameter name: The name of the flag to remove
+    func removeFeatureFlag(withName name: String)
+
     /// Creates a temporary device code that can be fed into bitdrift `bd` CLI tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with
     /// the bitdrift remote service.
@@ -94,6 +110,11 @@ public protocol Logging {
     /// - parameter completion: The closure that is called when the operation is complete. Called on the
     ///                         main queue.
     func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void)
+
+    /// Starts debug operations if needed. This is typically called once during app launch and will
+    /// start debug operations (such as creating a device code) if the heuristics indicate that the app is
+    /// running in a debug-like environment.
+    func startDebugOperationsAsNeeded()
 
     // MARK: - Predefined logs
 
@@ -348,4 +369,11 @@ extension Logging {
     ) {
         self.log(response, file: file, line: line, function: function)
     }
+
+    /// Starts debug operations if needed. This is typically called once during app launch and will
+    /// start debug operations (such as creating a device code) if the heuristics indicate that the app is
+    /// running in a debug-like environment.
+    ///
+    /// This implementation does nothing and can be overridden by conforming types.
+    public func startDebugOperationsAsNeeded() {}
 }

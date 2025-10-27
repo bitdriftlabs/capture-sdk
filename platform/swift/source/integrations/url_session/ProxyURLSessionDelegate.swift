@@ -17,9 +17,9 @@ class ProxyURLSessionDelegate: NSObject {
     /// `URLSession`'s `delegate` property is a `strong` reference. It's uncommon for delegates on iOS to be
     /// `strong` references but to make our delegate mimic the behavior of `URLSession`'s delegate we hold
     /// a strong reference to the underlying delegate.
-    fileprivate let target: URLSessionTaskDelegate?
+    fileprivate let target: URLSessionDelegate?
 
-    init(target: URLSessionTaskDelegate?) {
+    init(target: URLSessionDelegate?) {
         self.target = target
     }
 
@@ -40,7 +40,9 @@ extension ProxyURLSessionDelegate: URLSessionTaskDelegate {
     )
     {
         URLSessionTaskTracker.shared.task(task, didFinishCollecting: metrics)
-        self.target?.urlSession?(session, task: task, didFinishCollecting: metrics)
+        if let delegate = self.target as? URLSessionTaskDelegate {
+            delegate.urlSession?(session, task: task, didFinishCollecting: metrics)
+        }
     }
 }
 
@@ -54,7 +56,7 @@ final class ProxyURLSessionTaskDelegate: ProxyURLSessionDelegate {
     {
         URLSessionTaskTracker.shared.task(task, didFinishCollecting: metrics)
 
-        if let delegate = self.target, delegate.responds(to: kFinishedCollectingMetrics) {
+        if let delegate = self.target as? URLSessionTaskDelegate, delegate.responds(to: kFinishedCollectingMetrics) {
             delegate.urlSession?(session, task: task, didFinishCollecting: metrics)
             return
         }

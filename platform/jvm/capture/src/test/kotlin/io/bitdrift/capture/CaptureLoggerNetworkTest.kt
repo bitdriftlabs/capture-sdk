@@ -14,6 +14,7 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
@@ -35,6 +36,7 @@ class CaptureLoggerNetworkTest {
     private var streamTimeoutSeconds: Long = 1
     private var logger: Long? = null
     private var testServerPort: Int? = null
+    private val okHttpClient = OkHttpClient()
 
     class TestMetadataProvider : IMetadataProvider {
         override fun timestamp(): Long = Date().time
@@ -70,6 +72,7 @@ class CaptureLoggerNetworkTest {
             OkHttpNetwork(
                 apiBaseUrl = testServerUrl(testServerPort!!),
                 timeoutSeconds = streamTimeoutSeconds,
+                okHttpClient = okHttpClient,
             )
 
         val logger =
@@ -151,6 +154,7 @@ class CaptureLoggerNetworkTest {
             OkHttpNetwork(
                 apiBaseUrl = testServerUrl(50051),
                 timeoutSeconds = 1,
+                okHttpClient = okHttpClient,
             )
         val loggerId =
             CaptureJniLibrary.createLogger(
@@ -186,6 +190,7 @@ class CaptureLoggerNetworkTest {
             OkHttpNetwork(
                 apiBaseUrl = testServerUrl(port),
                 timeoutSeconds = 1,
+                okHttpClient = okHttpClient,
             )
 
         val logger =

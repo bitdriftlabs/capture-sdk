@@ -6,6 +6,8 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::jni::{initialize_class, initialize_method_handle, CachedClass, CachedMethod};
+use anyhow::bail;
+use bd_client_common::error::InvariantError;
 use bd_logger::{AnnotatedLogField, AnnotatedLogFields, LogFieldKind, LogFieldValue, LogFields};
 use jni::objects::{AutoLocal, JList, JMap, JObject, JPrimitiveArray};
 use jni::signature::{Primitive, ReturnType};
@@ -29,49 +31,52 @@ static FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 static BINARY_FIELD_BYTE_ARRAY: OnceLock<CachedMethod> = OnceLock::new();
 static STRING_FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 
-pub(crate) fn initialize(env: &mut JNIEnv<'_>) {
-  let field_class = initialize_class(env, "io/bitdrift/capture/providers/Field", None);
+static FEATURE_FLAG_GET_NAME: OnceLock<CachedMethod> = OnceLock::new();
+static FEATURE_FLAG_GET_VARIANT: OnceLock<CachedMethod> = OnceLock::new();
+
+pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
+  let field_class = initialize_class(env, "io/bitdrift/capture/providers/Field", None)?;
   initialize_method_handle(
     env,
     &field_class.class,
     "getKey",
     "()Ljava/lang/String;",
     &FIELD_KEY,
-  );
+  )?;
   initialize_method_handle(
     env,
     &field_class.class,
     "getValueType",
     "()I",
     &FIELD_VALUE_TYPE,
-  );
+  )?;
   initialize_method_handle(
     env,
     &field_class.class,
     "getByteArrayValue",
     "()[B",
     &FIELD_BYTE_ARRAY,
-  );
+  )?;
   initialize_method_handle(
     env,
     &field_class.class,
     "getStringValue",
     "()Ljava/lang/String;",
     &FIELD_STRING,
-  );
+  )?;
 
   let binary_field = initialize_class(
     env,
     "io/bitdrift/capture/providers/FieldValue$BinaryField",
     Some(&BINARY_FIELD),
-  );
+  )?;
   initialize_method_handle(
     env,
     &binary_field.class,
     "getByteArrayValue",
     "()[B",
     &BINARY_FIELD_BYTE_ARRAY,
-  );
+  )?;
 
   initialize_method_handle(
     env,
@@ -79,7 +84,24 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) {
     "getStringValue",
     "()Ljava/lang/String;",
     &STRING_FIELD_STRING,
-  );
+  )?;
+
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/FeatureFlag",
+    "getName",
+    "()Ljava/lang/String;",
+    &FEATURE_FLAG_GET_NAME,
+  )?;
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/FeatureFlag",
+    "getVariant",
+    "()Ljava/lang/String;",
+    &FEATURE_FLAG_GET_VARIANT,
+  )?;
+
+  Ok(())
 }
 
 pub(crate) fn jobject_list_to_fields(
@@ -90,7 +112,7 @@ pub(crate) fn jobject_list_to_fields(
   let size = list.size(env)?;
 
   // SAFETY: the size of an array should always be >= 0.
-  let mut fields = LogFields::with_capacity(size.try_into().unwrap());
+  let mut fields = LogFields::with_capacity(size.try_into()?);
 
   let mut iter = list.iter(env)?;
   while let Some(obj) = iter.next(env)? {
@@ -100,7 +122,7 @@ pub(crate) fn jobject_list_to_fields(
 
     let key = FIELD_KEY
       .get()
-      .unwrap()
+      .ok_or(InvariantError::Invariant)?
       .call_method(env, &obj, ReturnType::Object, &[])?
       .l()?;
     let key = unsafe { env.get_string_unchecked(&key.into()) }?
@@ -111,14 +133,14 @@ pub(crate) fn jobject_list_to_fields(
 
     let value_type = FIELD_VALUE_TYPE
       .get()
-      .unwrap()
+      .ok_or(InvariantError::Invariant)?
       .call_method(env, &obj, ReturnType::Primitive(Primitive::Int), &[])?
       .i()?;
     let value = match value_type {
       FIELD_VALUE_BYTE_ARRAY => {
         let field_value = FIELD_BYTE_ARRAY
           .get()
-          .unwrap()
+          .ok_or(InvariantError::Invariant)?
           .call_method(env, &obj, ReturnType::Array, &[])?
           .l()?;
 
@@ -128,7 +150,7 @@ pub(crate) fn jobject_list_to_fields(
       FIELD_VALUE_STRING => {
         let field_value = FIELD_STRING
           .get()
-          .unwrap()
+          .ok_or(InvariantError::Invariant)?
           .call_method(env, &obj, ReturnType::Object, &[])?
           .l()?;
         LogFieldValue::String(
@@ -137,7 +159,7 @@ pub(crate) fn jobject_list_to_fields(
             .to_string(),
         )
       },
-      _ => panic!("unknown field value type {value_type:?}"),
+      _ => bail!("unknown field value type {value_type:?}"),
     };
 
     fields.insert(key.into(), value);
@@ -167,10 +189,13 @@ pub fn jobject_map_to_fields(
       .to_string_lossy()
       .to_string();
 
-    let value = if env.is_instance_of(&value, &BINARY_FIELD.get().unwrap().class)? {
+    let value = if env.is_instance_of(
+      &value,
+      &BINARY_FIELD.get().ok_or(InvariantError::Invariant)?.class,
+    )? {
       let field_value = BINARY_FIELD_BYTE_ARRAY
         .get()
-        .unwrap()
+        .ok_or(InvariantError::Invariant)?
         .call_method(env, &value, ReturnType::Array, &[])?
         .l()?;
 
@@ -179,7 +204,7 @@ pub fn jobject_map_to_fields(
     } else {
       let field_value = STRING_FIELD_STRING
         .get()
-        .unwrap()
+        .ok_or(InvariantError::Invariant)?
         .call_method(env, &value, ReturnType::Object, &[])?
         .l()?;
       LogFieldValue::String(
@@ -210,4 +235,52 @@ pub(crate) fn map_to_jmap<'a, S: std::hash::BuildHasher>(
   }
 
   Ok(jmap_object)
+}
+
+/// Converts a Java List of feature flag objects into a `Vec<(String, Option<String>)>`.
+/// Each feature flag object should have `getName()` and `getVariant()` methods.
+pub(crate) fn jobject_list_to_feature_flags(
+  env: &mut JNIEnv<'_>,
+  object: &JObject<'_>,
+) -> anyhow::Result<Vec<(String, Option<String>)>> {
+  let list = JList::from_env(env, object)?;
+  let size = list.size(env)?;
+
+  // SAFETY: the size of an array should always be >= 0.
+  let mut flags = Vec::with_capacity(size.try_into()?);
+
+  let mut iter = list.iter(env)?;
+  while let Some(obj) = iter.next(env)? {
+    let obj: AutoLocal<'_, JObject<'_>> = env.auto_local(obj);
+
+    // Get flag name
+    let flag_obj = FEATURE_FLAG_GET_NAME
+      .get()
+      .ok_or(InvariantError::Invariant)?
+      .call_method(env, &obj, ReturnType::Object, &[])?
+      .l()?;
+    let flag = unsafe { env.get_string_unchecked(&flag_obj.into()) }?
+      .to_string_lossy()
+      .to_string();
+
+    // Get variant (which can be null)
+    let variant_obj = FEATURE_FLAG_GET_VARIANT
+      .get()
+      .ok_or(InvariantError::Invariant)?
+      .call_method(env, &obj, ReturnType::Object, &[])?
+      .l()?;
+    let variant = if variant_obj.is_null() {
+      None
+    } else {
+      Some(
+        unsafe { env.get_string_unchecked(&variant_obj.into()) }?
+          .to_string_lossy()
+          .to_string(),
+      )
+    };
+
+    flags.push((flag, variant));
+  }
+
+  Ok(flags)
 }

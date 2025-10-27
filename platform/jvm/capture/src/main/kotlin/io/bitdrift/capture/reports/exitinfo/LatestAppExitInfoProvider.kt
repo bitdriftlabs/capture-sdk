@@ -11,7 +11,7 @@ import android.app.Application
 import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.annotation.RequiresApi
-import io.bitdrift.capture.reports.binformat.v1.ReportType
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 
 /**
  * Concrete impl of [ILatestAppExitInfoProvider]

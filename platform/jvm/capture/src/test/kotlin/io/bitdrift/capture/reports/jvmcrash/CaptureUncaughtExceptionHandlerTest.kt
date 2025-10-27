@@ -91,9 +91,56 @@ class CaptureUncaughtExceptionHandlerTest {
         // ASSERT
         verify(crashListener).onJvmCrash(any(), eq(appException))
     }
+
+    @Test
+    fun uncaughtException_withConcurrent_shouldForwardToPreviousHandler() {
+        val initialException = RuntimeException("Initial Exception")
+        val nextException = RuntimeException("Next Exception")
+        val currentThread = Thread.currentThread()
+        val secondThread = Thread { }
+
+        handler.uncaughtException(currentThread, initialException)
+        handler.uncaughtException(secondThread, nextException)
+
+        verify(crashListener).onJvmCrash(eq(currentThread), eq(initialException))
+        assertForwardedToPreviousHandler(
+            listOf(
+                ForwardedException(currentThread, initialException),
+                ForwardedException(secondThread, nextException),
+            ),
+        )
+    }
+
+    @Test
+    fun uncaughtException_withOnJvmCrashException_shouldForwardToPreviousHandler() {
+        val appException = RuntimeException()
+        val currentThread = Thread.currentThread()
+        whenever(crashListener.onJvmCrash(any(), any())).thenThrow(RuntimeException("listener crash"))
+
+        handler.uncaughtException(currentThread, appException)
+
+        assertForwardedToPreviousHandler(
+            listOf(
+                ForwardedException(currentThread, appException),
+            ),
+        )
+    }
+
+    private fun assertForwardedToPreviousHandler(expected: List<ForwardedException>) {
+        assertThat(otherHandler.callArgs.size).isEqualTo(expected.size)
+        expected.forEachIndexed { index, expectedCall ->
+            assertThat(otherHandler.callArgs[index]["thread"]).isEqualTo(expectedCall.thread)
+            assertThat(otherHandler.callArgs[index]["throwable"]).isEqualTo(expectedCall.throwable)
+        }
+    }
 }
 
-class OtherCrashHandler : Thread.UncaughtExceptionHandler {
+private data class ForwardedException(
+    val thread: Thread,
+    val throwable: Throwable,
+)
+
+private class OtherCrashHandler : Thread.UncaughtExceptionHandler {
     val callArgs = mutableListOf<Map<String, Any>>()
 
     override fun uncaughtException(

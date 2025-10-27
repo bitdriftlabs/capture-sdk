@@ -9,7 +9,7 @@
 
 package io.bitdrift.microbenchmark
 
-import android.content.Context
+import android.app.ActivityManager
 import androidx.benchmark.junit4.BenchmarkRule
 import androidx.benchmark.junit4.measureRepeated
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -22,7 +22,7 @@ import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueMechanism
+import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -65,12 +65,13 @@ class ClockTimeProfiler {
                 sessionStrategy = SessionStrategy.Fixed(),
                 fatalIssueReporter =
                     object : IFatalIssueReporter {
-                        override fun getReportingMechanism(): FatalIssueMechanism = FatalIssueMechanism.BuiltIn
+                        override fun initializationState(): FatalIssueReporterState = FatalIssueReporterState.Initialized
 
                         override fun getLogStatusFieldsMap(): Map<String, FieldValue> = emptyMap()
 
-                        override fun initBuiltInMode(
-                            appContext: Context,
+                        override fun init(
+                            activityManager: ActivityManager,
+                            sdkDirectory: String,
                             clientAttributes: IClientAttributes,
                             completedReportsProcessor: ICompletedReportsProcessor,
                         ) {

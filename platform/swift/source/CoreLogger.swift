@@ -162,6 +162,18 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.flush(blocking: blocking)
     }
 
+    func setFeatureFlag(withName name: String, variant: String?) {
+        self.underlyingLogger.setFeatureFlag(withName: name, variant: variant)
+    }
+
+    func setFeatureFlags(_ flags: [FeatureFlag]) {
+        self.underlyingLogger.setFeatureFlags(flags)
+    }
+
+    func removeFeatureFlag(withName name: String) {
+        self.underlyingLogger.removeFeatureFlag(withName: name)
+    }
+
     func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
         self.underlyingLogger.runtimeValue(variable)
     }

@@ -9,12 +9,12 @@ package io.bitdrift.capture.reports.processor
 
 import android.os.Build
 import com.google.flatbuffers.FlatBufferBuilder
-import io.bitdrift.capture.reports.binformat.v1.Error
-import io.bitdrift.capture.reports.binformat.v1.ErrorRelation
-import io.bitdrift.capture.reports.binformat.v1.FrameType
-import io.bitdrift.capture.reports.binformat.v1.Report
-import io.bitdrift.capture.reports.binformat.v1.ReportType
-import io.bitdrift.capture.reports.binformat.v1.ThreadDetails
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Error
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ErrorRelation
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.FrameType
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Report
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
+import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ThreadDetails
 
 /**
  * Process crash into a binary flatbuffer Report
@@ -43,7 +43,7 @@ internal object JvmCrashProcessor {
                         thread.id
                     }
                 val threadStack = frames.map { e -> getFrameDetails(builder, e) }.toIntArray()
-                io.bitdrift.capture.reports.binformat.v1.Thread.createThread(
+                io.bitdrift.capture.reports.binformat.v1.issue_reporting.Thread.createThread(
                     builder,
                     builder.createString(thread.name),
                     thread == callerThread,
@@ -51,8 +51,9 @@ internal object JvmCrashProcessor {
                     builder.createString(thread.state.name),
                     thread.priority.toFloat(),
                     -1, // default value for quality of service (unused on Android)
-                    io.bitdrift.capture.reports.binformat.v1.Thread
+                    io.bitdrift.capture.reports.binformat.v1.issue_reporting.Thread
                         .createStackTraceVector(builder, threadStack),
+                    summaryOffset = 0,
                 )
             } ?: listOf()
 
@@ -69,6 +70,8 @@ internal object JvmCrashProcessor {
                 ThreadDetails.createThreadsVector(builder, threadList.toIntArray()),
             ),
             0,
+            stateOffset = 0,
+            featureFlagsOffset = 0,
         )
     }
 

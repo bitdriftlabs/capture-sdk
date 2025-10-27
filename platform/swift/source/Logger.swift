@@ -12,7 +12,7 @@ import Foundation
 // swiftlint:disable file_length
 public final class Logger {
     enum State {
-        // The logger has not yet been started.
+        // The logger has not yet been started
         case notStarted
         // The logger has been successfully started and is ready for use.
         // Subsequent attempts to start the logger will be ignored.
@@ -28,10 +28,10 @@ public final class Logger {
     private let remoteErrorReporter: RemoteErrorReporting
     private let deviceCodeController: DeviceCodeController
 
-    private(set) var sessionReplayTarget: SessionReplayTarget
+    private(set) var sessionReplayTarget: SessionReplayController
     private(set) var dispatchSourceMemoryMonitor: DispatchSourceMemoryMonitor?
-    private(set) var resourceUtilizationTarget: ResourceUtilizationTarget
-    private(set) var eventsListenerTarget: EventsListenerTarget
+    private(set) var resourceUtilizationTarget: ResourceUtilizationController
+    private(set) var eventsListenerTarget: EventSubscriber
 
     private let sessionURLBase: URL
 
@@ -139,7 +139,7 @@ public final class Logger {
             networkAttributes,
         ]
 
-        let metadataProvider = MetadataProvider(
+        let metadataProvider = MetadataProviderController(
             dateProvider: dateProvider ?? SystemDateProvider(),
             ootbFieldProviders: ootbFieldProviders,
             customFieldProviders: fieldProviders
@@ -161,13 +161,13 @@ public final class Logger {
             : nil
         self.network = network
 
-        self.resourceUtilizationTarget = ResourceUtilizationTarget(
+        self.resourceUtilizationTarget = ResourceUtilizationController(
             storageProvider: storageProvider,
             timeProvider: timeProvider
         )
-        self.eventsListenerTarget = EventsListenerTarget()
+        self.eventsListenerTarget = EventSubscriber()
 
-        let sessionReplayTarget = SessionReplayTarget(configuration: configuration.sessionReplayConfiguration)
+        let sessionReplayTarget = SessionReplayController(configuration: configuration.sessionReplayConfiguration)
         self.sessionReplayTarget = sessionReplayTarget
 
         guard let logger = loggerBridgingFactoryProvider.makeLogger(
@@ -234,11 +234,29 @@ public final class Logger {
         #if targetEnvironment(simulator)
         Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
         #else
-        Logger.issueReporterInitResult = measureTime {
-            guard let outputDir = Logger.reportCollectionDirectory() else {
-                return .initialized(.missingReportsDirectory)
-            }
-            if configuration.enableFatalIssueReporting {
+        if !configuration.enableFatalIssueReporting {
+            Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
+        } else {
+            Logger.issueReporterInitResult = measureTime {
+                guard let contents = Logger.cachedReportConfigData() else {
+                    return .initialized(.runtimeNotSet)
+                }
+                guard let runtimeConfig = readCachedValues(contents) else {
+                    return .initialized(.runtimeInvalid)
+                }
+                guard let enabled = runtimeConfig[RuntimeVariable.crashReporting.name] as? Bool, enabled else {
+                    return .initialized(.runtimeNotEnabled)
+                }
+                guard let outputDir = Logger.reportCollectionDirectory() else {
+                    return .initialized(.missingReportsDirectory)
+                }
+                if let kscrashReportDir = Logger.kscrashReportDirectory() {
+                    do {
+                        try BitdriftKSCrashWrapper.configure(withCrashReportDirectory: kscrashReportDir)
+                        try BitdriftKSCrashWrapper.startCrashReporter()
+                    } catch {
+                    }
+                }
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
                 let reporter = DiagnosticEventReporter(
                     outputDir: outputDir,
@@ -253,7 +271,6 @@ public final class Logger {
                 MXMetricManager.shared.add(reporter)
                 return .initialized(.monitoring)
             }
-            return .initialized(.notEnabled)
         }
         #endif
     }
@@ -371,7 +388,12 @@ public final class Logger {
 
     static func reportConfigPath() -> URL? {
         return captureSDKDirectory()?
-            .appendingPathComponent("reports/config", isDirectory: false)
+            .appendingPathComponent("reports/config.csv", isDirectory: false)
+    }
+
+    static func kscrashReportDirectory() -> URL? {
+        return captureSDKDirectory()?
+            .appendingPathComponent("reports/kscrash", isDirectory: true)
     }
 
     static func reportCollectionDirectory() -> URL? {
@@ -380,6 +402,16 @@ public final class Logger {
     }
 
     // MARK: - Private
+
+    private static func cachedReportConfigData() -> String? {
+        guard let configPath = Logger.reportConfigPath(),
+              let data = FileManager.default.contents(atPath: configPath.path),
+              let contents = String(data: data, encoding: .utf8)
+        else {
+            return nil
+        }
+        return contents
+    }
 
     private static func normalizedAPIURL(apiURL: URL) -> URL {
         // We can assume a properly formatted api url is being used, so we can follow the same pattern
@@ -406,6 +438,8 @@ public final class Logger {
         self.dispatchSourceMemoryMonitor?.stop()
 
         self.dispatchSourceMemoryMonitor = nil
+
+        BitdriftKSCrashWrapper.stopCrashReporter()
     }
 }
 
@@ -507,6 +541,18 @@ extension Logger: Logging {
         self.underlyingLogger.removeField(withKey: key)
     }
 
+    public func setFeatureFlag(withName flag: String, variant: String?) {
+        self.underlyingLogger.setFeatureFlag(withName: flag, variant: variant)
+    }
+
+    public func setFeatureFlags(_ flags: [FeatureFlag]) {
+        self.underlyingLogger.setFeatureFlags(flags)
+    }
+
+    public func removeFeatureFlag(withName name: String) {
+        self.underlyingLogger.removeFeatureFlag(withName: name)
+    }
+
     public func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void) {
         // Access the `deviceID` when it is needed for creating the device code, rather than
         // at Logger's initialization time. Accessing it later almost guarantees that the
@@ -546,6 +592,14 @@ extension Logger: Logging {
             customStartTimeInterval: startTimeInterval,
             parentSpanID: parentSpanID
         )
+    }
+
+    public func startDebugOperationsAsNeeded() {
+        if !DebugHeuristics.isDebugLikeEnvironment {
+            return
+        }
+
+        self.deviceCodeController.createCodeOnDebugConsole(for: self.deviceID)
     }
 }
 

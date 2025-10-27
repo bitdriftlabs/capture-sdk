@@ -5,11 +5,28 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+#![deny(
+  clippy::expect_used,
+  clippy::panic,
+  clippy::todo,
+  clippy::unimplemented,
+  clippy::unreachable,
+  clippy::unwrap_used
+)]
+
 pub mod error;
 pub mod metadata;
 
-use bd_client_common::error::handle_unexpected;
-use bd_logger::{log_level, AnnotatedLogField, LogFieldKind, LogType, ReportProcessingSession};
+use bd_crash_handler::global_state;
+use bd_error_reporter::reporter::handle_unexpected;
+use bd_logger::{
+  log_level,
+  AnnotatedLogField,
+  LogFieldKind,
+  LogType,
+  LoggerBuilder,
+  ReportProcessingSession,
+};
 use bd_runtime::runtime::Snapshot;
 use parking_lot::Once;
 use std::future::Future;
@@ -101,6 +118,7 @@ pub struct LoggerHolder {
   handle: bd_logger::LoggerHandle,
   future: parking_lot::Mutex<Option<LoggerFuture>>,
   app_launch_tti_log: Once,
+  pub previous_run_global_state: bd_logger::LogFields,
 }
 
 impl Deref for LoggerHolder {
@@ -112,13 +130,18 @@ impl Deref for LoggerHolder {
 }
 
 impl LoggerHolder {
-  pub fn new(logger: bd_logger::Logger, future: LoggerFuture) -> Self {
+  pub fn new(
+    logger: bd_logger::Logger,
+    future: LoggerFuture,
+    previous_run_global_state: bd_logger::LogFields,
+  ) -> Self {
     let handle = logger.new_logger_handle();
     Self {
       logger,
       handle,
       future: parking_lot::Mutex::new(Some(future)),
       app_launch_tti_log: Once::new(),
+      previous_run_global_state,
     }
   }
 
@@ -127,15 +150,8 @@ impl LoggerHolder {
       return;
     };
 
-    std::thread::spawn(move || {
-      tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-          handle_unexpected(future.await, "logger top level run loop");
-        });
-    });
+    // Start the logger runtime using the defaults provided by the logger builder.
+    handle_unexpected(LoggerBuilder::run_logger_runtime(future), "logger runtime");
   }
 
   /// Consumes the logger and returns the raw pointer to it. This effectively leaks the object, so
@@ -196,7 +212,7 @@ impl LoggerHolder {
         [].into(),
         None,
         bd_logger::Block::No,
-        bd_logger::CaptureSession::default(),
+        &bd_logger::CaptureSession::default(),
       );
     });
   }
@@ -222,7 +238,7 @@ impl LoggerHolder {
       [].into(),
       None,
       bd_logger::Block::No,
-      bd_logger::CaptureSession::default(),
+      &bd_logger::CaptureSession::default(),
     );
   }
 }
@@ -231,4 +247,9 @@ impl<'a> From<LoggerId<'a>> for i64 {
   fn from(logger: LoggerId<'a>) -> Self {
     logger.value
   }
+}
+
+#[must_use]
+pub fn read_global_state_snapshot(store: Arc<bd_key_value::Store>) -> bd_logger::LogFields {
+  global_state::Reader::new(store).global_state_fields()
 }

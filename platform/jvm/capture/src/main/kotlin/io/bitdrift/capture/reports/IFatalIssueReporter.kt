@@ -7,7 +7,7 @@
 
 package io.bitdrift.capture.reports
 
-import android.content.Context
+import android.app.ActivityManager
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
@@ -17,18 +17,19 @@ import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
  */
 interface IFatalIssueReporter {
     /**
-     * Initializes the BuiltIn reporter
+     * Initializes the FatalIssueReporter
      */
-    fun initBuiltInMode(
-        appContext: Context,
+    fun init(
+        activityManager: ActivityManager,
+        sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
     )
 
     /**
-     * Returns the configured [io.bitdrift.capture.reports.FatalIssueMechanism]
+     * Returns the current initialization state
      */
-    fun getReportingMechanism(): FatalIssueMechanism
+    fun initializationState(): FatalIssueReporterState
 
     /**
      * Generates the [InternalFieldsMap] to be reported upon Capture.Logger.start with

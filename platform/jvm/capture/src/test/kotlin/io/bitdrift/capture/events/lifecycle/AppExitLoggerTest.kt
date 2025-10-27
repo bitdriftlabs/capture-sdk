@@ -34,7 +34,7 @@ import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.reports.FatalIssueMechanism
+import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EMPTY_LIST_MESSAGE
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE
@@ -55,8 +55,9 @@ class AppExitLoggerTest {
     private val versionChecker: BuildVersionChecker = mock()
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
     private val memoryMetricsProvider = FakeMemoryMetricsProvider()
-    private val backgroundThreadHandler = FakeBackgroundThreadHandler()
     private val lastExitInfo = FakeLatestAppExitInfoProvider()
+    private val backgroundThreadHandler = FakeBackgroundThreadHandler()
+
     private lateinit var appExitLogger: AppExitLogger
 
     @Before
@@ -283,7 +284,7 @@ class AppExitLoggerTest {
 
     @Test
     fun onJvmCrash_whenBuiltInFatalIssueMechanism_shouldNotSendAppExitCrashLog() {
-        val appExitLogger = buildAppExitLogger(FatalIssueMechanism.BuiltIn)
+        val appExitLogger = buildAppExitLogger(FatalIssueReporterState.Initialized)
         whenever(runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_CRASH)).thenReturn(true)
 
         appExitLogger.onJvmCrash(Thread.currentThread(), IllegalStateException("Simulated Crash"))
@@ -300,18 +301,91 @@ class AppExitLoggerTest {
         verify(logger, never()).flush(any())
     }
 
-    private fun buildAppExitLogger(fatalIssueMechanism: FatalIssueMechanism = FatalIssueMechanism.None) =
+    @Test
+    fun onJvmCrash_withLinearExceptionChain_shouldLogRootCause() {
+        val appExitLogger = buildAppExitLogger()
+        val rootCauseException = IllegalArgumentException("root cause")
+        val middleException = RuntimeException("middle", rootCauseException)
+        val topException = IllegalStateException("top", middleException)
+
+        appExitLogger.onJvmCrash(Thread.currentThread(), topException)
+
+        verifyLoggedException(rootCauseException)
+    }
+
+    @Test
+    fun onJvmCrash_withExceptionCycle_shouldNotInfiniteLoop() {
+        val appExitLogger = buildAppExitLogger()
+        val rootCauseException = IllegalArgumentException("root")
+        val middleException = RuntimeException("middle", rootCauseException)
+        val topException = IllegalStateException("top", middleException)
+        // rootCause -> middle -> top -> rootCause
+        createExceptionCycle(rootCauseException, topException)
+
+        appExitLogger.onJvmCrash(Thread.currentThread(), topException)
+
+        verifyLoggedException(topException)
+    }
+
+    @Test
+    fun onJvmCrash_withSelfCycle_shouldNotInfiniteLoop() {
+        val appExitLogger = buildAppExitLogger()
+        val initialException = RuntimeException("Initial exception")
+        createExceptionCycle(initialException, initialException)
+
+        appExitLogger.onJvmCrash(Thread.currentThread(), initialException)
+
+        verifyLoggedException(initialException)
+    }
+
+    @Test
+    fun onJvmCrash_withInvocationTargetException_shouldReportIllegalArgException() {
+        val appExitLogger = buildAppExitLogger()
+        val illegalArgumentException = IllegalArgumentException("root cause")
+        val invocationTarget = java.lang.reflect.InvocationTargetException(illegalArgumentException)
+        val top = RuntimeException("top", invocationTarget)
+
+        appExitLogger.onJvmCrash(Thread.currentThread(), top)
+
+        verifyLoggedException(illegalArgumentException)
+    }
+
+    private fun verifyLoggedException(expected: Throwable) {
+        verify(logger).log(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.ERROR),
+            argThat { fields ->
+                fields["_app_exit_info"]?.toString() == expected.javaClass.name &&
+                    fields["_app_exit_details"]?.toString() == expected.message.orEmpty()
+            },
+            eq(null),
+            eq(null),
+            eq(true),
+            any(),
+        )
+    }
+
+    private fun createExceptionCycle(
+        target: Throwable,
+        cause: Throwable,
+    ) {
+        val causeField = Throwable::class.java.getDeclaredField("cause")
+        causeField.isAccessible = true
+        causeField.set(target, cause)
+    }
+
+    private fun buildAppExitLogger(fatalReporterInitState: FatalIssueReporterState = FatalIssueReporterState.NotInitialized) =
         AppExitLogger(
             logger,
             activityManager,
             runtime,
             errorHandler,
             versionChecker,
-            memoryMetricsProvider,
             backgroundThreadHandler,
+            memoryMetricsProvider,
             lastExitInfo,
             captureUncaughtExceptionHandler,
-            FakeFatalIssueReporter(fatalIssueMechanism),
+            FakeFatalIssueReporter(fatalReporterInitState),
         )
 
     private fun buildExpectedAnrFields(): Map<String, FieldValue> =

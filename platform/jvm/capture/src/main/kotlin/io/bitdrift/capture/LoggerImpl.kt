@@ -11,11 +11,10 @@ import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
-import android.system.Os
+import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.bitdrift.capture.attributes.ClientAttributes
-import io.bitdrift.capture.attributes.DeviceAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeFeature
@@ -47,12 +46,14 @@ import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
 import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
 import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
@@ -77,13 +78,19 @@ internal class LoggerImpl(
             ProcessLifecycleOwner.get(),
         ),
     preferences: IPreferences = Preferences(context),
-    private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey),
+    sharedOkHttpClient: OkHttpClient = OkHttpClient(),
+    private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey, client = sharedOkHttpClient),
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    private val fatalIssueReporter: IFatalIssueReporter?,
+    private val fatalIssueReporter: IFatalIssueReporter? =
+        if (configuration.enableFatalIssueReporting) {
+            FatalIssueReporter(configuration.enableNativeCrashReporting)
+        } else {
+            null
+        },
 ) : ILogger,
     ICompletedReportsProcessor {
     private val metadataProvider: MetadataProvider
@@ -108,8 +115,6 @@ internal class LoggerImpl(
     internal val loggerId: LoggerId
 
     init {
-        setUpInternalLogging(context)
-
         this.sessionUrlBase =
             HttpUrl
                 .Builder()
@@ -119,7 +124,6 @@ internal class LoggerImpl(
                 .build()
 
         val networkAttributes = NetworkAttributes(context)
-        val deviceAttributes = DeviceAttributes(context)
 
         metadataProvider =
             MetadataProvider(
@@ -130,7 +134,6 @@ internal class LoggerImpl(
                     listOf(
                         clientAttributes,
                         networkAttributes,
-                        deviceAttributes,
                     ),
                 errorHandler = errorHandler,
                 customFieldProviders = fieldProviders,
@@ -139,6 +142,7 @@ internal class LoggerImpl(
         val network =
             OkHttpNetwork(
                 apiBaseUrl = apiUrl,
+                okHttpClient = sharedOkHttpClient,
             )
 
         val sdkDirectory = SdkDirectory.getPath(context)
@@ -193,7 +197,7 @@ internal class LoggerImpl(
                 eventsListenerTarget,
                 clientAttributes.appId,
                 clientAttributes.appVersion,
-                deviceAttributes.model(),
+                clientAttributes.model,
                 network,
                 preferences,
                 localErrorReporter,
@@ -258,6 +262,16 @@ internal class LoggerImpl(
         appExitLogger.installAppExitLogger()
 
         CaptureJniLibrary.startLogger(this.loggerId)
+
+        // fatal issue reporter needs to be initialized after appExitLogger and the jniLogger
+        fatalIssueReporter?.init(
+            activityManager = activityManager,
+            sdkDirectory = sdkDirectory,
+            clientAttributes = clientAttributes,
+            completedReportsProcessor = this,
+        )
+
+        startDebugOperationsAsNeeded(context)
     }
 
     override fun processCrashReports() {
@@ -370,6 +384,21 @@ internal class LoggerImpl(
 
     override fun removeField(key: String) {
         CaptureJniLibrary.removeLogField(this.loggerId, key)
+    }
+
+    override fun setFeatureFlag(
+        name: String,
+        variant: String?,
+    ) {
+        CaptureJniLibrary.setFeatureFlag(this.loggerId, name, variant)
+    }
+
+    override fun setFeatureFlags(flags: List<FeatureFlag>) {
+        CaptureJniLibrary.setFeatureFlags(this.loggerId, flags)
+    }
+
+    override fun removeFeatureFlag(flag: String) {
+        CaptureJniLibrary.removeFeatureFlag(this.loggerId, flag)
     }
 
     override fun setSleepMode(sleepMode: SleepMode) {
@@ -539,6 +568,8 @@ internal class LoggerImpl(
                     put("_logger_build_duration_ms", sdkConfiguredDuration.loggerImplBuildDuration.toFieldValue(DurationUnit.MILLISECONDS))
                     fatalIssueReporter?.let {
                         putAll(it.getLogStatusFieldsMap())
+                    } ?: run {
+                        putAll(FatalIssueReporter.getDisabledStatusFieldsMap())
                     }
                 }
 
@@ -550,31 +581,14 @@ internal class LoggerImpl(
         }
     }
 
-    /**
-     * Usage: adb shell setprop debug.bitdrift.internal_log_level debug
-     * Sets up the internal logging level for the rust library. This is done by reading a system
-     * property and propagating it as an environment variable within the same process.
-     * It swallows any failures and sets default to "info".
-     */
-    @Suppress("SpreadOperator")
-    @SuppressLint("PrivateApi")
-    private fun setUpInternalLogging(context: Context) {
-        if (BuildTypeChecker.isDebuggable(context)) {
-            val defaultLevel = "info"
-            runCatching {
-                // TODO(murki): Alternatively we could use JVM -D arg to pass properties
-                //  that can be read via System.getProperty() but that's less Android-idiomatic
-                // We follow the firebase approach https://firebase.google.com/docs/analytics/debugview#android
-                // We call the internal API android.os.SystemProperties.get(key, default) using reflection
-                Class
-                    .forName("android.os.SystemProperties")
-                    .getMethod("get", *arrayOf(String::class.java, String::class.java))
-                    .invoke(null, *arrayOf("debug.bitdrift.internal_log_level", defaultLevel)) as? String
-            }.getOrNull().let {
-                val internalLogLevel = it ?: defaultLevel
-                runCatching {
-                    Os.setenv("RUST_LOG", internalLogLevel, true)
-                }
+    private fun startDebugOperationsAsNeeded(context: Context) {
+        if (!BuildTypeChecker.isDebuggable(context)) {
+            return
+        }
+
+        createTemporaryDeviceCode { result ->
+            if (result is CaptureResult.Success) {
+                Log.i("capture", "Temporary device code: ${result.value}")
             }
         }
     }

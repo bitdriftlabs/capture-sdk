@@ -233,6 +233,36 @@ class ClientAttributesTest {
         assertThat(fields).containsEntry("os_version", "7.0")
     }
 
+    @Test
+    fun osApiLevel_withStartedLifecycle_shouldMatchConfigSdkInt() {
+        val clientAttributes =
+            ClientAttributes(appContext, obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED))
+
+        val fields = clientAttributes.invoke()
+
+        assertThat(fields).containsEntry("_os_api_level", "24")
+    }
+
+    @Test
+    fun model_withStartedLifecycle_shouldMatchConfigSdkInt() {
+        val clientAttributes =
+            ClientAttributes(appContext, obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED))
+
+        val fields = clientAttributes.invoke()
+
+        assertThat(fields).containsEntry("model", "robolectric")
+    }
+
+    @Test
+    fun locale_withStartedLifecycle_shouldMatchConfigSdkInt() {
+        val clientAttributes =
+            ClientAttributes(appContext, obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED))
+
+        val fields = clientAttributes.invoke()
+
+        assertThat(fields).containsEntry("_locale", "en_US")
+    }
+
     private fun assertInstallationSource(
         hasValidInstallationSource: Boolean,
         expectedInstallationSource: String,

@@ -18,6 +18,17 @@ final class DeviceCodeController {
         self.client = client
     }
 
+    func createCodeOnDebugConsole(for deviceID: String) {
+        self.createTemporaryDeviceCode(deviceID: deviceID) { result in
+            switch result {
+            case .success(let code):
+                print("[Capture] Temporary device code: \(code)")
+            case .failure:
+                break
+            }
+        }
+    }
+
     func createTemporaryDeviceCode(deviceID: String, completion: @escaping (Result<String, Error>) -> Void) {
         self.client.perform(
             endpoint: .getTemporaryDeviceCode,

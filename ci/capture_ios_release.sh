@@ -23,29 +23,25 @@ function upload_file() {
 
 function prepare_and_upload_library_artifacts() {
   local -r library="$1"
-  local -r archive="$library-$version.ios.zip"
   # Change camelCase to snake_case with `_` replaced by "-".
   local -r normalized_library=$(echo "$library" | sed 's/\([A-Z]\)/-\L\1/g;s/^-//')
 
   echo "+++ Preparing $library artifacts"
 
-  pushd "$(mktemp -d)"
-    unzip -o "$sdk_repo/$archive"
-    cp "$sdk_repo/$archive" "$library.zip"
+  # For legacy reasons we publish these artifacts without the `.ios` suffix.
+  mv "$library-$version.doccarchive.ios.zip" "$library.doccarchive.zip"
+  mv "$library-$version.ios.zip" "$library.zip"
 
-    zip -r "$library.doccarchive.zip" "$library.doccarchive"
+  files=(\
+    "$library.doccarchive.zip" \
+    "$library.zip" \
+  )
 
-    files=(\
-      "$library.doccarchive.zip" \
-      "$library.zip" \
-    )
+  echo "+++ Uploading $library artifacts to s3 bucket"
 
-    echo "+++ Uploading $library artifacts to s3 bucket"
-
-    for file in "${files[@]}"; do
-      upload_file "$normalized_library" "$file"
-    done
-  popd
+  for file in "${files[@]}"; do
+    upload_file "$normalized_library" "$file"
+  done
 }
 
 prepare_and_upload_library_artifacts "Capture"

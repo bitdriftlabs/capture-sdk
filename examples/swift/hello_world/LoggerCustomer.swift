@@ -91,11 +91,14 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
             .start(
                 withAPIKey: Configuration.storedAPIKey ?? "",
                 sessionStrategy: .fixed(),
-                configuration: Capture.Configuration(enableFatalIssueReporting: true),
+                configuration: Capture.Configuration(),
                 fieldProviders: [CustomFieldProvider()],
                 apiURL: apiURL
             )?
-            .enableIntegrations([.urlSession()], disableSwizzling: true)
+            .enableIntegrations(
+                [.urlSession(requestFieldProvider: CustomNetworkFieldProvider())],
+                disableSwizzling: true
+            )
 
         Logger.addField(withKey: "field_container_field_key", value: "field_container_value")
         Logger.logInfo("App launched. Logger configured.")
@@ -109,6 +112,18 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
 
     func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void) {
         Logger.createTemporaryDeviceCode(completion: completion)
+    }
+
+    func setFeatureFlag(name: String, variant: String?) {
+        Capture.Logger.setFeatureFlag(withName: name, variant: variant)
+    }
+
+    func setFeatureFlags(_ flags: [FeatureFlag]) {
+        Capture.Logger.setFeatureFlags(flags)
+    }
+
+    func removeFeatureFlag(flag: String) {
+        Capture.Logger.removeFeatureFlag(withName: flag)
     }
 
     func performRandomNetworkRequestUsingDataTask() {
@@ -211,6 +226,15 @@ final class CustomFieldProvider: FieldProvider {
             "app": "hello_world",
             "user_id": self.userID,
             "invalid_utf8": invalidUTF8String,
+        ]
+    }
+}
+
+// Provides additional fields for each network request
+struct CustomNetworkFieldProvider: URLSessionRequestFieldProvider {
+    func provideExtraFields(for request: URLRequest) -> [String: String] {
+        return [
+            "additional_network_request_field": request.debugDescription,
         ]
     }
 }

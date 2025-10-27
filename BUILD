@@ -12,7 +12,7 @@ load(
 load("//bazel:android_debug_info.bzl", "android_debug_info")
 load("//bazel:framework_imports_extractor.bzl", "framework_imports_extractor")
 load("//bazel/android:artifacts.bzl", "android_artifacts")
-load("//bazel/ios:hack.bzl", "workaround_rust_symbols")
+load("//bazel/ios:hack.bzl", "rewrite_xcframework")
 
 alias(
     name = "ios_app",
@@ -24,9 +24,9 @@ alias(
     actual = "//examples/android:android_app",
 )
 
-workaround_rust_symbols(
+rewrite_xcframework(
     name = "ios_xcframework_with_rust_symbols",
-    out = "Capture.xcframework.zip",
+    rewrite_tool = "//bazel/ios:rewrite_symbols",
     visibility = ["//visibility:public"],
     xcframework = "//platform/swift/source:Capture",
 )
@@ -36,9 +36,16 @@ pkg_zip(
     srcs = [
         ":ios_xcframework_with_rust_symbols",
         ":license",
-        "//platform/swift/source:Capture.doccarchive",
     ],
     out = "Capture.ios.zip",
+    tags = ["local"],
+    visibility = ["//visibility:public"],
+)
+
+pkg_zip(
+    name = "ios_doccarchive",
+    srcs = ["//platform/swift/source:Capture.doccarchive"],
+    out = "Capture.doccarchive.ios.zip",
     tags = ["local"],
     visibility = ["//visibility:public"],
 )
@@ -88,7 +95,7 @@ android_artifacts(
     native_deps = select({
         # When targeting an optimized build, use the stripped binary. The symbols are collected prior to stripping and exposed via capture_symbols below.
         "//bazel/android:strip_symbols": [":capture.debug_info"],
-        "//conditions:default": ["//platform/jvm:capture"],
+        "//conditions:default": ["//platform/jvm:capture_shared"],
     }),
     proguard_rules = "//platform/jvm:proguard",
     visibility = ["//visibility:public"],
@@ -96,7 +103,7 @@ android_artifacts(
 
 android_debug_info(
     name = "capture.debug_info",
-    dep = "//platform/jvm:capture",
+    dep = "//platform/jvm:capture_shared",
     tags = ["manual"],
 )
 
@@ -104,7 +111,7 @@ android_debug_info(
 genrule(
     name = "capture_symbols",
     srcs = [
-        ":capture_aar_objdump_collector",
+        ":capture_aar_symbols_collector",
     ],
     outs = ["symbols.tar"],
     cmd = """
@@ -134,14 +141,18 @@ kt_javac_options(
     name = "kt_javac_options",
 )
 
+KOTLIN_LANG_VERSION = "1.9"
+
+JAVA_LANG_VERSION = "1.8"
+
 define_kt_toolchain(
     name = "kotlin_toolchain",
-    api_version = "1.9",
+    api_version = KOTLIN_LANG_VERSION,
     experimental_use_abi_jars = True,
     javac_options = "//:kt_javac_options",
-    jvm_target = "1.8",
+    jvm_target = JAVA_LANG_VERSION,
     kotlinc_options = "//:kt_kotlinc_options",
-    language_version = "1.9",
+    language_version = KOTLIN_LANG_VERSION,
 )
 
 # Define the compose compiler plugin

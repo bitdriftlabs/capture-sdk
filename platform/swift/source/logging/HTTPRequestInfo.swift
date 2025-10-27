@@ -154,7 +154,9 @@ extension HTTPRequestInfo {
     /// - parameter bytesExpectedToSendCount: The number of bytes the task expects to send in request body.
     ///                                       If not provided, the implementation uses to the number of
     ///                                       bytes of request's `httpBody`.
-    public init(urlRequest: URLRequest, bytesExpectedToSendCount: Int64? = nil) {
+    /// - parameter extraFields:              Additional custom fields to append to the request log.
+    //
+    public init(urlRequest: URLRequest, bytesExpectedToSendCount: Int64? = nil, extraFields: Fields?) {
         let bytesExpectedToSendCount =
             bytesExpectedToSendCount ?? urlRequest.httpBody.flatMap { Int64($0.count) }
         self.init(
@@ -168,19 +170,25 @@ extension HTTPRequestInfo {
             },
             query: urlRequest.url?.query,
             headers: urlRequest.allHTTPHeaderFields,
-            bytesExpectedToSendCount: bytesExpectedToSendCount
+            bytesExpectedToSendCount: bytesExpectedToSendCount,
+            extraFields: extraFields
         )
     }
 
     /// Initializes a new instance of the receiver using a provided `URLSessionTask`. The initialization
     /// succeeds as long as `originalRequest` property of the passed task is not equal to `nil`.
     ///
-    /// - parameter task: The task to initialize the request info with.
-    public init?(task: URLSessionTask) {
+    /// - parameter task:        The task to initialize the request info with.
+    /// - parameter extraFields: Additional fields user may want to append to requests.
+    public init?(task: URLSessionTask, extraFields: Fields? = nil) {
         if let request = task.originalRequest {
             if task is URLSessionDataTask {
                 // For basic data tasks we just use `countOfBytesExpectedToSend` for request body estimate.
-                self.init(urlRequest: request, bytesExpectedToSendCount: task.countOfBytesExpectedToSend)
+                self.init(
+                    urlRequest: request,
+                    bytesExpectedToSendCount: task.countOfBytesExpectedToSend,
+                    extraFields: extraFields
+                )
             } else {
                 // Task types such as upload tasks are a bit more tricky since they do not have `httpBody`
                 // property set and their value of `countOfBytesExpectedToSend` may be equal to 0 even if
@@ -188,7 +196,11 @@ extension HTTPRequestInfo {
                 // only if it's greater than 0.
                 let bytesExpectedToSendCount =
                     task.countOfBytesExpectedToSend > 0 ? task.countOfBytesExpectedToSend : nil
-                self.init(urlRequest: request, bytesExpectedToSendCount: bytesExpectedToSendCount)
+                self.init(
+                    urlRequest: request,
+                    bytesExpectedToSendCount: bytesExpectedToSendCount,
+                    extraFields: extraFields
+                )
             }
         } else {
             return nil

@@ -1,3 +1,7 @@
+.ONESHELL: # support multiline commands
+# support loop constructs
+SHELL=bash
+
 .PHONY: build
 build:
 	echo "This command exists as CI expects BUILD command to be available"
@@ -36,9 +40,35 @@ fix-swift:
 .PHONY: format
 format: lint-shell ktlint rustfmt buildifier fix-swift lint-yaml
 
+# Use repin when you get Error: Digests do not match
 .PHONY: repin
 repin:
-	CARGO_BAZEL_REPIN=true ./bazelw sync --only=crate_index
+    # This technically fails because there are no tests to find, but the repin still happens and it's fast.
+	CARGO_BAZEL_REPIN=true ./bazelw test --build_tests_only //platform/shared:platform-shared  >/dev/null 2>&1 || true
 
 .PHONY: push-additional-images
 push-additional-images:
+
+REPORT_KT=platform/jvm/capture/src/main/kotlin/io/bitdrift/capture/reports/binformat/v1/Report.kt
+
+.PHONY: gen-flatbuffers
+gen-flatbuffers: $(REPORT_KT)
+
+.PHONY: $(REPORT_KT) # ignore timestamp
+$(REPORT_KT): ../api/src/bitdrift_public/fbs/issue-reporting/v1/report.fbs ../api/src/bitdrift_public/fbs/common/v1/common.fbs
+	@flatc --gen-onefile --kotlin -I ../api/src $^
+	@for f in $$(find bitdrift_public -type f); do \
+		python3 ci/license_header.py $$f >/dev/null; \
+		sed -i '' -E 's/bitdrift_public.[._[:alpha:]]*\.([_[:alpha:]]+)\.v1/io.bitdrift.capture.reports.binformat.v1.\1/g' $$f; \
+		DEST=$(@D)/$$(basename $$(dirname $$(dirname $$f)))/$$(basename $$f | awk '{$$1=toupper(substr($$1,0,1))substr($$1,2)}1'); \
+		mkdir -p $$(dirname $$DEST); \
+		mv $$f $$DEST; \
+		echo Generated $$DEST; \
+	done
+
+.PHONY: xcframework
+xcframework:
+	echo "NOTE: --xcode_version is overridden in .bazelrc"
+	echo "NOTE: Make sure you brew install llvm, and follow its instructions to add it to your PATH."
+	./bazelw build //:ios_dist
+	echo "XCFramework is archived at bazel-bin/Capture.ios.zip"

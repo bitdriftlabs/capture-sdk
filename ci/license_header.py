@@ -1,4 +1,7 @@
+# Insert license headers on files, running over all of particular types in the
+# current directory if no particular files specified
 import os
+from sys import argv
 
 # Define the header you want to check for and insert
 header = """
@@ -64,4 +67,10 @@ def iterate_over_files():
 
 
 # Run the script
-iterate_over_files()
+if __name__ == '__main__':
+    files = argv[1:]
+    if files:
+        for path in files:
+            check_file(path)
+    else:
+        iterate_over_files()

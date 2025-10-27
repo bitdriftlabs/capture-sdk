@@ -37,6 +37,7 @@ dependencies {
     testImplementation(libs.assertj.core)
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.mockito.kotlin.inline)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.robolectric)
     testImplementation(libs.mockwebserver)
@@ -48,7 +49,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        minSdk = 24
+        minSdk = 23
         ndkVersion = "27"
         consumerProguardFiles("consumer-rules.pro")
     }
@@ -63,8 +64,8 @@ android {
     kotlin {
         compilerOptions {
             jvmTarget = JvmTarget.JVM_1_8
-            apiVersion = KotlinVersion.KOTLIN_2_1
-            languageVersion = KotlinVersion.KOTLIN_2_1
+            apiVersion = KotlinVersion.KOTLIN_1_9
+            languageVersion = KotlinVersion.KOTLIN_1_9
             allWarningsAsErrors = true
             freeCompilerArgs.addAll(listOf("-Xdont-warn-on-error-suppression")) // needed for suppressing INVISIBLE_REFERENCE etc
         }
@@ -81,7 +82,9 @@ android {
         checkDependencies = true
         checkReleaseBuilds = true
         disable.add("GradleDependency")
+        disable.add("AndroidGradlePluginVersion")
     }
+
 }
 
 // Rust cargo build toolchain
@@ -97,7 +100,15 @@ cargoNdk {
                 "-Z", "build-std=std,panic_abort",
                 "-Z", "build-std-features=optimize_for_size,panic_immediate_abort",
             )
-        }
+            // Annoyingly we have to repeat all the flags for the release build as
+            // the RUSTFLAGS values are not added together.
+            // TODO(snowp): See if we can make this a bit better
+            // enable 16 KB ELF alignment on Android to support API 35+
+            extraCargoEnv = mapOf(
+              "RUSTFLAGS" to "-C link-args=-Wl,-z,max-page-size=16384,--build-id -C codegen-units=1 -C embed-bitcode -C lto=fat -C opt-level=z",
+              "RUSTC_BOOTSTRAP" to "1" // Required for using unstable features in the Rust compiler
+            )
+          }
 
         getByName("debug") {
             buildType = "dev"
@@ -110,7 +121,7 @@ cargoNdk {
     targets = arrayListOf("arm64")
     // enable 16 KB ELF alignment on Android to support API 35+
     extraCargoEnv = mapOf(
-      "RUSTFLAGS" to "-C link-args=-Wl,-z,max-page-size=16384",
+      "RUSTFLAGS" to "-C link-args=-Wl,-z,max-page-size=16384,--build-id",
       "RUSTC_BOOTSTRAP" to "1" // Required for using unstable features in the Rust compiler
     )
 }
@@ -124,7 +135,7 @@ detekt {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:3.24.2"
+        artifact = "com.google.protobuf:protoc:4.31.1"
     }
     generateProtoTasks {
         all().configureEach {

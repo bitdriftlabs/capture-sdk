@@ -8,8 +8,11 @@ version      = "1.0.0"
 [dependencies]
 anyhow.workspace                = true
 bd-api.workspace                = true
+bd-crash-handler.workspace      = true
 bd-client-common.workspace      = true
 bd-client-stats-store.workspace = true
+bd-error-reporter.workspace     = true
+bd-key-value.workspace          = true
 bd-log-primitives.workspace     = true
 bd-logger.workspace             = true
 bd-runtime.workspace            = true

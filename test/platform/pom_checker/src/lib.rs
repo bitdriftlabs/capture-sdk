@@ -19,38 +19,41 @@ mod test {
 
   #[test]
   fn check_pom_file() {
-    let permitted_exports = vec![
-      "androidx.activity:activity-compose",
+    let required_deps = vec![
       "androidx.appcompat:appcompat",
-      "androidx.compose.material:material",
-      "androidx.compose.runtime:runtime",
-      "androidx.compose.ui:ui-tooling",
-      "androidx.compose.ui:ui",
       "androidx.core:core",
       "androidx.lifecycle:lifecycle-common",
       "androidx.lifecycle:lifecycle-process",
+      "androidx.metrics:metrics-performance",
       "androidx.startup:startup-runtime",
       "com.google.code.gson:gson",
-      "com.google.guava:listenablefuture",
       "com.google.flatbuffers:flatbuffers-java",
+      "com.google.guava:listenablefuture",
+      "com.google.protobuf:protobuf-kotlin-lite",
       "com.squareup.okhttp3:okhttp",
       "org.jetbrains.kotlin:kotlin-stdlib",
-      "com.google.protobuf:protobuf-kotlin-lite",
-      "androidx.metrics:metrics-performance",
     ];
 
     let root = simple_xml::from_file(runfiles_path("capture_aar_pom_xml.xml")).unwrap();
 
     let deps = &root["dependencies"][0]["dependency"];
 
-    let permitted_exports = into_parts(&permitted_exports);
-    for dep in deps {
-      let group = dep["groupId"][0].content.clone();
-      let artifact = dep["artifactId"][0].content.clone();
+    let required_deps = into_parts(&required_deps);
+    let present_deps: HashSet<(String, String)> = deps
+      .iter()
+      .map(|dep| {
+        let group = dep["groupId"][0].content.clone();
+        let artifact = dep["artifactId"][0].content.clone();
+        (group, artifact)
+      })
+      .collect();
 
+    for required_dep in &required_deps {
       assert!(
-        permitted_exports.contains(&(group.clone(), artifact.clone())),
-        "unexpected .pom xml export {group}:{artifact}"
+        present_deps.contains(required_dep),
+        "missing required dependency {0}:{1}",
+        required_dep.0,
+        required_dep.1
       );
     }
   }

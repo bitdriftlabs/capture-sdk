@@ -5,11 +5,21 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+#![deny(
+  clippy::expect_used,
+  clippy::panic,
+  clippy::todo,
+  clippy::unimplemented,
+  clippy::unreachable,
+  clippy::unwrap_used
+)]
+
 pub mod events;
 pub mod executor;
 pub mod ffi;
 pub mod jni;
 pub mod key_value_storage;
+mod report_processing;
 pub mod resource_utilization;
 mod session;
 pub mod session_replay;

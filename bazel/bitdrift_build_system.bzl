@@ -1,5 +1,5 @@
 load("@crates//:defs.bzl", "aliases", "all_crate_deps")
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_library", "rust_test")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_library", "rust_shared_library", "rust_test")
 
 def bitdrift_rust_binary(name, srcs = None, deps = [], proc_macro_deps = [], **args):
     rust_binary(
@@ -10,6 +10,29 @@ def bitdrift_rust_binary(name, srcs = None, deps = [], proc_macro_deps = [], **a
         aliases = aliases(),
         edition = "2021",
         rustc_flags = _rustc_flags(),
+        **args
+    )
+
+    rust_clippy(
+        name = "_{}_rust_clippy".format(name),
+        testonly = True,
+        deps = [
+            name,
+        ],
+        tags = [
+            "manual",
+        ],
+    )
+
+def bitdrift_rust_shared_library(name, srcs = None, deps = [], proc_macro_deps = [], rustc_flags = [], **args):
+    rust_shared_library(
+        name = name,
+        srcs = srcs if srcs else native.glob(["src/**/*.rs"]),
+        deps = all_crate_deps(normal = True) + deps,
+        proc_macro_deps = all_crate_deps(proc_macro = True) + proc_macro_deps,
+        aliases = aliases(),
+        edition = "2021",
+        rustc_flags = rustc_flags + _rustc_flags(),
         **args
     )
 

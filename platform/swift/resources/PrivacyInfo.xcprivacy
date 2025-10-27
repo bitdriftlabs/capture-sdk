@@ -23,6 +23,39 @@
 		</dict>
 	</array>
 	<key>NSPrivacyAccessedAPITypes</key>
-	<array/>
+	<array>
+	  <!-- File timestamp APIs: stat / fstat / lstat / fstatat -->
+	  <dict>
+		<key>NSPrivacyAccessedAPIType</key>
+		<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+		<key>NSPrivacyAccessedAPITypeReasons</key>
+		<array>
+			<!-- Access file metadata only within app/app group/CloudKit container -->
+			<string>C617.1</string>
+		</array>
+	  </dict>
+
+	  <!-- Disk space APIs: statvfs / fstatfs / fstatvfs -->
+	  <dict>
+		<key>NSPrivacyAccessedAPIType</key>
+		<string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+		<key>NSPrivacyAccessedAPITypeReasons</key>
+		<array>
+			<!-- Check available space to change behavior (write/cleanup) -->
+			<string>E174.1</string>
+		</array>
+	  </dict>
+
+	  <!-- User defaults APIs: NSUserDefaults -->
+	  <dict>
+		<key>NSPrivacyAccessedAPIType</key>
+		<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+		<key>NSPrivacyAccessedAPITypeReasons</key>
+		<array>
+			<!-- App-private prefs/settings -->
+			<string>CA92.1</string>
+		</array>
+	  </dict>
+	</array>
 </dict>
 </plist>

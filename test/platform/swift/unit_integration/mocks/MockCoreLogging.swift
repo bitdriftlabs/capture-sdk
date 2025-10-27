@@ -64,8 +64,8 @@ extension MockCoreLogging: CoreLogging {
         apiKey _: String,
         bufferDirectory _: URL?,
         sessionStrategy _: SessionStrategy,
-        metadataProvider _: Capture.MetadataProvider,
-        resourceUtilizationTarget _: Capture.ResourceUtilizationTarget,
+        metadataProvider _: MetadataProviderController,
+        resourceUtilizationTarget _: ResourceUtilizationController,
         appID _: String,
         releaseVersion _: String,
         network _: Network?,
@@ -170,4 +170,10 @@ extension MockCoreLogging: CoreLogging {
     public func setSleepMode(_ mode: SleepMode) {}
 
     public func processCrashReports() {}
+
+    public func setFeatureFlag(withName flag: String, variant: String?) {}
+
+    public func setFeatureFlags(_ flags: [FeatureFlag]) {}
+
+    public func removeFeatureFlag(withName flag: String) {}
 }

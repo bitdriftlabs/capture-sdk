@@ -76,6 +76,31 @@ interface ILogger {
     fun removeField(key: String)
 
     /**
+     * Sets a feature flag with an optional variant.
+     *
+     * @param name the name of the flag to set
+     * @param variant an optional variant
+     */
+    fun setFeatureFlag(
+        name: String,
+        variant: String?,
+    )
+
+    /**
+     * Sets multiple feature flags (with optional variants).
+     *
+     * @param flags the flags to set
+     */
+    fun setFeatureFlags(flags: List<FeatureFlag>)
+
+    /**
+     * Removes a feature flag.
+     *
+     * @param flag the name of the flag to remove.
+     */
+    fun removeFeatureFlag(flag: String)
+
+    /**
      * Logs a message at a specified level.
      *
      * @param level the severity of the log.

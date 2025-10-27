@@ -45,7 +45,6 @@ bitdrift_kt_android_library(
         artifact("androidx.core:core"),
         artifact("com.google.guava:listenablefuture"),
         artifact("com.google.flatbuffers:flatbuffers-java"),
-        artifact("com.squareup.okhttp3:okhttp"),
     ],
     deps = [
         ":gen_sources",
@@ -57,7 +56,6 @@ bitdrift_kt_android_library(
         artifact("androidx.startup:startup-runtime"),
         artifact("androidx.core:core"),
         artifact("com.google.guava:listenablefuture"),
-        artifact("com.squareup.okhttp3:okhttp"),
         artifact("com.google.code.findbugs:jsr305"),
         artifact("com.google.code.gson:gson"),
         artifact("com.google.flatbuffers:flatbuffers-java"),
@@ -69,7 +67,7 @@ bitdrift_kt_android_library(
 bitdrift_kt_android_local_test(
     name = "test",
     associates = [
-        ":capture_logger_lib_kt",
+        ":capture_logger_lib",
     ],
     data = [
         "//platform/jvm/capture/src/test/resources:test_resources",
