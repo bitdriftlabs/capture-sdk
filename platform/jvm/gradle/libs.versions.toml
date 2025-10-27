@@ -15,7 +15,6 @@ junit                   = "4.13.2"
 kotlin                  = "2.1.21"
 kotlinResultJvm         = "1.1.18"
 lifecycleCommon         = "2.8.7"
-material3Android        = "1.2.1"
 mavenPublishPlugin      = "0.28.0"
 mockitoCore             = "4.11.0"
 mockitoKotlin           = "2.2.0"
@@ -35,7 +34,6 @@ androidx-appcompat         = { module = "androidx.appcompat:appcompat", version.
 androidx-core              = { group = "androidx.core", name = "core", version.ref = "androidxCore" }
 androidx-lifecycle-common  = { module = "androidx.lifecycle:lifecycle-common", version.ref = "lifecycleCommon" }
 androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycleCommon" }
-androidx-material3-android = { group = "androidx.compose.material3", name = "material3-android", version.ref = "material3Android" }
 androidx-startup-runtime   = { module = "androidx.startup:startup-runtime", version.ref = "startupRuntime" }
 androidx-test-core         = { module = "androidx.test:core", version.ref = "androidxTestCore" }
 androidx-ui                = { module = "androidx.compose.ui:ui", version.ref = "ui" }
