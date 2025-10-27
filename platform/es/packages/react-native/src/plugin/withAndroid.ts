@@ -22,7 +22,7 @@ const withBitdriftAppBuildGradle: ConfigPlugin<PluginProps | void> = (
         // Add the capture-plugin at the very top of the file.
         config.modResults.contents =
           `plugins {
-    id 'io.bitdrift.capture-plugin' version '0.18.12'
+    id 'io.bitdrift.capture-plugin' version '0.19.0'
 }
 
 ` + config.modResults.contents;
