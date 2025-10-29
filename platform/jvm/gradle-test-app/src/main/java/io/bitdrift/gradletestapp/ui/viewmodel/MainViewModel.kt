@@ -89,6 +89,7 @@ class MainViewModel(
 
             is FeatureFlagsTestAction.AddOneFeatureFlag -> addOneFeatureFlag()
             is FeatureFlagsTestAction.AddManyFeatureFlags -> addManyFeatureFlags()
+            is FeatureFlagsTestAction.ClearFeatureFlags -> clearFeatureFlags()
 
             ClearError -> clearError()
         }
@@ -213,6 +214,10 @@ class MainViewModel(
 
     private fun addManyFeatureFlags() {
         Timber.i("Adding many feature flags")
+    }
+
+    private fun clearFeatureFlags() {
+        Timber.i("Clearing feature flags")
     }
 
     private fun logMessage() {

@@ -81,6 +81,10 @@ protocol LoggerBridging {
     /// - parameter name: The name of the flag to remove
     func removeFeatureFlag(withName name: String)
 
+    /// Clears all feature flags.
+    ///
+    func clearFeatureFlags()
+
     /// Retrieves a given runtime variable.
     ///
     /// - parameter feature: The runtime variable.

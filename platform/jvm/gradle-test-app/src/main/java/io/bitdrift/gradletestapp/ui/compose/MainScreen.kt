@@ -52,6 +52,7 @@ fun MainScreen(
     onPerformGraphQlRequest: () -> Unit,
     onAddOneFeatureFlag: () -> Unit,
     onAddManyFeatureFlags: () -> Unit,
+    onClearFeatureFlags: () -> Unit,
     onForceAppExit: (AppExitReason) -> Unit,
     viewModel: MainViewModel,
 ) {
@@ -196,6 +197,10 @@ fun MainScreen(
                             onAddManyFeatureFlags = {
                                 viewModel.handleAction(FeatureFlagsTestAction.AddManyFeatureFlags)
                                 onAddManyFeatureFlags()
+                            },
+                            onClearFeatureFlags = {
+                                viewModel.handleAction(FeatureFlagsTestAction.ClearFeatureFlags)
+                                onClearFeatureFlags()
                             },
                         )
                     }

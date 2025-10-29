@@ -126,6 +126,10 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         Capture.Logger.removeFeatureFlag(withName: flag)
     }
 
+    func clearFeatureFlags() {
+        Capture.Logger.clearFeatureFlags()
+    }
+
     func performRandomNetworkRequestUsingDataTask() {
         let session = URLSession(
             instrumentedSessionWithConfiguration: .default,

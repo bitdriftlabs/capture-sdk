@@ -910,6 +910,18 @@ extern "C" fn capture_remove_feature_flag(logger_id: LoggerId<'_>, flag: *const 
 }
 
 #[no_mangle]
+extern "C" fn capture_clear_feature_flags(logger_id: LoggerId<'_>) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      logger_id.clear_feature_flags();
+
+      Ok(())
+    },
+    "swift clear feature flags",
+  );
+}
+
+#[no_mangle]
 extern "C" fn capture_set_sleep_mode(logger_id: LoggerId<'_>, enabled: bool) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {

@@ -101,6 +101,11 @@ interface ILogger {
     fun removeFeatureFlag(flag: String)
 
     /**
+     * Clear all feature flags.
+     */
+    fun clearFeatureFlags()
+
+    /**
      * Logs a message at a specified level.
      *
      * @param level the severity of the log.

@@ -158,6 +158,10 @@ protocol CoreLogging: AnyObject {
     /// - parameter name: The name of the flag to remove
     func removeFeatureFlag(withName name: String)
 
+    /// Clears all feature flags.
+    ///
+    func clearFeatureFlags()
+
     /// Retrieves the value of a given runtime variable.
     ///
     /// - parameter variable: The runtime variable.

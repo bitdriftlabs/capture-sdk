@@ -174,6 +174,10 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.removeFeatureFlag(withName: name)
     }
 
+    func clearFeatureFlags() {
+        self.underlyingLogger.clearFeatureFlags()
+    }
+
     func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
         self.underlyingLogger.runtimeValue(variable)
     }
