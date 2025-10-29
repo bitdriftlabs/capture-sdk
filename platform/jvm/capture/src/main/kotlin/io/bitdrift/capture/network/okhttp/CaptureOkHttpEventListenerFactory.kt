@@ -29,23 +29,12 @@ import okhttp3.EventListener
  * [okhttp3.OkHttpClient.Builder.eventListener].
  */
 class CaptureOkHttpEventListenerFactory internal constructor(
-    private val targetEventListenerCreator: ((call: Call) -> EventListener)? = null,
-    private val logger: ILogger? = Capture.logger(),
-    private val clock: IClock = DefaultClock.getInstance(),
-    private val extraFieldsProvider: OkHttpRequestFieldProvider =
-        OkHttpRequestFieldProvider {
-            emptyMap()
-        },
+    private val targetEventListenerFactory: EventListener.Factory?,
+    private val logger: ILogger?,
+    private val clock: IClock,
+    private val extraFieldsProvider: OkHttpRequestFieldProvider,
+    private val pathTemplateProvider: OkHttpRequestPathTemplateProvider
 ) : EventListener.Factory {
-    /**
-     * Initializes a new instance of the Capture event listener.
-     */
-    constructor(
-        extraFieldsProvider: OkHttpRequestFieldProvider =
-            OkHttpRequestFieldProvider {
-                emptyMap()
-            },
-    ) : this(null, extraFieldsProvider = extraFieldsProvider)
 
     /**
      * Initializes a new instance of the Capture event listener. Accepts an instance of an existing event
@@ -53,7 +42,15 @@ class CaptureOkHttpEventListenerFactory internal constructor(
      *
      * @param targetEventListener The existing event listener that should be informed about
      * [okhttp3.OkHttpClient] events alongside the Capture event listeners.
+     *
+     * Deprecated: supporting two parallel constructors that accept a different type signature
+     * for [EventListener] delegation would force us to increase the count of constructors as we
+     * add new parameters, instead of relying on default values.
      */
+    @Deprecated(
+        "Use the constructor that takes a EventListener.Factory",
+        ReplaceWith("{ targetEventListener }")
+    )
     constructor(
         targetEventListener: EventListener,
         extraFieldsProvider: OkHttpRequestFieldProvider =
@@ -70,19 +67,24 @@ class CaptureOkHttpEventListenerFactory internal constructor(
      * to be informed about [okhttp3.OkHttpClient] events alongside the Capture event listener.
      */
     constructor(
-        targetEventListenerFactory: EventListener.Factory,
+        targetEventListenerFactory: EventListener.Factory? = null,
         extraFieldsProvider: OkHttpRequestFieldProvider =
             OkHttpRequestFieldProvider {
                 emptyMap()
             },
+        pathTemplateProvider: OkHttpRequestPathTemplateProvider =
+            HeaderBasedOkHttpRequestPathTemplateProvider(),
     ) : this(
-        targetEventListenerCreator = { targetEventListenerFactory.create(it) },
+        targetEventListenerFactory = targetEventListenerFactory,
+        logger = Capture.logger(),
+        clock = DefaultClock.getInstance(),
         extraFieldsProvider = extraFieldsProvider,
+        pathTemplateProvider = pathTemplateProvider,
     )
 
     override fun create(call: Call): EventListener {
         val currentLogger = getLogger()
-        val targetEventListener = targetEventListenerCreator?.invoke(call)
+        val targetEventListener = targetEventListenerFactory?.create(call)
         if (currentLogger == null) {
             return targetEventListener ?: EventListener.NONE
         }
@@ -91,6 +93,7 @@ class CaptureOkHttpEventListenerFactory internal constructor(
             clock = clock,
             targetEventListener = targetEventListener,
             extraFieldsProvider = extraFieldsProvider,
+            pathTemplateProvider = pathTemplateProvider,
         )
     }
 

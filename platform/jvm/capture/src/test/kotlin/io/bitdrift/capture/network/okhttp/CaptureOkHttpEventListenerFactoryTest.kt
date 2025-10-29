@@ -94,7 +94,7 @@ class CaptureOkHttpEventListenerFactoryTest {
                 .build()
 
         // ACT
-        val factory = CaptureOkHttpEventListenerFactory(null, logger, clock)
+        val factory = createListenerFactory()
         val listener = factory.create(call)
 
         listener.callStart(call)
@@ -197,7 +197,7 @@ class CaptureOkHttpEventListenerFactoryTest {
                 .build()
 
         // ACT
-        val factory = CaptureOkHttpEventListenerFactory(null, logger, clock)
+        val factory = createListenerFactory()
         val listener = factory.create(call)
 
         listener.callStart(call)
@@ -265,7 +265,7 @@ class CaptureOkHttpEventListenerFactoryTest {
                 .build()
 
         // ACT
-        val factory = CaptureOkHttpEventListenerFactory(null, logger, clock)
+        val factory = createListenerFactory()
         val listener = factory.create(call)
 
         listener.callStart(call)
@@ -324,7 +324,7 @@ class CaptureOkHttpEventListenerFactoryTest {
         val err = FileNotFoundException(errorMessage)
 
         // ACT
-        val factory = CaptureOkHttpEventListenerFactory(null, logger, clock)
+        val factory = createListenerFactory()
         val listener = factory.create(call)
 
         listener.callStart(call)
@@ -376,7 +376,7 @@ class CaptureOkHttpEventListenerFactoryTest {
         val err = InterruptedIOException(errorMessage)
 
         // ACT
-        val factory = CaptureOkHttpEventListenerFactory(null, logger, clock)
+        val factory = createListenerFactory()
         val listener = factory.create(call)
 
         listener.callStart(call)
@@ -444,7 +444,7 @@ class CaptureOkHttpEventListenerFactoryTest {
         whenever(call.request()).thenReturn(request)
 
         // ACT
-        val factory = CaptureOkHttpEventListenerFactory(null, logger, clock)
+        val factory = createListenerFactory()
         val listener = factory.create(call)
 
         listener.callStart(call)
@@ -520,7 +520,7 @@ class CaptureOkHttpEventListenerFactoryTest {
         whenever(call.request()).thenReturn(request)
 
         // ACT
-        val factory = CaptureOkHttpEventListenerFactory(null, logger, clock)
+        val factory = createListenerFactory()
         val listener = factory.create(call)
 
         listener.callStart(call)
@@ -588,7 +588,7 @@ class CaptureOkHttpEventListenerFactoryTest {
             }
 
         // ACT
-        val factory = CaptureOkHttpEventListenerFactory(null, logger, clock, extraFieldProvider)
+        val factory = createListenerFactory(extraFieldsProvider = extraFieldProvider)
         val listener = factory.create(call)
 
         listener.callStart(call)
@@ -609,14 +609,41 @@ class CaptureOkHttpEventListenerFactoryTest {
         assertThat(httpRequestInfo.fields["requestMetadata"].toString()).isEqualTo(requestMetadata)
     }
 
+
+    @Test
+    fun requestPathTemplateProvider_provides_path() {
+        // ARRANGE
+        val request =
+            Request
+              .Builder()
+              .url(endpoint)
+              .post("test".toRequestBody())
+              .build()
+
+        val call: Call = mock()
+        whenever(call.request()).thenReturn(request)
+
+        val templatedPath = "/my_path/{id}"
+
+        // ACT
+        val factory = createListenerFactory(
+            pathTemplateProvider = { templatedPath }
+        )
+        val listener = factory.create(call)
+
+        listener.callStart(call)
+
+        // ASSERT
+        val httpRequestInfoCapture = argumentCaptor<HttpRequestInfo>()
+        verify(logger).log(httpRequestInfoCapture.capture())
+        val httpRequestInfo = httpRequestInfoCapture.firstValue
+
+        assertThat(httpRequestInfo.path?.template).isEqualTo(templatedPath)
+    }
+
     @Test
     fun create_withNullLoggerAndNullTargetListener_shouldReturnNoOpListener() {
-        val factory =
-            CaptureOkHttpEventListenerFactory(
-                targetEventListenerCreator = null,
-                logger = null,
-                clock = clock,
-            )
+        val factory = createListenerFactory(logger = null)
 
         val noOpEventListener = factory.create(call)
 
@@ -627,14 +654,31 @@ class CaptureOkHttpEventListenerFactoryTest {
     fun create_withNullLogAndValidTargetListener_returnsTargetListener() {
         val targetEventListener: EventListener = mock()
         val factory =
-            CaptureOkHttpEventListenerFactory(
+            createListenerFactory(
                 targetEventListenerCreator = { targetEventListener },
                 logger = null,
-                clock = clock,
             )
 
         val listener = factory.create(call)
 
         assertThat(listener).isSameAs(targetEventListener)
+    }
+
+    private fun createListenerFactory(
+        targetEventListenerCreator: EventListener.Factory? = null,
+        logger: ILogger? = this.logger,
+        extraFieldsProvider: OkHttpRequestFieldProvider =
+            OkHttpRequestFieldProvider {
+                emptyMap()
+            },
+        pathTemplateProvider: OkHttpRequestPathTemplateProvider = HeaderBasedOkHttpRequestPathTemplateProvider()
+      ) : CaptureOkHttpEventListenerFactory {
+          return CaptureOkHttpEventListenerFactory(
+              targetEventListenerFactory = targetEventListenerCreator,
+              logger = logger,
+              clock = clock,
+              extraFieldsProvider = extraFieldsProvider,
+              pathTemplateProvider = pathTemplateProvider
+          )
     }
 }
