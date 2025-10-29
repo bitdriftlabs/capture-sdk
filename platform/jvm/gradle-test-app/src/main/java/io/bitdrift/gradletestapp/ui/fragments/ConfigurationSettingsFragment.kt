@@ -100,6 +100,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
 
         backendCategory.addPreference(buildSessionStrategyList(context))
         backendCategory.addPreference(buildSwitchPreference(context))
+        backendCategory.addPreference(buildSessionReplaySwitch(context))
         backendCategory.addPreference(buildDeferredStartSwitch(context))
 
         screen.addPreference(restartPreference)
@@ -141,6 +142,9 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     private fun buildDeferredStartSwitch(context: Context): SwitchPreference =
         buildSwitchPreference(context, DEFERRED_START_PREFS_KEY, DEFERRED_START_TITLE, false)
 
+    private fun buildSessionReplaySwitch(context: Context): SwitchPreference =
+        buildSwitchPreference(context, SESSION_REPLAY_ENABLED_PREFS_KEY, SESSION_REPLAY_TITLE, true)
+
     private fun showApiKeysDialog(context: Context) {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
         SettingsApiKeysDialogFragment(sharedPreferences).show(parentFragmentManager, "")
@@ -159,9 +163,11 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         const val SESSION_STRATEGY_PREFS_KEY = "sessionStrategy"
         const val FATAL_ISSUE_ENABLED_PREFS_KEY = "fatalIssueEnabled"
         const val DEFERRED_START_PREFS_KEY = "deferredStart"
+        const val SESSION_REPLAY_ENABLED_PREFS_KEY = "sessionReplayEnabled"
         private const val SESSION_STRATEGY_TITLE = "Session Strategy"
         private const val FATAL_ISSUE_TITLE = "Fatal Issue Reporter"
         private const val DEFERRED_START_TITLE = "Deferred SDK Start"
+        private const val SESSION_REPLAY_TITLE = "Session Replay"
 
         private val SESSION_STRATEGY_ENTRIES =
             arrayOf(
