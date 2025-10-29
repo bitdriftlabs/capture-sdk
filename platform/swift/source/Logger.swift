@@ -9,12 +9,6 @@ internal import CaptureLoggerBridge
 internal import CapturePassable
 import Foundation
 
-// swiftlint:disable file_length
-private final class NoopSessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget {
-    func captureScreen() {}
-    func captureScreenshot() {}
-}
-
 public final class Logger {
     enum State {
         // The logger has not yet been started
@@ -25,6 +19,12 @@ public final class Logger {
         // An attempt to start the logger was made but failed.
         // Subsequent attempts to start the logger will be ignored.
         case startFailure
+    }
+
+    /// A no-op implementation of SessionReplayTarget used when session replay is disabled.
+    private final class NoopSessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget {
+        func captureScreen() {}
+        func captureScreenshot() {}
     }
 
     private let underlyingLogger: CoreLogging
