@@ -109,7 +109,7 @@ internal class LoggerImpl(
     private val resourceUtilizationTarget: ResourceUtilizationTarget
     private val eventsListenerTarget = EventsListenerTarget()
 
-    private val sessionReplayTarget: SessionReplayTarget?
+    private val sessionReplayTarget: ISessionReplayTarget
 
     @VisibleForTesting
     internal val loggerId: LoggerId
@@ -172,13 +172,15 @@ internal class LoggerImpl(
             )
 
         this.sessionReplayTarget =
-            SessionReplayTarget(
-                configuration = configuration.sessionReplayConfiguration,
-                errorHandler,
-                context,
-                logger = this,
-                windowManager = windowManager,
-            )
+            configuration.sessionReplayConfiguration?.let { sessionReplayConfiguration ->
+                SessionReplayTarget(
+                    configuration = sessionReplayConfiguration,
+                    errorHandler,
+                    context,
+                    logger = this,
+                    windowManager = windowManager,
+                )
+            } ?: NoopSessionReplayTarget()
 
         val loggerId =
             bridge.createLogger(
@@ -209,7 +211,9 @@ internal class LoggerImpl(
         this.loggerId = loggerId
 
         runtime = JniRuntime(this.loggerId)
-        sessionReplayTarget.runtime = runtime
+        if (sessionReplayTarget is SessionReplayTarget) {
+            sessionReplayTarget.runtime = runtime
+        }
         diskUsageMonitor.runtime = runtime
         memoryMetricsProvider.runtime = runtime
 
@@ -556,7 +560,7 @@ internal class LoggerImpl(
                 clientAttributes
                     .getInstallationSource(appContext, errorHandler)
                     .toFieldValue()
-
+            val isSessionReplayEnabled = sessionReplayTarget is SessionReplayTarget
             val sdkStartFields =
                 buildMap {
                     put("_app_installation_source", installationSource)
@@ -566,6 +570,7 @@ internal class LoggerImpl(
                         sdkConfiguredDuration.nativeLoadDuration.toFieldValue(DurationUnit.MILLISECONDS),
                     )
                     put("_logger_build_duration_ms", sdkConfiguredDuration.loggerImplBuildDuration.toFieldValue(DurationUnit.MILLISECONDS))
+                    put("_session_replay_enabled", isSessionReplayEnabled.toFieldValue())
                     fatalIssueReporter?.let {
                         putAll(it.getLogStatusFieldsMap())
                     } ?: run {

@@ -120,6 +120,11 @@ internal fun ByteArray.toFieldValue() =
 internal fun Duration.toFieldValue(durationUnit: DurationUnit): FieldValue = this.toDouble(durationUnit).toString().toFieldValue()
 
 /**
+ * Converts a [Boolean] into a [FieldValue]
+ */
+internal fun Boolean.toFieldValue(): FieldValue = this.toString().toFieldValue()
+
+/**
  * Converts a Map<String, String> into a List<Field>.
  *
  * NOTE: Suppresses null-check warnings due to possible nulls from Java interop.

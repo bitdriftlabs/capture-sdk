@@ -18,3 +18,9 @@ public protocol SessionReplayTarget {
     // the Rust logger requests screenshots at a rate faster than the platform layer can handle.
     func captureScreenshot()
 }
+
+/// A no-op implementation of SessionReplayTarget used when session replay is disabled.
+final class NoopSessionReplayTarget: SessionReplayTarget {
+    func captureScreen() {}
+    func captureScreenshot() {}
+}

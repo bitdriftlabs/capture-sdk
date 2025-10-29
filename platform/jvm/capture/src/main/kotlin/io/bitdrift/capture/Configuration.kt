@@ -21,7 +21,7 @@ import io.bitdrift.capture.replay.SessionReplayConfiguration
 data class Configuration
     @JvmOverloads
     constructor(
-        val sessionReplayConfiguration: SessionReplayConfiguration = SessionReplayConfiguration(),
+        val sessionReplayConfiguration: SessionReplayConfiguration? = SessionReplayConfiguration(),
         val enableFatalIssueReporting: Boolean = true,
         val enableNativeCrashReporting: Boolean = false,
         val sleepMode: SleepMode = SleepMode.INACTIVE,

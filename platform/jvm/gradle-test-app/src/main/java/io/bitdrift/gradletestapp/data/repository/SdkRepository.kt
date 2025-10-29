@@ -18,6 +18,7 @@ import io.bitdrift.gradletestapp.init.BitdriftInit
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_URL_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFERRED_START_PREFS_KEY
+import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.SESSION_REPLAY_ENABLED_PREFS_KEY
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -80,6 +81,7 @@ class SdkRepository(
             apiUrl = getApiUrl(),
             sessionStrategy = getSessionStrategy(),
             isDeferredStart = isDeferredStartEnabled(),
+            isSessionReplayEnabled = isSessionReplayEnabled(),
         )
 
     /**
@@ -113,6 +115,14 @@ class SdkRepository(
             sharedPreferences.getBoolean(
                 DEFERRED_START_PREFS_KEY,
                 false,
+            )
+        }
+
+    suspend fun isSessionReplayEnabled(): Boolean =
+        withContext(Dispatchers.IO) {
+            sharedPreferences.getBoolean(
+                SESSION_REPLAY_ENABLED_PREFS_KEY,
+                true,
             )
         }
 
@@ -186,5 +196,6 @@ class SdkRepository(
         val apiUrl: String,
         val sessionStrategy: String,
         val isDeferredStart: Boolean,
+        val isSessionReplayEnabled: Boolean,
     )
 }

@@ -15,6 +15,7 @@ import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.BuildConfig
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
@@ -96,10 +97,16 @@ object BitdriftInit {
                 ConfigurationSettingsFragment.Companion.FATAL_ISSUE_ENABLED_PREFS_KEY,
                 true,
             )
+        val sessionReplayEnabled =
+            sharedPreferences.getBoolean(
+                ConfigurationSettingsFragment.Companion.SESSION_REPLAY_ENABLED_PREFS_KEY,
+                true,
+            )
 
         val sessionStrategy = getSessionStrategy(sharedPreferences)
         val configuration =
             Configuration(
+                sessionReplayConfiguration = if (sessionReplayEnabled) SessionReplayConfiguration() else null,
                 enableFatalIssueReporting = fatalIssueReporterEnabled,
                 enableNativeCrashReporting = fatalIssueReporterEnabled,
             )
