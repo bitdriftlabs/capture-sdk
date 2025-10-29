@@ -320,6 +320,15 @@ object Capture {
         }
 
         /**
+         * Clears all feature flags.
+         */
+        @ExperimentalBitdriftApi
+        @JvmStatic
+        fun clearFeatureFlags() {
+            logger()?.clearFeatureFlags()
+        }
+
+        /**
          * Logs a message at trace level.
          *
          * @param fields an optional map of additional data to include with the log.

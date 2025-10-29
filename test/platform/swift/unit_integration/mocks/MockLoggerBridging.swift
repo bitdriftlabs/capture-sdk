@@ -143,4 +143,6 @@ extension MockLoggerBridging: LoggerBridging {
     public func setFeatureFlags(_ flags: [FeatureFlag]) {}
 
     public func removeFeatureFlag(withName flag: String) {}
+
+    public func clearFeatureFlags() {}
 }

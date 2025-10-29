@@ -170,6 +170,11 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     )
 
     /**
+     * Clears all feature flags.
+     */
+    external fun clearFeatureFlags(loggerId: Long)
+
+    /**
      * Writes a log to the Capture logger.
      *
      * @param loggerId the ID of the logger to write to.

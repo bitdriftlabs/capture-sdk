@@ -75,6 +75,9 @@ struct ContentView: View {
                 Button(action: { self.loggerCustomer.removeFeatureFlag(flag: "MyFlag") }) {
                     Text("Remove feature flag 'MyFlag'").frame(maxWidth: .infinity)
                 }
+                Button(action: { self.loggerCustomer.clearFeatureFlags() }) {
+                    Text("Clear feature flags").frame(maxWidth: .infinity)
+                }
                 Button(action: { Thread.sleep(forTimeInterval: 5.0) }) {
                     Text("Simulate ANR (5s)").frame(maxWidth: .infinity)
                 }

@@ -137,6 +137,7 @@ class FirstFragment : Fragment() {
                         onPerformGraphQlRequest = { performGraphQlRequest() },
                         onAddOneFeatureFlag = { addOneFeatureFlag() },
                         onAddManyFeatureFlags = { addManyFeatureFlags() },
+                        onClearFeatureFlags = { clearFeatureFlags() },
                         onForceAppExit = { reason -> forceAppExit(reason) },
                         viewModel = viewModel,
                     )
@@ -260,6 +261,10 @@ class FirstFragment : Fragment() {
     private fun addManyFeatureFlags() {
         val flags = (1..10000).map { FeatureFlag.of("flag_" + it) }
         Logger.setFeatureFlags(flags)
+    }
+
+    private fun clearFeatureFlags() {
+        Logger.clearFeatureFlags()
     }
 
     @SuppressLint("VisibleForTests")

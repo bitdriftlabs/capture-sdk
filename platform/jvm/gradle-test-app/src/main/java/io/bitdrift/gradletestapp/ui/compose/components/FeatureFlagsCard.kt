@@ -22,6 +22,7 @@ import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 fun FeatureFlagsTestingCard(
     onAddOneFeatureFlag: () -> Unit,
     onAddManyFeatureFlags: () -> Unit,
+    onClearFeatureFlags: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -72,6 +73,17 @@ fun FeatureFlagsTestingCard(
                         ),
                 ) {
                     Text("Many")
+                }
+
+                OutlinedButton(
+                    onClick = onClearFeatureFlags,
+                    modifier = Modifier.weight(1f),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = BitdriftColors.TextPrimary,
+                        ),
+                ) {
+                    Text("Clear")
                 }
             }
         }

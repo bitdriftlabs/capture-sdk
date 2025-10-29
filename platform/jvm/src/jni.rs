@@ -915,6 +915,23 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlag
 }
 
 #[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_clearFeatureFlags(
+  _env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.clear_feature_flags();
+
+      Ok(())
+    },
+    "jni clear feature flags",
+  );
+}
+
+#[no_mangle]
 // Java types are always signed, but log level/type are both unsigned.
 #[allow(clippy::cast_sign_loss)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(

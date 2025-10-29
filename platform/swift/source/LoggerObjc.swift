@@ -432,6 +432,13 @@ public final class LoggerObjc: NSObject {
         Capture.Logger.removeFeatureFlag(withName: name)
     }
 
+    /// Clears all feature flags.
+    ///
+    @objc
+    public static func clearFeatureFlags() {
+        Capture.Logger.clearFeatureFlags()
+    }
+
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with
     /// the bitdrift remote service.

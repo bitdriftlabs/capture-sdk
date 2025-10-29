@@ -103,6 +103,10 @@ public protocol Logging {
     /// - parameter name: The name of the flag to remove
     func removeFeatureFlag(withName name: String)
 
+    /// Clears all feature flags.
+    ///
+    func clearFeatureFlags()
+
     /// Creates a temporary device code that can be fed into bitdrift `bd` CLI tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with
     /// the bitdrift remote service.

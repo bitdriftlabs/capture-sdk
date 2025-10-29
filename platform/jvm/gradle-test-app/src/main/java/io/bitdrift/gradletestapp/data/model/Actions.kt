@@ -56,6 +56,8 @@ sealed class FeatureFlagsTestAction : AppAction {
     object AddOneFeatureFlag : FeatureFlagsTestAction()
 
     object AddManyFeatureFlags : FeatureFlagsTestAction()
+
+    object ClearFeatureFlags : FeatureFlagsTestAction()
 }
 
 object ClearError : AppAction

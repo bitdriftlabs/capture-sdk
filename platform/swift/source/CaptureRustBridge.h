@@ -275,6 +275,13 @@ void capture_set_feature_flags(logger_id logger_id, NSArray *flags);
  */
 void capture_remove_feature_flag(logger_id logger_id, const char *flag);
 
+/*
+ * Clears all feature flags.
+ *
+ * @param logger_id the logger to remove the feature flags from.
+ */
+void capture_clear_feature_flags(logger_id logger_id);
+
 /**
  * Signals the specified logger to shut down.
  *
