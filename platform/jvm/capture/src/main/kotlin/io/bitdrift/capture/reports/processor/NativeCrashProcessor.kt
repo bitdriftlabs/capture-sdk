@@ -18,7 +18,6 @@ import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Report
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Thread
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ThreadDetails
-import okhttp3.internal.toHexString
 import java.io.InputStream
 
 /**
@@ -187,4 +186,4 @@ fun TombstoneProtos.MemoryMapping.path(): String = mappingName.ifBlank { anonymo
 /**
  * An anonymous name for a MemoryMapping. This mimics how the Android tombstone parser handles these images.
  */
-fun TombstoneProtos.MemoryMapping.anonymousName(): String = "<anonymous:${beginAddress.toHexString()}>"
+fun TombstoneProtos.MemoryMapping.anonymousName(): String = "<anonymous:${java.lang.Long.toHexString(beginAddress)}>"
