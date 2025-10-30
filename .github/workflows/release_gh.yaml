@@ -150,7 +150,7 @@ jobs:
         # prerelease: true extracts the content between the first (## [Unreleased])
         # and second H2 header,
       - name: Extract release notes
-        id: release_notes
+        id: extract-release-notes
         uses: ffurrer2/extract-release-notes@v2
         with:
           prerelease: true
