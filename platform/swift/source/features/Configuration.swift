@@ -10,7 +10,7 @@ import Foundation
 /// A configuration representing the feature set enabled for Capture.
 public struct Configuration {
     /// The session replay configuration.
-    public var sessionReplayConfiguration: SessionReplayConfiguration
+    public var sessionReplayConfiguration: SessionReplayConfiguration?
 
     /// .active if Capture should initialize in minimal activity mode
     public var sleepMode: SleepMode
@@ -24,7 +24,7 @@ public struct Configuration {
     /// - parameter sleepMode:                  .active if Capture should initialize in minimal activity mode
     /// - parameter enableFatalIssueReporting:  true if Capture should enable Fatal Issue Reporting
     public init(
-        sessionReplayConfiguration: SessionReplayConfiguration = .init(),
+        sessionReplayConfiguration: SessionReplayConfiguration? = .init(),
         sleepMode: SleepMode = .inactive,
         enableFatalIssueReporting: Bool = true
     ) {

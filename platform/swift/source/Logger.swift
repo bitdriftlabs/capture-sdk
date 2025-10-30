@@ -22,13 +22,19 @@ public final class Logger {
         case startFailure
     }
 
+    /// A no-op implementation of SessionReplayTarget used when session replay is disabled.
+    private final class NoopSessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget {
+        func captureScreen() {}
+        func captureScreenshot() {}
+    }
+
     private let underlyingLogger: CoreLogging
     private let timeProvider: TimeProvider
 
     private let remoteErrorReporter: RemoteErrorReporting
     private let deviceCodeController: DeviceCodeController
 
-    private(set) var sessionReplayTarget: SessionReplayController
+    private(set) var sessionReplayController: SessionReplayController?
     private(set) var dispatchSourceMemoryMonitor: DispatchSourceMemoryMonitor?
     private(set) var resourceUtilizationTarget: ResourceUtilizationController
     private(set) var eventsListenerTarget: EventSubscriber
@@ -166,9 +172,9 @@ public final class Logger {
             timeProvider: timeProvider
         )
         self.eventsListenerTarget = EventSubscriber()
-
-        let sessionReplayTarget = SessionReplayController(configuration: configuration.sessionReplayConfiguration)
-        self.sessionReplayTarget = sessionReplayTarget
+        self.sessionReplayController = configuration.sessionReplayConfiguration.map {
+            SessionReplayController(configuration: $0)
+        }
 
         guard let logger = loggerBridgingFactoryProvider.makeLogger(
             apiKey: apiKey,
@@ -180,7 +186,7 @@ public final class Logger {
             // Pass the event listener target here and finish setting up
             // before the logger is actually started.
             resourceUtilizationTarget: self.resourceUtilizationTarget,
-            sessionReplayTarget: self.sessionReplayTarget,
+            sessionReplayTarget: (self.sessionReplayController ?? NoopSessionReplayTarget()),
             // Pass the event listener target here and finish setting up
             // before the logger is actually started.
             eventsListenerTarget: self.eventsListenerTarget,
@@ -217,7 +223,7 @@ public final class Logger {
         metadataProvider.errorHandler = { [weak underlyingLogger] context, error in
             underlyingLogger?.handleError(context: context, error: error)
         }
-        self.sessionReplayTarget.logger = self.underlyingLogger
+        self.sessionReplayController?.logger = self.underlyingLogger
 
         // Start attributes before the underlying logger is running to increase the chances
         // of out-of-the-box attributes being ready by the time logs emitted as a result of the logger start
