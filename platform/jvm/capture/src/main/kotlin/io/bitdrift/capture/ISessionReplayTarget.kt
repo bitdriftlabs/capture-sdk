@@ -24,3 +24,16 @@ interface ISessionReplayTarget {
      */
     fun captureScreenshot()
 }
+
+/**
+ * A no-op implementation of SessionReplayTarget used when session replay is disabled.
+ */
+internal class NoopSessionReplayTarget : ISessionReplayTarget {
+    override fun captureScreen() {
+        // no-op
+    }
+
+    override fun captureScreenshot() {
+        // no-op
+    }
+}
