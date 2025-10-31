@@ -47,6 +47,10 @@ jobs:
             echo "Tag $version_tag does not exist. Will release." >&2
             echo "should_release=true" >> "$GITHUB_OUTPUT"
           fi
+      - name: Emit skip notice
+        if: steps.tagcheck.outputs.should_release == 'false'
+        run: |
+          echo "::notice title=Release skipped::Tag v${{ steps.extract.outputs.version }} already exists. No release will be created." 
 
   run-release:
     name: Run Release workflow
@@ -59,3 +63,13 @@ jobs:
     with:
       version: ${{ needs.prepare-release.outputs.version }}
       emergency: false
+
+  no-release:
+    name: No release (tag exists)
+    needs: prepare-release
+    if: needs.prepare-release.outputs.should_release == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        run: |
+          echo "Tag v${{ needs.prepare-release.outputs.version }} already exists. Release workflow not invoked." >> $GITHUB_STEP_SUMMARY
