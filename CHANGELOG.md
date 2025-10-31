@@ -45,6 +45,19 @@
 
 - Nothing yet!
 
+## [0.19.1] - 2025-10-31
+[0.19.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.19.1
+
+### Both
+
+**Added**
+
+- Add support for free-tier bitdrift plans.
+
+**Fixed**
+
+- Improve performance of Feature Flags writes.
+
 ## [0.19.0] - 2025-10-27
 [0.19.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.19.0
 
