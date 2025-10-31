@@ -11,6 +11,16 @@ on:
         type: boolean
         description: Ignore main branch requirement (SOC2 compliance)
         required: true
+  workflow_call:
+    inputs:
+      version:
+        description: 'The new version to release, ex: 0.12.0'
+        required: true
+        type: string
+      emergency:
+        type: boolean
+        description: Ignore main branch requirement (SOC2 compliance)'
+        required: true
 jobs:
   gh-release:
     permissions:
