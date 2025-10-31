@@ -58,6 +58,7 @@ class CaptureOkHttpEventListenerFactoryTest {
         val tcpDurationMs = tlsStartTimeMs - connectStartTimeMs
         val fetchInitDurationMs = dnsStartTimeMs - callStartTimeMs
         val responseLatencyMs = responseHeadersStartTimeMs - requestBodyEndTimeMs
+
         whenever(clock.elapsedRealtime()).thenReturn(
             callStartTimeMs,
             dnsStartTimeMs,
@@ -609,16 +610,15 @@ class CaptureOkHttpEventListenerFactoryTest {
         assertThat(httpRequestInfo.fields["requestMetadata"].toString()).isEqualTo(requestMetadata)
     }
 
-
     @Test
     fun requestPathTemplateProvider_provides_path() {
         // ARRANGE
         val request =
             Request
-              .Builder()
-              .url(endpoint)
-              .post("test".toRequestBody())
-              .build()
+                .Builder()
+                .url(endpoint)
+                .post("test".toRequestBody())
+                .build()
 
         val call: Call = mock()
         whenever(call.request()).thenReturn(request)
@@ -626,9 +626,10 @@ class CaptureOkHttpEventListenerFactoryTest {
         val templatedPath = "/my_path/{id}"
 
         // ACT
-        val factory = createListenerFactory(
-            pathTemplateProvider = { templatedPath }
-        )
+        val factory =
+            createListenerFactory(
+                pathTemplateProvider = { templatedPath },
+            )
         val listener = factory.create(call)
 
         listener.callStart(call)
@@ -671,14 +672,13 @@ class CaptureOkHttpEventListenerFactoryTest {
             OkHttpRequestFieldProvider {
                 emptyMap()
             },
-        pathTemplateProvider: OkHttpRequestPathTemplateProvider = HeaderBasedOkHttpRequestPathTemplateProvider()
-      ) : CaptureOkHttpEventListenerFactory {
-          return CaptureOkHttpEventListenerFactory(
-              targetEventListenerFactory = targetEventListenerCreator,
-              logger = logger,
-              clock = clock,
-              extraFieldsProvider = extraFieldsProvider,
-              pathTemplateProvider = pathTemplateProvider
-          )
-    }
+        pathTemplateProvider: OkHttpRequestPathTemplateProvider = HeaderBasedOkHttpRequestPathTemplateProvider(),
+    ): CaptureOkHttpEventListenerFactory =
+        CaptureOkHttpEventListenerFactory(
+            targetEventListenerFactory = targetEventListenerCreator,
+            logger = logger,
+            clock = clock,
+            extraFieldsProvider = extraFieldsProvider,
+            pathTemplateProvider = pathTemplateProvider,
+        )
 }

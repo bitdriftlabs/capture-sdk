@@ -33,7 +33,7 @@ internal class CaptureOkHttpEventListener internal constructor(
     private val clock: IClock,
     private val targetEventListener: EventListener?,
     private val extraFieldsProvider: OkHttpRequestFieldProvider,
-    private val pathTemplateProvider: OkHttpRequestPathTemplateProvider
+    private val pathTemplateProvider: OkHttpRequestPathTemplateProvider,
 ) : EventListener() {
     private var requestBodyBytesSentCount: Long = 0
     private var responseBodyBytesReceivedCount: Long = 0

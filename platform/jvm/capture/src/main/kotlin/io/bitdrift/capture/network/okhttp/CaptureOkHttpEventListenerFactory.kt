@@ -33,9 +33,8 @@ class CaptureOkHttpEventListenerFactory internal constructor(
     private val logger: ILogger?,
     private val clock: IClock,
     private val extraFieldsProvider: OkHttpRequestFieldProvider,
-    private val pathTemplateProvider: OkHttpRequestPathTemplateProvider
+    private val pathTemplateProvider: OkHttpRequestPathTemplateProvider,
 ) : EventListener.Factory {
-
     /**
      * Initializes a new instance of the Capture event listener. Accepts an instance of an existing event
      * listener to enable combining the Capture event listener with other existing listeners.
@@ -49,7 +48,7 @@ class CaptureOkHttpEventListenerFactory internal constructor(
      */
     @Deprecated(
         "Use the constructor that takes a EventListener.Factory",
-        ReplaceWith("{ targetEventListener }")
+        ReplaceWith("{ targetEventListener }"),
     )
     constructor(
         targetEventListener: EventListener,

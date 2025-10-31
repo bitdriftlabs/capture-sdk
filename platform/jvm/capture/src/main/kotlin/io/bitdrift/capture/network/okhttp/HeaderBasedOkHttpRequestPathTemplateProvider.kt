@@ -7,14 +7,14 @@ import okhttp3.Request
  * comma separate list.
  */
 class HeaderBasedOkHttpRequestPathTemplateProvider(
-  private val headerName: String = "x-capture-path-template"
+    private val headerName: String = "x-capture-path-template",
 ) : OkHttpRequestPathTemplateProvider {
-  override fun providePathTemplate(request: Request): String? {
-    val pathTemplateHeaderValues = request.headers.values(headerName)
-    return if (pathTemplateHeaderValues.isEmpty()) {
-        null
-      } else {
-        pathTemplateHeaderValues.joinToString(",")
-      }
-  }
+    override fun providePathTemplate(request: Request): String? {
+        val pathTemplateHeaderValues = request.headers.values(headerName)
+        return if (pathTemplateHeaderValues.isEmpty()) {
+            null
+        } else {
+            pathTemplateHeaderValues.joinToString(",")
+        }
+    }
 }
