@@ -2,7 +2,7 @@ name: Auto Release on Changelog Update
 
 on:
   push:
-    branches: [ main, murki/BIT-6760 ]
+    branches: [ main ]
     paths:
       - 'CHANGELOG.md'
 
