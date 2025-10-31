@@ -108,7 +108,6 @@ object BitdriftInit {
             Configuration(
                 sessionReplayConfiguration = if (sessionReplayEnabled) SessionReplayConfiguration() else null,
                 enableFatalIssueReporting = fatalIssueReporterEnabled,
-                enableNativeCrashReporting = fatalIssueReporterEnabled,
             )
 
         val userID = UUID.randomUUID().toString()

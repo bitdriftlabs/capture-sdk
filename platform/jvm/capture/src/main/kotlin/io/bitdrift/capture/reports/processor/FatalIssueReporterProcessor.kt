@@ -37,15 +37,12 @@ internal class FatalIssueReporterProcessor(
      * Process AppTerminations due to ANRs and native crashes into packed format
      * @param fatalIssueType The flatbuffer type of fatal issue being processed
      * (e.g. [ReportType.AppNotResponding] or [ReportType.NativeCrash])
-     * @param enableNativeCrashReporting Flag indicating if native crash reporting is enabled.
-     * Note: This is a temporary flag which may be deleted in the future.
      * @param timestamp The timestamp when the issue occurred
      * @param description Optional description of the issue
      * @param traceInputStream Input stream containing the fatal issue trace data
      */
     fun persistAppExitReport(
         fatalIssueType: Byte,
-        enableNativeCrashReporting: Boolean,
         timestamp: Long,
         description: String? = null,
         traceInputStream: InputStream,
@@ -57,7 +54,7 @@ internal class FatalIssueReporterProcessor(
                 fatalIssueReporterStorage.generateFilePath(),
                 clientAttributes,
             )
-        } else if (fatalIssueType == ReportType.NativeCrash && enableNativeCrashReporting) {
+        } else if (fatalIssueType == ReportType.NativeCrash) {
             val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
             val sdk = createSDKInfo(builder)
             val appMetrics = createAppMetrics(builder)

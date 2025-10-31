@@ -87,7 +87,7 @@ internal class LoggerImpl(
     windowManager: IWindowManager = WindowManager(errorHandler),
     private val fatalIssueReporter: IFatalIssueReporter? =
         if (configuration.enableFatalIssueReporting) {
-            FatalIssueReporter(configuration.enableNativeCrashReporting)
+            FatalIssueReporter()
         } else {
             null
         },
