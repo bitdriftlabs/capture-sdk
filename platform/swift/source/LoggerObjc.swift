@@ -179,7 +179,7 @@ public final class LoggerObjc: NSObject {
     ///                                          Bitdrift.
     ///                                          Defaults to Bitdrift's hosted Compose API base URL.
     /// - parameter enableURLSessionIntegration: A flag indicating if automatic URLSession capture is enabled.
-    /// - parameter sleepMode:                   .active if Capture should be initialized in minimal activity mode.
+    /// - parameter sleepMode:                   .enabled if Capture should be initialized in minimal activity mode.
     /// - parameter enableFatalIssueReporting:   true if Capture should enable Fatal Issue Reporting.
     @objc
     public static func start(
