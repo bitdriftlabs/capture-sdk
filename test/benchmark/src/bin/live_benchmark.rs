@@ -5,7 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use bd_logger::{log_level, AnnotatedLogField, Block, CaptureSession, InitParams, LogType};
+use bd_logger::{log_level, AnnotatedLogField, Block, CaptureSession, InitParams};
+use bd_proto::protos::logging::payload::LogType;
 use bd_session::fixed::UUIDCallbacks;
 use bd_session::{fixed, Strategy};
 use bd_shutdown::ComponentShutdownTrigger;
@@ -65,7 +66,7 @@ fn test_live_match_performance(c: &mut Criterion) {
     b.iter(|| {
       handle.log(
         log_level::TRACE,
-        LogType::Normal,
+        LogType::NORMAL,
         "hello".into(),
         [].into(),
         [].into(),
@@ -75,7 +76,7 @@ fn test_live_match_performance(c: &mut Criterion) {
       );
       handle.log(
         log_level::DEBUG,
-        LogType::Normal,
+        LogType::NORMAL,
         "hello".into(),
         [].into(),
         [].into(),
@@ -85,7 +86,7 @@ fn test_live_match_performance(c: &mut Criterion) {
       );
       handle.log(
         log_level::INFO,
-        LogType::Normal,
+        LogType::NORMAL,
         "hello".into(),
         [].into(),
         [].into(),
@@ -95,7 +96,7 @@ fn test_live_match_performance(c: &mut Criterion) {
       );
       handle.log(
         log_level::WARNING,
-        LogType::Normal,
+        LogType::NORMAL,
         "hello".into(),
         [].into(),
         [].into(),
@@ -105,7 +106,7 @@ fn test_live_match_performance(c: &mut Criterion) {
       );
       handle.log(
         log_level::ERROR,
-        LogType::Normal,
+        LogType::NORMAL,
         "hello".into(),
         [].into(),
         [].into(),
@@ -119,7 +120,7 @@ fn test_live_match_performance(c: &mut Criterion) {
     b.iter(|| {
       handle.log(
         log_level::INFO,
-        LogType::Normal,
+        LogType::NORMAL,
         "analytics event: action.action_name".into(),
         [(
           "log_arg".into(),
