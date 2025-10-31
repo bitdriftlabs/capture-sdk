@@ -20,7 +20,6 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.fragment.findNavController
 import androidx.preference.PreferenceManager
 import com.apollographql.apollo.ApolloClient
@@ -39,6 +38,7 @@ import io.bitdrift.capture.network.okhttp.OkHttpRequestFieldProvider
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppExitReason
 import io.bitdrift.gradletestapp.data.repository.SdkRepository
+import io.bitdrift.gradletestapp.data.service.BinaryJazzRetrofitService
 import io.bitdrift.gradletestapp.diagnostics.fatalissues.FatalIssueGenerator
 import io.bitdrift.gradletestapp.ui.compose.MainScreen
 import io.bitdrift.gradletestapp.ui.viewmodel.MainViewModel
@@ -52,8 +52,11 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import timber.log.Timber
 import java.io.IOException
+import kotlin.random.Random
 import kotlin.system.exitProcess
 
 /**
@@ -97,6 +100,7 @@ class FirstFragment : Fragment() {
     private lateinit var clipboardManager: ClipboardManager
     private lateinit var okHttpClient: OkHttpClient
     private lateinit var apolloClient: ApolloClient
+    private lateinit var retrofitService: BinaryJazzRetrofitService
     private lateinit var sharedPreferences: SharedPreferences
 
     private var firstFragmentToCopySessionSpan: Span? = null
@@ -135,6 +139,7 @@ class FirstFragment : Fragment() {
                         },
                         onPerformOkHttpRequest = { performOkHttpRequest() },
                         onPerformGraphQlRequest = { performGraphQlRequest() },
+                        onPerformRetrofitRequest = { performRetrofitRequest() },
                         onAddOneFeatureFlag = { addOneFeatureFlag() },
                         onAddManyFeatureFlags = { addManyFeatureFlags() },
                         onClearFeatureFlags = { clearFeatureFlags() },
@@ -180,6 +185,14 @@ class FirstFragment : Fragment() {
                 .addInterceptor(CaptureApolloInterceptor())
                 .build()
 
+        // https://binaryjazz.us/genrenator-api/
+        val retrofitClient = Retrofit.Builder()
+            .baseUrl("https://binaryjazz.us")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+        retrofitService = retrofitClient.create(BinaryJazzRetrofitService::class.java)
+
         firstFragmentToCopySessionSpan?.end(SpanResult.SUCCESS)
     }
 
@@ -221,14 +234,14 @@ class FirstFragment : Fragment() {
                         response.use {
                             it.body!!.string()
                         }
-                    Timber.v("Http request completed with status code=${response.code} and body=$body")
+                    Timber.v("OkHttp request completed with status code=${response.code} and body=$body")
                 }
 
                 override fun onFailure(
                     call: Call,
                     e: IOException,
                 ) {
-                    Timber.v("Http request failed with exception=$e")
+                    Timber.v("OkHttp request failed with exception=$e")
                 }
             },
         )
@@ -250,6 +263,22 @@ class FirstFragment : Fragment() {
                 Logger.logDebug(mapOf("response_data" to response.data.toString())) { "GraphQL response data received" }
             } catch (e: Exception) {
                 Timber.e(e, "GraphQL request failed")
+            }
+        }
+    }
+
+    private fun performRetrofitRequest() {
+        MainScope().launch {
+            try {
+                val count = (1..5).random()
+                val response = if (Random.nextBoolean()) {
+                    retrofitService.generateGenres(count)
+                } else {
+                    retrofitService.generateStories(count)
+                }
+                Timber.v("Retrofit request completed with status code=${response.code()} and body=${response.body()}")
+            } catch (e: Exception) {
+                Timber.e(e, "Retrofit request failed")
             }
         }
     }

@@ -22,6 +22,7 @@ import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 fun NetworkTestingCard(
     onOkHttpRequest: () -> Unit,
     onGraphQlRequest: () -> Unit,
+    onRetrofitRequest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -72,6 +73,17 @@ fun NetworkTestingCard(
                         ),
                 ) {
                     Text("GraphQL")
+                }
+
+                OutlinedButton(
+                    onClick = onRetrofitRequest,
+                    modifier = Modifier.weight(1f),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = BitdriftColors.TextPrimary,
+                        ),
+                ) {
+                    Text("Retrofit")
                 }
             }
         }

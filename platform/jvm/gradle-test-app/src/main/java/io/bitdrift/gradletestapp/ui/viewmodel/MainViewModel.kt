@@ -86,6 +86,7 @@ class MainViewModel(
 
             is NetworkTestAction.PerformOkHttpRequest -> performOkHttpRequest()
             is NetworkTestAction.PerformGraphQlRequest -> performGraphQlRequest()
+            is NetworkTestAction.PerformRetrofitRequest -> performRetrofitRequest()
 
             is FeatureFlagsTestAction.AddOneFeatureFlag -> addOneFeatureFlag()
             is FeatureFlagsTestAction.AddManyFeatureFlags -> addManyFeatureFlags()
@@ -206,6 +207,10 @@ class MainViewModel(
 
     private fun performGraphQlRequest() {
         Timber.i("Performing GraphQL request")
+    }
+
+    private fun performRetrofitRequest() {
+        Timber.i("Performing Retrofit request")
     }
 
     private fun addOneFeatureFlag() {
