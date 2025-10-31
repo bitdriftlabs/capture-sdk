@@ -188,7 +188,7 @@ public final class LoggerObjc: NSObject {
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
         apiURL: URL = URL(string: "https://api.bitdrift.io")!,
         enableURLSessionIntegration: Bool = true,
-        sleepMode: SleepMode = .inactive,
+        sleepMode: SleepMode = .disabled,
         enableFatalIssueReporting: Bool = true
     ) {
         let logger = Capture.Logger
