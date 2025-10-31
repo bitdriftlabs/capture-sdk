@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.maven
+
 rootProject.name = "capture-sdk"
 
 pluginManagement {
@@ -24,5 +26,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+        }
     }
 }

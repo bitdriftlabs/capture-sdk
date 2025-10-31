@@ -35,6 +35,7 @@ import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.capture.network.okhttp.OkHttpRequestFieldProvider
+import io.bitdrift.capture.network.retrofit.RetrofitUrlPathProvider
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppExitReason
 import io.bitdrift.gradletestapp.data.repository.SdkRepository
@@ -167,13 +168,13 @@ class FirstFragment : Fragment() {
                 .Builder()
                 .eventListenerFactory(
                     CaptureOkHttpEventListenerFactory(
-                        extraFieldsProvider =
-                            OkHttpRequestFieldProvider { request ->
-                                mapOf(
-                                    "additional_network_request_field" to
-                                        request.url.host,
-                                )
-                            },
+                        extraFieldsProvider = RetrofitUrlPathProvider()
+//                            OkHttpRequestFieldProvider { request ->
+//                                mapOf(
+//                                    "additional_network_request_field" to
+//                                        request.url.host,
+//                                )
+//                            },
                     ),
                 ).build()
 
