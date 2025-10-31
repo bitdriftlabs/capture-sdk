@@ -26,12 +26,17 @@ class RetrofitUrlPathProvider : OkHttpRequestFieldProvider {
         return fields
     }
 
-    /** Reflectively tries to determine if Retrofit is on the classpath. */
+    /** Reflectively tries to determine if the required Retrofit version is on the classpath. */
     private val isRetrofitAvailable by lazy(LazyThreadSafetyMode.PUBLICATION) {
         try {
-            Class.forName("retrofit2.Invocation")
+            // annotationUrl() was added in Retrofit 2.10.0 so we need to check for it's existence
+            // before we try to use it.
+            val invocationClass = Class.forName("retrofit2.Invocation")
+            invocationClass.getMethod("annotationUrl")
             true
         } catch (_: ClassNotFoundException) {
+            false
+        } catch (_: NoSuchMethodException) {
             false
         }
     }
