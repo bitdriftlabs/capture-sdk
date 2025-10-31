@@ -97,7 +97,7 @@ final class LoggerBridge: LoggerBridging {
             model,
             network,
             errorReporting,
-            sleepMode == SleepMode.active
+            sleepMode == SleepMode.enabled
         )
 
         if loggerID == -1 {
@@ -267,7 +267,7 @@ final class LoggerBridge: LoggerBridging {
     }
 
     func setSleepMode(_ mode: SleepMode) {
-        capture_set_sleep_mode(self.loggerID, mode == .active)
+        capture_set_sleep_mode(self.loggerID, mode == .enabled)
     }
 
     func processCrashReports() {

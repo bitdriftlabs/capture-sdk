@@ -203,7 +203,7 @@ internal class LoggerImpl(
                 network,
                 preferences,
                 localErrorReporter,
-                configuration.sleepMode == SleepMode.ACTIVE,
+                configuration.sleepMode == SleepMode.ENABLED,
             )
 
         check(loggerId != -1L) { "initialization of the rust logger failed" }
@@ -410,7 +410,7 @@ internal class LoggerImpl(
     }
 
     override fun setSleepMode(sleepMode: SleepMode) {
-        CaptureJniLibrary.setSleepModeEnabled(this.loggerId, sleepMode == SleepMode.ACTIVE)
+        CaptureJniLibrary.setSleepModeEnabled(this.loggerId, sleepMode == SleepMode.ENABLED)
     }
 
     @JvmName("logFields")

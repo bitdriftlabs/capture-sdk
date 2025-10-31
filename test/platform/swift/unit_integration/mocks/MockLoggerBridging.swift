@@ -37,7 +37,7 @@ public final class MockLoggerBridging {
 
     public private(set) var errors: [HandledError] = []
 
-    public private(set) var sleepMode: SleepMode = .inactive
+    public private(set) var sleepMode: SleepMode = .disabled
 
     public var shouldLogAppUpdateEvent = false
 

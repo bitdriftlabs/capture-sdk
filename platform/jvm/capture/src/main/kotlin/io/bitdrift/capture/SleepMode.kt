@@ -12,8 +12,8 @@ package io.bitdrift.capture
  */
 enum class SleepMode {
     /** Capture will operate in minimal activity mode */
-    ACTIVE,
+    ENABLED,
 
     /** Capture will operate normally */
-    INACTIVE,
+    DISABLED,
 }

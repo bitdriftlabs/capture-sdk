@@ -23,7 +23,7 @@ protocol LoggerBridgingFactoryProvider {
     /// - parameter model:                     The host device model.
     /// - parameter network:                   The interface to use for network operations.
     /// - parameter errorReporting:            The interface to use for reporting errors.
-    /// - parameter sleepMode:                 .active if sleep mode should be initialized now
+    /// - parameter sleepMode:                 .enabled if sleep mode should be initialized now
     ///
     /// - returns: The logger bridging instance.
     func makeLogger(

@@ -7,6 +7,6 @@
 
 @objc(CAPSleepMode)
 public enum SleepMode: Int8 {
-    case active
-    case inactive
+    case enabled
+    case disabled
 }
