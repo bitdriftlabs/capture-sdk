@@ -16,7 +16,7 @@ import io.bitdrift.capture.replay.SessionReplayConfiguration
  * any external 3rd party library integration
  * @param enableNativeCrashReporting When set to true will capture native NDK crashes automatically.
  * Requires enableFatalIssueReporting to be true. Note: This is a temporary flag and may be removed in future versions.
- * @param sleepMode SleepMode.ACTIVE if Capture should initialize in minimal activity mode
+ * @param sleepMode SleepMode.ENABLED if Capture should initialize in minimal activity mode
  */
 data class Configuration
     @JvmOverloads
