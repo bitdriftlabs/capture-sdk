@@ -50,6 +50,7 @@ fun MainScreen(
     onNavigateToXml: () -> Unit,
     onPerformOkHttpRequest: () -> Unit,
     onPerformGraphQlRequest: () -> Unit,
+    onPerformRetrofitRequest: () -> Unit,
     onAddOneFeatureFlag: () -> Unit,
     onAddManyFeatureFlags: () -> Unit,
     onClearFeatureFlags: () -> Unit,
@@ -186,6 +187,10 @@ fun MainScreen(
                                 viewModel.handleAction(NetworkTestAction.PerformGraphQlRequest)
                                 onPerformGraphQlRequest()
                             },
+                            onRetrofitRequest = {
+                                viewModel.handleAction(NetworkTestAction.PerformRetrofitRequest)
+                                onPerformRetrofitRequest()
+                            }
                         )
                     }
                     item {

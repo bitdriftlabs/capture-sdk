@@ -33,6 +33,8 @@ dependencies {
     implementation(libs.performance)
     implementation(libs.protobuf.kotlinlite)
 
+    compileOnly(libs.retrofit)
+
     testImplementation(libs.junit)
     testImplementation(libs.assertj.core)
     testImplementation(libs.mockito.core)
