@@ -29,7 +29,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.verifyNoInteractions
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.InputStream
@@ -137,7 +136,6 @@ class FatalIssueReporterProcessorTest {
         val trace = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt")
         fatalIssueReporterProcessor.persistAppExitReport(
             fatalIssueType = ReportType.AppNotResponding,
-            enableNativeCrashReporting = true,
             FAKE_TIME_STAMP,
             "Input Dispatching Timed Out",
             trace,
@@ -152,29 +150,12 @@ class FatalIssueReporterProcessorTest {
     }
 
     @Test
-    fun persistAppExitReport_whenNativeCrashAndNdkProcessingNotConfigured_shouldNotCreateNativeReport() {
+    fun persistAppExitReport_whenNativeCrash_shouldCreateNativeReport() {
         val description = "Native crash"
         val traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.bin")
 
         fatalIssueReporterProcessor.persistAppExitReport(
             ReportType.NativeCrash,
-            enableNativeCrashReporting = false,
-            FAKE_TIME_STAMP,
-            description,
-            traceInputStream,
-        )
-
-        verifyNoInteractions(fatalIssueReporterStorage)
-    }
-
-    @Test
-    fun persistAppExitReport_whenNativeCrashAndNdkProcessingConfigured_shouldCreateNativeReport() {
-        val description = "Native crash"
-        val traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.bin")
-
-        fatalIssueReporterProcessor.persistAppExitReport(
-            ReportType.NativeCrash,
-            enableNativeCrashReporting = true,
             FAKE_TIME_STAMP,
             description,
             traceInputStream,
@@ -223,7 +204,6 @@ class FatalIssueReporterProcessorTest {
 
         fatalIssueReporterProcessor.persistAppExitReport(
             ReportType.JVMCrash,
-            enableNativeCrashReporting = true,
             FAKE_TIME_STAMP,
             description,
             traceInputStream,
@@ -247,9 +227,5 @@ class FatalIssueReporterProcessorTest {
 
     private companion object {
         const val FAKE_TIME_STAMP = 1241515210914L
-        const val APP_EXIT_DESCRIPTION_ANR =
-            "Input dispatching timed out (219180 " +
-                "io.bitdrift.capture/io.bitdrift.capture.MainActivity (server) " +
-                "is not responding. Waited 5004ms for MotionEvent"
     }
 }
