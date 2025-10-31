@@ -1,0 +1,58 @@
+name: Auto Release on Changelog Update
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'CHANGELOG.md'
+
+jobs:
+  prepare-release:
+    name: Extract version & check tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+      should_release: ${{ steps.tagcheck.outputs.should_release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # need tags
+
+      - name: Extract version from CHANGELOG.md
+        id: extract
+        run: |
+          second_h2_line=$(grep -E '^## \[' CHANGELOG.md | sed -n '2p') || true
+          if [ -z "$second_h2_line" ]; then
+            echo "Could not find second H2 header in CHANGELOG.md" >&2
+            exit 1
+          fi
+          # Support optional prerelease (-rc.1, -beta, etc) and build metadata (+build.5) per SemVer, no leading 'v'.
+          version=$(echo "$second_h2_line" | sed -E 's/^## \[([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?)\].*/\1/')
+          if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Parsed version '$version' is not a valid SEMVER" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Extracted version: $version"
+
+      - name: Check if tag already exists
+        id: tagcheck
+        run: |
+          version_tag="v${{ steps.extract.outputs.version }}"
+          if git ls-remote --exit-code --tags origin "$version_tag" >/dev/null 2>&1; then
+            echo "Tag $version_tag already exists. Skipping release." >&2
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag $version_tag does not exist. Will release." >&2
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  run-release:
+    name: Run Release workflow
+    needs: prepare-release
+    if: needs.prepare-release.outputs.should_release == 'true'
+    uses: ./.github/workflows/update_sdk_version.yaml
+    with:
+      version: ${{ needs.prepare-release.outputs.version }}
+      emergency: false

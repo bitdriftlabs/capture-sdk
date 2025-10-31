@@ -45,8 +45,8 @@
 
 - Nothing yet!
 
-## [v0.19.0] - 2025-10-27
-[v0.19.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.19.0
+## [0.19.0] - 2025-10-27
+[0.19.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.19.0
 
 ### Both
 
