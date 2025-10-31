@@ -66,7 +66,7 @@
 
 **Fixed**
 
-- Improve detection for "Service ANR".
+- Improve detection for "Service ANR" for when a Service takes too long to start.
 - Fix inaccurate frame symbolication in some NDK crash stacktraces.
 
 ### iOS
