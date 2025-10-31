@@ -25,7 +25,7 @@ public struct Configuration {
     /// - parameter enableFatalIssueReporting:  true if Capture should enable Fatal Issue Reporting
     public init(
         sessionReplayConfiguration: SessionReplayConfiguration? = .init(),
-        sleepMode: SleepMode = .inactive,
+        sleepMode: SleepMode = .disabled,
         enableFatalIssueReporting: Bool = true
     ) {
         self.sessionReplayConfiguration = sessionReplayConfiguration

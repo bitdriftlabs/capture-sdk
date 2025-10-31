@@ -24,5 +24,5 @@ data class Configuration
         val sessionReplayConfiguration: SessionReplayConfiguration? = SessionReplayConfiguration(),
         val enableFatalIssueReporting: Boolean = true,
         val enableNativeCrashReporting: Boolean = false,
-        val sleepMode: SleepMode = SleepMode.INACTIVE,
+        val sleepMode: SleepMode = SleepMode.DISABLED,
     )
