@@ -52,6 +52,9 @@ jobs:
     name: Run Release workflow
     needs: prepare-release
     if: needs.prepare-release.outputs.should_release == 'true'
+    permissions:
+      id-token: write
+      contents: write
     uses: ./.github/workflows/update_sdk_version.yaml
     with:
       version: ${{ needs.prepare-release.outputs.version }}
