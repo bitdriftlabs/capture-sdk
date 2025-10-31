@@ -142,8 +142,8 @@ final class LoggerTests: XCTestCase {
             withAPIKey: "some_key",
             loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
         )
-        logger.setSleepMode(.active)
-        XCTAssertEqual(bridge.sleepMode, .active)
+        logger.setSleepMode(.enabled)
+        XCTAssertEqual(bridge.sleepMode, .enabled)
     }
 
     func testErrorLogging() throws {
