@@ -13,6 +13,7 @@ bd-client-common.workspace = true
 bd-hyper-network.workspace = true
 bd-key-value.workspace     = true
 bd-logger.workspace        = true
+bd-proto.workspace         = true
 bd-noop-network.workspace  = true
 bd-session.workspace       = true
 bd-shutdown.workspace      = true

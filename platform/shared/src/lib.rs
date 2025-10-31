@@ -23,10 +23,10 @@ use bd_logger::{
   log_level,
   AnnotatedLogField,
   LogFieldKind,
-  LogType,
   LoggerBuilder,
   ReportProcessingSession,
 };
+use bd_proto::protos::logging::payload::LogType;
 use bd_runtime::runtime::Snapshot;
 use parking_lot::Once;
 use std::future::Future;
@@ -206,7 +206,7 @@ impl LoggerHolder {
 
       self.log(
         log_level::INFO,
-        LogType::Lifecycle,
+        LogType::LIFECYCLE,
         "AppLaunchTTI".into(),
         fields,
         [].into(),

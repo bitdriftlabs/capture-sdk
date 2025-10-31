@@ -33,10 +33,12 @@ use bd_logger::{
   ReportProcessingSession,
 };
 use bd_noop_network::NoopNetwork;
+use bd_proto::protos::logging::payload::LogType;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use platform_shared::metadata::{self, Mobile};
 use platform_shared::{read_global_state_snapshot, LoggerHolder, LoggerId};
+use protobuf::Enum;
 use std::borrow::{Borrow, Cow};
 use std::boxed::Box;
 use std::collections::HashMap;
@@ -624,7 +626,7 @@ extern "C" fn capture_write_log(
 
       logger_id.log(
         log_level,
-        bd_logger::LogType(log_type),
+        LogType::from_i32(log_type as i32).unwrap_or_default(),
         log_str.into(),
         fields,
         matching_fields,

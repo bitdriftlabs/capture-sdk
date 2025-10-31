@@ -7,11 +7,12 @@
 
 use assert_matches::assert_matches;
 use bd_key_value::Storage;
-use bd_logger::{log_level, Block, CaptureSession, LogMessage, LogType};
+use bd_logger::{log_level, Block, CaptureSession, LogMessage};
 use bd_proto::flatbuffers::buffer_log::bitdrift_public::fbs::logging::v_1::Log;
 use bd_proto::protos::client::api::configuration_update::StateOfTheWorld;
 use bd_proto::protos::config::v1::config::buffer_config::Type;
 use bd_proto::protos::config::v1::config::BufferConfigList;
+use bd_proto::protos::logging::payload::LogType;
 use bd_runtime::runtime::FeatureFlag;
 use bd_test_helpers::config_helper::make_workflow_matcher_matching_everything_except_internal_logs;
 use bd_test_helpers::runtime::{make_update, ValueKind};
@@ -331,7 +332,7 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
   for _ in 0 .. 22 {
     logger_id.log(
       log_level::DEBUG,
-      LogType::Normal,
+      LogType::NORMAL,
       LogMessage::Bytes(vec![0; 100_000]),
       [].into(),
       [].into(),
@@ -368,7 +369,7 @@ pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: Logger
       for _ in 0 .. 10 {
         logger_id.log(
           log_level::TRACE,
-          LogType::Normal,
+          LogType::NORMAL,
           "hello".into(),
           [].into(),
           [].into(),
@@ -413,7 +414,7 @@ pub extern "C" fn run_aggressive_upload_test(logger_id: LoggerId<'_>) {
   for _ in 0 .. 100 {
     logger_id.log(
       log_level::TRACE,
-      LogType::Normal,
+      LogType::NORMAL,
       "hello".into(),
       [].into(),
       [].into(),
