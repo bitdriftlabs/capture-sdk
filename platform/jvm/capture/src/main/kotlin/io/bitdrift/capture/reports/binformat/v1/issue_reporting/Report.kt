@@ -26,7 +26,8 @@ class ReportType private constructor() {
         const val MemoryTermination: Byte = 4
         const val NativeCrash: Byte = 5
         const val StrictModeViolation: Byte = 6
-        const val JavaScriptError: Byte = 7
+        const val JavaScriptNonFatalError: Byte = 7
+        const val JavaScriptFatalError: Byte = 8
     }
 }
 
