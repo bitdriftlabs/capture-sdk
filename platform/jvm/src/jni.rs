@@ -995,7 +995,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
         .collect();
       logger.log(
         log_level as u32,
-        LogType::from_i32(log_type.try_into().unwrap_or_default()).unwrap_or(LogType::NORMAL),
+        LogType::from_i32(log_type).unwrap_or(LogType::NORMAL),
         unsafe { env.get_string_unchecked(&log) }?
           .to_string_lossy()
           .to_string()
