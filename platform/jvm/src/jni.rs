@@ -31,7 +31,8 @@ use bd_error_reporter::reporter::{
   MetadataErrorReporter,
   UnexpectedErrorHandler,
 };
-use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields, LogType};
+use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields};
+use bd_proto::protos::logging::payload::LogType;
 use futures_util::FutureExt;
 use jni::descriptors::Desc;
 use jni::objects::{
@@ -49,6 +50,7 @@ use jni::sys::{jboolean, jbyteArray, jdouble, jint, jlong, jobject, jvalue, JNI_
 use jni::{JNIEnv, JavaVM};
 use platform_shared::metadata::Mobile;
 use platform_shared::{read_global_state_snapshot, LoggerHolder, LoggerId};
+use protobuf::Enum as _;
 use std::borrow::{Borrow, Cow};
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -993,7 +995,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
         .collect();
       logger.log(
         log_level as u32,
-        LogType(log_type as u32),
+        LogType::from_i32(log_type).unwrap_or(LogType::NORMAL),
         unsafe { env.get_string_unchecked(&log) }?
           .to_string_lossy()
           .to_string()

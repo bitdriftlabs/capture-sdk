@@ -18,3 +18,5 @@ old_version=$(grep bd-api Cargo.toml | grep -Eo 'rev = ".*"' | cut -d' ' -f3 | t
 sed -i "s|\"$old_version\"|\"$sha\"|g" Cargo.toml
 
 cargo upgrade --incompatible
+
+make repin

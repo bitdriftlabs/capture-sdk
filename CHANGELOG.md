@@ -16,6 +16,7 @@
 **Fixed**
 
 - Add back the ability to disable the Session Replay feature at SDK initialization.
+- Improved the ring buffer serialization format resulting in more efficient space usage.
 
 ### Android
 
