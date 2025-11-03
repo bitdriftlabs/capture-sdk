@@ -1,5 +1,5 @@
 {
-  "checksum": "70ad217ce672be28d96ea0061288b944d6edca4e5773bcfc2fcf170b4aead3ac",
+  "checksum": "877ebeb191c8cfa9bdfd7b1fbb76c8a6e467f71f2386f5e1935600c0f5ee00b6",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -6758,16 +6758,16 @@
               "target": "jni"
             },
             {
-              "id": "libc 0.2.177",
-              "target": "libc"
-            },
-            {
               "id": "log 0.4.28",
               "target": "log"
             },
             {
               "id": "memmap2 0.9.9",
               "target": "memmap2"
+            },
+            {
+              "id": "protobuf 4.0.0-alpha.0",
+              "target": "protobuf"
             },
             {
               "id": "tempfile 3.23.0",
@@ -12476,6 +12476,10 @@
               "target": "bd_noop_network"
             },
             {
+              "id": "bd-proto 1.0.0",
+              "target": "bd_proto"
+            },
+            {
               "id": "bd-session 1.0.0",
               "target": "bd_session"
             },
@@ -14166,6 +14170,10 @@
             {
               "id": "bd-logger 1.0.0",
               "target": "bd_logger"
+            },
+            {
+              "id": "bd-proto 1.0.0",
+              "target": "bd_proto"
             },
             {
               "id": "bd-runtime 1.0.0",
@@ -18686,6 +18694,10 @@
               "target": "bd_noop_network"
             },
             {
+              "id": "bd-proto 1.0.0",
+              "target": "bd_proto"
+            },
+            {
               "id": "bd-report-writer 1.0.0",
               "target": "bd_report_writer"
             },
@@ -18712,6 +18724,10 @@
             {
               "id": "parking_lot 0.12.5",
               "target": "parking_lot"
+            },
+            {
+              "id": "protobuf 4.0.0-alpha.0",
+              "target": "protobuf"
             },
             {
               "id": "time 0.3.44",
@@ -25478,7 +25494,6 @@
     "flatbuffers 25.9.23",
     "futures-util 0.3.31",
     "jni 0.21.1",
-    "libc 0.2.177",
     "log 0.4.28",
     "memmap2 0.9.9",
     "objc 0.2.7",
