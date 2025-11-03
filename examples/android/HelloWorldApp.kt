@@ -36,7 +36,7 @@ class HelloWorldApp : Application() {
             apiKey = bitdriftAPIKey,
             apiUrl = BITDRIFT_URL,
             sessionStrategy = SessionStrategy.Fixed { UUID.randomUUID().toString() },
-            configuration = Configuration(enableNativeCrashReporting = true),
+            configuration = Configuration(),
             fieldProviders = listOf(
                 FieldProvider {
                     mapOf(
