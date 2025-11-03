@@ -27,10 +27,10 @@ jni.workspace                   = true
 log.workspace                   = true
 memmap2.workspace               = true
 platform-shared.workspace       = true
+protobuf.workspace              = true
 tempfile.workspace              = true
 time.workspace                  = true
 tracing-subscriber.workspace    = true
-protobuf.workspace              = true
 uuid.workspace                  = true
 
 [lib]
