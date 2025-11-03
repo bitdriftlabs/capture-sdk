@@ -8,6 +8,7 @@ version      = "1.0.0"
 
 [dependencies]
 bd-api.workspace           = true
+bd-proto.workspace         = true
 bd-buffer.workspace        = true
 bd-client-common.workspace = true
 bd-hyper-network.workspace = true

@@ -10,6 +10,8 @@
 mod bridge_tests;
 
 use crate::bridge::ffi::make_nsstring;
+use protobuf::Enum as _;
+use bd_proto::protos::logging::payload::LogType;
 use crate::ffi::{make_empty_nsstring, nsstring_into_string};
 use crate::key_value_storage::UserDefaultsStorage;
 use crate::{events, ffi, resource_utilization, session_replay};
@@ -624,7 +626,7 @@ extern "C" fn capture_write_log(
 
       logger_id.log(
         log_level,
-        bd_logger::LogType(log_type),
+        LogType::from_i32(log_type.try_into().unwrap_or_default()).unwrap_or(LogType::NORMAL),
         log_str.into(),
         fields,
         matching_fields,
