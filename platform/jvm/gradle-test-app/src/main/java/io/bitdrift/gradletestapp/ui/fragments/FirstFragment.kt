@@ -34,7 +34,6 @@ import io.bitdrift.capture.apollo.CaptureApolloInterceptor
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
-import io.bitdrift.capture.network.okhttp.OkHttpRequestFieldProvider
 import io.bitdrift.capture.network.retrofit.RetrofitUrlPathProvider
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppExitReason

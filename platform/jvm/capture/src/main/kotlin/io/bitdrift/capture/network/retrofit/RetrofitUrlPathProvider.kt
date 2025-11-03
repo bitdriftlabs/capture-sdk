@@ -1,6 +1,6 @@
 package io.bitdrift.capture.network.retrofit
 
-import io.bitdrift.capture.network.HttpFieldKey
+import io.bitdrift.capture.network.HttpField
 import io.bitdrift.capture.network.okhttp.OkHttpRequestFieldProvider
 import okhttp3.Request
 import retrofit2.Invocation
@@ -10,7 +10,6 @@ import retrofit2.Invocation
  * by using [io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListener].
  */
 class RetrofitUrlPathProvider : OkHttpRequestFieldProvider {
-
     /**
      * @return a map of fields to add to the http log that will be sent
      * by [io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListener] for this [request].
@@ -19,10 +18,12 @@ class RetrofitUrlPathProvider : OkHttpRequestFieldProvider {
         if (!isRetrofitAvailable) {
             return emptyMap()
         }
-        val fields = request.tag(Invocation::class.java)
-            ?.annotationUrl()
-            ?.let { mapOf(HttpFieldKey.PATH_TEMPLATE to it.withLeadingSlash()) }
-            ?: emptyMap()
+        val fields =
+            request
+                .tag(Invocation::class.java)
+                ?.annotationUrl()
+                ?.let { mapOf(HttpField.PATH_TEMPLATE to it.withLeadingSlash()) }
+                ?: emptyMap()
         return fields
     }
 
