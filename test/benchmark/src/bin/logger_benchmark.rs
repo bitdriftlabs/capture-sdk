@@ -6,9 +6,9 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use bd_buffer::{AggregateRingBuffer, PerRecordCrc32Check, RingBuffer, RingBufferStats};
-use bd_proto::protos::logging::payload::LogType;
-use bd_logger::{log_level, Block, CaptureSession, InitParams,  LoggerHandle};
+use bd_logger::{log_level, Block, CaptureSession, InitParams, LoggerHandle};
 use bd_noop_network::NoopNetwork;
+use bd_proto::protos::logging::payload::LogType;
 use bd_session::fixed::UUIDCallbacks;
 use bd_session::{fixed, Strategy};
 use bd_test_helpers::config_helper;

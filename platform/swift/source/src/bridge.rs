@@ -10,8 +10,6 @@
 mod bridge_tests;
 
 use crate::bridge::ffi::make_nsstring;
-use protobuf::Enum as _;
-use bd_proto::protos::logging::payload::LogType;
 use crate::ffi::{make_empty_nsstring, nsstring_into_string};
 use crate::key_value_storage::UserDefaultsStorage;
 use crate::{events, ffi, resource_utilization, session_replay};
@@ -35,10 +33,12 @@ use bd_logger::{
   ReportProcessingSession,
 };
 use bd_noop_network::NoopNetwork;
+use bd_proto::protos::logging::payload::LogType;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use platform_shared::metadata::{self, Mobile};
 use platform_shared::{read_global_state_snapshot, LoggerHolder, LoggerId};
+use protobuf::Enum as _;
 use std::borrow::{Borrow, Cow};
 use std::boxed::Box;
 use std::collections::HashMap;

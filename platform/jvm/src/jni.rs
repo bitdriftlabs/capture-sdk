@@ -10,7 +10,6 @@ use crate::key_value_storage::PreferencesHandle;
 use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
 use crate::session::SessionStrategyConfigurationHandle;
 use crate::session_replay::{self, TargetHandler as SessionReplayTargetHandler};
-use protobuf::Enum as _;
 use crate::{
   define_object_wrapper,
   events,
@@ -51,6 +50,7 @@ use jni::sys::{jboolean, jbyteArray, jdouble, jint, jlong, jobject, jvalue, JNI_
 use jni::{JNIEnv, JavaVM};
 use platform_shared::metadata::Mobile;
 use platform_shared::{read_global_state_snapshot, LoggerHolder, LoggerId};
+use protobuf::Enum as _;
 use std::borrow::{Borrow, Cow};
 use std::collections::HashMap;
 use std::ffi::c_void;
