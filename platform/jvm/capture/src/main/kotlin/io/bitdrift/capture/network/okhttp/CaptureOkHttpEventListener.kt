@@ -32,8 +32,7 @@ internal class CaptureOkHttpEventListener internal constructor(
     private val logger: ILogger?,
     private val clock: IClock,
     private val targetEventListener: EventListener?,
-    private val requestExtraFieldsProvider: OkHttpRequestFieldProvider,
-    private val responseExtraFieldsProvider: OkHttpResponseFieldProvider,
+    private val extraFieldsProvider: OkHttpFieldProvider,
 ) : EventListener() {
     private var requestBodyBytesSentCount: Long = 0
     private var responseBodyBytesReceivedCount: Long = 0
@@ -127,7 +126,7 @@ internal class CaptureOkHttpEventListener internal constructor(
                 query = request.url.query,
                 headers = request.headers.toMap(),
                 bytesExpectedToSendCount = bytesExpectedToSendCount,
-                extraFields = requestExtraFieldsProvider.provideExtraFields(request),
+                extraFields = extraFieldsProvider.provideRequestFields(request),
             )
 
         this.requestInfo = requestInfo
@@ -368,7 +367,7 @@ internal class CaptureOkHttpEventListener internal constructor(
                 response = httpResponse,
                 durationMs = (clock.elapsedRealtime() - callStartTimeMs),
                 metrics = getMetrics(),
-                extraFields = responseExtraFieldsProvider.provideExtraFields(response),
+                extraFields = extraFieldsProvider.provideResponseFields(response),
             )
 
         logger?.log(httpResponseInfo)

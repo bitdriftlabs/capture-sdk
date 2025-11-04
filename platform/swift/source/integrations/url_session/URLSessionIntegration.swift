@@ -28,21 +28,19 @@ extension Integration {
     ///              `URLSession.capture_makeSession(configuration:delegate:delegateQueue:)` method to create
     ///              `URLSession` instances.
     ///
-    /// - parameter requestFieldProvider:  An optional provider that supplies additional key-value fields for each `URLRequest` logged by the integration.
-    /// - parameter responseFieldProvider: An optional provider that supplies additional key-value fields for each HTTP response logged by the integration.
+    /// - parameter extraFieldsProvider: An optional provider that supplies additional key-value fields
+    ///                                  for each `URLRequest` and HTTP response logged by the integration.
     ///
     /// - returns: The `URLSession` integration.
     ///
     public static func urlSession(
-        requestFieldProvider: URLSessionRequestFieldProvider? = nil,
-        responseFieldProvider: URLSessionResponseFieldProvider? = nil
+        extraFieldsProvider: URLSessionFieldProvider? = nil
     ) -> Integration {
         .init { logger, disableSwizzling, _ in
             URLSessionIntegration.shared.start(
                 logger: logger,
                 disableSwizzling: disableSwizzling,
-                requestFieldProvider: requestFieldProvider,
-                responseFieldProvider: responseFieldProvider
+                extraFieldsProvider: extraFieldsProvider
             )
         }
     }
@@ -51,10 +49,8 @@ extension Integration {
 final class URLSessionIntegration {
     /// The instance of Capture logger the library should use for logging.
     private let underlyingLogger = Atomic<Logging?>(nil)
-    /// The field provider for adding custom fields to request logs
-    private let underlyingRequestFieldProvider = Atomic<URLSessionRequestFieldProvider?>(nil)
-    /// The field provider for adding custom fields to response logs
-    private let underlyingResponseFieldProvider = Atomic<URLSessionResponseFieldProvider?>(nil)
+    /// The field provider for adding custom fields to request and response logs
+    private let underlyingExtraFieldsProvider = Atomic<URLSessionFieldProvider?>(nil)
     fileprivate static var swizzled = Atomic(false)
     static let shared = URLSessionIntegration()
 
@@ -62,23 +58,17 @@ final class URLSessionIntegration {
         return self.underlyingLogger.load()
     }
 
-    var requestFieldProvider: URLSessionRequestFieldProvider? {
-        return self.underlyingRequestFieldProvider.load()
-    }
-
-    var responseFieldProvider: URLSessionResponseFieldProvider? {
-        return self.underlyingResponseFieldProvider.load()
+    var extraFieldsProvider: URLSessionFieldProvider? {
+        return self.underlyingExtraFieldsProvider.load()
     }
 
     func start(
         logger: Logging,
         disableSwizzling: Bool,
-        requestFieldProvider: URLSessionRequestFieldProvider?,
-        responseFieldProvider: URLSessionResponseFieldProvider?
+        extraFieldsProvider: URLSessionFieldProvider?
     ) {
         self.underlyingLogger.update { $0 = logger }
-        self.underlyingRequestFieldProvider.update { $0 = requestFieldProvider }
-        self.underlyingResponseFieldProvider.update { $0 = responseFieldProvider }
+        self.underlyingExtraFieldsProvider.update { $0 = extraFieldsProvider }
         if disableSwizzling || Self.swizzled.load() {
             return
         }

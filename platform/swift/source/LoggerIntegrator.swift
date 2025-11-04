@@ -9,14 +9,14 @@
 /// (e.g., URL APIs) or a third-party library (e.g., `CocoaLumberjack`).
 public final class Integration {
     private var isStarted = false
-    let start: (_ logger: Logging, _ disableSwizzling: Bool, _ requestFieldProvider: URLSessionRequestFieldProvider?) -> Void
+    let start: (_ logger: Logging, _ disableSwizzling: Bool, _ extraFieldsProvider: URLSessionFieldProvider?) -> Void
 
     /// Creates a new integration.
     ///
     /// - parameter start: A closure that is called by the Capture SDK to notify the receiver that a given
     ///                    integration should start. The `Logging` instance passed as an argument to the
     ///                    closure should be used by the integration to emit Capture SDK logs.
-    public init(start: @escaping (_ logger: Logging, _ disableSwizzling: Bool, _ requestFieldProvider: URLSessionRequestFieldProvider?) -> Void) {
+    public init(start: @escaping (_ logger: Logging, _ disableSwizzling: Bool, _ extraFieldsProvider: URLSessionFieldProvider?) -> Void) {
         self.start = start
     }
 
@@ -25,11 +25,11 @@ public final class Integration {
     /// - parameter logger:               The logger instance that should be used by the integration being
     ///                                   started to emit Capture SDK logs.
     /// - parameter disableSwizzling:     Whether the integration is allowed to do swizzling.
-    /// - parameter requestFieldProvider: Provider for extra fields appended to HTTP requests.
+    /// - parameter extraFieldsProvider:  Provider for extra fields appended to HTTP requests and responses.
     public func start(
         with logger: Logging,
         disableSwizzling: Bool = false,
-        requestFieldProvider: URLSessionRequestFieldProvider? = nil
+        extraFieldsProvider: URLSessionFieldProvider? = nil
     ) {
         if self.isStarted {
             // TODO(Augustyniak): Log something here.
@@ -37,7 +37,7 @@ public final class Integration {
         }
 
         self.isStarted = true
-        self.start(logger, disableSwizzling, requestFieldProvider)
+        self.start(logger, disableSwizzling, extraFieldsProvider)
     }
 }
 
@@ -58,7 +58,7 @@ public final class LoggerIntegrator {
     ///
     /// - parameter integrations:         The list of integrations to enable.
     /// - parameter disableSwizzling:     Whether integrations is allowed to do swizzling.
-    /// - parameter requestFieldProvider: Provider for extra fields appended to HTTP requests.
+    /// - parameter extraFieldsProvider:  Provider for extra fields appended to HTTP requests and responses.
     ///
     /// - returns: The configured logger. This is the same instance that can be accessed via the
     ///            `Logger.shared` property, but it's returned in a non-optional form here.
@@ -66,7 +66,7 @@ public final class LoggerIntegrator {
     public func enableIntegrations(
         _ integrations: [Integration],
         disableSwizzling: Bool = false,
-        requestFieldProvider: URLSessionRequestFieldProvider?=nil
+        extraFieldsProvider: URLSessionFieldProvider? = nil
     ) -> Logging {
         if self.enabled {
             return self.logger
@@ -74,7 +74,7 @@ public final class LoggerIntegrator {
 
         self.enabled = true
         for integration in integrations {
-            integration.start(self.logger, disableSwizzling, requestFieldProvider)
+            integration.start(self.logger, disableSwizzling, extraFieldsProvider)
         }
 
         return self.logger
