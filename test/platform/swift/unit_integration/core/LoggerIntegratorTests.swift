@@ -52,14 +52,14 @@ final class LoggerIntegratorTests: XCTestCase {
 
     func testCustomRequestFieldProviderIsPassed() throws {
         var receivedFields: [String: String]?
-        let fakeProvider = FakeURLSessionFieldProvider()
+        let fakeProvider = FakeURLSessionRequestFieldProvider()
         let integration = Integration { _, _, provider in
             let request = URLRequest(url: URL(string: "https://example.com")!)
-            receivedFields = provider?.provideRequestFields(for: request)
+            receivedFields = provider?.provideExtraFields(for: request)
         }
 
         let integrator = LoggerIntegrator(logger: MockLogging())
-        integrator.enableIntegrations([integration], extraFieldsProvider: fakeProvider)
+        integrator.enableIntegrations([integration], requestFieldProvider: fakeProvider)
 
         XCTAssertEqual(receivedFields?["mock_field"], "mock_value")
     }
@@ -68,7 +68,7 @@ final class LoggerIntegratorTests: XCTestCase {
         var receivedFields: [String: String]?
         let integration = Integration { _, _, provider in
             let request = URLRequest(url: URL(string: "https://example.com")!)
-            receivedFields = provider?.provideRequestFields(for: request)
+            receivedFields = provider?.provideExtraFields(for: request)
         }
 
         let integrator = LoggerIntegrator(logger: MockLogging())
@@ -78,10 +78,10 @@ final class LoggerIntegratorTests: XCTestCase {
     }
 }
 
-// MARK: - Fake URLSessionFieldProvider
+// MARK: - Fake URLSessionRequestFieldProvider
 
-private class FakeURLSessionFieldProvider: URLSessionFieldProvider {
-    func provideRequestFields(for request: URLRequest) -> [String: String] {
+private class FakeURLSessionRequestFieldProvider: URLSessionRequestFieldProvider {
+    func provideExtraFields(for request: URLRequest) -> [String: String] {
         return ["mock_field": "mock_value"]
     }
 }

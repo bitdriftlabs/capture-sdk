@@ -97,7 +97,8 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
             )?
             .enableIntegrations(
                 [.urlSession(
-                    extraFieldsProvider: CustomNetworkFieldProvider()
+                    requestFieldProvider: CustomNetworkFieldProvider(),
+                    responseFieldProvider: CustomNetworkResponseFieldProvider()
                 ), ],
                 disableSwizzling: true
             )
@@ -236,15 +237,18 @@ final class CustomFieldProvider: FieldProvider {
     }
 }
 
-// Provides additional fields for each network request and response
-struct CustomNetworkFieldProvider: URLSessionFieldProvider {
-    func provideRequestFields(for request: URLRequest) -> [String: String] {
+// Provides additional fields for each network request
+struct CustomNetworkFieldProvider: URLSessionRequestFieldProvider {
+    func provideExtraFields(for request: URLRequest) -> [String: String] {
         return [
             "additional_network_request_field": request.debugDescription,
         ]
     }
+}
 
-    func provideResponseFields(for response: HTTPURLResponse) -> [String: String] {
+// Provides additional fields for each network response
+struct CustomNetworkResponseFieldProvider: URLSessionResponseFieldProvider {
+    func provideExtraFields(for response: HTTPURLResponse) -> [String: String] {
         guard response.statusCode >= 400 else {
             return [:]
         }

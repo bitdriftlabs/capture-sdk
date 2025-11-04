@@ -60,7 +60,7 @@ final class URLSessionTaskTracker {
 
             var extraFields: Fields?
             if let originalRequest = task.originalRequest {
-                extraFields = URLSessionIntegration.shared.extraFieldsProvider?.provideRequestFields(for: originalRequest)
+                extraFields = URLSessionIntegration.shared.requestFieldProvider?.provideExtraFields(for: originalRequest)
             }
             guard let requestInfo = HTTPRequestInfo(task: task, extraFields: extraFields) else {
                 return
@@ -88,7 +88,7 @@ final class URLSessionTaskTracker {
             let httpResponse = HTTPResponse(httpURLResponse: task.response, error: task.error)
             var extraFields: Fields?
             if let httpURLResponse = task.response as? HTTPURLResponse {
-                extraFields = URLSessionIntegration.shared.extraFieldsProvider?.provideResponseFields(
+                extraFields = URLSessionIntegration.shared.responseFieldProvider?.provideExtraFields(
                     for: httpURLResponse
                 )
             }

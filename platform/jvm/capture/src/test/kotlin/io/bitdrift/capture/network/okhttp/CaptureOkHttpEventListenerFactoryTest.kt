@@ -579,13 +579,13 @@ class CaptureOkHttpEventListenerFactoryTest {
 
         val call: Call = mock()
         whenever(call.request()).thenReturn(request)
-        val fieldProvider =
-            object : OkHttpFieldProvider {
-                override fun provideRequestFields(request: Request): Map<String, String> =
-                    mapOf("requestMetadata" to (request.tag() as String))
-
-                override fun provideResponseFields(response: Response): Map<String, String> =
-                    mapOf("responseMetadata" to response.code.toString())
+        val requestFieldProvider =
+            OkHttpRequestFieldProvider {
+                mapOf("requestMetadata" to it.tag() as String)
+            }
+        val responseFieldProvider =
+            OkHttpResponseFieldProvider { _, resp ->
+                mapOf("responseMetadata" to resp?.code.toString())
             }
 
         // ACT
@@ -594,7 +594,8 @@ class CaptureOkHttpEventListenerFactoryTest {
                 null,
                 logger,
                 clock,
-                extraFieldsProvider = fieldProvider,
+                requestFieldProvider = requestFieldProvider,
+                responseFieldProvider = responseFieldProvider,
             )
         val listener = factory.create(call)
         listener.callStart(call)
