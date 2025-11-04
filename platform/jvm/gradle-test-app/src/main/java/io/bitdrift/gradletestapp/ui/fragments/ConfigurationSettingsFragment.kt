@@ -164,6 +164,9 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         const val FATAL_ISSUE_ENABLED_PREFS_KEY = "fatalIssueEnabled"
         const val DEFERRED_START_PREFS_KEY = "deferredStart"
         const val SESSION_REPLAY_ENABLED_PREFS_KEY = "sessionReplayEnabled"
+
+        const val PREFS_SLEEP_MODE_ENABLED = "sleep_mode_enabled"
+
         private const val SESSION_STRATEGY_TITLE = "Session Strategy"
         private const val FATAL_ISSUE_TITLE = "Fatal Issue Reporter"
         private const val DEFERRED_START_TITLE = "Deferred SDK Start"

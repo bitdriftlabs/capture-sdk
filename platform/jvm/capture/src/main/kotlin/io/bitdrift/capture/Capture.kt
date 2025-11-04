@@ -104,7 +104,7 @@ object Capture {
         private val mainThreadHandler by lazy { MainThreadHandler() }
 
         /**
-         * Get the current version of the Capture library
+         * Get the current version of the Capture library.
          *
          * @return the version as a String
          */

@@ -23,9 +23,9 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import io.bitdrift.gradletestapp.R
-import io.bitdrift.gradletestapp.data.model.AppExitReason
+import io.bitdrift.gradletestapp.data.model.AppAction
+import io.bitdrift.gradletestapp.data.model.AppState
 import io.bitdrift.gradletestapp.data.model.ClearError
 import io.bitdrift.gradletestapp.data.model.ConfigAction
 import io.bitdrift.gradletestapp.data.model.DiagnosticsAction
@@ -37,26 +37,16 @@ import io.bitdrift.gradletestapp.ui.compose.components.NavigationCard
 import io.bitdrift.gradletestapp.ui.compose.components.NetworkTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.SdkStatusCard
 import io.bitdrift.gradletestapp.ui.compose.components.SessionManagementCard
+import io.bitdrift.gradletestapp.ui.compose.components.SleepModeCard
 import io.bitdrift.gradletestapp.ui.compose.components.TestingToolsCard
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
-import io.bitdrift.gradletestapp.ui.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    onNavigateToConfig: () -> Unit,
-    onNavigateToWebView: () -> Unit,
-    onNavigateToCompose: () -> Unit,
-    onNavigateToXml: () -> Unit,
-    onPerformOkHttpRequest: () -> Unit,
-    onPerformGraphQlRequest: () -> Unit,
-    onAddOneFeatureFlag: () -> Unit,
-    onAddManyFeatureFlags: () -> Unit,
-    onClearFeatureFlags: () -> Unit,
-    onForceAppExit: (AppExitReason) -> Unit,
-    viewModel: MainViewModel,
+    uiState: AppState,
+    onAction: (AppAction) -> Unit,
 ) {
-    val uiState by viewModel.uiState.collectAsState()
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
 
@@ -122,7 +112,7 @@ fun MainScreen(
                             modifier = Modifier.weight(1f),
                         )
                         TextButton(
-                            onClick = { viewModel.handleAction(ClearError) },
+                            onClick = { onAction(ClearError) },
                         ) {
                             Text(stringResource(id = android.R.string.cancel))
                         }
@@ -132,93 +122,96 @@ fun MainScreen(
 
             val listState = rememberLazyListState()
 
-            Box(modifier = Modifier.weight(1f)) {
-                LazyColumn(
-                    state = listState,
-                    modifier =
-                        Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp),
-                ) {
-                    item {
-                        SdkStatusCard(
-                            uiState = uiState,
-                            onInitializeSdk = { viewModel.handleAction(ConfigAction.InitializeSdk) },
-                            onNavigateToConfig = onNavigateToConfig,
-                        )
-                    }
-                    item {
-                        SessionManagementCard(
-                            uiState = uiState,
-                            onStartNewSession = { viewModel.handleAction(SessionAction.StartNewSession) },
-                            onGenerateDeviceCode = { viewModel.handleAction(SessionAction.GenerateDeviceCode) },
-                            onCopySessionUrl = {
-                                viewModel.handleAction(SessionAction.CopySessionUrl)
-                                uiState.session.sessionUrl?.let { url ->
-                                    clipboardManager.setText(AnnotatedString(url))
-                                }
-                            },
-                        )
-                    }
-                    item {
-                        TestingToolsCard(
-                            uiState = uiState,
-                            onLogLevelChange = { viewModel.handleAction(ConfigAction.UpdateLogLevel(it)) },
-                            onAppExitReasonChange = { viewModel.handleAction(DiagnosticsAction.UpdateAppExitReason(it)) },
-                            onLogMessage = {
-                                viewModel.handleAction(DiagnosticsAction.LogMessage)
-                                val toasterText = context.getString(R.string.log_message_toast, uiState.config.selectedLogLevel)
-                                Toast.makeText(context, toasterText, Toast.LENGTH_SHORT).show()
-                            },
-                            onForceAppExit = {
-                                viewModel.handleAction(DiagnosticsAction.ForceAppExit)
-                                onForceAppExit(uiState.diagnostics.selectedAppExitReason)
-                            },
-                        )
-                    }
-                    item {
-                        NetworkTestingCard(
-                            onOkHttpRequest = {
-                                viewModel.handleAction(NetworkTestAction.PerformOkHttpRequest)
-                                onPerformOkHttpRequest()
-                            },
-                            onGraphQlRequest = {
-                                viewModel.handleAction(NetworkTestAction.PerformGraphQlRequest)
-                                onPerformGraphQlRequest()
-                            },
-                        )
-                    }
-                    item {
-                        FeatureFlagsTestingCard(
-                            onAddOneFeatureFlag = {
-                                viewModel.handleAction(FeatureFlagsTestAction.AddOneFeatureFlag)
-                                onAddOneFeatureFlag()
-                            },
-                            onAddManyFeatureFlags = {
-                                viewModel.handleAction(FeatureFlagsTestAction.AddManyFeatureFlags)
-                                onAddManyFeatureFlags()
-                            },
-                            onClearFeatureFlags = {
-                                viewModel.handleAction(FeatureFlagsTestAction.ClearFeatureFlags)
-                                onClearFeatureFlags()
-                            },
-                        )
-                    }
-                    item {
-                        NavigationCard(
-                            onNavigateToWebView = onNavigateToWebView,
-                            onNavigateToCompose = onNavigateToCompose,
-                            onNavigateToXml = onNavigateToXml,
-                        )
-                    }
-                    if (uiState.isLoading) {
-                        item {
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                CircularProgressIndicator()
+            LazyColumn(
+                state = listState,
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 16.dp),
+            ) {
+                item {
+                    SdkStatusCard(
+                        uiState = uiState,
+                        onInitializeSdk = { onAction(ConfigAction.InitializeSdk) },
+                        onAction = onAction,
+                    )
+                }
+                item {
+                    SessionManagementCard(
+                        uiState = uiState,
+                        onStartNewSession = { onAction(SessionAction.StartNewSession) },
+                        onGenerateDeviceCode = { onAction(SessionAction.GenerateDeviceCode) },
+                        onCopySessionUrl = {
+                            onAction(SessionAction.CopySessionUrl)
+                            uiState.session.sessionUrl?.let { url ->
+                                clipboardManager.setText(AnnotatedString(url))
                             }
+                        },
+                    )
+                }
+                item {
+                    TestingToolsCard(
+                        uiState = uiState,
+                        onLogLevelChange = { onAction(ConfigAction.UpdateLogLevel(it)) },
+                        onAppExitReasonChange = {
+                            onAction(DiagnosticsAction.UpdateAppExitReason(it))
+                        },
+                        onLogMessage = {
+                            onAction(DiagnosticsAction.LogMessage)
+
+                            val toasterText =
+                                context.getString(
+                                    R.string.log_message_toast,
+                                    uiState.config.selectedLogLevel,
+                                )
+                            Toast.makeText(context, toasterText, Toast.LENGTH_SHORT).show()
+                        },
+                        onAction = onAction,
+                    )
+                }
+                item {
+                    SleepModeCard(
+                        uiState = uiState,
+                        onToggle = { enabled -> onAction(ConfigAction.SetSleepModeEnabled(enabled)) },
+                    )
+                }
+                item {
+                    NetworkTestingCard(
+                        onOkHttpRequest = {
+                            onAction(NetworkTestAction.PerformOkHttpRequest)
+                        },
+                        onGraphQlRequest = {
+                            onAction(NetworkTestAction.PerformGraphQlRequest)
+                        },
+                    )
+                }
+                item {
+                    FeatureFlagsTestingCard(
+                        onAddOneFeatureFlag = {
+                            onAction(FeatureFlagsTestAction.AddOneFeatureFlag)
+                        },
+                        onAddManyFeatureFlags = {
+                            onAction(FeatureFlagsTestAction.AddManyFeatureFlags)
+                        },
+                        onClearFeatureFlags = {
+                            onAction(FeatureFlagsTestAction.ClearFeatureFlags)
+                        },
+                    )
+                }
+                item {
+                    NavigationCard(
+                        onAction = onAction,
+                    )
+                }
+                if (uiState.isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator()
                         }
                     }
                 }

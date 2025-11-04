@@ -7,17 +7,23 @@
 
 package io.bitdrift.gradletestapp.ui.viewmodel
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import io.bitdrift.gradletestapp.data.repository.AppExitRepository
+import io.bitdrift.gradletestapp.data.repository.NetworkTestingRepository
 import io.bitdrift.gradletestapp.data.repository.SdkRepository
 
 class MainViewModelFactory(
+    private val application: Application,
     private val sdkRepository: SdkRepository,
+    private val networkTestingRepository: NetworkTestingRepository,
+    private val appExitRepository: AppExitRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
-            return MainViewModel(sdkRepository) as T
+            return MainViewModel(application, sdkRepository, networkTestingRepository, appExitRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

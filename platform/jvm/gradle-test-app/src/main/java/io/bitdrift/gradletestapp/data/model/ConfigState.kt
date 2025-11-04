@@ -16,4 +16,5 @@ data class ConfigState(
     val sessionStrategy: String = "",
     val isDeferredStart: Boolean = false,
     val selectedLogLevel: LogLevel = LogLevel.INFO,
+    val isSleepModeEnabled: Boolean = false,
 )
