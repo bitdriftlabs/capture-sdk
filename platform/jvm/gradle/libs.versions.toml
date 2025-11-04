@@ -35,6 +35,7 @@ androidx-appcompat         = { module = "androidx.appcompat:appcompat", version.
 androidx-core              = { group = "androidx.core", name = "core", version.ref = "androidxCore" }
 androidx-lifecycle-common  = { module = "androidx.lifecycle:lifecycle-common", version.ref = "lifecycleCommon" }
 androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycleCommon" }
+androidx-lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime", version.ref = "lifecycleCommon" }
 androidx-startup-runtime   = { module = "androidx.startup:startup-runtime", version.ref = "startupRuntime" }
 androidx-test-core         = { module = "androidx.test:core", version.ref = "androidxTestCore" }
 androidx-ui                = { module = "androidx.compose.ui:ui", version.ref = "ui" }

@@ -28,6 +28,7 @@ dependencies {
     implementation(project(":common"))
     implementation(libs.androidx.core)
     implementation(libs.androidx.startup.runtime)
+    implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.jsr305)
     implementation(libs.gson)
     implementation(libs.performance)

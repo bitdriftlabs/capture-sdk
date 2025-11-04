@@ -172,6 +172,7 @@ maven.install(
         "com.google.guava:listenablefuture:1.0",  #required by androidx.lifecycle:lifecycle-process below
         "androidx.lifecycle:lifecycle-common:{}".format(LIFECYCLE_VERSION),
         "androidx.lifecycle:lifecycle-process:{}".format(LIFECYCLE_VERSION),
+        "androidx.lifecycle:lifecycle-runtime:{}".format(LIFECYCLE_VERSION),
         "org.jetbrains.kotlin:kotlin-stdlib:{}".format(KOTLIN_STD_VERSION),
         "androidx.emoji2:emoji2:1.5.0",
         "androidx.collection:collection:1.4.5",
