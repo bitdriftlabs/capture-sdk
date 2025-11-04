@@ -22,11 +22,11 @@
 
 **Added**
 
-- Nothing yet!
+- Add `RetrofitUrlPathProvider` helper class to help extracting endpoint's url paths when using Retrofit services.
 
 **Changed**
 
-- Nothing yet!
+- Simplify constructor of `CaptureOkHttpEventListenerFactory`. Deprecate usage of `(call: Call) -> EventListener)` in favor of `EventListener.Factory`.
 
 **Fixed**
 
