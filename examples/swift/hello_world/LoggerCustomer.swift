@@ -96,7 +96,10 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
                 apiURL: apiURL
             )?
             .enableIntegrations(
-                [.urlSession(requestFieldProvider: CustomNetworkFieldProvider())],
+                [.urlSession(
+                    requestFieldProvider: CustomNetworkFieldProvider(),
+                    responseFieldProvider: CustomNetworkResponseFieldProvider()
+                ), ],
                 disableSwizzling: true
             )
 
@@ -240,5 +243,24 @@ struct CustomNetworkFieldProvider: URLSessionRequestFieldProvider {
         return [
             "additional_network_request_field": request.debugDescription,
         ]
+    }
+}
+
+// Provides additional fields for each network response
+struct CustomNetworkResponseFieldProvider: URLSessionResponseFieldProvider {
+    func provideExtraFields(for request: URLRequest, response: HTTPURLResponse?) -> [String: String] {
+        guard let response, response.statusCode >= 400 else {
+            return [:]
+        }
+
+        var fields: [String: String] = [
+            "custom_error_status_code": String(response.statusCode)
+        ]
+
+        if let errorMessage = response.value(forHTTPHeaderField: "X-Error-Message") {
+            fields["custom_error_message"] = errorMessage
+        }
+
+        return fields
     }
 }

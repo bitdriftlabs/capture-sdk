@@ -32,20 +32,23 @@ class CaptureOkHttpEventListenerFactory internal constructor(
     private val targetEventListenerCreator: ((call: Call) -> EventListener)? = null,
     private val logger: ILogger? = Capture.logger(),
     private val clock: IClock = DefaultClock.getInstance(),
-    private val extraFieldsProvider: OkHttpRequestFieldProvider =
-        OkHttpRequestFieldProvider {
-            emptyMap()
-        },
+    private val requestFieldProvider: OkHttpRequestFieldProvider = DEFAULT_REQUEST_FIELD_PROVIDER,
+    private val responseFieldProvider: OkHttpResponseFieldProvider = DEFAULT_RESPONSE_FIELD_PROVIDER,
 ) : EventListener.Factory {
     /**
      * Initializes a new instance of the Capture event listener.
+     *
+     * @param requestFieldProvider Provider for request-based extra fields.
+     * @param responseFieldProvider Provider for response-based extra fields.
      */
     constructor(
-        extraFieldsProvider: OkHttpRequestFieldProvider =
-            OkHttpRequestFieldProvider {
-                emptyMap()
-            },
-    ) : this(null, extraFieldsProvider = extraFieldsProvider)
+        requestFieldProvider: OkHttpRequestFieldProvider = DEFAULT_REQUEST_FIELD_PROVIDER,
+        responseFieldProvider: OkHttpResponseFieldProvider = DEFAULT_RESPONSE_FIELD_PROVIDER,
+    ) : this(
+        targetEventListenerCreator = null,
+        requestFieldProvider = requestFieldProvider,
+        responseFieldProvider = responseFieldProvider,
+    )
 
     /**
      * Initializes a new instance of the Capture event listener. Accepts an instance of an existing event
@@ -53,31 +56,34 @@ class CaptureOkHttpEventListenerFactory internal constructor(
      *
      * @param targetEventListener The existing event listener that should be informed about
      * [okhttp3.OkHttpClient] events alongside the Capture event listeners.
+     * @param requestFieldProvider Provider for request-based extra fields.
+     * @param responseFieldProvider Provider for response-based extra fields.
      */
     constructor(
         targetEventListener: EventListener,
-        extraFieldsProvider: OkHttpRequestFieldProvider =
-            OkHttpRequestFieldProvider {
-                emptyMap()
-            },
-    ) : this({ targetEventListener }, extraFieldsProvider = extraFieldsProvider)
+        requestFieldProvider: OkHttpRequestFieldProvider = DEFAULT_REQUEST_FIELD_PROVIDER,
+        responseFieldProvider: OkHttpResponseFieldProvider = DEFAULT_RESPONSE_FIELD_PROVIDER,
+    ) : this(
+        targetEventListenerCreator = { targetEventListener },
+        requestFieldProvider = requestFieldProvider,
+        responseFieldProvider = responseFieldProvider,
+    )
 
     /**
-     * Initializes a new instance of the Capture event listener. Accepts an instance of an existing event
-     * listener to make it possible to combine the Capture event listener with other existing listeners.
+     * Initializes a new instance of the Capture event listener with an existing event listener factory.
      *
-     * @param targetEventListenerFactory The existing event listener factory that should be used to create event listeners
-     * to be informed about [okhttp3.OkHttpClient] events alongside the Capture event listener.
+     * @param targetEventListenerFactory Factory for creating event listeners alongside Capture.
+     * @param requestFieldProvider Provider for request-based extra fields.
+     * @param responseFieldProvider Provider for response-based extra fields.
      */
     constructor(
         targetEventListenerFactory: EventListener.Factory,
-        extraFieldsProvider: OkHttpRequestFieldProvider =
-            OkHttpRequestFieldProvider {
-                emptyMap()
-            },
+        requestFieldProvider: OkHttpRequestFieldProvider = DEFAULT_REQUEST_FIELD_PROVIDER,
+        responseFieldProvider: OkHttpResponseFieldProvider = DEFAULT_RESPONSE_FIELD_PROVIDER,
     ) : this(
         targetEventListenerCreator = { targetEventListenerFactory.create(it) },
-        extraFieldsProvider = extraFieldsProvider,
+        requestFieldProvider = requestFieldProvider,
+        responseFieldProvider = responseFieldProvider,
     )
 
     override fun create(call: Call): EventListener {
@@ -90,10 +96,16 @@ class CaptureOkHttpEventListenerFactory internal constructor(
             logger = currentLogger,
             clock = clock,
             targetEventListener = targetEventListener,
-            extraFieldsProvider = extraFieldsProvider,
+            requestExtraFieldsProvider = requestFieldProvider,
+            responseExtraFieldsProvider = responseFieldProvider,
         )
     }
 
     // attempts to get the latest logger if one wasn't found at construction time
     private fun getLogger(): ILogger? = logger ?: Capture.logger()
+
+    private companion object {
+        private val DEFAULT_REQUEST_FIELD_PROVIDER = OkHttpRequestFieldProvider { emptyMap() }
+        private val DEFAULT_RESPONSE_FIELD_PROVIDER = OkHttpResponseFieldProvider { _, _ -> emptyMap() }
+    }
 }
