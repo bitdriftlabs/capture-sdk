@@ -98,11 +98,12 @@ internal class CaptureOkHttpEventListener internal constructor(
         callStartTimeMs = clock.elapsedRealtime()
 
         val request = call.request()
+        val extraFields = extraFieldsProvider.provideExtraFields(request)
 
         val pathTemplateHeaderValues = request.headers.values("x-capture-path-template")
         val pathTemplate =
             if (pathTemplateHeaderValues.isEmpty()) {
-                extraFieldsProvider.provideExtraFields(request)[HttpField.PATH_TEMPLATE]
+                extraFields[HttpField.PATH_TEMPLATE]
             } else {
                 pathTemplateHeaderValues.joinToString(",")
             }
@@ -127,7 +128,7 @@ internal class CaptureOkHttpEventListener internal constructor(
                 query = request.url.query,
                 headers = request.headers.toMap(),
                 bytesExpectedToSendCount = bytesExpectedToSendCount,
-                extraFields = extraFieldsProvider.provideExtraFields(request),
+                extraFields = extraFields,
             )
 
         this.requestInfo = requestInfo
