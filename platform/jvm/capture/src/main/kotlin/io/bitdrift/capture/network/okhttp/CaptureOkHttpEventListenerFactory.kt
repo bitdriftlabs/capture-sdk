@@ -35,7 +35,6 @@ class CaptureOkHttpEventListenerFactory internal constructor(
     private val requestFieldProvider: OkHttpRequestFieldProvider,
     private val responseFieldProvider: OkHttpResponseFieldProvider,
 ) : EventListener.Factory {
-
     /**
      * Initializes a new instance of the Capture event listener with an existing event listener factory.
      *
