@@ -59,7 +59,7 @@ public final class MockLogging {
     /// A closure that's called every time a log is emitted by the logger.
     public var onLog: (_ log: Log) -> Void = { _ in }
     /// The sleep mode state
-    public private(set) var sleepMode: SleepMode = .inactive
+    public private(set) var sleepMode: SleepMode = .disabled
 }
 
 extension MockLogging: Logging {

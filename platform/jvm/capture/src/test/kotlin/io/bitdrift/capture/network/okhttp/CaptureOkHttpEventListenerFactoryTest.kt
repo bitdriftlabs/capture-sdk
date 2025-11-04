@@ -561,7 +561,6 @@ class CaptureOkHttpEventListenerFactoryTest {
     fun testCustomFieldProviderAddsExtraFields() {
         // ARRANGE
         val requestMetadata = "1234"
-
         val request =
             Request
                 .Builder()
@@ -569,7 +568,6 @@ class CaptureOkHttpEventListenerFactoryTest {
                 .post("test".toRequestBody())
                 .tag(requestMetadata)
                 .build()
-
         val response =
             Response
                 .Builder()
@@ -582,21 +580,28 @@ class CaptureOkHttpEventListenerFactoryTest {
 
         val call: Call = mock()
         whenever(call.request()).thenReturn(request)
-
-        val extraFieldProvider =
+        val requestFieldProvider =
             OkHttpRequestFieldProvider {
                 mapOf("requestMetadata" to it.tag() as String)
             }
+        val responseFieldProvider =
+            OkHttpResponseFieldProvider { resp ->
+                mapOf("responseMetadata" to resp.code.toString())
+            }
 
         // ACT
-        val factory = createListenerFactory(extraFieldsProvider = extraFieldProvider)
+        val factory =
+            CaptureOkHttpEventListenerFactory(
+                null,
+                logger,
+                clock,
+                requestFieldProvider = requestFieldProvider,
+                responseFieldProvider = responseFieldProvider,
+            )
         val listener = factory.create(call)
-
         listener.callStart(call)
-
         listener.responseHeadersEnd(call, response)
         listener.responseBodyEnd(call, 234)
-
         listener.callEnd(call)
 
         // ASSERT
@@ -604,10 +609,10 @@ class CaptureOkHttpEventListenerFactoryTest {
         verify(logger).log(httpRequestInfoCapture.capture())
         val httpResponseInfoCapture = argumentCaptor<HttpResponseInfo>()
         verify(logger).log(httpResponseInfoCapture.capture())
-
         val httpRequestInfo = httpRequestInfoCapture.firstValue
-
         assertThat(httpRequestInfo.fields["requestMetadata"].toString()).isEqualTo(requestMetadata)
+        val httpResponseInfo = httpResponseInfoCapture.firstValue
+        assertThat(httpResponseInfo.fields["responseMetadata"].toString()).isEqualTo("200")
     }
 
     @Test
@@ -628,7 +633,7 @@ class CaptureOkHttpEventListenerFactoryTest {
         // ACT
         val factory =
             createListenerFactory(
-                extraFieldsProvider = { mapOf(HttpField.PATH_TEMPLATE to templatedPath) },
+                requestFieldProvider = { mapOf(HttpField.PATH_TEMPLATE to templatedPath) },
             )
         val listener = factory.create(call)
 
@@ -668,8 +673,12 @@ class CaptureOkHttpEventListenerFactoryTest {
     private fun createListenerFactory(
         targetEventListenerCreator: EventListener.Factory? = null,
         logger: ILogger? = this.logger,
-        extraFieldsProvider: OkHttpRequestFieldProvider =
+        requestFieldProvider: OkHttpRequestFieldProvider =
             OkHttpRequestFieldProvider {
+                emptyMap()
+            },
+        responseFieldProvider: OkHttpResponseFieldProvider =
+            OkHttpResponseFieldProvider {
                 emptyMap()
             },
     ): CaptureOkHttpEventListenerFactory =
@@ -677,6 +686,7 @@ class CaptureOkHttpEventListenerFactoryTest {
             targetEventListenerFactory = targetEventListenerCreator,
             logger = logger,
             clock = clock,
-            extraFieldsProvider = extraFieldsProvider,
+            requestFieldProvider = requestFieldProvider,
+            responseFieldProvider = responseFieldProvider,
         )
 }

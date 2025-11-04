@@ -179,7 +179,7 @@ public final class LoggerObjc: NSObject {
     ///                                          Bitdrift.
     ///                                          Defaults to Bitdrift's hosted Compose API base URL.
     /// - parameter enableURLSessionIntegration: A flag indicating if automatic URLSession capture is enabled.
-    /// - parameter sleepMode:                   .active if Capture should be initialized in minimal activity mode.
+    /// - parameter sleepMode:                   .enabled if Capture should be initialized in minimal activity mode.
     /// - parameter enableFatalIssueReporting:   true if Capture should enable Fatal Issue Reporting.
     @objc
     public static func start(
@@ -188,7 +188,7 @@ public final class LoggerObjc: NSObject {
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
         apiURL: URL = URL(string: "https://api.bitdrift.io")!,
         enableURLSessionIntegration: Bool = true,
-        sleepMode: SleepMode = .inactive,
+        sleepMode: SleepMode = .disabled,
         enableFatalIssueReporting: Bool = true
     ) {
         let logger = Capture.Logger

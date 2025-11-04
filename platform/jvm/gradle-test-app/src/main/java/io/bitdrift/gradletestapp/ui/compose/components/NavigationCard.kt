@@ -19,15 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.bitdrift.gradletestapp.R
+import io.bitdrift.gradletestapp.data.model.AppAction
+import io.bitdrift.gradletestapp.data.model.NavigationAction
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun NavigationCard(
-    onNavigateToWebView: () -> Unit,
-    onNavigateToCompose: () -> Unit,
-    onNavigateToXml: () -> Unit,
-) {
+fun NavigationCard(onAction: (AppAction) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -51,17 +49,17 @@ fun NavigationCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 OutlinedButton(
-                    onClick = onNavigateToWebView,
+                    onClick = { onAction(NavigationAction.NavigateToWebView) },
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
                 ) { Text(stringResource(id = R.string.navigate_to_web_view), maxLines = 1, softWrap = false) }
 
                 OutlinedButton(
-                    onClick = onNavigateToCompose,
+                    onClick = { onAction(NavigationAction.NavigateToCompose) },
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
                 ) { Text(stringResource(id = R.string.navigate_second), maxLines = 1, softWrap = false) }
 
                 OutlinedButton(
-                    onClick = onNavigateToXml,
+                    onClick = { onAction(NavigationAction.NavigateToXml) },
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
                 ) { Text(stringResource(id = R.string.navigate_to_xml_view), maxLines = 1, softWrap = false) }
             }

@@ -33,7 +33,8 @@ internal class CaptureOkHttpEventListener internal constructor(
     private val logger: ILogger?,
     private val clock: IClock,
     private val targetEventListener: EventListener?,
-    private val extraFieldsProvider: OkHttpRequestFieldProvider,
+    private val requestExtraFieldsProvider: OkHttpRequestFieldProvider,
+    private val responseExtraFieldsProvider: OkHttpResponseFieldProvider,
 ) : EventListener() {
     private var requestBodyBytesSentCount: Long = 0
     private var responseBodyBytesReceivedCount: Long = 0
@@ -98,7 +99,7 @@ internal class CaptureOkHttpEventListener internal constructor(
         callStartTimeMs = clock.elapsedRealtime()
 
         val request = call.request()
-        val extraFields = extraFieldsProvider.provideExtraFields(request)
+        val extraFields = requestExtraFieldsProvider.provideExtraFields(request)
 
         val pathTemplateHeaderValues = request.headers.values("x-capture-path-template")
         val pathTemplate =
@@ -369,6 +370,7 @@ internal class CaptureOkHttpEventListener internal constructor(
                 response = httpResponse,
                 durationMs = (clock.elapsedRealtime() - callStartTimeMs),
                 metrics = getMetrics(),
+                extraFields = responseExtraFieldsProvider.provideExtraFields(response),
             )
 
         logger?.log(httpResponseInfo)
@@ -402,6 +404,7 @@ internal class CaptureOkHttpEventListener internal constructor(
                     },
                 error = ioe,
             )
+
         val httpResponseInfo =
             HttpResponseInfo(
                 request = requestInfo,

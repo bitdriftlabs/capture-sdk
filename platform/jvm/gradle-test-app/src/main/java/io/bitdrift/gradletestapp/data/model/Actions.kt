@@ -26,6 +26,10 @@ sealed class ConfigAction : AppAction {
     data class UpdateLogLevel(
         val logLevel: LogLevel,
     ) : ConfigAction()
+
+    data class SetSleepModeEnabled(
+        val enabled: Boolean,
+    ) : ConfigAction()
 }
 
 sealed class SessionAction : AppAction {
@@ -60,6 +64,16 @@ sealed class FeatureFlagsTestAction : AppAction {
     object AddManyFeatureFlags : FeatureFlagsTestAction()
 
     object ClearFeatureFlags : FeatureFlagsTestAction()
+}
+
+sealed class NavigationAction : AppAction {
+    object NavigateToConfig : NavigationAction()
+
+    object NavigateToWebView : NavigationAction()
+
+    object NavigateToCompose : NavigationAction()
+
+    object NavigateToXml : NavigationAction()
 }
 
 object ClearError : AppAction

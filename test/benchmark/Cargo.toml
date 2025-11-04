@@ -14,6 +14,7 @@ bd-hyper-network.workspace = true
 bd-key-value.workspace     = true
 bd-logger.workspace        = true
 bd-noop-network.workspace  = true
+bd-proto.workspace         = true
 bd-session.workspace       = true
 bd-shutdown.workspace      = true
 bd-test-helpers.workspace  = true

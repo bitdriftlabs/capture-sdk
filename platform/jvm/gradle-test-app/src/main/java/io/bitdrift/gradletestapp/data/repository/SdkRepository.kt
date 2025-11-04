@@ -14,10 +14,12 @@ import androidx.preference.PreferenceManager
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.SleepMode
 import io.bitdrift.gradletestapp.init.BitdriftInit
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_URL_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFERRED_START_PREFS_KEY
+import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.PREFS_SLEEP_MODE_ENABLED
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.SESSION_REPLAY_ENABLED_PREFS_KEY
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -82,6 +84,7 @@ class SdkRepository(
             sessionStrategy = getSessionStrategy(),
             isDeferredStart = isDeferredStartEnabled(),
             isSessionReplayEnabled = isSessionReplayEnabled(),
+            isSleepModeEnabled = isSleepModeEnabled(),
         )
 
     /**
@@ -126,6 +129,14 @@ class SdkRepository(
             )
         }
 
+    suspend fun isSleepModeEnabled(): Boolean =
+        withContext(Dispatchers.IO) {
+            sharedPreferences.getBoolean(
+                PREFS_SLEEP_MODE_ENABLED,
+                false,
+            )
+        }
+
     /**
      * Get current session strategy
      */
@@ -166,6 +177,12 @@ class SdkRepository(
         }
     }
 
+    fun setSleepModeEnabled(enabled: Boolean) {
+        val mode = if (enabled) SleepMode.ENABLED else SleepMode.DISABLED
+        Logger.setSleepMode(mode)
+        sharedPreferences.edit { putBoolean(PREFS_SLEEP_MODE_ENABLED, enabled) }
+    }
+
     /**
      * Validate API key format
      */
@@ -197,5 +214,6 @@ class SdkRepository(
         val sessionStrategy: String,
         val isDeferredStart: Boolean,
         val isSessionReplayEnabled: Boolean,
+        val isSleepModeEnabled: Boolean,
     )
 }

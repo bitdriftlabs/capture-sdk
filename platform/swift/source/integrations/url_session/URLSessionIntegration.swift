@@ -28,16 +28,21 @@ extension Integration {
     ///              `URLSession.capture_makeSession(configuration:delegate:delegateQueue:)` method to create
     ///              `URLSession` instances.
     ///
-    /// - parameter requestFieldProvider: An optional provider that supplies additional key-value fields for each `URLRequest` logged by the integration.
+    /// - parameter requestFieldProvider:  An optional provider that supplies additional key-value fields for each `URLRequest` logged by the integration.
+    /// - parameter responseFieldProvider: An optional provider that supplies additional key-value fields for each HTTP response logged by the integration.
     ///
     /// - returns: The `URLSession` integration.
     ///
-    public static func urlSession(requestFieldProvider: URLSessionRequestFieldProvider?=nil) -> Integration {
+    public static func urlSession(
+        requestFieldProvider: URLSessionRequestFieldProvider? = nil,
+        responseFieldProvider: URLSessionResponseFieldProvider? = nil
+    ) -> Integration {
         .init { logger, disableSwizzling, _ in
             URLSessionIntegration.shared.start(
                 logger: logger,
                 disableSwizzling: disableSwizzling,
-                requestFieldProvider: requestFieldProvider
+                requestFieldProvider: requestFieldProvider,
+                responseFieldProvider: responseFieldProvider
             )
         }
     }
@@ -48,6 +53,8 @@ final class URLSessionIntegration {
     private let underlyingLogger = Atomic<Logging?>(nil)
     /// The field provider for adding custom fields to request logs
     private let underlyingRequestFieldProvider = Atomic<URLSessionRequestFieldProvider?>(nil)
+    /// The field provider for adding custom fields to response logs
+    private let underlyingResponseFieldProvider = Atomic<URLSessionResponseFieldProvider?>(nil)
     fileprivate static var swizzled = Atomic(false)
     static let shared = URLSessionIntegration()
 
@@ -59,9 +66,19 @@ final class URLSessionIntegration {
         return self.underlyingRequestFieldProvider.load()
     }
 
-    func start(logger: Logging, disableSwizzling: Bool, requestFieldProvider: URLSessionRequestFieldProvider?) {
+    var responseFieldProvider: URLSessionResponseFieldProvider? {
+        return self.underlyingResponseFieldProvider.load()
+    }
+
+    func start(
+        logger: Logging,
+        disableSwizzling: Bool,
+        requestFieldProvider: URLSessionRequestFieldProvider?,
+        responseFieldProvider: URLSessionResponseFieldProvider?
+    ) {
         self.underlyingLogger.update { $0 = logger }
         self.underlyingRequestFieldProvider.update { $0 = requestFieldProvider }
+        self.underlyingResponseFieldProvider.update { $0 = responseFieldProvider }
         if disableSwizzling || Self.swizzled.load() {
             return
         }
