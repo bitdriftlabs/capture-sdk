@@ -27,6 +27,7 @@
 **Changed**
 
 - Simplify constructor of `CaptureOkHttpEventListenerFactory`. Deprecate usage of `(call: Call) -> EventListener)` in favor of `EventListener.Factory`.
+- Make `HttpField.PATH_TEMPLATE` constant public so consumers can override it using a custom `OkHttpRequestFieldProvider`.
 
 **Fixed**
 
