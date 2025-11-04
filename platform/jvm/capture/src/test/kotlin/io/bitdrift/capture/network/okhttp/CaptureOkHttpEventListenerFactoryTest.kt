@@ -584,8 +584,8 @@ class CaptureOkHttpEventListenerFactoryTest {
                 mapOf("requestMetadata" to it.tag() as String)
             }
         val responseFieldProvider =
-            OkHttpResponseFieldProvider { _, resp ->
-                mapOf("responseMetadata" to resp?.code.toString())
+            OkHttpResponseFieldProvider { resp ->
+                mapOf("responseMetadata" to resp.code.toString())
             }
 
         // ACT

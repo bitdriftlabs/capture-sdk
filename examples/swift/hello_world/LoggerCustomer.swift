@@ -249,18 +249,8 @@ struct CustomNetworkFieldProvider: URLSessionRequestFieldProvider {
 // Provides additional fields for each network response
 struct CustomNetworkResponseFieldProvider: URLSessionResponseFieldProvider {
     func provideExtraFields(for response: HTTPURLResponse) -> [String: String] {
-        guard response.statusCode >= 400 else {
-            return [:]
-        }
-
-        var fields: [String: String] = [
-            "custom_error_status_code": String(response.statusCode)
+        return [
+            "additional_network_response_field": response.debugDescription,
         ]
-
-        if let errorMessage = response.value(forHTTPHeaderField: "X-Error-Message") {
-            fields["custom_error_message"] = errorMessage
-        }
-
-        return fields
     }
 }
