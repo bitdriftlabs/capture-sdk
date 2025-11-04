@@ -18,8 +18,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.gradletestapp.R
+import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.AppExitReason
 import io.bitdrift.gradletestapp.data.model.AppState
+import io.bitdrift.gradletestapp.data.model.DiagnosticsAction
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
 /**
@@ -31,7 +33,7 @@ fun TestingToolsCard(
     onLogLevelChange: (LogLevel) -> Unit,
     onAppExitReasonChange: (AppExitReason) -> Unit,
     onLogMessage: () -> Unit,
-    onForceAppExit: () -> Unit,
+    onAction: (AppAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -81,7 +83,7 @@ fun TestingToolsCard(
             )
 
             Button(
-                onClick = onForceAppExit,
+                onClick = { onAction(DiagnosticsAction.ForceAppExit) },
                 colors =
                     ButtonDefaults.buttonColors(
                         containerColor = BitdriftColors.Error,

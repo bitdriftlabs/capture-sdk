@@ -7,12 +7,30 @@
 
 package io.bitdrift.gradletestapp.ui.viewmodel
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.bitdrift.capture.Capture.Logger
+import io.bitdrift.capture.FeatureFlag
 import io.bitdrift.capture.LogLevel
-import io.bitdrift.gradletestapp.data.model.*
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import io.bitdrift.gradletestapp.data.model.AppAction
+import io.bitdrift.gradletestapp.data.model.AppExitReason
+import io.bitdrift.gradletestapp.data.model.AppState
+import io.bitdrift.gradletestapp.data.model.ClearError
+import io.bitdrift.gradletestapp.data.model.ConfigAction
+import io.bitdrift.gradletestapp.data.model.DiagnosticsAction
+import io.bitdrift.gradletestapp.data.model.FeatureFlagsTestAction
+import io.bitdrift.gradletestapp.data.model.NavigationAction
+import io.bitdrift.gradletestapp.data.model.NetworkTestAction
+import io.bitdrift.gradletestapp.data.model.SessionAction
+import io.bitdrift.gradletestapp.data.repository.AppExitRepository
+import io.bitdrift.gradletestapp.data.repository.NetworkTestingRepository
 import io.bitdrift.gradletestapp.data.repository.SdkRepository
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -21,7 +39,10 @@ import timber.log.Timber
  * Manages UI state and handles user actions
  */
 class MainViewModel(
+    private val application: Application,
     private val sdkRepository: SdkRepository,
+    private val networkTestingRepository: NetworkTestingRepository,
+    private val appExitRepository: AppExitRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AppState())
     val uiState: StateFlow<AppState> = _uiState.asStateFlow()
@@ -42,6 +63,7 @@ class MainViewModel(
                         apiUrl = cfg.apiUrl,
                         sessionStrategy = cfg.sessionStrategy,
                         isDeferredStart = cfg.isDeferredStart,
+                        isSleepModeEnabled = cfg.isSleepModeEnabled,
                     ),
             )
         }
@@ -75,6 +97,7 @@ class MainViewModel(
             is ConfigAction.UpdateApiKey -> updateApiKey(action.apiKey)
             is ConfigAction.UpdateApiUrl -> updateApiUrl(action.apiUrl)
             is ConfigAction.UpdateLogLevel -> updateLogLevel(action.logLevel)
+            is ConfigAction.SetSleepModeEnabled -> setSleepModeEnabled(action.enabled)
 
             is SessionAction.StartNewSession -> startNewSession()
             is SessionAction.GenerateDeviceCode -> generateDeviceCode()
@@ -84,14 +107,24 @@ class MainViewModel(
             is DiagnosticsAction.ForceAppExit -> forceAppExit()
             is DiagnosticsAction.UpdateAppExitReason -> updateAppExitReason(action.reason)
 
-            is NetworkTestAction.PerformOkHttpRequest -> performOkHttpRequest()
-            is NetworkTestAction.PerformGraphQlRequest -> performGraphQlRequest()
+            is NetworkTestAction.PerformOkHttpRequest -> {
+                networkTestingRepository.performOkHttpRequest()
+            }
+            is NetworkTestAction.PerformGraphQlRequest -> {
+                networkTestingRepository.performGraphQlRequest()
+            }
 
             is FeatureFlagsTestAction.AddOneFeatureFlag -> addOneFeatureFlag()
             is FeatureFlagsTestAction.AddManyFeatureFlags -> addManyFeatureFlags()
             is FeatureFlagsTestAction.ClearFeatureFlags -> clearFeatureFlags()
 
-            ClearError -> clearError()
+            is ClearError -> clearError()
+
+            // For now, navigation actions are handled at the Fragment level
+            is NavigationAction.NavigateToCompose -> {}
+            is NavigationAction.NavigateToConfig -> {}
+            is NavigationAction.NavigateToWebView -> {}
+            is NavigationAction.NavigateToXml -> {}
         }
     }
 
@@ -175,7 +208,8 @@ class MainViewModel(
                     )
                 }
             } else {
-                val errorMessage = result.exceptionOrNull()?.message ?: "Failed to generate device code"
+                val errorMessage =
+                    result.exceptionOrNull()?.message ?: "Failed to generate device code"
                 _uiState.update {
                     it.copy(
                         session =
@@ -200,24 +234,23 @@ class MainViewModel(
         }
     }
 
-    private fun performOkHttpRequest() {
-        Timber.i("Performing OkHttp request")
-    }
-
-    private fun performGraphQlRequest() {
-        Timber.i("Performing GraphQL request")
-    }
-
+    @OptIn(ExperimentalBitdriftApi::class)
     private fun addOneFeatureFlag() {
         Timber.i("Adding one feature flag")
+        Logger.setFeatureFlag("myflag", "myvariant")
     }
 
+    @OptIn(ExperimentalBitdriftApi::class)
     private fun addManyFeatureFlags() {
         Timber.i("Adding many feature flags")
+        val flags = (1..10000).map { FeatureFlag.of("flag_" + it) }
+        Logger.setFeatureFlags(flags)
     }
 
+    @OptIn(ExperimentalBitdriftApi::class)
     private fun clearFeatureFlags() {
         Timber.i("Clearing feature flags")
+        Logger.clearFeatureFlags()
     }
 
     private fun logMessage() {
@@ -228,8 +261,22 @@ class MainViewModel(
         }
     }
 
+    private fun setSleepModeEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            sdkRepository.setSleepModeEnabled(enabled)
+            _uiState.update { state ->
+                state.copy(config = state.config.copy(isSleepModeEnabled = enabled))
+            }
+            Timber.i("Sleep mode ${if (enabled) "enabled" else "disabled"}")
+        }
+    }
+
     private fun forceAppExit() {
         Timber.i("Forcing app exit with reason: ${_uiState.value.diagnostics.selectedAppExitReason}")
+        appExitRepository.triggerAppExit(
+            application,
+            _uiState.value.diagnostics.selectedAppExitReason,
+        )
     }
 
     private fun updateApiKey(apiKey: String) {
