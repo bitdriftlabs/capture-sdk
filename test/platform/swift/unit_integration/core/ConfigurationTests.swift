@@ -44,7 +44,7 @@ final class ConfigurationTests: XCTestCase {
 
     func testConfigurationDefaultValues() {
         let config = Configuration()
-        XCTAssertEqual(config.sleepMode, SleepMode.inactive)
+        XCTAssertEqual(config.sleepMode, SleepMode.disabled)
     }
 
     func testConfigurationFailure() {
