@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.network.okhttp
 
-import okhttp3.Request
 import okhttp3.Response
 
 /**
@@ -17,13 +16,14 @@ import okhttp3.Response
  */
 fun interface OkHttpResponseFieldProvider {
     /**
-     * @param request The original request that triggered this response.
      * @param response The HTTP response received, or null if the request failed before receiving a response.
+     *                 The original request can be accessed via [Response.request] when response is not null.
      * @return a map of fields to add to the HTTP response log that will be sent
      * by [CaptureOkHttpEventListenerFactory] for this [response].
+     *
+     * Note: The response body can be read from [response.body], but be aware that it may
+     * have already been consumed by the application code. If you need to read the body,
+     * consider using [response.peekBody] to avoid consuming the actual response body.
      */
-    fun provideExtraFields(
-        request: Request,
-        response: Response?,
-    ): Map<String, String>
+    fun provideExtraFields(response: Response): Map<String, String>
 }

@@ -106,6 +106,6 @@ class CaptureOkHttpEventListenerFactory internal constructor(
 
     private companion object {
         private val DEFAULT_REQUEST_FIELD_PROVIDER = OkHttpRequestFieldProvider { emptyMap() }
-        private val DEFAULT_RESPONSE_FIELD_PROVIDER = OkHttpResponseFieldProvider { _, _ -> emptyMap() }
+        private val DEFAULT_RESPONSE_FIELD_PROVIDER = OkHttpResponseFieldProvider { _ -> emptyMap() }
     }
 }

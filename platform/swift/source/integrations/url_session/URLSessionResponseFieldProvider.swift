@@ -9,13 +9,21 @@ import Foundation
 
 /// Provides additional custom fields to add to HTTP response logs automatically sent
 /// by using the URLSession integration.
+///
+/// This protocol allows you to add fields based on the response, such as custom error messages
+/// extracted from error response bodies, status codes, or response headers.
 public protocol URLSessionResponseFieldProvider {
     /// Provides extra fields for a given response.
     ///
-    /// - parameter request:  The original `URLRequest` that triggered this response.
-    /// - parameter response: The HTTP response received, or `nil` if the request failed before receiving a response.
+    /// - parameter response: The HTTP response received. The original request can be accessed via
+    ///                       `response.url` or through the request associated with the response.
     ///
     /// - returns: A dictionary of key-value pairs to add to the response log
     ///            that will be sent by the URLSession integration.
-    func provideExtraFields(for request: URLRequest, response: HTTPURLResponse?) -> [String: String]
+    ///
+    /// - note: The response body can be read from the response, but be aware that it may
+    ///         have already been consumed by the application code. If you need to read the body,
+    ///         consider using URLSession's delegate methods or dataTask completion handlers
+    ///         to capture the body before it's consumed.
+    func provideExtraFields(for response: HTTPURLResponse) -> [String: String]
 }

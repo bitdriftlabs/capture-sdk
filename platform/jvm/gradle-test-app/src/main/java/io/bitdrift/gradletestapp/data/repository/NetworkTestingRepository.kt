@@ -156,11 +156,8 @@ class NetworkTestingRepository {
     }
 
     private class CustomResponseFieldProvider : OkHttpResponseFieldProvider {
-        override fun provideExtraFields(
-            request: Request,
-            response: Response?,
-        ): Map<String, String> =
-            if (response != null && response.code >= 400) {
+        override fun provideExtraFields(response: Response): Map<String, String> =
+            if (response.code >= 400) {
                 mapOf("additional_network_response_error_code_field" to response.code.toString())
             } else {
                 emptyMap()

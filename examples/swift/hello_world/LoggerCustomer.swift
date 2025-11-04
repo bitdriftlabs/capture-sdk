@@ -248,8 +248,8 @@ struct CustomNetworkFieldProvider: URLSessionRequestFieldProvider {
 
 // Provides additional fields for each network response
 struct CustomNetworkResponseFieldProvider: URLSessionResponseFieldProvider {
-    func provideExtraFields(for request: URLRequest, response: HTTPURLResponse?) -> [String: String] {
-        guard let response, response.statusCode >= 400 else {
+    func provideExtraFields(for response: HTTPURLResponse) -> [String: String] {
+        guard response.statusCode >= 400 else {
             return [:]
         }
 

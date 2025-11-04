@@ -86,12 +86,10 @@ final class URLSessionTaskTracker {
             task.cap_requestInfo = nil
 
             let httpResponse = HTTPResponse(httpURLResponse: task.response, error: task.error)
-            let httpURLResponse = task.response as? HTTPURLResponse
             var extraFields: Fields?
-            if let originalRequest = task.originalRequest {
+            if let httpURLResponse = task.response as? HTTPURLResponse {
                 extraFields = URLSessionIntegration.shared.responseFieldProvider?.provideExtraFields(
-                    for: originalRequest,
-                    response: httpURLResponse
+                    for: httpURLResponse
                 )
             }
             let responseInfo = HTTPResponseInfo(

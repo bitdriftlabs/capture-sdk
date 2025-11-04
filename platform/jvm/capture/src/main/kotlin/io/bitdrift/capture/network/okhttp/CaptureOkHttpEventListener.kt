@@ -368,7 +368,7 @@ internal class CaptureOkHttpEventListener internal constructor(
                 response = httpResponse,
                 durationMs = (clock.elapsedRealtime() - callStartTimeMs),
                 metrics = getMetrics(),
-                extraFields = responseExtraFieldsProvider.provideExtraFields(request, response),
+                extraFields = responseExtraFieldsProvider.provideExtraFields(response),
             )
 
         logger?.log(httpResponseInfo)
@@ -402,13 +402,13 @@ internal class CaptureOkHttpEventListener internal constructor(
                     },
                 error = ioe,
             )
+
         val httpResponseInfo =
             HttpResponseInfo(
                 request = requestInfo,
                 response = httpResponse,
                 durationMs = (clock.elapsedRealtime() - callStartTimeMs),
                 metrics = getMetrics(),
-                extraFields = responseExtraFieldsProvider.provideExtraFields(request, lastResponse),
             )
         logger?.log(httpResponseInfo)
     }
