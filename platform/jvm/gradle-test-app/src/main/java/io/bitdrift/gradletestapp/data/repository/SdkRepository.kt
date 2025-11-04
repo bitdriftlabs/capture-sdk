@@ -178,7 +178,7 @@ class SdkRepository(
     }
 
     fun setSleepModeEnabled(enabled: Boolean) {
-        val mode = if (enabled) SleepMode.ACTIVE else SleepMode.INACTIVE
+        val mode = if (enabled) SleepMode.ENABLED else SleepMode.DISABLED
         Logger.setSleepMode(mode)
         sharedPreferences.edit { putBoolean(PREFS_SLEEP_MODE_ENABLED, enabled) }
     }
