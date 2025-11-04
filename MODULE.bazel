@@ -193,9 +193,9 @@ maven.install(
         "androidx.annotation:annotation-jvm:1.9.1",
     ],
     repositories = [
-        "https://repo1.maven.org/maven2",
         "https://maven.google.com",
-        "https://central.sonatype.com/repository/maven-snapshots/",
+        "https://repo1.maven.org/maven2",
+        "https://s01.oss.sonatype.org/content/repositories/snapshots",
     ],
     use_starlark_android_rules = True,
     version_conflict_policy = "pinned",
