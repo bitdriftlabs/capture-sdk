@@ -22,7 +22,7 @@
 
 **Added**
 
-- Add `RetrofitUrlPathProvider` helper class to help extracting endpoint's url paths when using Retrofit services.
+- Add `RetrofitUrlPathProvider` helper class to help extracting endpoint's url paths when using Retrofit services. Requires Retrofit v3.1.0+.
 
 **Changed**
 
