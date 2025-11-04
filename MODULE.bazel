@@ -178,6 +178,7 @@ maven.install(
         "androidx.metrics:metrics-performance:1.0.0-beta02",
         "com.google.flatbuffers:flatbuffers-java:25.2.10",
         "com.google.protobuf:protobuf-kotlin-lite:4.31.1",
+        "com.squareup.retrofit2:retrofit:3.1.0-SNAPSHOT",
 
         # Compose
         "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:{}".format(KOTLIN_COMPILE_VERSION),
@@ -194,6 +195,7 @@ maven.install(
     repositories = [
         "https://repo1.maven.org/maven2",
         "https://maven.google.com",
+        "https://central.sonatype.com/repository/maven-snapshots/",
     ],
     use_starlark_android_rules = True,
     version_conflict_policy = "pinned",
