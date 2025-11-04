@@ -10,11 +10,12 @@ package io.bitdrift.capture.network.okhttp
 import okhttp3.Request
 
 /**
- * Provides additional custom fields to add to http logs automatically sent
- * by using [CaptureOkHttpEventListenerFactory].
+ * Provides additional custom fields to add to HTTP request logs automatically sent
+ * by using [CaptureOkHttpEventListenerFactory]
  */
 fun interface OkHttpRequestFieldProvider {
     /**
+     * @param request The original request that triggered this response.
      * @return a map of fields to add to the http log that will be sent
      * by [CaptureOkHttpEventListenerFactory] for this [request].
      */

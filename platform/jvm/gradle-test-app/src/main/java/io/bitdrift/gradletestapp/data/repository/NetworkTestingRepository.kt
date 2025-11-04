@@ -16,6 +16,7 @@ import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.apollo.CaptureApolloInterceptor
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.capture.network.okhttp.OkHttpRequestFieldProvider
+import io.bitdrift.capture.network.okhttp.OkHttpResponseFieldProvider
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import okhttp3.Call
@@ -38,13 +39,8 @@ class NetworkTestingRepository {
             .Builder()
             .eventListenerFactory(
                 CaptureOkHttpEventListenerFactory(
-                    extraFieldsProvider =
-                        OkHttpRequestFieldProvider { request ->
-                            mapOf(
-                                "additional_network_request_field" to
-                                    request.url.host,
-                            )
-                        },
+                    requestFieldProvider = CustomRequestFieldProvider(),
+                    responseFieldProvider = CustomResponseFieldProvider(),
                 ),
             ).build()
     private val apolloClient: ApolloClient =
@@ -152,5 +148,19 @@ class NetworkTestingRepository {
                 Timber.e(e, "GraphQL request failed")
             }
         }
+    }
+
+    private class CustomRequestFieldProvider : OkHttpRequestFieldProvider {
+        override fun provideExtraFields(request: Request): Map<String, String> =
+            mapOf("additional_network_request_host_field" to request.url.host)
+    }
+
+    private class CustomResponseFieldProvider : OkHttpResponseFieldProvider {
+        override fun provideExtraFields(response: Response): Map<String, String> =
+            if (response.code >= 400) {
+                mapOf("additional_network_response_error_code_field" to response.code.toString())
+            } else {
+                emptyMap()
+            }
     }
 }
