@@ -1,13 +1,13 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.19.0...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.19.1...HEAD
 
 ### Both
 
 **Added**
 
-- Add API to clear all feature flags.
+- Nothing yet!
 
 **Changed**
 
@@ -15,8 +15,7 @@
 
 **Fixed**
 
-- Add back the ability to disable the Session Replay feature at SDK initialization.
-- Improved the ring buffer serialization format resulting in more efficient space usage.
+- Nothing yet!
 
 ### Android
 
@@ -45,6 +44,38 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.19.1] - 2025-11-05
+[0.19.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.19.1
+
+### Both
+
+**Added**
+
+- Add threshold compression for large message/fields.
+- Add support for custom fields in network responses.
+- Add API to clear all feature flags.
+
+**Changed**
+
+- Rename `SleepMode` enum values: `ACTIVE` to `ENABLED` and `INACTIVE` to `DISABLED`.
+
+**Fixed**
+
+- Improved ring buffer serialization format for more efficient space usage.
+- Add back the ability to disable the Session Replay feature at SDK initialization.
+
+### Android
+
+**Fixed**
+
+- Remove internal OkHttp reference.
+
+### iOS
+
+**Changed**
+
+- Make `HTTPRequestMetrics.init` public.
 
 ## [0.19.0] - 2025-10-27
 [0.19.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.19.0
