@@ -18,9 +18,9 @@ java_lite_proto_library(
 # Retrofit compile-only wrapper: exposes API at compile time, excluded from runtime via neverlink.
 java_library(
     name = "retrofit_compile_only",
-    exports = [artifact("com.squareup.retrofit2:retrofit")],
     neverlink = True,
     visibility = ["//visibility:public"],
+    exports = [artifact("com.squareup.retrofit2:retrofit")],
 )
 
 # export proguard library rules
