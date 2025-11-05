@@ -52,8 +52,8 @@
 
 **Added**
 
-- Add threshold compression for large message/fields
-- Add support for custom fields in network responses
+- Add threshold compression for large message/fields.
+- Add support for custom fields in network responses.
 - Add API to clear all feature flags.
 
 **Changed**
@@ -69,7 +69,7 @@ Rename `SleepMode` enum values: `ACTIVE` to `ENABLED` and `INACTIVE` to `DISABLE
 
 **Fixed**
 
-- Remove internal OkHttp reference
+- Remove internal OkHttp reference.
 
 ### iOS
 
