@@ -63,6 +63,8 @@ jobs:
     with:
       version: ${{ needs.prepare-release.outputs.version }}
       emergency: false
+    # Explicitly pass secrets (instead of secrets: inherit) because reusable workflows
+    # called from push events may not reliably inherit secrets automatically.
     secrets:
       OPEN_CAPTURE_SDK_PRS_APP_ID: ${{ secrets.OPEN_CAPTURE_SDK_PRS_APP_ID }}
       OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}

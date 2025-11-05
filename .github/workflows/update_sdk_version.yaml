@@ -28,6 +28,7 @@ jobs:
     uses: ./.github/workflows/release_gh.yaml
     with:
       version: ${{ inputs.version }}
+    # Explicitly pass secrets to ensure they're available when called from other workflows
     secrets:
       OPEN_CAPTURE_SDK_PRS_APP_ID: ${{ secrets.OPEN_CAPTURE_SDK_PRS_APP_ID }}
       OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}
