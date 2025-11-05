@@ -6,6 +6,11 @@ on:
         description: 'The new version to tag, ex: 0.9.102'
         required: true
         type: string
+    secrets:
+      OPEN_CAPTURE_SDK_PRS_APP_ID:
+        required: true
+      OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY:
+        required: true
   workflow_dispatch:
     inputs:
       version:
