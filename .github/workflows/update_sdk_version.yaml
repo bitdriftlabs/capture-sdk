@@ -28,7 +28,9 @@ jobs:
     uses: ./.github/workflows/release_gh.yaml
     with:
       version: ${{ inputs.version }}
-    secrets: inherit
+    secrets:
+      OPEN_CAPTURE_SDK_PRS_APP_ID: ${{ secrets.OPEN_CAPTURE_SDK_PRS_APP_ID }}
+      OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}
   public-release:
     permissions:
       id-token: write # required to use OIDC authentication
