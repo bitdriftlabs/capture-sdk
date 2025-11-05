@@ -190,6 +190,7 @@ class NetworkAttributesTest {
         `when`(capabilities.hasTransport(TRANSPORT_CELLULAR)).thenReturn(transport == NetworkTransport.CELLULAR)
         `when`(capabilities.hasTransport(TRANSPORT_ETHERNET)).thenReturn(transport == NetworkTransport.ETHERNET)
         `when`(context.getSystemService(Context.TELEPHONY_SERVICE)).thenReturn(telephonyManager)
+        @Suppress("DEPRECATION")
         `when`(telephonyManager.networkType).thenReturn(radioType)
 
         networkAttributes.onCapabilitiesChanged(network, capabilities)

@@ -16,16 +16,17 @@
 **Fixed**
 
 - Nothing yet!
-
+ 
 ### Android
 
 **Added**
 
-- Nothing yet!
+- Add `RetrofitUrlPathProvider` helper class to help extracting endpoint's url paths when using Retrofit services.
 
 **Changed**
 
-- Nothing yet!
+- Simplify constructor of `CaptureOkHttpEventListenerFactory`. Remove usage of `(call: Call) -> EventListener)` in favor of `EventListener.Factory`.
+- Make `HttpField.PATH_TEMPLATE` constant public so consumers can override it using a custom `OkHttpRequestFieldProvider`.
 
 **Fixed**
 
@@ -45,7 +46,7 @@
 
 - Nothing yet!
 
-## [0.19.1] - 2025-11-05
+## [0.19.1]
 [0.19.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.19.1
 
 ### Both
@@ -77,7 +78,7 @@
 
 - Make `HTTPRequestMetrics.init` public.
 
-## [0.19.0] - 2025-10-27
+## [0.19.0]
 [0.19.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.19.0
 
 ### Both

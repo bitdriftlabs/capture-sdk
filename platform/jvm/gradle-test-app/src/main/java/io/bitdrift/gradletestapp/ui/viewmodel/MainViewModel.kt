@@ -113,6 +113,9 @@ class MainViewModel(
             is NetworkTestAction.PerformGraphQlRequest -> {
                 networkTestingRepository.performGraphQlRequest()
             }
+            is NetworkTestAction.PerformRetrofitRequest -> {
+                networkTestingRepository.performRetrofitRequest()
+            }
 
             is FeatureFlagsTestAction.AddOneFeatureFlag -> addOneFeatureFlag()
             is FeatureFlagsTestAction.AddManyFeatureFlags -> addManyFeatureFlags()

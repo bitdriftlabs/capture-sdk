@@ -11,6 +11,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Bundle
+import android.system.Os
+import android.system.OsConstants
 import android.util.Base64
 import android.util.Log
 import android.view.View
@@ -27,13 +29,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.testTag
 import io.bitdrift.capture.Capture.Logger
+import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
+import io.bitdrift.capture.network.retrofit.RetrofitUrlPathProvider
 import io.bitdrift.capture.replay.IReplayLogger
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.ReplayPreviewClient
-import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import okhttp3.Call
 import okhttp3.Callback
@@ -45,10 +48,6 @@ import java.io.IOException
 import kotlin.system.exitProcess
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
-import io.bitdrift.capture.CaptureResult
-import android.system.Os
-import android.system.OsConstants
-import android.system.ErrnoException
 
 class MainActivity : ComponentActivity() {
 
@@ -112,7 +111,7 @@ class MainActivity : ComponentActivity() {
         createComposeUI()
 
         client = OkHttpClient.Builder()
-            .eventListenerFactory(CaptureOkHttpEventListenerFactory())
+            .eventListenerFactory(CaptureOkHttpEventListenerFactory(requestFieldProvider = RetrofitUrlPathProvider()))
             .build()
 
         Logger.addField("field_container_field_key", "field_container_field_value")

@@ -77,8 +77,8 @@ data class HttpResponseInfo
                                 }
 
                             putOptional(
-                                HttpFieldKey.PATH_TEMPLATE,
-                                requestPathTemplate?.let { it } ?: it.template?.let { it },
+                                HttpField.PATH_TEMPLATE,
+                                requestPathTemplate ?: it.template,
                             )
                         }
 

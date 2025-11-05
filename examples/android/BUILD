@@ -21,12 +21,13 @@ _maven_deps = [
     artifact("androidx.compose.runtime:runtime_android"),
     artifact("androidx.compose.ui:ui_android"),
     artifact("androidx.compose.ui:ui-geometry_android"),
-    artifact("androidx.compose.ui:ui-unit_android"),  # Why do I need to prepend android to these?
+    artifact("androidx.compose.ui:ui-unit_android"),
     artifact("com.squareup.okio:okio"),
     artifact("com.squareup.okio:okio-jvm"),
     artifact("org.jetbrains.kotlin:kotlin-stdlib"),
     artifact("org.jetbrains:annotations"),
     artifact("androidx.metrics:metrics-performance"),
+    artifact("com.squareup.retrofit2:retrofit"),
 ]
 
 aar_import(

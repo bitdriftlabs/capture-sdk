@@ -54,6 +54,8 @@ sealed class NetworkTestAction : AppAction {
     object PerformOkHttpRequest : NetworkTestAction()
 
     object PerformGraphQlRequest : NetworkTestAction()
+
+    object PerformRetrofitRequest : NetworkTestAction()
 }
 
 sealed class FeatureFlagsTestAction : AppAction {

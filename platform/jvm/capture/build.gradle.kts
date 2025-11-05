@@ -33,6 +33,8 @@ dependencies {
     implementation(libs.performance)
     implementation(libs.protobuf.kotlinlite)
 
+    compileOnly(libs.retrofit)
+
     testImplementation(libs.junit)
     testImplementation(libs.assertj.core)
     testImplementation(libs.mockito.core)
@@ -41,6 +43,7 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.robolectric)
     testImplementation(libs.mockwebserver)
+    testImplementation(libs.retrofit)
 }
 
 android {

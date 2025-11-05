@@ -16,8 +16,19 @@ import java.util.UUID
 internal object HttpFieldKey {
     const val HOST = "_host"
     const val PATH = "_path"
-    const val PATH_TEMPLATE = "_path_template"
     const val QUERY = "_query"
+}
+
+/**
+ * Constant field keys for HTTP events.
+ */
+object HttpField {
+    /**
+     * A templated hint of an HTTP request path, where dynamic parts (like IDs) are replaced
+     * with placeholders. This is used for grouping and aggregating network requests.
+     * For example, `/users/123/profile` might become `/users/{userId}/profile`.
+     */
+    const val PATH_TEMPLATE = "_path_template"
 }
 
 /**
@@ -60,7 +71,7 @@ data class HttpRequestInfo
                 putOptional(HttpFieldKey.QUERY, query)
                 path?.let {
                     it.template?.let {
-                        put(HttpFieldKey.PATH_TEMPLATE, FieldValue.StringField(it))
+                        put(HttpField.PATH_TEMPLATE, FieldValue.StringField(it))
                     }
                 }
             }
@@ -100,7 +111,7 @@ data class HttpRequestInfo
          */
         private fun MutableMap<String, FieldValue>.putOptionalGraphQlHeaders(headers: Map<String, String>?) {
             headers?.get("X-APOLLO-OPERATION-NAME")?.let { gqlOperationName ->
-                put(HttpFieldKey.PATH_TEMPLATE, FieldValue.StringField("gql-$gqlOperationName"))
+                put(HttpField.PATH_TEMPLATE, FieldValue.StringField("gql-$gqlOperationName"))
                 put("_operation_name", FieldValue.StringField(gqlOperationName))
                 headers["X-APOLLO-OPERATION-TYPE"]?.let { gqlOperationKey ->
                     put("_operation_type", FieldValue.StringField(gqlOperationKey))

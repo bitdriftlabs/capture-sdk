@@ -27,7 +27,6 @@ dependencies {
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("com.apollographql.apollo:apollo-runtime:4.1.0")
-    implementation("com.apollographql.apollo:apollo-runtime:4.1.0")
     implementation("com.jakewharton.timber:timber:5.0.1")
     implementation("com.google.android.material:material:1.8.0")
     implementation("com.squareup.papa:papa:0.26")
@@ -39,6 +38,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.0")
     implementation("androidx.compose.foundation:foundation:1.7.8")
     implementation("androidx.webkit:webkit:1.14.0")
+    implementation("com.squareup.retrofit2:retrofit:3.0.0")
+    implementation("com.squareup.retrofit2:converter-gson:3.0.0")
 
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.4.0")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")
