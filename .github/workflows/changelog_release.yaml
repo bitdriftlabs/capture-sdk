@@ -63,6 +63,7 @@ jobs:
     with:
       version: ${{ needs.prepare-release.outputs.version }}
       emergency: false
+    secrets: inherit
 
   no-release:
     name: No release (tag exists)

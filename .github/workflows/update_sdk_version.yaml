@@ -21,6 +21,12 @@ on:
         type: boolean
         description: Ignore main branch requirement (SOC2 compliance)'
         required: true
+    secrets: 
+      OPEN_CAPTURE_SDK_PRS_APP_ID:
+        required: true
+      OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY:
+        required: true
+        
 jobs:
   gh-release:
     permissions:
