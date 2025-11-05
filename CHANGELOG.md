@@ -17,16 +17,16 @@
 
 - Add back the ability to disable the Session Replay feature at SDK initialization.
 - Improved the ring buffer serialization format resulting in more efficient space usage.
-
+ 
 ### Android
 
 **Added**
 
-- Add `RetrofitUrlPathProvider` helper class to help extracting endpoint's url paths when using Retrofit services. Requires Retrofit v3.1.0+.
+- Add `RetrofitUrlPathProvider` helper class to help extracting endpoint's url paths when using Retrofit services.
 
 **Changed**
 
-- Simplify constructor of `CaptureOkHttpEventListenerFactory`. Deprecate usage of `(call: Call) -> EventListener)` in favor of `EventListener.Factory`.
+- Simplify constructor of `CaptureOkHttpEventListenerFactory`. Remove usage of `(call: Call) -> EventListener)` in favor of `EventListener.Factory`.
 - Make `HttpField.PATH_TEMPLATE` constant public so consumers can override it using a custom `OkHttpRequestFieldProvider`.
 
 **Fixed**

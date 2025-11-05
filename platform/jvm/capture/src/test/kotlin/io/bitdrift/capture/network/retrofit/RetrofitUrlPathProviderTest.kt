@@ -36,24 +36,31 @@ class RetrofitUrlPathProviderTest {
     interface TestApiNoAnnotation {
         fun none()
     }
+
     interface TestApiGetNoSlash {
         @GET("some/path/{id}")
         fun getSome()
     }
+
     interface TestApiGetWithSlash {
         @GET("/some/path/{id}")
         fun getSomeSlash()
     }
+
     interface TestApiHttpAnnotation {
         @HTTP(method = "GET", path = "custom/path/{id}")
         fun custom()
     }
+
     interface TestApiEmptyPath {
         @GET("")
         fun empty()
     }
 
-    private fun method(clazz: Class<*>, name: String): java.lang.reflect.Method = clazz.getMethod(name)
+    private fun method(
+        clazz: Class<*>,
+        name: String,
+    ): java.lang.reflect.Method = clazz.getMethod(name)
 
     @Test
     fun `provideExtraFields when chained provider is null and no invocation tag then return empty map`() {
@@ -133,10 +140,11 @@ class RetrofitUrlPathProviderTest {
         val provider = RetrofitUrlPathProvider(chainedProvider)
         whenever(request.tag(Invocation::class.java)) doReturn invocation
         whenever(invocation.method()) doReturn method(TestApiHttpAnnotation::class.java, "custom")
-        whenever(chainedProvider.provideExtraFields(request)) doReturn mapOf(
-            HttpField.PATH_TEMPLATE to "/old/path/{id}",
-            "chained" to "value",
-        )
+        whenever(chainedProvider.provideExtraFields(request)) doReturn
+            mapOf(
+                HttpField.PATH_TEMPLATE to "/old/path/{id}",
+                "chained" to "value",
+            )
         val fields = provider.provideExtraFields(request)
         assertThat(fields).isEqualTo(mapOf("chained" to "value", HttpField.PATH_TEMPLATE to "/custom/path/{id}"))
     }
