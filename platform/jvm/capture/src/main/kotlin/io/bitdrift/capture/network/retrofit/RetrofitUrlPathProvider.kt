@@ -11,6 +11,15 @@ import io.bitdrift.capture.network.HttpField
 import io.bitdrift.capture.network.okhttp.OkHttpRequestFieldProvider
 import okhttp3.Request
 import retrofit2.Invocation
+import retrofit2.http.DELETE
+import retrofit2.http.GET
+import retrofit2.http.HEAD
+import retrofit2.http.HTTP
+import retrofit2.http.OPTIONS
+import retrofit2.http.PATCH
+import retrofit2.http.POST
+import retrofit2.http.PUT
+import java.lang.reflect.Method
 
 /**
  * Automatically extracts url path fields from Retrofit definitions
@@ -29,10 +38,13 @@ class RetrofitUrlPathProvider(
         if (!isRetrofitAvailable) {
             return chainedFields
         }
+        // TODO(murki): Use annotationUrl() once Retrofit 3.1.0 is released
+        //  https://github.com/square/retrofit/pull/4542
         val pathTemplateEntry =
             request
                 .tag(Invocation::class.java)
-                ?.annotationUrl()
+                ?.method()
+                ?.parseHttpPath()
                 ?.let { HttpField.PATH_TEMPLATE to it.withLeadingSlash() }
 
         return if (pathTemplateEntry != null) {
@@ -45,16 +57,27 @@ class RetrofitUrlPathProvider(
     /** Reflectively tries to determine if the required Retrofit version is on the classpath. */
     private val isRetrofitAvailable by lazy(LazyThreadSafetyMode.PUBLICATION) {
         try {
-            // annotationUrl() was added in https://github.com/square/retrofit/pull/4542
-            // so we need to check for it's existence before we try to use it.
-            val invocationClass = Class.forName("retrofit2.Invocation")
-            invocationClass.getMethod("annotationUrl")
+            Class.forName("retrofit2.Invocation")
             true
         } catch (_: ClassNotFoundException) {
             false
-        } catch (_: NoSuchMethodException) {
-            false
         }
+    }
+
+    private fun Method.parseHttpPath(): String? {
+        for (annotation in annotations) {
+            when (annotation) {
+                is GET -> return annotation.value
+                is HEAD -> return annotation.value
+                is POST -> return annotation.value
+                is PUT -> return annotation.value
+                is PATCH -> return annotation.value
+                is DELETE -> return annotation.value
+                is OPTIONS -> return annotation.value
+                is HTTP -> return annotation.path
+            }
+        }
+        return null
     }
 
     private fun String.withLeadingSlash() = if (startsWith("/")) this else "/$this"
