@@ -19,8 +19,14 @@ on:
         type: string
       emergency:
         type: boolean
-        description: Ignore main branch requirement (SOC2 compliance)'
+        description: Ignore main branch requirement (SOC2 compliance)
         required: true
+    secrets: 
+      OPEN_CAPTURE_SDK_PRS_APP_ID:
+        required: true
+      OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY:
+        required: true
+        
 jobs:
   gh-release:
     permissions:
@@ -28,10 +34,7 @@ jobs:
     uses: ./.github/workflows/release_gh.yaml
     with:
       version: ${{ inputs.version }}
-    # Explicitly pass secrets to ensure they're available when called from other workflows
-    secrets:
-      OPEN_CAPTURE_SDK_PRS_APP_ID: ${{ secrets.OPEN_CAPTURE_SDK_PRS_APP_ID }}
-      OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}
+    secrets: inherit
   public-release:
     permissions:
       id-token: write # required to use OIDC authentication
