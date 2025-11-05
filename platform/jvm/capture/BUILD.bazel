@@ -98,5 +98,6 @@ bitdrift_kt_android_local_test(
         artifact("org.mockito:mockito-core"),
         artifact("com.nhaarman.mockitokotlin2:mockito-kotlin"),
         artifact("com.squareup.okhttp3:mockwebserver"),
+        artifact("com.squareup.retrofit2:retrofit"),
     ],
 )
