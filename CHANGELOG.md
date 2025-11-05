@@ -58,7 +58,7 @@
 
 **Changed**
 
-Rename `SleepMode` enum values: `ACTIVE` to `ENABLED` and `INACTIVE` to `DISABLED`.
+- Rename `SleepMode` enum values: `ACTIVE` to `ENABLED` and `INACTIVE` to `DISABLED`.
 
 **Fixed**
 
