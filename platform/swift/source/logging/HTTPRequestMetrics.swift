@@ -88,7 +88,7 @@ public struct HTTPRequestMetrics {
 }
 
 extension HTTPRequestMetrics {
-    init(metrics: URLSessionTaskMetrics) {
+    public init(metrics: URLSessionTaskMetrics) {
         self.init(
             requestBodyBytesSentCount: metrics.transactionMetrics
                 .map(\.countOfRequestBodyBytesSent)
