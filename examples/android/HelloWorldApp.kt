@@ -13,7 +13,6 @@ import android.os.Looper
 import android.util.Log
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.Configuration
-import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl
