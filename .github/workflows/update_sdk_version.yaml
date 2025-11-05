@@ -19,7 +19,7 @@ on:
         type: string
       emergency:
         type: boolean
-        description: Ignore main branch requirement (SOC2 compliance)
+        description: Ignore main branch requirement (SOC2 compliance)'
         required: true
     secrets: 
       OPEN_CAPTURE_SDK_PRS_APP_ID:
