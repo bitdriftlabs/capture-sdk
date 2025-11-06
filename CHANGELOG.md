@@ -7,8 +7,7 @@
 
 **Added**
 
-- Update AppExit log report types
-- Update native layer to process reports from current session
+- Nothing yet!
 
 **Changed**
 
