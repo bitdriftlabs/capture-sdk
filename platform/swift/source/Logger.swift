@@ -270,7 +270,7 @@ public final class Logger {
                     sdkVersion: capture_get_sdk_version(),
                     eventTypes: .crash,
                     minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC)) { [weak self] in
-                    self?.underlyingLogger.processIssueReports(session: .previousRun)
+                    self?.underlyingLogger.processIssueReports(reportProcessingSession: .previousRun)
                 }
                 Logger.diagnosticReporter.update { val in
                     val = reporter

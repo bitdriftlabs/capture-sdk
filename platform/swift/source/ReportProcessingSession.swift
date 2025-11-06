@@ -5,9 +5,11 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+import Foundation
+
 /// Specifies the report processing type
 @objc
-public enum ReportProcessingSession: Int {
+public enum ReportProcessingSession: Int32 {
     /// For issue reports on ongoing session
     case current = 0
 

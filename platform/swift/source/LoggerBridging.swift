@@ -111,6 +111,6 @@ protocol LoggerBridging {
 
     /// Process pending crash reports
     ///
-    /// - parameter session: The report processing session type
-    func processIssueReports(session: ReportProcessingSession)
+    /// - parameter reportProcessingSession: The report processing session type
+    func processIssueReports(reportProcessingSession: ReportProcessingSession)
 }
