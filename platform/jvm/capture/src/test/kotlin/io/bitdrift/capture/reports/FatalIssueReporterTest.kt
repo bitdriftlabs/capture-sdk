@@ -23,6 +23,7 @@ import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
+import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.utils.SdkDirectory
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
@@ -118,7 +119,7 @@ class FatalIssueReporterTest {
         fatalIssueReporter.fatalIssueReporterState.assert(
             FatalIssueReporterState.Initialized::class.java,
         )
-        verify(completedReportsProcessor).processCrashReports()
+        verify(completedReportsProcessor).processIssueReports(ReportProcessingSession.PreviousRun)
     }
 
     private fun FatalIssueReporterState.assert(

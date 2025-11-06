@@ -11,9 +11,9 @@ package io.bitdrift.capture.reports.processor
  */
 interface ICompletedReportsProcessor {
     /**
-     * To be called when we are ready to process existing fatal issue reports stored on disk
+     * To be called when we are ready to process existing issue reports stored on disk
      */
-    fun processCrashReports()
+    fun processIssueReports(reportProcessingSession: ReportProcessingSession)
 
     /**
      * Will be called if there is an issue while processing reports
@@ -22,4 +22,19 @@ interface ICompletedReportsProcessor {
         message: String,
         throwable: Throwable,
     )
+}
+
+/**
+ * Specifies the report processing type
+ */
+sealed class ReportProcessingSession {
+    /**
+     * For issue reports on ongoing session
+     */
+    object Current : ReportProcessingSession()
+
+    /**
+     * For issue reports stored on previous session
+     */
+    object PreviousRun : ReportProcessingSession()
 }

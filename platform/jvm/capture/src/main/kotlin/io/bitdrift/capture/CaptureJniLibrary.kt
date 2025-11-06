@@ -13,6 +13,7 @@ import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
 import io.bitdrift.capture.reports.processor.IStreamingReportProcessor
+import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import java.io.InputStream
 
 // We use our own type here instead of a builtin function to allow us to avoid proguard-rewriting this class.
@@ -359,9 +360,14 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     )
 
     /**
-     * Sends a signal to the native layer to process existing reports
+     * Sends a signal to the native layer to process issue reports
+     * @param loggerId The logger ID
+     * @param reportProcessingSession The report processing session type
      */
-    external fun processCrashReports(loggerId: LoggerId)
+    external fun processIssueReports(
+        loggerId: LoggerId,
+        reportProcessingSession: ReportProcessingSession,
+    )
 
     /**
      * Synchronously report the ANR present in the stream with supplemental metadata

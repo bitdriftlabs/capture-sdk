@@ -352,10 +352,11 @@ NSString * capture_normalize_url_path(const char *url_path);
 void capture_set_sleep_mode(logger_id logger_id, bool enabled);
 
 /**
- * Process pending crash reports
+ * Process pending issue reports
  *
  * @param logger_id the logger to use in recording
+ * @param session_value 0 for Current, 1 for PreviousRun
  */
-void capture_process_crash_reports(logger_id logger_id);
+void capture_process_issue_reports(logger_id logger_id, int session_value);
 
 NS_ASSUME_NONNULL_END

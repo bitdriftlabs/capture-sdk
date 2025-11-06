@@ -217,8 +217,8 @@ impl LoggerHolder {
     });
   }
 
-  pub fn process_crash_reports(&mut self, session: ReportProcessingSession) {
-    if let Err(e) = self.logger.process_crash_reports(session) {
+  pub fn process_crash_reports(&mut self, report_processing_session: ReportProcessingSession) {
+    if let Err(e) = self.logger.process_crash_reports(report_processing_session) {
       log::error!("failed to process crash reports: {e}");
     }
   }

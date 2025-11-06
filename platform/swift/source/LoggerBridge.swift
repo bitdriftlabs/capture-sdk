@@ -270,7 +270,7 @@ final class LoggerBridge: LoggerBridging {
         capture_set_sleep_mode(self.loggerID, mode == .enabled)
     }
 
-    func processCrashReports() {
-        capture_process_crash_reports(self.loggerID)
+    func processIssueReports(reportProcessingSession: ReportProcessingSession) {
+        capture_process_issue_reports(self.loggerID, reportProcessingSession.rawValue)
     }
 }

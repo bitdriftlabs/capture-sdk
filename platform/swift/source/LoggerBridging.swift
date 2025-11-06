@@ -110,5 +110,7 @@ protocol LoggerBridging {
     func setSleepMode(_ mode: SleepMode)
 
     /// Process pending crash reports
-    func processCrashReports()
+    ///
+    /// - parameter session: The report processing session type
+    func processIssueReports(session: ReportProcessingSession)
 }
