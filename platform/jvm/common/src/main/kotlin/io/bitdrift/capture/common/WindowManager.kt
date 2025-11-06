@@ -46,7 +46,10 @@ class WindowManager(
         // including dialogs. WindowInspector may not return all windows in certain scenarios.
         try {
             @Suppress("UNCHECKED_CAST")
-            return getWindowViews.get(windowManagerGlobal) as List<View>
+            val views = getWindowViews.get(windowManagerGlobal) as List<View>
+            // Make a copy to avoid concurrent modification issues since the original list
+            // is mutable and can be modified by other threads
+            return views.toList()
         } catch (e: Throwable) {
             errorHandler.handleError("Failed to retrieve windows", e)
             return emptyList()
