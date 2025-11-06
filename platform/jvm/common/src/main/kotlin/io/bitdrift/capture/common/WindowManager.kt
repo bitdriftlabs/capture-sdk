@@ -10,9 +10,7 @@ package io.bitdrift.capture.common
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
-import android.os.Build
 import android.view.View
-import android.view.inspector.WindowInspector
 
 /**
  * Used for retrieving the view hierarchies
@@ -20,8 +18,6 @@ import android.view.inspector.WindowInspector
 class WindowManager(
     private val errorHandler: ErrorHandler,
 ) : IWindowManager {
-    private var tryWindowInspector = true
-
     private val global by lazy(LazyThreadSafetyMode.NONE) {
         //noinspection PrivateApi
         Class.forName("android.view.WindowManagerGlobal")
@@ -41,18 +37,13 @@ class WindowManager(
 
     /**
      * Find all DecorViews from [android.view.WindowManagerGlobal]
+     * This includes DecorViews from Activities, Dialogs, and other windows.
      */
     @Suppress("KDocUnresolvedReference")
     override fun getAllRootViews(): List<View> {
         // TODO(murki): Consider using the Curtains library for this
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && tryWindowInspector) {
-            try {
-                return WindowInspector.getGlobalWindowViews()
-            } catch (e: Throwable) {
-                errorHandler.handleError("Warning: Failed to retrieve windows using WindowInspector", e)
-                tryWindowInspector = false
-            }
-        }
+        // Use reflection-based approach for all API levels to ensure we capture all windows,
+        // including dialogs. WindowInspector may not return all windows in certain scenarios.
         try {
             @Suppress("UNCHECKED_CAST")
             return getWindowViews.get(windowManagerGlobal) as List<View>
