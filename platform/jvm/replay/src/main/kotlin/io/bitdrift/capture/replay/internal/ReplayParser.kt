@@ -32,10 +32,20 @@ internal class ReplayParser(
         val result = mutableListOf<List<ReplayRect>>()
 
         // Use a stack to perform a DFS traversal of the tree and avoid recursion
+        val rootViews = windowManager.getAllRootViews()
+        SessionReplayController.L.v("Found ${rootViews.size} root views to process")
         val stack: ArrayDeque<ScannableView> =
             ArrayDeque(
-                windowManager.getAllRootViews().map {
-                    SessionReplayController.L.v("Root view found and added to list: ${it.javaClass.simpleName}")
+                rootViews.map {
+                    val windowInfo = if (it.parent != null) {
+                        "with parent ${it.parent.javaClass.simpleName}"
+                    } else {
+                        "with no parent (likely DecorView)"
+                    }
+                    SessionReplayController.L.v(
+                        "Root view found: ${it.javaClass.simpleName} $windowInfo, " +
+                            "visibility=${it.visibility}, width=${it.width}, height=${it.height}",
+                    )
                     ScannableView.AndroidView(it, skipReplayComposeViews)
                 },
             )
