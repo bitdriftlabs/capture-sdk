@@ -7,7 +7,8 @@
 
 **Added**
 
-- Update AppExit log report type for non-fatal types
+- Update AppExit log report types
+- Update native layer to process reports from current session
 
 **Changed**
 
