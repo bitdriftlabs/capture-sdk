@@ -1302,7 +1302,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setSleepModeEn
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processIssueReports(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
-  logger_id: LoggerId<'_>,
+  mut logger_id: LoggerId<'_>,
   session: JObject<'_>,
 ) {
   with_handle_unexpected(
@@ -1326,13 +1326,9 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processIssueRe
           bail!("invalid ReportProcessingSession type: expected Current or PreviousRun");
         };
 
-      #[allow(unused_mut)]
-      let mut logger_id = logger_id;
-      process_crash_reports_impl(
-        logger_id,
-        report_processing_session,
-        "jni process issue reports",
-      );
+      logger_id
+        .deref_mut()
+        .process_crash_reports(report_processing_session);
       Ok(())
     },
     "jni process issue reports",
@@ -1436,18 +1432,3 @@ fn unix_milliseconds_to_date(millis_since_utc_epoch: i64) -> anyhow::Result<Offs
   Ok(time::OffsetDateTime::from_unix_timestamp(seconds)? + Duration::nanoseconds(nano))
 }
 
-fn process_crash_reports_impl(
-  mut logger_id: LoggerId<'_>,
-  report_processing_session: bd_logger::ReportProcessingSession,
-  error_context: &str,
-) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      logger_id
-        .deref_mut()
-        .process_crash_reports(report_processing_session);
-      Ok(())
-    },
-    error_context,
-  );
-}
