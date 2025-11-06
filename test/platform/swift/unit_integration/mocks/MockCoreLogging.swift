@@ -169,7 +169,7 @@ extension MockCoreLogging: CoreLogging {
 
     public func setSleepMode(_ mode: SleepMode) {}
 
-    public func processCrashReports() {}
+    public func processIssueReports(reportProcessingSession: ReportProcessingSession) {}
 
     public func setFeatureFlag(withName flag: String, variant: String?) {}
 

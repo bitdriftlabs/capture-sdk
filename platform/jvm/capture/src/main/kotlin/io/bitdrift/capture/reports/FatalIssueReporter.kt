@@ -28,6 +28,7 @@ import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
 import io.bitdrift.capture.reports.persistence.FatalIssueReporterStorage
 import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
+import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.ConfigCache
 import java.io.File
@@ -105,7 +106,7 @@ internal class FatalIssueReporter(
             backgroundThreadHandler.runAsync {
                 runCatching {
                     persistLastExitReasonIfNeeded(activityManager)
-                    completedReportsProcessor.processCrashReports()
+                    completedReportsProcessor.processIssueReports(ReportProcessingSession.PreviousRun)
                 }.onSuccess {
                     fatalIssueReporterState =
                         FatalIssueReporterState.Initialized

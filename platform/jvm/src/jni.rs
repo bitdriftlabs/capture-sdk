@@ -193,6 +193,9 @@ static ERROR_REPORTER_REPORT_ERROR: OnceLock<CachedMethod> = OnceLock::new();
 
 static STACK_TRACE_PROVIDER_INVOKE: OnceLock<CachedMethod> = OnceLock::new();
 
+static REPORT_PROCESSING_SESSION_CURRENT: OnceLock<CachedClass> = OnceLock::new();
+static REPORT_PROCESSING_SESSION_PREVIOUS_RUN: OnceLock<CachedClass> = OnceLock::new();
+
 pub(crate) fn initialize_method_handle<
   'local,
   'other_local,
@@ -324,6 +327,17 @@ fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
     "invoke",
     "()Ljava/lang/String;",
     &STACK_TRACE_PROVIDER_INVOKE,
+  )?;
+
+  initialize_class(
+    &mut env,
+    "io/bitdrift/capture/reports/processor/ReportProcessingSession$Current",
+    Some(&REPORT_PROCESSING_SESSION_CURRENT),
+  )?;
+  initialize_class(
+    &mut env,
+    "io/bitdrift/capture/reports/processor/ReportProcessingSession$PreviousRun",
+    Some(&REPORT_PROCESSING_SESSION_PREVIOUS_RUN),
   )?;
 
   key_value_storage::initialize(&mut env)?;
@@ -1285,19 +1299,39 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setSleepModeEn
 }
 
 #[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processCrashReports(
-  _env: JNIEnv<'_>,
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processIssueReports(
+  mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   mut logger_id: LoggerId<'_>,
+  session: JObject<'_>,
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
+      let current_processing_session_type = &REPORT_PROCESSING_SESSION_CURRENT
+        .get()
+        .ok_or(InvariantError::Invariant)?
+        .class;
+
+      let previous_processing_session_type = &REPORT_PROCESSING_SESSION_PREVIOUS_RUN
+        .get()
+        .ok_or(InvariantError::Invariant)?
+        .class;
+
+      let report_processing_session =
+        if env.is_instance_of(&session, current_processing_session_type)? {
+          bd_logger::ReportProcessingSession::Current
+        } else if env.is_instance_of(&session, previous_processing_session_type)? {
+          bd_logger::ReportProcessingSession::PreviousRun
+        } else {
+          bail!("invalid ReportProcessingSession type: expected Current or PreviousRun");
+        };
+
       logger_id
         .deref_mut()
-        .process_crash_reports(bd_logger::ReportProcessingSession::PreviousRun);
+        .process_crash_reports(report_processing_session);
       Ok(())
     },
-    "jni process crash reports",
+    "jni process issue reports",
   );
 }
 

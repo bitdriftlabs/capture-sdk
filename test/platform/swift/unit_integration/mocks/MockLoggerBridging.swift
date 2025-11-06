@@ -136,7 +136,7 @@ extension MockLoggerBridging: LoggerBridging {
         sleepMode = mode
     }
 
-    public func processCrashReports() {}
+    public func processIssueReports(reportProcessingSession: ReportProcessingSession) {}
 
     public func setFeatureFlag(withName flag: String, variant: String?) {}
 

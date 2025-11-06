@@ -56,6 +56,14 @@
    public <methods>;
 }
 
+-keep, includedescriptorclasses class io.bitdrift.capture.reports.processor.ReportProcessingSession {
+   public <methods>;
+}
+
+-keep, includedescriptorclasses class io.bitdrift.capture.reports.processor.ReportProcessingSession$* {
+   public <methods>;
+}
+
 -keep, includedescriptorclasses class io.bitdrift.capture.FeatureFlag {
    public <methods>;
 }

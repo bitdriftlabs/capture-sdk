@@ -543,15 +543,27 @@ extern "C" fn capture_shutdown_logger(logger_id: LoggerId<'_>, blocking: bool) {
 }
 
 #[no_mangle]
-extern "C" fn capture_process_crash_reports(mut logger_id: LoggerId<'_>) {
+extern "C" fn capture_process_issue_reports(
+  mut logger_id: LoggerId<'_>,
+  report_processing_session_value: i32,
+) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      logger_id
-        .deref_mut()
-        .process_crash_reports(ReportProcessingSession::PreviousRun);
+      let session = match report_processing_session_value {
+        0 => ReportProcessingSession::Current,
+        1 => ReportProcessingSession::PreviousRun,
+        _ => {
+          log::error!(
+            "invalid session value: {report_processing_session_value}, defaulting to Current"
+          );
+          ReportProcessingSession::Current
+        },
+      };
+
+      logger_id.deref_mut().process_crash_reports(session);
       Ok(())
     },
-    "swift process crash reports",
+    "swift process issue reports",
   );
 }
 

@@ -7,7 +7,7 @@
 
 **Added**
 
-- Update AppExit log report type for non-fatal types
+- Nothing yet!
 
 **Changed**
 

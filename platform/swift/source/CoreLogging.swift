@@ -187,7 +187,9 @@ protocol CoreLogging: AnyObject {
     func setSleepMode(_ mode: SleepMode)
 
     /// Process pending crash reports
-    func processCrashReports()
+    ///
+    /// - parameter reportProcessingSession: The report processing session type
+    func processIssueReports(reportProcessingSession: ReportProcessingSession)
 }
 
 extension CoreLogging {
