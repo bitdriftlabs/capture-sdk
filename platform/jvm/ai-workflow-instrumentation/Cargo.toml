@@ -6,8 +6,7 @@ publish      = false
 version      = "1.0.0"
 
 [dependencies]
-
-# To add dependencies here
+jni.workspace = true
 
 [lib]
 crate-type = ["cdylib"]

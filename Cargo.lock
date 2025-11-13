@@ -43,6 +43,9 @@ dependencies = [
 [[package]]
 name = "ai-workflow-instrumentation"
 version = "1.0.0"
+dependencies = [
+ "jni",
+]
 
 [[package]]
 name = "android_log-sys"

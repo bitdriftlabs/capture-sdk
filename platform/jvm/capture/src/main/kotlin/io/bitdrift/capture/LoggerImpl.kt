@@ -14,6 +14,7 @@ import android.content.Context
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
+import io.bitdrift.capture.aiworkflow.AiWorkflowInstrumentationJni
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.IWindowManager
@@ -277,6 +278,12 @@ internal class LoggerImpl(
         )
 
         startDebugOperationsAsNeeded(context)
+
+        AiWorkflowInstrumentationJni.load()
+
+        val byteArray = "gradle + cargo".toByteArray()
+        val valueFromJni = AiWorkflowInstrumentationJni.getStringLength(byteArray)
+        Log.d("Hackaton", "Length $valueFromJni")
     }
 
     override fun processIssueReports(reportProcessingSession: ReportProcessingSession) {
