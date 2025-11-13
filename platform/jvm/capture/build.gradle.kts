@@ -92,14 +92,15 @@ android {
 
 // Rust cargo build toolchain
 cargoNdk {
-    librariesNames = arrayListOf("libcapture.so")
-    extraCargoBuildArguments = arrayListOf("--package", "capture")
+    librariesNames = arrayListOf("libcapture.so", "libai_workflow_instrumentation.so")
+    extraCargoBuildArguments = arrayListOf("--package", "capture", "--package", "ai-workflow-instrumentation")
 
     buildTypes {
         getByName("release") {
             buildType = "release"
             extraCargoBuildArguments = arrayListOf(
                 "--package", "capture",
+                "--package", "ai-workflow-instrumentation",
                 "-Z", "build-std=std,panic_abort",
                 "-Z", "build-std-features=optimize_for_size,panic_immediate_abort",
             )

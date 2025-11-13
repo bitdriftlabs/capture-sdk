@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "platform/jvm",
+  "platform/jvm/ai-workflow-instrumentation",
   "platform/shared",
   "platform/swift/source",
   "platform/test_helpers",

@@ -1,0 +1,15 @@
+[package]
+edition      = "2021"
+license-file = "../../LICENSE"
+name         = "ai-workflow-instrumentation"
+publish      = false
+version      = "1.0.0"
+
+[dependencies]
+
+# To add dependencies here
+
+[lib]
+crate-type = ["cdylib"]
+name       = "ai_workflow_instrumentation"
+
