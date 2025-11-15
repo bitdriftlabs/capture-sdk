@@ -17,5 +17,11 @@ internal interface IFatalIssueReporterStorage {
         reportType: Byte,
     )
 
+    fun persistNonFatalIssue(
+        terminationTimeStampInMilli: Long,
+        data: ByteArray,
+        reportType: Byte,
+    )
+
     fun generateFilePath(): String
 }

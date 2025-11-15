@@ -104,6 +104,31 @@ internal class FatalIssueReporterProcessor(
         persistReport(timestamp, builder, report, ReportType.JVMCrash)
     }
 
+    fun persistNonFatalJvmCrash(
+        timestamp: Long,
+        callerThread: Thread,
+        throwable: Throwable,
+        allThreads: Map<Thread, Array<StackTraceElement>>?,
+    ) {
+        val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
+        val sdk = createSDKInfo(builder)
+        val appMetrics = createAppMetrics(builder)
+        val deviceMetrics = createDeviceMetrics(builder, timestamp)
+        val report =
+            JvmCrashProcessor.getJvmCrashReport(
+                builder,
+                sdk,
+                appMetrics,
+                deviceMetrics,
+                throwable,
+                callerThread,
+                allThreads,
+            )
+
+        builder.finish(report)
+        fatalIssueReporterStorage.persistNonFatalIssue(timestamp, builder.sizedByteArray(), ReportType.JVMCrash)
+    }
+
     private fun persistReport(
         timestamp: Long,
         builder: FlatBufferBuilder,

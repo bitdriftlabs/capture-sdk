@@ -106,6 +106,8 @@ internal class FatalIssueReporter(
             backgroundThreadHandler.runAsync {
                 runCatching {
                     persistLastExitReasonIfNeeded(activityManager)
+                    // TODO: Remove this temporary call - should be called when JS error reporting is enabled
+                    enableJavaScriptReporting(sdkDirectory)
                     completedReportsProcessor.processIssueReports(ReportProcessingSession.PreviousRun)
                 }.onSuccess {
                     fatalIssueReporterState =
@@ -135,8 +137,18 @@ internal class FatalIssueReporter(
     override fun onJvmCrash(
         thread: Thread,
         throwable: Throwable,
+        isNonFatal: Boolean,
     ) {
         runCatching {
+            if (isNonFatal) {
+                fatalIssueReporterProcessor.persistNonFatalJvmCrash(
+                    timestamp = System.currentTimeMillis(),
+                    callerThread = thread,
+                    throwable = throwable,
+                    allThreads = Thread.getAllStackTraces(),
+                )
+                return
+            }
             fatalIssueReporterProcessor.persistJvmCrash(
                 timestamp = System.currentTimeMillis(),
                 callerThread = thread,
@@ -187,6 +199,35 @@ internal class FatalIssueReporter(
         val configFile = File(sdkDirectory, "reports/config.csv")
         val config = ConfigCache.readValues(configFile)
         return config.get("crash_reporting.enabled") == true
+    }
+
+    /**
+     * Temporarily enables JavaScript error reporting by writing to js_config.csv
+     * TODO: This should be called when JS error reporting is actually enabled, not always
+     */
+    private fun enableJavaScriptReporting(sdkDirectory: String) {
+        runCatching {
+            val jsConfigFile = File(sdkDirectory, "reports/js_config.csv")
+            val reportsDir = jsConfigFile.parentFile
+            if (reportsDir != null && !reportsDir.exists()) {
+                reportsDir.mkdirs()
+            }
+
+            // Check if the flag already exists
+            if (jsConfigFile.exists()) {
+                val existingContent = jsConfigFile.readText()
+                if (existingContent.contains("java_script_reporting.enabled")) {
+                    return
+                }
+            }
+
+            // Write the flag to js_config.csv
+            jsConfigFile.writeText("java_script_reporting.enabled,true")
+
+            Log.d(LOG_TAG, "Enabled JavaScript error reporting in js_config.csv")
+        }.onFailure {
+            Log.w(LOG_TAG, "Failed to enable JavaScript error reporting: $it")
+        }
     }
 
     private fun logError(

@@ -9,13 +9,14 @@ package io.bitdrift.gradletestapp.data.model
 
 /** Diagnostics/testing feature state */
 data class DiagnosticsState(
-    val selectedAppExitReason: AppExitReason = AppExitReason.ANR_BLOCKING_GET,
+    val selectedAppExitReason: AppExitReason = AppExitReason.NON_FATAL,
 )
 
 /**
  * Represents different ways the app can exit for testing purposes
  */
 enum class AppExitReason {
+    NON_FATAL,
     ANR_BLOCKING_GET,
     ANR_BROADCAST_RECEIVER,
     ANR_COROUTINES,

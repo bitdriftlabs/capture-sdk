@@ -26,5 +26,6 @@ interface IJvmCrashListener {
     fun onJvmCrash(
         thread: Thread,
         throwable: Throwable,
+        isNonFatal: Boolean,
     )
 }

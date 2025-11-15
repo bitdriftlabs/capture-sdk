@@ -8,6 +8,7 @@
 package io.bitdrift.gradletestapp.data.repository
 
 import android.content.Context
+import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
 import io.bitdrift.gradletestapp.data.model.AppExitReason
 import io.bitdrift.gradletestapp.diagnostics.fatalissues.FatalIssueGenerator
 import kotlin.system.exitProcess
@@ -21,6 +22,7 @@ class AppExitRepository {
         reason: AppExitReason,
     ) {
         when (reason) {
+            AppExitReason.NON_FATAL -> CaptureUncaughtExceptionHandler.createNonFatal()
             AppExitReason.ANR_BLOCKING_GET -> FatalIssueGenerator.forceBlockingGetAnr()
             AppExitReason.ANR_BROADCAST_RECEIVER ->
                 FatalIssueGenerator.forceBroadcastReceiverAnr(

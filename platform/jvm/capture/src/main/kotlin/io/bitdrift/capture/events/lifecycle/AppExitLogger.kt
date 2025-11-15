@@ -133,6 +133,7 @@ internal class AppExitLogger(
     override fun onJvmCrash(
         thread: Thread,
         throwable: Throwable,
+        isNonFatal: Boolean,
     ) {
         // When FatalIssueReporterState is Initialized will rely on shared-core to emit the related JVM crash log
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) ||

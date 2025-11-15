@@ -12,7 +12,7 @@ import java.io.File
 import java.util.UUID
 
 internal class FatalIssueReporterStorage(
-    private val destinationDirectory: File,
+    private val fatalDestinationDirectory: File,
 ) : IFatalIssueReporterStorage {
     override fun persistFatalIssue(
         terminationTimeStampInMilli: Long,
@@ -20,11 +20,22 @@ internal class FatalIssueReporterStorage(
         reportType: Byte,
     ) {
         val fileName = "${terminationTimeStampInMilli}_${mapToReadableType(reportType)}_${UUID.randomUUID()}.cap"
-        val outputFile = File(destinationDirectory, fileName)
+        val outputFile = File(fatalDestinationDirectory, fileName)
         outputFile.writeBytes(data)
     }
 
-    override fun generateFilePath(): String = destinationDirectory.path + "/${UUID.randomUUID()}.cap"
+    override fun persistNonFatalIssue(
+        terminationTimeStampInMilli: Long,
+        data: ByteArray,
+        reportType: Byte,
+    ) {
+        val nonFatalDirectory: File = File(fatalDestinationDirectory, "current")
+        val fileName = "${terminationTimeStampInMilli}_${mapToReadableType(reportType)}_${UUID.randomUUID()}.cap"
+        val outputFile = File(nonFatalDirectory, fileName)
+        outputFile.writeBytes(data)
+    }
+
+    override fun generateFilePath(): String = fatalDestinationDirectory.path + "/${UUID.randomUUID()}.cap"
 
     private fun mapToReadableType(reportType: Byte): String =
         when (reportType) {

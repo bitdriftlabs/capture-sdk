@@ -141,6 +141,9 @@ class FirstFragment : Fragment() {
     @SuppressLint("VisibleForTests")
     private fun forceAppExit(reason: AppExitReason) {
         when (reason) {
+            AppExitReason.NON_FATAL ->
+                _root_ide_package_.io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
+                    .createNonFatal()
             AppExitReason.ANR_BLOCKING_GET -> FatalIssueGenerator.forceBlockingGetAnr()
             AppExitReason.ANR_BROADCAST_RECEIVER ->
                 FatalIssueGenerator.forceBroadcastReceiverAnr(
