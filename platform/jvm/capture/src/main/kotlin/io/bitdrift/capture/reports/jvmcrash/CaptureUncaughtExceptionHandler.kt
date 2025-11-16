@@ -27,11 +27,12 @@ object CaptureUncaughtExceptionHandler : ICaptureUncaughtExceptionHandler {
     private val crashListeners = CopyOnWriteArrayList<IJvmCrashListener>()
 
     /**
-     * TBF
+     * Creates a non-fatal crash report with the provided exception.
+     * If no exception is provided, uses a default IllegalStateException.
      */
-    fun createNonFatal() {
+    fun createNonFatal(throwable: Throwable = IllegalStateException("Non-fatal error")) {
         crashListeners.forEach {
-            it.onJvmCrash(Thread(), IllegalStateException(), true)
+            it.onJvmCrash(Thread.currentThread(), throwable, true)
         }
     }
 

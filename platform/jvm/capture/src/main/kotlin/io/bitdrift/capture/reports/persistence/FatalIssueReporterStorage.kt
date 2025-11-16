@@ -30,6 +30,10 @@ internal class FatalIssueReporterStorage(
         reportType: Byte,
     ) {
         val nonFatalDirectory: File = File(fatalDestinationDirectory, "current")
+        // Ensure the directory exists
+        if (!nonFatalDirectory.exists()) {
+            nonFatalDirectory.mkdirs()
+        }
         val fileName = "${terminationTimeStampInMilli}_${mapToReadableType(reportType)}_${UUID.randomUUID()}.cap"
         val outputFile = File(nonFatalDirectory, fileName)
         outputFile.writeBytes(data)

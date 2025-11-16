@@ -125,8 +125,7 @@ internal class FatalIssueReporterProcessor(
                 allThreads,
             )
 
-        builder.finish(report)
-        fatalIssueReporterStorage.persistNonFatalIssue(timestamp, builder.sizedByteArray(), ReportType.JVMCrash)
+        persistNonFatalReport(timestamp, builder, report, ReportType.JVMCrash)
     }
 
     private fun persistReport(
@@ -137,6 +136,16 @@ internal class FatalIssueReporterProcessor(
     ) {
         builder.finish(reportOffset)
         fatalIssueReporterStorage.persistFatalIssue(timestamp, builder.sizedByteArray(), reportType)
+    }
+
+    private fun persistNonFatalReport(
+        timestamp: Long,
+        builder: FlatBufferBuilder,
+        reportOffset: Int,
+        reportType: Byte,
+    ) {
+        builder.finish(reportOffset)
+        fatalIssueReporterStorage.persistNonFatalIssue(timestamp, builder.sizedByteArray(), reportType)
     }
 
     private fun createSDKInfo(builder: FlatBufferBuilder): Int =
