@@ -182,39 +182,40 @@ pub fn jobject_map_to_fields(
   let mut iter = map.iter(env)?;
 
   while let Some((key, value)) = iter.next(env)? {
-    let key: AutoLocal<'_, JObject<'_>> = env.auto_local(key);
-    let value: AutoLocal<'_, JObject<'_>> = env.auto_local(value);
+    // Push a local frame to ensure references are cleaned up after each iteration
+    env.with_local_frame(16, |env| -> anyhow::Result<()> {
+      let key = unsafe { env.get_string_unchecked((&key).into()) }?
+        .to_string_lossy()
+        .to_string();
 
-    let key = unsafe { env.get_string_unchecked(key.as_ref().into()) }?
-      .to_string_lossy()
-      .to_string();
+      let value = if env.is_instance_of(
+        &value,
+        &BINARY_FIELD.get().ok_or(InvariantError::Invariant)?.class,
+      )? {
+        let field_value = BINARY_FIELD_BYTE_ARRAY
+          .get()
+          .ok_or(InvariantError::Invariant)?
+          .call_method(env, &value, ReturnType::Array, &[])?
+          .l()?;
 
-    let value = if env.is_instance_of(
-      &value,
-      &BINARY_FIELD.get().ok_or(InvariantError::Invariant)?.class,
-    )? {
-      let field_value = BINARY_FIELD_BYTE_ARRAY
-        .get()
-        .ok_or(InvariantError::Invariant)?
-        .call_method(env, &value, ReturnType::Array, &[])?
-        .l()?;
+        let value = env.convert_byte_array(JPrimitiveArray::from(field_value))?;
+        LogFieldValue::Bytes(value)
+      } else {
+        let field_value = STRING_FIELD_STRING
+          .get()
+          .ok_or(InvariantError::Invariant)?
+          .call_method(env, &value, ReturnType::Object, &[])?
+          .l()?;
+        LogFieldValue::String(
+          unsafe { env.get_string_unchecked(&field_value.into()) }?
+            .to_string_lossy()
+            .to_string(),
+        )
+      };
 
-      let value = env.convert_byte_array(JPrimitiveArray::from(field_value))?;
-      LogFieldValue::Bytes(value)
-    } else {
-      let field_value = STRING_FIELD_STRING
-        .get()
-        .ok_or(InvariantError::Invariant)?
-        .call_method(env, &value, ReturnType::Object, &[])?
-        .l()?;
-      LogFieldValue::String(
-        unsafe { env.get_string_unchecked(&field_value.into()) }?
-          .to_string_lossy()
-          .to_string(),
-      )
-    };
-
-    fields.insert(key.into(), AnnotatedLogField { value, kind });
+      fields.insert(key.into(), AnnotatedLogField { value, kind });
+      Ok(())
+    })?;
   }
 
   Ok(fields)
@@ -251,35 +252,37 @@ pub(crate) fn jobject_list_to_feature_flags(
 
   let mut iter = list.iter(env)?;
   while let Some(obj) = iter.next(env)? {
-    let obj: AutoLocal<'_, JObject<'_>> = env.auto_local(obj);
+    // Push a local frame to ensure references are cleaned up after each iteration
+    env.with_local_frame(16, |env| -> anyhow::Result<()> {
+      // Get flag name
+      let flag_obj = FEATURE_FLAG_GET_NAME
+        .get()
+        .ok_or(InvariantError::Invariant)?
+        .call_method(env, &obj, ReturnType::Object, &[])?
+        .l()?;
+      let flag = unsafe { env.get_string_unchecked(&flag_obj.into()) }?
+        .to_string_lossy()
+        .to_string();
 
-    // Get flag name
-    let flag_obj = FEATURE_FLAG_GET_NAME
-      .get()
-      .ok_or(InvariantError::Invariant)?
-      .call_method(env, &obj, ReturnType::Object, &[])?
-      .l()?;
-    let flag = unsafe { env.get_string_unchecked(&flag_obj.into()) }?
-      .to_string_lossy()
-      .to_string();
+      // Get variant (which can be null)
+      let variant_obj = FEATURE_FLAG_GET_VARIANT
+        .get()
+        .ok_or(InvariantError::Invariant)?
+        .call_method(env, &obj, ReturnType::Object, &[])?
+        .l()?;
+      let variant = if variant_obj.is_null() {
+        None
+      } else {
+        Some(
+          unsafe { env.get_string_unchecked(&variant_obj.into()) }?
+            .to_string_lossy()
+            .to_string(),
+        )
+      };
 
-    // Get variant (which can be null)
-    let variant_obj = FEATURE_FLAG_GET_VARIANT
-      .get()
-      .ok_or(InvariantError::Invariant)?
-      .call_method(env, &obj, ReturnType::Object, &[])?
-      .l()?;
-    let variant = if variant_obj.is_null() {
-      None
-    } else {
-      Some(
-        unsafe { env.get_string_unchecked(&variant_obj.into()) }?
-          .to_string_lossy()
-          .to_string(),
-      )
-    };
-
-    flags.push((flag, variant));
+      flags.push((flag, variant));
+      Ok(())
+    })?;
   }
 
   Ok(flags)
