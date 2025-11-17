@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.apollo.graphql)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    // see: https://github.com/Anamorphosee/stacktrace-decoroutinator
+    id("dev.reformator.stacktracedecoroutinator") version "2.5.8"
 }
 
 dependencies {

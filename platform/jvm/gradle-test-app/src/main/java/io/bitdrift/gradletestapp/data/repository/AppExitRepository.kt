@@ -32,6 +32,7 @@ class AppExitRepository {
             AppExitReason.ANR_GENERIC -> FatalIssueGenerator.forceGenericAnr(applicationContext)
             AppExitReason.ANR_SLEEP_MAIN_THREAD -> FatalIssueGenerator.forceThreadSleepAnr()
             AppExitReason.APP_CRASH_COROUTINE_EXCEPTION -> FatalIssueGenerator.forceCoroutinesCrash()
+            AppExitReason.APP_CRASH_NESTED_COROUTINE_EXCEPTION -> FatalIssueGenerator.forceNestedCoroutinesCrash()
             AppExitReason.APP_CRASH_REGULAR_JVM_EXCEPTION -> FatalIssueGenerator.forceUnhandledException()
             AppExitReason.APP_CRASH_RX_JAVA_EXCEPTION -> FatalIssueGenerator.forceRxJavaException()
             AppExitReason.APP_CRASH_OUT_OF_MEMORY -> FatalIssueGenerator.forceOutOfMemoryCrash()

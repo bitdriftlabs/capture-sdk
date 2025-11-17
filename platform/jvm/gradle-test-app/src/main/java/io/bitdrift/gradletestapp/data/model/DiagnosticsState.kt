@@ -9,7 +9,7 @@ package io.bitdrift.gradletestapp.data.model
 
 /** Diagnostics/testing feature state */
 data class DiagnosticsState(
-    val selectedAppExitReason: AppExitReason = AppExitReason.ANR_BLOCKING_GET,
+    val selectedAppExitReason: AppExitReason = AppExitReason.APP_CRASH_REGULAR_JVM_EXCEPTION,
 )
 
 /**
@@ -23,6 +23,7 @@ enum class AppExitReason {
     ANR_GENERIC,
     ANR_SLEEP_MAIN_THREAD,
     APP_CRASH_COROUTINE_EXCEPTION,
+    APP_CRASH_NESTED_COROUTINE_EXCEPTION,
     APP_CRASH_REGULAR_JVM_EXCEPTION,
     APP_CRASH_RX_JAVA_EXCEPTION,
     APP_CRASH_OUT_OF_MEMORY,

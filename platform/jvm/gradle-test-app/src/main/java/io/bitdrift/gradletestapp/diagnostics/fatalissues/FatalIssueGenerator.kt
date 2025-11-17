@@ -32,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.yield
 import java.util.UUID
 
 /**
@@ -110,6 +111,25 @@ internal object FatalIssueGenerator {
         CoroutineScope(Dispatchers.IO).launch {
             throw RuntimeException("Coroutine background thread crash")
         }
+    }
+
+    suspend fun fun1() {
+        yield()
+        throw Exception("Nested coroutine exception inside thread=${Thread.currentThread().name}")
+    }
+    suspend fun fun2() {
+        fun1()
+    }
+    suspend fun fun3() {
+        fun2()
+    }
+
+    /**
+     * This call exemplifies a crash that crosses coroutine boundaries
+     * see: https://github.com/Anamorphosee/stacktrace-decoroutinator
+     */
+    fun forceNestedCoroutinesCrash() = runBlocking {
+        fun3()
     }
 
     fun forceCaptureNativeCrash() {
