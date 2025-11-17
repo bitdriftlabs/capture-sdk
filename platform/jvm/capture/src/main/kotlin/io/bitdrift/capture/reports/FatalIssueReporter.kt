@@ -25,9 +25,9 @@ import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
-import io.bitdrift.capture.reports.persistence.FatalIssueReporterStorage
-import io.bitdrift.capture.reports.processor.FatalIssueReporterProcessor
+import io.bitdrift.capture.reports.persistence.IssueReporterStorage
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
+import io.bitdrift.capture.reports.processor.IssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.ConfigCache
@@ -56,8 +56,6 @@ internal class FatalIssueReporter(
     internal var fatalIssueReporterState: FatalIssueReporterState = NotInitialized
         private set
     private var initializationDuration: Duration? = null
-
-    private lateinit var fatalIssueReporterProcessor: FatalIssueReporterProcessor
 
     /**
      * Initializes the FatalIssueReporter handler once we have the required dependencies available
@@ -94,13 +92,11 @@ internal class FatalIssueReporter(
                 return
             }
 
-            val destinationDirectory = getFatalIssueDirectories(sdkDirectory)
-            fatalIssueReporterProcessor =
-                FatalIssueReporterProcessor(
-                    FatalIssueReporterStorage(destinationDirectory.destinationDirectory),
-                    clientAttributes,
-                    CaptureJniLibrary,
-                )
+            IssueReporterProcessor.init(
+                IssueReporterStorage(sdkDirectory),
+                clientAttributes,
+                CaptureJniLibrary,
+            )
             captureUncaughtExceptionHandler.install(this)
 
             backgroundThreadHandler.runAsync {
@@ -137,7 +133,7 @@ internal class FatalIssueReporter(
         throwable: Throwable,
     ) {
         runCatching {
-            fatalIssueReporterProcessor.persistJvmCrash(
+            IssueReporterProcessor.persistJvmCrash(
                 timestamp = System.currentTimeMillis(),
                 callerThread = thread,
                 throwable = throwable,
@@ -166,7 +162,7 @@ internal class FatalIssueReporter(
             val lastReason = lastReasonResult.applicationExitInfo
             lastReason.traceInputStream?.use {
                 mapToFatalIssueType(lastReason.reason)?.let { fatalIssueType ->
-                    fatalIssueReporterProcessor.persistAppExitReport(
+                    IssueReporterProcessor.persistAppExitReport(
                         fatalIssueType = fatalIssueType,
                         enableNativeCrashReporting = enableNativeCrashReporting,
                         timestamp = lastReason.timestamp,
@@ -176,11 +172,6 @@ internal class FatalIssueReporter(
                 }
             }
         }
-    }
-
-    private fun getFatalIssueDirectories(sdkDirectory: String): FatalIssueDirectories {
-        val destinationDirectory = File(sdkDirectory, DESTINATION_FILE_PATH).apply { if (!exists()) mkdirs() }
-        return FatalIssueDirectories(sdkDirectory, destinationDirectory)
     }
 
     private fun isFatalIssueReportingRuntimeEnabled(sdkDirectory: String): Boolean {
@@ -199,15 +190,9 @@ internal class FatalIssueReporter(
         Log.e(LOG_TAG, errorMessage, throwable)
     }
 
-    private data class FatalIssueDirectories(
-        val sdkDirectoryPath: String,
-        val destinationDirectory: File,
-    )
-
     internal companion object {
         private const val FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY = "_fatal_issue_reporting_duration_ms"
         private const val FATAL_ISSUE_REPORTING_STATE_KEY = "_fatal_issue_reporting_state"
-        private const val DESTINATION_FILE_PATH = "/reports/new"
 
         fun getDisabledStatusFieldsMap(): Map<String, FieldValue> =
             buildMap {

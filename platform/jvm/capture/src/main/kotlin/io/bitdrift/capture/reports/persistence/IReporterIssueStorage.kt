@@ -10,12 +10,18 @@ package io.bitdrift.capture.reports.persistence
 /**
  * Persists a fatal issue report to disk
  */
-internal interface IFatalIssueReporterStorage {
+internal interface IReporterIssueStorage {
     fun persistFatalIssue(
         terminationTimeStampInMilli: Long,
         data: ByteArray,
         reportType: Byte,
     )
 
-    fun generateFilePath(): String
+    fun persistNonFatalIssue(
+        terminationTimeStampInMilli: Long,
+        data: ByteArray,
+        reportType: Byte,
+    )
+
+    fun generateFatalIssueFilePath(): String
 }
