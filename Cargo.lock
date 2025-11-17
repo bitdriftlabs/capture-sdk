@@ -492,7 +492,6 @@ dependencies = [
  "log",
  "memmap2",
  "mockall",
- "notify",
  "regex",
  "serde",
  "thiserror 2.0.17",
