@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed a jni LocalReference leak that could crash the app when very large field maps or feature flags were sent to the logger.
 
 ### iOS
 
