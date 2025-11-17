@@ -359,4 +359,45 @@ void capture_set_sleep_mode(logger_id logger_id, bool enabled);
  */
 void capture_process_issue_reports(logger_id logger_id, int session_value);
 
+/**
+ * Persist a JavaScript error report
+ *
+ * @param logger_id the logger to use
+ * @param error_name the name of the error
+ * @param error_message the error message
+ * @param stack_trace the JavaScript stack trace
+ * @param is_fatal whether this is a fatal error
+ * @param engine the JavaScript engine name (e.g., "hermes", "jsc")
+ * @param debug_id optional debug ID for source map resolution
+ * @param timestamp_seconds timestamp seconds since Unix epoch
+ * @param timestamp_nanos nanoseconds component of the timestamp (0-999,999,999)
+ * @param destination_path the file path where the report should be written
+ * @param manufacturer device manufacturer (e.g., "Apple")
+ * @param model device model identifier
+ * @param os_version operating system version
+ * @param os_brand operating system brand (e.g., "iOS")
+ * @param app_id application bundle identifier
+ * @param app_version application version string
+ * @param version_code application version code/build number
+ * @param sdk_version bitdrift's React Native SDK version(e.g 8.1)
+ */
+void capture_persist_javascript_error_report(
+    const char *error_name,
+    const char *error_message,
+    const char *stack_trace,
+    bool is_fatal,
+    const char *engine,
+    const char *_Nullable debug_id,
+    uint64_t timestamp_seconds,
+    uint32_t timestamp_nanos,
+    const char *destination_path,
+    const char *manufacturer,
+    const char *model,
+    const char *os_version,
+    const char *os_brand,
+    const char *app_id,
+    const char *app_version,
+    const char *version_code,
+);
+
 NS_ASSUME_NONNULL_END

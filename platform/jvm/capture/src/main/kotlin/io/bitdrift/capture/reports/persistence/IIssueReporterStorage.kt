@@ -24,4 +24,6 @@ internal interface IIssueReporterStorage {
     )
 
     fun generateFatalIssueFilePath(): String
+
+    fun generateNonFatalIssueFilePath(): String
 }

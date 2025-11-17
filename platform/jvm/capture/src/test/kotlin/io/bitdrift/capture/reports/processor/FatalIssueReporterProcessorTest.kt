@@ -243,9 +243,5 @@ class FatalIssueReporterProcessorTest {
 
     private companion object {
         const val FAKE_TIME_STAMP = 1241515210914L
-        const val APP_EXIT_DESCRIPTION_ANR =
-            "Input dispatching timed out (219180 " +
-                "io.bitdrift.capture/io.bitdrift.capture.MainActivity (server) " +
-                "is not responding. Waited 5004ms for MotionEvent"
     }
 }

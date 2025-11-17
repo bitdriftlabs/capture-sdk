@@ -16,6 +16,7 @@ bd-key-value.workspace          = true
 bd-log-primitives.workspace     = true
 bd-logger.workspace             = true
 bd-proto.workspace              = true
+bd-report-parsers.workspace     = true
 bd-runtime.workspace            = true
 bd-session.workspace            = true
 log.workspace                   = true

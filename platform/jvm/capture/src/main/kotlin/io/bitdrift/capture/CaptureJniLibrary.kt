@@ -382,4 +382,31 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         destinationPath: String,
         attributes: IClientAttributes,
     )
+
+    /**
+     * Persists a JavaScript error report to disk
+     *
+     * @param errorName The main readable error name
+     * @param errorMessage The detailed JavaScript error message
+     * @param stackTrace Raw stacktrace
+     * @param isFatal Indicates if this is a fatal JSError issue
+     * @param engine Engine type (e.g. hermes/JSC)
+     * @param debugId Debug id that will be used for de-minification
+     * @param timestampMillis The time at which the event took place
+     * @param destinationPath Target file path to write the report
+     * @param attributes Client attributes for metadata
+     * @param sdkVersion bitdrift's React Native SDK version(e.g 8.1)
+     */
+    external override fun persistJavaScriptError(
+        errorName: String,
+        errorMessage: String,
+        stackTrace: String,
+        isFatal: Boolean,
+        engine: String,
+        debugId: String,
+        timestampMillis: Long,
+        destinationPath: String,
+        attributes: IClientAttributes,
+        sdkVersion: String,
+    )
 }
