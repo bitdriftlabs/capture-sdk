@@ -107,7 +107,7 @@ internal class FatalIssueReporter(
                 runCatching {
                     persistLastExitReasonIfNeeded(activityManager)
                     // TODO: Remove this temporary call - should be called when JS error reporting is enabled
-                    enableJavaScriptReporting(sdkDirectory, true)
+                    enableJavaScriptReporting(sdkDirectory)
                     completedReportsProcessor.processIssueReports(ReportProcessingSession.PreviousRun)
                 }.onSuccess {
                     fatalIssueReporterState =
@@ -163,7 +163,10 @@ internal class FatalIssueReporter(
 
     override fun getLogStatusFieldsMap(): Map<String, FieldValue> =
         buildMap {
-            put(FATAL_ISSUE_REPORTING_STATE_KEY, fatalIssueReporterState.readableType.toFieldValue())
+            put(
+                FATAL_ISSUE_REPORTING_STATE_KEY,
+                fatalIssueReporterState.readableType.toFieldValue(),
+            )
             initializationDuration?.toFieldValue(DurationUnit.MILLISECONDS)?.let {
                 put(FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY, it)
             }
@@ -191,7 +194,8 @@ internal class FatalIssueReporter(
     }
 
     private fun getFatalIssueDirectories(sdkDirectory: String): FatalIssueDirectories {
-        val destinationDirectory = File(sdkDirectory, DESTINATION_FILE_PATH).apply { if (!exists()) mkdirs() }
+        val destinationDirectory =
+            File(sdkDirectory, DESTINATION_FILE_PATH).apply { if (!exists()) mkdirs() }
         return FatalIssueDirectories(sdkDirectory, destinationDirectory)
     }
 
@@ -205,29 +209,24 @@ internal class FatalIssueReporter(
      * Temporarily enables JavaScript error reporting by writing to js_config.csv
      * TODO: This should be called when JS error reporting is actually enabled, not always
      */
-    private fun enableJavaScriptReporting(
-        sdkDirectory: String,
-        enabled: Boolean,
-    ) {
+    private fun enableJavaScriptReporting(sdkDirectory: String) {
         runCatching {
-            val jsConfigFile = File(sdkDirectory, "reports/js_config.csv")
-            val reportsDir = jsConfigFile.parentFile
-            if (reportsDir != null && !reportsDir.exists()) {
-                reportsDir.mkdirs()
+            val watcherDir = File(sdkDirectory, "reports/watcher")
+            watcherDir.mkdirs() // Safe to call even if exists
+
+            if (!watcherDir.exists()) {
+                throw IllegalStateException("Failed to create reports/watcher directory")
             }
 
-            val enabledText =
-                if (enabled) {
-                    "true"
-                } else {
-                    "false"
-                }
-            // Write the flag to js_config.csv
-            jsConfigFile.writeText("java_script_reporting.enabled,$enabledText")
-
-            Log.d(LOG_TAG, "Enabled JavaScript error reporting in js_config.csv")
+            Log.d(
+                LOG_TAG,
+                "reports/watcher directory ready for JavaScript error reporting",
+            )
         }.onFailure {
-            Log.w(LOG_TAG, "Failed to enable JavaScript error reporting: $it")
+            Log.w(
+                LOG_TAG,
+                "Failed to JavaScript error reporting: $it",
+            )
         }
     }
 
@@ -247,13 +246,17 @@ internal class FatalIssueReporter(
     )
 
     internal companion object {
-        private const val FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY = "_fatal_issue_reporting_duration_ms"
+        private const val FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY =
+            "_fatal_issue_reporting_duration_ms"
         private const val FATAL_ISSUE_REPORTING_STATE_KEY = "_fatal_issue_reporting_state"
         private const val DESTINATION_FILE_PATH = "/reports/new"
 
         fun getDisabledStatusFieldsMap(): Map<String, FieldValue> =
             buildMap {
-                put(FATAL_ISSUE_REPORTING_STATE_KEY, FatalIssueReporterState.ClientDisabled.readableType.toFieldValue())
+                put(
+                    FATAL_ISSUE_REPORTING_STATE_KEY,
+                    FatalIssueReporterState.ClientDisabled.readableType.toFieldValue(),
+                )
             }
     }
 }

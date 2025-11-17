@@ -29,7 +29,7 @@ internal class FatalIssueReporterStorage(
         data: ByteArray,
         reportType: Byte,
     ) {
-        val nonFatalDirectory: File = File(fatalDestinationDirectory, "current")
+        val nonFatalDirectory: File = File(fatalDestinationDirectory.parent, "watcher/current_session")
         // Ensure the directory exists
         if (!nonFatalDirectory.exists()) {
             nonFatalDirectory.mkdirs()
