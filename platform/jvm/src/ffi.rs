@@ -9,7 +9,7 @@ use crate::jni::{initialize_class, initialize_method_handle, CachedClass, Cached
 use anyhow::bail;
 use bd_client_common::error::InvariantError;
 use bd_logger::{AnnotatedLogField, AnnotatedLogFields, LogFieldKind, LogFieldValue, LogFields};
-use jni::objects::{AutoLocal, JList, JMap, JObject, JPrimitiveArray};
+use jni::objects::{JList, JMap, JObject, JPrimitiveArray};
 use jni::signature::{Primitive, ReturnType};
 use jni::JNIEnv;
 use std::collections::HashMap;
@@ -116,53 +116,53 @@ pub(crate) fn jobject_list_to_fields(
 
   let mut iter = list.iter(env)?;
   while let Some(obj) = iter.next(env)? {
-    let obj: AutoLocal<'_, JObject<'_>> = env.auto_local(obj);
+    env.with_local_frame(16, |env| -> anyhow::Result<()> {
+      // Key
 
-    // Key
+      let key = FIELD_KEY
+        .get()
+        .ok_or(InvariantError::Invariant)?
+        .call_method(env, &obj, ReturnType::Object, &[])?
+        .l()?;
+      let key = unsafe { env.get_string_unchecked(&key.into()) }?
+        .to_string_lossy()
+        .to_string();
 
-    let key = FIELD_KEY
-      .get()
-      .ok_or(InvariantError::Invariant)?
-      .call_method(env, &obj, ReturnType::Object, &[])?
-      .l()?;
-    let key = unsafe { env.get_string_unchecked(&key.into()) }?
-      .to_string_lossy()
-      .to_string();
+      // Field value: String or Byte Array
 
-    // Field value: String or Byte Array
+      let value_type = FIELD_VALUE_TYPE
+        .get()
+        .ok_or(InvariantError::Invariant)?
+        .call_method(env, &obj, ReturnType::Primitive(Primitive::Int), &[])?
+        .i()?;
+      let value = match value_type {
+        FIELD_VALUE_BYTE_ARRAY => {
+          let field_value = FIELD_BYTE_ARRAY
+            .get()
+            .ok_or(InvariantError::Invariant)?
+            .call_method(env, &obj, ReturnType::Array, &[])?
+            .l()?;
 
-    let value_type = FIELD_VALUE_TYPE
-      .get()
-      .ok_or(InvariantError::Invariant)?
-      .call_method(env, &obj, ReturnType::Primitive(Primitive::Int), &[])?
-      .i()?;
-    let value = match value_type {
-      FIELD_VALUE_BYTE_ARRAY => {
-        let field_value = FIELD_BYTE_ARRAY
-          .get()
-          .ok_or(InvariantError::Invariant)?
-          .call_method(env, &obj, ReturnType::Array, &[])?
-          .l()?;
-
-        let value = env.convert_byte_array(JPrimitiveArray::from(field_value))?;
-        LogFieldValue::Bytes(value)
-      },
-      FIELD_VALUE_STRING => {
-        let field_value = FIELD_STRING
-          .get()
-          .ok_or(InvariantError::Invariant)?
-          .call_method(env, &obj, ReturnType::Object, &[])?
-          .l()?;
-        LogFieldValue::String(
-          unsafe { env.get_string_unchecked(&field_value.into()) }?
-            .to_string_lossy()
-            .to_string(),
-        )
-      },
-      _ => bail!("unknown field value type {value_type:?}"),
-    };
-
-    fields.insert(key.into(), value);
+          let value = env.convert_byte_array(JPrimitiveArray::from(field_value))?;
+          LogFieldValue::Bytes(value)
+        },
+        FIELD_VALUE_STRING => {
+          let field_value = FIELD_STRING
+            .get()
+            .ok_or(InvariantError::Invariant)?
+            .call_method(env, &obj, ReturnType::Object, &[])?
+            .l()?;
+          LogFieldValue::String(
+            unsafe { env.get_string_unchecked(&field_value.into()) }?
+              .to_string_lossy()
+              .to_string(),
+          )
+        },
+        _ => bail!("unknown field value type {value_type:?}"),
+      };
+      fields.insert(key.into(), value);
+      Ok(())
+    })?;
   }
 
   Ok(fields)
