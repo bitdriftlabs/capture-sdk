@@ -24,7 +24,7 @@ import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Architecture
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Platform
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Report
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
-import io.bitdrift.capture.reports.persistence.IReporterIssueStorage
+import io.bitdrift.capture.reports.persistence.IIssueReporterStorage
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -44,18 +44,20 @@ import java.nio.file.Paths
 @Config(sdk = [31])
 class FatalIssueReporterProcessorTest {
     private lateinit var attributes: ClientAttributes
-    private val fatalIssueReporterStorage: IReporterIssueStorage = mock()
+    private val fatalIssueReporterStorage: IIssueReporterStorage = mock()
     private val streamingReportProcessor: IStreamingReportProcessor = mock()
     private val lifecycleOwner: LifecycleOwner = mock()
     private val fatalIssueReportCaptor = argumentCaptor<ByteArray>()
     private val reportTypeCaptor = argumentCaptor<Byte>()
+
+    private lateinit var processor: IssueReporterProcessor
 
     @Before
     fun setUp() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
         attributes = ClientAttributes(APP_CONTEXT, lifecycleOwner)
-        IssueReporterProcessor.init(fatalIssueReporterStorage, attributes, streamingReportProcessor)
+        processor = IssueReporterProcessor(fatalIssueReporterStorage, attributes, streamingReportProcessor)
     }
 
     @Test
@@ -63,7 +65,7 @@ class FatalIssueReporterProcessorTest {
         val callerThread = Thread("crashing_thread")
         val fakeException = FakeJvmException()
 
-        IssueReporterProcessor.persistJvmCrash(
+        processor.persistJvmCrash(
             FAKE_TIME_STAMP,
             callerThread,
             fakeException,
@@ -102,7 +104,7 @@ class FatalIssueReporterProcessorTest {
                 "OnErrorNotImplementedException",
                 IllegalArgumentException("Artificial exception"),
             )
-        IssueReporterProcessor.persistJvmCrash(
+        processor.persistJvmCrash(
             FAKE_TIME_STAMP,
             Thread("crashing-thread"),
             exception,
@@ -129,7 +131,7 @@ class FatalIssueReporterProcessorTest {
     fun persistAppExitReport_whenAnr() {
         doReturn("/some/path/foo.cap").`when`(fatalIssueReporterStorage).generateFatalIssueFilePath()
         val trace = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt")
-        IssueReporterProcessor.persistAppExitReport(
+        processor.persistAppExitReport(
             fatalIssueType = ReportType.AppNotResponding,
             enableNativeCrashReporting = true,
             FAKE_TIME_STAMP,
@@ -150,7 +152,7 @@ class FatalIssueReporterProcessorTest {
         val description = "Native crash"
         val traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.bin")
 
-        IssueReporterProcessor.persistAppExitReport(
+        processor.persistAppExitReport(
             ReportType.NativeCrash,
             enableNativeCrashReporting = false,
             FAKE_TIME_STAMP,
@@ -166,7 +168,7 @@ class FatalIssueReporterProcessorTest {
         val description = "Native crash"
         val traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.bin")
 
-        IssueReporterProcessor.persistAppExitReport(
+        processor.persistAppExitReport(
             ReportType.NativeCrash,
             enableNativeCrashReporting = true,
             FAKE_TIME_STAMP,
@@ -215,7 +217,7 @@ class FatalIssueReporterProcessorTest {
         val description = null
         val traceInputStream = createTraceInputStream("sample native crash trace")
 
-        IssueReporterProcessor.persistAppExitReport(
+        processor.persistAppExitReport(
             ReportType.JVMCrash,
             enableNativeCrashReporting = true,
             FAKE_TIME_STAMP,

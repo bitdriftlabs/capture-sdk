@@ -537,6 +537,35 @@ object Capture {
         }
 
         /**
+         * Internal API that allows that persist JavaScript error report.
+         *
+         * @param errorName The main readable error name
+         * @param message The detailed JavaScript error message
+         * @param stack Raw stacktrace
+         * @param isFatalIssue Indicates if this is a fatal JSError issue
+         * @param engine Engine type (e.g. hermes/JSC)
+         * @param debuggerId Debugger id that will be used for de-minification
+         */
+        @JvmStatic
+        internal fun persistJavaScriptReport(
+            errorName: String,
+            message: String,
+            stack: String,
+            isFatalIssue: Boolean,
+            engine: String,
+            debuggerId: String,
+        ) {
+            (logger() as? LoggerImpl)?.getIssueProcessor()?.persistJavaScriptReport(
+                errorName,
+                message,
+                stack,
+                isFatalIssue,
+                engine,
+                debuggerId,
+            )
+        }
+
+        /**
          * Used for testing purposes.
          */
         internal fun resetShared() {

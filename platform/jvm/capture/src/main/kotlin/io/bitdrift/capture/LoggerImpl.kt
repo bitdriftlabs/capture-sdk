@@ -49,6 +49,7 @@ import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
+import io.bitdrift.capture.reports.processor.IssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
@@ -590,6 +591,8 @@ internal class LoggerImpl(
             )
         }
     }
+
+    internal fun getIssueProcessor(): IssueReporterProcessor? = (fatalIssueReporter as? FatalIssueReporter)?.getIssueReporterProcessor()
 
     private fun startDebugOperationsAsNeeded(context: Context) {
         if (!BuildTypeChecker.isDebuggable(context)) {

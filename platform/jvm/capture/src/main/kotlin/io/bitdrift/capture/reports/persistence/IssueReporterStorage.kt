@@ -13,7 +13,7 @@ import java.util.UUID
 
 internal class IssueReporterStorage(
     sdkDirectory: String,
-) : IReporterIssueStorage {
+) : IIssueReporterStorage {
     private val fatalDirectory by lazy {
         createReportDirectoryIfNeeded(sdkDirectory, FATAL_DESTINATION_FILE_PATH)
     }

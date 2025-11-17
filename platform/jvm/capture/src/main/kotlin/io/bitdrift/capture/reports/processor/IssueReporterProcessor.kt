@@ -22,7 +22,7 @@ import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Platform
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.SDKInfo
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Timestamp
-import io.bitdrift.capture.reports.persistence.IReporterIssueStorage
+import io.bitdrift.capture.reports.persistence.IIssueReporterStorage
 import java.io.InputStream
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -30,28 +30,14 @@ import kotlin.time.toDuration
 /**
  * Process reports into a packed format
  */
-internal object IssueReporterProcessor {
-    // Initial size for file builder buffer
-    private const val FBS_BUILDER_DEFAULT_SIZE = 1024
-
-    private lateinit var reporterIssueStorage: IReporterIssueStorage
-    private lateinit var clientAttributes: IClientAttributes
-    private lateinit var streamingReportsProcessor: IStreamingReportProcessor
-
-    private var isInitialized = false
-
-    /**
-     * To be called at early capture setup
-     */
-    fun init(
-        reporterIssueStorage: IReporterIssueStorage,
-        clientAttributes: IClientAttributes,
-        streamingReportsProcessor: IStreamingReportProcessor,
-    ) {
-        this.reporterIssueStorage = reporterIssueStorage
-        this.clientAttributes = clientAttributes
-        this.streamingReportsProcessor = streamingReportsProcessor
-        this.isInitialized = true
+internal class IssueReporterProcessor(
+    private val reporterIssueStorage: IIssueReporterStorage,
+    private val clientAttributes: IClientAttributes,
+    private val streamingReportsProcessor: IStreamingReportProcessor,
+) {
+    companion object {
+        // Initial size for file builder buffer
+        private const val FBS_BUILDER_DEFAULT_SIZE = 1024
     }
 
     /**
@@ -71,10 +57,6 @@ internal object IssueReporterProcessor {
         engine: String,
         debuggerId: String,
     ) {
-        if (!isInitialized) {
-            reportInitError("Issue reporter processor not initialized at persistJavaScriptReport() call")
-            return
-        }
         // TODO(Fran): To be implemented in follow up PRs
         Log.d(
             LOG_TAG,
@@ -100,11 +82,6 @@ internal object IssueReporterProcessor {
         description: String? = null,
         traceInputStream: InputStream,
     ) {
-        if (!isInitialized) {
-            reportInitError("Issue reporter processor not initialized at persistAppExitReport() call")
-            return
-        }
-
         if (fatalIssueType == ReportType.AppNotResponding) {
             streamingReportsProcessor.persistANR(
                 traceInputStream,
@@ -147,10 +124,6 @@ internal object IssueReporterProcessor {
         throwable: Throwable,
         allThreads: Map<Thread, Array<StackTraceElement>>?,
     ) {
-        if (!isInitialized) {
-            reportInitError("Issue reporter processor not initialized at persistJvmCrash() call")
-            return
-        }
         val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
         val sdk = createSDKInfo(builder)
         val appMetrics = createAppMetrics(builder)
@@ -242,8 +215,4 @@ internal object IssueReporterProcessor {
             "x86_64" -> Architecture.x86_64
             else -> Architecture.Unknown
         }
-
-    private fun reportInitError(message: String) {
-        Log.e(LOG_TAG, message)
-    }
 }

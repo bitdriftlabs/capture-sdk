@@ -57,6 +57,8 @@ internal class FatalIssueReporter(
         private set
     private var initializationDuration: Duration? = null
 
+    private lateinit var issueReporterProcessor: IssueReporterProcessor
+
     /**
      * Initializes the FatalIssueReporter handler once we have the required dependencies available
      */
@@ -92,11 +94,12 @@ internal class FatalIssueReporter(
                 return
             }
 
-            IssueReporterProcessor.init(
-                IssueReporterStorage(sdkDirectory),
-                clientAttributes,
-                CaptureJniLibrary,
-            )
+            issueReporterProcessor =
+                IssueReporterProcessor(
+                    IssueReporterStorage(sdkDirectory),
+                    clientAttributes,
+                    CaptureJniLibrary,
+                )
             captureUncaughtExceptionHandler.install(this)
 
             backgroundThreadHandler.runAsync {
@@ -121,6 +124,11 @@ internal class FatalIssueReporter(
     }
 
     /**
+     * Returns the underlying report processor
+     */
+    internal fun getIssueReporterProcessor(): IssueReporterProcessor = issueReporterProcessor
+
+    /**
      * Returns the current init state
      */
     override fun initializationState(): FatalIssueReporterState = fatalIssueReporterState
@@ -133,7 +141,7 @@ internal class FatalIssueReporter(
         throwable: Throwable,
     ) {
         runCatching {
-            IssueReporterProcessor.persistJvmCrash(
+            issueReporterProcessor.persistJvmCrash(
                 timestamp = System.currentTimeMillis(),
                 callerThread = thread,
                 throwable = throwable,
@@ -162,7 +170,7 @@ internal class FatalIssueReporter(
             val lastReason = lastReasonResult.applicationExitInfo
             lastReason.traceInputStream?.use {
                 mapToFatalIssueType(lastReason.reason)?.let { fatalIssueType ->
-                    IssueReporterProcessor.persistAppExitReport(
+                    issueReporterProcessor.persistAppExitReport(
                         fatalIssueType = fatalIssueType,
                         enableNativeCrashReporting = enableNativeCrashReporting,
                         timestamp = lastReason.timestamp,
