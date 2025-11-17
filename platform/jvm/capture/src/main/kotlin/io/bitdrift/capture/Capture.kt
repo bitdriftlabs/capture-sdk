@@ -537,7 +537,7 @@ object Capture {
         }
 
         /**
-         * Internal API that allows that persist JavaScript error report.
+         * Internal API which allows to persist JavaScript error reports.
          *
          * @param errorName The main readable error name
          * @param message The detailed JavaScript error message
