@@ -23,15 +23,16 @@ import java.nio.file.Path
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.deleteRecursively
+import kotlin.io.path.pathString
 
 class FatalIssueReporterStorageTest {
-    private lateinit var storage: FatalIssueReporterStorage
+    private lateinit var storage: IssueReporterStorage
     private lateinit var dir: Path
 
     @Before
     fun setUp() {
         dir = createTempDirectory()
-        storage = FatalIssueReporterStorage(dir.toFile())
+        storage = IssueReporterStorage(dir.pathString)
     }
 
     @OptIn(ExperimentalPathApi::class)
@@ -61,6 +62,22 @@ class FatalIssueReporterStorageTest {
         assertFileWithExpectedType(
             reportType = ReportType.NativeCrash,
             "native_crash",
+        )
+    }
+
+    @Test
+    fun persistFatalIssue_whenFatalJsError_shouldAddTypeToFileName() {
+        assertFileWithExpectedType(
+            reportType = ReportType.JavaScriptFatalError,
+            "java_script_fatal_error",
+        )
+    }
+
+    @Test
+    fun persistFatalIssue_whenNonFatalJsError_shouldAddTypeToFileName() {
+        assertFileWithExpectedType(
+            reportType = ReportType.JavaScriptNonFatalError,
+            "java_script_non_fatal_error",
         )
     }
 
@@ -110,7 +127,8 @@ class FatalIssueReporterStorageTest {
         val timestamp = 1744287332021
         storage.persistFatalIssue(timestamp, builder.sizedByteArray(), reportType)
 
-        val files = dir.toFile().listFiles()
+        val reportsDir = dir.resolve("reports/new").toFile()
+        val files = reportsDir.listFiles()
         assertThat(files?.size).isEqualTo(1)
 
         assertThat(files).isNotNull()
@@ -144,7 +162,8 @@ class FatalIssueReporterStorageTest {
             reportType,
         )
 
-        val generatedFile = dir.toFile().listFiles()?.first()
+        val reportsDir = dir.resolve("reports/new").toFile()
+        val generatedFile = reportsDir.listFiles()?.first()
         assertThat(generatedFile).isNotNull()
         generatedFile?.let {
             assertThat(it.name.contains(expectedTypeInFileName)).isTrue()
