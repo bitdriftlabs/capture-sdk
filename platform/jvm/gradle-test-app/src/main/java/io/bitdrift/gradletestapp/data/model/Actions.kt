@@ -74,6 +74,8 @@ sealed class NavigationAction : AppAction {
     object NavigateToCompose : NavigationAction()
 
     object NavigateToXml : NavigationAction()
+
+    object NavigateToDialogAndModals : NavigationAction()
 }
 
 object ClearError : AppAction

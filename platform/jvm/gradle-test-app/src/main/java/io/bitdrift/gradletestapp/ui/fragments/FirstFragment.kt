@@ -107,6 +107,11 @@ class FirstFragment : Fragment() {
                                     findNavController().navigate(R.id.action_FirstFragment_to_XmlFragment)
                                 }
 
+                                is NavigationAction.NavigateToDialogAndModals -> {
+                                    Logger.logScreenView("dialog_and_modals_fragment")
+                                    findNavController().navigate(R.id.action_FirstFragment_to_DialogAndModalsFragment)
+                                }
+
                                 is DiagnosticsAction.ForceAppExit -> {
                                     forceAppExit(uiState.diagnostics.selectedAppExitReason)
                                 }
