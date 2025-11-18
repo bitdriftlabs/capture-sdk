@@ -128,6 +128,7 @@ class MainViewModel(
             is NavigationAction.NavigateToConfig -> {}
             is NavigationAction.NavigateToWebView -> {}
             is NavigationAction.NavigateToXml -> {}
+            is NavigationAction.NavigateToDialogAndModals -> {}
         }
     }
 
