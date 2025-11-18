@@ -51,8 +51,16 @@ internal object NativeCrashProcessor {
         val referencedMappings = mutableSetOf<TombstoneProtos.MemoryMapping>()
 
         tombstone.threadsMap.forEach { (tid, thread) ->
-            val frameOffsets =
+            val deduplicatedBacktrace =
                 thread.currentBacktraceList
+                    .fold(mutableListOf<TombstoneProtos.BacktraceFrame>()) { acc, frame ->
+                        if (acc.isEmpty() || acc.last().pc != frame.pc) {
+                            acc.add(frame)
+                        }
+                        acc
+                    }
+            val frameOffsets =
+                deduplicatedBacktrace
                     .map { frame ->
                         // The tombstone doesn't tell us the load offset of the image directly, so compute it using
                         // what we got.

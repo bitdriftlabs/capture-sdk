@@ -102,6 +102,68 @@ class NativeCrashProcessorTest {
     }
 
     @Test
+    fun `deduplicates consecutive frames with same PC address`() {
+        val tombstone =
+            TombstoneProtos.Tombstone
+                .newBuilder()
+                .setTid(1)
+                .putThreads(
+                    1,
+                    TombstoneProtos.Thread
+                        .newBuilder()
+                        .setId(1)
+                        .addCurrentBacktrace(
+                            TombstoneProtos.BacktraceFrame
+                                .newBuilder()
+                                .setPc(100)
+                                .setRelPc(10)
+                                .setFunctionName("function1")
+                                .setFileName("file1.so")
+                                .build(),
+                        ).addCurrentBacktrace(
+                            TombstoneProtos.BacktraceFrame
+                                .newBuilder()
+                                .setPc(200)
+                                .setRelPc(20)
+                                .setFunctionName("function2")
+                                .setFileName("file2.so")
+                                .build(),
+                        ).addCurrentBacktrace(
+                            TombstoneProtos.BacktraceFrame
+                                .newBuilder()
+                                .setPc(200)
+                                .setRelPc(20)
+                                .setFunctionName("function2")
+                                .setFileName("file2.so")
+                                .build(),
+                        ).addCurrentBacktrace(
+                            TombstoneProtos.BacktraceFrame
+                                .newBuilder()
+                                .setPc(300)
+                                .setRelPc(30)
+                                .setFunctionName("function3")
+                                .setFileName("file3.so")
+                                .build(),
+                        ).build(),
+                ).build()
+
+        val report = makeReport(tombstone)
+
+        val thread = report.threadDetails!!.threads(0)!!
+        assertThat(thread.stackTraceLength).isEqualTo(3)
+
+        assertThat(thread.stackTrace(0)!!.frameAddress).isEqualTo(100.toULong())
+        assertThat(thread.stackTrace(1)!!.frameAddress).isEqualTo(200.toULong())
+        assertThat(thread.stackTrace(2)!!.frameAddress).isEqualTo(300.toULong())
+
+        val error = report.errors(0)!!
+        assertThat(error.stackTraceLength).isEqualTo(3)
+        assertThat(error.stackTrace(0)!!.frameAddress).isEqualTo(100.toULong())
+        assertThat(error.stackTrace(1)!!.frameAddress).isEqualTo(200.toULong())
+        assertThat(error.stackTrace(2)!!.frameAddress).isEqualTo(300.toULong())
+    }
+
+    @Test
     fun `real tombstone extracts correct memory map as binary image`() {
         val tombstone = buildTombstoneFromFile("tombstone.bin")
         val report = makeReport(tombstone)
