@@ -34,24 +34,45 @@ jobs:
           repository-cache: true
       - name: Attempt to free up runner disk space
         run: |
-          echo "Disk space BEFORE cleanup:"
-          df -h
           echo "================================"
-          echo "Starting clean-up below:"
+          echo "Disk space BEFORE cleanup:"
+          echo "================================"
+          df -h /
+          echo ""
           
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          # Function to check size of directory before removing
+          check_and_remove() {
+            path="$1"
+            name="$2"
+            if [ -e "$path" ]; then
+              size=$(du -sh "$path" 2>/dev/null | cut -f1 || echo "0")
+              echo "Removing $name ($size): $path"
+              sudo rm -rf "$path"
+            else
+              echo "Not found (skipping): $name"
+            fi
+          }
+          
+          check_and_remove "/usr/share/dotnet" ".NET runtime"
+          check_and_remove "/opt/ghc" "Haskell compiler"
+          check_and_remove "/usr/local/share/boost" "Boost libraries"
+          check_and_remove "$AGENT_TOOLSDIRECTORY" "GitHub Actions tool cache"
+          check_and_remove "/usr/local/lib/android" "Android SDK"
+          check_and_remove "/usr/share/swift" "Swift toolchain"
+          
+          echo "Pruning Docker images..."
           sudo docker image prune --all --force
+          
+          echo "Running apt cleanup..."
           sudo apt-get clean
           sudo apt-get autoremove -y
           sudo rm -rf /var/lib/apt/lists/*
           
-          echo "Clean-up tasks done"
+          echo ""
           echo "================================"
           echo "Disk space AFTER cleanup:"
-          df -h
+          echo "================================"
+          df -h /
       - name: Check for Bazel build file changes
         id: bazel_check
         run: ./ci/check_bazel.sh //platform/... //core/... //test/...
