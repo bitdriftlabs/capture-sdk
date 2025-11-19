@@ -71,7 +71,7 @@ public final class Logger {
         sessionStrategy: SessionStrategy,
         dateProvider: DateProvider?,
         fieldProviders: [FieldProvider],
-        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory(),
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
     )
     {
         self.init(

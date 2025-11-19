@@ -42,7 +42,7 @@ public struct Configuration {
         enableFatalIssueReporting: Bool = true,
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
         apiURL: URL = URL(string: "https://api.bitdrift.io")!,
-        rootFileURL: URL? = nil,
+        rootFileURL: URL? = nil
     ) {
         self.sessionReplayConfiguration = sessionReplayConfiguration
         self.sleepMode = sleepMode

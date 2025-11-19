@@ -51,7 +51,7 @@ extension Logger {
         sessionStrategy: SessionStrategy,
         configuration: Configuration = .init(),
         fieldProviders: [FieldProvider] = [],
-        dateProvider: DateProvider? = nil,
+        dateProvider: DateProvider? = nil
     ) -> LoggerIntegrator?
     {
         return self.start(
@@ -60,7 +60,7 @@ extension Logger {
             configuration: configuration,
             fieldProviders: fieldProviders,
             dateProvider: dateProvider,
-            loggerBridgingFactoryProvider: LoggerBridgingFactory(),
+            loggerBridgingFactoryProvider: LoggerBridgingFactory()
         )
     }
 
@@ -71,7 +71,7 @@ extension Logger {
         configuration: Configuration,
         fieldProviders: [FieldProvider],
         dateProvider: DateProvider?,
-        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider,
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider
     ) -> LoggerIntegrator?
     {
         return self.createOnce {
