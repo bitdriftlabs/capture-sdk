@@ -1,10 +1,3 @@
-// capture-sdk - bitdrift's client SDK
-// Copyright Bitdrift, Inc. All rights reserved.
-//
-// Use of this source code is governed by a source available license that can be found in the
-// LICENSE file or at:
-// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-
 @file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 
 package io.bitdrift.capture.replay.internal.compose
@@ -40,13 +33,18 @@ internal object ComposeTreeParser {
                 )
                 return ScannableView.IgnoredComposeView
             }
+
+        // Calculate the window's offset on screen to properly translate Compose coordinates
+        val windowOffset = IntArray(2)
+        androidComposeView.rootView.getLocationOnScreen(windowOffset)
+
         val rootNode = semanticsOwner.unmergedRootSemanticsNode
-        SessionReplayController.L.d("Found Compose SemanticsNode root. Parsing Compose tree.")
-        return rootNode.toScannableView()
+        SessionReplayController.L.d("Found Compose SemanticsNode root. Parsing Compose tree. Window offset: (${windowOffset[0]}, ${windowOffset[1]})")
+        return rootNode.toScannableView(windowOffset[0], windowOffset[1])
     }
 
     @OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
-    private fun SemanticsNode.toScannableView(): ScannableView {
+    private fun SemanticsNode.toScannableView(windowOffsetX: Int = 0, windowOffsetY: Int = 0): ScannableView {
         val notAttachedOrPlaced = !this.layoutNode.isPlaced || !this.layoutNode.isAttached
         val captureIgnoreSubTree = this.unmergedConfig.getOrNull(CaptureModifier.CaptureIgnore)
         val isVisible = !this.isTransparent && !this.unmergedConfig.contains(SemanticsProperties.InvisibleToUser)
@@ -82,14 +80,16 @@ internal object ComposeTreeParser {
             replayRect =
                 ReplayRect(
                     type = type,
-                    x = nodeBounds.left.toInt(),
-                    y = nodeBounds.top.toInt(),
+                    // Add window offset to translate from window-relative to screen coordinates
+                    x = nodeBounds.left.toInt() + windowOffsetX,
+                    y = nodeBounds.top.toInt() + windowOffsetY,
                     width = nodeBounds.width.toInt(),
                     height = nodeBounds.height.toInt(),
                 ),
             // The display name is not really used for anything
             displayName = "ComposeView",
-            children = this.children.asSequence().map { it.toScannableView() },
+            // Pass window offset to all children
+            children = this.children.asSequence().map { it.toScannableView(windowOffsetX, windowOffsetY) },
         )
     }
 
