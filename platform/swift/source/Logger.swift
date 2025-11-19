@@ -57,6 +57,7 @@ public final class Logger {
     /// - parameter apiKey:                        The application key associated with your development
     ///                                            account. Provided by bitdrift.
     /// - parameter apiURL:                        The base URL of Capture API.
+    /// - parameter rootFileURL:                   The root file path used to store all internal SDK files.
     /// - parameter configuration:                 A configuration that specifies Capture features to enable.
     /// - parameter sessionStrategy:               The session strategy to use.
     /// - parameter dateProvider:                  The date provider to use, if any. The logger defaults to
@@ -72,12 +73,13 @@ public final class Logger {
         sessionStrategy: SessionStrategy,
         dateProvider: DateProvider?,
         fieldProviders: [FieldProvider],
-        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory(),
+        rootFileURL: URL? = nil,
     )
     {
         self.init(
             withAPIKey: apiKey,
-            bufferDirectory: nil,
+            bufferDirectory: rootFileURL,
             apiURL: apiURL,
             remoteErrorReporter: nil,
             configuration: configuration,
@@ -159,7 +161,9 @@ public final class Logger {
                 fieldProviders: [appStateAttributes, clientAttributes]
             )
 
-        let directoryURL = bufferDirectory ?? Logger.captureSDKDirectory()
+        guard let directoryURL = bufferDirectory ?? Logger.captureSDKDirectory() else {
+            return nil
+        }
 
         let network: URLSessionNetworkClient? = enableNetwork
             ? URLSessionNetworkClient(apiBaseURL: apiURL)
@@ -178,7 +182,7 @@ public final class Logger {
 
         guard let logger = loggerBridgingFactoryProvider.makeLogger(
             apiKey: apiKey,
-            bufferDirectoryPath: directoryURL?.path,
+            bufferDirectoryPath: directoryURL.path,
             sessionStrategy: sessionStrategy,
             metadataProvider: metadataProvider,
             // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
@@ -245,7 +249,7 @@ public final class Logger {
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
         } else {
             Logger.issueReporterInitResult = measureTime {
-                guard let contents = Logger.cachedReportConfigData() else {
+                guard let contents = Logger.cachedReportConfigData(base: directoryURL) else {
                     return .initialized(.runtimeNotSet)
                 }
                 guard let runtimeConfig = readCachedValues(contents) else {
@@ -254,19 +258,17 @@ public final class Logger {
                 guard let enabled = runtimeConfig[RuntimeVariable.crashReporting.name] as? Bool, enabled else {
                     return .initialized(.runtimeNotEnabled)
                 }
-                guard let outputDir = Logger.reportCollectionDirectory() else {
-                    return .initialized(.missingReportsDirectory)
+
+                let kscrashReportDir = Logger.kscrashReportDirectory(base: directoryURL)
+                do {
+                    try BitdriftKSCrashWrapper.configure(withCrashReportDirectory: kscrashReportDir)
+                    try BitdriftKSCrashWrapper.startCrashReporter()
+                } catch {
                 }
-                if let kscrashReportDir = Logger.kscrashReportDirectory() {
-                    do {
-                        try BitdriftKSCrashWrapper.configure(withCrashReportDirectory: kscrashReportDir)
-                        try BitdriftKSCrashWrapper.startCrashReporter()
-                    } catch {
-                    }
-                }
+
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
                 let reporter = DiagnosticEventReporter(
-                    outputDir: outputDir,
+                    outputDir: Logger.reportCollectionDirectory(base: directoryURL),
                     sdkVersion: capture_get_sdk_version(),
                     eventTypes: .crash,
                     minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC)) { [weak self] in
@@ -393,26 +395,23 @@ public final class Logger {
             .appendingPathComponent("bitdrift_capture")
     }
 
-    static func reportConfigPath() -> URL? {
-        return captureSDKDirectory()?
-            .appendingPathComponent("reports/config.csv", isDirectory: false)
+    static func reportConfigPath(base: URL) -> URL {
+        return base.appendingPathComponent("reports/config.csv", isDirectory: false)
     }
 
-    static func kscrashReportDirectory() -> URL? {
-        return captureSDKDirectory()?
-            .appendingPathComponent("reports/kscrash", isDirectory: true)
+    static func kscrashReportDirectory(base: URL) -> URL {
+        return base.appendingPathComponent("reports/kscrash", isDirectory: true)
     }
 
-    static func reportCollectionDirectory() -> URL? {
-        return captureSDKDirectory()?
-            .appendingPathComponent("reports/new", isDirectory: true)
+    static func reportCollectionDirectory(base: URL) -> URL {
+        return base.appendingPathComponent("reports/new", isDirectory: true)
     }
 
     // MARK: - Private
 
-    private static func cachedReportConfigData() -> String? {
-        guard let configPath = Logger.reportConfigPath(),
-              let data = FileManager.default.contents(atPath: configPath.path),
+    private static func cachedReportConfigData(base: URL) -> String? {
+        let configPath = Logger.reportConfigPath(base: base)
+        guard let data = FileManager.default.contents(atPath: configPath.path),
               let contents = String(data: data, encoding: .utf8)
         else {
             return nil

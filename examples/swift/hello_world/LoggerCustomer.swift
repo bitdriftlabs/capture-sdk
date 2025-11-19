@@ -93,7 +93,10 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
                 sessionStrategy: .fixed(),
                 configuration: Capture.Configuration(),
                 fieldProviders: [CustomFieldProvider()],
-                apiURL: apiURL
+                apiURL: apiURL,
+                rootFileURL: try? FileManager.default.url(for: .applicationSupportDirectory,
+                                                          in: .userDomainMask, appropriateFor: nil,
+                                                          create: false).appendingPathComponent("bitdrift_capture")
             )?
             .enableIntegrations(
                 [.urlSession(

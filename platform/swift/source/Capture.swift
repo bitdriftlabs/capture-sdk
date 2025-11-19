@@ -44,9 +44,10 @@ extension Logger {
     ///                              Logger.
     /// - parameter dateProvider:    An optional date provider to set on the default logger.
     /// - parameter apiURL:          The base URL of Capture API. Depend on its default value unless
-    ///                              specifically
-    ///                              instructed otherwise during discussions with bitdrift. Defaults to
+    ///                              specifically instructed otherwise during discussions with bitdrift. Defaults to
     ///                              bitdrift's hosted Compose API base URL.
+    /// - parameter rootFileURL:     If specified, this path will be used to store all SDK internal files instead of the default
+    ///                              location (i.e. The app's document directory).
     ///
     /// - returns: A logger integrator that can be used to enable various SDK integration.
     @discardableResult
@@ -57,7 +58,8 @@ extension Logger {
         fieldProviders: [FieldProvider] = [],
         dateProvider: DateProvider? = nil,
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
-        apiURL: URL = URL(string: "https://api.bitdrift.io")!
+        apiURL: URL = URL(string: "https://api.bitdrift.io")!,
+        rootFileURL: URL? = nil,
     ) -> LoggerIntegrator?
     {
         return self.start(
@@ -67,7 +69,8 @@ extension Logger {
             fieldProviders: fieldProviders,
             dateProvider: dateProvider,
             apiURL: apiURL,
-            loggerBridgingFactoryProvider: LoggerBridgingFactory()
+            loggerBridgingFactoryProvider: LoggerBridgingFactory(),
+            rootFileURL: rootFileURL
         )
     }
 
@@ -79,7 +82,8 @@ extension Logger {
         fieldProviders: [FieldProvider],
         dateProvider: DateProvider?,
         apiURL: URL,
-        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider,
+        rootFileURL: URL?,
     ) -> LoggerIntegrator?
     {
         return self.createOnce {
@@ -90,7 +94,8 @@ extension Logger {
                 sessionStrategy: sessionStrategy,
                 dateProvider: dateProvider,
                 fieldProviders: fieldProviders,
-                loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
+                loggerBridgingFactoryProvider: loggerBridgingFactoryProvider,
+                rootFileURL: rootFileURL,
             )
 
             logger?.startDebugOperationsAsNeeded()

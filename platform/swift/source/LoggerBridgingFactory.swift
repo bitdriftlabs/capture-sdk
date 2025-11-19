@@ -10,7 +10,7 @@ internal import CaptureLoggerBridge
 final class LoggerBridgingFactory: LoggerBridgingFactoryProvider {
     func makeLogger(
         apiKey: String,
-        bufferDirectoryPath: String?,
+        bufferDirectoryPath: String,
         sessionStrategy: SessionStrategy,
         metadataProvider: CaptureLoggerBridge.MetadataProvider,
         resourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget,
