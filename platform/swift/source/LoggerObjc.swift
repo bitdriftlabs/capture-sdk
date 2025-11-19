@@ -74,8 +74,6 @@ public final class LoggerObjc: NSObject {
             .start(
                 withAPIKey: apiKey,
                 sessionStrategy: sessionStrategy.underlyingSessionStrategy,
-                // swiftlint:disable:next force_unwrapping use_static_string_url_init
-                apiURL: URL(string: "https://api.bitdrift.io")!
             )
     }
 
@@ -97,37 +95,6 @@ public final class LoggerObjc: NSObject {
                 withAPIKey: apiKey,
                 sessionStrategy: sessionStrategy.underlyingSessionStrategy,
                 configuration: configuration.underlyingConfig,
-                // swiftlint:disable:next force_unwrapping use_static_string_url_init
-                apiURL: URL(string: "https://api.bitdrift.io")!
-            )
-
-        if let logger, configuration.enableURLSessionIntegration {
-            logger.enableIntegrations([.urlSession()], disableSwizzling: false)
-        }
-    }
-
-    /// Initializes the Capture SDK with the specified API key and session strategy.
-    /// Calling other SDK methods has no effect unless the logger has been initialized.
-    /// Subsequent calls to this function will have no effect.
-    ///
-    /// - parameter apiKey:          The API key provided by bitdrift.
-    /// - parameter sessionStrategy: A session strategy for the management of session IDs.
-    /// - parameter configuration:   Additional options for the Capture Logger
-    /// - parameter apiURL:          The base URL of Capture API.
-    @objc
-    public static func start(
-        withAPIKey apiKey: String,
-        sessionStrategy: SessionStrategyObjc,
-        configuration: CAPConfiguration,
-        // swiftlint:disable:next force_unwrapping use_static_string_url_init
-        apiURL: URL = URL(string: "https://api.bitdrift.io")!
-    ) {
-        let logger = Capture.Logger
-            .start(
-                withAPIKey: apiKey,
-                sessionStrategy: sessionStrategy.underlyingSessionStrategy,
-                configuration: configuration.underlyingConfig,
-                apiURL: apiURL
             )
 
         if let logger, configuration.enableURLSessionIntegration {
@@ -141,25 +108,17 @@ public final class LoggerObjc: NSObject {
     ///
     /// - parameter apiKey:                      The API key provided by bitdrift.
     /// - parameter sessionStrategy:             A session strategy for the management of session IDs.
-    /// - parameter apiURL:                      The base URL of the Capture API. Rely on its default value
-    ///                                          unless
-    ///                                          specifically instructed otherwise during discussions with
-    ///                                          Bitdrift.
-    ///                                          Defaults to Bitdrift's hosted Compose API base URL.
     /// - parameter enableURLSessionIntegration: A flag indicating if automatic URLSession capture is enabled.
     @objc
     public static func start(
         withAPIKey apiKey: String,
         sessionStrategy: SessionStrategyObjc,
-        // swiftlint:disable:next force_unwrapping use_static_string_url_init
-        apiURL: URL = URL(string: "https://api.bitdrift.io")!,
         enableURLSessionIntegration: Bool = true
     ) {
         let logger = Capture.Logger
             .start(
                 withAPIKey: apiKey,
                 sessionStrategy: sessionStrategy.underlyingSessionStrategy,
-                apiURL: apiURL
             )
 
         if let logger, enableURLSessionIntegration {
@@ -195,8 +154,7 @@ public final class LoggerObjc: NSObject {
             .start(
                 withAPIKey: apiKey,
                 sessionStrategy: sessionStrategy.underlyingSessionStrategy,
-                configuration: Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting),
-                apiURL: apiURL
+                configuration: Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting, apiURL: apiURL),
             )
 
         if let logger, enableURLSessionIntegration {

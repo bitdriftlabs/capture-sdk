@@ -56,7 +56,6 @@ public final class Logger {
     ///
     /// - parameter apiKey:                        The application key associated with your development
     ///                                            account. Provided by bitdrift.
-    /// - parameter apiURL:                        The base URL of Capture API.
     /// - parameter rootFileURL:                   The root file path used to store all internal SDK files.
     /// - parameter configuration:                 A configuration that specifies Capture features to enable.
     /// - parameter sessionStrategy:               The session strategy to use.
@@ -68,19 +67,15 @@ public final class Logger {
     ///                                            purposes.
     convenience init?(
         withAPIKey apiKey: String,
-        apiURL: URL,
         configuration: Configuration,
         sessionStrategy: SessionStrategy,
         dateProvider: DateProvider?,
         fieldProviders: [FieldProvider],
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory(),
-        rootFileURL: URL? = nil,
     )
     {
         self.init(
             withAPIKey: apiKey,
-            bufferDirectory: rootFileURL,
-            apiURL: apiURL,
             remoteErrorReporter: nil,
             configuration: configuration,
             sessionStrategy: sessionStrategy,
@@ -99,8 +94,6 @@ public final class Logger {
     ///
     /// - parameter apiKey:                        The application key associated with your development
     ///                                            account. Provided by bitdrift.
-    /// - parameter bufferDirectory:               The directory to use for storing files.
-    /// - parameter apiURL:                        The base URL of Capture API.
     /// - parameter remoteErrorReporter:           The error reporter to use, if any. Otherwise the logger
     ///                                            creates its own error reporter.
     /// - parameter configuration:                 A configuration that specifies Capture features to enable.
@@ -117,8 +110,6 @@ public final class Logger {
     ///                                            purposes.
     init?(
         withAPIKey apiKey: String,
-        bufferDirectory: URL?,
-        apiURL: URL,
         remoteErrorReporter: RemoteErrorReporting?,
         configuration: Configuration,
         sessionStrategy: SessionStrategy,
@@ -152,21 +143,21 @@ public final class Logger {
             customFieldProviders: fieldProviders
         )
 
-        self.sessionURLBase = Self.normalizedAPIURL(apiURL: apiURL)
+        self.sessionURLBase = Self.normalizedAPIURL(apiURL: configuration.apiURL)
 
-        let client = APIClient(apiURL: apiURL, apiKey: apiKey)
+        let client = APIClient(apiURL: configuration.apiURL, apiKey: apiKey)
         self.remoteErrorReporter = remoteErrorReporter
             ?? RemoteErrorReportingClient(
                 client: client,
                 fieldProviders: [appStateAttributes, clientAttributes]
             )
 
-        guard let directoryURL = bufferDirectory ?? Logger.captureSDKDirectory() else {
+        guard let directoryURL = configuration.rootFileURL ?? Logger.captureSDKDirectory() else {
             return nil
         }
 
         let network: URLSessionNetworkClient? = enableNetwork
-            ? URLSessionNetworkClient(apiBaseURL: apiURL)
+            ? URLSessionNetworkClient(apiBaseURL: configuration.apiURL)
             : nil
         self.network = network
 

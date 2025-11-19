@@ -20,13 +20,11 @@ final class SessionStrategyTests: XCTestCase {
 
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
-            bufferDirectory: Logger.tempBufferDirectory(),
             sessionStrategy: SessionStrategy.fixed {
                 let sessionID = UUID().uuidString
                 generatedSessionIDs.append(sessionID)
                 return sessionID
             },
-            configuration: .init()
         )
 
         let sessionID = logger.sessionID
@@ -46,13 +44,11 @@ final class SessionStrategyTests: XCTestCase {
 
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
-            bufferDirectory: Logger.tempBufferDirectory(),
             sessionStrategy: SessionStrategy.activityBased { sessionID in
                 dispatchPrecondition(condition: .onQueue(.main))
                 observedSessionID = sessionID
                 expectation.fulfill()
             },
-            configuration: .init()
         )
 
         let sessionID = logger.sessionID

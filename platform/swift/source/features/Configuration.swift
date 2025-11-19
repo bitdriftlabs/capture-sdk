@@ -18,18 +18,36 @@ public struct Configuration {
     /// true if Capture should enable Fatal Issue Reporting
     public var enableFatalIssueReporting: Bool
 
+    /// If specified, this path will be used to store all SDK internal files instead of the default location (i.e. The app's document directory).
+    public var rootFileURL: URL?
+
+    /// The base URL of Capture API. Depend on its default value unless specifically instructed otherwise during discussions with
+    /// bitdrift. Defaults to bitdrift's hosted API base URL.
+    let apiURL: URL
+
+
     /// Initializes a new instance of the Capture configuration.
     ///
     /// - parameter sessionReplayConfiguration: The session replay configuration to use. Passing `nil` disables the feature.
     /// - parameter sleepMode:                  .enabled if Capture should initialize in minimal activity mode
     /// - parameter enableFatalIssueReporting:  true if Capture should enable Fatal Issue Reporting
+    /// - parameter apiURL:                     The base URL of Capture API. Depend on its default value unless
+    ///                                         specifically instructed otherwise during discussions with bitdrift. Defaults
+    ///                                         to bitdrift's SaaS API base URL.
+    /// - parameter rootFileURL:                If specified, this path will be used to store all SDK internal files instead of
+    ///                                         the default location (i.e. The app's document directory).
     public init(
         sessionReplayConfiguration: SessionReplayConfiguration? = .init(),
         sleepMode: SleepMode = .disabled,
-        enableFatalIssueReporting: Bool = true
+        enableFatalIssueReporting: Bool = true,
+        // swiftlint:disable:next force_unwrapping use_static_string_url_init
+        apiURL: URL = URL(string: "https://api.bitdrift.io")!,
+        rootFileURL: URL? = nil,
     ) {
         self.sessionReplayConfiguration = sessionReplayConfiguration
         self.sleepMode = sleepMode
         self.enableFatalIssueReporting = enableFatalIssueReporting
+        self.apiURL = apiURL
+        self.rootFileURL = rootFileURL
     }
 }

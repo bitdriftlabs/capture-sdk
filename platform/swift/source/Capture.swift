@@ -43,11 +43,6 @@ extension Logger {
     /// - parameter fieldProviders:  An optional array of additional FieldProviders to include on the default
     ///                              Logger.
     /// - parameter dateProvider:    An optional date provider to set on the default logger.
-    /// - parameter apiURL:          The base URL of Capture API. Depend on its default value unless
-    ///                              specifically instructed otherwise during discussions with bitdrift. Defaults to
-    ///                              bitdrift's hosted Compose API base URL.
-    /// - parameter rootFileURL:     If specified, this path will be used to store all SDK internal files instead of the default
-    ///                              location (i.e. The app's document directory).
     ///
     /// - returns: A logger integrator that can be used to enable various SDK integration.
     @discardableResult
@@ -57,9 +52,6 @@ extension Logger {
         configuration: Configuration = .init(),
         fieldProviders: [FieldProvider] = [],
         dateProvider: DateProvider? = nil,
-        // swiftlint:disable:next force_unwrapping use_static_string_url_init
-        apiURL: URL = URL(string: "https://api.bitdrift.io")!,
-        rootFileURL: URL? = nil,
     ) -> LoggerIntegrator?
     {
         return self.start(
@@ -68,9 +60,7 @@ extension Logger {
             configuration: configuration,
             fieldProviders: fieldProviders,
             dateProvider: dateProvider,
-            apiURL: apiURL,
             loggerBridgingFactoryProvider: LoggerBridgingFactory(),
-            rootFileURL: rootFileURL
         )
     }
 
@@ -81,21 +71,17 @@ extension Logger {
         configuration: Configuration,
         fieldProviders: [FieldProvider],
         dateProvider: DateProvider?,
-        apiURL: URL,
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider,
-        rootFileURL: URL?,
     ) -> LoggerIntegrator?
     {
         return self.createOnce {
             let logger = Logger(
                 withAPIKey: apiKey,
-                apiURL: apiURL,
                 configuration: configuration,
                 sessionStrategy: sessionStrategy,
                 dateProvider: dateProvider,
                 fieldProviders: fieldProviders,
                 loggerBridgingFactoryProvider: loggerBridgingFactoryProvider,
-                rootFileURL: rootFileURL,
             )
 
             logger?.startDebugOperationsAsNeeded()
