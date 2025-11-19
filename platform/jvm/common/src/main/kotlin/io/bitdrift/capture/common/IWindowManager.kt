@@ -11,20 +11,28 @@ import android.app.Activity
 import android.view.View
 
 /**
- * Provides access the Global Window Views, or `null` if no window is available.
+ * Provides access the Global Window Views
  */
 interface IWindowManager {
     /**
-     * Returns the root view of the current window if available.
+     * Returns the bottom-most root view of the current window if available.
      *
-     * @return The root view of the current hierarchy, or `null` if not available.
+     * When multiple windows are present (e.g., dialogs, popups), this will be the
+     * view at the bottom of the Z-order, which is usually the main application window.
+     *
+     * @return The bottom-most (first added) root view of the current hierarchy, or `null` if not available.
      */
-    fun getFirstRootView(): View?
+    fun getBottomMostRootView(): View?
 
     /**
-     * Returns all root views of the current window if available.
+     * Returns all root views across all windows of the application.
      *
-     * @return The root views of the current hierarchy, or an empty list if not available.
+     * This includes the main application window, dialogs, popups, and any other
+     * system-level windows owned by the app. The views are typically ordered
+     * from bottom to top in the Z-order (the first element is the main window,
+     * and the last is the top-most window like a dialog).
+     *
+     * @return A list of all root views for the application, or an empty list if none are available.
      */
     fun getAllRootViews(): List<View>
 
