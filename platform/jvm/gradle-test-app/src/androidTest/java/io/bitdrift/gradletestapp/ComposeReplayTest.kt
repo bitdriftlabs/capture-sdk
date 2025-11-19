@@ -30,7 +30,10 @@ import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalDensity
@@ -38,6 +41,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.test.platform.app.InstrumentationRegistry
@@ -647,6 +651,69 @@ class ComposeReplayTest {
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 484, 200, 400))
         // Second Children - Box 1
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 884, 200, 400))
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Test
+    fun scanningHandlesModalBottomSheet() {
+        composeRule.setContent {
+            val (_, _) = with(LocalDensity.current) {
+                Pair(200.dp.toPx().toInt(), 400.dp.toPx().toInt())
+            }
+
+            // Background content (the activity window)
+            Box(
+                modifier = Modifier
+                    .size(width = 200.dp, height = 400.dp)
+                    .testTag("background"),
+            ) {
+                Button(onClick = { }) {
+                    Text("Show Bottom Sheet")
+                }
+            }
+
+            ModalBottomSheet(
+                onDismissRequest = { },
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("bottom_sheet"),
+                ) {
+                    Text("Bottom Sheet Title")
+                    Button(onClick = { }) {
+                        Text("Dismiss")
+                    }
+                }
+            }
+        }
+
+        composeRule.waitForIdle()
+
+        val capture = verifyReplayScreen(viewCount = 10)
+
+        // Verify background button is captured (from the main activity window)
+        val hasBackgroundButton = capture.any {
+            it.type == ReplayType.Button && it.y < 400
+        }
+        assertThat(hasBackgroundButton).isTrue()
+
+        // Verify bottom sheet content appears (from the dialog window)
+        val hasBottomSheetTitle = capture.any {
+            it.type == ReplayType.Label && it.y > 2000
+        }
+        val hasBottomSheetButton = capture.any {
+            it.type == ReplayType.Button && it.y > 2000
+        }
+
+        assertThat(hasBottomSheetTitle).isTrue()
+        assertThat(hasBottomSheetButton).isTrue()
+
+        // Verify multiple root views exist (main window + bottom sheet dialog window)
+        val fullScreenViews = capture.filter {
+            it.width == 1440 && it.height == 2560
+        }
+        assertThat(fullScreenViews.size).isAtLeast(2)
     }
 
     /**
