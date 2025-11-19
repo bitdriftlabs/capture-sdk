@@ -30,6 +30,8 @@ import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.SubcomposeLayout
@@ -38,6 +40,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.test.platform.app.InstrumentationRegistry
@@ -647,6 +650,169 @@ class ComposeReplayTest {
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 484, 200, 400))
         // Second Children - Box 1
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 884, 200, 400))
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Test
+    fun scanningHandlesModalBottomSheet() {
+        composeRule.setContent {
+            val (_, _) = with(LocalDensity.current) {
+                Pair(200.dp.toPx().toInt(), 400.dp.toPx().toInt())
+            }
+
+            // Background content (the activity window)
+            Box(
+                modifier = Modifier
+                    .size(width = 200.dp, height = 400.dp)
+                    .testTag("background"),
+            ) {
+                Button(onClick = { }) {
+                    Text("Show Bottom Sheet")
+                }
+            }
+
+            ModalBottomSheet(
+                onDismissRequest = { },
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("bottom_sheet"),
+                ) {
+                    Text("Bottom Sheet Title")
+                    Button(onClick = { }) {
+                        Text("Dismiss")
+                    }
+                }
+            }
+        }
+
+        composeRule.waitForIdle()
+
+        val capture = verifyReplayScreen(viewCount = 10)
+
+        // Find indices of background and bottom sheet elements
+        val backgroundButtonIndex = capture.indexOfFirst {
+            it.type == ReplayType.Button && it.y < 400
+        }
+        val bottomSheetTitleIndex = capture.indexOfFirst {
+            it.type == ReplayType.Label && it.y > 2000
+        }
+        val bottomSheetButtonIndex = capture.indexOfFirst {
+            it.type == ReplayType.Button && it.y > 2000
+        }
+
+        // Verify elements exist
+        assertThat(backgroundButtonIndex).isAtLeast(0)
+        assertThat(bottomSheetTitleIndex).isAtLeast(0)
+        assertThat(bottomSheetButtonIndex).isAtLeast(0)
+
+        // Verify bottom sheet elements appear after background elements (on top)
+        assertThat(bottomSheetTitleIndex).isGreaterThan(backgroundButtonIndex)
+        assertThat(bottomSheetButtonIndex).isGreaterThan(backgroundButtonIndex)
+
+        // Verify background button is captured (from the main activity window)
+        val hasBackgroundButton = capture.any {
+            it.type == ReplayType.Button && it.y < 400
+        }
+        assertThat(hasBackgroundButton).isTrue()
+
+        // Verify bottom sheet content appears (from the dialog window)
+        val hasBottomSheetTitle = capture.any {
+            it.type == ReplayType.Label && it.y > 2000
+        }
+        val hasBottomSheetButton = capture.any {
+            it.type == ReplayType.Button && it.y > 2000
+        }
+
+        assertThat(hasBottomSheetTitle).isTrue()
+        assertThat(hasBottomSheetButton).isTrue()
+
+        // Verify multiple root views exist (main window + bottom sheet dialog window)
+        val fullScreenViews = capture.filter {
+            it.width == 1440 && it.height == 2560
+        }
+        assertThat(fullScreenViews.size).isAtLeast(2)
+    }
+
+    @Test
+    fun scanningHandlesAlertDialog() {
+        composeRule.setContent {
+            // Background content (the activity window)
+            Box(
+                modifier = Modifier
+                    .size(width = 200.dp, height = 400.dp)
+                    .testTag("background"),
+            ) {
+                androidx.compose.material3.Button(onClick = { }) {
+                    androidx.compose.material3.Text("Show Dialog")
+                }
+            }
+
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { },
+                title = { androidx.compose.material3.Text("Alert Title") },
+                text = { androidx.compose.material3.Text("This is the alert message content") },
+                confirmButton = {
+                    androidx.compose.material3.Button(onClick = { }) {
+                        androidx.compose.material3.Text("Confirm")
+                    }
+                },
+                dismissButton = {
+                    androidx.compose.material3.Button(onClick = { }) {
+                        androidx.compose.material3.Text("Dismiss")
+                    }
+                }
+            )
+        }
+
+        composeRule.waitForIdle()
+
+        val capture = verifyReplayScreen(viewCount = 10)
+
+        // Find indices of background and dialog elements
+        val backgroundButtonIndex = capture.indexOfFirst {
+            it == ReplayRect(ReplayType.Button, 0, 98, 443, 140)
+        }
+        val dialogTitleIndex = capture.indexOfFirst {
+            it == ReplayRect(ReplayType.Label, 84, 84, 360, 112)
+        }
+        val dialogConfirmButtonIndex = capture.indexOfFirst {
+            it == ReplayRect(ReplayType.Button, 178, 420, 345, 140)
+        }
+
+        // Verify elements exist
+        assertThat(backgroundButtonIndex).isAtLeast(0)
+        assertThat(dialogTitleIndex).isAtLeast(0)
+        assertThat(dialogConfirmButtonIndex).isAtLeast(0)
+
+        // Verify dialog elements appear after background elements (on top)
+        assertThat(dialogTitleIndex).isGreaterThan(backgroundButtonIndex)
+        assertThat(dialogConfirmButtonIndex).isGreaterThan(backgroundButtonIndex)
+
+        // Verify background button is captured (from the main activity window)
+        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 98, 443, 140))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 84, 133, 275, 70))
+
+        // Verify alert dialog title appears (from the dialog window)
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 84, 84, 360, 112))
+
+        // Verify alert dialog text content appears
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 84, 252, 757, 70))
+
+        // Verify confirm button appears
+        assertThat(capture).contains(ReplayRect(ReplayType.Button, 178, 420, 345, 140))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 262, 455, 177, 70))
+
+        // Verify dismiss button appears
+        assertThat(capture).contains(ReplayRect(ReplayType.Button, 551, 420, 345, 140))
+        assertThat(capture).contains(ReplayRect(ReplayType.Label, 635, 455, 177, 70))
+
+        // Verify multiple root views exist (main window + dialog window)
+        val fullScreenViews = capture.filter {
+            it.width == 1440 && it.height == 2560
+        }
+        assertThat(fullScreenViews.size).isAtLeast(2)
     }
 
     /**
