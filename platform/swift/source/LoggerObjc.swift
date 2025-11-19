@@ -29,12 +29,17 @@ public final class CAPConfiguration: NSObject {
     /// - parameter enableFatalIssueReporting:   true if Capture should enable Fatal Issue Reporting
     /// - parameter enableURLSessionIntegration: true if Capture should enable Fatal Issue Reporting
     /// - parameter sleepMode:                   CAPSleepModeActive if Capture should initialize in minimal activity mode
+    /// - parameter apiURL:                      The base URL of Capture API. Depend on its default value unless
+    ///                                          specifically instructed otherwise during discussions with bitdrift. Defaults
+    ///                                          to bitdrift's SaaS API base URL.
+    /// - parameter rootFileURL:                 If specified, this path will be used to store all SDK internal files instead of
+    ///                                          the default location (i.e. The app's document directory).
     @objc
     public init(enableFatalIssueReporting: Bool, enableURLSessionIntegration: Bool,
                 sleepMode: SleepMode, apiURL: URL?, rootFileURL: URL?)
     {
         self.underlyingConfig = Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting,
-                                              apiURL: URL(string: "https://api.bitdrift.io")!, rootFileURL: rootFileURL)
+                                              apiURL: apiURL ?? URL(string: "https://api.bitdrift.io")!, rootFileURL: rootFileURL)
         self.enableURLSessionIntegration = enableURLSessionIntegration
     }
 
