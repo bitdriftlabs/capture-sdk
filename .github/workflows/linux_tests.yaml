@@ -34,6 +34,11 @@ jobs:
           repository-cache: true
       - name: Attempt to free up runner disk space
         run: |
+          echo "Disk space BEFORE cleanup:"
+          df -h
+          echo "================================"
+          echo "Starting clean-up below:"
+          
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf /usr/local/share/boost
@@ -42,6 +47,10 @@ jobs:
           sudo apt-get clean
           sudo apt-get autoremove -y
           sudo rm -rf /var/lib/apt/lists/*
+          
+          echo "Clean-up tasks done"
+          echo "================================"
+          echo "Disk space AFTER cleanup:"
           df -h
       - name: Check for Bazel build file changes
         id: bazel_check
