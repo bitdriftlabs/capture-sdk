@@ -81,7 +81,7 @@ extension Logger {
                 sessionStrategy: sessionStrategy,
                 dateProvider: dateProvider,
                 fieldProviders: fieldProviders,
-                loggerBridgingFactoryProvider: loggerBridgingFactoryProvider,
+                loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
             )
 
             logger?.startDebugOperationsAsNeeded()

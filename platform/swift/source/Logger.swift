@@ -56,7 +56,6 @@ public final class Logger {
     ///
     /// - parameter apiKey:                        The application key associated with your development
     ///                                            account. Provided by bitdrift.
-    /// - parameter rootFileURL:                   The root file path used to store all internal SDK files.
     /// - parameter configuration:                 A configuration that specifies Capture features to enable.
     /// - parameter sessionStrategy:               The session strategy to use.
     /// - parameter dateProvider:                  The date provider to use, if any. The logger defaults to

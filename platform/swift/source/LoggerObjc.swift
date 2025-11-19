@@ -30,6 +30,20 @@ public final class CAPConfiguration: NSObject {
     /// - parameter enableURLSessionIntegration: true if Capture should enable Fatal Issue Reporting
     /// - parameter sleepMode:                   CAPSleepModeActive if Capture should initialize in minimal activity mode
     @objc
+    public init(enableFatalIssueReporting: Bool, enableURLSessionIntegration: Bool,
+                sleepMode: SleepMode, apiURL: URL?, rootFileURL: URL?)
+    {
+        self.underlyingConfig = Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting,
+                                              apiURL: URL(string: "https://api.bitdrift.io")!, rootFileURL: rootFileURL)
+        self.enableURLSessionIntegration = enableURLSessionIntegration
+    }
+
+    /// Initializes a new instance of the Capture configuration.
+    ///
+    /// - parameter enableFatalIssueReporting:   true if Capture should enable Fatal Issue Reporting
+    /// - parameter enableURLSessionIntegration: true if Capture should enable Fatal Issue Reporting
+    /// - parameter sleepMode:                   CAPSleepModeActive if Capture should initialize in minimal activity mode
+    @objc
     public init(enableFatalIssueReporting: Bool, enableURLSessionIntegration: Bool, sleepMode: SleepMode) {
         self.underlyingConfig = Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting)
         self.enableURLSessionIntegration = enableURLSessionIntegration
@@ -144,8 +158,6 @@ public final class LoggerObjc: NSObject {
     public static func start(
         withAPIKey apiKey: String,
         sessionStrategy: SessionStrategyObjc,
-        // swiftlint:disable:next force_unwrapping use_static_string_url_init
-        apiURL: URL = URL(string: "https://api.bitdrift.io")!,
         enableURLSessionIntegration: Bool = true,
         sleepMode: SleepMode = .disabled,
         enableFatalIssueReporting: Bool = true
@@ -154,7 +166,7 @@ public final class LoggerObjc: NSObject {
             .start(
                 withAPIKey: apiKey,
                 sessionStrategy: sessionStrategy.underlyingSessionStrategy,
-                configuration: Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting, apiURL: apiURL),
+                configuration: Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting),
             )
 
         if let logger, enableURLSessionIntegration {
