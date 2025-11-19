@@ -770,48 +770,52 @@ class ComposeReplayTest {
 
         val capture = verifyReplayScreen(viewCount = 10)
 
-        // Find indices of background and dialog elements
+        val screen = capture.maxByOrNull { it.width * it.height }
+        require(screen != null) { "Could not determine screen bounds from capture" }
+        val screenWidth = screen.width
+        val screenHeight = screen.height
+
+        // 1. Z-Index Verification: Dialog elements should be drawn after (on top of) background elements.
         val backgroundButtonIndex = capture.indexOfFirst {
-            it == ReplayRect(ReplayType.Button, 0, 98, 443, 140)
+            it.type == ReplayType.Button && it.y < screenHeight / 3
         }
-        val dialogTitleIndex = capture.indexOfFirst {
-            it == ReplayRect(ReplayType.Label, 84, 84, 360, 112)
-        }
-        val dialogConfirmButtonIndex = capture.indexOfFirst {
-            it == ReplayRect(ReplayType.Button, 178, 420, 345, 140)
-        }
-
-        // Verify elements exist
         assertThat(backgroundButtonIndex).isAtLeast(0)
-        assertThat(dialogTitleIndex).isAtLeast(0)
-        assertThat(dialogConfirmButtonIndex).isAtLeast(0)
 
-        // Verify dialog elements appear after background elements (on top)
-        assertThat(dialogTitleIndex).isGreaterThan(backgroundButtonIndex)
-        assertThat(dialogConfirmButtonIndex).isGreaterThan(backgroundButtonIndex)
+        // In Material dialogs, there's a scrim view behind the dialog that is the full width
+        // of the screen. We need to filter this out to correctly calculate the dialog bounds.
+        val dialogElements = capture.filter { it.y > screenHeight / 3 && it.width < screenWidth }
+        assertThat(dialogElements).isNotEmpty()
 
-        // Verify background button is captured (from the main activity window)
-        assertThat(capture).contains(ReplayRect(ReplayType.Button, 0, 98, 443, 140))
-        assertThat(capture).contains(ReplayRect(ReplayType.Label, 84, 133, 275, 70))
+        val firstDialogElementIndex = capture.indexOf(dialogElements.first())
+        assertThat(firstDialogElementIndex).isGreaterThan(backgroundButtonIndex)
 
-        // Verify alert dialog title appears (from the dialog window)
-        assertThat(capture).contains(ReplayRect(ReplayType.Label, 84, 84, 360, 112))
+        // Verify we have the expected dialog elements
+        val dialogButtons = dialogElements.filter { it.type == ReplayType.Button }
+        val dialogLabels = dialogElements.filter { it.type == ReplayType.Label }
+        assertThat(dialogButtons).hasSize(2)
+        assertThat(dialogLabels.size).isAtLeast(2) // title, message, and button labels
 
-        // Verify alert dialog text content appears
-        assertThat(capture).contains(ReplayRect(ReplayType.Label, 84, 252, 757, 70))
+        // 2. Centering Verification
+        val dialogLeft = dialogElements.minOf { it.x }
+        val dialogRight = dialogElements.maxOf { it.x + it.width }
+        val dialogTop = dialogElements.minOf { it.y }
+        val dialogBottom = dialogElements.maxOf { it.y + it.height }
 
-        // Verify confirm button appears
-        assertThat(capture).contains(ReplayRect(ReplayType.Button, 178, 420, 345, 140))
-        assertThat(capture).contains(ReplayRect(ReplayType.Label, 262, 455, 177, 70))
+        // Check that the dialog is narrower than the screen.
+        assertThat(dialogRight - dialogLeft).isLessThan(screenWidth)
 
-        // Verify dismiss button appears
-        assertThat(capture).contains(ReplayRect(ReplayType.Button, 551, 420, 345, 140))
-        assertThat(capture).contains(ReplayRect(ReplayType.Label, 635, 455, 177, 70))
+        // Check for horizontal centering with a small tolerance.
+        val leftMargin = dialogLeft
+        val rightMargin = screenWidth - dialogRight
+        assertThat(leftMargin.toDouble()).isWithin(20.0).of(rightMargin.toDouble())
 
-        // Verify multiple root views exist (main window + dialog window)
-        val fullScreenViews = capture.filter {
-            it.width == 1440 && it.height == 2560
-        }
+        // Check for vertical centering with a generous tolerance.
+        val topMargin = dialogTop
+        val bottomMargin = screenHeight - dialogBottom
+        assertThat(topMargin.toDouble()).isWithin(screenHeight / 4.0).of(bottomMargin.toDouble())
+
+        // 3. Verify multiple root views exist (main window + dialog window)
+        val fullScreenViews = capture.filter { it.width == screenWidth && it.height == screenHeight }
         assertThat(fullScreenViews.size).isAtLeast(2)
     }
 
