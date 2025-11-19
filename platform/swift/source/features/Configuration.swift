@@ -25,7 +25,6 @@ public struct Configuration {
     /// bitdrift. Defaults to bitdrift's hosted API base URL.
     let apiURL: URL
 
-
     /// Initializes a new instance of the Capture configuration.
     ///
     /// - parameter sessionReplayConfiguration: The session replay configuration to use. Passing `nil` disables the feature.

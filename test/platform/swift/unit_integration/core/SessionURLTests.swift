@@ -80,7 +80,7 @@ final class SessionURLTests: XCTestCase {
         Logger.start(
             withAPIKey: "api_key",
             sessionStrategy: .fixed(),
-            configuration: .init(apiURL: try XCTUnwrap(URL(string: apiURL))),
+            configuration: .init(apiURL: try XCTUnwrap(URL(string: apiURL)))
         )
     }
 }

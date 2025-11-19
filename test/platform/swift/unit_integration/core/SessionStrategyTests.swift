@@ -24,7 +24,7 @@ final class SessionStrategyTests: XCTestCase {
                 let sessionID = UUID().uuidString
                 generatedSessionIDs.append(sessionID)
                 return sessionID
-            },
+            }
         )
 
         let sessionID = logger.sessionID
@@ -48,7 +48,7 @@ final class SessionStrategyTests: XCTestCase {
                 dispatchPrecondition(condition: .onQueue(.main))
                 observedSessionID = sessionID
                 expectation.fulfill()
-            },
+            }
         )
 
         let sessionID = logger.sessionID

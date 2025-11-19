@@ -92,7 +92,7 @@ public final class LoggerObjc: NSObject {
         Capture.Logger
             .start(
                 withAPIKey: apiKey,
-                sessionStrategy: sessionStrategy.underlyingSessionStrategy,
+                sessionStrategy: sessionStrategy.underlyingSessionStrategy
             )
     }
 
@@ -113,7 +113,7 @@ public final class LoggerObjc: NSObject {
             .start(
                 withAPIKey: apiKey,
                 sessionStrategy: sessionStrategy.underlyingSessionStrategy,
-                configuration: configuration.underlyingConfig,
+                configuration: configuration.underlyingConfig
             )
 
         if let logger, configuration.enableURLSessionIntegration {
@@ -137,7 +137,7 @@ public final class LoggerObjc: NSObject {
         let logger = Capture.Logger
             .start(
                 withAPIKey: apiKey,
-                sessionStrategy: sessionStrategy.underlyingSessionStrategy,
+                sessionStrategy: sessionStrategy.underlyingSessionStrategy
             )
 
         if let logger, enableURLSessionIntegration {
@@ -151,11 +151,6 @@ public final class LoggerObjc: NSObject {
     ///
     /// - parameter apiKey:                      The API key provided by bitdrift.
     /// - parameter sessionStrategy:             A session strategy for the management of session IDs.
-    /// - parameter apiURL:                      The base URL of the Capture API. Rely on its default value
-    ///                                          unless
-    ///                                          specifically instructed otherwise during discussions with
-    ///                                          Bitdrift.
-    ///                                          Defaults to Bitdrift's hosted Compose API base URL.
     /// - parameter enableURLSessionIntegration: A flag indicating if automatic URLSession capture is enabled.
     /// - parameter sleepMode:                   .enabled if Capture should be initialized in minimal activity mode.
     /// - parameter enableFatalIssueReporting:   true if Capture should enable Fatal Issue Reporting.
@@ -171,7 +166,7 @@ public final class LoggerObjc: NSObject {
             .start(
                 withAPIKey: apiKey,
                 sessionStrategy: sessionStrategy.underlyingSessionStrategy,
-                configuration: Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting),
+                configuration: Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting)
             )
 
         if let logger, enableURLSessionIntegration {
