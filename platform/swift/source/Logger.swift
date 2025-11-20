@@ -377,7 +377,7 @@ public final class Logger {
     static func captureSDKDirectory() -> URL? {
         return try? FileManager.default
             .url(
-                for: .documentDirectory,
+                for: .applicationSupportDirectory,
                 in: .userDomainMask,
                 appropriateFor: nil,
                 create: false
