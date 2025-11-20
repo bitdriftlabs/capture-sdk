@@ -12,14 +12,25 @@ export ZERO_AR_DATE=1
 remove_rmeta () {
   local -r bin="$1"
 
-  if $AR t "$bin"| grep "lib\.r"; then
-    $AR dD "$bin" $($AR t "$bin"| grep "lib\.r")
-  fi
+  # Remove lib.rmeta files one at a time to avoid command line length limits
+  # Use a counter to prevent infinite loops
+  local max_iterations=10000
+  local iteration=0
+  
+  while [ $iteration -lt $max_iterations ] && $AR t "$bin" 2>/dev/null | grep -q "lib\.r"; do
+    local rmeta_file=$($AR t "$bin" 2>/dev/null | grep "lib\.r" | head -1)
+    if [ -n "$rmeta_file" ]; then
+      $AR dD "$bin" "$rmeta_file" 2>/dev/null || break
+    else
+      break
+    fi
+    iteration=$((iteration + 1))
+  done
 
   # Do not exit on error.
   set +e
 
-  if $AR t "$bin"| grep "lib\.r"; then
+  if $AR t "$bin" 2>/dev/null | grep -q "lib\.r"; then
     # Method succeeded which means that it found
     # one of the unexpected object references which means that
     # we were not able to remove all of the revevant `lib.rmeta`

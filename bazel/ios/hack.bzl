@@ -20,7 +20,7 @@ TMP="$(mktemp -d)"
 unzip -q {zip_in} -d "$TMP"
 DIR="$(find "$TMP" -maxdepth 1 -name '*.xcframework' -print -quit)"
 "{tool}" "$DIR"
-rsync -a "$DIR/" "{outdir}/"
+cp -R "$DIR/"* "{outdir}/"
 """.format(zip_in = zip_in.path, tool = tool.path, outdir = outdir.path),
     )
 
