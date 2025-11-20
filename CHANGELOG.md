@@ -30,7 +30,7 @@
 
 **Fixed**
 
-- Fix the rendering order of dialog and modal windows in Session Replay.
+- Fix the rendering order and position of dialog and modal windows in Session Replay.
 
 ### iOS
 
