@@ -13,6 +13,7 @@ import io.bitdrift.capture.BuildConstants
 import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IClientAttributes
+import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppBuildNumber
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Architecture
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.DeviceMetrics
@@ -34,6 +35,7 @@ internal class IssueReporterProcessor(
     private val reporterIssueStorage: IIssueReporterStorage,
     private val clientAttributes: IClientAttributes,
     private val streamingReportsProcessor: IStreamingReportProcessor,
+    private val dateProvider: DateProvider,
 ) {
     companion object {
         // Initial size for file builder buffer
@@ -60,7 +62,7 @@ internal class IssueReporterProcessor(
         sdkVersion: String,
     ) {
         runCatching {
-            val timestamp = System.currentTimeMillis()
+            val timestamp = dateProvider.invoke().time
             val destinationPath =
                 if (isFatalIssue) {
                     reporterIssueStorage.generateFatalIssueFilePath()

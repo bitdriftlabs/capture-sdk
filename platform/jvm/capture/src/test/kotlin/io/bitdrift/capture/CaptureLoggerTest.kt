@@ -19,6 +19,7 @@ import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
@@ -62,7 +63,7 @@ class CaptureLoggerTest {
 
     private lateinit var logger: LoggerImpl
     private var testServerPort: Int? = null
-    private val fatalIssueReporter: IFatalIssueReporter = FatalIssueReporter()
+    private val fatalIssueReporter: IFatalIssueReporter = FatalIssueReporter(dateProvider = FakeDateProvider)
 
     @Before
     fun setUp() {

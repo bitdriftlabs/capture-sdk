@@ -12,6 +12,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.bitdrift.capture.error.ErrorReportRequest
 import io.bitdrift.capture.error.ErrorReporterService
+import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
@@ -36,7 +37,10 @@ import java.util.concurrent.TimeUnit
 class ErrorReporterTest {
     private lateinit var server: MockWebServer
     private lateinit var reporter: ErrorReporterService
-    private val fatalIssueReporter: IFatalIssueReporter = FatalIssueReporter()
+    private val fatalIssueReporter: IFatalIssueReporter =
+        FatalIssueReporter(
+            dateProvider = FakeDateProvider,
+        )
 
     init {
         CaptureJniLibrary.load()

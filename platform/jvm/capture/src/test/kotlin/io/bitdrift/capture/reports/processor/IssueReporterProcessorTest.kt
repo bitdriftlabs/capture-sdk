@@ -8,7 +8,6 @@ package io.bitdrift.capture.reports.processor
 
 import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
-import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.doReturn
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
@@ -16,6 +15,9 @@ import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.attributes.ClientAttributes
+import io.bitdrift.capture.fakes.FakeDateProvider
+import io.bitdrift.capture.fakes.FakeDateProvider.DEFAULT_TEST_TIMESTAMP
+import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.reports.persistence.IIssueReporterStorage
 import org.junit.Before
 import org.junit.Test
@@ -30,6 +32,7 @@ class IssueReporterProcessorTest {
     private val reporterIssueStorage: IIssueReporterStorage = mock()
     private val streamingReportsProcessor: IStreamingReportProcessor = mock()
     private val lifecycleOwner: LifecycleOwner = mock()
+    private val dateProvider: DateProvider = FakeDateProvider
 
     private lateinit var processor: IssueReporterProcessor
 
@@ -39,7 +42,7 @@ class IssueReporterProcessorTest {
         initializer.create(ApplicationProvider.getApplicationContext())
         attributes = ClientAttributes(APP_CONTEXT, lifecycleOwner)
         processor =
-            IssueReporterProcessor(reporterIssueStorage, attributes, streamingReportsProcessor)
+            IssueReporterProcessor(reporterIssueStorage, attributes, streamingReportsProcessor, dateProvider)
     }
 
     @Test
@@ -69,7 +72,7 @@ class IssueReporterProcessorTest {
             isFatal = eq(expectedFatalIssue),
             engine = eq(FAKE_ENGINE_JSC),
             debugId = eq(FAKE_DEBUG_ID),
-            timestampMillis = any(),
+            timestampMillis = eq(DEFAULT_TEST_TIMESTAMP),
             destinationPath = eq(expectedPath),
             attributes = eq(attributes),
             sdkVersion = eq(RN_BITDRIFT_VERSION),
