@@ -61,6 +61,7 @@ class IssueReporterProcessorTest {
     }
 
     private fun assertArguments(expectedFatalIssue: Boolean) {
+        val expectedPath = if (expectedFatalIssue) FAKE_FATAL_PATH else FAKE_NON_FATAL_PATH
         verify(streamingReportsProcessor).persistJavaScriptError(
             errorName = eq(FAKE_ERROR_NAME),
             errorMessage = eq(FAKE_ERROR_MESSAGE),
@@ -69,7 +70,7 @@ class IssueReporterProcessorTest {
             engine = eq(FAKE_ENGINE_JSC),
             debugId = eq(FAKE_DEBUG_ID),
             timestampMillis = any(),
-            destinationPath = eq(FAKE_NON_FATAL_PATH),
+            destinationPath = eq(expectedPath),
             attributes = eq(attributes),
             sdkVersion = eq(RN_BITDRIFT_VERSION),
         )
