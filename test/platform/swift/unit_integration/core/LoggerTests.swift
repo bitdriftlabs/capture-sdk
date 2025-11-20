@@ -13,10 +13,7 @@ import XCTest
 
 final class LoggerTests: XCTestCase {
     func testPropertiesReturnsCorrectValues() throws {
-        let logger = try Logger.testLogger(
-            withAPIKey: "test_api_key",
-            bufferDirectory: Logger.tempBufferDirectory()
-        )
+        let logger = try Logger.testLogger(withAPIKey: "test_api_key")
 
         XCTAssertEqual(36, logger.sessionID.count)
         XCTAssertEqual(36, logger.deviceID.count)
@@ -24,10 +21,7 @@ final class LoggerTests: XCTestCase {
 
     // Basic test to ensure we can create a logger and call log.
     func testLogger() throws {
-        let logger = try Logger.testLogger(
-            withAPIKey: "test_api_key",
-            bufferDirectory: Logger.tempBufferDirectory()
-        )
+        let logger = try Logger.testLogger(withAPIKey: "test_api_key")
 
         logger.log(level: .debug, message: "test with fields", fields: ["hello": "world"], type: .normal)
         logger.log(level: .debug, message: "test nil fields", fields: nil, type: .normal)
@@ -50,7 +44,6 @@ final class LoggerTests: XCTestCase {
 
         logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
-            bufferDirectory: Logger.tempBufferDirectory(),
             fieldProviders: [fieldProvider]
         )
 
@@ -93,7 +86,6 @@ final class LoggerTests: XCTestCase {
 
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
-            bufferDirectory: Logger.tempBufferDirectory(),
             sessionStrategy: SessionStrategy.fixed(),
             dateProvider: dateProvider,
             fieldProviders: [fieldProvider]
@@ -121,8 +113,6 @@ final class LoggerTests: XCTestCase {
         let bridge = MockLoggerBridging()
 
         let logger = try Logger.testLogger(
-            bufferDirectory: Logger.tempBufferDirectory(),
-            configuration: .init(),
             loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
         )
 
@@ -153,7 +143,6 @@ final class LoggerTests: XCTestCase {
 
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
-            bufferDirectory: Logger.tempBufferDirectory(),
             loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
         )
 
@@ -197,8 +186,6 @@ final class LoggerTests: XCTestCase {
         let bridge = MockLoggerBridging()
 
         let logger = try Logger.testLogger(
-            bufferDirectory: Logger.tempBufferDirectory(),
-            configuration: .init(),
             loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
         )
 
@@ -246,7 +233,6 @@ final class LoggerTests: XCTestCase {
 
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
-            bufferDirectory: Logger.tempBufferDirectory(),
             loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
         )
         logger.log(requestInfo)
@@ -300,7 +286,6 @@ final class LoggerTests: XCTestCase {
 
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
-            bufferDirectory: Logger.tempBufferDirectory(),
             loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
         )
         logger.log(responseInfo)

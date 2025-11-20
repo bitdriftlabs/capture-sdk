@@ -13,19 +13,16 @@ import XCTest
 extension Logger {
     static func testLogger(
         withAPIKey apiKey: String = "",
-        bufferDirectory: URL? = Logger.tempBufferDirectory(),
         sessionStrategy: SessionStrategy = .fixed(),
         dateProvider: DateProvider? = nil,
         fieldProviders: [FieldProvider] = [],
-        configuration: Configuration = .init(),
+        configuration: Configuration = .testConfiguration,
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
     ) throws -> Logger
     {
         return try XCTUnwrap(
             Logger(
                 withAPIKey: apiKey,
-                bufferDirectory: bufferDirectory,
-                apiURL: URL(staticString: "https://api-tests.bitdrift.io"),
                 remoteErrorReporter: nil,
                 configuration: configuration,
                 sessionStrategy: sessionStrategy,
@@ -60,5 +57,12 @@ extension Logger {
         }
 
         return directory
+    }
+}
+
+extension Configuration {
+    static var testConfiguration: Configuration {
+        Configuration(apiURL: URL(staticString: "https://api-tests.bitdrift.io"),
+                      rootFileURL: Logger.tempBufferDirectory()!)
     }
 }

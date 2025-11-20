@@ -59,10 +59,8 @@ final class LoggerWarmConfigurationBenchmark: AnyBenchmark {
     func run(_: inout Benchmark.BenchmarkState) throws {
         self.logger = Logger(
             withAPIKey: "foo",
-            bufferDirectory: nil,
-            apiURL: kAPIURL,
             remoteErrorReporter: nil,
-            configuration: .init(),
+            configuration: .init(apiURL: kAPIURL),
             sessionStrategy: kDefaultSessionStrategy,
             dateProvider: nil,
             fieldProviders: [],
@@ -98,10 +96,8 @@ final class LoggerColdConfigurationBenchmark: AnyBenchmark {
     func run(_: inout Benchmark.BenchmarkState) throws {
         self.logger = Logger(
             withAPIKey: "foo",
-            bufferDirectory: nil,
-            apiURL: kAPIURL,
             remoteErrorReporter: nil,
-            configuration: .init(),
+            configuration: .init(apiURL: kAPIURL),
             sessionStrategy: kDefaultSessionStrategy,
             dateProvider: nil,
             fieldProviders: [],
@@ -279,10 +275,8 @@ private extension Logger {
         let directoryURLFallback = try makeTmpDirectory()
         return try XCTUnwrap(Logger(
             withAPIKey: "foo",
-            bufferDirectory: directoryURL ?? directoryURLFallback,
-            apiURL: kAPIURL,
             remoteErrorReporter: nil,
-            configuration: .init(),
+            configuration: .init(apiURL: kAPIURL, rootFileURL: directoryURL ?? directoryURLFallback),
             sessionStrategy: kDefaultSessionStrategy,
             dateProvider: nil,
             fieldProviders: [],

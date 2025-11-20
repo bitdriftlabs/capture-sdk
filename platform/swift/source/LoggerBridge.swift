@@ -63,7 +63,7 @@ final class LoggerBridge: LoggerBridging {
 
     init?(
         apiKey: String,
-        bufferDirectoryPath: String?,
+        bufferDirectoryPath: String,
         sessionStrategy: SessionStrategy,
         metadataProvider: CaptureLoggerBridge.MetadataProvider,
         resourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget,
@@ -77,7 +77,7 @@ final class LoggerBridge: LoggerBridging {
         sleepMode: SleepMode
     ) {
         do {
-            try bufferDirectoryPath.map(makeDirectoryAndDisableProtection(at:))
+            try makeDirectoryAndDisableProtection(at: bufferDirectoryPath)
         } catch {
             // To be safe we don't initialize the logger if we can't create the directory or set
             // the file protection policy.
@@ -117,7 +117,7 @@ final class LoggerBridge: LoggerBridging {
 
     static func makeLogger(
         apiKey: String,
-        bufferDirectoryPath: String?,
+        bufferDirectoryPath: String,
         sessionStrategy: SessionStrategy,
         metadataProvider: CaptureLoggerBridge.MetadataProvider,
         resourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget,
