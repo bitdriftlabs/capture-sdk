@@ -6,10 +6,14 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
-  self, Architecture, Platform,
+  self,
+  Architecture,
+  Platform,
 };
 use bd_report_parsers::javascript::{
-  build_javascript_error_report_to_file, JavaScriptAppMetrics, JavaScriptDeviceMetrics,
+  build_javascript_error_report_to_file,
+  JavaScriptAppMetrics,
+  JavaScriptDeviceMetrics,
 };
 
 /// Parse JavaScript engine string to enum

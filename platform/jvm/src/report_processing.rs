@@ -8,8 +8,15 @@
 use crate::jni::{initialize_method_handle, CachedMethod, JValueWrapper};
 use bd_client_common::error::InvariantError;
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
-  AppBuildNumber, AppBuildNumberArgs, AppMetricsArgs, Architecture, DeviceMetricsArgs, OSBuild,
-  OSBuildArgs, Platform, Timestamp,
+  AppBuildNumber,
+  AppBuildNumberArgs,
+  AppMetricsArgs,
+  Architecture,
+  DeviceMetricsArgs,
+  OSBuild,
+  OSBuildArgs,
+  Platform,
+  Timestamp,
 };
 use flatbuffers::FlatBufferBuilder;
 use jni::objects::JObject;
@@ -17,7 +24,9 @@ use jni::signature::{Primitive, ReturnType};
 use jni::sys::jlong;
 use jni::JNIEnv;
 use platform_shared::javascript_error::{
-  persist_javascript_error_report, AppMetadata, DeviceMetadata,
+  persist_javascript_error_report,
+  AppMetadata,
+  DeviceMetadata,
 };
 use std::io::{Seek, Write};
 use std::sync::OnceLock;
@@ -337,7 +346,7 @@ fn read_string_list(
   let size = list.size(env)?;
   let mut result = Vec::with_capacity(size.max(0).try_into().unwrap_or(0));
 
-  for i in 0..size {
+  for i in 0 .. size {
     if let Some(item) = list.get(env, i)? {
       let string_obj: jni::objects::JString<'_> = item.into();
       let string_val = unsafe { env.get_string_unchecked(&string_obj)? };
@@ -375,7 +384,7 @@ fn read_stream_to_file(
 
     // Safety: `bytes_read` is already verified to by greater than zero
     #[allow(clippy::cast_sign_loss)]
-    let byte_slice = &buffer_elements[..bytes_read as usize];
+    let byte_slice = &buffer_elements[.. bytes_read as usize];
 
     // Safety: conversion between i8 and u8 is inherently safe, as the types are
     // equal in size and in the perverse case that a file somehow contains a

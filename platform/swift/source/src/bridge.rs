@@ -16,12 +16,21 @@ use crate::{events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
 use bd_api::{Platform, PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
 use bd_error_reporter::reporter::{
-  handle_unexpected, with_handle_unexpected, with_handle_unexpected_or, MetadataErrorReporter,
+  handle_unexpected,
+  with_handle_unexpected,
+  with_handle_unexpected_or,
+  MetadataErrorReporter,
   UnexpectedErrorHandler,
 };
 use bd_logger::{
-  Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields, LogLevel,
-  MetadataProvider, ReportProcessingSession,
+  Block,
+  CaptureSession,
+  LogAttributesOverrides,
+  LogFieldKind,
+  LogFields,
+  LogLevel,
+  MetadataProvider,
+  ReportProcessingSession,
 };
 use bd_noop_network::NoopNetwork;
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1;
@@ -29,7 +38,9 @@ use bd_proto::protos::logging::payload::LogType;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use platform_shared::javascript_error::{
-  persist_javascript_error_report, AppMetadata, DeviceMetadata,
+  persist_javascript_error_report,
+  AppMetadata,
+  DeviceMetadata,
 };
 use platform_shared::metadata::{self, Mobile};
 use platform_shared::{read_global_state_snapshot, LoggerHolder, LoggerId};
@@ -245,7 +256,7 @@ impl<W: StreamWriter + Send> PlatformNetworkStream for SwiftNetworkStream<W> {
         return Ok(());
       }
 
-      slice = &slice[written..];
+      slice = &slice[written ..];
     }
   }
 }
