@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.19.1...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.20.0...HEAD
 
 ### Both
 
@@ -21,6 +21,51 @@
 
 **Added**
 
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.20.0]
+[0.20.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.20.0
+
+### Both
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### Android
+
+**Added**
+
 - Add `RetrofitUrlPathProvider` helper class to help extracting endpoint's url paths when using Retrofit services.
 
 **Changed**
@@ -36,7 +81,7 @@
 
 **Added**
 
-- Nothing yet!
+- Add `rootFileURL` parameter to `Configuration` to allow customizing the storage location for SDK internal files.
 
 **Changed**
 
