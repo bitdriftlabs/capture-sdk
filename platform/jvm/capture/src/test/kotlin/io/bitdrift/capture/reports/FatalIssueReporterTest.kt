@@ -20,6 +20,7 @@ import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
+import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
@@ -155,5 +156,6 @@ class FatalIssueReporterTest {
             FakeBackgroundThreadHandler(),
             latestAppExitInfoProvider,
             captureUncaughtExceptionHandler,
+            dateProvider = FakeDateProvider,
         )
 }

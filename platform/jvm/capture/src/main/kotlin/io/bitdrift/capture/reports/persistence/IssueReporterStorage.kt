@@ -49,6 +49,8 @@ internal class IssueReporterStorage(
 
     override fun generateFatalIssueFilePath(): String = fatalDirectory.path + "/${UUID.randomUUID()}.cap"
 
+    override fun generateNonFatalIssueFilePath(): String = nonFatalDirectory.path + "/${UUID.randomUUID()}.cap"
+
     private fun writeReportToDisk(
         terminationTimeStampInMilli: Long,
         data: ByteArray,

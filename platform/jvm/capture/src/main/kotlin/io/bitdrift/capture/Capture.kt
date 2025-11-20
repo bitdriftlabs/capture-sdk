@@ -544,7 +544,8 @@ object Capture {
          * @param stack Raw stacktrace
          * @param isFatalIssue Indicates if this is a fatal JSError issue
          * @param engine Engine type (e.g. hermes/JSC)
-         * @param debuggerId Debugger id that will be used for de-minification
+         * @param debugId Debug id that will be used for de-minification
+         * @param sdkVersion bitdrift's React Native SDK version(e.g 8.1)
          */
         @JvmStatic
         internal fun persistJavaScriptReport(
@@ -553,7 +554,8 @@ object Capture {
             stack: String,
             isFatalIssue: Boolean,
             engine: String,
-            debuggerId: String,
+            debugId: String,
+            sdkVersion: String,
         ) {
             (logger() as? LoggerImpl)?.getIssueProcessor()?.persistJavaScriptReport(
                 errorName,
@@ -561,7 +563,8 @@ object Capture {
                 stack,
                 isFatalIssue,
                 engine,
-                debuggerId,
+                debugId,
+                sdkVersion,
             )
         }
 

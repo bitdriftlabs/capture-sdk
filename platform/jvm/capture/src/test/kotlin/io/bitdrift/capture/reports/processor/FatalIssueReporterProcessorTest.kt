@@ -18,6 +18,7 @@ import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.attributes.ClientAttributes
+import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.fakes.FakeJvmException
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.createTraceInputStream
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Architecture
@@ -57,7 +58,13 @@ class FatalIssueReporterProcessorTest {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
         attributes = ClientAttributes(APP_CONTEXT, lifecycleOwner)
-        processor = IssueReporterProcessor(fatalIssueReporterStorage, attributes, streamingReportProcessor)
+        processor =
+            IssueReporterProcessor(
+                fatalIssueReporterStorage,
+                attributes,
+                streamingReportProcessor,
+                FakeDateProvider,
+            )
     }
 
     @Test
@@ -243,9 +250,5 @@ class FatalIssueReporterProcessorTest {
 
     private companion object {
         const val FAKE_TIME_STAMP = 1241515210914L
-        const val APP_EXIT_DESCRIPTION_ANR =
-            "Input dispatching timed out (219180 " +
-                "io.bitdrift.capture/io.bitdrift.capture.MainActivity (server) " +
-                "is not responding. Waited 5004ms for MotionEvent"
     }
 }

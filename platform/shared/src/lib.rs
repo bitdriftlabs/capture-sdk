@@ -15,6 +15,7 @@
 )]
 
 pub mod error;
+pub mod javascript_error;
 pub mod metadata;
 
 use bd_crash_handler::global_state;

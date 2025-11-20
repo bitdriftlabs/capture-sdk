@@ -15,6 +15,7 @@ import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.common.IBackgroundThreadHandler
+import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.reports.FatalIssueReporterState.NotInitialized
@@ -50,6 +51,7 @@ internal class FatalIssueReporter(
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
+    private val dateProvider: DateProvider,
 ) : IFatalIssueReporter,
     IJvmCrashListener {
     @VisibleForTesting
@@ -99,6 +101,7 @@ internal class FatalIssueReporter(
                     IssueReporterStorage(sdkDirectory),
                     clientAttributes,
                     CaptureJniLibrary,
+                    dateProvider,
                 )
             captureUncaughtExceptionHandler.install(this)
 
@@ -142,7 +145,7 @@ internal class FatalIssueReporter(
     ) {
         runCatching {
             issueReporterProcessor.persistJvmCrash(
-                timestamp = System.currentTimeMillis(),
+                timestamp = dateProvider.invoke().time,
                 callerThread = thread,
                 throwable = throwable,
                 allThreads = Thread.getAllStackTraces(),

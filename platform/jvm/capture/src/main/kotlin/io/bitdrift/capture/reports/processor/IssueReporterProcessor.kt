@@ -13,6 +13,7 @@ import io.bitdrift.capture.BuildConstants
 import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IClientAttributes
+import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppBuildNumber
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Architecture
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.DeviceMetrics
@@ -34,6 +35,7 @@ internal class IssueReporterProcessor(
     private val reporterIssueStorage: IIssueReporterStorage,
     private val clientAttributes: IClientAttributes,
     private val streamingReportsProcessor: IStreamingReportProcessor,
+    private val dateProvider: DateProvider,
 ) {
     companion object {
         // Initial size for file builder buffer
@@ -47,7 +49,8 @@ internal class IssueReporterProcessor(
      *  @param stack Raw stacktrace
      *  @param isFatalIssue Indicates if this is a fatal JSError issue
      *  @param engine Engine type (e.g. hermes/JSC)
-     *  @param debuggerId Debugger id that will be used for de-minification
+     * @param debugId Debug id that will be used for de-minification
+     * @param sdkVersion bitdrift's React Native SDK version(e.g 8.1)
      */
     fun persistJavaScriptReport(
         errorName: String,
@@ -55,14 +58,33 @@ internal class IssueReporterProcessor(
         stack: String,
         isFatalIssue: Boolean,
         engine: String,
-        debuggerId: String,
+        debugId: String,
+        sdkVersion: String,
     ) {
-        // TODO(Fran): To be implemented in follow up PRs
-        Log.d(
-            LOG_TAG,
-            "Persist JS error with name:$errorName, message:$message, isFatalIssue:$isFatalIssue," +
-                " engine:$engine, debuggerId:$debuggerId, stack:$stack",
-        )
+        runCatching {
+            val timestamp = dateProvider.invoke().time
+            val destinationPath =
+                if (isFatalIssue) {
+                    reporterIssueStorage.generateFatalIssueFilePath()
+                } else {
+                    reporterIssueStorage.generateNonFatalIssueFilePath()
+                }
+
+            streamingReportsProcessor.persistJavaScriptError(
+                errorName = errorName,
+                errorMessage = message,
+                stackTrace = stack,
+                isFatal = isFatalIssue,
+                engine = engine,
+                debugId = debugId,
+                timestampMillis = timestamp,
+                destinationPath = destinationPath,
+                attributes = clientAttributes,
+                sdkVersion = sdkVersion,
+            )
+        }.onFailure {
+            Log.e(LOG_TAG, "Error at persistJavaScriptReport: $it", it)
+        }
     }
 
     /**
