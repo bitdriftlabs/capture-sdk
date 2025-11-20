@@ -16,27 +16,21 @@ use crate::{events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
 use bd_api::{Platform, PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
 use bd_error_reporter::reporter::{
-  handle_unexpected,
-  with_handle_unexpected,
-  with_handle_unexpected_or,
-  MetadataErrorReporter,
+  handle_unexpected, with_handle_unexpected, with_handle_unexpected_or, MetadataErrorReporter,
   UnexpectedErrorHandler,
 };
 use bd_logger::{
-  Block,
-  CaptureSession,
-  LogAttributesOverrides,
-  LogFieldKind,
-  LogFields,
-  LogLevel,
-  MetadataProvider,
-  ReportProcessingSession,
+  Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields, LogLevel,
+  MetadataProvider, ReportProcessingSession,
 };
 use bd_noop_network::NoopNetwork;
+use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1;
 use bd_proto::protos::logging::payload::LogType;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
-use platform_shared::javascript_error::{persist_javascript_error_report, AppMetadata, DeviceMetadata};
+use platform_shared::javascript_error::{
+  persist_javascript_error_report, AppMetadata, DeviceMetadata,
+};
 use platform_shared::metadata::{self, Mobile};
 use platform_shared::{read_global_state_snapshot, LoggerHolder, LoggerId};
 use protobuf::Enum as _;
@@ -53,7 +47,6 @@ use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
-use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1;
 
 static LOGGING_INIT: Once = Once::new();
 
@@ -252,7 +245,7 @@ impl<W: StreamWriter + Send> PlatformNetworkStream for SwiftNetworkStream<W> {
         return Ok(());
       }
 
-      slice = &slice[written ..];
+      slice = &slice[written..];
     }
   }
 }
@@ -986,13 +979,17 @@ extern "C" fn capture_persist_javascript_error_report(
         }
       };
 
-      let manufacturer = unsafe { CStr::from_ptr(manufacturer) }.to_str()?.to_string();
+      let manufacturer = unsafe { CStr::from_ptr(manufacturer) }
+        .to_str()?
+        .to_string();
       let model = unsafe { CStr::from_ptr(model) }.to_str()?.to_string();
       let os_version = unsafe { CStr::from_ptr(os_version) }.to_str()?.to_string();
       let os_brand = unsafe { CStr::from_ptr(os_brand) }.to_str()?.to_string();
       let app_id = unsafe { CStr::from_ptr(app_id) }.to_str()?.to_string();
       let app_version = unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string();
-      let version_code = unsafe { CStr::from_ptr(version_code) }.to_str()?.to_string();
+      let version_code = unsafe { CStr::from_ptr(version_code) }
+        .to_str()?
+        .to_string();
       let sdk_version = unsafe { CStr::from_ptr(sdk_version) }.to_str()?;
 
       let device_metadata = DeviceMetadata {
