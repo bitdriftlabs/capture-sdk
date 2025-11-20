@@ -54,8 +54,8 @@ internal object ComposeTreeParser {
 
     @OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
     private fun SemanticsNode.toScannableView(
-        windowOffsetX: Int = 0,
-        windowOffsetY: Int = 0,
+        windowOffsetX: Int,
+        windowOffsetY: Int,
     ): ScannableView {
         val notAttachedOrPlaced = !this.layoutNode.isPlaced || !this.layoutNode.isAttached
         val captureIgnoreSubTree = this.unmergedConfig.getOrNull(CaptureModifier.CaptureIgnore)

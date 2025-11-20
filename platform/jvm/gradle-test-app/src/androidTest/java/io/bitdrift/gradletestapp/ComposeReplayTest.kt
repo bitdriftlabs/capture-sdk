@@ -410,8 +410,8 @@ class ComposeReplayTest {
         val capture = verifyReplayScreen(viewCount = 9)
         // Parent Box
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 300, 400))
-        // Dialog - Child Box
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 0, 150, 200))
+        // Dialog - Child Box: should be centered
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 645, 1138, 150, 200))
     }
 
     @Test
@@ -444,8 +444,8 @@ class ComposeReplayTest {
         val capture = verifyReplayScreen(viewCount = 9)
         // Parent Box
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 300, 400))
-        // Dialog - Child Box
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 0, 150, 200))
+        // Dialog - Child Box: should be centered
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 645, 1138, 150, 200))
     }
 
     @Test
