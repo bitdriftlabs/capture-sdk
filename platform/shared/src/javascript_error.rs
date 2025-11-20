@@ -17,6 +17,7 @@ use bd_report_parsers::javascript::{
 };
 
 /// Parse JavaScript engine string to enum
+#[must_use]
 pub fn parse_javascript_engine(engine: &str) -> v_1::JavaScriptEngine {
   match engine.to_lowercase().as_str() {
     "hermes" => v_1::JavaScriptEngine::Hermes,
