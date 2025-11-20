@@ -398,6 +398,6 @@ void capture_persist_javascript_error_report(
     const char *app_id,
     const char *app_version,
     const char *version_code,
-);
+    const char *sdk_version);
 
 NS_ASSUME_NONNULL_END
