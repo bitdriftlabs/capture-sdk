@@ -61,7 +61,7 @@ fun NetworkTestingCard(
                             contentColor = BitdriftColors.TextPrimary,
                         ),
                 ) {
-                    Text("OkHttp")
+                    Text("OkHttp", maxLines = 1, softWrap = false)
                 }
 
                 OutlinedButton(
@@ -72,7 +72,7 @@ fun NetworkTestingCard(
                             contentColor = BitdriftColors.TextPrimary,
                         ),
                 ) {
-                    Text("GraphQL")
+                    Text("GraphQL", maxLines = 1, softWrap = false)
                 }
 
                 OutlinedButton(
@@ -83,7 +83,7 @@ fun NetworkTestingCard(
                             contentColor = BitdriftColors.TextPrimary,
                         ),
                 ) {
-                    Text("Retrofit")
+                    Text("Retrofit", maxLines = 1, softWrap = false)
                 }
             }
         }

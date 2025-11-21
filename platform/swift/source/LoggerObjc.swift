@@ -29,6 +29,25 @@ public final class CAPConfiguration: NSObject {
     /// - parameter enableFatalIssueReporting:   true if Capture should enable Fatal Issue Reporting
     /// - parameter enableURLSessionIntegration: true if Capture should enable Fatal Issue Reporting
     /// - parameter sleepMode:                   CAPSleepModeActive if Capture should initialize in minimal activity mode
+    /// - parameter apiURL:                      The base URL of Capture API. Depend on its default value unless
+    ///                                          specifically instructed otherwise during discussions with bitdrift. Defaults
+    ///                                          to bitdrift's SaaS API base URL.
+    /// - parameter rootFileURL:                 If specified, this path will be used to store all SDK internal files instead of
+    ///                                          the default location (i.e. The app's document directory).
+    @objc
+    public init(enableFatalIssueReporting: Bool, enableURLSessionIntegration: Bool,
+                sleepMode: SleepMode, apiURL: URL?, rootFileURL: URL?)
+    {
+        self.underlyingConfig = Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting,
+                                              apiURL: apiURL ?? URL(string: "https://api.bitdrift.io")!, rootFileURL: rootFileURL)
+        self.enableURLSessionIntegration = enableURLSessionIntegration
+    }
+
+    /// Initializes a new instance of the Capture configuration.
+    ///
+    /// - parameter enableFatalIssueReporting:   true if Capture should enable Fatal Issue Reporting
+    /// - parameter enableURLSessionIntegration: true if Capture should enable Fatal Issue Reporting
+    /// - parameter sleepMode:                   CAPSleepModeActive if Capture should initialize in minimal activity mode
     @objc
     public init(enableFatalIssueReporting: Bool, enableURLSessionIntegration: Bool, sleepMode: SleepMode) {
         self.underlyingConfig = Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting)
@@ -73,9 +92,7 @@ public final class LoggerObjc: NSObject {
         Capture.Logger
             .start(
                 withAPIKey: apiKey,
-                sessionStrategy: sessionStrategy.underlyingSessionStrategy,
-                // swiftlint:disable:next force_unwrapping use_static_string_url_init
-                apiURL: URL(string: "https://api.bitdrift.io")!
+                sessionStrategy: sessionStrategy.underlyingSessionStrategy
             )
     }
 
@@ -96,38 +113,7 @@ public final class LoggerObjc: NSObject {
             .start(
                 withAPIKey: apiKey,
                 sessionStrategy: sessionStrategy.underlyingSessionStrategy,
-                configuration: configuration.underlyingConfig,
-                // swiftlint:disable:next force_unwrapping use_static_string_url_init
-                apiURL: URL(string: "https://api.bitdrift.io")!
-            )
-
-        if let logger, configuration.enableURLSessionIntegration {
-            logger.enableIntegrations([.urlSession()], disableSwizzling: false)
-        }
-    }
-
-    /// Initializes the Capture SDK with the specified API key and session strategy.
-    /// Calling other SDK methods has no effect unless the logger has been initialized.
-    /// Subsequent calls to this function will have no effect.
-    ///
-    /// - parameter apiKey:          The API key provided by bitdrift.
-    /// - parameter sessionStrategy: A session strategy for the management of session IDs.
-    /// - parameter configuration:   Additional options for the Capture Logger
-    /// - parameter apiURL:          The base URL of Capture API.
-    @objc
-    public static func start(
-        withAPIKey apiKey: String,
-        sessionStrategy: SessionStrategyObjc,
-        configuration: CAPConfiguration,
-        // swiftlint:disable:next force_unwrapping use_static_string_url_init
-        apiURL: URL = URL(string: "https://api.bitdrift.io")!
-    ) {
-        let logger = Capture.Logger
-            .start(
-                withAPIKey: apiKey,
-                sessionStrategy: sessionStrategy.underlyingSessionStrategy,
-                configuration: configuration.underlyingConfig,
-                apiURL: apiURL
+                configuration: configuration.underlyingConfig
             )
 
         if let logger, configuration.enableURLSessionIntegration {
@@ -141,25 +127,17 @@ public final class LoggerObjc: NSObject {
     ///
     /// - parameter apiKey:                      The API key provided by bitdrift.
     /// - parameter sessionStrategy:             A session strategy for the management of session IDs.
-    /// - parameter apiURL:                      The base URL of the Capture API. Rely on its default value
-    ///                                          unless
-    ///                                          specifically instructed otherwise during discussions with
-    ///                                          Bitdrift.
-    ///                                          Defaults to Bitdrift's hosted Compose API base URL.
     /// - parameter enableURLSessionIntegration: A flag indicating if automatic URLSession capture is enabled.
     @objc
     public static func start(
         withAPIKey apiKey: String,
         sessionStrategy: SessionStrategyObjc,
-        // swiftlint:disable:next force_unwrapping use_static_string_url_init
-        apiURL: URL = URL(string: "https://api.bitdrift.io")!,
         enableURLSessionIntegration: Bool = true
     ) {
         let logger = Capture.Logger
             .start(
                 withAPIKey: apiKey,
-                sessionStrategy: sessionStrategy.underlyingSessionStrategy,
-                apiURL: apiURL
+                sessionStrategy: sessionStrategy.underlyingSessionStrategy
             )
 
         if let logger, enableURLSessionIntegration {
@@ -173,11 +151,6 @@ public final class LoggerObjc: NSObject {
     ///
     /// - parameter apiKey:                      The API key provided by bitdrift.
     /// - parameter sessionStrategy:             A session strategy for the management of session IDs.
-    /// - parameter apiURL:                      The base URL of the Capture API. Rely on its default value
-    ///                                          unless
-    ///                                          specifically instructed otherwise during discussions with
-    ///                                          Bitdrift.
-    ///                                          Defaults to Bitdrift's hosted Compose API base URL.
     /// - parameter enableURLSessionIntegration: A flag indicating if automatic URLSession capture is enabled.
     /// - parameter sleepMode:                   .enabled if Capture should be initialized in minimal activity mode.
     /// - parameter enableFatalIssueReporting:   true if Capture should enable Fatal Issue Reporting.
@@ -185,8 +158,6 @@ public final class LoggerObjc: NSObject {
     public static func start(
         withAPIKey apiKey: String,
         sessionStrategy: SessionStrategyObjc,
-        // swiftlint:disable:next force_unwrapping use_static_string_url_init
-        apiURL: URL = URL(string: "https://api.bitdrift.io")!,
         enableURLSessionIntegration: Bool = true,
         sleepMode: SleepMode = .disabled,
         enableFatalIssueReporting: Bool = true
@@ -195,8 +166,7 @@ public final class LoggerObjc: NSObject {
             .start(
                 withAPIKey: apiKey,
                 sessionStrategy: sessionStrategy.underlyingSessionStrategy,
-                configuration: Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting),
-                apiURL: apiURL
+                configuration: Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting)
             )
 
         if let logger, enableURLSessionIntegration {

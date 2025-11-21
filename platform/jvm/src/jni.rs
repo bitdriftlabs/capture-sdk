@@ -1352,6 +1352,71 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_persistANR(
   );
 }
 
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_persistJavaScriptError(
+  mut env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  error_name: JString<'_>,
+  error_message: JString<'_>,
+  stack_trace: JString<'_>,
+  is_fatal: jboolean,
+  engine: JString<'_>,
+  debugger_id: JString<'_>,
+  timestamp: jlong,
+  destination: JString<'_>,
+  attributes: JObject<'_>,
+  sdk_version: JString<'_>,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let error_name = unsafe { env.get_string_unchecked(&error_name) }
+        .map_err(|e| anyhow::anyhow!("failed to parse error_name: {e}"))?
+        .to_string_lossy()
+        .to_string();
+      let error_message = unsafe { env.get_string_unchecked(&error_message) }
+        .map_err(|e| anyhow::anyhow!("failed to parse error_message: {e}"))?
+        .to_string_lossy()
+        .to_string();
+      let stack_trace = unsafe { env.get_string_unchecked(&stack_trace) }
+        .map_err(|e| anyhow::anyhow!("failed to parse stack_trace: {e}"))?
+        .to_string_lossy()
+        .to_string();
+      let engine = unsafe { env.get_string_unchecked(&engine) }
+        .map_err(|e| anyhow::anyhow!("failed to parse engine: {e}"))?
+        .to_string_lossy()
+        .to_string();
+      let debugger_id = unsafe { env.get_string_unchecked(&debugger_id) }
+        .map_err(|e| anyhow::anyhow!("failed to parse debugger_id: {e}"))?
+        .to_string_lossy()
+        .to_string();
+      let destination = unsafe { env.get_string_unchecked(&destination) }
+        .map_err(|e| anyhow::anyhow!("failed to parse destination: {e}"))?
+        .to_string_lossy()
+        .to_string();
+      let sdk_version = unsafe { env.get_string_unchecked(&sdk_version) }
+        .map_err(|e| anyhow::anyhow!("failed to parse sdk_version: {e}"))?
+        .to_string_lossy()
+        .to_string();
+
+      report_processing::persist_javascript_error(
+        &mut env,
+        &error_name,
+        &error_message,
+        &stack_trace,
+        is_fatal != 0,
+        &engine,
+        &debugger_id,
+        timestamp,
+        &destination,
+        &attributes,
+        &sdk_version,
+      )?;
+      Ok(())
+    },
+    "jni persist JavaScript error",
+  );
+}
+
 fn exception_stacktrace(
   env: &mut JNIEnv<'_>,
   stack_trace_provider: &JObject<'_>,

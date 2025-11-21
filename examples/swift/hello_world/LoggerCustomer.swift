@@ -91,9 +91,8 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
             .start(
                 withAPIKey: Configuration.storedAPIKey ?? "",
                 sessionStrategy: .fixed(),
-                configuration: Capture.Configuration(),
-                fieldProviders: [CustomFieldProvider()],
-                apiURL: apiURL
+                configuration: Capture.Configuration(apiURL: apiURL),
+                fieldProviders: [CustomFieldProvider()]
             )?
             .enableIntegrations(
                 [.urlSession(

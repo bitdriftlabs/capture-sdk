@@ -11,9 +11,11 @@ use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
   AppBuildNumber,
   AppBuildNumberArgs,
   AppMetricsArgs,
+  Architecture,
   DeviceMetricsArgs,
   OSBuild,
   OSBuildArgs,
+  Platform,
   Timestamp,
 };
 use flatbuffers::FlatBufferBuilder;
@@ -21,6 +23,11 @@ use jni::objects::JObject;
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::jlong;
 use jni::JNIEnv;
+use platform_shared::javascript_error::{
+  persist_javascript_error_report,
+  AppMetadata,
+  DeviceMetadata,
+};
 use std::io::{Seek, Write};
 use std::sync::OnceLock;
 
@@ -169,6 +176,86 @@ pub(crate) fn persist_anr(
   Ok(())
 }
 
+pub(crate) fn persist_javascript_error(
+  env: &mut JNIEnv<'_>,
+  error_name: &str,
+  error_message: &str,
+  stack_trace: &str,
+  is_fatal: bool,
+  engine: &str,
+  debugger_id: &str,
+  timestamp_millis: jlong,
+  destination: &str,
+  attributes: &JObject<'_>,
+  sdk_version: &str,
+) -> anyhow::Result<()> {
+  let debug_id = if debugger_id.is_empty() {
+    None
+  } else {
+    Some(debugger_id)
+  };
+
+  let timestamp_seconds = u64::try_from(timestamp_millis / 1_000).unwrap_or_default();
+  let timestamp_nanos = u32::try_from((timestamp_millis % 1_000) * 1_000).unwrap_or_default();
+
+  let manufacturer = read_string(env, attributes, &CLIENT_ATTRS_MANUFACTURER).ok();
+  let model = read_string(env, attributes, &CLIENT_ATTRS_MODEL).ok();
+  let os_brand = read_string(env, attributes, &CLIENT_ATTRS_OS_BRAND).ok();
+  let os_version = read_string(env, attributes, &CLIENT_ATTRS_OS_VERSION).ok();
+  let architecture_str = read_string(env, attributes, &CLIENT_ATTRS_ARCHITECTURE).ok();
+  let architecture = architecture_str
+    .as_ref()
+    .map_or(Architecture::Unknown, |arch| match arch.as_str() {
+      "arm64" | "aarch64" => Architecture::arm64,
+      "x86_64" => Architecture::x86_64,
+      _ => Architecture::Unknown,
+    });
+  let cpu_abis = read_string_list(env, attributes, &CLIENT_ATTRS_SUPPORTED_ABIS).ok();
+
+  let app_id = read_string(env, attributes, &CLIENT_ATTRS_APP_ID).ok();
+  let app_version = read_string(env, attributes, &CLIENT_ATTRS_APP_VERSION).ok();
+  let version_code = CLIENT_ATTRS_VERSIONCODE
+    .get()
+    .ok_or(InvariantError::Invariant)?
+    .call_method(env, attributes, ReturnType::Primitive(Primitive::Long), &[])?
+    .j()
+    .ok();
+
+  let device_metadata = DeviceMetadata {
+    manufacturer,
+    model,
+    os_version,
+    os_brand,
+    architecture: Some(architecture),
+    cpu_abis,
+  };
+
+  let app_metadata = AppMetadata {
+    app_id,
+    app_version,
+    version_code,
+  };
+
+  persist_javascript_error_report(
+    error_name,
+    error_message,
+    stack_trace,
+    is_fatal,
+    debug_id,
+    timestamp_seconds,
+    timestamp_nanos,
+    Platform::Android,
+    "io.bitdrift.capture-android",
+    sdk_version,
+    destination,
+    device_metadata,
+    app_metadata,
+    engine,
+  )?;
+
+  Ok(())
+}
+
 fn build_device_metrics<'fbb>(
   env: &mut JNIEnv<'_>,
   builder: &mut FlatBufferBuilder<'fbb>,
@@ -242,6 +329,32 @@ fn read_string(
       .to_string_lossy()
       .to_string(),
   )
+}
+
+fn read_string_list(
+  env: &mut JNIEnv<'_>,
+  attributes: &JObject<'_>,
+  method: &OnceLock<CachedMethod>,
+) -> anyhow::Result<Vec<String>> {
+  let list_obj = method
+    .get()
+    .ok_or(InvariantError::Invariant)?
+    .call_method(env, attributes, ReturnType::Object, &[])?
+    .l()?;
+
+  let list = jni::objects::JList::from_env(env, &list_obj)?;
+  let size = list.size(env)?;
+  let mut result = Vec::with_capacity(size.max(0).try_into().unwrap_or(0));
+
+  for i in 0 .. size {
+    if let Some(item) = list.get(env, i)? {
+      let string_obj: jni::objects::JString<'_> = item.into();
+      let string_val = unsafe { env.get_string_unchecked(&string_obj)? };
+      result.push(string_val.to_string_lossy().to_string());
+    }
+  }
+
+  Ok(result)
 }
 
 fn read_stream_to_file(

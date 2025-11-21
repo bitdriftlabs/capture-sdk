@@ -32,6 +32,26 @@ jobs:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}
           repository-cache: true
+      - name: Attempt to free up runner disk space
+        run: |
+          echo "Disk space BEFORE cleanup:"
+          echo "================================"
+          df -h /
+          echo "Cleaning up disk space:"
+          
+          # Remove large pre-installed packages we don't need
+          sudo rm -rf /usr/share/dotnet           # .NET runtime (~4GB)
+          sudo rm -rf /usr/local/lib/android      # Android SDK (~12GB)
+          sudo rm -rf /usr/share/swift            # Swift toolchain (~3GB)
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"     # GitHub Actions tool cache (~6GB)
+          
+          # Clean up apt packages
+          sudo apt-get autoremove -y
+          
+          echo "Disk space clean-up done."
+          echo "================================"
+          echo "Disk space AFTER cleanup:"
+          df -h /
       - name: Check for Bazel build file changes
         id: bazel_check
         run: ./ci/check_bazel.sh //platform/... //core/... //test/...

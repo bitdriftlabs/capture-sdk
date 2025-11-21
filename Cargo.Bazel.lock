@@ -1,5 +1,5 @@
 {
-  "checksum": "67cb69960522447fc525f82054533de127b7f432809944c741bd2466948d3fc5",
+  "checksum": "bba830937834b0c2ead65275dc6b17c38da871a237a9403b1e3cbf2d475755da",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -14533,6 +14533,10 @@
               "target": "bd_proto"
             },
             {
+              "id": "bd-report-parsers 1.0.0",
+              "target": "bd_report_parsers"
+            },
+            {
               "id": "bd-runtime 1.0.0",
               "target": "bd_runtime"
             },
@@ -19168,6 +19172,10 @@
             {
               "id": "bd-proto 1.0.0",
               "target": "bd_proto"
+            },
+            {
+              "id": "bd-report-parsers 1.0.0",
+              "target": "bd_report_parsers"
             },
             {
               "id": "bd-report-writer 1.0.0",

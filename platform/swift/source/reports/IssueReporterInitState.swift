@@ -28,8 +28,6 @@ enum ReporterInitResolution: Equatable, Error {
     case runtimeInvalid
     /// No runtime config found on disk
     case runtimeNotSet
-    /// No directory available for delivering reports, cannot continue
-    case missingReportsDirectory
 }
 
 typealias IssueReporterInitResult = (IssueReporterInitState, TimeInterval)
@@ -63,8 +61,6 @@ extension IssueReporterInitState: CustomStringConvertible {
                 return "RUNTIME_CONFIG_DISABLED"
             case .unsupportedHardware:
                 return "UNSUPPORTED_HARDWARE"
-            case .missingReportsDirectory:
-                return "MISSING_CRASH_REPORT_DIR"
             }
         }
     }

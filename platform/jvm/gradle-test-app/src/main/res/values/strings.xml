@@ -15,6 +15,8 @@
     <string name="navigate_second">Compose</string>
     <string name="navigate_to_web_view">WebView</string>
     <string name="navigate_to_xml_view">XML</string>
+    <string name="navigate_to_modal_bottom_sheet" translatable="false">Dialog &amp; Modals</string>
+    <string name="modal_bottom_sheet_fragment_label" translatable="false">Show Dialog and Modals</string>
     <string name="previous">Navigate Back</string>
     <string name="log_level_label">Log Level</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>

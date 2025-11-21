@@ -157,13 +157,10 @@ jobs:
             -f branch="main"
 
         # Use CHANGELOG.md in root
-        # prerelease: true extracts the content between the first (## [Unreleased])
-        # and second H2 header,
+        # Extracts the content between the second and third H2 header (the released version)
       - name: Extract release notes
         id: extract-release-notes
         uses: ffurrer2/extract-release-notes@v2
-        with:
-          prerelease: true
 
         # Upload artifacts to the newly created release.
         # Prefix release version with "v".
