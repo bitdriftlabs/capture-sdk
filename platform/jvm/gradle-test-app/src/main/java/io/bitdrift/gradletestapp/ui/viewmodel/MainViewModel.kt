@@ -247,7 +247,7 @@ class MainViewModel(
     @OptIn(ExperimentalBitdriftApi::class)
     private fun addManyFeatureFlags() {
         Timber.i("Adding many feature flags")
-        val flags = (1..10000).map { FeatureFlag.of("flag_${it}", "variant_${it}") }
+        val flags = (1..10000).map { FeatureFlag.of("flag_" + it) }
         Logger.setFeatureFlags(flags)
     }
 
