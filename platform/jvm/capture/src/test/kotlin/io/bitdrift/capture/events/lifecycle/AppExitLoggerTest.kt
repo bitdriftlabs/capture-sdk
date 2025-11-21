@@ -104,42 +104,6 @@ class AppExitLoggerTest {
     }
 
     @Test
-    fun testSavePassedSessionId() {
-        // ARRANGE
-
-        // ACT
-        appExitLogger.saveCurrentSessionId("test-session-id")
-
-        // ASSERT
-        verify(activityManager).setProcessStateSummary("test-session-id".toByteArray(StandardCharsets.UTF_8))
-    }
-
-    @Test
-    fun testSaveCurrentSessionId() {
-        // ARRANGE
-        whenever(logger.sessionId).thenReturn("test-session-id")
-
-        // ACT
-        appExitLogger.saveCurrentSessionId()
-
-        // ASSERT
-        verify(activityManager).setProcessStateSummary("test-session-id".toByteArray(StandardCharsets.UTF_8))
-    }
-
-    @Test
-    fun testSaveCurrentSessionIdReportsError() {
-        val error = RuntimeException("test exception")
-        // ARRANGE
-        whenever(activityManager.setProcessStateSummary(any())).thenThrow(error)
-
-        // ACT
-        appExitLogger.saveCurrentSessionId("test-session-id")
-
-        // ASSERT
-        verify(errorHandler).handleError(any(), eq(error))
-    }
-
-    @Test
     fun logPreviousExitReasonIfAny_withValidReasonAndProcessSummary_shouldEmitAppExitLog() {
         // ARRANGE
         lastExitInfo.setAsValidReason(
@@ -156,7 +120,7 @@ class AppExitLoggerTest {
             eq(LogLevel.ERROR),
             eq(buildExpectedAnrFields()),
             eq(null),
-            eq(LogAttributesOverrides.SessionID(SESSION_ID, TIME_STAMP)),
+            eq(LogAttributesOverrides.PreviousRunSessionId(TIME_STAMP)),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppExit" },
         )
@@ -381,7 +345,6 @@ class AppExitLoggerTest {
             runtime,
             errorHandler,
             versionChecker,
-            backgroundThreadHandler,
             memoryMetricsProvider,
             lastExitInfo,
             captureUncaughtExceptionHandler,
