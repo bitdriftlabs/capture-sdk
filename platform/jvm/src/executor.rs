@@ -99,7 +99,6 @@ impl std::fmt::Debug for ObjectHandle {
 #[macro_export]
 macro_rules! define_object_wrapper {
   ($name:ident) => {
-    #[derive(Clone)]
     pub struct $name(pub $crate::executor::ObjectHandle);
 
     impl std::ops::Deref for $name {
