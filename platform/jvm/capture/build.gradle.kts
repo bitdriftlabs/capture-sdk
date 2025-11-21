@@ -161,7 +161,7 @@ tasks.register<Exec>("buildTestJni") {
 
     workingDir = file("../../..")
 
-    // Build the test_jni package which depends on capture and adds test helpers
+    // Build the test_jni package which depends on capture-core (rlib) and adds test helpers
     commandLine(
         "cargo",
         "build",
@@ -170,6 +170,9 @@ tasks.register<Exec>("buildTestJni") {
         "--target",
         platformConfig.rustTarget,
     )
+
+    // Clear RUSTFLAGS to use default flags for debug builds
+    environment("RUSTFLAGS", "")
 
     // Output goes to target/${rustTarget}/debug/libcapture.${libExtension}
 }

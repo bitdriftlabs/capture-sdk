@@ -20,7 +20,7 @@ bd-log                   = { workspace = true }
 bd-logger                = { workspace = true }
 bd-proto                 = { workspace = true }
 bd-test-helpers          = { workspace = true }
-capture                  = { path = "../../../platform/jvm" }
+capture-core             = { path = "../../../platform/jvm/core" }
 ctor                     = { workspace = true }
 jni.workspace            = true
 platform-shared          = { path = "../../../platform/shared" }
