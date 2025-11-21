@@ -54,7 +54,6 @@ class AppExitLoggerTest {
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
     private val memoryMetricsProvider = FakeMemoryMetricsProvider()
     private val lastExitInfo = FakeLatestAppExitInfoProvider()
-    private val backgroundThreadHandler = FakeBackgroundThreadHandler()
 
     private lateinit var appExitLogger: AppExitLogger
 
