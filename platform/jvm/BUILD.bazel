@@ -42,18 +42,8 @@ bitdrift_rust_shared_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//platform/shared:platform-shared",
+      "//platform/jvm/core:capture_core",
     ],
-)
-
-# This is Rust JNI implementation. Most of the logic lives here.
-bitdrift_rust_library(
-    name = "capture",
-    visibility = ["//visibility:public"],
-    deps = [
-        "//platform/shared:platform-shared",
-    ],
-    alwayslink = True,
 )
 
 # Concatenate the proguard files from the capture and replay libraries
