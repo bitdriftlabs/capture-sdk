@@ -185,9 +185,9 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param fields fields map of arbitrary key-value fields to include with the log.
      * @param matchingFields fields map of arbitrary key-value fields that can be read when processing
      *        a given log but are not a part of the log itself.
-     * @param overrideExpectedPreviousProcessSessionId if provided, it will be assigned as a session ID
-     *        of the log. The passed value has to match the last session ID active during the previous run of
-     *        the SDK.
+     * @param overrideUsePreviousProcessSessionId if set to true, this log will be emitted with the session ID
+     *        corresponding to the last session ID during the previous process run. This is helpful for reporting
+     *        crashes on next app launch.
      * @param overrideOccurredAtUnixMilliseconds used to override the timestamp of the log. Used only if
      *        valid `override_expected_previous_process_session_id` is provided, ignored otherwise.
      * @param blocking if true, the call blocks until the log has been processed.

@@ -26,13 +26,11 @@ import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.nio.charset.StandardCharsets
 import java.util.Date
 
 // This should return "2022-07-05T18:55:58.123Z" when formatted.
@@ -75,7 +73,6 @@ class CaptureLoggerSessionOverrideTest {
      *  Verify that upon the launch of the SDK it's possible to emit logs with session Id
      *  equal to the last active session ID from the previous run of the SDK.
      */
-    @Ignore("TODO(FranAguilera): BIT-5484. This works on gradle with Roboelectric. Fix on bazel")
     @Test
     fun testSessionIdOverride() {
         // Start the logger and process one log with it just so that
@@ -95,16 +92,16 @@ class CaptureLoggerSessionOverrideTest {
                 fatalIssueReporter = fatalIssueReporter,
             )
 
-        CaptureTestJniLibrary.stopTestApiServer()
+        // Let the first logger process come up and send it the configuration to aggressively upload
+        // the data. On the second startup it should read this configuration from cache.
+        val firstApiStreamId = CaptureTestJniLibrary.awaitNextApiStream()
+        assertThat(firstApiStreamId).isNotEqualTo(-1)
+        CaptureTestJniLibrary.configureAggressiveContinuousUploads(firstApiStreamId)
 
-        testServerPort = CaptureTestJniLibrary.startTestApiServer(-1)
-
-        val sessionId = "foo"
         val timestamp = 123L
         val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = Mockito.RETURNS_DEEP_STUBS)
-        whenever(mockExitInfo.processStateSummary).thenReturn(sessionId.toByteArray(StandardCharsets.UTF_8))
         whenever(mockExitInfo.timestamp).thenReturn(timestamp)
-        whenever(mockExitInfo.processName).thenReturn("test-process-name")
+        whenever(mockExitInfo.processName).thenReturn(ContextHolder.APP_CONTEXT.packageName)
         whenever(mockExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_ANR)
         whenever(mockExitInfo.importance).thenReturn(ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
         whenever(mockExitInfo.status).thenReturn(0)
@@ -128,19 +125,21 @@ class CaptureLoggerSessionOverrideTest {
                 activityManager = activityManager,
                 fatalIssueReporter = fatalIssueReporter,
             )
-        val newStreamId = CaptureTestJniLibrary.awaitNextApiStream()
-        assertThat(newStreamId).isNotEqualTo(-1)
 
-        CaptureTestJniLibrary.configureAggressiveContinuousUploads(newStreamId)
+        val secondApiStreamId = CaptureTestJniLibrary.awaitNextApiStream()
+        assertThat(secondApiStreamId).isNotEqualTo(-1)
+        CaptureTestJniLibrary.configureAggressiveContinuousUploads(secondApiStreamId)
 
-        val log = CaptureTestJniLibrary.nextUploadedLog()
-        assertThat(log.message).isEqualTo("AppExit")
-        assertThat(log.level).isEqualTo(LogLevel.ERROR.value)
-        assertThat(log.sessionId).isEqualTo("foo")
-        assertThat(log.rfc3339Timestamp).isEqualTo("1970-01-01T00:00:00.123Z")
-
-        val sdkConfigured = CaptureTestJniLibrary.nextUploadedLog()
-        assertThat(sdkConfigured.message).isEqualTo("SDKConfigured")
+        var appExitLogFound = false
+        while (!appExitLogFound) {
+            val log = CaptureTestJniLibrary.nextUploadedLog()
+            if (log.message == "AppExit") {
+                assertThat(log.level).isEqualTo(LogLevel.ERROR.value)
+                assertThat(log.sessionId).isEqualTo("foo")
+                assertThat(log.rfc3339Timestamp).isEqualTo("1970-01-01T00:00:00.123Z")
+                appExitLogFound = true
+            }
+        }
     }
 
     private fun testServerUrl(): HttpUrl =
