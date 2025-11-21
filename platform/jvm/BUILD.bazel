@@ -1,4 +1,4 @@
-load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library", "bitdrift_rust_shared_library")
+load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_shared_library")
 
 exports_files(["AndroidManifest.xml"])
 
@@ -42,7 +42,7 @@ bitdrift_rust_shared_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-      "//platform/jvm/core:capture_core",
+        "//platform/jvm/core:capture_core",
     ],
 )
 
