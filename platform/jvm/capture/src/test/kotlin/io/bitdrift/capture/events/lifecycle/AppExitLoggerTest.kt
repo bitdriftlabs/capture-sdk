@@ -24,7 +24,6 @@ import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
@@ -73,7 +72,6 @@ class AppExitLoggerTest {
         appExitLogger.installAppExitLogger()
         // ASSERT
         verify(captureUncaughtExceptionHandler, never()).install(any())
-        verify(activityManager, never()).setProcessStateSummary(any())
         verify(activityManager, never()).getHistoricalProcessExitReasons(anyOrNull(), any(), any())
     }
 
@@ -86,7 +84,6 @@ class AppExitLoggerTest {
         appExitLogger.installAppExitLogger()
         // ASSERT
         verify(captureUncaughtExceptionHandler).install(appExitLogger)
-        verify(activityManager).setProcessStateSummary(any())
     }
 
     @Test
