@@ -5,7 +5,7 @@ bitdrift_rust_shared_library(
     testonly = True,
     visibility = ["//visibility:public"],
     deps = [
-        "//platform/jvm:capture",
+        "//platform/jvm/core:capture_core",
         "//platform/shared:platform-shared",
         "//platform/test_helpers",
     ],

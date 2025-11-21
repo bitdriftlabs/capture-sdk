@@ -25,7 +25,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -35,15 +34,27 @@ class AppUpdateListenerLoggerTest {
     private val logger: LoggerImpl = mock()
     private val clientAttributes: ClientAttributes = mock()
     private val runtime: Runtime = mock()
-    private val executor: ExecutorService = Executors.newSingleThreadExecutor()
 
     private lateinit var appUpdateLogger: AppUpdateListenerLogger
 
     @Before
     fun setUp() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
         val initializer = ContextHolder()
-        initializer.create(ApplicationProvider.getApplicationContext<Context>())
+        initializer.create(context)
 
+        // Set up a fake sourceDir for the APK size calculation
+        context.applicationInfo.sourceDir = "/fake/path/to/app.apk"
+    }
+
+    @Test
+    fun doesNotLogAppUpdateWhenShouldLogReturnsFalse() {
+        whenever(runtime.isEnabled(RuntimeFeature.APP_UPDATE_EVENTS)).thenReturn(true)
+        whenever(clientAttributes.appVersion).thenReturn("1.2.3")
+        whenever(clientAttributes.appVersionCode).thenReturn(123)
+        whenever(logger.shouldLogAppUpdate("1.2.3", 123)).thenReturn(false)
+
+        val executor = Executors.newSingleThreadExecutor()
         appUpdateLogger =
             AppUpdateListenerLogger(
                 logger = logger,
@@ -52,22 +63,32 @@ class AppUpdateListenerLoggerTest {
                 runtime = runtime,
                 executor = executor,
             )
+
+        appUpdateLogger.start()
+        executor.shutdown()
+        executor.awaitTermination(1, TimeUnit.SECONDS)
+        verify(logger, never()).logAppUpdate(any(), any(), any(), any())
     }
 
     @Test
-    fun logsAppUpdate() {
+    fun logsAppUpdateWhenShouldLogReturnsTrue() {
         whenever(runtime.isEnabled(RuntimeFeature.APP_UPDATE_EVENTS)).thenReturn(true)
         whenever(clientAttributes.appVersion).thenReturn("1.2.3")
         whenever(clientAttributes.appVersionCode).thenReturn(123)
-        whenever(logger.shouldLogAppUpdate("1.2.3", 123)).thenReturn(false)
-
-        appUpdateLogger.start()
-        executor.awaitTermination(1, TimeUnit.SECONDS)
-        verify(logger, never()).logAppUpdate(any(), any(), any(), any())
-
         whenever(logger.shouldLogAppUpdate("1.2.3", 123)).thenReturn(true)
 
+        val executor = Executors.newSingleThreadExecutor()
+        appUpdateLogger =
+            AppUpdateListenerLogger(
+                logger = logger,
+                clientAttributes = clientAttributes,
+                context = ContextHolder.APP_CONTEXT,
+                runtime = runtime,
+                executor = executor,
+            )
+
         appUpdateLogger.start()
+        executor.shutdown()
         executor.awaitTermination(1, TimeUnit.SECONDS)
         verify(logger).logAppUpdate(eq("1.2.3"), eq(123), any(), any())
     }

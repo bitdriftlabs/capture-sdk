@@ -1,0 +1,22 @@
+load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
+
+bitdrift_rust_library(
+    name = "capture_core",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//platform/shared:platform-shared",
+    ],
+    alwayslink = True,
+)
+
+# Concatenate the proguard files from the capture and replay libraries
+genrule(
+    name = "proguard",
+    srcs = [
+        "//platform/jvm/capture:consumer-rules.pro",
+        "//platform/jvm/replay:consumer-rules.pro",
+    ],
+    outs = ["proguard.txt"],
+    cmd = "cat $(SRCS) > $@",
+    visibility = ["//visibility:public"],
+)

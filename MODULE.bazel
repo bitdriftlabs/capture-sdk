@@ -344,6 +344,7 @@ crate.from_cargo(
         "//:Cargo.toml",
         "//proto:Cargo.toml",
         "//platform/jvm:Cargo.toml",
+        "//platform/jvm/core:Cargo.toml",
         "//test/platform/jvm:Cargo.toml",
         "//platform/shared:Cargo.toml",
         "//platform/swift/source:Cargo.toml",
