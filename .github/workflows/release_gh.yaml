@@ -16,12 +16,7 @@ on:
       version:
         description: 'The new version to tag, ex: 0.9.102'
         required: true
-        type: string
-    secrets: 
-      OPEN_CAPTURE_SDK_PRS_APP_ID:
-        required: true
-      OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY:
-        required: true    
+        type: string    
 jobs:
   verify-version:
     name: Verify arguments
@@ -157,7 +152,7 @@ jobs:
             -f branch="main"
 
         # Use CHANGELOG.md in root
-        # Extracts the content between the second and third H2 header (the released version)
+        # Extracts the content between the second and third H2 header (the latest released version)
       - name: Extract release notes
         id: extract-release-notes
         uses: ffurrer2/extract-release-notes@v2
@@ -167,18 +162,35 @@ jobs:
       - name: Create release
         run: |
           ls -R
-          gh release create "v$VERSION" \
-            --target "$GITHUB_REF_NAME" \
-            --notes '${{ steps.extract-release-notes.outputs.release_notes }}' \
-            "Capture-$VERSION.ios.zip" \
-            "Capture-$VERSION.doccarchive.ios.zip" \
-            "Capture-$VERSION.android.zip" \
-            "example-apps.ios.zip" \
-            "example-apps.android.zip" \
-            "capture-timber-$VERSION.android.zip" \
-            "capture-apollo-$VERSION.android.zip" \
-            "capture-plugin-$VERSION.android.zip" \
+          RELEASE_NOTES='${{ steps.extract-release-notes.outputs.release_notes }}'
+          ARTIFACTS=(
+            "Capture-$VERSION.ios.zip"
+            "Capture-$VERSION.doccarchive.ios.zip"
+            "Capture-$VERSION.android.zip"
+            "example-apps.ios.zip"
+            "example-apps.android.zip"
+            "capture-timber-$VERSION.android.zip"
+            "capture-apollo-$VERSION.android.zip"
+            "capture-plugin-$VERSION.android.zip"
             "capture-plugin-marker-$VERSION.android.zip"
+          )
+          
+          if [ -z "$RELEASE_NOTES" ] || [ "$RELEASE_NOTES" = "null" ]; then
+            echo "Release notes are empty, using --generate-notes"
+            gh release create "v$VERSION" \
+              --target "$GITHUB_REF_NAME" \
+              --generate-notes \
+              "${ARTIFACTS[@]}"
+          else
+            echo "$RELEASE_NOTES" | grep -v "^\[$VERSION\]:" > /tmp/release_notes.md
+            echo "Using release notes from CHANGELOG.md"
+            head -5 /tmp/release_notes.md
+            echo "---"
+            gh release create "v$VERSION" \
+              --target "$GITHUB_REF_NAME" \
+              --notes-file /tmp/release_notes.md \
+              "${ARTIFACTS[@]}"
+          fi
         env:
           VERSION: ${{ inputs.version }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
