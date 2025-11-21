@@ -959,7 +959,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   log: JString<'_>,
   fields: JObject<'_>,
   matching_fields: JObject<'_>,
-  override_expected_previous_process_session_id: JString<'_>,
+  override_use_previous_process_session_id: jboolean,
   override_occurred_at_unix_milliseconds: jlong,
   blocking: jboolean,
 ) {
@@ -970,24 +970,18 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
       let matching_fields =
         ffi::jobject_map_to_fields(&mut env, &matching_fields, LogFieldKind::Ootb)?;
 
-      let attributes_overrides = if override_expected_previous_process_session_id.is_null()
+      let attributes_overrides = if override_use_previous_process_session_id != JNI_TRUE
         && override_occurred_at_unix_milliseconds <= 0
       {
         None
-      } else if override_expected_previous_process_session_id.is_null()
+      } else if override_use_previous_process_session_id != JNI_TRUE
         && override_occurred_at_unix_milliseconds > 0
       {
         Some(LogAttributesOverrides::OccurredAt(
           unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
         ))
       } else {
-        let expected_previous_process_session_id =
-          unsafe { env.get_string_unchecked(&override_expected_previous_process_session_id) }?
-            .to_string_lossy()
-            .to_string();
-
         Some(LogAttributesOverrides::PreviousRunSessionID(
-          expected_previous_process_session_id,
           unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
         ))
       };

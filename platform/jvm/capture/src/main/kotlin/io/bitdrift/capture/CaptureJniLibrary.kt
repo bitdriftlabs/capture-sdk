@@ -199,7 +199,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         log: String,
         fields: Map<String, FieldValue>,
         matchingFields: Map<String, FieldValue>,
-        overrideExpectedPreviousProcessSessionId: String?,
+        overrideUsePreviousProcessSessionId: Boolean,
         overrideOccurredAtUnixMilliseconds: Long,
         blocking: Boolean,
     )

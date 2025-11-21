@@ -43,7 +43,6 @@ internal class AppExitLogger(
     private val runtime: Runtime,
     private val errorHandler: ErrorHandler,
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
-    private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
@@ -71,29 +70,10 @@ internal class AppExitLogger(
         }
         captureUncaughtExceptionHandler.install(this)
         logPreviousExitReasonIfAny()
-        backgroundThreadHandler.runAsync {
-            saveCurrentSessionId()
-        }
     }
 
     fun uninstallAppExitLogger() {
         captureUncaughtExceptionHandler.uninstall()
-    }
-
-    @RequiresApi(Build.VERSION_CODES.R)
-    fun saveCurrentSessionId(sessionId: String? = null) {
-        if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) || !versionChecker.isAtLeast(Build.VERSION_CODES.R)) {
-            return
-        }
-
-        val currentSessionId = sessionId ?: logger.sessionId
-
-        try {
-            activityManager.setProcessStateSummary(currentSessionId.toByteArray(StandardCharsets.UTF_8))
-        } catch (error: Throwable) {
-            // excessive calls to this API could result in a RuntimeException.
-            errorHandler.handleError("Failed to save session id in ActivityManager", error)
-        }
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
@@ -109,22 +89,13 @@ internal class AppExitLogger(
 
             is LatestAppExitReasonResult.Valid -> {
                 val lastExitInfo = lastExitInfoResult.applicationExitInfo
-                // extract stored id from previous session in order to override the log,
-                // bail and report error if not present
-                val sessionId =
-                    lastExitInfo.processStateSummary?.toString(StandardCharsets.UTF_8)
-                if (sessionId == null) {
-                    val errorMessage = "AppExitLogger: processStateSummary from ${lastExitInfo.processName} is null."
-                    errorHandler.handleError(errorMessage)
-                    return
-                }
 
                 val timestampMs = lastExitInfo.timestamp
                 logger.log(
                     LogType.LIFECYCLE,
                     lastExitInfo.reason.toLogLevel(),
                     buildAppExitInternalFieldsMap(lastExitInfo),
-                    attributesOverrides = LogAttributesOverrides.SessionID(sessionId, timestampMs),
+                    attributesOverrides = LogAttributesOverrides.PreviousRunSessionId(timestampMs),
                 ) { APP_EXIT_EVENT_NAME }
             }
         }
