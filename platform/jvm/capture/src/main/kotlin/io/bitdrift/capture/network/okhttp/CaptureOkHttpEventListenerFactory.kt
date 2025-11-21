@@ -29,46 +29,12 @@ import okhttp3.EventListener
  * [okhttp3.OkHttpClient.Builder.eventListener].
  */
 class CaptureOkHttpEventListenerFactory internal constructor(
-    private val targetEventListenerCreator: ((call: Call) -> EventListener)? = null,
-    private val logger: ILogger? = Capture.logger(),
-    private val clock: IClock = DefaultClock.getInstance(),
-    private val requestFieldProvider: OkHttpRequestFieldProvider = DEFAULT_REQUEST_FIELD_PROVIDER,
-    private val responseFieldProvider: OkHttpResponseFieldProvider = DEFAULT_RESPONSE_FIELD_PROVIDER,
+    private val targetEventListenerFactory: EventListener.Factory?,
+    private val logger: ILogger?,
+    private val clock: IClock,
+    private val requestFieldProvider: OkHttpRequestFieldProvider,
+    private val responseFieldProvider: OkHttpResponseFieldProvider,
 ) : EventListener.Factory {
-    /**
-     * Initializes a new instance of the Capture event listener.
-     *
-     * @param requestFieldProvider Provider for request-based extra fields.
-     * @param responseFieldProvider Provider for response-based extra fields.
-     */
-    constructor(
-        requestFieldProvider: OkHttpRequestFieldProvider = DEFAULT_REQUEST_FIELD_PROVIDER,
-        responseFieldProvider: OkHttpResponseFieldProvider = DEFAULT_RESPONSE_FIELD_PROVIDER,
-    ) : this(
-        targetEventListenerCreator = null,
-        requestFieldProvider = requestFieldProvider,
-        responseFieldProvider = responseFieldProvider,
-    )
-
-    /**
-     * Initializes a new instance of the Capture event listener. Accepts an instance of an existing event
-     * listener to enable combining the Capture event listener with other existing listeners.
-     *
-     * @param targetEventListener The existing event listener that should be informed about
-     * [okhttp3.OkHttpClient] events alongside the Capture event listeners.
-     * @param requestFieldProvider Provider for request-based extra fields.
-     * @param responseFieldProvider Provider for response-based extra fields.
-     */
-    constructor(
-        targetEventListener: EventListener,
-        requestFieldProvider: OkHttpRequestFieldProvider = DEFAULT_REQUEST_FIELD_PROVIDER,
-        responseFieldProvider: OkHttpResponseFieldProvider = DEFAULT_RESPONSE_FIELD_PROVIDER,
-    ) : this(
-        targetEventListenerCreator = { targetEventListener },
-        requestFieldProvider = requestFieldProvider,
-        responseFieldProvider = responseFieldProvider,
-    )
-
     /**
      * Initializes a new instance of the Capture event listener with an existing event listener factory.
      *
@@ -77,18 +43,20 @@ class CaptureOkHttpEventListenerFactory internal constructor(
      * @param responseFieldProvider Provider for response-based extra fields.
      */
     constructor(
-        targetEventListenerFactory: EventListener.Factory,
+        targetEventListenerFactory: EventListener.Factory? = null,
         requestFieldProvider: OkHttpRequestFieldProvider = DEFAULT_REQUEST_FIELD_PROVIDER,
         responseFieldProvider: OkHttpResponseFieldProvider = DEFAULT_RESPONSE_FIELD_PROVIDER,
     ) : this(
-        targetEventListenerCreator = { targetEventListenerFactory.create(it) },
+        targetEventListenerFactory = targetEventListenerFactory,
+        logger = Capture.logger(),
+        clock = DefaultClock.getInstance(),
         requestFieldProvider = requestFieldProvider,
         responseFieldProvider = responseFieldProvider,
     )
 
     override fun create(call: Call): EventListener {
         val currentLogger = getLogger()
-        val targetEventListener = targetEventListenerCreator?.invoke(call)
+        val targetEventListener = targetEventListenerFactory?.create(call)
         if (currentLogger == null) {
             return targetEventListener ?: EventListener.NONE
         }
@@ -106,6 +74,6 @@ class CaptureOkHttpEventListenerFactory internal constructor(
 
     private companion object {
         private val DEFAULT_REQUEST_FIELD_PROVIDER = OkHttpRequestFieldProvider { emptyMap() }
-        private val DEFAULT_RESPONSE_FIELD_PROVIDER = OkHttpResponseFieldProvider { _ -> emptyMap() }
+        private val DEFAULT_RESPONSE_FIELD_PROVIDER = OkHttpResponseFieldProvider { emptyMap() }
     }
 }

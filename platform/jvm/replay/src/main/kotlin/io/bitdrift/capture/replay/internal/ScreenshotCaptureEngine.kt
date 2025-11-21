@@ -34,7 +34,7 @@ internal class ScreenshotCaptureEngine(
     fun captureScreenshot() {
         try {
             metrics.start()
-            val rootView = windowManager.getFirstRootView()
+            val rootView = windowManager.getBottomMostRootView()
             if (rootView == null || rootView.width <= 0 || rootView.height <= 0 || !rootView.isShown) {
                 finishOnError(expected = true, "Screenshot triggered: Root view is invalid, skipping capture")
                 return

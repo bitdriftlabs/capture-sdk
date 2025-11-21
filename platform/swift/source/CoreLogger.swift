@@ -194,8 +194,8 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.setSleepMode(mode)
     }
 
-    func processCrashReports() {
-        self.underlyingLogger.processCrashReports()
+    func processIssueReports(reportProcessingSession: ReportProcessingSession) {
+        self.underlyingLogger.processIssueReports(reportProcessingSession: reportProcessingSession)
     }
 
     private func convertFields(fields: Fields) -> [CapturePassable.Field] {

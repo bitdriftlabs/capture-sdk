@@ -1,4 +1,4 @@
-load("@rules_java//java:defs.bzl", "java_lite_proto_library")
+load("@rules_java//java:defs.bzl", "java_library", "java_lite_proto_library")
 load("@rules_jvm_external//:defs.bzl", "artifact")
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
@@ -13,6 +13,14 @@ java_lite_proto_library(
     name = "tombstone_proto_java_lite",
     visibility = ["//visibility:public"],
     deps = [":tombstone_proto"],
+)
+
+# Retrofit compile-only wrapper: exposes API at compile time, excluded from runtime via neverlink.
+java_library(
+    name = "retrofit_compile_only",
+    neverlink = True,
+    visibility = ["//visibility:public"],
+    exports = [artifact("com.squareup.retrofit2:retrofit")],
 )
 
 # export proguard library rules
@@ -61,6 +69,8 @@ bitdrift_kt_android_library(
         artifact("com.google.flatbuffers:flatbuffers-java"),
         artifact("com.google.protobuf:protobuf-kotlin-lite"),
         artifact("androidx.metrics:metrics-performance"),
+        # Compile-only dependency (neverlink wrapper). Not packaged nor appearing in POM.
+        ":retrofit_compile_only",
     ],
 )
 
@@ -88,5 +98,6 @@ bitdrift_kt_android_local_test(
         artifact("org.mockito:mockito-core"),
         artifact("com.nhaarman.mockitokotlin2:mockito-kotlin"),
         artifact("com.squareup.okhttp3:mockwebserver"),
+        artifact("com.squareup.retrofit2:retrofit"),
     ],
 )

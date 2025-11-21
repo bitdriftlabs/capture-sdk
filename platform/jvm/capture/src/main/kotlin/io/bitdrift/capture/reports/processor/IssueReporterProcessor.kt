@@ -7,10 +7,13 @@
 
 package io.bitdrift.capture.reports.processor
 
+import android.util.Log
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.BuildConstants
+import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IClientAttributes
+import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppBuildNumber
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Architecture
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.DeviceMetrics
@@ -20,7 +23,7 @@ import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Platform
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.SDKInfo
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Timestamp
-import io.bitdrift.capture.reports.persistence.IFatalIssueReporterStorage
+import io.bitdrift.capture.reports.persistence.IIssueReporterStorage
 import java.io.InputStream
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -28,11 +31,62 @@ import kotlin.time.toDuration
 /**
  * Process reports into a packed format
  */
-internal class FatalIssueReporterProcessor(
-    private val fatalIssueReporterStorage: IFatalIssueReporterStorage,
+internal class IssueReporterProcessor(
+    private val reporterIssueStorage: IIssueReporterStorage,
     private val clientAttributes: IClientAttributes,
     private val streamingReportsProcessor: IStreamingReportProcessor,
+    private val dateProvider: DateProvider,
 ) {
+    companion object {
+        // Initial size for file builder buffer
+        private const val FBS_BUILDER_DEFAULT_SIZE = 1024
+    }
+
+    /**
+     * Persists a JavaScript report
+     *  @param errorName The main readable error name
+     *  @param message The detailed JavaScript error message
+     *  @param stack Raw stacktrace
+     *  @param isFatalIssue Indicates if this is a fatal JSError issue
+     *  @param engine Engine type (e.g. hermes/JSC)
+     * @param debugId Debug id that will be used for de-minification
+     * @param sdkVersion bitdrift's React Native SDK version(e.g 8.1)
+     */
+    fun persistJavaScriptReport(
+        errorName: String,
+        message: String,
+        stack: String,
+        isFatalIssue: Boolean,
+        engine: String,
+        debugId: String,
+        sdkVersion: String,
+    ) {
+        runCatching {
+            val timestamp = dateProvider.invoke().time
+            val destinationPath =
+                if (isFatalIssue) {
+                    reporterIssueStorage.generateFatalIssueFilePath()
+                } else {
+                    reporterIssueStorage.generateNonFatalIssueFilePath()
+                }
+
+            streamingReportsProcessor.persistJavaScriptError(
+                errorName = errorName,
+                errorMessage = message,
+                stackTrace = stack,
+                isFatal = isFatalIssue,
+                engine = engine,
+                debugId = debugId,
+                timestampMillis = timestamp,
+                destinationPath = destinationPath,
+                attributes = clientAttributes,
+                sdkVersion = sdkVersion,
+            )
+        }.onFailure {
+            Log.e(LOG_TAG, "Error at persistJavaScriptReport: $it", it)
+        }
+    }
+
     /**
      * Process AppTerminations due to ANRs and native crashes into packed format
      * @param fatalIssueType The flatbuffer type of fatal issue being processed
@@ -54,7 +108,7 @@ internal class FatalIssueReporterProcessor(
             streamingReportsProcessor.persistANR(
                 traceInputStream,
                 timestamp,
-                fatalIssueReporterStorage.generateFilePath(),
+                reporterIssueStorage.generateFatalIssueFilePath(),
                 clientAttributes,
             )
         } else if (fatalIssueType == ReportType.NativeCrash && enableNativeCrashReporting) {
@@ -71,7 +125,13 @@ internal class FatalIssueReporterProcessor(
                     description,
                     traceInputStream,
                 )
-            persistReport(timestamp, builder, report, fatalIssueType)
+            builder.finish(report)
+
+            reporterIssueStorage.persistFatalIssue(
+                timestamp,
+                builder.sizedByteArray(),
+                ReportType.NativeCrash,
+            )
         }
     }
 
@@ -100,18 +160,13 @@ internal class FatalIssueReporterProcessor(
                 callerThread,
                 allThreads,
             )
+        builder.finish(report)
 
-        persistReport(timestamp, builder, report, ReportType.JVMCrash)
-    }
-
-    private fun persistReport(
-        timestamp: Long,
-        builder: FlatBufferBuilder,
-        reportOffset: Int,
-        reportType: Byte,
-    ) {
-        builder.finish(reportOffset)
-        fatalIssueReporterStorage.persistFatalIssue(timestamp, builder.sizedByteArray(), reportType)
+        reporterIssueStorage.persistFatalIssue(
+            timestamp,
+            builder.sizedByteArray(),
+            ReportType.JVMCrash,
+        )
     }
 
     private fun createSDKInfo(builder: FlatBufferBuilder): Int =
@@ -182,9 +237,4 @@ internal class FatalIssueReporterProcessor(
             "x86_64" -> Architecture.x86_64
             else -> Architecture.Unknown
         }
-
-    private companion object {
-        // Initial size for file builder buffer
-        private const val FBS_BUILDER_DEFAULT_SIZE = 1024
-    }
 }

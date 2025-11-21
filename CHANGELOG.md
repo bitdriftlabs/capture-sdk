@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.19.1...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.20.0...HEAD
 
 ### Both
 
@@ -16,7 +16,7 @@
 **Fixed**
 
 - Nothing yet!
-
+ 
 ### Android
 
 **Added**
@@ -45,7 +45,53 @@
 
 - Nothing yet!
 
-## [0.19.1] - 2025-11-05
+## [0.20.0]
+[0.20.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.20.0
+
+### Both
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### Android
+
+**Added**
+
+- Add `RetrofitUrlPathProvider` helper class to help extracting endpoint's url paths when using Retrofit services.
+
+**Changed**
+
+- Simplify constructor of `CaptureOkHttpEventListenerFactory`. Remove usage of `(call: Call) -> EventListener)` in favor of `EventListener.Factory`.
+- Make `HttpField.PATH_TEMPLATE` constant public so consumers can override it using a custom `OkHttpRequestFieldProvider`.
+
+**Fixed**
+
+- Fix the rendering order and position of dialog and modal windows in Session Replay.
+
+### iOS
+
+**Added**
+
+- Add `rootFileURL` parameter to `Configuration` to allow customizing the storage location for SDK internal files.
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.19.1]
 [0.19.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.19.1
 
 ### Both
@@ -77,7 +123,7 @@
 
 - Make `HTTPRequestMetrics.init` public.
 
-## [0.19.0] - 2025-10-27
+## [0.19.0]
 [0.19.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.19.0
 
 ### Both

@@ -537,6 +537,38 @@ object Capture {
         }
 
         /**
+         * Internal API which allows to persist JavaScript error reports.
+         *
+         * @param errorName The main readable error name
+         * @param message The detailed JavaScript error message
+         * @param stack Raw stacktrace
+         * @param isFatalIssue Indicates if this is a fatal JSError issue
+         * @param engine Engine type (e.g. hermes/JSC)
+         * @param debugId Debug id that will be used for de-minification
+         * @param sdkVersion bitdrift's React Native SDK version(e.g 8.1)
+         */
+        @JvmStatic
+        internal fun persistJavaScriptReport(
+            errorName: String,
+            message: String,
+            stack: String,
+            isFatalIssue: Boolean,
+            engine: String,
+            debugId: String,
+            sdkVersion: String,
+        ) {
+            (logger() as? LoggerImpl)?.getIssueProcessor()?.persistJavaScriptReport(
+                errorName,
+                message,
+                stack,
+                isFatalIssue,
+                engine,
+                debugId,
+                sdkVersion,
+            )
+        }
+
+        /**
          * Used for testing purposes.
          */
         internal fun resetShared() {

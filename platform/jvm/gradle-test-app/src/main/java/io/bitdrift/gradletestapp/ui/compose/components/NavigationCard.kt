@@ -62,6 +62,11 @@ fun NavigationCard(onAction: (AppAction) -> Unit) {
                     onClick = { onAction(NavigationAction.NavigateToXml) },
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
                 ) { Text(stringResource(id = R.string.navigate_to_xml_view), maxLines = 1, softWrap = false) }
+
+                OutlinedButton(
+                    onClick = { onAction(NavigationAction.NavigateToDialogAndModals) },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
+                ) { Text(stringResource(id = R.string.navigate_to_modal_bottom_sheet), maxLines = 1, softWrap = false) }
             }
         }
     }

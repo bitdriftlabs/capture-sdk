@@ -13,6 +13,7 @@ import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
 import io.bitdrift.capture.reports.processor.IStreamingReportProcessor
+import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import java.io.InputStream
 
 // We use our own type here instead of a builtin function to allow us to avoid proguard-rewriting this class.
@@ -359,9 +360,14 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     )
 
     /**
-     * Sends a signal to the native layer to process existing reports
+     * Sends a signal to the native layer to process issue reports
+     * @param loggerId The logger ID
+     * @param reportProcessingSession The report processing session type
      */
-    external fun processCrashReports(loggerId: LoggerId)
+    external fun processIssueReports(
+        loggerId: LoggerId,
+        reportProcessingSession: ReportProcessingSession,
+    )
 
     /**
      * Synchronously report the ANR present in the stream with supplemental metadata
@@ -375,5 +381,32 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         timestampMillis: Long,
         destinationPath: String,
         attributes: IClientAttributes,
+    )
+
+    /**
+     * Persists a JavaScript error report to disk
+     *
+     * @param errorName The main readable error name
+     * @param errorMessage The detailed JavaScript error message
+     * @param stackTrace Raw stacktrace
+     * @param isFatal Indicates if this is a fatal JSError issue
+     * @param engine Engine type (e.g. hermes/JSC)
+     * @param debugId Debug id that will be used for de-minification
+     * @param timestampMillis The time at which the event took place
+     * @param destinationPath Target file path to write the report
+     * @param attributes Client attributes for metadata
+     * @param sdkVersion bitdrift's React Native SDK version(e.g 8.1)
+     */
+    external override fun persistJavaScriptError(
+        errorName: String,
+        errorMessage: String,
+        stackTrace: String,
+        isFatal: Boolean,
+        engine: String,
+        debugId: String,
+        timestampMillis: Long,
+        destinationPath: String,
+        attributes: IClientAttributes,
+        sdkVersion: String,
     )
 }

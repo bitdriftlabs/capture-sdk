@@ -13,6 +13,7 @@ import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import okhttp3.HttpUrl
@@ -28,7 +29,10 @@ import java.util.concurrent.CountDownLatch
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
 class SessionStrategyTest {
-    private val fatalIssueReporter: IFatalIssueReporter = FatalIssueReporter()
+    private val fatalIssueReporter: IFatalIssueReporter =
+        FatalIssueReporter(
+            dateProvider = FakeDateProvider,
+        )
 
     @Before
     fun setUp() {

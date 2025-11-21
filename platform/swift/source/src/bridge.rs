@@ -33,9 +33,15 @@ use bd_logger::{
   ReportProcessingSession,
 };
 use bd_noop_network::NoopNetwork;
+use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1;
 use bd_proto::protos::logging::payload::LogType;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
+use platform_shared::javascript_error::{
+  persist_javascript_error_report,
+  AppMetadata,
+  DeviceMetadata,
+};
 use platform_shared::metadata::{self, Mobile};
 use platform_shared::{read_global_state_snapshot, LoggerHolder, LoggerId};
 use protobuf::Enum as _;
@@ -543,15 +549,27 @@ extern "C" fn capture_shutdown_logger(logger_id: LoggerId<'_>, blocking: bool) {
 }
 
 #[no_mangle]
-extern "C" fn capture_process_crash_reports(mut logger_id: LoggerId<'_>) {
+extern "C" fn capture_process_issue_reports(
+  mut logger_id: LoggerId<'_>,
+  report_processing_session_value: i32,
+) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      logger_id
-        .deref_mut()
-        .process_crash_reports(ReportProcessingSession::PreviousRun);
+      let session = match report_processing_session_value {
+        0 => ReportProcessingSession::Current,
+        1 => ReportProcessingSession::PreviousRun,
+        _ => {
+          log::error!(
+            "invalid session value: {report_processing_session_value}, defaulting to Current"
+          );
+          ReportProcessingSession::Current
+        },
+      };
+
+      logger_id.deref_mut().process_crash_reports(session);
       Ok(())
     },
-    "swift process crash reports",
+    "swift process issue reports",
   );
 }
 
@@ -932,6 +950,94 @@ extern "C" fn capture_set_sleep_mode(logger_id: LoggerId<'_>, enabled: bool) {
       Ok(())
     },
     "swift transition sleep mode",
+  );
+}
+
+#[no_mangle]
+extern "C" fn capture_persist_javascript_error_report(
+  error_name: *const c_char,
+  error_message: *const c_char,
+  stack_trace: *const c_char,
+  is_fatal: bool,
+  engine: *const c_char,
+  debug_id: *const c_char,
+  timestamp_seconds: u64,
+  timestamp_nanos: u32,
+  destination_path: *const c_char,
+  manufacturer: *const c_char,
+  model: *const c_char,
+  os_version: *const c_char,
+  os_brand: *const c_char,
+  app_id: *const c_char,
+  app_version: *const c_char,
+  version_code: *const c_char,
+  sdk_version: *const c_char,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let error_name = unsafe { CStr::from_ptr(error_name) }.to_str()?;
+      let error_message = unsafe { CStr::from_ptr(error_message) }.to_str()?;
+      let stack_trace = unsafe { CStr::from_ptr(stack_trace) }.to_str()?;
+      let engine = unsafe { CStr::from_ptr(engine) }.to_str()?;
+      let destination_path = unsafe { CStr::from_ptr(destination_path) }.to_str()?;
+
+      let debug_id = {
+        let id = unsafe { CStr::from_ptr(debug_id) }.to_str()?;
+        if id.is_empty() {
+          None
+        } else {
+          Some(id)
+        }
+      };
+
+      let manufacturer = unsafe { CStr::from_ptr(manufacturer) }
+        .to_str()?
+        .to_string();
+      let model = unsafe { CStr::from_ptr(model) }.to_str()?.to_string();
+      let os_version = unsafe { CStr::from_ptr(os_version) }.to_str()?.to_string();
+      let os_brand = unsafe { CStr::from_ptr(os_brand) }.to_str()?.to_string();
+      let app_id = unsafe { CStr::from_ptr(app_id) }.to_str()?.to_string();
+      let app_version = unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string();
+      let version_code = unsafe { CStr::from_ptr(version_code) }
+        .to_str()?
+        .to_string();
+      let sdk_version = unsafe { CStr::from_ptr(sdk_version) }.to_str()?;
+
+      let device_metadata = DeviceMetadata {
+        manufacturer: Some(manufacturer),
+        model: Some(model),
+        os_version: Some(os_version),
+        os_brand: Some(os_brand),
+        architecture: None,
+        cpu_abis: None,
+      };
+
+      let app_metadata = AppMetadata {
+        app_id: Some(app_id),
+        app_version: Some(app_version),
+        version_code: version_code.parse::<i64>().ok(),
+      };
+
+      persist_javascript_error_report(
+        error_name,
+        error_message,
+        stack_trace,
+        is_fatal,
+        debug_id,
+        timestamp_seconds,
+        timestamp_nanos,
+        v_1::Platform::iOS,
+        "io.bitdrift.capture-apple",
+        sdk_version,
+        destination_path,
+        device_metadata,
+        app_metadata,
+        engine,
+      )?;
+
+      Ok(())
+    },
+    "swift persist javascript error report",
   );
 }
 

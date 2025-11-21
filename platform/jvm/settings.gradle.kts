@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.maven
+
 rootProject.name = "capture-sdk"
 
 pluginManagement {
@@ -21,7 +23,6 @@ include(":gradle-test-app")
 include(":microbenchmark")
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()

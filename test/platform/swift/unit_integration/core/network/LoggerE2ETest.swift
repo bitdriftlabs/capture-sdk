@@ -69,10 +69,8 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         let logger = try XCTUnwrap(
             Logger(
                 withAPIKey: "test!",
-                bufferDirectory: self.setUpSDKDirectory(),
-                apiURL: apiURL,
                 remoteErrorReporter: MockRemoteErrorReporter(),
-                configuration: .init(),
+                configuration: .init(apiURL: apiURL, rootFileURL: self.setUpSDKDirectory()),
                 sessionStrategy: SessionStrategy.fixed(sessionIDGenerator: { "mock-group-id" }),
                 dateProvider: MockDateProvider(),
                 fieldProviders: [

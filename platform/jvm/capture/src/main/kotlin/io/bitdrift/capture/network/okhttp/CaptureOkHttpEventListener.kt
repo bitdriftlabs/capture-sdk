@@ -9,6 +9,7 @@ package io.bitdrift.capture.network.okhttp
 
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.common.IClock
+import io.bitdrift.capture.network.HttpField
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpRequestMetrics
 import io.bitdrift.capture.network.HttpResponse
@@ -98,11 +99,12 @@ internal class CaptureOkHttpEventListener internal constructor(
         callStartTimeMs = clock.elapsedRealtime()
 
         val request = call.request()
+        val extraFields = requestExtraFieldsProvider.provideExtraFields(request)
 
         val pathTemplateHeaderValues = request.headers.values("x-capture-path-template")
         val pathTemplate =
             if (pathTemplateHeaderValues.isEmpty()) {
-                null
+                extraFields[HttpField.PATH_TEMPLATE]
             } else {
                 pathTemplateHeaderValues.joinToString(",")
             }
@@ -127,7 +129,7 @@ internal class CaptureOkHttpEventListener internal constructor(
                 query = request.url.query,
                 headers = request.headers.toMap(),
                 bytesExpectedToSendCount = bytesExpectedToSendCount,
-                extraFields = requestExtraFieldsProvider.provideExtraFields(request),
+                extraFields = extraFields,
             )
 
         this.requestInfo = requestInfo

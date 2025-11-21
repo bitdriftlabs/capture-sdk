@@ -17,11 +17,6 @@ on:
         description: 'The new version to tag, ex: 0.9.102'
         required: true
         type: string
-    secrets: 
-      OPEN_CAPTURE_SDK_PRS_APP_ID:
-        required: true
-      OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY:
-        required: true    
 jobs:
   verify-version:
     name: Verify arguments
@@ -157,22 +152,29 @@ jobs:
             -f branch="main"
 
         # Use CHANGELOG.md in root
-        # prerelease: true extracts the content between the first (## [Unreleased])
-        # and second H2 header,
+        # Extracts the content between the second and third H2 header (the latest released version)
       - name: Extract release notes
         id: extract-release-notes
         uses: ffurrer2/extract-release-notes@v2
+        continue-on-error: true
         with:
-          prerelease: true
+          release_notes_file: tmp_notes.md
+
+      - name: Check extract release notes
+        run: |
+          if [ "${{ steps.extract-release-notes.outcome }}" != "success" ]; then
+            echo "Extract release notes step failed, will use --generate-notes"
+          else
+            echo "Extract release notes step succeeded"
+          fi
 
         # Upload artifacts to the newly created release.
         # Prefix release version with "v".
       - name: Create release
         run: |
-          ls -R
           gh release create "v$VERSION" \
             --target "$GITHUB_REF_NAME" \
-            --notes '${{ steps.extract-release-notes.outputs.release_notes }}' \
+            --notes-file tmp_notes.md \
             "Capture-$VERSION.ios.zip" \
             "Capture-$VERSION.doccarchive.ios.zip" \
             "Capture-$VERSION.android.zip" \

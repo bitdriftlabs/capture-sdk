@@ -19,7 +19,7 @@ public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
 
     public func makeLogger(
         apiKey _: String,
-        bufferDirectoryPath _: String?,
+        bufferDirectoryPath _: String,
         sessionStrategy _: SessionStrategy,
         metadataProvider _: CaptureLoggerBridge.MetadataProvider,
         resourceUtilizationTarget _: CaptureLoggerBridge.ResourceUtilizationTarget,

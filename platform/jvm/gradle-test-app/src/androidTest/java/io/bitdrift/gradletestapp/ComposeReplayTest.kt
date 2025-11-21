@@ -30,6 +30,8 @@ import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.SubcomposeLayout
@@ -38,6 +40,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.test.platform.app.InstrumentationRegistry
@@ -407,8 +410,8 @@ class ComposeReplayTest {
         val capture = verifyReplayScreen(viewCount = 9)
         // Parent Box
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 300, 400))
-        // Dialog - Child Box
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 0, 150, 200))
+        // Dialog - Child Box: should be centered
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 645, 1138, 150, 200))
     }
 
     @Test
@@ -441,8 +444,8 @@ class ComposeReplayTest {
         val capture = verifyReplayScreen(viewCount = 9)
         // Parent Box
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 300, 400))
-        // Dialog - Child Box
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 0, 150, 200))
+        // Dialog - Child Box: should be centered
+        assertThat(capture).contains(ReplayRect(ReplayType.View, 645, 1138, 150, 200))
     }
 
     @Test
@@ -647,6 +650,173 @@ class ComposeReplayTest {
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 484, 200, 400))
         // Second Children - Box 1
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 884, 200, 400))
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Test
+    fun scanningHandlesModalBottomSheet() {
+        composeRule.setContent {
+            val (_, _) = with(LocalDensity.current) {
+                Pair(200.dp.toPx().toInt(), 400.dp.toPx().toInt())
+            }
+
+            // Background content (the activity window)
+            Box(
+                modifier = Modifier
+                    .size(width = 200.dp, height = 400.dp)
+                    .testTag("background"),
+            ) {
+                Button(onClick = { }) {
+                    Text("Show Bottom Sheet")
+                }
+            }
+
+            ModalBottomSheet(
+                onDismissRequest = { },
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("bottom_sheet"),
+                ) {
+                    Text("Bottom Sheet Title")
+                    Button(onClick = { }) {
+                        Text("Dismiss")
+                    }
+                }
+            }
+        }
+
+        composeRule.waitForIdle()
+
+        val capture = verifyReplayScreen(viewCount = 10)
+
+        // Find indices of background and bottom sheet elements
+        val backgroundButtonIndex = capture.indexOfFirst {
+            it.type == ReplayType.Button && it.y < 400
+        }
+        val bottomSheetTitleIndex = capture.indexOfFirst {
+            it.type == ReplayType.Label && it.y > 2000
+        }
+        val bottomSheetButtonIndex = capture.indexOfFirst {
+            it.type == ReplayType.Button && it.y > 2000
+        }
+
+        // Verify elements exist
+        assertThat(backgroundButtonIndex).isAtLeast(0)
+        assertThat(bottomSheetTitleIndex).isAtLeast(0)
+        assertThat(bottomSheetButtonIndex).isAtLeast(0)
+
+        // Verify bottom sheet elements appear after background elements (on top)
+        assertThat(bottomSheetTitleIndex).isGreaterThan(backgroundButtonIndex)
+        assertThat(bottomSheetButtonIndex).isGreaterThan(backgroundButtonIndex)
+
+        // Verify background button is captured (from the main activity window)
+        val hasBackgroundButton = capture.any {
+            it.type == ReplayType.Button && it.y < 400
+        }
+        assertThat(hasBackgroundButton).isTrue()
+
+        // Verify bottom sheet content appears (from the dialog window)
+        val hasBottomSheetTitle = capture.any {
+            it.type == ReplayType.Label && it.y > 2000
+        }
+        val hasBottomSheetButton = capture.any {
+            it.type == ReplayType.Button && it.y > 2000
+        }
+
+        assertThat(hasBottomSheetTitle).isTrue()
+        assertThat(hasBottomSheetButton).isTrue()
+
+        // Verify multiple root views exist (main window + bottom sheet dialog window)
+        val fullScreenViews = capture.filter {
+            it.width == 1440 && it.height == 2560
+        }
+        assertThat(fullScreenViews.size).isAtLeast(2)
+    }
+
+    @Test
+    fun scanningHandlesAlertDialog() {
+        composeRule.setContent {
+            // Background content (the activity window)
+            Box(
+                modifier = Modifier
+                    .size(width = 200.dp, height = 400.dp)
+                    .testTag("background"),
+            ) {
+                androidx.compose.material3.Button(onClick = { }) {
+                    androidx.compose.material3.Text("Show Dialog")
+                }
+            }
+
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { },
+                title = { androidx.compose.material3.Text("Alert Title") },
+                text = { androidx.compose.material3.Text("This is the alert message content") },
+                confirmButton = {
+                    androidx.compose.material3.Button(onClick = { }) {
+                        androidx.compose.material3.Text("Confirm")
+                    }
+                },
+                dismissButton = {
+                    androidx.compose.material3.Button(onClick = { }) {
+                        androidx.compose.material3.Text("Dismiss")
+                    }
+                }
+            )
+        }
+
+        composeRule.waitForIdle()
+
+        val capture = verifyReplayScreen(viewCount = 10)
+
+        val screen = capture.maxByOrNull { it.width * it.height }
+        require(screen != null) { "Could not determine screen bounds from capture" }
+        val screenWidth = screen.width
+        val screenHeight = screen.height
+
+        // 1. Z-Index Verification: Dialog elements should be drawn after (on top of) background elements.
+        val backgroundButtonIndex = capture.indexOfFirst {
+            it.type == ReplayType.Button && it.y < screenHeight / 3
+        }
+        assertThat(backgroundButtonIndex).isAtLeast(0)
+
+        // In Material dialogs, there's a scrim view behind the dialog that is the full width
+        // of the screen. We need to filter this out to correctly calculate the dialog bounds.
+        val dialogElements = capture.filter { it.y > screenHeight / 3 && it.width < screenWidth }
+        assertThat(dialogElements).isNotEmpty()
+
+        val firstDialogElementIndex = capture.indexOf(dialogElements.first())
+        assertThat(firstDialogElementIndex).isGreaterThan(backgroundButtonIndex)
+
+        // Verify we have the expected dialog elements
+        val dialogButtons = dialogElements.filter { it.type == ReplayType.Button }
+        val dialogLabels = dialogElements.filter { it.type == ReplayType.Label }
+        assertThat(dialogButtons).hasSize(2)
+        assertThat(dialogLabels.size).isAtLeast(2) // title, message, and button labels
+
+        // 2. Centering Verification
+        val dialogLeft = dialogElements.minOf { it.x }
+        val dialogRight = dialogElements.maxOf { it.x + it.width }
+        val dialogTop = dialogElements.minOf { it.y }
+        val dialogBottom = dialogElements.maxOf { it.y + it.height }
+
+        // Check that the dialog is narrower than the screen.
+        assertThat(dialogRight - dialogLeft).isLessThan(screenWidth)
+
+        // Check for horizontal centering with a small tolerance.
+        val leftMargin = dialogLeft
+        val rightMargin = screenWidth - dialogRight
+        assertThat(leftMargin.toDouble()).isWithin(20.0).of(rightMargin.toDouble())
+
+        // Check for vertical centering with a generous tolerance.
+        val topMargin = dialogTop
+        val bottomMargin = screenHeight - dialogBottom
+        assertThat(topMargin.toDouble()).isWithin(screenHeight / 4.0).of(bottomMargin.toDouble())
+
+        // 3. Verify multiple root views exist (main window + dialog window)
+        val fullScreenViews = capture.filter { it.width == screenWidth && it.height == screenHeight }
+        assertThat(fullScreenViews.size).isAtLeast(2)
     }
 
     /**

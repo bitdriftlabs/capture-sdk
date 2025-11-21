@@ -23,6 +23,9 @@
         <action
             android:id="@+id/action_FirstFragment_to_XmlFragment"
             app:destination="@id/XmlFragment" />
+        <action
+            android:id="@+id/action_FirstFragment_to_DialogAndModalsFragment"
+            app:destination="@id/DialogAndModalsFragment" />
     </fragment>
     <fragment
         android:id="@+id/SecondFragment"
@@ -66,6 +69,18 @@
 
         <action
             android:id="@+id/action_XmlFragment_to_FirstFragment"
+            app:destination="@id/FirstFragment"
+            app:popUpTo="@id/FirstFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/DialogAndModalsFragment"
+        android:name="io.bitdrift.gradletestapp.ui.fragments.DialogAndModalsFragment"
+        android:label="@string/modal_bottom_sheet_fragment_label">
+
+        <action
+            android:id="@+id/action_DialogAndModalsFragment_to_FirstFragment"
             app:destination="@id/FirstFragment"
             app:popUpTo="@id/FirstFragment"
             app:popUpToInclusive="true" />

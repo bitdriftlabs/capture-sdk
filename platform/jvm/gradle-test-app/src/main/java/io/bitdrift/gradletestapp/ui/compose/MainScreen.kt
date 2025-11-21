@@ -185,6 +185,9 @@ fun MainScreen(
                         onGraphQlRequest = {
                             onAction(NetworkTestAction.PerformGraphQlRequest)
                         },
+                        onRetrofitRequest = {
+                            onAction(NetworkTestAction.PerformRetrofitRequest)
+                        },
                     )
                 }
                 item {

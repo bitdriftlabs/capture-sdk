@@ -17,6 +17,8 @@ import io.bitdrift.capture.apollo.CaptureApolloInterceptor
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
 import io.bitdrift.capture.network.okhttp.OkHttpRequestFieldProvider
 import io.bitdrift.capture.network.okhttp.OkHttpResponseFieldProvider
+import io.bitdrift.capture.network.retrofit.RetrofitUrlPathProvider
+import io.bitdrift.gradletestapp.data.service.BinaryJazzRetrofitService
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import okhttp3.Call
@@ -26,8 +28,11 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import timber.log.Timber
 import java.io.IOException
+import kotlin.random.Random
 
 /**
  * Performs OkHttp/GraphQL requests
@@ -39,7 +44,7 @@ class NetworkTestingRepository {
             .Builder()
             .eventListenerFactory(
                 CaptureOkHttpEventListenerFactory(
-                    requestFieldProvider = CustomRequestFieldProvider(),
+                    requestFieldProvider = RetrofitUrlPathProvider(CustomRequestFieldProvider()),
                     responseFieldProvider = CustomResponseFieldProvider(),
                 ),
             ).build()
@@ -50,6 +55,12 @@ class NetworkTestingRepository {
             .okHttpClient(okHttpClient)
             .addInterceptor(CaptureApolloInterceptor())
             .build()
+    private val retrofitService = Retrofit.Builder()
+        .baseUrl("https://binaryjazz.us")
+        .client(okHttpClient)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+        .create(BinaryJazzRetrofitService::class.java)
 
     private data class RequestDefinition(
         val method: String,
@@ -125,14 +136,14 @@ class NetworkTestingRepository {
                         response.use {
                             it.body!!.string()
                         }
-                    Timber.v("Http request completed with status code=${response.code} and body=$body")
+                    Timber.v("OkHttp request completed with status code=${response.code} and body=$body")
                 }
 
                 override fun onFailure(
                     call: Call,
                     e: IOException,
                 ) {
-                    Timber.v("Http request failed with exception=$e")
+                    Timber.v("OkHttp request failed with exception=$e")
                 }
             },
         )
@@ -146,6 +157,22 @@ class NetworkTestingRepository {
                 Logger.logDebug(mapOf("response_data" to response.data.toString())) { "GraphQL response data received" }
             } catch (e: Exception) {
                 Timber.e(e, "GraphQL request failed")
+            }
+        }
+    }
+
+    fun performRetrofitRequest() {
+        MainScope().launch {
+            try {
+                val count = (1..5).random()
+                val response = if (Random.nextBoolean()) {
+                    retrofitService.generateGenres(count)
+                } else {
+                    retrofitService.generateStories(count)
+                }
+                Timber.v("Retrofit request completed with status code=${response.code()} and body=${response.body()}")
+            } catch (e: Exception) {
+                Timber.e(e, "Retrofit request failed")
             }
         }
     }

@@ -47,16 +47,34 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertEqual(config.sleepMode, SleepMode.disabled)
     }
 
+    func testLoggerRootPath() throws {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: tempDir.path))
+
+        let logger = Logger.start(
+            withAPIKey: "test",
+            sessionStrategy: .fixed(),
+            configuration: .init(rootFileURL: tempDir)
+        )
+
+        XCTAssertNotNil(logger)
+        XCTAssertNotNil(Logger.shared)
+
+        // Ensure the given path was created during initialization
+        XCTAssertTrue(FileManager.default.fileExists(atPath: tempDir.path))
+    }
+
     func testConfigurationFailure() {
         let factory = MockLoggerBridgingFactory(logger: nil)
 
         Logger.start(
             withAPIKey: "test",
             sessionStrategy: .fixed(),
-            configuration: .init(),
+            configuration: .init(apiURL: URL(staticString: "https://api.bitdrift.io")),
             fieldProviders: [],
             dateProvider: nil,
-            apiURL: URL(staticString: "https://api.bitdrift.io"),
             loggerBridgingFactoryProvider: factory
         )
 
@@ -66,10 +84,9 @@ final class ConfigurationTests: XCTestCase {
         Logger.start(
             withAPIKey: "test",
             sessionStrategy: .fixed(),
-            configuration: .init(),
+            configuration: .init(apiURL: URL(staticString: "https://api.bitdrift.io")),
             fieldProviders: [],
             dateProvider: nil,
-            apiURL: URL(staticString: "https://api.bitdrift.io"),
             loggerBridgingFactoryProvider: factory
         )
 

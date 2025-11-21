@@ -113,6 +113,9 @@ class MainViewModel(
             is NetworkTestAction.PerformGraphQlRequest -> {
                 networkTestingRepository.performGraphQlRequest()
             }
+            is NetworkTestAction.PerformRetrofitRequest -> {
+                networkTestingRepository.performRetrofitRequest()
+            }
 
             is FeatureFlagsTestAction.AddOneFeatureFlag -> addOneFeatureFlag()
             is FeatureFlagsTestAction.AddManyFeatureFlags -> addManyFeatureFlags()
@@ -125,6 +128,7 @@ class MainViewModel(
             is NavigationAction.NavigateToConfig -> {}
             is NavigationAction.NavigateToWebView -> {}
             is NavigationAction.NavigateToXml -> {}
+            is NavigationAction.NavigateToDialogAndModals -> {}
         }
     }
 

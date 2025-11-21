@@ -49,6 +49,8 @@ import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
+import io.bitdrift.capture.reports.processor.IssueReporterProcessor
+import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
@@ -87,7 +89,10 @@ internal class LoggerImpl(
     windowManager: IWindowManager = WindowManager(errorHandler),
     private val fatalIssueReporter: IFatalIssueReporter? =
         if (configuration.enableFatalIssueReporting) {
-            FatalIssueReporter(configuration.enableNativeCrashReporting)
+            FatalIssueReporter(
+                enableNativeCrashReporting = configuration.enableNativeCrashReporting,
+                dateProvider = dateProvider,
+            )
         } else {
             null
         },
@@ -278,8 +283,8 @@ internal class LoggerImpl(
         startDebugOperationsAsNeeded(context)
     }
 
-    override fun processCrashReports() {
-        CaptureJniLibrary.processCrashReports(this.loggerId)
+    override fun processIssueReports(reportProcessingSession: ReportProcessingSession) {
+        CaptureJniLibrary.processIssueReports(this.loggerId, reportProcessingSession)
     }
 
     override fun onReportProcessingError(
@@ -589,6 +594,8 @@ internal class LoggerImpl(
             )
         }
     }
+
+    internal fun getIssueProcessor(): IssueReporterProcessor? = (fatalIssueReporter as? FatalIssueReporter)?.getIssueReporterProcessor()
 
     private fun startDebugOperationsAsNeeded(context: Context) {
         if (!BuildTypeChecker.isDebuggable(context)) {

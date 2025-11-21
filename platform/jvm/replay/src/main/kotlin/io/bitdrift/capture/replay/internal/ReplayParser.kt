@@ -34,8 +34,9 @@ internal class ReplayParser(
         // Use a stack to perform a DFS traversal of the tree and avoid recursion
         val stack: ArrayDeque<ScannableView> =
             ArrayDeque(
-                windowManager.getAllRootViews().map {
-                    SessionReplayController.L.v("Root view found and added to list: ${it.javaClass.simpleName}")
+                // reverse the list to get the required z-order (top to bottom)
+                windowManager.getAllRootViews().reversed().map {
+                    SessionReplayController.L.d("Root view found and added to list: ${it.javaClass.simpleName}")
                     ScannableView.AndroidView(it, skipReplayComposeViews)
                 },
             )

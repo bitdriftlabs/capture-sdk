@@ -190,10 +190,13 @@ maven.install(
         "androidx.compose.ui:ui-tooling:{}".format(COMPOSE_VERSION),
         "androidx.compose.runtime:runtime:{}".format(COMPOSE_VERSION),
         "androidx.annotation:annotation-jvm:1.9.1",
+
+        # Compile-only via wrapper target; not on runtime classpath
+        "com.squareup.retrofit2:retrofit:3.0.0",
     ],
     repositories = [
-        "https://repo1.maven.org/maven2",
         "https://maven.google.com",
+        "https://repo1.maven.org/maven2",
     ],
     use_starlark_android_rules = True,
     version_conflict_policy = "pinned",

@@ -22,4 +22,20 @@ interface IStreamingReportProcessor {
         destinationPath: String,
         attributes: IClientAttributes,
     )
+
+    /**
+     * Call to convert a JS error trace into a fbs report file
+     */
+    fun persistJavaScriptError(
+        errorName: String,
+        errorMessage: String,
+        stackTrace: String,
+        isFatal: Boolean,
+        engine: String,
+        debugId: String,
+        timestampMillis: Long,
+        destinationPath: String,
+        attributes: IClientAttributes,
+        sdkVersion: String,
+    )
 }
