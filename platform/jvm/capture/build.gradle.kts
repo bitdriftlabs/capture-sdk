@@ -188,9 +188,9 @@ afterEvaluate {
         // Build test library before running tests
         dependsOn("buildTestJni")
 
-        // Run tests serially to avoid classloader issues with native library loading
-        // This matches Bazel's tags = ["exclusive"] behavior
-        maxParallelForks = 1
+        // Run tests in parallel with multiple forks, but still fork per test class
+        // to avoid classloader issues with native library loading
+        maxParallelForks = Runtime.getRuntime().availableProcessors().coerceAtMost(4)
 
         // Fork a new JVM for each test class to avoid native library classloader issues
         // This matches Bazel's approach where each test runs in isolation
@@ -222,8 +222,9 @@ afterEvaluate {
         // Build test library before running tests
         dependsOn("buildTestJni")
 
-        // Run tests serially to avoid classloader issues with native library loading
-        maxParallelForks = 1
+        // Run tests in parallel with multiple forks, but still fork per test class
+        // to avoid classloader issues with native library loading
+        maxParallelForks = Runtime.getRuntime().availableProcessors().coerceAtMost(4)
 
         // Fork a new JVM for each test class
         forkEvery = 1
