@@ -156,6 +156,15 @@ jobs:
       - name: Extract release notes
         id: extract-release-notes
         uses: ffurrer2/extract-release-notes@v2
+        continue-on-error: true
+
+      - name: Check extract release notes
+        run: |
+          if [ "${{ steps.extract-release-notes.outcome }}" != "success" ]; then
+            echo "Extract release notes step failed, will use --generate-notes"
+          else
+            echo "Extract release notes step succeeded"
+          fi
 
         # Upload artifacts to the newly created release.
         # Prefix release version with "v".
@@ -163,33 +172,37 @@ jobs:
         run: |
           ls -R
           RELEASE_NOTES='${{ steps.extract-release-notes.outputs.release_notes }}'
-          ARTIFACTS=(
-            "Capture-$VERSION.ios.zip"
-            "Capture-$VERSION.doccarchive.ios.zip"
-            "Capture-$VERSION.android.zip"
-            "example-apps.ios.zip"
-            "example-apps.android.zip"
-            "capture-timber-$VERSION.android.zip"
-            "capture-apollo-$VERSION.android.zip"
-            "capture-plugin-$VERSION.android.zip"
-            "capture-plugin-marker-$VERSION.android.zip"
-          )
+          echo "Release notes extracted: $(echo -n "$RELEASE_NOTES" | wc -c) bytes"
           
           if [ -z "$RELEASE_NOTES" ] || [ "$RELEASE_NOTES" = "null" ]; then
-            echo "Release notes are empty, using --generate-notes"
+            echo "Release notes empty, using --generate-notes"
             gh release create "v$VERSION" \
               --target "$GITHUB_REF_NAME" \
               --generate-notes \
-              "${ARTIFACTS[@]}"
+              "Capture-$VERSION.ios.zip" \
+              "Capture-$VERSION.doccarchive.ios.zip" \
+              "Capture-$VERSION.android.zip" \
+              "example-apps.ios.zip" \
+              "example-apps.android.zip" \
+              "capture-timber-$VERSION.android.zip" \
+              "capture-apollo-$VERSION.android.zip" \
+              "capture-plugin-$VERSION.android.zip" \
+              "capture-plugin-marker-$VERSION.android.zip"
           else
             echo "$RELEASE_NOTES" | grep -v "^\[$VERSION\]:" > /tmp/release_notes.md
-            echo "Using release notes from CHANGELOG.md"
-            head -5 /tmp/release_notes.md
-            echo "---"
+            echo "Using release notes from CHANGELOG.md: $(wc -c < /tmp/release_notes.md) bytes"
             gh release create "v$VERSION" \
               --target "$GITHUB_REF_NAME" \
               --notes-file /tmp/release_notes.md \
-              "${ARTIFACTS[@]}"
+              "Capture-$VERSION.ios.zip" \
+              "Capture-$VERSION.doccarchive.ios.zip" \
+              "Capture-$VERSION.android.zip" \
+              "example-apps.ios.zip" \
+              "example-apps.android.zip" \
+              "capture-timber-$VERSION.android.zip" \
+              "capture-apollo-$VERSION.android.zip" \
+              "capture-plugin-$VERSION.android.zip" \
+              "capture-plugin-marker-$VERSION.android.zip"
           fi
         env:
           VERSION: ${{ inputs.version }}
