@@ -190,7 +190,7 @@ internal class LoggerImpl(
             bridge.createLogger(
                 sdkDirectory,
                 apiKey,
-                sessionStrategy.createSessionStrategyConfiguration {},
+                sessionStrategy.createSessionStrategyConfiguration(),
                 metadataProvider,
                 // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
                 //  and `eventsListenerTarget` as part of `startLogger` method call instead.

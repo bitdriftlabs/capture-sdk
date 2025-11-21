@@ -12,24 +12,19 @@ import io.bitdrift.capture.common.MainThreadHandler
 internal sealed class SessionStrategyConfiguration {
     data class Fixed(
         val sessionStrategy: SessionStrategy.Fixed,
-        val onSessionIdChanged: (String) -> Unit,
     ) : SessionStrategyConfiguration() {
         fun generateSessionId(): String {
-            val newSessionId = sessionStrategy.sessionIdGenerator()
-            onSessionIdChanged(newSessionId)
-            return newSessionId
+            return sessionStrategy.sessionIdGenerator()
         }
     }
 
     data class ActivityBased(
         val sessionStrategy: SessionStrategy.ActivityBased,
-        val onSessionIdChanged: (String) -> Unit,
         val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
     ) : SessionStrategyConfiguration() {
         fun inactivityThresholdMins(): Long = sessionStrategy.inactivityThresholdMins
 
         fun sessionIdChanged(sessionId: String) {
-            onSessionIdChanged(sessionId)
             mainThreadHandler.runCatching {
                 sessionStrategy.onSessionIdChanged?.invoke(sessionId)
             }
