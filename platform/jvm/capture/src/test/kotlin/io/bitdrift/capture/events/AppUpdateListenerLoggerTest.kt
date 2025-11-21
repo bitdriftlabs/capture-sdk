@@ -41,8 +41,12 @@ class AppUpdateListenerLoggerTest {
 
     @Before
     fun setUp() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
         val initializer = ContextHolder()
-        initializer.create(ApplicationProvider.getApplicationContext<Context>())
+        initializer.create(context)
+
+        // Set up a fake sourceDir for the APK size calculation
+        context.applicationInfo.sourceDir = "/fake/path/to/app.apk"
 
         appUpdateLogger =
             AppUpdateListenerLogger(
@@ -62,13 +66,15 @@ class AppUpdateListenerLoggerTest {
         whenever(logger.shouldLogAppUpdate("1.2.3", 123)).thenReturn(false)
 
         appUpdateLogger.start()
-        executor.awaitTermination(1, TimeUnit.SECONDS)
+        // Give the executor time to execute the task
+        Thread.sleep(500)
         verify(logger, never()).logAppUpdate(any(), any(), any(), any())
 
         whenever(logger.shouldLogAppUpdate("1.2.3", 123)).thenReturn(true)
 
         appUpdateLogger.start()
-        executor.awaitTermination(1, TimeUnit.SECONDS)
+        // Give the executor time to execute the task
+        Thread.sleep(500)
         verify(logger).logAppUpdate(eq("1.2.3"), eq(123), any(), any())
     }
 }
