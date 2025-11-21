@@ -198,6 +198,10 @@ afterEvaluate {
         jvmArgs(
             "--add-opens=java.base/java.lang=ALL-UNNAMED",
         )
+
+        // Exclude BuildConstantsTest - this test validates Bazel's build-time code generation
+        // which doesn't apply to Gradle builds
+        exclude("**/BuildConstantsTest.class")
     }
 
     tasks.named<Test>("testReleaseUnitTest") {
@@ -219,6 +223,9 @@ afterEvaluate {
         jvmArgs(
             "--add-opens=java.base/java.lang=ALL-UNNAMED",
         )
+
+        // Exclude BuildConstantsTest - this test validates Bazel's build-time code generation
+        exclude("**/BuildConstantsTest.class")
     }
 }
 

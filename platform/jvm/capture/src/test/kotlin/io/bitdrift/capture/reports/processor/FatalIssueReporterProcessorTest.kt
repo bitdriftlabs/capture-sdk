@@ -35,7 +35,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.InputStream
 import java.nio.ByteBuffer
-import java.nio.file.Paths
 
 /**
  * WARNING: For now these test only run on bazel given the difference between accessing

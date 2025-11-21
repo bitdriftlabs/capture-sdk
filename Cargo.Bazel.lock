@@ -1,5 +1,5 @@
 {
-  "checksum": "e13d8a1ab2859b74a9987ab39ad4d1c46dcc68e0822f61fd2eb7ac0e3058e30a",
+  "checksum": "6042f4379178f4d9e25d80b2d0c6be795ab489bd5ecc34cbdcb375c0ea547993",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -6648,8 +6648,21 @@
       "version": "1.0.0",
       "package_url": null,
       "repository": null,
-      "targets": [],
-      "library_target_name": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "capture",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "capture",
       "common_attrs": {
         "compile_data_glob": [
           "**"
@@ -19417,21 +19430,8 @@
       "version": "1.0.0",
       "package_url": null,
       "repository": null,
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "test_jni",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "test_jni",
+      "targets": [],
+      "library_target_name": null,
       "common_attrs": {
         "compile_data_glob": [
           "**"
