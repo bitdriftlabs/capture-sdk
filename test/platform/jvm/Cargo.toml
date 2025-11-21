@@ -6,6 +6,11 @@ name         = "test_jni"
 publish      = false
 version      = "1.0.0"
 
+[lib]
+# Build as a dynamic library named "capture" so it can be loaded by System.loadLibrary("capture")
+crate-type = ["cdylib"]
+name       = "capture"
+
 [dependencies]
 anyhow                   = { workspace = true }
 assert_matches.workspace = true
