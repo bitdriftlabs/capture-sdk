@@ -13,9 +13,7 @@ internal sealed class SessionStrategyConfiguration {
     data class Fixed(
         val sessionStrategy: SessionStrategy.Fixed,
     ) : SessionStrategyConfiguration() {
-        fun generateSessionId(): String {
-            return sessionStrategy.sessionIdGenerator()
-        }
+        fun generateSessionId(): String = sessionStrategy.sessionIdGenerator()
     }
 
     data class ActivityBased(
