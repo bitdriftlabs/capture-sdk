@@ -28,7 +28,6 @@ import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
-import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.SESSION_ID
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
@@ -44,7 +43,6 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
 import java.io.IOException
-import java.nio.charset.StandardCharsets
 
 class AppExitLoggerTest {
     private val logger: LoggerImpl = mock()
