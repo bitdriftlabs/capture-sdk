@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture
 
-import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
