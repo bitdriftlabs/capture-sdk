@@ -98,7 +98,7 @@ class AppExitLoggerTest {
     }
 
     @Test
-    fun logPreviousExitReasonIfAny_withValidReasonAndProcessSummary_shouldEmitAppExitLog() {
+    fun logPreviousExitReasonIfAny_withValidReason_shouldEmitAppExitLog() {
         // ARRANGE
         lastExitInfo.setAsValidReason(
             exitReasonType = ApplicationExitInfo.REASON_ANR,
@@ -118,31 +118,6 @@ class AppExitLoggerTest {
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppExit" },
         )
-    }
-
-    @Test
-    fun logPreviousExitReasonIfAny_withValidReasonAndInvalidProcessSummary_shouldReportErrorOnly() {
-        // ARRANGE
-        lastExitInfo.setAsValidReason(
-            exitReasonType = ApplicationExitInfo.REASON_ANR,
-            description = "test-description",
-            processStateSummary = null,
-        )
-
-        // ACT
-        appExitLogger.logPreviousExitReasonIfAny()
-
-        // ASSERT
-        verify(logger, never()).log(
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-        )
-        verify(errorHandler).handleError("AppExitLogger: processStateSummary from test-process-name is null.")
     }
 
     @Test
