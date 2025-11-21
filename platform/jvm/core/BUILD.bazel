@@ -1,4 +1,4 @@
-load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library", "bitdrift_rust_shared_library")
+load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
 
 bitdrift_rust_library(
     name = "capture_core",
