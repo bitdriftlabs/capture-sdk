@@ -79,7 +79,7 @@ class CaptureLoggerNetworkTest {
             CaptureJniLibrary.createLogger(
                 directory.newFolder().path,
                 apiKey = "abc123",
-                SessionStrategy.Fixed().createSessionStrategyConfiguration { },
+                SessionStrategy.Fixed().createSessionStrategyConfiguration(),
                 loggerBridge,
                 mock(),
                 mock(),
@@ -162,7 +162,6 @@ class CaptureLoggerNetworkTest {
                 apiKey = "abc123",
                 SessionStrategyConfiguration.Fixed(
                     sessionStrategy = SessionStrategy.Fixed(),
-                    onSessionIdChanged = { },
                 ),
                 loggerBridge,
                 mock(),
@@ -197,7 +196,7 @@ class CaptureLoggerNetworkTest {
             CaptureJniLibrary.createLogger(
                 directory.newFolder().path,
                 apiKey = "abc123",
-                SessionStrategy.Fixed().createSessionStrategyConfiguration { },
+                SessionStrategy.Fixed().createSessionStrategyConfiguration(),
                 loggerBridge,
                 mock(),
                 mock(),

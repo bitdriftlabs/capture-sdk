@@ -24,11 +24,9 @@ import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
-import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.SESSION_ID
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
@@ -44,7 +42,6 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
 import java.io.IOException
-import java.nio.charset.StandardCharsets
 
 class AppExitLoggerTest {
     private val logger: LoggerImpl = mock()
@@ -56,7 +53,6 @@ class AppExitLoggerTest {
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
     private val memoryMetricsProvider = FakeMemoryMetricsProvider()
     private val lastExitInfo = FakeLatestAppExitInfoProvider()
-    private val backgroundThreadHandler = FakeBackgroundThreadHandler()
 
     private lateinit var appExitLogger: AppExitLogger
 
@@ -76,7 +72,6 @@ class AppExitLoggerTest {
         appExitLogger.installAppExitLogger()
         // ASSERT
         verify(captureUncaughtExceptionHandler, never()).install(any())
-        verify(activityManager, never()).setProcessStateSummary(any())
         verify(activityManager, never()).getHistoricalProcessExitReasons(anyOrNull(), any(), any())
     }
 
@@ -89,7 +84,6 @@ class AppExitLoggerTest {
         appExitLogger.installAppExitLogger()
         // ASSERT
         verify(captureUncaughtExceptionHandler).install(appExitLogger)
-        verify(activityManager).setProcessStateSummary(any())
     }
 
     @Test
@@ -104,43 +98,7 @@ class AppExitLoggerTest {
     }
 
     @Test
-    fun testSavePassedSessionId() {
-        // ARRANGE
-
-        // ACT
-        appExitLogger.saveCurrentSessionId("test-session-id")
-
-        // ASSERT
-        verify(activityManager).setProcessStateSummary("test-session-id".toByteArray(StandardCharsets.UTF_8))
-    }
-
-    @Test
-    fun testSaveCurrentSessionId() {
-        // ARRANGE
-        whenever(logger.sessionId).thenReturn("test-session-id")
-
-        // ACT
-        appExitLogger.saveCurrentSessionId()
-
-        // ASSERT
-        verify(activityManager).setProcessStateSummary("test-session-id".toByteArray(StandardCharsets.UTF_8))
-    }
-
-    @Test
-    fun testSaveCurrentSessionIdReportsError() {
-        val error = RuntimeException("test exception")
-        // ARRANGE
-        whenever(activityManager.setProcessStateSummary(any())).thenThrow(error)
-
-        // ACT
-        appExitLogger.saveCurrentSessionId("test-session-id")
-
-        // ASSERT
-        verify(errorHandler).handleError(any(), eq(error))
-    }
-
-    @Test
-    fun logPreviousExitReasonIfAny_withValidReasonAndProcessSummary_shouldEmitAppExitLog() {
+    fun logPreviousExitReasonIfAny_withValidReason_shouldEmitAppExitLog() {
         // ARRANGE
         lastExitInfo.setAsValidReason(
             exitReasonType = ApplicationExitInfo.REASON_ANR,
@@ -156,35 +114,10 @@ class AppExitLoggerTest {
             eq(LogLevel.ERROR),
             eq(buildExpectedAnrFields()),
             eq(null),
-            eq(LogAttributesOverrides.SessionID(SESSION_ID, TIME_STAMP)),
+            eq(LogAttributesOverrides.PreviousRunSessionId(TIME_STAMP)),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppExit" },
         )
-    }
-
-    @Test
-    fun logPreviousExitReasonIfAny_withValidReasonAndInvalidProcessSummary_shouldReportErrorOnly() {
-        // ARRANGE
-        lastExitInfo.setAsValidReason(
-            exitReasonType = ApplicationExitInfo.REASON_ANR,
-            description = "test-description",
-            processStateSummary = null,
-        )
-
-        // ACT
-        appExitLogger.logPreviousExitReasonIfAny()
-
-        // ASSERT
-        verify(logger, never()).log(
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-        )
-        verify(errorHandler).handleError("AppExitLogger: processStateSummary from test-process-name is null.")
     }
 
     @Test
@@ -381,7 +314,6 @@ class AppExitLoggerTest {
             runtime,
             errorHandler,
             versionChecker,
-            backgroundThreadHandler,
             memoryMetricsProvider,
             lastExitInfo,
             captureUncaughtExceptionHandler,
