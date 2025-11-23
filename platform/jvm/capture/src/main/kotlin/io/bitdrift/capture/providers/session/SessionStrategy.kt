@@ -51,9 +51,9 @@ sealed class SessionStrategy {
             val onSessionIdChanged: ((String) -> Unit)? = null,
         ) : SessionStrategy()
 
-    internal fun createSessionStrategyConfiguration(onSessionIdChanged: (String) -> Unit): SessionStrategyConfiguration =
+    internal fun createSessionStrategyConfiguration(): SessionStrategyConfiguration =
         when (this) {
-            is Fixed -> SessionStrategyConfiguration.Fixed(this, onSessionIdChanged)
-            is ActivityBased -> SessionStrategyConfiguration.ActivityBased(this, onSessionIdChanged)
+            is Fixed -> SessionStrategyConfiguration.Fixed(this)
+            is ActivityBased -> SessionStrategyConfiguration.ActivityBased(this)
         }
 }

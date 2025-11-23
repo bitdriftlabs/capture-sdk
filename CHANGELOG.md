@@ -15,7 +15,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed an issue where the session ID on AppExit logs would not match the previous process run session ID as expected.
  
 ### Android
 

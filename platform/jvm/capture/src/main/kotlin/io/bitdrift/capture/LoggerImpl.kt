@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture
 
-import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
@@ -191,7 +190,7 @@ internal class LoggerImpl(
             bridge.createLogger(
                 sdkDirectory,
                 apiKey,
-                sessionStrategy.createSessionStrategyConfiguration { appExitSaveCurrentSessionId(it) },
+                sessionStrategy.createSessionStrategyConfiguration(),
                 metadataProvider,
                 // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
                 //  and `eventsListenerTarget` as part of `startLogger` method call instead.
@@ -311,7 +310,6 @@ internal class LoggerImpl(
 
     override fun startNewSession() {
         CaptureJniLibrary.startNewSession(this.loggerId)
-        appExitSaveCurrentSessionId()
     }
 
     override fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {
@@ -325,11 +323,6 @@ internal class LoggerImpl(
              */
             deviceCodeService.createTemporaryDeviceCode(deviceId, completion)
         } ?: completion(CaptureResult.Failure(SdkNotStartedError))
-    }
-
-    @SuppressLint("NewApi")
-    private fun appExitSaveCurrentSessionId(sessionId: String? = null) {
-        appExitLogger.saveCurrentSessionId(sessionId)
     }
 
     override fun logAppLaunchTTI(duration: Duration) {
@@ -433,15 +426,15 @@ internal class LoggerImpl(
             return
         }
         try {
-            val expectedPreviousProcessSessionId =
+            val previousRunSessionId =
                 when (attributesOverrides) {
-                    is LogAttributesOverrides.SessionID -> attributesOverrides.expectedPreviousProcessSessionId
-                    is LogAttributesOverrides.OccurredAt -> null
-                    else -> null
+                    is LogAttributesOverrides.PreviousRunSessionId -> true
+                    is LogAttributesOverrides.OccurredAt -> false
+                    else -> false
                 }
             val occurredAtTimestampMs: Long =
                 when (attributesOverrides) {
-                    is LogAttributesOverrides.SessionID -> attributesOverrides.occurredAtTimestampMs
+                    is LogAttributesOverrides.PreviousRunSessionId -> attributesOverrides.occurredAtTimestampMs
                     is LogAttributesOverrides.OccurredAt -> attributesOverrides.occurredAtTimestampMs
                     else -> 0
                 }
@@ -453,7 +446,7 @@ internal class LoggerImpl(
                 message(),
                 fields ?: mapOf(),
                 matchingFields ?: mapOf(),
-                expectedPreviousProcessSessionId,
+                previousRunSessionId,
                 occurredAtTimestampMs,
                 blocking,
             )
@@ -633,8 +626,7 @@ internal class LoggerImpl(
 }
 
 internal sealed class LogAttributesOverrides {
-    data class SessionID(
-        val expectedPreviousProcessSessionId: String,
+    data class PreviousRunSessionId(
         val occurredAtTimestampMs: Long,
     ) : LogAttributesOverrides()
 
