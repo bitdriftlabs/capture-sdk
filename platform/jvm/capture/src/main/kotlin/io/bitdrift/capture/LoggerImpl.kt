@@ -455,6 +455,10 @@ internal class LoggerImpl(
         }
     }
 
+    internal fun shutdown() {
+        CaptureJniLibrary.shutdown(this.loggerId)
+    }
+
     internal fun logSessionReplayScreen(
         fields: Map<String, FieldValue>,
         duration: Duration,

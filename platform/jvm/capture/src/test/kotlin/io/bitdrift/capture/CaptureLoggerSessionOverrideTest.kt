@@ -110,6 +110,10 @@ class CaptureLoggerSessionOverrideTest {
         whenever(mockExitInfo.description).thenReturn("test-description")
         whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
 
+        // We need to shut down the logger first before starting a new one, otherwise the new one fails to initialize due to the flock
+        // on the ring buffer.
+        logger.shutdown()
+
         // Start another logger instance. Notice how its session strategy specifies "bar"
         // session Id.
         logger =

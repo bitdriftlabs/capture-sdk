@@ -204,6 +204,12 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     )
 
     /**
+     * Shuts down the logger, blocking until the event loop has terminated. This is not yet ready
+     * to be exposed as a public API due to lack of testing and no timeout on the blocking wait.
+     */
+    external fun shutdown(loggerId: Long)
+
+    /**
      * Writes a session replay log.
      *
      * @param loggerId the ID of the logger to write to.

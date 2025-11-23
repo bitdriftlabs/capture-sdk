@@ -1024,6 +1024,23 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
     "jni write log",
   );
 }
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_shutdown(
+  _env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      // NOTE: This performs a blocking shutdown of the logger for use in test and eventual
+      // public API. This needs additional testing before exposing in the public API.
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.shutdown(true);
+      Ok(())
+    },
+    "shutdown",
+  );
+}
 
 #[no_mangle]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionReplayScreenLog(
