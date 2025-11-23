@@ -112,7 +112,7 @@ class CaptureLoggerSessionOverrideTest {
 
         // We need to shut down the logger first before starting a new one, otherwise the new one fails to initialize due to the flock
         // on the ring buffer.
-        logger.shutdown()
+        CaptureJniLibrary.shutdown(logger.loggerId)
 
         // Start another logger instance. Notice how its session strategy specifies "bar"
         // session Id.
