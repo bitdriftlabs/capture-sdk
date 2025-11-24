@@ -19,6 +19,7 @@ import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.fakes.FakeDateProvider
+import io.bitdrift.capture.fakes.FakeDateProvider.DEFAULT_TEST_TIMESTAMP
 import io.bitdrift.capture.fakes.FakeJvmException
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.createTraceInputStream
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Architecture
@@ -79,7 +80,7 @@ class FatalIssueReporterProcessorTest {
         )
 
         verify(fatalIssueReporterStorage).persistFatalIssue(
-            any(),
+            eq(DEFAULT_TEST_TIMESTAMP),
             fatalIssueReportCaptor.capture(),
             reportTypeCaptor.capture(),
         )
@@ -117,7 +118,7 @@ class FatalIssueReporterProcessorTest {
         )
 
         verify(fatalIssueReporterStorage).persistFatalIssue(
-            any(),
+            eq(DEFAULT_TEST_TIMESTAMP),
             fatalIssueReportCaptor.capture(),
             reportTypeCaptor.capture(),
         )

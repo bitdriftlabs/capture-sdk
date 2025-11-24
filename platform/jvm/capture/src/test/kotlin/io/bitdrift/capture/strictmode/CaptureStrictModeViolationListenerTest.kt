@@ -13,14 +13,11 @@ import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
-import io.bitdrift.capture.Capture
-import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.strictmode.IStrictModeReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
-import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,12 +35,6 @@ class CaptureStrictModeViolationListenerTest {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
         CaptureDispatchers.setTestExecutorService(MoreExecutors.newDirectExecutorService())
-        CaptureJniLibrary.load()
-    }
-
-    @After
-    fun teardown() {
-        Capture.Logger.resetShared()
     }
 
     @OptIn(ExperimentalBitdriftApi::class)
