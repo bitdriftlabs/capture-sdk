@@ -62,7 +62,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fix auto changelog release.
  
 ### Android
 
