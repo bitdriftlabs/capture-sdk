@@ -60,6 +60,6 @@ class CaptureStrictModeViolationListenerTest {
         listener.onThreadViolation(violation)
         listener.onVmViolation(violation)
 
-        verify(mockReporter, times(2)).report(any())
+        verify(mockReporter, times(2)).report(violation)
     }
 }
