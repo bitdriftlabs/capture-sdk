@@ -8,6 +8,7 @@
 package io.bitdrift.capture.reports.processor
 
 import android.os.Build
+import android.os.strictmode.Violation
 import android.util.Log
 import androidx.annotation.RequiresApi
 import com.google.flatbuffers.FlatBufferBuilder
@@ -143,13 +144,12 @@ internal class IssueReporterProcessor(
      * NOTE: This will need to run by default on the caller thread
      */
     fun persistJvmCrash(
-        timestamp: Long,
         callerThread: Thread,
         throwable: Throwable,
         allThreads: Map<Thread, Array<StackTraceElement>>?,
     ) {
         persistJvmIssue(
-            timestamp = timestamp,
+            timestamp = dateProvider.invoke().time,
             callerThread = callerThread,
             throwable = throwable,
             allThreads = allThreads,
@@ -164,17 +164,12 @@ internal class IssueReporterProcessor(
      * NOTE: This will need to run by default on the caller thread
      */
     @RequiresApi(Build.VERSION_CODES.P)
-    fun persistStrictModeViolation(
-        timestamp: Long,
-        callerThread: Thread,
-        violation: android.os.strictmode.Violation,
-        allThreads: Map<Thread, Array<StackTraceElement>>?,
-    ) {
+    fun persistStrictModeViolation(violation: Violation) {
         persistJvmIssue(
-            timestamp = timestamp,
-            callerThread = callerThread,
+            timestamp = dateProvider.invoke().time,
+            callerThread = Thread.currentThread(),
             throwable = violation,
-            allThreads = allThreads,
+            allThreads = Thread.getAllStackTraces(),
             reportType = ReportType.StrictModeViolation,
             isFatal = false,
         )

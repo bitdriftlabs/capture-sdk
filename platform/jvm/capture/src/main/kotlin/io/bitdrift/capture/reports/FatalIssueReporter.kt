@@ -145,7 +145,6 @@ internal class FatalIssueReporter(
     ) {
         runCatching {
             issueReporterProcessor.persistJvmCrash(
-                timestamp = dateProvider.invoke().time,
                 callerThread = thread,
                 throwable = throwable,
                 allThreads = Thread.getAllStackTraces(),

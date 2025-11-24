@@ -549,12 +549,11 @@ object Capture {
         @RequiresApi(Build.VERSION_CODES.P)
         @JvmStatic
         internal fun reportStrictModeViolation(violation: Violation) {
-            (logger() as? LoggerImpl)?.getIssueProcessor()?.persistStrictModeViolation(
-                timestamp = System.currentTimeMillis(),
-                callerThread = Thread.currentThread(),
-                violation = violation,
-                allThreads = Thread.getAllStackTraces(),
-            )
+            (logger() as? LoggerImpl)
+                ?.getIssueProcessor()
+                ?.persistStrictModeViolation(
+                    violation = violation,
+                )
         }
 
         /**
