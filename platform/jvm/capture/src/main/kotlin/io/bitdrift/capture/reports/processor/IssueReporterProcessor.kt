@@ -7,7 +7,9 @@
 
 package io.bitdrift.capture.reports.processor
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.BuildConstants
 import io.bitdrift.capture.Capture.LOG_TAG
@@ -146,12 +148,52 @@ internal class IssueReporterProcessor(
         throwable: Throwable,
         allThreads: Map<Thread, Array<StackTraceElement>>?,
     ) {
+        persistJvmIssue(
+            timestamp = timestamp,
+            callerThread = callerThread,
+            throwable = throwable,
+            allThreads = allThreads,
+            reportType = ReportType.JVMCrash,
+            isFatal = true,
+        )
+    }
+
+    /**
+     * Process StrictMode violations into a packed format
+     *
+     * NOTE: This will need to run by default on the caller thread
+     */
+    @RequiresApi(Build.VERSION_CODES.P)
+    fun persistStrictModeViolation(
+        timestamp: Long,
+        callerThread: Thread,
+        violation: android.os.strictmode.Violation,
+        allThreads: Map<Thread, Array<StackTraceElement>>?,
+    ) {
+        persistJvmIssue(
+            timestamp = timestamp,
+            callerThread = callerThread,
+            throwable = violation,
+            allThreads = allThreads,
+            reportType = ReportType.StrictModeViolation,
+            isFatal = false,
+        )
+    }
+
+    private fun persistJvmIssue(
+        timestamp: Long,
+        callerThread: Thread,
+        throwable: Throwable,
+        allThreads: Map<Thread, Array<StackTraceElement>>?,
+        reportType: Byte,
+        isFatal: Boolean,
+    ) {
         val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
         val sdk = createSDKInfo(builder)
         val appMetrics = createAppMetrics(builder)
         val deviceMetrics = createDeviceMetrics(builder, timestamp)
         val report =
-            JvmCrashProcessor.getJvmCrashReport(
+            JvmProcessor.getJvmReport(
                 builder,
                 sdk,
                 appMetrics,
@@ -159,14 +201,23 @@ internal class IssueReporterProcessor(
                 throwable,
                 callerThread,
                 allThreads,
+                reportType,
             )
         builder.finish(report)
 
-        reporterIssueStorage.persistFatalIssue(
-            timestamp,
-            builder.sizedByteArray(),
-            ReportType.JVMCrash,
-        )
+        if (isFatal) {
+            reporterIssueStorage.persistFatalIssue(
+                timestamp,
+                builder.sizedByteArray(),
+                reportType,
+            )
+        } else {
+            reporterIssueStorage.persistNonFatalIssue(
+                timestamp,
+                builder.sizedByteArray(),
+                reportType,
+            )
+        }
     }
 
     private fun createSDKInfo(builder: FlatBufferBuilder): Int =

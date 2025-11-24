@@ -75,6 +75,7 @@ internal class IssueReporterStorage(
             ReportType.NativeCrash -> "native_crash"
             ReportType.JavaScriptNonFatalError -> "java_script_non_fatal_error"
             ReportType.JavaScriptFatalError -> "java_script_fatal_error"
+            ReportType.StrictModeViolation -> "strict_mode_violation"
             else -> "unknown"
         }
 
