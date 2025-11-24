@@ -10,6 +10,8 @@ on:
         type: boolean
         description: Ignore main branch requirement (SOC2 compliance)
         required: true
+        # TODO(@murki): IMPORTANT: REMOVE THIS BEFORE MERGING!
+        default: true
   workflow_dispatch:
     inputs:
       version:
@@ -20,6 +22,8 @@ on:
         type: boolean
         description: Ignore main branch requirement (SOC2 compliance)
         required: true
+        # TODO(@murki): IMPORTANT: REMOVE THIS BEFORE MERGING!
+        default: true
 jobs:
   release-ios:
     name: Upload iOS artifacts to dl.bitdrift.io
