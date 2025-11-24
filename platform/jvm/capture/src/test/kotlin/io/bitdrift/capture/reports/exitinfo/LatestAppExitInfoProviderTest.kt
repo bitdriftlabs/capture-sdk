@@ -18,12 +18,13 @@ import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASO
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.Ignore
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
-// TODO(FranAguilera): BIT-5484. This works on gradle with Roboelectric. Fix on bazel
-// @RunWith(RobolectricTestRunner::class)
-// @Config(sdk = [30])
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [30])
 class LatestAppExitInfoProviderTest {
     private val activityManager: ActivityManager = mock()
     private val latestAppExitInfoProvider = LatestAppExitInfoProvider
@@ -41,7 +42,6 @@ class LatestAppExitInfoProviderTest {
         )
     }
 
-    @Ignore("TODO(FranAguilera): BIT-5484 This works on gradle with Roboelectric. Fix on bazel")
     @Test
     fun get_withValidExitInfo_shouldNotReturnNull() {
         val mockExitInfo: ApplicationExitInfo = mock()
@@ -56,7 +56,6 @@ class LatestAppExitInfoProviderTest {
         )
     }
 
-    @Ignore("TODO(FranAguilera): BIT-5484. This works on gradle with Roboelectric. Fix on bazel")
     @Test
     fun get_withEmptyExitReason_shouldReturnEmpty() {
         whenever(
@@ -72,7 +71,6 @@ class LatestAppExitInfoProviderTest {
         )
     }
 
-    @Ignore("TODO(FranAguilera): BIT-5484. This works on gradle with Roboelectric. Fix on bazel")
     @Test
     fun get_withUnmatchedProcessName_shouldReturnProcessNameNotFound() {
         val mockExitInfo: ApplicationExitInfo = mock()

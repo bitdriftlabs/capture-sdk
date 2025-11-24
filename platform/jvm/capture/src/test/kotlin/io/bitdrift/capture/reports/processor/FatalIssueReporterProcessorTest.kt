@@ -36,7 +36,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.InputStream
 import java.nio.ByteBuffer
-import java.nio.file.Paths
 
 /**
  * WARNING: For now these test only run on bazel given the difference between accessing
@@ -235,17 +234,9 @@ class FatalIssueReporterProcessorTest {
             .persistFatalIssue(any(), any(), any())
     }
 
-    private fun buildTraceInputStringFromFile(rawFilePath: String): InputStream {
-        val file =
-            Paths
-                .get(
-                    System.getenv("TEST_SRCDIR"),
-                    "_main",
-                    "platform/jvm/capture/src/test/resources",
-                    rawFilePath,
-                ).toFile()
-        return file.inputStream()
-    }
+    private fun buildTraceInputStringFromFile(rawFilePath: String): InputStream =
+        io.bitdrift.capture.TestResourceHelper
+            .getResourceAsStream(rawFilePath)
 
     private companion object {
         const val FAKE_TIME_STAMP = 1241515210914L
