@@ -17,6 +17,7 @@ import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.ContextHolder
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.strictmode.IStrictModeReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
@@ -46,6 +47,7 @@ class CaptureStrictModeViolationListenerTest {
         Capture.Logger.resetShared()
     }
 
+    @OptIn(ExperimentalBitdriftApi::class)
     @Test
     fun onThreadViolations_withMockedReporter_shouldLogReportTwice() {
         val listener =
