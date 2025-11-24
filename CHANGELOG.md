@@ -62,7 +62,7 @@
 
 **Fixed**
 
-- Fix auto changelog release.
+- Fix auto changelog releases.
  
 ### Android
 
