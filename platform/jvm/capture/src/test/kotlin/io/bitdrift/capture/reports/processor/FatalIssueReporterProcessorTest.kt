@@ -73,14 +73,13 @@ class FatalIssueReporterProcessorTest {
         val fakeException = FakeJvmException()
 
         processor.persistJvmCrash(
-            FAKE_TIME_STAMP,
             callerThread,
             fakeException,
             null,
         )
 
         verify(fatalIssueReporterStorage).persistFatalIssue(
-            eq(FAKE_TIME_STAMP),
+            any(),
             fatalIssueReportCaptor.capture(),
             reportTypeCaptor.capture(),
         )
@@ -112,14 +111,13 @@ class FatalIssueReporterProcessorTest {
                 IllegalArgumentException("Artificial exception"),
             )
         processor.persistJvmCrash(
-            FAKE_TIME_STAMP,
             Thread("crashing-thread"),
             exception,
             null,
         )
 
         verify(fatalIssueReporterStorage).persistFatalIssue(
-            eq(FAKE_TIME_STAMP),
+            any(),
             fatalIssueReportCaptor.capture(),
             reportTypeCaptor.capture(),
         )
