@@ -11,7 +11,6 @@ import android.annotation.SuppressLint
 import android.app.Application
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -23,7 +22,6 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
-import androidx.preference.PreferenceManager
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
@@ -61,7 +59,6 @@ class FirstFragment : Fragment() {
     // This property is only valid between onCreateView and onDestroyView.
     private val composeView get() = _composeView!!
     private lateinit var clipboardManager: ClipboardManager
-    private lateinit var sharedPreferences: SharedPreferences
 
     private var firstFragmentToCopySessionSpan: Span? = null
 
@@ -131,7 +128,6 @@ class FirstFragment : Fragment() {
         savedInstanceState: Bundle?,
     ) {
         super.onViewCreated(view, savedInstanceState)
-        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(view.context)
 
         Logger.logScreenView("first_fragment")
 

@@ -9,8 +9,11 @@ package io.bitdrift.capture
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.os.Build
+import android.os.strictmode.Violation
 import android.system.Os
 import android.util.Log
+import androidx.annotation.RequiresApi
 import io.bitdrift.capture.Capture.Logger.startSpan
 import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
 import io.bitdrift.capture.common.MainThreadHandler
@@ -534,6 +537,23 @@ object Capture {
         @JvmStatic
         fun setSleepMode(sleepMode: SleepMode) {
             logger()?.setSleepMode(sleepMode)
+        }
+
+        /**
+         * Reports a StrictMode violation detected by Android's StrictMode policies.
+         * This method should be called from StrictMode violation listeners to capture
+         * policy violations for observability.
+         *
+         * @param violation the StrictMode violation that was detected
+         */
+        @RequiresApi(Build.VERSION_CODES.P)
+        @JvmStatic
+        internal fun reportStrictModeViolation(violation: Violation) {
+            (logger() as? LoggerImpl)
+                ?.getIssueProcessor()
+                ?.persistStrictModeViolation(
+                    violation = violation,
+                )
         }
 
         /**

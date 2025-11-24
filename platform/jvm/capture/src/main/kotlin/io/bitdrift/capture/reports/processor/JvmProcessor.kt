@@ -13,17 +13,16 @@ import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Error
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ErrorRelation
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.FrameType
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Report
-import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ThreadDetails
 
 /**
- * Process crash into a binary flatbuffer Report
+ * Process JVM-related issues (crashes, violations) into a binary flatbuffer Report
  */
-internal object JvmCrashProcessor {
+internal object JvmProcessor {
     /**
      * @return byte offset for the Report instance in the builder buffer
      */
-    fun getJvmCrashReport(
+    fun getJvmReport(
         builder: FlatBufferBuilder,
         sdk: Int,
         appMetrics: Int,
@@ -31,6 +30,7 @@ internal object JvmCrashProcessor {
         throwable: Throwable,
         callerThread: Thread,
         allThreads: Map<Thread, Array<StackTraceElement>>?,
+        reportType: Byte,
     ): Int {
         val errors = buildErrors(builder, throwable)
         val threadList =
@@ -60,7 +60,7 @@ internal object JvmCrashProcessor {
         return Report.createReport(
             builder,
             sdk,
-            ReportType.JVMCrash,
+            reportType,
             appMetrics,
             deviceMetrics,
             Report.createErrorsVector(builder, errors.toIntArray()),
