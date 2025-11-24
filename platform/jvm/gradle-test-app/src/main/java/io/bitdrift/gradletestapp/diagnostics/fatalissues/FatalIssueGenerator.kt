@@ -172,7 +172,10 @@ internal object FatalIssueGenerator {
     }
 
     private fun triggerOsKill(signal: Int) {
-        Os.kill(Os.getpid(), signal)
+        Thread {
+            Thread.sleep(100)
+            Os.kill(Os.getpid(), signal)
+        }.start()
     }
 
     private val FIRST_LOCK_RESOURCE: Any = "first_lock"

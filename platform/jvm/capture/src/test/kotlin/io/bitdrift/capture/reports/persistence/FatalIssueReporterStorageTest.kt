@@ -82,10 +82,10 @@ class FatalIssueReporterStorageTest {
     }
 
     @Test
-    fun persistFatalIssue_whenStrictMode_shouldAddUnknownType() {
+    fun persistFatalIssue_whenStrictMode_shouldAddTypeToFileName() {
         assertFileWithExpectedType(
             reportType = ReportType.StrictModeViolation,
-            "unknown",
+            "strict_mode_violation",
         )
     }
 

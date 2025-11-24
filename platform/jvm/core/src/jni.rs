@@ -959,7 +959,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   log: JString<'_>,
   fields: JObject<'_>,
   matching_fields: JObject<'_>,
-  override_expected_previous_process_session_id: JString<'_>,
+  use_previous_process_session_id: jboolean,
   override_occurred_at_unix_milliseconds: jlong,
   blocking: jboolean,
 ) {
@@ -970,24 +970,18 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
       let matching_fields =
         ffi::jobject_map_to_fields(&mut env, &matching_fields, LogFieldKind::Ootb)?;
 
-      let attributes_overrides = if override_expected_previous_process_session_id.is_null()
+      let attributes_overrides = if use_previous_process_session_id != JNI_TRUE
         && override_occurred_at_unix_milliseconds <= 0
       {
         None
-      } else if override_expected_previous_process_session_id.is_null()
+      } else if use_previous_process_session_id != JNI_TRUE
         && override_occurred_at_unix_milliseconds > 0
       {
         Some(LogAttributesOverrides::OccurredAt(
           unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
         ))
       } else {
-        let expected_previous_process_session_id =
-          unsafe { env.get_string_unchecked(&override_expected_previous_process_session_id) }?
-            .to_string_lossy()
-            .to_string();
-
         Some(LogAttributesOverrides::PreviousRunSessionID(
-          expected_previous_process_session_id,
           unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
         ))
       };
@@ -1028,6 +1022,23 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
       Ok(())
     },
     "jni write log",
+  );
+}
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_shutdown(
+  _env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      // NOTE: This performs a blocking shutdown of the logger for use in test and eventual
+      // public API. This needs additional testing before exposing in the public API.
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.shutdown(true);
+      Ok(())
+    },
+    "shutdown",
   );
 }
 

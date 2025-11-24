@@ -19,6 +19,7 @@ import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.fakes.FakeDateProvider
+import io.bitdrift.capture.fakes.FakeDateProvider.DEFAULT_TEST_TIMESTAMP
 import io.bitdrift.capture.fakes.FakeJvmException
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.createTraceInputStream
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Architecture
@@ -72,14 +73,13 @@ class FatalIssueReporterProcessorTest {
         val fakeException = FakeJvmException()
 
         processor.persistJvmCrash(
-            FAKE_TIME_STAMP,
             callerThread,
             fakeException,
             null,
         )
 
         verify(fatalIssueReporterStorage).persistFatalIssue(
-            eq(FAKE_TIME_STAMP),
+            eq(DEFAULT_TEST_TIMESTAMP),
             fatalIssueReportCaptor.capture(),
             reportTypeCaptor.capture(),
         )
@@ -111,14 +111,13 @@ class FatalIssueReporterProcessorTest {
                 IllegalArgumentException("Artificial exception"),
             )
         processor.persistJvmCrash(
-            FAKE_TIME_STAMP,
             Thread("crashing-thread"),
             exception,
             null,
         )
 
         verify(fatalIssueReporterStorage).persistFatalIssue(
-            eq(FAKE_TIME_STAMP),
+            eq(DEFAULT_TEST_TIMESTAMP),
             fatalIssueReportCaptor.capture(),
             reportTypeCaptor.capture(),
         )

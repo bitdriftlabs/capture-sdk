@@ -39,7 +39,6 @@ dependencies {
     testImplementation(libs.assertj.core)
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockito.kotlin)
-    testImplementation(libs.mockito.kotlin.inline)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.robolectric)
     testImplementation(libs.mockwebserver)

@@ -156,7 +156,6 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
     let log_request = h.blocking_next_log_upload().expect("expected log upload");
     let log = &log_request.logs()[0];
 
-    #[allow(clippy::option_if_let_else)]
     let message: JObject<'_> = match log.typed_message() {
       StringOrBytes::String(s) => env.new_string(&s).unwrap().into(),
       StringOrBytes::SharedString(s) => env.new_string(&*s).unwrap().into(),

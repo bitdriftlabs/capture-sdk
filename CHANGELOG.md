@@ -15,7 +15,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed an issue where the session ID on AppExit logs would not match the previous process run session ID as expected.
  
 ### Android
 
@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed a jni LocalReference leak that could crash the app when very large field maps or feature flags were sent to the logger.
 
 ### iOS
 
