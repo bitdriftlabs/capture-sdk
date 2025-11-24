@@ -45,6 +45,11 @@
 
 - Nothing yet!
 
+## [0.20.1-rc.1]
+[0.20.1-rc.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.20.1-rc.1
+
+- TEST. NOT AN OFFICIAL RELEASE.
+
 ## [0.20.0]
 [0.20.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.20.0
 

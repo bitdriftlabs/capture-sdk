@@ -2,7 +2,8 @@ name: Auto Release on Changelog Update
 
 on:
   push:
-    branches: [ main ]
+    # TODO(@murki): UNCOMMENT THIS BEFORE MERGING!
+    # branches: [ main ]
     paths:
       - 'CHANGELOG.md'
 
