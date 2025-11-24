@@ -10,7 +10,6 @@ package io.bitdrift.capture.strictmode
 import android.os.strictmode.Violation
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.util.concurrent.MoreExecutors
-import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
@@ -60,6 +59,6 @@ class CaptureStrictModeViolationListenerTest {
         listener.onThreadViolation(violation)
         listener.onVmViolation(violation)
 
-        verify(mockReporter, times(2)).report(any())
+        verify(mockReporter, times(2)).report(violation)
     }
 }
