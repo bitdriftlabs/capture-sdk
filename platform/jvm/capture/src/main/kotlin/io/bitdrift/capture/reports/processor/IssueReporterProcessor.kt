@@ -149,7 +149,6 @@ internal class IssueReporterProcessor(
         allThreads: Map<Thread, Array<StackTraceElement>>?,
     ) {
         persistJvmIssue(
-            timestamp = dateProvider.invoke().time,
             callerThread = callerThread,
             throwable = throwable,
             allThreads = allThreads,
@@ -166,7 +165,6 @@ internal class IssueReporterProcessor(
     @RequiresApi(Build.VERSION_CODES.P)
     fun persistStrictModeViolation(violation: Violation) {
         persistJvmIssue(
-            timestamp = dateProvider.invoke().time,
             callerThread = Thread.currentThread(),
             throwable = violation,
             allThreads = Thread.getAllStackTraces(),
@@ -176,13 +174,13 @@ internal class IssueReporterProcessor(
     }
 
     private fun persistJvmIssue(
-        timestamp: Long,
         callerThread: Thread,
         throwable: Throwable,
         allThreads: Map<Thread, Array<StackTraceElement>>?,
         reportType: Byte,
         isFatal: Boolean,
     ) {
+        val timestamp = dateProvider.invoke().time
         val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
         val sdk = createSDKInfo(builder)
         val appMetrics = createAppMetrics(builder)
