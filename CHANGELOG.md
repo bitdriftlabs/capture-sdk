@@ -50,6 +50,48 @@
 
 - TEST. NOT AN OFFICIAL RELEASE.
 
+### Both
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+ 
+### Android
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
 ## [0.20.0]
 [0.20.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.20.0
 
