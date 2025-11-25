@@ -170,6 +170,7 @@ public final class Logger {
             SessionReplayController(configuration: $0)
         }
 
+        NSLog("[Bitdrift] Logger.init() - calling makeLogger with sessionStrategy")
         guard let logger = loggerBridgingFactoryProvider.makeLogger(
             apiKey: apiKey,
             bufferDirectoryPath: directoryURL.path,
@@ -441,7 +442,9 @@ public final class Logger {
 
 extension Logger: Logging {
     public var sessionID: String {
-        return self.underlyingLogger.getSessionID()
+        let id = self.underlyingLogger.getSessionID()
+        NSLog("[Bitdrift] Logger.sessionID accessed - returned: \(id)")
+        return id
     }
 
     public var sessionURL: String {

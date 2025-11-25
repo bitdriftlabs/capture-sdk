@@ -130,6 +130,7 @@ final class LoggerBridge: LoggerBridging {
         errorReporting: RemoteErrorReporting,
         sleepMode: SleepMode
     ) -> LoggerBridging? {
+        NSLog("[Bitdrift] LoggerBridge.makeLogger() called - sessionStrategy: \(sessionStrategy)")
         return LoggerBridge(
             apiKey: apiKey,
             bufferDirectoryPath: bufferDirectoryPath,

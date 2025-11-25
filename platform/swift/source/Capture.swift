@@ -54,6 +54,7 @@ extension Logger {
         dateProvider: DateProvider? = nil
     ) -> LoggerIntegrator?
     {
+        NSLog("[Bitdrift] Logger.start() called - apiKey: \(apiKey.prefix(10))..., sessionStrategy type: \(type(of: sessionStrategy))")
         return self.start(
             withAPIKey: apiKey,
             sessionStrategy: sessionStrategy,

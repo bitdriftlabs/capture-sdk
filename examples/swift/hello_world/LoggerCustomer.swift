@@ -104,7 +104,8 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
 
         Logger.addField(withKey: "field_container_field_key", value: "field_container_value")
         Logger.logInfo("App launched. Logger configured.")
-
+        print("Session ID: \(Logger.sessionID)")
+        print("Session URL: \(Logger.sessionURL)")
         MXMetricManager.shared.add(self)
     }
 

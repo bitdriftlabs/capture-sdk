@@ -71,12 +71,17 @@ extension SessionStrategyConfiguration: SessionStrategyProvider {
 
     @objc
     func generateSessionID() -> String {
+        NSLog("[Bitdrift] SessionStrategyConfiguration.generateSessionID() called")
         switch self.underlyingSessionStrategy {
         case let .fixed(sessionIDGenerator):
-            return sessionIDGenerator()
+            let sessionID = sessionIDGenerator()
+            NSLog("[Bitdrift] SessionStrategyConfiguration.generateSessionID() - fixed strategy returned: \(sessionID)")
+            return sessionID
         case .activityBased:
             assertionFailure("generateSessionID should not be called on activityBased session strategy")
-            return UUID().uuidString
+            let fallbackID = UUID().uuidString
+            NSLog("[Bitdrift] SessionStrategyConfiguration.generateSessionID() - activityBased fallback: \(fallbackID)")
+            return fallbackID
         }
     }
 
