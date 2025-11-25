@@ -1,5 +1,5 @@
 {
-  "checksum": "75d3f3d82f0ffba6f6596925bfabeae541a6d98db1bd0dd930c5fd9da653c8ea",
+  "checksum": "3ca5f9c71f4301bb4aad9301da97c76489a3a24e3083111fe61519945a7cbae2",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -6654,6 +6654,37 @@
       "repository": null,
       "targets": [],
       "library_target_name": null,
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2021",
+        "version": "1.0.0"
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": "LICENSE"
+    },
+    "capture-core 1.0.0": {
+      "name": "capture-core",
+      "version": "1.0.0",
+      "package_url": null,
+      "repository": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "capture_core",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "capture_core",
       "common_attrs": {
         "compile_data_glob": [
           "**"
@@ -19536,21 +19567,8 @@
       "version": "1.0.0",
       "package_url": null,
       "repository": null,
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "test_jni",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "test_jni",
+      "targets": [],
+      "library_target_name": null,
       "common_attrs": {
         "compile_data_glob": [
           "**"
@@ -25615,6 +25633,7 @@
   "binary_crates": [],
   "workspace_members": {
     "capture 1.0.0": "platform/jvm",
+    "capture-core 1.0.0": "platform/jvm/core",
     "logger_benchmark 1.0.0": "test/benchmark",
     "platform-shared 1.0.0": "platform/shared",
     "platform_test_helpers 1.0.0": "platform/test_helpers",

@@ -15,7 +15,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import java.nio.file.Paths
 
 class NativeCrashProcessorTest {
     @Test
@@ -128,15 +127,10 @@ class NativeCrashProcessorTest {
     }
 
     private fun buildTombstoneFromFile(rawFilePath: String): TombstoneProtos.Tombstone {
-        val file =
-            Paths
-                .get(
-                    System.getenv("TEST_SRCDIR"),
-                    "_main",
-                    "platform/jvm/capture/src/test/resources",
-                    rawFilePath,
-                ).toFile()
-        return TombstoneProtos.Tombstone.parseFrom(file.inputStream())
+        val stream =
+            io.bitdrift.capture.TestResourceHelper
+                .getResourceAsStream(rawFilePath)
+        return TombstoneProtos.Tombstone.parseFrom(stream)
     }
 
     data class SimpleMapping(
