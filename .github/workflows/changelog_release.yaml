@@ -63,9 +63,7 @@ jobs:
     with:
       version: ${{ needs.prepare-release.outputs.version }}
       emergency: false
-    secrets:
-      OPEN_CAPTURE_SDK_PRS_APP_ID: ${{ secrets.OPEN_CAPTURE_SDK_PRS_APP_ID }}
-      OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}
+    secrets: inherit
 
   no-release:
     name: No release (tag exists)
