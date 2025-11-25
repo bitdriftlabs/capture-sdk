@@ -4,9 +4,11 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 
 package com.bdreactnative
 
+import android.util.Log
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
@@ -22,6 +24,11 @@ import io.bitdrift.capture.Configuration
 class BdReactNativeModule internal constructor(context: ReactApplicationContext) :
   BdReactNativeSpec(context) {
 
+  private val debugId: String? by lazy {
+    // TODO(FranAguilera): BIT-6642 Fully implement debug id generation that should match with the generated sourcemaps
+    DebugId.fromBundle(reactApplicationContext.assets)
+  }
+
   override fun getName(): String {
     return NAME
   }
@@ -31,6 +38,9 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
     val apiUrl = options?.getString("url") ?: "https://api.bitdrift.io"
     val crashReportingOptions = options?.getMap("crashReporting")
     val enableNativeFatalIssues = crashReportingOptions?.getBoolean("enableNativeFatalIssues") ?: false
+    val enableJsErrors = crashReportingOptions?.getBoolean("UNSTABLE_enableJsErrors") ?: false
+
+    ReportDirectory.setupWatcherDirectory(reactApplicationContext, enableJsErrors)
 
     val strategy =
     when (sessionStrategy) {
@@ -78,7 +88,6 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
     }
   }
 
-
   @ReactMethod
   override fun log(level: Double, message: String, jsFields: ReadableMap?) {
     val fields = jsFields?.toHashMap()?.mapValues { it.value.toString() } ?: emptyMap()
@@ -111,6 +120,29 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
   override fun logAppLaunchTTI(ttiMs: Double) {
     Capture.Logger.logAppLaunchTTI(ttiMs.toDuration(DurationUnit.MILLISECONDS))
   }
+
+  @ReactMethod
+  override fun reportJsError(
+    errorName: String,
+    message: String,
+    stack: String,
+    isFatal: Boolean,
+    engine: String,
+    libraryVersion: String,
+  ) {
+    Log.d(NAME, "reportJsError called with message $message. debugId: ${this.debugId}")
+    
+    Capture.Logger.persistJavaScriptReport(
+      errorName,
+      message,
+      stack,
+      isFatal,
+      engine,
+      this.debugId ?: "",
+      libraryVersion,
+    )
+  }
+
 
   companion object {
     const val NAME = "BdReactNative"

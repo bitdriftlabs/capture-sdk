@@ -13,11 +13,12 @@ const BITDRIFT_API_KEY = process.env.EXPO_PUBLIC_BITDRIFT_API_KEY;
 const BITDRIFT_API_URL = process.env.EXPO_PUBLIC_BITDRIFT_API_URL;
 
 if (BITDRIFT_API_KEY && BITDRIFT_API_URL) {
-  init(BITDRIFT_API_KEY, SessionStrategy.Activity, {
+  init(BITDRIFT_API_KEY, SessionStrategy.Fixed, {
     url: BITDRIFT_API_URL,
     enableNetworkInstrumentation: true,
     crashReporting: {
       enableNativeFatalIssues: true,
+      UNSTABLE_enableJsErrors: true,
     },
   });
 
