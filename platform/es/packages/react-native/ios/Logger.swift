@@ -21,17 +21,15 @@ import Capture
                 SessionStrategy.fixed()
             }
 
-        let configuration = if enableNativeFatalIssues {
-            Configuration(enableFatalIssueReporting: true)
-        } else {
-            Configuration(enableFatalIssueReporting: false)
-        }
+        let configuration = Configuration(
+            enableFatalIssueReporting: enableNativeFatalIssues,
+            apiURL: URL(string: url ?? "https://api.bitdrift.io")!
+        )
 
         let integrator = Capture.Logger.start(
             withAPIKey: key,
             sessionStrategy: strategy,
-            configuration: configuration,
-            apiURL: URL(string: url ?? "https://api.bitdrift.io")!
+            configuration: configuration
         )
 
         if enableNetworkInstrumentation {
