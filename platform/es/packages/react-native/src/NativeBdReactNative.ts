@@ -16,6 +16,8 @@ export enum SessionStrategy {
 export type CrashReportingOptions = {
   /** Enable native fatal issues reporting (e.g. JVM crashes, JNI crashes, etc) */
   enableNativeFatalIssues?: boolean;
+  /** Enable JS global error handler via ErrorUtils.setGlobalHandler. This is an experimental feature at the moment and may change in future releases. */
+  UNSTABLE_enableJsErrors?: boolean;
 };
 
 export type InitOptions = {
@@ -46,6 +48,15 @@ export interface Spec extends TurboModule {
   logScreenView(screenName: string): void;
 
   logAppLaunchTTI(tti_ms: number): void;
+
+  reportJsError(
+    errorName: string,
+    message: string,
+    stack: string,
+    isFatal: boolean,
+    engine: string,
+    libraryVersion: string,
+  ): void;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('BdReactNative');

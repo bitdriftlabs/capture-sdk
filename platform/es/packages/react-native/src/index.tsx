@@ -1,4 +1,5 @@
 import { NativeModules, Platform } from 'react-native';
+import { installGlobalErrorHandler } from './globalErrorHandler';
 import {
   logInternal,
   serialize,
@@ -6,9 +7,9 @@ import {
   Serializable,
   LogLevel,
 } from './log';
-import { InitOptions, SessionStrategy, CrashReportingOptions } from './NativeBdReactNative';
+import { InitOptions, SessionStrategy } from './NativeBdReactNative';
 import NativeBdReactNative from './NativeBdReactNative';
-export { SessionStrategy, CrashReportingOptions } from './NativeBdReactNative';
+export { SessionStrategy, type CrashReportingOptions } from './NativeBdReactNative';
 
 let api_url: string;
 let api_key: string;
@@ -46,6 +47,10 @@ export function init(
 ): void {
   api_url = options?.url ?? 'api.bitdrift.io';
   api_key = key;
+  // Install JS global error handler if enabled via config
+  if (options?.crashReporting?.UNSTABLE_enableJsErrors === true) {
+    installGlobalErrorHandler();
+  }
 
   return BdReactNative.init(key, sessionStrategy, options ?? {});
 }

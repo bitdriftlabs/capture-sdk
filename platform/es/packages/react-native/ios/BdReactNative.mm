@@ -45,6 +45,16 @@ RCT_EXPORT_METHOD(logAppLaunchTTI:(double)ttiMs)
     [CAPRNLogger logAppLaunchTTIWithTTI:ttiMs / 1000];
 }
 
+RCT_EXPORT_METHOD(reportJsError:(NSString*)errorName
+      message:(NSString*)message
+      stack:(NSString*)stack
+      isFatal:(BOOL)isFatal
+      engine:(NSString*)engine
+      libraryVersion:(NSString*)libraryVersion)
+{
+    [CAPRNLogger reportJsErrorWithErrorName:errorName message:message stack:stack isFatal:isFatal engine:engine reactNativeVersion:libraryVersion];
+}
+
 #ifndef RCT_NEW_ARCH_ENABLED
 
 RCT_EXPORT_METHOD(init:(NSString*)apiKey

@@ -6,11 +6,14 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import Capture
+import Foundation
 
 @objc public class CAPRNLogger: NSObject {
+    
     @objc public static func start(
         key: String, sessionStrategy: String, url: String?, enableNetworkInstrumentation: Bool, enableNativeFatalIssues: Bool
     ) {
+        
         let strategy =
             switch sessionStrategy {
             case "fixed":
@@ -31,6 +34,7 @@ import Capture
             sessionStrategy: strategy,
             configuration: configuration
         )
+        
 
         if enableNetworkInstrumentation {
             integrator?.enableIntegrations([.urlSession()])
@@ -112,5 +116,44 @@ import Capture
     @objc
     public static func logAppLaunchTTI(TTI: TimeInterval) {
         Capture.Logger.logAppLaunchTTI(TTI)
+    }
+
+    @objc
+    public static func reportJsError(
+        errorName: String,
+        message: String,
+        stack: String,
+        isFatal: Bool,
+        engine: String,
+        reactNativeVersion: String
+    ) {
+        guard let destinationPath = ReportDirectory.destinationPath(isFatal: isFatal) else {
+            return
+        }
+        
+        // TODO(FranAguilera): BIT-6642 Fully implement debug id generation that should match with the generated sourcemaps
+        let debugId = DebugId.fromBundle() ?? ""
+        let deviceMetadata = DeviceMetadata.current()
+        let appMetadata = AppMetadata.current()
+        
+        let timeInterval = Date().timeIntervalSince1970
+        let timestampSeconds = UInt64(timeInterval)
+        let fractionalSeconds = timeInterval - Double(timestampSeconds)
+        let timestampNanos = UInt32(fractionalSeconds * 1_000_000_000)
+        
+        JavaScriptErrorReport.persist(
+            errorName: errorName,
+            message: message,
+            stack: stack,
+            isFatal: isFatal,
+            engine: engine,
+            debugId: debugId,
+            timestampSeconds: timestampSeconds,
+            timestampNanos: timestampNanos,
+            destinationPath: destinationPath,
+            deviceMetadata: deviceMetadata,
+            appMetadata: appMetadata,
+            sdkVersion: reactNativeVersion
+        )
     }
 }
