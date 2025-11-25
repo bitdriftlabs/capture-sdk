@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.19.1...HEAD
 
 ### Both
 
@@ -15,100 +15,8 @@
 
 **Fixed**
 
-- Fixed an issue where the session ID on AppExit logs would not match the previous process run session ID as expected.
+- Nothing yet!
  
-### Android
-
-**Added**
-
-- Nothing yet!
-
-**Changed**
-
-- Nothing yet!
-
-**Fixed**
-
-- Nothing yet!
-
-### iOS
-
-**Added**
-
-- Nothing yet!
-
-**Changed**
-
-- Nothing yet!
-
-**Fixed**
-
-- Nothing yet!
-
-## [0.20.1-rc.1]
-[0.20.1-rc.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.20.1-rc.1
-
-- TEST. NOT AN OFFICIAL RELEASE.
-
-### Both
-
-**Added**
-
-- Nothing yet!
-
-**Changed**
-
-- Nothing yet!
-
-**Fixed**
-
-- Fix auto changelog releases.
- 
-### Android
-
-**Added**
-
-- Nothing yet!
-
-**Changed**
-
-- Nothing yet!
-
-**Fixed**
-
-- Nothing yet!
-
-### iOS
-
-**Added**
-
-- Nothing yet!
-
-**Changed**
-
-- Nothing yet!
-
-**Fixed**
-
-- Nothing yet!
-
-## [0.20.0]
-[0.20.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.20.0
-
-### Both
-
-**Added**
-
-- Nothing yet!
-
-**Changed**
-
-- Nothing yet!
-
-**Fixed**
-
-- Nothing yet!
-
 ### Android
 
 **Added**
@@ -128,7 +36,7 @@
 
 **Added**
 
-- Add `rootFileURL` parameter to `Configuration` to allow customizing the storage location for SDK internal files.
+- Nothing yet!
 
 **Changed**
 

@@ -29,21 +29,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    # TODO(@murki): IMPORTANT: UNCOMMENT THIS BEFORE MERGING!
-    # - name: SOC2 Compliance
-    #   run: |
-    #     if [ "${{ github.event.inputs.emergency }}" == "true" ]; then
-    #       echo "Using emergency override"
-    #       curl -X POST -H 'Content-type: application/json' \
-    #         --data '{"blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": ":cop: :rotating_light: <https://github.com/${{github.actor}}|${{github.actor}}> is trying to deploy <https://github.com/${{github.repository}}/commits/${{github.sha}}|this commit> from <https://github.com/${{github.repository}}|${{github.repository}}>. Please respond on this thread with the justification and approval."}}]}' \
-    #         '${{ secrets.DEPLOY_SLACK_WEBHOOK_AUDIT_BOT }}'
-    #       exit 0
-    #     fi
-    #     if [ "${{ github.ref }}" != "refs/heads/main" ]; then
-    #       echo "Only main branch may be released to prod"
-    #       echo "Use emergency mode if you must deploy from another branch"
-    #       exit 1
-    #     fi
+    - name: SOC2 Compliance
+      run: |
+        if [ "${{ github.event.inputs.emergency }}" == "true" ]; then
+          echo "Using emergency override"
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": ":cop: :rotating_light: <https://github.com/${{github.actor}}|${{github.actor}}> is trying to deploy <https://github.com/${{github.repository}}/commits/${{github.sha}}|this commit> from <https://github.com/${{github.repository}}|${{github.repository}}>. Please respond on this thread with the justification and approval."}}]}' \
+            '${{ secrets.DEPLOY_SLACK_WEBHOOK_AUDIT_BOT }}'
+          exit 0
+        fi
+        if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+          echo "Only main branch may be released to prod"
+          echo "Use emergency mode if you must deploy from another branch"
+          exit 1
+        fi
     - name: Setup AWS credentials
       uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
       with:
@@ -66,21 +65,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    # TODO(@murki): IMPORTANT: UNCOMMENT THIS BEFORE MERGING!
-    # - name: SOC2 Compliance
-    #   run: |
-    #     if [ "${{ github.event.inputs.emergency }}" == "true" ]; then
-    #       echo "Using emergency override"
-    #       curl -X POST -H 'Content-type: application/json' \
-    #         --data '{"blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": ":cop: :rotating_light: <https://github.com/${{github.actor}}|${{github.actor}}> is trying to deploy <https://github.com/${{github.repository}}/commits/${{github.sha}}|this commit> from <https://github.com/${{github.repository}}|${{github.repository}}>. Please respond on this thread with the justification and approval."}}]}' \
-    #         '${{ secrets.DEPLOY_SLACK_WEBHOOK_AUDIT_BOT }}'
-    #       exit 0
-    #     fi
-    #     if [ "${{ github.ref }}" != "refs/heads/main" ]; then
-    #       echo "Only main branch may be released to prod"
-    #       echo "Use emergency mode if you must deploy from another branch"
-    #       exit 1
-    #     fi
+    - name: SOC2 Compliance
+      run: |
+        if [ "${{ github.event.inputs.emergency }}" == "true" ]; then
+          echo "Using emergency override"
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": ":cop: :rotating_light: <https://github.com/${{github.actor}}|${{github.actor}}> is trying to deploy <https://github.com/${{github.repository}}/commits/${{github.sha}}|this commit> from <https://github.com/${{github.repository}}|${{github.repository}}>. Please respond on this thread with the justification and approval."}}]}' \
+            '${{ secrets.DEPLOY_SLACK_WEBHOOK_AUDIT_BOT }}'
+          exit 0
+        fi
+        if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+          echo "Only main branch may be released to prod"
+          echo "Use emergency mode if you must deploy from another branch"
+          exit 1
+        fi
     - name: Setup AWS credentials
       uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
       with:
