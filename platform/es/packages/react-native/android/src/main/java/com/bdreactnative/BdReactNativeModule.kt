@@ -25,7 +25,6 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
   BdReactNativeSpec(context) {
 
   private val debugId: String? by lazy {
-    // TODO(FranAguilera): BIT-6642 Fully implement debug id generation that should match with the generated sourcemaps
     DebugId.fromBundle(reactApplicationContext.assets)
   }
 
@@ -129,9 +128,7 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
     isFatal: Boolean,
     engine: String,
     libraryVersion: String,
-  ) {
-    Log.d(NAME, "reportJsError called with message $message. debugId: ${this.debugId}")
-    
+  ) {    
     Capture.Logger.persistJavaScriptReport(
       errorName,
       message,

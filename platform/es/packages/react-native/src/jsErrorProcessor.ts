@@ -108,7 +108,8 @@ function attemptDebugSymbolication(
 
 /**
  * Formats raw JavaScript stack trace for backend symbolication in release builds.
- * Converts stack frames to format: "at <functionName> (address at <bundle>:<line>:<column>)"
+ * Converts stack frames to format: "at <functionName> (<bundle>:<line>:<column>)"
+ * Removes "address at" prefix to match source map file names for symbolication.
  */
 export function formatRawStack(rawStack: string): string {
   const lines = rawStack.split('\n');
@@ -132,11 +133,7 @@ export function formatRawStack(rawStack: string): string {
       let bundleName = filePath.includes('/') ? filePath.split('/').pop() || filePath : filePath;
       bundleName = bundleName.replace(/^(address\s+at\s+)+/gi, '').trim();
 
-      const location = bundleName.startsWith('address at ')
-        ? bundleName
-        : `address at ${bundleName}`;
-
-      formattedLines.push(`at ${functionName} (${location}:${lineNum}:${column})`);
+      formattedLines.push(`at ${functionName} (${bundleName}:${lineNum}:${column})`);
     } else {
       const simpleMatch = line.match(/at\s+(.+)/);
       if (simpleMatch) {

@@ -8,10 +8,40 @@
 package com.bdreactnative
 
 import android.content.res.AssetManager
+import android.util.Log
+import java.security.MessageDigest
 
 object DebugId {
-    // TODO(FranAguilera): BIT-6642 Fully implement debug id generation that should match with the generated sourcemaps
+    private const val TAG = "BdReactNative"
+    private const val BUNDLE_FILE = "index.android.bundle"
+    private const val BUFFER_SIZE = 8192
+
+    /**
+     * Generates a debug ID from the JavaScript bundle's MD5 hash.
+     * Returns null if the bundle cannot be found or read.
+     */
     fun fromBundle(assets: AssetManager): String? {
-        return null
+        return try {
+            calculateBundleMD5(assets)
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not generate debug ID from bundle", e)
+            null
+        }
+    }
+
+    private fun calculateBundleMD5(assets: AssetManager): String {
+        val messageDigest = MessageDigest.getInstance("MD5")
+        val buffer = ByteArray(BUFFER_SIZE)
+        
+        assets.open(BUNDLE_FILE).use { inputStream ->
+            var bytesRead = inputStream.read(buffer)
+            while (bytesRead != -1) {
+                messageDigest.update(buffer, 0, bytesRead)
+                bytesRead = inputStream.read(buffer)
+            }
+        }
+        
+        val hashBytes = messageDigest.digest()
+        return hashBytes.joinToString("") { "%02x".format(it) }
     }
 }
