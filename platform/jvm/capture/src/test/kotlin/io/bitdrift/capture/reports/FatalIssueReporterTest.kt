@@ -152,7 +152,6 @@ class FatalIssueReporterTest {
 
     private fun buildReporter(): FatalIssueReporter =
         FatalIssueReporter(
-            enableNativeCrashReporting = true,
             FakeBackgroundThreadHandler(),
             latestAppExitInfoProvider,
             captureUncaughtExceptionHandler,

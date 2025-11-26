@@ -14,8 +14,6 @@ import io.bitdrift.capture.replay.SessionReplayConfiguration
  * @param sessionReplayConfiguration The resource reporting configuration to use. Passing `null` disables the feature.
  * @param enableFatalIssueReporting When set to true wil capture Fatal Issues automatically [JVM crash, ANR, etc] and without requiring
  * any external 3rd party library integration
- * @param enableNativeCrashReporting When set to true will capture native NDK crashes automatically.
- * Requires enableFatalIssueReporting to be true. Note: This is a temporary flag and may be removed in future versions.
  * @param sleepMode SleepMode.ENABLED if Capture should initialize in minimal activity mode
  */
 data class Configuration
@@ -23,6 +21,5 @@ data class Configuration
     constructor(
         val sessionReplayConfiguration: SessionReplayConfiguration? = SessionReplayConfiguration(),
         val enableFatalIssueReporting: Boolean = true,
-        val enableNativeCrashReporting: Boolean = false,
         val sleepMode: SleepMode = SleepMode.DISABLED,
     )
