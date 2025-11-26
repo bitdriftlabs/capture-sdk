@@ -11,8 +11,9 @@ import Foundation
 @objc public class CAPRNLogger: NSObject {
     
     @objc public static func start(
-        key: String, sessionStrategy: String, url: String?, enableNetworkInstrumentation: Bool, enableNativeFatalIssues: Bool
+        key: String, sessionStrategy: String, url: String?, enableNetworkInstrumentation: Bool, enableNativeFatalIssues: Bool, enableJsErrors: Bool
     ) {
+        ReportDirectory.setupWatcherDirectory(enableJsErrors: enableJsErrors)
         
         let strategy =
             switch sessionStrategy {

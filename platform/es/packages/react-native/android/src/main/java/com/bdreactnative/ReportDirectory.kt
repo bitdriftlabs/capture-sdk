@@ -37,7 +37,7 @@ object ReportDirectory {
                 removeWatcherDirectory(watcherDir)
             }
         }.onFailure { error ->
-            Log.w(TAG, "Failed to handle directory modifications for enableJsErrors $enableJsErrors: $error")
+            Log.e(TAG, "Failed to handle directory modifications for enableJsErrors $enableJsErrors: $error")
         }
     }
 
