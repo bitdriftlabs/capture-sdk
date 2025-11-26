@@ -25,7 +25,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Removed `enableNativeCrashReporting` flag from `Configuration` object. From now on Native (NDK) crash reports will be included if `enableFatalIssueReporting` is set to true. Please note Native (NDK) crash detection still requires Android 12+ (API level 31 or higher)
 
 **Fixed**
 
