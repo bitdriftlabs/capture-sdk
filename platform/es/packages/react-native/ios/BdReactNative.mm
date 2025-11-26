@@ -66,6 +66,7 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
   
   NSDictionary* crashReportingOptions = options[@"crashReporting"];
   BOOL enableNativeFatalIssues = [crashReportingOptions[@"enableNativeFatalIssues"] boolValue];
+  BOOL enableJsErrors = [crashReportingOptions[@"UNSTABLE_enableJsErrors"] boolValue];
 
   [CAPRNLogger
     startWithKey:apiKey
@@ -73,6 +74,7 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
     url:apiURL
     enableNetworkInstrumentation:enableNetworkInstrumentation
     enableNativeFatalIssues:enableNativeFatalIssues
+    enableJsErrors:enableJsErrors
   ];
 }
 
@@ -85,9 +87,11 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
   BOOL enableNetworkInstrumentation = options.enableNetworkInstrumentation().has_value() ? options.enableNetworkInstrumentation().value() : false;
   
   BOOL enableNativeFatalIssues = false;
+  BOOL enableJsErrors = false;
   if (options.crashReporting().has_value()) {
     auto crashReporting = options.crashReporting().value();
     enableNativeFatalIssues = crashReporting.enableNativeFatalIssues().has_value() ? crashReporting.enableNativeFatalIssues().value() : false;
+    enableJsErrors = crashReporting.UNSTABLE_enableJsErrors().has_value() ? crashReporting.UNSTABLE_enableJsErrors().value() : false;
   }
 
   [CAPRNLogger
@@ -96,6 +100,7 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
     url:options.url()
     enableNetworkInstrumentation:enableNetworkInstrumentation
     enableNativeFatalIssues:enableNativeFatalIssues
+    enableJsErrors:enableJsErrors
   ];
 }
 

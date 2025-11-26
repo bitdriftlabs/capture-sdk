@@ -9,6 +9,7 @@ import Foundation
 
 enum ReportDirectory {
     private static let fileManager = FileManager.default
+    private static let watcherDirPath = "reports/watcher"
     
     static func sdkBaseDirectory() -> URL? {
         return try? fileManager.url(
@@ -33,15 +34,40 @@ enum ReportDirectory {
         return sdkDir
     }
     
+    static func getWatcherDirectory() -> URL? {
+        return ensureSDKDirectory()?.appendingPathComponent(watcherDirPath, isDirectory: true)
+    }
+    
+    static func setupWatcherDirectory(enableJsErrors: Bool) {
+        guard let sdkDir = ensureSDKDirectory() else {
+            return
+        }
+        let watcherDir = sdkDir.appendingPathComponent(watcherDirPath, isDirectory: true)
+        
+        if enableJsErrors {
+            if !fileManager.fileExists(atPath: watcherDir.path) {
+                try? fileManager.createDirectory(at: watcherDir, withIntermediateDirectories: true)
+            }
+        } else {
+            if fileManager.fileExists(atPath: watcherDir.path) {
+                try? fileManager.removeItem(at: watcherDir)
+            }
+        }
+    }
+    
     static func reportsDirectory(isFatal: Bool) -> URL? {
         guard let sdkDir = ensureSDKDirectory() else {
             return nil
         }
         
-        let reportsDir = sdkDir.appendingPathComponent(
-            isFatal ? "reports/new" : "reports/watcher/current_session",
-            isDirectory: true
-        )
+        let reportsDir: URL
+        if isFatal {
+            reportsDir = sdkDir.appendingPathComponent("reports/new", isDirectory: true)
+        } else if let watcherDir = getWatcherDirectory() {
+            reportsDir = watcherDir.appendingPathComponent("current_session", isDirectory: true)
+        } else {
+            return nil
+        }
         
         if !fileManager.fileExists(atPath: reportsDir.path) {
             try? fileManager.createDirectory(at: reportsDir, withIntermediateDirectories: true)
