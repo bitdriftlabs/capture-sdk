@@ -10,6 +10,10 @@ import Foundation
 
 @objc public class CAPRNLogger: NSObject {
     
+    private static let debugId: String? = {
+        DebugId.fromBundle()
+    }()
+    
     @objc public static func start(
         key: String, sessionStrategy: String, url: String?, enableNetworkInstrumentation: Bool, enableNativeFatalIssues: Bool, enableJsErrors: Bool
     ) {
@@ -132,8 +136,7 @@ import Foundation
             return
         }
         
-        // TODO(FranAguilera): BIT-6642 Fully implement debug id generation that should match with the generated sourcemaps
-        let debugId = DebugId.fromBundle() ?? ""
+        let debugId = Self.debugId ?? ""
         let deviceMetadata = DeviceMetadata.current()
         let appMetadata = AppMetadata.current()
         
