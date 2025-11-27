@@ -282,9 +282,6 @@ class CaptureLoggerTest {
         val resourceLog = CaptureTestJniLibrary.nextUploadedLog()
         assertThat(resourceLog.message).isEqualTo("")
 
-        val memPressureLog = CaptureTestJniLibrary.nextUploadedLog()
-        assertThat(memPressureLog.message).isEqualTo("AppMemPressure")
-
         val log = CaptureTestJniLibrary.nextUploadedLog()
         assertThat(log.level).isEqualTo(LogLevel.DEBUG.value)
         assertThat(log.message).isEqualTo("test log")

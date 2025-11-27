@@ -40,6 +40,12 @@
     <string name="started">Started</string>
     <string name="not_started">Not Started</string>
     <string name="testing_tools">Log Level and Fatal Issue Testing</string>
+    <string name="stress_test" translatable="false">Stress Test</string>
+    <string name="open_stress_test" translatable="false">Open Stress Test</string>
+    <string name="memory_pressure" translatable="false">Memory Pressure</string>
+    <string name="memory_leak" translatable="false">Memory Leak</string>
+    <string name="janky_frames" translatable="false">Janky Frames</string>
+    <string name="strict_mode" translatable="false">StrictMode Violations</string>
     <string name="device_code_valid">Device code: Valid</string>
     <string name="device_code_invalid">Device code: Invalid</string>
     <string name="restart_warning_title">Restart the App to apply changes</string>

@@ -24,9 +24,11 @@ import io.bitdrift.gradletestapp.data.model.FeatureFlagsTestAction
 import io.bitdrift.gradletestapp.data.model.NavigationAction
 import io.bitdrift.gradletestapp.data.model.NetworkTestAction
 import io.bitdrift.gradletestapp.data.model.SessionAction
+import io.bitdrift.gradletestapp.data.model.StressTestAction
 import io.bitdrift.gradletestapp.data.repository.AppExitRepository
 import io.bitdrift.gradletestapp.data.repository.NetworkTestingRepository
 import io.bitdrift.gradletestapp.data.repository.SdkRepository
+import io.bitdrift.gradletestapp.data.repository.StressTestRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,6 +45,7 @@ class MainViewModel(
     private val sdkRepository: SdkRepository,
     private val networkTestingRepository: NetworkTestingRepository,
     private val appExitRepository: AppExitRepository,
+    private val stressTestRepository: StressTestRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AppState())
     val uiState: StateFlow<AppState> = _uiState.asStateFlow()
@@ -121,6 +124,10 @@ class MainViewModel(
             is FeatureFlagsTestAction.AddManyFeatureFlags -> addManyFeatureFlags()
             is FeatureFlagsTestAction.ClearFeatureFlags -> clearFeatureFlags()
 
+            is StressTestAction.IncreaseMemoryPressure -> stressTestRepository.increaseMemoryPressure(action.targetPercent)
+            is StressTestAction.TriggerJankyFrames -> stressTestRepository.triggerJankyFrames(action.type.durationMs)
+            is StressTestAction.TriggerStrictModeViolation -> stressTestRepository.triggerStrictModeViolation()
+
             is ClearError -> clearError()
 
             // For now, navigation actions are handled at the Fragment level
@@ -129,6 +136,7 @@ class MainViewModel(
             is NavigationAction.NavigateToWebView -> {}
             is NavigationAction.NavigateToXml -> {}
             is NavigationAction.NavigateToDialogAndModals -> {}
+            is NavigationAction.NavigateToStressTest -> {}
         }
     }
 

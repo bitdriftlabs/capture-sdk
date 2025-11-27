@@ -76,6 +76,22 @@ sealed class NavigationAction : AppAction {
     object NavigateToXml : NavigationAction()
 
     object NavigateToDialogAndModals : NavigationAction()
+
+    object NavigateToStressTest : NavigationAction()
+}
+
+sealed class StressTestAction : AppAction {
+    data class IncreaseMemoryPressure(val targetPercent: Int) : StressTestAction()
+
+    data class TriggerJankyFrames(val type: JankType) : StressTestAction()
+
+    object TriggerStrictModeViolation : StressTestAction()
 }
 
 object ClearError : AppAction
+
+enum class JankType(val displayName: String, val durationMs: Long) {
+    SLOW("Slow (200ms)", 200),
+    FROZEN("Frozen (800ms)", 800),
+    ANR("ANR (6000ms)", 6000),
+}

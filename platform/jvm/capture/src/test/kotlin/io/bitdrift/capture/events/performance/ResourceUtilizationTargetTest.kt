@@ -77,6 +77,8 @@ class ResourceUtilizationTargetTest {
                 mapOf(
                     "_jvm_used_kb" to "50",
                     "_jvm_total_kb" to "100",
+                    "_jvm_max_kb" to "100",
+                    "_jvm_used_percent" to "50",
                     "_native_used_kb" to "200",
                     "_native_total_kb" to "500",
                     "_memory_class" to "1",
@@ -113,6 +115,8 @@ class ResourceUtilizationTargetTest {
                 mapOf(
                     "_jvm_used_kb" to "50",
                     "_jvm_total_kb" to "100",
+                    "_jvm_max_kb" to "100",
+                    "_jvm_used_percent" to "50",
                     "_native_used_kb" to "200",
                     "_native_total_kb" to "500",
                     "_memory_class" to "1",
