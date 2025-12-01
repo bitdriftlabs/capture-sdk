@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.20.1...HEAD
 
 ### Both
 
@@ -15,7 +15,7 @@
 
 **Fixed**
 
-- Fixed an issue where the session ID on AppExit logs would not match the previous process run session ID as expected.
+- Nothing yet!
  
 ### Android
 
@@ -25,12 +25,11 @@
 
 **Changed**
 
-- Removed `enableNativeCrashReporting` flag from `Configuration` object. From now on Native (NDK) crash reports will be included if `enableFatalIssueReporting` is set to true. Please note Native (NDK) crash detection still requires Android 12+ (API level 31 or higher)
+- Nothing yet!
 
 **Fixed**
 
-- Fixed a jni LocalReference leak that could crash the app when very large field maps or feature flags were sent to the logger.
-- Exclude `com.squareup.retrofit2:retrofit` dependency from the generated pom.
+- Nothing yet!
 
 ### iOS
 
@@ -45,6 +44,26 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.20.1]
+[0.20.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.20.1
+
+### Both
+
+**Fixed**
+
+- Fixed an issue where the session ID on AppExit logs would not match the previous process run session ID as expected.
+ 
+### Android
+
+**Changed**
+
+- Removed `enableNativeCrashReporting` flag from `Configuration` object. From now on Native (NDK) crash reports will be included if `enableFatalIssueReporting` is set to true. Please note Native (NDK) crash detection still requires Android 12+ (API level 31 or higher)
+
+**Fixed**
+
+- Fixed a jni LocalReference leak that could crash the app when very large field maps or feature flags were sent to the logger.
+- Exclude `com.squareup.retrofit2:retrofit` dependency from the generated pom.
 
 ## [0.20.0]
 [0.20.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.20.0
