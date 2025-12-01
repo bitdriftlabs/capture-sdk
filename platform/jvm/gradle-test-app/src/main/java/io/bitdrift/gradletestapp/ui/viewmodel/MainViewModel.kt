@@ -276,11 +276,11 @@ class MainViewModel(
     }
 
     private fun forceAppExit() {
-        Timber.i("Forcing app exit with reason: ${_uiState.value.diagnostics.selectedAppExitReason}")
-        appExitRepository.triggerAppExit(
-            application,
-            _uiState.value.diagnostics.selectedAppExitReason,
-        )
+        val reason = _uiState.value.diagnostics.selectedAppExitReason
+        Timber.i("Forcing app exit with reason: $reason")
+        Thread({
+            appExitRepository.triggerAppExit(application, reason)
+        }, "fatal-issue-trigger").start()
     }
 
     private fun updateApiKey(apiKey: String) {
