@@ -7,7 +7,6 @@
 
 package io.bitdrift.gradletestapp.ui.fragments
 
-import android.annotation.SuppressLint
 import android.app.Application
 import android.content.ClipboardManager
 import android.content.Context
@@ -27,17 +26,13 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.gradletestapp.R
-import io.bitdrift.gradletestapp.data.model.AppExitReason
-import io.bitdrift.gradletestapp.data.model.DiagnosticsAction
 import io.bitdrift.gradletestapp.data.model.NavigationAction
 import io.bitdrift.gradletestapp.data.repository.AppExitRepository
 import io.bitdrift.gradletestapp.data.repository.NetworkTestingRepository
 import io.bitdrift.gradletestapp.data.repository.SdkRepository
-import io.bitdrift.gradletestapp.diagnostics.fatalissues.FatalIssueGenerator
 import io.bitdrift.gradletestapp.ui.compose.MainScreen
 import io.bitdrift.gradletestapp.ui.viewmodel.MainViewModel
 import io.bitdrift.gradletestapp.ui.viewmodel.MainViewModelFactory
-import kotlin.system.exitProcess
 
 /**
  * Modern Fragment using Jetpack Compose following MVVM architecture
@@ -109,10 +104,6 @@ class FirstFragment : Fragment() {
                                     findNavController().navigate(R.id.action_FirstFragment_to_DialogAndModalsFragment)
                                 }
 
-                                is DiagnosticsAction.ForceAppExit -> {
-                                    forceAppExit(uiState.diagnostics.selectedAppExitReason)
-                                }
-
                                 else -> viewModel.handleAction(action)
                             }
                         },
@@ -137,29 +128,5 @@ class FirstFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _composeView = null
-    }
-
-    @SuppressLint("VisibleForTests")
-    private fun forceAppExit(reason: AppExitReason) {
-        when (reason) {
-            AppExitReason.ANR_BLOCKING_GET -> FatalIssueGenerator.forceBlockingGetAnr()
-            AppExitReason.ANR_BROADCAST_RECEIVER ->
-                FatalIssueGenerator.forceBroadcastReceiverAnr(
-                    requireContext(),
-                )
-
-            AppExitReason.ANR_COROUTINES -> FatalIssueGenerator.forceCoroutinesAnr()
-            AppExitReason.ANR_DEADLOCK -> FatalIssueGenerator.forceDeadlockAnr()
-            AppExitReason.ANR_GENERIC -> FatalIssueGenerator.forceGenericAnr(requireContext())
-            AppExitReason.ANR_SLEEP_MAIN_THREAD -> FatalIssueGenerator.forceThreadSleepAnr()
-            AppExitReason.APP_CRASH_COROUTINE_EXCEPTION -> FatalIssueGenerator.forceCoroutinesCrash()
-            AppExitReason.APP_CRASH_REGULAR_JVM_EXCEPTION -> FatalIssueGenerator.forceUnhandledException()
-            AppExitReason.APP_CRASH_RX_JAVA_EXCEPTION -> FatalIssueGenerator.forceRxJavaException()
-            AppExitReason.APP_CRASH_OUT_OF_MEMORY -> FatalIssueGenerator.forceOutOfMemoryCrash()
-            AppExitReason.NATIVE_CAPTURE_DESTROY_CRASH -> FatalIssueGenerator.forceCaptureNativeCrash()
-            AppExitReason.NATIVE_SIGSEGV -> FatalIssueGenerator.forceNativeSegmentationFault()
-            AppExitReason.NATIVE_SIGBUS -> FatalIssueGenerator.forceNativeBusError()
-            AppExitReason.SYSTEM_EXIT -> exitProcess(0)
-        }
     }
 }

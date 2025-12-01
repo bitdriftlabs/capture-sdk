@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
             apiKey = "<YOUR API KEY GOES HERE>",
             apiUrl = "https://api.bitdrift.io".toHttpUrl(),
             sessionStrategy = SessionStrategy.Fixed(),
-            configuration = Configuration(enableFatalIssueReporting = true, enableNativeCrashReporting = true),
+            configuration = Configuration(enableFatalIssueReporting = true),
         )
 
         if (BuildConfig.DEBUG) {
