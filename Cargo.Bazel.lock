@@ -1,5 +1,5 @@
 {
-  "checksum": "5669d851a86f251a5dd682d8465981991f887159911d583b18f8a1f86f1f0d7c",
+  "checksum": "d5411085ec20b6e210917c1ae2dabf49cfe8d3f8600ca7889e112a6791e813a6",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -256,6 +256,85 @@
         "Unlicense"
       ],
       "license_file": "LICENSE-MIT"
+    },
+    "alloca 0.4.0": {
+      "name": "alloca",
+      "version": "0.4.0",
+      "package_url": "https://github.com/playXE/alloca-rs",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/alloca/0.4.0/download",
+          "sha256": "e5a7d05ea6aea7e9e64d25b9156ba2fee3fdd659e34e41063cd2fc7cd020d7f4"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "alloca",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "alloca",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "alloca 0.4.0",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.4.0"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "cc 1.2.47",
+              "target": "cc"
+            }
+          ],
+          "selects": {}
+        }
+      },
+      "license": "MIT",
+      "license_ids": [
+        "MIT"
+      ],
+      "license_file": "LICENSE"
     },
     "android_log-sys 0.3.2": {
       "name": "android_log-sys",
@@ -608,7 +687,7 @@
           "selects": {
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.61.2",
+                "id": "windows-sys 0.60.2",
                 "target": "windows_sys"
               }
             ]
@@ -667,7 +746,7 @@
                 "target": "once_cell_polyfill"
               },
               {
-                "id": "windows-sys 0.61.2",
+                "id": "windows-sys 0.60.2",
                 "target": "windows_sys"
               }
             ]
@@ -800,14 +879,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "async-compression 0.4.34": {
+    "async-compression 0.4.33": {
       "name": "async-compression",
-      "version": "0.4.34",
+      "version": "0.4.33",
       "package_url": "https://github.com/Nullus157/async-compression",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/async-compression/0.4.34/download",
-          "sha256": "0e86f6d3dc9dc4352edeea6b8e499e13e3f5dc3b964d7ca5fd411415a3498473"
+          "url": "https://static.crates.io/crates/async-compression/0.4.33/download",
+          "sha256": "93c1f86859c1af3d514fa19e8323147ff10ea98684e6c7b307912509f50e67b2"
         }
       },
       "targets": [
@@ -839,11 +918,11 @@
         "deps": {
           "common": [
             {
-              "id": "compression-codecs 0.4.33",
+              "id": "compression-codecs 0.4.32",
               "target": "compression_codecs"
             },
             {
-              "id": "compression-core 0.4.31",
+              "id": "compression-core 0.4.30",
               "target": "compression_core"
             },
             {
@@ -862,7 +941,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.4.34"
+        "version": "0.4.33"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -1070,7 +1149,7 @@
               "target": "futures_util"
             },
             {
-              "id": "http 1.4.0",
+              "id": "http 1.3.1",
               "target": "http"
             },
             {
@@ -1150,7 +1229,7 @@
               "target": "tower_service"
             },
             {
-              "id": "tracing 0.1.41",
+              "id": "tracing 0.1.43",
               "target": "tracing"
             }
           ],
@@ -1220,7 +1299,7 @@
               "target": "futures_core"
             },
             {
-              "id": "http 1.4.0",
+              "id": "http 1.3.1",
               "target": "http"
             },
             {
@@ -1252,7 +1331,7 @@
               "target": "tower_service"
             },
             {
-              "id": "tracing 0.1.41",
+              "id": "tracing 0.1.43",
               "target": "tracing"
             }
           ],
@@ -1575,7 +1654,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-api"
         }
@@ -1698,7 +1777,7 @@
               "target": "tokio"
             },
             {
-              "id": "tracing 0.1.41",
+              "id": "tracing 0.1.43",
               "target": "tracing"
             },
             {
@@ -1732,7 +1811,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-artifact-upload"
         }
@@ -1865,7 +1944,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-bonjson"
         }
@@ -1929,7 +2008,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-bonjson-ffi"
         }
@@ -2035,7 +2114,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-bounded-buffer"
         }
@@ -2111,7 +2190,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-buffer"
         }
@@ -2222,7 +2301,7 @@
               "target": "tokio"
             },
             {
-              "id": "tracing 0.1.41",
+              "id": "tracing 0.1.43",
               "target": "tracing"
             }
           ],
@@ -2252,7 +2331,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-client-common"
         }
@@ -2381,7 +2460,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-client-stats"
         }
@@ -2510,7 +2589,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-client-stats-store"
         }
@@ -2603,7 +2682,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-completion"
         }
@@ -2667,7 +2746,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-crash-handler"
         }
@@ -2710,16 +2789,16 @@
               "target": "bd_client_common"
             },
             {
+              "id": "bd-client-stats-store 1.0.0",
+              "target": "bd_client_stats_store"
+            },
+            {
               "id": "bd-device 1.0.0",
               "target": "bd_device"
             },
             {
               "id": "bd-error-reporter 1.0.0",
               "target": "bd_error_reporter"
-            },
-            {
-              "id": "bd-feature-flags 1.0.0",
-              "target": "bd_feature_flags"
             },
             {
               "id": "bd-key-value 1.0.0",
@@ -2734,6 +2813,10 @@
               "target": "bd_proto"
             },
             {
+              "id": "bd-resilient-kv 1.0.0",
+              "target": "bd_resilient_kv"
+            },
+            {
               "id": "bd-runtime 1.0.0",
               "target": "bd_runtime"
             },
@@ -2744,6 +2827,10 @@
             {
               "id": "bd-shutdown 1.0.0",
               "target": "bd_shutdown"
+            },
+            {
+              "id": "bd-state 1.0.0",
+              "target": "bd_state"
             },
             {
               "id": "bd-time 1.0.0",
@@ -2828,7 +2915,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-device"
         }
@@ -2904,7 +2991,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-error-reporter"
         }
@@ -2984,7 +3071,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-events"
         }
@@ -3044,86 +3131,6 @@
       "license_ids": [],
       "license_file": "../LICENSE"
     },
-    "bd-feature-flags 1.0.0": {
-      "name": "bd-feature-flags",
-      "version": "1.0.0",
-      "package_url": null,
-      "repository": {
-        "Git": {
-          "remote": "https://github.com/bitdriftlabs/shared-core.git",
-          "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
-          },
-          "strip_prefix": "bd-feature-flags"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "bd_feature_flags",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "bd_feature_flags",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "ahash 0.8.12",
-              "target": "ahash"
-            },
-            {
-              "id": "anyhow 1.0.100",
-              "target": "anyhow"
-            },
-            {
-              "id": "bd-bonjson 1.0.0",
-              "target": "bd_bonjson"
-            },
-            {
-              "id": "bd-client-common 1.0.0",
-              "target": "bd_client_common"
-            },
-            {
-              "id": "bd-resilient-kv 1.0.0",
-              "target": "bd_resilient_kv"
-            },
-            {
-              "id": "bd-workspace-hack 0.1.0",
-              "target": "bd_workspace_hack"
-            },
-            {
-              "id": "log 0.4.28",
-              "target": "log"
-            },
-            {
-              "id": "tempfile 3.23.0",
-              "target": "tempfile"
-            },
-            {
-              "id": "time 0.3.44",
-              "target": "time"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2024",
-        "version": "1.0.0"
-      },
-      "license": null,
-      "license_ids": [],
-      "license_file": "../LICENSE"
-    },
     "bd-grpc 1.0.0": {
       "name": "bd-grpc",
       "version": "1.0.0",
@@ -3132,7 +3139,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-grpc"
         }
@@ -3231,7 +3238,7 @@
               "target": "futures"
             },
             {
-              "id": "http 1.4.0",
+              "id": "http 1.3.1",
               "target": "http"
             },
             {
@@ -3295,7 +3302,7 @@
               "target": "tower"
             },
             {
-              "id": "tower-http 0.6.7",
+              "id": "tower-http 0.6.6",
               "target": "tower_http"
             },
             {
@@ -3359,7 +3366,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-grpc-codec"
         }
@@ -3438,7 +3445,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-hyper-network"
         }
@@ -3493,7 +3500,7 @@
               "target": "bytes"
             },
             {
-              "id": "http 1.4.0",
+              "id": "http 1.3.1",
               "target": "http"
             },
             {
@@ -3563,7 +3570,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-internal-logging"
         }
@@ -3623,7 +3630,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-key-value"
         }
@@ -3715,7 +3722,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-log"
         }
@@ -3766,7 +3773,7 @@
               "target": "tokio"
             },
             {
-              "id": "tracing 0.1.41",
+              "id": "tracing 0.1.43",
               "target": "tracing"
             },
             {
@@ -3778,7 +3785,7 @@
               "target": "tracing_log"
             },
             {
-              "id": "tracing-subscriber 0.3.20",
+              "id": "tracing-subscriber 0.3.22",
               "target": "tracing_subscriber"
             }
           ],
@@ -3799,7 +3806,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-log-filter"
         }
@@ -3834,10 +3841,6 @@
               "target": "bd_client_stats_store"
             },
             {
-              "id": "bd-feature-flags 1.0.0",
-              "target": "bd_feature_flags"
-            },
-            {
               "id": "bd-log-matcher 1.0.0",
               "target": "bd_log_matcher"
             },
@@ -3848,6 +3851,10 @@
             {
               "id": "bd-proto 1.0.0",
               "target": "bd_proto"
+            },
+            {
+              "id": "bd-state 1.0.0",
+              "target": "bd_state"
             },
             {
               "id": "bd-workspace-hack 0.1.0",
@@ -3887,7 +3894,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-log-matcher"
         }
@@ -3918,16 +3925,16 @@
               "target": "anyhow"
             },
             {
-              "id": "bd-feature-flags 1.0.0",
-              "target": "bd_feature_flags"
-            },
-            {
               "id": "bd-log-primitives 1.0.0",
               "target": "bd_log_primitives"
             },
             {
               "id": "bd-proto 1.0.0",
               "target": "bd_proto"
+            },
+            {
+              "id": "bd-state 1.0.0",
+              "target": "bd_state"
             },
             {
               "id": "bd-workspace-hack 0.1.0",
@@ -3967,7 +3974,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-log-metadata"
         }
@@ -4027,7 +4034,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-log-primitives"
         }
@@ -4103,7 +4110,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-logger"
         }
@@ -4136,6 +4143,10 @@
             {
               "id": "backoff 0.4.0",
               "target": "backoff"
+            },
+            {
+              "id": "base64 0.22.1",
+              "target": "base64"
             },
             {
               "id": "bd-api 1.0.0",
@@ -4186,10 +4197,6 @@
               "target": "bd_events"
             },
             {
-              "id": "bd-feature-flags 1.0.0",
-              "target": "bd_feature_flags"
-            },
-            {
               "id": "bd-internal-logging 1.0.0",
               "target": "bd_internal_logging"
             },
@@ -4226,6 +4233,10 @@
               "target": "bd_proto"
             },
             {
+              "id": "bd-resilient-kv 1.0.0",
+              "target": "bd_resilient_kv"
+            },
+            {
               "id": "bd-resource-utilization 1.0.0",
               "target": "bd_resource_utilization"
             },
@@ -4244,6 +4255,10 @@
             {
               "id": "bd-shutdown 1.0.0",
               "target": "bd_shutdown"
+            },
+            {
+              "id": "bd-state 1.0.0",
+              "target": "bd_state"
             },
             {
               "id": "bd-stats-common 1.0.0",
@@ -4310,7 +4325,7 @@
               "target": "tower"
             },
             {
-              "id": "tracing 0.1.41",
+              "id": "tracing 0.1.43",
               "target": "tracing"
             },
             {
@@ -4344,7 +4359,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-metadata"
         }
@@ -4392,7 +4407,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-network-quality"
         }
@@ -4440,7 +4455,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-noop-network"
         }
@@ -4509,7 +4524,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-panic"
         }
@@ -4569,7 +4584,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-pgv"
         }
@@ -4671,7 +4686,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-proto"
         }
@@ -4781,7 +4796,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-proto-util"
         }
@@ -4897,7 +4912,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-report-parsers"
         }
@@ -4969,7 +4984,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-report-writer"
         }
@@ -5067,7 +5082,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-resilient-kv"
         }
@@ -5108,6 +5123,10 @@
             {
               "id": "bd-client-common 1.0.0",
               "target": "bd_client_common"
+            },
+            {
+              "id": "bd-client-stats-store 1.0.0",
+              "target": "bd_client_stats_store"
             },
             {
               "id": "bd-error-reporter 1.0.0",
@@ -5183,7 +5202,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-resource-utilization"
         }
@@ -5267,7 +5286,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-runtime"
         }
@@ -5360,7 +5379,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-server-stats"
         }
@@ -5456,7 +5475,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-session"
         }
@@ -5548,7 +5567,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-session-replay"
         }
@@ -5652,7 +5671,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-shutdown"
         }
@@ -5700,6 +5719,115 @@
       "license_ids": [],
       "license_file": "../LICENSE"
     },
+    "bd-state 1.0.0": {
+      "name": "bd-state",
+      "version": "1.0.0",
+      "package_url": null,
+      "repository": {
+        "Git": {
+          "remote": "https://github.com/bitdriftlabs/shared-core.git",
+          "commitish": {
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
+          },
+          "strip_prefix": "bd-state"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "bd_state",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "bd_state",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "ahash 0.8.12",
+              "target": "ahash"
+            },
+            {
+              "id": "anyhow 1.0.100",
+              "target": "anyhow"
+            },
+            {
+              "id": "bd-bonjson 1.0.0",
+              "target": "bd_bonjson"
+            },
+            {
+              "id": "bd-client-common 1.0.0",
+              "target": "bd_client_common"
+            },
+            {
+              "id": "bd-client-stats-store 1.0.0",
+              "target": "bd_client_stats_store"
+            },
+            {
+              "id": "bd-resilient-kv 1.0.0",
+              "target": "bd_resilient_kv"
+            },
+            {
+              "id": "bd-runtime 1.0.0",
+              "target": "bd_runtime"
+            },
+            {
+              "id": "bd-time 1.0.0",
+              "target": "bd_time"
+            },
+            {
+              "id": "bd-workspace-hack 0.1.0",
+              "target": "bd_workspace_hack"
+            },
+            {
+              "id": "itertools 0.14.0",
+              "target": "itertools"
+            },
+            {
+              "id": "log 0.4.28",
+              "target": "log"
+            },
+            {
+              "id": "tempfile 3.23.0",
+              "target": "tempfile"
+            },
+            {
+              "id": "time 0.3.44",
+              "target": "time"
+            },
+            {
+              "id": "tokio 1.48.0",
+              "target": "tokio"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2024",
+        "proc_macro_deps": {
+          "common": [
+            {
+              "id": "async-trait 0.1.89",
+              "target": "async_trait"
+            }
+          ],
+          "selects": {}
+        },
+        "version": "1.0.0"
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": "../LICENSE"
+    },
     "bd-stats-common 1.0.0": {
       "name": "bd-stats-common",
       "version": "1.0.0",
@@ -5708,7 +5836,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-stats-common"
         }
@@ -5768,7 +5896,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-test-helpers"
         }
@@ -5943,7 +6071,7 @@
               "target": "tower"
             },
             {
-              "id": "tracing 0.1.41",
+              "id": "tracing 0.1.43",
               "target": "tracing"
             }
           ],
@@ -5973,7 +6101,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-time"
         }
@@ -6050,7 +6178,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6482fc94be42e6ad1571871683f7248fae559122"
+            "Rev": "4bc215755fb6cb513e85423d785fe740ef6cb39d"
           },
           "strip_prefix": "bd-workflows"
         }
@@ -6105,10 +6233,6 @@
               "target": "bd_error_reporter"
             },
             {
-              "id": "bd-feature-flags 1.0.0",
-              "target": "bd_feature_flags"
-            },
-            {
               "id": "bd-log-matcher 1.0.0",
               "target": "bd_log_matcher"
             },
@@ -6127,6 +6251,10 @@
             {
               "id": "bd-shutdown 1.0.0",
               "target": "bd_shutdown"
+            },
+            {
+              "id": "bd-state 1.0.0",
+              "target": "bd_state"
             },
             {
               "id": "bd-stats-common 1.0.0",
@@ -6792,7 +6920,7 @@
               "target": "time"
             },
             {
-              "id": "tracing-subscriber 0.3.20",
+              "id": "tracing-subscriber 0.3.22",
               "target": "tracing_subscriber"
             },
             {
@@ -6920,7 +7048,7 @@
               "target": "heck"
             },
             {
-              "id": "indexmap 2.12.1",
+              "id": "indexmap 2.12.0",
               "target": "indexmap"
             },
             {
@@ -7626,14 +7754,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "compression-codecs 0.4.33": {
+    "compression-codecs 0.4.32": {
       "name": "compression-codecs",
-      "version": "0.4.33",
+      "version": "0.4.32",
       "package_url": "https://github.com/Nullus157/async-compression",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/compression-codecs/0.4.33/download",
-          "sha256": "302266479cb963552d11bd042013a58ef1adc56768016c8b82b4199488f2d4ad"
+          "url": "https://static.crates.io/crates/compression-codecs/0.4.32/download",
+          "sha256": "680dc087785c5230f8e8843e2e57ac7c1c90488b6a91b88caa265410568f441b"
         }
       },
       "targets": [
@@ -7665,7 +7793,7 @@
         "deps": {
           "common": [
             {
-              "id": "compression-core 0.4.31",
+              "id": "compression-core 0.4.30",
               "target": "compression_core"
             },
             {
@@ -7676,7 +7804,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.4.33"
+        "version": "0.4.32"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -7685,14 +7813,14 @@
       ],
       "license_file": null
     },
-    "compression-core 0.4.31": {
+    "compression-core 0.4.30": {
       "name": "compression-core",
-      "version": "0.4.31",
+      "version": "0.4.30",
       "package_url": "https://github.com/Nullus157/async-compression",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/compression-core/0.4.31/download",
-          "sha256": "75984efb6ed102a0d42db99afb6c1948f0380d1d91808d5529916e6c08b49d8d"
+          "url": "https://static.crates.io/crates/compression-core/0.4.30/download",
+          "sha256": "3a9b614a5787ef0c8802a55766480563cb3a93b435898c422ed2a359cf811582"
         }
       },
       "targets": [
@@ -7715,7 +7843,7 @@
           "**"
         ],
         "edition": "2018",
-        "version": "0.4.31"
+        "version": "0.4.30"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -7913,14 +8041,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "criterion 0.7.0": {
+    "criterion 0.8.0": {
       "name": "criterion",
-      "version": "0.7.0",
-      "package_url": "https://github.com/bheisler/criterion.rs",
+      "version": "0.8.0",
+      "package_url": "https://github.com/criterion-rs/criterion.rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/criterion/0.7.0/download",
-          "sha256": "e1c047a62b0cc3e145fa84415a3191f628e980b194c2755aa12300a4e6cbd928"
+          "url": "https://static.crates.io/crates/criterion/0.8.0/download",
+          "sha256": "a0dfe5e9e71bdcf4e4954f7d14da74d1cdb92a3a07686452d1509652684b1aab"
         }
       },
       "targets": [
@@ -7954,6 +8082,10 @@
         "deps": {
           "common": [
             {
+              "id": "alloca 0.4.0",
+              "target": "alloca"
+            },
+            {
               "id": "anes 0.1.6",
               "target": "anes"
             },
@@ -7970,7 +8102,7 @@
               "target": "clap"
             },
             {
-              "id": "criterion-plot 0.6.0",
+              "id": "criterion-plot 0.8.0",
               "target": "criterion_plot"
             },
             {
@@ -7984,6 +8116,10 @@
             {
               "id": "oorandom 11.1.5",
               "target": "oorandom"
+            },
+            {
+              "id": "page_size 0.6.0",
+              "target": "page_size"
             },
             {
               "id": "plotters 0.3.7",
@@ -8017,7 +8153,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.7.0"
+        "version": "0.8.0"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
@@ -8026,14 +8162,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "criterion-plot 0.6.0": {
+    "criterion-plot 0.8.0": {
       "name": "criterion-plot",
-      "version": "0.6.0",
-      "package_url": "https://github.com/bheisler/criterion.rs",
+      "version": "0.8.0",
+      "package_url": "https://github.com/criterion-rs/criterion.rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/criterion-plot/0.6.0/download",
-          "sha256": "9b1bcc0dc7dfae599d84ad0b1a55f80cde8af3725da8313b528da95ef783e338"
+          "url": "https://static.crates.io/crates/criterion-plot/0.8.0/download",
+          "sha256": "5de36c2bee19fba779808f92bf5d9b0fa5a40095c277aba10c458a12b35d21d6"
         }
       },
       "targets": [
@@ -8069,9 +8205,9 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.6.0"
+        "version": "0.8.0"
       },
-      "license": "MIT OR Apache-2.0",
+      "license": "Apache-2.0 OR MIT",
       "license_ids": [
         "Apache-2.0",
         "MIT"
@@ -9080,7 +9216,7 @@
             ],
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.61.2",
+                "id": "windows-sys 0.52.0",
                 "target": "windows_sys"
               }
             ]
@@ -10583,11 +10719,11 @@
               "target": "futures_sink"
             },
             {
-              "id": "http 1.4.0",
+              "id": "http 1.3.1",
               "target": "http"
             },
             {
-              "id": "indexmap 2.12.1",
+              "id": "indexmap 2.12.0",
               "target": "indexmap"
             },
             {
@@ -10603,7 +10739,7 @@
               "target": "tokio_util"
             },
             {
-              "id": "tracing 0.1.41",
+              "id": "tracing 0.1.43",
               "target": "tracing"
             }
           ],
@@ -10722,14 +10858,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "hashbrown 0.16.1": {
+    "hashbrown 0.16.0": {
       "name": "hashbrown",
-      "version": "0.16.1",
+      "version": "0.16.0",
       "package_url": "https://github.com/rust-lang/hashbrown",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/hashbrown/0.16.1/download",
-          "sha256": "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
+          "url": "https://static.crates.io/crates/hashbrown/0.16.0/download",
+          "sha256": "5419bdc4f6a9207fbeba6d11b604d481addf78ecd10c11ad51e76c2f6482748d"
         }
       },
       "targets": [
@@ -10752,7 +10888,7 @@
           "**"
         ],
         "edition": "2021",
-        "version": "0.16.1"
+        "version": "0.16.0"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -10850,14 +10986,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "http 1.4.0": {
+    "http 1.3.1": {
       "name": "http",
-      "version": "1.4.0",
+      "version": "1.3.1",
       "package_url": "https://github.com/hyperium/http",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/http/1.4.0/download",
-          "sha256": "e3ba2a386d7f85a81f119ad7498ebe444d2e22c2af0b86b069416ace48b3311a"
+          "url": "https://static.crates.io/crates/http/1.3.1/download",
+          "sha256": "f4a85d31aea989eead29a3aaf9e1115a180df8282431156e533de47660892565"
         }
       },
       "targets": [
@@ -10893,14 +11029,18 @@
               "target": "bytes"
             },
             {
+              "id": "fnv 1.0.7",
+              "target": "fnv"
+            },
+            {
               "id": "itoa 1.0.15",
               "target": "itoa"
             }
           ],
           "selects": {}
         },
-        "edition": "2021",
-        "version": "1.4.0"
+        "edition": "2018",
+        "version": "1.3.1"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -10945,7 +11085,7 @@
               "target": "bytes"
             },
             {
-              "id": "http 1.4.0",
+              "id": "http 1.3.1",
               "target": "http"
             }
           ],
@@ -11006,7 +11146,7 @@
               "target": "futures_core"
             },
             {
-              "id": "http 1.4.0",
+              "id": "http 1.3.1",
               "target": "http"
             },
             {
@@ -11208,7 +11348,7 @@
               "target": "h2"
             },
             {
-              "id": "http 1.4.0",
+              "id": "http 1.3.1",
               "target": "http"
             },
             {
@@ -11300,7 +11440,7 @@
         "deps": {
           "common": [
             {
-              "id": "http 1.4.0",
+              "id": "http 1.3.1",
               "target": "http"
             },
             {
@@ -11411,7 +11551,7 @@
               "target": "futures_util"
             },
             {
-              "id": "http 1.4.0",
+              "id": "http 1.3.1",
               "target": "http"
             },
             {
@@ -11443,7 +11583,7 @@
               "target": "tower_service"
             },
             {
-              "id": "tracing 0.1.41",
+              "id": "tracing 0.1.43",
               "target": "tracing"
             }
           ],
@@ -11458,14 +11598,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "indexmap 2.12.1": {
+    "indexmap 2.12.0": {
       "name": "indexmap",
-      "version": "2.12.1",
+      "version": "2.12.0",
       "package_url": "https://github.com/indexmap-rs/indexmap",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/indexmap/2.12.1/download",
-          "sha256": "0ad4bb2b565bca0645f4d68c5c9af97fba094e9791da685bf83cb5f3ce74acf2"
+          "url": "https://static.crates.io/crates/indexmap/2.12.0/download",
+          "sha256": "6717a8d2a5a929a1a2eb43a12812498ed141a0bcfb7e8f7844fbdbe4303bba9f"
         }
       },
       "targets": [
@@ -11501,14 +11641,14 @@
               "target": "equivalent"
             },
             {
-              "id": "hashbrown 0.16.1",
+              "id": "hashbrown 0.16.0",
               "target": "hashbrown"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "2.12.1"
+        "version": "2.12.0"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
@@ -12662,7 +12802,7 @@
               "target": "bd_test_helpers"
             },
             {
-              "id": "criterion 0.7.0",
+              "id": "criterion 0.8.0",
               "target": "criterion"
             },
             {
@@ -13669,7 +13809,7 @@
           "selects": {
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.61.2",
+                "id": "windows-sys 0.59.0",
                 "target": "windows_sys",
                 "alias": "windows"
               }
@@ -14172,6 +14312,62 @@
         "MIT"
       ],
       "license_file": "LICENSE-MIT"
+    },
+    "page_size 0.6.0": {
+      "name": "page_size",
+      "version": "0.6.0",
+      "package_url": "https://github.com/Elzair/page_size_rs",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/page_size/0.6.0/download",
+          "sha256": "30d5b2194ed13191c1999ae0704b7839fb18384fa22e49b57eeaa97d79ce40da"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "page_size",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "page_size",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [],
+          "selects": {
+            "cfg(unix)": [
+              {
+                "id": "libc 0.2.177",
+                "target": "libc"
+              }
+            ],
+            "cfg(windows)": [
+              {
+                "id": "winapi 0.3.9",
+                "target": "winapi"
+              }
+            ]
+          }
+        },
+        "edition": "2015",
+        "version": "0.6.0"
+      },
+      "license": "MIT/Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
     },
     "parking_lot 0.12.5": {
       "name": "parking_lot",
@@ -15725,7 +15921,7 @@
               "target": "anyhow"
             },
             {
-              "id": "indexmap 2.12.1",
+              "id": "indexmap 2.12.0",
               "target": "indexmap"
             },
             {
@@ -17226,7 +17422,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "windows-sys 0.61.2",
+                "id": "windows-sys 0.52.0",
                 "target": "windows_sys"
               }
             ],
@@ -18506,14 +18702,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "signal-hook-registry 1.4.7": {
+    "signal-hook-registry 1.4.6": {
       "name": "signal-hook-registry",
-      "version": "1.4.7",
+      "version": "1.4.6",
       "package_url": "https://github.com/vorner/signal-hook",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/signal-hook-registry/1.4.7/download",
-          "sha256": "7664a098b8e616bdfcc2dc0e9ac44eb231eedf41db4e9fe95d8d32ec728dedad"
+          "url": "https://static.crates.io/crates/signal-hook-registry/1.4.6/download",
+          "sha256": "b2a4719bff48cee6b39d12c020eeb490953ad2443b7055bd0b21fca26bd8c28b"
         }
       },
       "targets": [
@@ -18545,9 +18741,9 @@
           "selects": {}
         },
         "edition": "2015",
-        "version": "1.4.7"
+        "version": "1.4.6"
       },
-      "license": "MIT OR Apache-2.0",
+      "license": "Apache-2.0/MIT",
       "license_ids": [
         "Apache-2.0",
         "MIT"
@@ -19257,7 +19453,7 @@
               "target": "tokio"
             },
             {
-              "id": "tracing-subscriber 0.3.20",
+              "id": "tracing-subscriber 0.3.22",
               "target": "tracing_subscriber"
             },
             {
@@ -19466,7 +19662,7 @@
             ],
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.61.2",
+                "id": "windows-sys 0.52.0",
                 "target": "windows_sys"
               }
             ]
@@ -20371,7 +20567,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "signal-hook-registry 1.4.7",
+              "id": "signal-hook-registry 1.4.6",
               "target": "signal_hook_registry"
             },
             {
@@ -20701,7 +20897,7 @@
               "target": "toml_parser"
             },
             {
-              "id": "winnow 0.7.14",
+              "id": "winnow 0.7.13",
               "target": "winnow"
             }
           ],
@@ -20812,7 +21008,7 @@
         "deps": {
           "common": [
             {
-              "id": "winnow 0.7.14",
+              "id": "winnow 0.7.13",
               "target": "winnow"
             }
           ],
@@ -20943,7 +21139,7 @@
               "target": "tower_service"
             },
             {
-              "id": "tracing 0.1.41",
+              "id": "tracing 0.1.43",
               "target": "tracing"
             }
           ],
@@ -20958,14 +21154,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "tower-http 0.6.7": {
+    "tower-http 0.6.6": {
       "name": "tower-http",
-      "version": "0.6.7",
+      "version": "0.6.6",
       "package_url": "https://github.com/tower-rs/tower-http",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/tower-http/0.6.7/download",
-          "sha256": "9cf146f99d442e8e68e585f5d798ccd3cad9a7835b917e09728880a862706456"
+          "url": "https://static.crates.io/crates/tower-http/0.6.6/download",
+          "sha256": "adc82fd73de2a9722ac5da747f12383d2bfdb93591ee6c58486e0097890f05f2"
         }
       },
       "targets": [
@@ -21001,7 +21197,7 @@
         "deps": {
           "common": [
             {
-              "id": "async-compression 0.4.34",
+              "id": "async-compression 0.4.33",
               "target": "async_compression"
             },
             {
@@ -21017,7 +21213,7 @@
               "target": "futures_core"
             },
             {
-              "id": "http 1.4.0",
+              "id": "http 1.3.1",
               "target": "http"
             },
             {
@@ -21048,7 +21244,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.6.7"
+        "version": "0.6.6"
       },
       "license": "MIT",
       "license_ids": [
@@ -21132,14 +21328,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "tracing 0.1.41": {
+    "tracing 0.1.43": {
       "name": "tracing",
-      "version": "0.1.41",
+      "version": "0.1.43",
       "package_url": "https://github.com/tokio-rs/tracing",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/tracing/0.1.41/download",
-          "sha256": "784e0ac535deb450455cbfa28a6f0df145ea1bb7ae51b821cf5e7927fdcfbdd0"
+          "url": "https://static.crates.io/crates/tracing/0.1.43/download",
+          "sha256": "2d15d90a0b5c19378952d479dc858407149d7bb45a14de0142f6c534b16fc647"
         }
       },
       "targets": [
@@ -21198,7 +21394,7 @@
           ],
           "selects": {}
         },
-        "version": "0.1.41"
+        "version": "0.1.43"
       },
       "license": "MIT",
       "license_ids": [
@@ -21355,11 +21551,11 @@
         "deps": {
           "common": [
             {
-              "id": "tracing 0.1.41",
+              "id": "tracing 0.1.43",
               "target": "tracing"
             },
             {
-              "id": "tracing-subscriber 0.3.20",
+              "id": "tracing-subscriber 0.3.22",
               "target": "tracing_subscriber"
             }
           ],
@@ -21437,14 +21633,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "tracing-subscriber 0.3.20": {
+    "tracing-subscriber 0.3.22": {
       "name": "tracing-subscriber",
-      "version": "0.3.20",
+      "version": "0.3.22",
       "package_url": "https://github.com/tokio-rs/tracing",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/tracing-subscriber/0.3.20/download",
-          "sha256": "2054a14f5307d601f88daf0553e1cbf472acc4f2c51afab632431cdcd72124d5"
+          "url": "https://static.crates.io/crates/tracing-subscriber/0.3.22/download",
+          "sha256": "2f30143827ddab0d256fd843b7a66d164e9f271cfa0dde49142c5ca0ca291f1e"
         }
       },
       "targets": [
@@ -21517,7 +21713,7 @@
               "target": "thread_local"
             },
             {
-              "id": "tracing 0.1.41",
+              "id": "tracing 0.1.43",
               "target": "tracing"
             },
             {
@@ -21532,7 +21728,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.3.20"
+        "version": "0.3.22"
       },
       "license": "MIT",
       "license_ids": [
@@ -22982,7 +23178,7 @@
           "selects": {
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.61.2",
+                "id": "windows-sys 0.52.0",
                 "target": "windows_sys"
               }
             ]
@@ -25289,14 +25485,14 @@
       ],
       "license_file": "license-apache-2.0"
     },
-    "winnow 0.7.14": {
+    "winnow 0.7.13": {
       "name": "winnow",
-      "version": "0.7.14",
+      "version": "0.7.13",
       "package_url": "https://github.com/winnow-rs/winnow",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/winnow/0.7.14/download",
-          "sha256": "5a5364e9d77fcdeeaa6062ced926ee3381faa2ee02d3eb83a5c27a8825540829"
+          "url": "https://static.crates.io/crates/winnow/0.7.13/download",
+          "sha256": "21a0236b59786fed61e2a80582dd500fe61f18b5dca67a4a067d0bc9039339cf"
         }
       },
       "targets": [
@@ -25319,7 +25515,7 @@
           "**"
         ],
         "edition": "2021",
-        "version": "0.7.14"
+        "version": "0.7.13"
       },
       "license": "MIT",
       "license_ids": [
@@ -25901,7 +26097,7 @@
     "bd-shutdown 1.0.0",
     "bd-test-helpers 1.0.0",
     "bd-time 1.0.0",
-    "criterion 0.7.0",
+    "criterion 0.8.0",
     "ctor 0.6.1",
     "flatbuffers 25.9.23",
     "futures-util 0.3.31",
@@ -25919,7 +26115,7 @@
     "tempfile 3.23.0",
     "time 0.3.44",
     "tokio 1.48.0",
-    "tracing-subscriber 0.3.20",
+    "tracing-subscriber 0.3.22",
     "uuid 1.18.1"
   ],
   "direct_dev_deps": [
