@@ -90,6 +90,7 @@ android_artifacts(
     archive_name = "capture",
     excluded_artifacts = [
         "com.google.code.findbugs:jsr305",
+        "com.squareup.retrofit2:retrofit",
     ],
     manifest = "//platform/jvm:AndroidManifest.xml",
     native_deps = select({

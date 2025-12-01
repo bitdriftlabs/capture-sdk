@@ -30,6 +30,7 @@
 **Fixed**
 
 - Fixed a jni LocalReference leak that could crash the app when very large field maps or feature flags were sent to the logger.
+- Exclude `com.squareup.retrofit2:retrofit` dependency from the generated pom.
 
 ### iOS
 
