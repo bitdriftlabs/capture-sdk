@@ -31,7 +31,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.verifyNoInteractions
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.InputStream
@@ -138,7 +137,6 @@ class FatalIssueReporterProcessorTest {
         val trace = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt")
         processor.persistAppExitReport(
             fatalIssueType = ReportType.AppNotResponding,
-            enableNativeCrashReporting = true,
             FAKE_TIME_STAMP,
             "Input Dispatching Timed Out",
             trace,
@@ -153,29 +151,12 @@ class FatalIssueReporterProcessorTest {
     }
 
     @Test
-    fun persistAppExitReport_whenNativeCrashAndNdkProcessingNotConfigured_shouldNotCreateNativeReport() {
+    fun persistAppExitReport_whenNativeCrash_shouldCreateNativeReport() {
         val description = "Native crash"
         val traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.bin")
 
         processor.persistAppExitReport(
             ReportType.NativeCrash,
-            enableNativeCrashReporting = false,
-            FAKE_TIME_STAMP,
-            description,
-            traceInputStream,
-        )
-
-        verifyNoInteractions(fatalIssueReporterStorage)
-    }
-
-    @Test
-    fun persistAppExitReport_whenNativeCrashAndNdkProcessingConfigured_shouldCreateNativeReport() {
-        val description = "Native crash"
-        val traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.bin")
-
-        processor.persistAppExitReport(
-            ReportType.NativeCrash,
-            enableNativeCrashReporting = true,
             FAKE_TIME_STAMP,
             description,
             traceInputStream,
@@ -224,7 +205,6 @@ class FatalIssueReporterProcessorTest {
 
         processor.persistAppExitReport(
             ReportType.JVMCrash,
-            enableNativeCrashReporting = true,
             FAKE_TIME_STAMP,
             description,
             traceInputStream,
