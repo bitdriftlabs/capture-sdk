@@ -48,12 +48,7 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
       else -> throw IllegalArgumentException("Invalid session strategy: $sessionStrategy")
     }
 
-    val configuration = if (enableNativeFatalIssues) {
-      Configuration(enableFatalIssueReporting = true, enableNativeCrashReporting = true)
-    } else {
-      Configuration()
-    }
-
+    val configuration = Configuration(enableFatalIssueReporting = enableNativeFatalIssues)
     Capture.Logger.start(apiKey = key, apiUrl = apiUrl.toHttpUrl(), sessionStrategy = strategy, configuration = configuration)
   }
 
