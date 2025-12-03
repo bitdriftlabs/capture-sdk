@@ -16,24 +16,34 @@ import java.io.FileInputStream
 
 class StressTestRepository {
     private val oomList = mutableListOf<ByteArray>()
+    private var memoryPressureThread: Thread? = null
 
     fun increaseMemoryPressure(targetPercent: Int) {
-        if (oomList.isNotEmpty()) {
-            return
+        Capture.Logger.logInfo {
+            "Started memory pressure trigger with $targetPercent% target"
         }
+        // Clear the existing running task is case there is a new trigger with a new updated percent
+        memoryPressureThread?.interrupt()
+        memoryPressureThread = null
+        oomList.clear()
+
         val targetUsage = (maxMemory() * targetPercent / 100.0).toLong()
-        Thread {
-            while (true) {
-                oomList.add(ByteArray(1024 * 1024))
-                Thread.sleep(250)
-                if (usedMemory() >= targetUsage) {
-                    Capture.Logger.logError {
-                        "Increased memory pressure to $targetPercent%"
+        memoryPressureThread = Thread {
+            try {
+                while (!Thread.currentThread().isInterrupted) {
+                    oomList.add(ByteArray(1024 * 1024))
+                    Thread.sleep(250)
+                    if (usedMemory() >= targetUsage) {
+                        Capture.Logger.logError {
+                            "Increased memory pressure to $targetPercent%"
+                        }
+                        break
                     }
-                    break
                 }
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
             }
-        }.start()
+        }.also { it.start() }
     }
 
     fun triggerJankyFrames(durationMs: Long) {
