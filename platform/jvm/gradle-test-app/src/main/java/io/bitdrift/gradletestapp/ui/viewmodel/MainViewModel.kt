@@ -125,6 +125,7 @@ class MainViewModel(
             is FeatureFlagsTestAction.ClearFeatureFlags -> clearFeatureFlags()
 
             is StressTestAction.IncreaseMemoryPressure -> stressTestRepository.increaseMemoryPressure(action.targetPercent)
+            is StressTestAction.TriggerMemoryPressureAnr -> stressTestRepository.triggerMemoryPressureAnr()
             is StressTestAction.TriggerJankyFrames -> stressTestRepository.triggerJankyFrames(action.type.durationMs)
             is StressTestAction.TriggerStrictModeViolation -> stressTestRepository.triggerStrictModeViolation()
 

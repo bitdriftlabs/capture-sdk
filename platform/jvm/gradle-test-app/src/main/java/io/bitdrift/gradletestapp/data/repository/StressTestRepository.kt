@@ -19,12 +19,10 @@ class StressTestRepository {
     private var memoryPressureThread: Thread? = null
 
     fun increaseMemoryPressure(targetPercent: Int) {
-        Capture.Logger.logInfo {
+        Capture.Logger.logWarning {
             "Started memory pressure trigger with $targetPercent% target"
         }
-        // Clear the existing running task is case there is a new trigger with a new updated percent
-        memoryPressureThread?.interrupt()
-        memoryPressureThread = null
+        stopAllThreads()
         oomList.clear()
 
         val targetUsage = (maxMemory() * targetPercent / 100.0).toLong()
@@ -44,6 +42,45 @@ class StressTestRepository {
                 Thread.currentThread().interrupt()
             }
         }.also { it.start() }
+    }
+
+    fun triggerMemoryPressureAnr() {
+        stopAllThreads()
+        oomList.clear()
+
+        Thread {
+            val targetUsage = (maxMemory() * 0.98).toLong()
+            while (usedMemory() < targetUsage) {
+                try {
+                    oomList.add(ByteArray(1024 * 1024))
+                } catch (e: OutOfMemoryError) {
+                    break
+                }
+            }
+
+            Capture.Logger.logWarning { "Memory filled to 98%, starting main thread allocations" }
+            Handler(Looper.getMainLooper()).post {
+                val startTime = System.currentTimeMillis()
+                val tempList = mutableListOf<ByteArray>()
+
+                while (System.currentTimeMillis() - startTime < 10000) {
+                    try {
+                        tempList.add(ByteArray(512 * 1024))
+                        if (tempList.size > 20) {
+                            tempList.clear()
+                        }
+                    } catch (_: OutOfMemoryError) {
+                        tempList.clear()
+                    }
+                }
+                Capture.Logger.logError { "ANR test completed after ${System.currentTimeMillis() - startTime}ms" }
+            }
+        }.start()
+    }
+
+    private fun stopAllThreads() {
+        memoryPressureThread?.interrupt()
+        memoryPressureThread = null
     }
 
     fun triggerJankyFrames(durationMs: Long) {

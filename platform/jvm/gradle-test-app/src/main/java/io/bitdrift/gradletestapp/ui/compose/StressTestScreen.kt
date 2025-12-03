@@ -129,7 +129,21 @@ private fun MemoryPressureCard(onAction: (AppAction) -> Unit) {
                     contentColor = Color.White,
                 ),
         ) {
-            Text("Increase to $selectedPercent%")
+            Text("Increase to $selectedPercent% (static)")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = { onAction(StressTestAction.TriggerMemoryPressureAnr) },
+            modifier = Modifier.fillMaxWidth(),
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = BitdriftColors.Error,
+                    contentColor = Color.White,
+                ),
+        ) {
+            Text("GC-Induced ANR (98% + allocations)")
         }
     }
 }

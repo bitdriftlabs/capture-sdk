@@ -83,6 +83,8 @@ sealed class NavigationAction : AppAction {
 sealed class StressTestAction : AppAction {
     data class IncreaseMemoryPressure(val targetPercent: Int) : StressTestAction()
 
+    object TriggerMemoryPressureAnr : StressTestAction()
+
     data class TriggerJankyFrames(val type: JankType) : StressTestAction()
 
     object TriggerStrictModeViolation : StressTestAction()
