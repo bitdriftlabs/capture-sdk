@@ -397,7 +397,9 @@ public final class LoggerObjc: NSObject {
         Capture.Logger.setFeatureFlagExposures(flags)
     }
 
-    /// Removes a previously recorded feature flag exposure.
+    /// Removes a previously recorded feature flag exposure. Use this when a specific feature flag
+    /// is no longer active for the user, such as when a flag is disabled or when the user's
+    /// variant assignment changes and you want to stop tracking the previous exposure.
     ///
     /// - parameter name: The name of the flag exposure to remove
     @objc
@@ -405,7 +407,9 @@ public final class LoggerObjc: NSObject {
         Capture.Logger.removeFeatureFlagExposure(withName: name)
     }
 
-    /// Clears all recorded feature flag exposures.
+    /// Clears all recorded feature flag exposures. Use this during state transitions when all
+    /// active flag exposures should be reset, such as when a user logs out or switches accounts.
+    /// This ensures that flag exposures from one user session don't carry over to another.
     ///
     @objc
     public static func clearFeatureFlagExposures() {
