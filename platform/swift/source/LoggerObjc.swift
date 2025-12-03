@@ -377,36 +377,39 @@ public final class LoggerObjc: NSObject {
         Capture.Logger.removeField(withKey: key)
     }
 
-    /// Sets a feature flag with an optional variant.
+    /// Records a feature flag exposure with an optional variant. Use this method to track when
+    /// a user is exposed to a specific feature flag variant in your application. The exposure
+    /// is recorded with a timestamp and attached to subsequent logs and sessions.
     ///
-    /// - parameter name:    The name of the flag to set
-    /// - parameter variant: An optional variant to set the flag to
+    /// - parameter name:    The name of the flag being exposed
+    /// - parameter variant: An optional variant of the flag being exposed
     @objc
-    public static func setFeatureFlag(withName name: String, variant: String?) {
-        Capture.Logger.setFeatureFlag(withName: name, variant: variant)
+    public static func setFeatureFlagExposure(withName name: String, variant: String?) {
+        Capture.Logger.setFeatureFlagExposure(withName: name, variant: variant)
     }
 
-    /// Sets multiple feature flags.
+    /// Records multiple feature flag exposures. Use this method to track when a user is exposed
+    /// to multiple feature flags at once.
     ///
-    /// - parameter flags: The flags to set
+    /// - parameter flags: The flags being exposed
     @objc
-    public static func setFeatureFlags(_ flags: [FeatureFlag]) {
-        Capture.Logger.setFeatureFlags(flags)
+    public static func setFeatureFlagExposures(_ flags: [FeatureFlag]) {
+        Capture.Logger.setFeatureFlagExposures(flags)
     }
 
-    /// Removes a feature flag.
+    /// Removes a previously recorded feature flag exposure.
     ///
-    /// - parameter name: The name of the flag to remove
+    /// - parameter name: The name of the flag exposure to remove
     @objc
-    public static func removeFeatureFlag(withName name: String) {
-        Capture.Logger.removeFeatureFlag(withName: name)
+    public static func removeFeatureFlagExposure(withName name: String) {
+        Capture.Logger.removeFeatureFlagExposure(withName: name)
     }
 
-    /// Clears all feature flags.
+    /// Clears all recorded feature flag exposures.
     ///
     @objc
-    public static func clearFeatureFlags() {
-        Capture.Logger.clearFeatureFlags()
+    public static func clearFeatureFlagExposures() {
+        Capture.Logger.clearFeatureFlagExposures()
     }
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a

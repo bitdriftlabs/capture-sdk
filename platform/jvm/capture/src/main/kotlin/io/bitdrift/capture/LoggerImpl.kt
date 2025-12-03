@@ -385,22 +385,22 @@ internal class LoggerImpl(
         CaptureJniLibrary.removeLogField(this.loggerId, key)
     }
 
-    override fun setFeatureFlag(
+    override fun setFeatureFlagExposure(
         name: String,
         variant: String?,
     ) {
         CaptureJniLibrary.setFeatureFlag(this.loggerId, name, variant)
     }
 
-    override fun setFeatureFlags(flags: List<FeatureFlag>) {
+    override fun setFeatureFlagExposures(flags: List<FeatureFlag>) {
         CaptureJniLibrary.setFeatureFlags(this.loggerId, flags)
     }
 
-    override fun removeFeatureFlag(flag: String) {
+    override fun removeFeatureFlagExposure(flag: String) {
         CaptureJniLibrary.removeFeatureFlag(this.loggerId, flag)
     }
 
-    override fun clearFeatureFlags() {
+    override fun clearFeatureFlagExposures() {
         CaptureJniLibrary.clearFeatureFlags(this.loggerId)
     }
 

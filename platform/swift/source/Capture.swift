@@ -407,32 +407,35 @@ extension Logger {
         Self.getShared()?.removeField(withKey: key)
     }
 
-    /// Sets a feature flag with an optional variant.
+    /// Records a feature flag exposure with an optional variant. Use this method to track when
+    /// a user is exposed to a specific feature flag variant in your application. The exposure
+    /// is recorded with a timestamp and attached to subsequent logs and sessions.
     ///
-    /// - parameter flag:    The name of the flag to set
-    /// - parameter variant: An optional variant to set the flag to
-    public static func setFeatureFlag(withName flag: String, variant: String?) {
-        Self.getShared()?.setFeatureFlag(withName: flag, variant: variant)
+    /// - parameter flag:    The name of the flag being exposed
+    /// - parameter variant: An optional variant of the flag being exposed
+    public static func setFeatureFlagExposure(withName flag: String, variant: String?) {
+        Self.getShared()?.setFeatureFlagExposure(withName: flag, variant: variant)
     }
 
-    /// Sets multiple feature flags.
+    /// Records multiple feature flag exposures. Use this method to track when a user is exposed
+    /// to multiple feature flags at once.
     ///
-    /// - parameter flags: The flags to set
-    public static func setFeatureFlags(_ flags: [FeatureFlag]) {
-        Self.getShared()?.setFeatureFlags(flags)
+    /// - parameter flags: The flags being exposed
+    public static func setFeatureFlagExposures(_ flags: [FeatureFlag]) {
+        Self.getShared()?.setFeatureFlagExposures(flags)
     }
 
-    /// Removes a feature flag.
+    /// Removes a previously recorded feature flag exposure.
     ///
-    /// - parameter flag: The name of the flag to remove.
-    public static func removeFeatureFlag(withName flag: String) {
-        Self.getShared()?.removeFeatureFlag(withName: flag)
+    /// - parameter flag: The name of the flag exposure to remove.
+    public static func removeFeatureFlagExposure(withName flag: String) {
+        Self.getShared()?.removeFeatureFlagExposure(withName: flag)
     }
 
-    /// Clears all feature flags.
+    /// Clears all recorded feature flag exposures.
     ///
-    public static func clearFeatureFlags() {
-        Self.getShared()?.clearFeatureFlags()
+    public static func clearFeatureFlagExposures() {
+        Self.getShared()?.clearFeatureFlagExposures()
     }
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a

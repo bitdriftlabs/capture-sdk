@@ -537,19 +537,19 @@ extension Logger: Logging {
         self.underlyingLogger.removeField(withKey: key)
     }
 
-    public func setFeatureFlag(withName flag: String, variant: String?) {
+    public func setFeatureFlagExposure(withName flag: String, variant: String?) {
         self.underlyingLogger.setFeatureFlag(withName: flag, variant: variant)
     }
 
-    public func setFeatureFlags(_ flags: [FeatureFlag]) {
+    public func setFeatureFlagExposures(_ flags: [FeatureFlag]) {
         self.underlyingLogger.setFeatureFlags(flags)
     }
 
-    public func removeFeatureFlag(withName name: String) {
+    public func removeFeatureFlagExposure(withName name: String) {
         self.underlyingLogger.removeFeatureFlag(withName: name)
     }
 
-    public func clearFeatureFlags() {
+    public func clearFeatureFlagExposures() {
         self.underlyingLogger.clearFeatureFlags()
     }
 

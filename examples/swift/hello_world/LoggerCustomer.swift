@@ -117,19 +117,19 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
     }
 
     func setFeatureFlag(name: String, variant: String?) {
-        Capture.Logger.setFeatureFlag(withName: name, variant: variant)
+        Capture.Logger.setFeatureFlagExposure(withName: name, variant: variant)
     }
 
     func setFeatureFlags(_ flags: [FeatureFlag]) {
-        Capture.Logger.setFeatureFlags(flags)
+        Capture.Logger.setFeatureFlagExposures(flags)
     }
 
     func removeFeatureFlag(flag: String) {
-        Capture.Logger.removeFeatureFlag(withName: flag)
+        Capture.Logger.removeFeatureFlagExposure(withName: flag)
     }
 
     func clearFeatureFlags() {
-        Capture.Logger.clearFeatureFlags()
+        Capture.Logger.clearFeatureFlagExposures()
     }
 
     func performRandomNetworkRequestUsingDataTask() {

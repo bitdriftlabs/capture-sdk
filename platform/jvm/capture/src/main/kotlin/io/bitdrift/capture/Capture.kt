@@ -286,49 +286,52 @@ object Capture {
         }
 
         /**
-         * Sets a feature flag with an optional variant.
+         * Records a feature flag exposure with an optional variant. Use this method to track when
+         * a user is exposed to a specific feature flag variant in your application. The exposure
+         * is recorded with a timestamp and attached to subsequent logs and sessions.
          *
-         * @param name the name of the flag to set
-         * @param variant an optional variant
+         * @param name the name of the flag being exposed
+         * @param variant an optional variant of the flag being exposed
          */
         @JvmStatic
         @ExperimentalBitdriftApi
-        fun setFeatureFlag(
+        fun setFeatureFlagExposure(
             name: String,
             variant: String? = null,
         ) {
-            logger()?.setFeatureFlag(name, variant)
+            logger()?.setFeatureFlagExposure(name, variant)
         }
 
         /**
-         * Sets multiple feature flags.
+         * Records multiple feature flag exposures. Use this method to track when a user is exposed
+         * to multiple feature flags at once.
          *
-         * @param flags the flags to set
+         * @param flags the flags being exposed
          */
         @JvmStatic
         @ExperimentalBitdriftApi
-        fun setFeatureFlags(flags: List<FeatureFlag>) {
-            logger()?.setFeatureFlags(flags)
+        fun setFeatureFlagExposures(flags: List<FeatureFlag>) {
+            logger()?.setFeatureFlagExposures(flags)
         }
 
         /**
-         * Removes a feature flag.
+         * Removes a previously recorded feature flag exposure.
          *
-         * @param flag the name of the flag to remove
+         * @param flag the name of the flag exposure to remove
          */
         @ExperimentalBitdriftApi
         @JvmStatic
-        fun removeFeatureFlag(flag: String) {
-            logger()?.removeFeatureFlag(flag)
+        fun removeFeatureFlagExposure(flag: String) {
+            logger()?.removeFeatureFlagExposure(flag)
         }
 
         /**
-         * Clears all feature flags.
+         * Clears all recorded feature flag exposures.
          */
         @ExperimentalBitdriftApi
         @JvmStatic
-        fun clearFeatureFlags() {
-            logger()?.clearFeatureFlags()
+        fun clearFeatureFlagExposures() {
+            logger()?.clearFeatureFlagExposures()
         }
 
         /**
