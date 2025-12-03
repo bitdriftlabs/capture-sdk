@@ -31,7 +31,9 @@ internal class MemoryMetricsProvider(
             put("_native_used_kb", allocatedNativeHeapSizeBytes().bToKb())
             put("_native_total_kb", totalNativeHeapSizeBytes().bToKb())
             put("_memory_class", memoryClassMB().toString())
-            put("_is_memory_low", if (isMemoryLow()) "1" else "0")
+            if (appLowMemoryConfigThreshold != null) {
+                put("_is_memory_low", if (isMemoryLow()) "1" else "0")
+            }
             put("_jvm_used_percent", "%.3f".format(jvmUsedPercent()))
         }
 
