@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Fixed incorrect low memory detection in `MemoryMetricsProvider`.
+- Improved accuracy of low memory detection in `MemoryMetricsProvider`.
 
 ### iOS
 
