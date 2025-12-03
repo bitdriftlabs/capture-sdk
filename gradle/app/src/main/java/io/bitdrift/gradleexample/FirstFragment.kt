@@ -17,7 +17,17 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import io.bitdrift.capture.Capture
+import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
+import io.bitdrift.capture.network.retrofit.RetrofitUrlPathProvider
 import io.bitdrift.gradleexample.databinding.FragmentFirstBinding
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import timber.log.Timber
+import java.io.IOException
 
 /**
  * A simple [Fragment] subclass as the default destination in the navigation.
@@ -27,10 +37,11 @@ class FirstFragment : Fragment() {
     private external fun triggerSegfault()
     private var _binding: FragmentFirstBinding? = null
 
-    // This property is only valid between onCreateView and
-    // onDestroyView.
+    // This property is only valid between onCreateView and onDestroyView.
     private val binding get() = _binding!!
     private lateinit var clipboardManager: ClipboardManager
+
+    private lateinit var client: OkHttpClient
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -39,8 +50,10 @@ class FirstFragment : Fragment() {
 
         _binding = FragmentFirstBinding.inflate(inflater, container, false)
         clipboardManager = binding.root.context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        client = OkHttpClient.Builder()
+            .eventListenerFactory(CaptureOkHttpEventListenerFactory(requestFieldProvider = RetrofitUrlPathProvider()))
+            .build()
         return binding.root
-
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -51,6 +64,9 @@ class FirstFragment : Fragment() {
             val data = ClipData.newPlainText("sessionUrl", Capture.Logger.sessionUrl)
             clipboardManager.setPrimaryClip(data)
         }
+        binding.buttonOkhttp.setOnClickListener {
+            makeOkHttpCall()
+        }
         binding.buttonCrashJvm.setOnClickListener {
             throwException()
         }
@@ -60,6 +76,30 @@ class FirstFragment : Fragment() {
         binding.buttonFirst.setOnClickListener {
             findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
         }
+    }
+
+    private fun makeOkHttpCall() {
+        val req = Request.Builder()
+            .url(
+                HttpUrl.Builder()
+                    .scheme("https")
+                    .host("httpbin.org")
+                    .build()
+            )
+            .method("GET", null)
+            .build()
+
+        val call = client.newCall(req)
+
+        call.enqueue(object : Callback {
+            override fun onResponse(call: Call, response: Response) {
+                Timber.v("Http request completed with status code=${response.code}, body=${response.body?.string()}")
+            }
+
+            override fun onFailure(call: Call, e: IOException) {
+                Timber.w(e, "Http request failed with IOException")
+            }
+        })
     }
 
     private fun throwException() {

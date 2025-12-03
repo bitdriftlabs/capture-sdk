@@ -8,7 +8,6 @@
 package io.bitdrift.gradleexample
 
 import android.os.Bundle
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
@@ -27,7 +26,11 @@ import timber.log.Timber
 
 class MainActivity : AppCompatActivity() {
 
-    init { System.loadLibrary("native-lib"); }
+    companion object {
+        init {
+            System.loadLibrary("native-lib");
+        }
+    }
     private external fun stringFromJNI(): String?
 
     private lateinit var appBarConfiguration: AppBarConfiguration
@@ -46,9 +49,7 @@ class MainActivity : AppCompatActivity() {
         }
         Timber.plant(CaptureTree())
 
-        Log.i("MainActivity", "Bitdrift Logger configured with url: ${Logger.sessionUrl}")
         Timber.i("Bitdrift Logger configured with url: %s", Logger.sessionUrl)
-        Log.i("MainActivity", "Calling JNI method: ${stringFromJNI()}")
         Timber.i("Calling JNI method: ${stringFromJNI()}")
 
         super.onCreate(savedInstanceState)
@@ -63,7 +64,7 @@ class MainActivity : AppCompatActivity() {
         setupActionBarWithNavController(navController, appBarConfiguration)
 
         binding.fab.setOnClickListener { view ->
-            Timber.w(Exception("gradleexample test exception"), "Hello Info log from Android gradle test app")
+            Timber.w(Exception("gradleexample warning exception"), "Hello Info log from Android gradle test app")
             Snackbar.make(view, "Calling Logger.logWarning()", Snackbar.LENGTH_SHORT).show()
         }
     }
