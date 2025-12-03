@@ -59,9 +59,7 @@ internal class MemoryMetricsProvider(
     private fun memoryClassMB(): Int = activityManager.memoryClass
 
     private fun jvmUsedPercent(): Double {
-        val maxMemoryBytes = jvmMemoryProvider.maxMemoryBytes()
-        if (maxMemoryBytes <= 0L) return 0.0
-        return jvmMemoryProvider.usedMemoryBytes().toDouble() / maxMemoryBytes * 100
+        return jvmMemoryProvider.usedMemoryBytes().toDouble() / jvmMemoryProvider.maxMemoryBytes() * 100
     }
 
     private companion object {
