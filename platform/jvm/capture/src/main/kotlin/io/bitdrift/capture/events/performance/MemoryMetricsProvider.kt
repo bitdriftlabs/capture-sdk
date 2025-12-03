@@ -58,9 +58,7 @@ internal class MemoryMetricsProvider(
 
     private fun memoryClassMB(): Int = activityManager.memoryClass
 
-    private fun jvmUsedPercent(): Double {
-        return jvmMemoryProvider.usedMemoryBytes().toDouble() / jvmMemoryProvider.maxMemoryBytes() * 100
-    }
+    private fun jvmUsedPercent(): Double = jvmMemoryProvider.usedMemoryBytes().toDouble() / jvmMemoryProvider.maxMemoryBytes() * 100
 
     private companion object {
         private const val MIN_LOW_MEMORY_PERCENT_THRESHOLD = 50
