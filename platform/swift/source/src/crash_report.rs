@@ -79,6 +79,12 @@ fn capture_cache_kscrash_report_impl(
 
   let file_contents = fs::read(&kscrash_report_path)?;
 
+  if file_contents.len() == 0 {
+    // File is created when the writer is initialized. An empty file should
+    // indicate that no error occurred to be written.
+    return Ok(CacheResult::ReportDoesNotExist);
+  }
+
   let (hashmap, was_partial) = match decoder::from_slice(&file_contents) {
     Ok((_, Value::Object(hashmap))) => (hashmap, false),
     Ok((..)) => {
