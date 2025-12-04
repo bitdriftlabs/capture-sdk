@@ -30,6 +30,7 @@
 **Fixed**
 
 - Improved accuracy of low memory detection in `MemoryMetricsProvider`.
+- Fixed `NoSuchMethodError` runtime exception when consumers target `androidx.compose.ui:ui:1.10.0`.
 
 ### iOS
 
