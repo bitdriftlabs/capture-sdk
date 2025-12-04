@@ -10,7 +10,8 @@ dependencies {
     implementation(project(":capture-apollo"))
     implementation(project(":capture-timber"))
 
-    val composeBom = platform("androidx.compose:compose-bom:2025.12.00") // 1.10.0
+//    val composeBom = platform("androidx.compose:compose-bom:2025.12.00") // 1.10.0
+    val composeBom = platform("androidx.compose:compose-bom:2025.04.00") // 1.7.8
     implementation(composeBom)
     androidTestImplementation(composeBom)
 

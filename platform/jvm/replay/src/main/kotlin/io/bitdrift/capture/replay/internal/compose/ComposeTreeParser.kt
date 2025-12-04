@@ -10,7 +10,6 @@
 package io.bitdrift.capture.replay.internal.compose
 
 import android.view.View
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.node.LayoutNode
@@ -28,13 +27,15 @@ import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.compose.CaptureModifier
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
+import java.lang.reflect.InvocationTargetException
 
 internal object ComposeTreeParser {
+    @OptIn(InternalComposeUiApi::class)
     internal fun parse(androidComposeView: View): ScannableView {
         if (androidComposeView !is AndroidComposeView) {
             SessionReplayController.L.e(
                 null,
-                "View passed to ComposeTreeParser.parse() is not an AndroidComposeView. view=${androidComposeView.javaClass.name}",
+                "View passed to ComposeTreeParser.parse() is not an AndroidComposeView. view=${'$'}{androidComposeView.javaClass.name}",
             )
             return ScannableView.IgnoredComposeView
         }
@@ -45,18 +46,37 @@ internal object ComposeTreeParser {
         val windowOffset = IntArray(2)
         androidComposeView.rootView.getLocationOnScreen(windowOffset)
 
+        val layoutNodeMap = buildSemanticsIdToLayoutNodeMap(androidComposeView.root)
+
         val rootNode = semanticsOwner.unmergedRootSemanticsNode
         SessionReplayController.L.d(
-            "Found Compose SemanticsNode root. Parsing Compose tree. Window offset: (${windowOffset[0]}, ${windowOffset[1]})",
+            "Found Compose SemanticsNode root. Parsing Compose tree. Window offset: (${'$'}{windowOffset[0]}, ${'$'}{windowOffset[1]})",
         )
-        return rootNode.toScannableView(windowOffset[0], windowOffset[1])
+        return rootNode.toScannableView(windowOffset[0], windowOffset[1], layoutNodeMap)
+    }
+
+    private fun buildSemanticsIdToLayoutNodeMap(rootNode: LayoutNode): Map<Int, LayoutNode> {
+        val map = mutableMapOf<Int, LayoutNode>()
+        populateSemanticsIdToLayoutNodeMap(rootNode, map)
+        return map
+    }
+
+    private fun populateSemanticsIdToLayoutNodeMap(node: LayoutNode, map: MutableMap<Int, LayoutNode>) {
+        if (node.semanticsId != 0) {
+            map[node.semanticsId] = node
+        }
+        node.zSortedChildren.forEach {
+            populateSemanticsIdToLayoutNodeMap(it, map)
+        }
     }
 
     @OptIn(InternalComposeUiApi::class)
     private fun SemanticsNode.toScannableView(
         windowOffsetX: Int,
         windowOffsetY: Int,
+        layoutNodeMap: Map<Int, LayoutNode>,
     ): ScannableView {
+        val layoutNode = layoutNodeMap[this.id] ?: return ScannableView.IgnoredComposeView
         val notAttachedOrPlaced = !layoutNode.isPlaced || !layoutNode.isAttached
         val captureIgnoreSubTree = this.unmergedConfig.getOrNull(CaptureModifier.CaptureIgnore)
         val isVisible = !this.isTransparent && !this.unmergedConfig.contains(SemanticsProperties.InvisibleToUser)
@@ -101,7 +121,7 @@ internal object ComposeTreeParser {
             // The display name is not really used for anything
             displayName = "ComposeView",
             // Pass window offset to all children
-            children = this.children.asSequence().map { it.toScannableView(windowOffsetX, windowOffsetY) },
+            children = this.children.asSequence().map { it.toScannableView(windowOffsetX, windowOffsetY, layoutNodeMap) },
         )
     }
 
