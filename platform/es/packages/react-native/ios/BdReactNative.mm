@@ -65,7 +65,8 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
   BOOL enableNetworkInstrumentation = [options[@"enableNetworkInstrumentation"] boolValue];
   
   NSDictionary* crashReportingOptions = options[@"crashReporting"];
-  BOOL enableNativeFatalIssues = [crashReportingOptions[@"enableNativeFatalIssues"] boolValue];
+  NSNumber* enableNativeFatalIssuesValue = crashReportingOptions[@"enableNativeFatalIssues"];
+  BOOL enableNativeFatalIssues = enableNativeFatalIssuesValue != nil ? [enableNativeFatalIssuesValue boolValue] : YES;
   BOOL enableJsErrors = [crashReportingOptions[@"UNSTABLE_enableJsErrors"] boolValue];
 
   [CAPRNLogger
@@ -86,11 +87,11 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
 {
   BOOL enableNetworkInstrumentation = options.enableNetworkInstrumentation().has_value() ? options.enableNetworkInstrumentation().value() : false;
   
-  BOOL enableNativeFatalIssues = false;
+  BOOL enableNativeFatalIssues = true;
   BOOL enableJsErrors = false;
   if (options.crashReporting().has_value()) {
     auto crashReporting = options.crashReporting().value();
-    enableNativeFatalIssues = crashReporting.enableNativeFatalIssues().has_value() ? crashReporting.enableNativeFatalIssues().value() : false;
+    enableNativeFatalIssues = crashReporting.enableNativeFatalIssues().has_value() ? crashReporting.enableNativeFatalIssues().value() : true;
     enableJsErrors = crashReporting.UNSTABLE_enableJsErrors().has_value() ? crashReporting.UNSTABLE_enableJsErrors().value() : false;
   }
 
