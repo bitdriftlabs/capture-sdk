@@ -35,11 +35,21 @@ jobs:
     with:
       version: ${{ inputs.version }}
     secrets: inherit
-  public-release:
+  release-ios:
     permissions:
       id-token: write # required to use OIDC authentication
       contents: read
-    uses: ./.github/workflows/release_public.yaml
+    uses: ./.github/workflows/release_ios_public.yaml
+    with:
+      version: ${{ inputs.version }}
+      emergency: ${{ inputs.emergency }}
+    secrets: inherit
+    needs: gh-release
+  release-android:
+    permissions:
+      id-token: write # required to use OIDC authentication
+      contents: read
+    uses: ./.github/workflows/release_android_public.yaml
     with:
       version: ${{ inputs.version }}
       emergency: ${{ inputs.emergency }}
@@ -49,11 +59,11 @@ jobs:
     uses: ./.github/workflows/release_capture_ios.yaml
     with:
       version: ${{ inputs.version }}
-    needs: public-release
+    needs: release-ios
     secrets: inherit
   capture-react-release:
     uses: ./.github/workflows/release_capture_react.yaml
     with:
       version: ${{ inputs.version }}
-    needs: public-release
+    needs: [release-ios, release-android]
     secrets: inherit
