@@ -409,19 +409,13 @@ extension Logger {
 
     /// Records a feature flag exposure with an optional variant. Use this method to track when
     /// a user is exposed to a specific feature flag variant in your application. The exposure
-    /// is recorded with a timestamp and attached to subsequent logs and sessions.
+    /// is recorded with a timestamp and tracked for the duration of the process.
     ///
     /// - parameter flag:    The name of the flag being exposed
     /// - parameter variant: An optional variant of the flag being exposed
     public static func setFeatureFlagExposure(withName flag: String, variant: String?) {
         Self.getShared()?.setFeatureFlagExposure(withName: flag, variant: variant)
     }
-
-
-
-
-
-
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with
