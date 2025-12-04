@@ -13,8 +13,9 @@ import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.common.Runtime
-import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.common.RuntimeConfig
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -24,45 +25,104 @@ import org.robolectric.annotation.Config
 @Config(sdk = [24])
 class MemoryMetricsProviderTest {
     private val runtime: Runtime = mock()
+    private val jvmMemoryProvider: JvmMemoryProvider = mock()
 
-    @Test
-    fun appMemPressureDisabled_NotIncludeFields() {
-        // arrange
+    private lateinit var memoryMetricsProvider: MemoryMetricsProvider
+
+    @Before
+    fun setup() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        val memoryMetricsProvider = MemoryMetricsProvider(activityManager)
+        memoryMetricsProvider =
+            MemoryMetricsProvider(activityManager, jvmMemoryProvider = jvmMemoryProvider)
         memoryMetricsProvider.runtime = runtime
-        whenever(runtime.isEnabled(RuntimeFeature.APP_MEMORY_PRESSURE)).thenReturn(false)
-
-        // act
-        val result = memoryMetricsProvider.getMemoryAttributes()
-
-        // assert
-        assertThat(result).doesNotContainKeys("_threshold_mem_kb", "_is_memory_low")
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD)).thenReturn(
+            90,
+        )
     }
 
     @Test
-    fun appMemPressureEnabled_IncludesAllFields() {
-        // arrange
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        val memoryMetricsProvider = MemoryMetricsProvider(activityManager)
-        memoryMetricsProvider.runtime = runtime
-        whenever(runtime.isEnabled(RuntimeFeature.APP_MEMORY_PRESSURE)).thenReturn(true)
+    fun getMemoryAttributes_includesAllFields() {
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD)).thenReturn(
+            90,
+        )
 
-        // act
         val result = memoryMetricsProvider.getMemoryAttributes()
 
-        // assert
         assertThat(result).containsKeys(
             "_jvm_used_kb",
             "_jvm_total_kb",
             "_jvm_max_kb",
+            "_jvm_used_percent",
             "_native_used_kb",
             "_native_total_kb",
             "_memory_class",
-            "_threshold_mem_kb",
             "_is_memory_low",
         )
+    }
+
+    @Test
+    fun isMemoryLow_configNotAvailable_shouldReturnFalse() {
+        memoryMetricsProvider.runtime = null
+
+        val result = memoryMetricsProvider.isMemoryLow()
+
+        assertThat(result).isFalse
+    }
+
+    @Test
+    fun isMemoryLow_withMinHighThreshold_shouldReturnFalse() {
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD)).thenReturn(
+            49,
+        )
+
+        val result = memoryMetricsProvider.isMemoryLow()
+
+        assertThat(result).isFalse
+    }
+
+    @Test
+    fun isMemoryLow_withFakeHighThreshold_shouldReturnFalse() {
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD)).thenReturn(
+            200,
+        )
+
+        val result = memoryMetricsProvider.isMemoryLow()
+
+        assertThat(result).isFalse
+    }
+
+    @Test
+    fun isMemoryLow_withThresholdBelowMinimum_shouldReturnFalse() {
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD)).thenReturn(
+            0,
+        )
+
+        val result = memoryMetricsProvider.isMemoryLow()
+
+        assertThat(result).isFalse
+    }
+
+    @Test
+    fun isMemoryLow_whenUsageAtThreshold_shouldReturnTrue() {
+        whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(90_000L)
+        whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
+
+        val result = memoryMetricsProvider.isMemoryLow()
+
+        assertThat(result).isTrue
+    }
+
+    @Test
+    fun isMemoryLow_whenUsageBelowThreshold_shouldReturnsFalse() {
+        whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(89_000L)
+        whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD)).thenReturn(
+            90,
+        )
+
+        val result = memoryMetricsProvider.isMemoryLow()
+
+        assertThat(result).isFalse
     }
 }

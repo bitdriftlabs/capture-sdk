@@ -30,6 +30,7 @@ import io.bitdrift.gradletestapp.data.model.NavigationAction
 import io.bitdrift.gradletestapp.data.repository.AppExitRepository
 import io.bitdrift.gradletestapp.data.repository.NetworkTestingRepository
 import io.bitdrift.gradletestapp.data.repository.SdkRepository
+import io.bitdrift.gradletestapp.data.repository.StressTestRepository
 import io.bitdrift.gradletestapp.ui.compose.MainScreen
 import io.bitdrift.gradletestapp.ui.viewmodel.MainViewModel
 import io.bitdrift.gradletestapp.ui.viewmodel.MainViewModelFactory
@@ -46,6 +47,7 @@ class FirstFragment : Fragment() {
             SdkRepository(appContext),
             NetworkTestingRepository(),
             AppExitRepository(),
+            StressTestRepository(),
         )
     }
 
@@ -102,6 +104,11 @@ class FirstFragment : Fragment() {
                                 is NavigationAction.NavigateToDialogAndModals -> {
                                     Logger.logScreenView("dialog_and_modals_fragment")
                                     findNavController().navigate(R.id.action_FirstFragment_to_DialogAndModalsFragment)
+                                }
+
+                                is NavigationAction.NavigateToStressTest -> {
+                                    Logger.logScreenView("stress_test_fragment")
+                                    findNavController().navigate(R.id.action_FirstFragment_to_StressTestFragment)
                                 }
 
                                 else -> viewModel.handleAction(action)

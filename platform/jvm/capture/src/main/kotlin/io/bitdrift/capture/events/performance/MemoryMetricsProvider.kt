@@ -9,61 +9,76 @@ package io.bitdrift.capture.events.performance
 
 import android.app.ActivityManager
 import android.os.Debug
-import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.common.RuntimeConfig
 
 private const val KB = 1024L
 
 internal class MemoryMetricsProvider(
     private val activityManager: ActivityManager,
+    private val jvmMemoryProvider: JvmMemoryProvider = DefaultJvmMemoryProvider(),
 ) : IMemoryMetricsProvider {
     var runtime: io.bitdrift.capture.common.Runtime? = null
 
-    // We only save the threshold on first access since it's a constant value obtained via a rather expensive Binder call
-    private val memoryThresholdBytes: Long by lazy {
-        return@lazy if (runtime?.isEnabled(RuntimeFeature.APP_MEMORY_PRESSURE) != false) {
-            ActivityManager
-                .MemoryInfo()
-                .also { memoryInfo ->
-                    activityManager.getMemoryInfo(memoryInfo)
-                }.threshold
-        } else {
-            // Use sentinel value
-            Long.MAX_VALUE
-        }
+    private val appLowMemoryConfigThreshold by lazy {
+        getConfiguredLowMemoryPercentThreshold()
     }
 
     override fun getMemoryAttributes(): Map<String, String> =
         buildMap {
-            put("_jvm_used_kb", usedJvmMemoryBytes().bToKb())
-            put("_jvm_total_kb", totalJvmMemoryBytes().bToKb())
-            put("_jvm_max_kb", maxJvmMemoryBytes().bToKb())
+            put("_jvm_used_kb", jvmMemoryProvider.usedMemoryBytes().bToKb())
+            put("_jvm_total_kb", jvmMemoryProvider.totalMemoryBytes().bToKb())
+            put("_jvm_max_kb", jvmMemoryProvider.maxMemoryBytes().bToKb())
             put("_native_used_kb", allocatedNativeHeapSizeBytes().bToKb())
             put("_native_total_kb", totalNativeHeapSizeBytes().bToKb())
             put("_memory_class", memoryClassMB().toString())
-            memoryThresholdBytes.takeIf { it != Long.MAX_VALUE }?.let {
-                put("_threshold_mem_kb", memoryThresholdBytes.bToKb())
+            if (appLowMemoryConfigThreshold != null) {
                 put("_is_memory_low", if (isMemoryLow()) "1" else "0")
             }
+            put("_jvm_used_percent", "%.3f".format(jvmUsedPercent()))
         }
 
     override fun getMemoryClass(): Map<String, String> = buildMap { put("_memory_class", memoryClassMB().toString()) }
 
     override fun isMemoryLow(): Boolean {
-        val totalUsedMemoryByApp = usedJvmMemoryBytes() + allocatedNativeHeapSizeBytes()
-        return totalUsedMemoryByApp > memoryThresholdBytes
+        val thresholdPercent = appLowMemoryConfigThreshold ?: return false
+        return jvmUsedPercent() >= thresholdPercent
+    }
+
+    private fun getConfiguredLowMemoryPercentThreshold(): Int? {
+        val threshold =
+            runtime?.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD) ?: return null
+        // Guarding in case of miss configuration
+        if (threshold < MIN_LOW_MEMORY_PERCENT_THRESHOLD || threshold > 100) return null
+        return threshold
     }
 
     private fun Long.bToKb(): String = (this / KB).toString()
-
-    private fun totalJvmMemoryBytes(): Long = Runtime.getRuntime().totalMemory()
-
-    private fun usedJvmMemoryBytes(): Long = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
-
-    private fun maxJvmMemoryBytes(): Long = Runtime.getRuntime().maxMemory()
 
     private fun allocatedNativeHeapSizeBytes(): Long = Debug.getNativeHeapAllocatedSize()
 
     private fun totalNativeHeapSizeBytes(): Long = Debug.getNativeHeapSize()
 
     private fun memoryClassMB(): Int = activityManager.memoryClass
+
+    private fun jvmUsedPercent(): Double = jvmMemoryProvider.usedMemoryBytes().toDouble() / jvmMemoryProvider.maxMemoryBytes() * 100
+
+    private companion object {
+        private const val MIN_LOW_MEMORY_PERCENT_THRESHOLD = 50
+    }
+}
+
+internal interface JvmMemoryProvider {
+    fun totalMemoryBytes(): Long
+
+    fun usedMemoryBytes(): Long
+
+    fun maxMemoryBytes(): Long
+}
+
+internal class DefaultJvmMemoryProvider : JvmMemoryProvider {
+    override fun totalMemoryBytes(): Long = Runtime.getRuntime().totalMemory()
+
+    override fun usedMemoryBytes(): Long = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
+
+    override fun maxMemoryBytes(): Long = Runtime.getRuntime().maxMemory()
 }

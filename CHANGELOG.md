@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added JVM memory usage percent as a reported OOTB field
 
 **Changed**
 
@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Improved accuracy of low memory detection in `MemoryMetricsProvider`.
 
 ### iOS
 

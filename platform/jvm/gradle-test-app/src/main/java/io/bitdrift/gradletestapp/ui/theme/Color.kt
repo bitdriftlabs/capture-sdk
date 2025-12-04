@@ -21,4 +21,5 @@ object BitdriftColors {
     val Border = Color(0x19DFE9F5)
 
     val Error = Color.Red
+    val Warning = Color(0xFFFFA500)
 }

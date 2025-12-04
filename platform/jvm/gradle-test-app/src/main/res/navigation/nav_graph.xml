@@ -26,6 +26,9 @@
         <action
             android:id="@+id/action_FirstFragment_to_DialogAndModalsFragment"
             app:destination="@id/DialogAndModalsFragment" />
+        <action
+            android:id="@+id/action_FirstFragment_to_StressTestFragment"
+            app:destination="@id/StressTestFragment" />
     </fragment>
     <fragment
         android:id="@+id/SecondFragment"
@@ -81,6 +84,18 @@
 
         <action
             android:id="@+id/action_DialogAndModalsFragment_to_FirstFragment"
+            app:destination="@id/FirstFragment"
+            app:popUpTo="@id/FirstFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/StressTestFragment"
+        android:name="io.bitdrift.gradletestapp.ui.fragments.StressTestFragment"
+        android:label="@string/stress_test">
+
+        <action
+            android:id="@+id/action_StressTestFragment_to_FirstFragment"
             app:destination="@id/FirstFragment"
             app:popUpTo="@id/FirstFragment"
             app:popUpToInclusive="true" />

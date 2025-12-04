@@ -30,10 +30,12 @@ import io.bitdrift.gradletestapp.data.model.ClearError
 import io.bitdrift.gradletestapp.data.model.ConfigAction
 import io.bitdrift.gradletestapp.data.model.DiagnosticsAction
 import io.bitdrift.gradletestapp.data.model.FeatureFlagsTestAction
+import io.bitdrift.gradletestapp.data.model.NavigationAction
 import io.bitdrift.gradletestapp.data.model.NetworkTestAction
 import io.bitdrift.gradletestapp.data.model.SessionAction
 import io.bitdrift.gradletestapp.ui.compose.components.FeatureFlagsTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.NavigationCard
+import io.bitdrift.gradletestapp.ui.compose.components.StressTestCard
 import io.bitdrift.gradletestapp.ui.compose.components.NetworkTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.SdkStatusCard
 import io.bitdrift.gradletestapp.ui.compose.components.SessionManagementCard
@@ -169,6 +171,11 @@ fun MainScreen(
                             Toast.makeText(context, toasterText, Toast.LENGTH_SHORT).show()
                         },
                         onAction = onAction,
+                    )
+                }
+                item {
+                    StressTestCard(
+                        onNavigateToStressTest = { onAction(NavigationAction.NavigateToStressTest) },
                     )
                 }
                 item {
