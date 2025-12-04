@@ -150,7 +150,7 @@ private fun SdkStatusBadge(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(
-                imageVector = if (isInitialized) Icons.Default.CheckCircle else Icons.Default.Close,
+                imageVector = if (isInitialized) Icons.Filled.CheckCircle else Icons.Filled.Close,
                 contentDescription = "SDK Status",
                 modifier = Modifier.size(24.dp),
                 tint = if (isInitialized) BitdriftColors.Primary else MaterialTheme.colorScheme.error,

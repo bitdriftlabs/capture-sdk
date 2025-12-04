@@ -13,6 +13,7 @@ import android.view.View
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.platform.AndroidComposeView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
@@ -30,16 +31,15 @@ import io.bitdrift.capture.replay.internal.ScannableView
 
 internal object ComposeTreeParser {
     internal fun parse(androidComposeView: View): ScannableView {
-        val semanticsOwner =
-            if (androidComposeView is AndroidComposeView) {
-                androidComposeView.semanticsOwner
-            } else {
-                SessionReplayController.L.e(
-                    null,
-                    "View passed to ComposeTreeParser.parse() is not an AndroidComposeView. view=${androidComposeView.javaClass.name}",
-                )
-                return ScannableView.IgnoredComposeView
-            }
+        if (androidComposeView !is AndroidComposeView) {
+            SessionReplayController.L.e(
+                null,
+                "View passed to ComposeTreeParser.parse() is not an AndroidComposeView. view=${androidComposeView.javaClass.name}",
+            )
+            return ScannableView.IgnoredComposeView
+        }
+
+        val semanticsOwner = androidComposeView.semanticsOwner
 
         // Calculate the window's offset on screen to properly translate Compose coordinates
         val windowOffset = IntArray(2)
@@ -52,12 +52,12 @@ internal object ComposeTreeParser {
         return rootNode.toScannableView(windowOffset[0], windowOffset[1])
     }
 
-    @OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
+    @OptIn(InternalComposeUiApi::class)
     private fun SemanticsNode.toScannableView(
         windowOffsetX: Int,
         windowOffsetY: Int,
     ): ScannableView {
-        val notAttachedOrPlaced = !this.layoutNode.isPlaced || !this.layoutNode.isAttached
+        val notAttachedOrPlaced = !layoutNode.isPlaced || !layoutNode.isAttached
         val captureIgnoreSubTree = this.unmergedConfig.getOrNull(CaptureModifier.CaptureIgnore)
         val isVisible = !this.isTransparent && !this.unmergedConfig.contains(SemanticsProperties.InvisibleToUser)
         val type =
@@ -78,7 +78,7 @@ internal object ComposeTreeParser {
             }
 
         // Handle hybrid interop AndroidViews inside Compose elements
-        val interopAndroidView = this.layoutNode.getInteropView()
+        val interopAndroidView = layoutNode.getInteropView()
         if (type == ReplayType.View && interopAndroidView != null) {
             return ScannableView.AndroidView(
                 view = interopAndroidView,
