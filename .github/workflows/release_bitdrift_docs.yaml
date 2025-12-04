@@ -1,0 +1,187 @@
+name: Create bitdrift-docs PR for SDK Release
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'The SDK version to document, ex: 0.18.6'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The SDK version to document, ex: 0.18.6'
+        required: true
+        type: string
+jobs:
+  release-bitdrift-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout capture-sdk repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: capture-sdk
+      
+      - name: Extract changelog for version
+        id: extract-changelog
+        working-directory: capture-sdk
+        run: |
+          # Extract the changelog section for this version
+          version="${{ inputs.version }}"
+          
+          # Find the changelog content between this version and the next version marker
+          changelog=$(awk "/## \[$version\]/,/## \[/" CHANGELOG.md | sed '1d;$d' | sed '/^$/d')
+          
+          if [ -z "$changelog" ]; then
+            echo "No changelog found for version $version"
+            echo "has_changelog=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          
+          echo "has_changelog=true" >> "$GITHUB_OUTPUT"
+          
+          # Save changelog to file for later use
+          echo "$changelog" > /tmp/changelog.txt
+          
+          # Extract sections
+          both_section=$(echo "$changelog" | awk '/### Both/,/### (Android|iOS)/{if(!/### (Android|iOS)/) print}')
+          android_section=$(echo "$changelog" | awk '/### Android/,/### iOS/{if(!/### iOS/) print}')
+          ios_section=$(echo "$changelog" | awk '/### iOS/,/## \[/{if(!/## \[/) print}')
+          
+          # Format changelog for docs
+          {
+            echo "Changelog:"
+            echo ""
+            if [ -n "$both_section" ]; then
+              echo "$both_section" | sed 's/^### Both//' | sed '/^$/d'
+            fi
+            if [ -n "$android_section" ]; then
+              echo "$android_section" | sed 's/^### Android//' | sed '/^$/d'
+            fi
+            if [ -n "$ios_section" ]; then
+              echo "$ios_section" | sed 's/^### iOS//' | sed '/^$/d'
+            fi
+          } > /tmp/formatted_changelog.txt
+          
+          cat /tmp/formatted_changelog.txt
+      
+      - name: Generate GitHub App Token
+        id: generate-token
+        if: steps.extract-changelog.outputs.has_changelog == 'true'
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0
+        with:
+          app_id: ${{ secrets.OPEN_CAPTURE_SDK_PRS_APP_ID }}
+          private_key: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}
+      
+      - name: Checkout bitdrift-docs repo
+        if: steps.extract-changelog.outputs.has_changelog == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: bitdriftlabs/bitdrift-docs
+          token: ${{ steps.generate-token.outputs.token }}
+          path: bitdrift-docs
+      
+      - name: Create branch and update documentation
+        if: steps.extract-changelog.outputs.has_changelog == 'true'
+        working-directory: bitdrift-docs
+        run: |
+          version="${{ inputs.version }}"
+          branch_name="sdk-release-$version"
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch_name"
+          
+          # Read the formatted changelog
+          changelog_content=$(cat /tmp/formatted_changelog.txt)
+          
+          # Update Android releases
+          if [ -f docs/sdk/releases-android.md ]; then
+            # Find the line number after "## Releases" header
+            line_num=$(grep -n "^## Releases" docs/sdk/releases-android.md | head -1 | cut -d: -f1)
+            if [ -n "$line_num" ]; then
+              # Calculate insertion point (after the header and any blank lines)
+              insert_line=$((line_num + 2))
+              
+              # Create the new version entry
+              {
+                echo ""
+                echo "### $version"
+                echo ""
+                echo "{{ android_release_v4(\"$version\") }}"
+                echo ""
+                echo "$changelog_content"
+                echo ""
+              } > /tmp/android_entry.txt
+              
+              # Insert at the calculated line
+              head -n "$insert_line" docs/sdk/releases-android.md > /tmp/android_new.md
+              cat /tmp/android_entry.txt >> /tmp/android_new.md
+              tail -n +$((insert_line + 1)) docs/sdk/releases-android.md >> /tmp/android_new.md
+              mv /tmp/android_new.md docs/sdk/releases-android.md
+            fi
+          fi
+          
+          # Update iOS releases
+          if [ -f docs/sdk/releases-ios.md ]; then
+            line_num=$(grep -n "^## Releases" docs/sdk/releases-ios.md | head -1 | cut -d: -f1)
+            if [ -n "$line_num" ]; then
+              insert_line=$((line_num + 2))
+              
+              {
+                echo ""
+                echo "### $version"
+                echo ""
+                echo "{{ ios_release(\"$version\") }}"
+                echo ""
+                echo "$changelog_content"
+                echo ""
+              } > /tmp/ios_entry.txt
+              
+              head -n "$insert_line" docs/sdk/releases-ios.md > /tmp/ios_new.md
+              cat /tmp/ios_entry.txt >> /tmp/ios_new.md
+              tail -n +$((insert_line + 1)) docs/sdk/releases-ios.md >> /tmp/ios_new.md
+              mv /tmp/ios_new.md docs/sdk/releases-ios.md
+            fi
+          fi
+          
+          # Stage changes
+          git add docs/sdk/releases-android.md docs/sdk/releases-ios.md
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          
+          git commit -m "Add release notes for SDK version $version"
+          git push origin "$branch_name"
+      
+      - name: Create Pull Request
+        if: steps.extract-changelog.outputs.has_changelog == 'true'
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          version="${{ inputs.version }}"
+          branch_name="sdk-release-$version"
+          
+          gh pr create \
+            --repo bitdriftlabs/bitdrift-docs \
+            --base main \
+            --head "$branch_name" \
+            --title "Add release notes for SDK version $version" \
+            --body "This PR adds release notes for SDK version $version to the documentation.
+
+          ## Changes
+          - Updated \`docs/sdk/releases-android.md\` with version $version
+          - Updated \`docs/sdk/releases-ios.md\` with version $version
+          
+          ## Changelog
+          
+          \`\`\`
+          $(cat /tmp/formatted_changelog.txt)
+          \`\`\`
+          
+          ---
+          
+          Auto-generated by the [release_bitdrift_docs workflow](https://github.com/bitdriftlabs/capture-sdk/blob/main/.github/workflows/release_bitdrift_docs.yaml)"

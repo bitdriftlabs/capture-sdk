@@ -67,3 +67,9 @@ jobs:
       version: ${{ inputs.version }}
     needs: [release-ios, release-android]
     secrets: inherit
+  bitdrift-docs-release:
+    uses: ./.github/workflows/release_bitdrift_docs.yaml
+    with:
+      version: ${{ inputs.version }}
+    needs: [release-ios, release-android]
+    secrets: inherit
