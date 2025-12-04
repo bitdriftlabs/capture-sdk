@@ -16,6 +16,8 @@ struct MemorySnapshot {
     let appTotalMemoryUsedKB: UInt64
     /// Total amount of memory on the device.
     let deviceTotalMemoryKB: UInt64
+    /// Configured threshold for low memory detection. If nil, low memory detection is disabled.
+    let lowMemoryConfigThresholdPercent: UInt32?
 
     /// The reason that this snapshot was captured.
     var reason: Reason = .periodic
@@ -38,7 +40,7 @@ struct MemorySnapshot {
 
 extension MemorySnapshot: ResourceSnapshot {
     func toDictionary() -> [String: String] {
-        return [
+        var result = [
             "_app_limit_kb": String(self.appTotalMemoryLimitKB),
             "_app_used_kb": String(self.appTotalMemoryUsedKB),
             "_device_kb": String(self.deviceTotalMemoryKB),
@@ -46,5 +48,25 @@ extension MemorySnapshot: ResourceSnapshot {
             "_sequence": String(self.sequenceNumber),
             "_capture_us": String(self.timeToCaptureMicroseconds),
         ]
+        if hasValidMemoryLimit {
+            result["_app_used_percent"] = String(format: "%.3f", appUsedPercent())
+            if let threshold = lowMemoryConfigThresholdPercent {
+                result["_is_memory_low"] = isMemoryLow(configuredThresholdPercent: threshold) ? "1" : "0"
+            }
+        }
+        return result
+    }
+
+    private var hasValidMemoryLimit: Bool {
+        appTotalMemoryLimitKB > appTotalMemoryUsedKB
+    }
+
+    private func appUsedPercent() -> Double {
+        guard appTotalMemoryLimitKB > 0 else { return 0 }
+        return Double(appTotalMemoryUsedKB) / Double(appTotalMemoryLimitKB) * 100
+    }
+
+    private func isMemoryLow(configuredThresholdPercent: UInt32) -> Bool {
+        appUsedPercent() >= Double(configuredThresholdPercent)
     }
 }

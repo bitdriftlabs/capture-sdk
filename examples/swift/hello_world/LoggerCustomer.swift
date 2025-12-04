@@ -199,6 +199,42 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
     func logAppLaunchTTI() {
         Logger.logAppLaunchTTI(Date().timeIntervalSince(self.appStartTime))
     }
+
+    private var memoryPressureAllocations: [Data] = []
+
+    func forceMemoryPressure(targetPercent: Int) {
+        memoryPressureAllocations.removeAll()
+
+        let availableMemory = os_proc_available_memory()
+        guard availableMemory > 0 else { return }
+
+        let totalLimit = ProcessInfo.processInfo.physicalMemory
+        let currentUsed = totalLimit - UInt64(availableMemory)
+        let targetUsed = UInt64(Double(totalLimit) * Double(targetPercent) / 100.0)
+
+        guard targetUsed > currentUsed else {
+            Logger.logInfo("Already at or above \(targetPercent)% memory usage")
+            return
+        }
+
+        let bytesToAllocate = targetUsed - currentUsed
+        let chunkSize = 10 * 1024 * 1024
+        let chunks = Int(bytesToAllocate) / chunkSize
+
+        Logger.logInfo("Allocating ~\(bytesToAllocate / 1024 / 1024) MB to reach \(targetPercent)%")
+
+        for _ in 0..<chunks {
+            let data = Data(repeating: 0xAB, count: chunkSize)
+            memoryPressureAllocations.append(data)
+        }
+
+        Logger.logInfo("Memory pressure increased to ~\(targetPercent)%")
+    }
+
+    func clearMemoryPressure() {
+        memoryPressureAllocations.removeAll()
+        Logger.logInfo("Memory pressure cleared")
+    }
 }
 
 extension LoggerCustomer: MXMetricManagerSubscriber {

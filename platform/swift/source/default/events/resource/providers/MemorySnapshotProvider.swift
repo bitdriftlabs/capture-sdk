@@ -15,6 +15,8 @@ final class MemorySnapshotProvider {
     private let deviceTotalMemoryKB = ProcessInfo.processInfo.physicalMemory / kBytesPerKB
     private var sequenceNumber = 0
 
+    var logger: CoreLogging?
+
     private func getTaskInfo() -> task_vm_info_data_t? {
         var taskInfo = task_vm_info_data_t()
         var count = mach_msg_type_number_t(MemoryLayout<task_vm_info>.stride / MemoryLayout<integer_t>.stride)
@@ -46,6 +48,7 @@ extension MemorySnapshotProvider: ResourceSnapshotProvider {
         }
 
         let appTotalMemoryUsedKB = taskInfo.phys_footprint / kBytesPerKB
+        let lowMemoryConfigThresholdPercent = self.logger?.runtimeValue(.appLowMemoryPercentThreshold)
 
         self.sequenceNumber += 1
         return MemorySnapshot(
@@ -53,6 +56,7 @@ extension MemorySnapshotProvider: ResourceSnapshotProvider {
                 appTotalMemoryUsedKB + self.remainingAvailableMemoryKBForApp(taskInfo: taskInfo),
             appTotalMemoryUsedKB: appTotalMemoryUsedKB,
             deviceTotalMemoryKB: self.deviceTotalMemoryKB,
+            lowMemoryConfigThresholdPercent: lowMemoryConfigThresholdPercent,
             relativeTimestamp: nil,
             timeSinceDeviceBoot: cfTimeSinceDeviceBoot,
             sequenceNumber: self.sequenceNumber,

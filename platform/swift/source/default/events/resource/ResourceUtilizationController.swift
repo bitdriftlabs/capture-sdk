@@ -15,11 +15,13 @@ final class ResourceUtilizationController {
     private let timeProvider: TimeProvider
 
     private let diskUsageProvider: DiskUsageProvider
+    private let memorySnapshotProvider: MemorySnapshotProvider
 
     let providers: [ResourceSnapshotProvider]
     var logger: CoreLogging? {
         didSet {
             self.diskUsageProvider.logger = self.logger
+            self.memorySnapshotProvider.logger = self.logger
         }
     }
 
@@ -31,9 +33,10 @@ final class ResourceUtilizationController {
             storageProvider: storageProvider,
             timeProvider: timeProvider
         )
+        self.memorySnapshotProvider = MemorySnapshotProvider()
 
         self.providers = [
-            MemorySnapshotProvider(),
+            self.memorySnapshotProvider,
             BatterySnapshotProvider(),
             LowPowerStateProvider(),
             self.diskUsageProvider,
