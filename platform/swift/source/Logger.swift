@@ -232,12 +232,12 @@ public final class Logger {
 
         self.deviceCodeController = DeviceCodeController(client: client)
 
-        #if targetEnvironment(simulator)
-        Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
-        #else
         if !configuration.enableFatalIssueReporting {
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
         } else {
+            #if targetEnvironment(simulator)
+            Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
+            #else
             Logger.issueReporterInitResult = measureTime {
                 guard let contents = Logger.cachedReportConfigData(base: directoryURL) else {
                     return .initialized(.runtimeNotSet)
@@ -270,8 +270,8 @@ public final class Logger {
                 MXMetricManager.shared.add(reporter)
                 return .initialized(.monitoring)
             }
+            #endif
         }
-        #endif
     }
 
     // swiftlint:enable function_body_length
