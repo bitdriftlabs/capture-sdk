@@ -148,8 +148,6 @@ protocol CoreLogging: AnyObject {
     /// - parameter variant: An optional variant of the flag exposure to set
     func setFeatureFlagExposure(withName flag: String, variant: String?)
 
-
-
     /// Retrieves the value of a given runtime variable.
     ///
     /// - parameter variable: The runtime variable.

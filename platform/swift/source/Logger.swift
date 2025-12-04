@@ -541,12 +541,6 @@ extension Logger: Logging {
         self.underlyingLogger.setFeatureFlagExposure(withName: flag, variant: variant)
     }
 
-
-
-
-
-
-
     public func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void) {
         // Access the `deviceID` when it is needed for creating the device code, rather than
         // at Logger's initialization time. Accessing it later almost guarantees that the

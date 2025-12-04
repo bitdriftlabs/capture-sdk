@@ -95,12 +95,6 @@ public protocol Logging {
     /// - parameter variant: An optional variant of the flag being exposed
     func setFeatureFlagExposure(withName name: String, variant: String?)
 
-
-
-
-
-
-
     /// Creates a temporary device code that can be fed into bitdrift `bd` CLI tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with
     /// the bitdrift remote service.

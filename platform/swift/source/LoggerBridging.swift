@@ -71,8 +71,6 @@ protocol LoggerBridging {
     /// - parameter variant: An optional variant of the flag exposure to set
     func setFeatureFlagExposure(withName name: String, variant: String?)
 
-
-
     /// Retrieves a given runtime variable.
     ///
     /// - parameter feature: The runtime variable.
