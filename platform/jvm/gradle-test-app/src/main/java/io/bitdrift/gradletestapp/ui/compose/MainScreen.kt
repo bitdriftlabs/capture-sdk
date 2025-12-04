@@ -7,6 +7,7 @@
 
 package io.bitdrift.gradletestapp.ui.compose
 
+import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -43,6 +44,7 @@ import io.bitdrift.gradletestapp.ui.compose.components.SleepModeCard
 import io.bitdrift.gradletestapp.ui.compose.components.TestingToolsCard
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
