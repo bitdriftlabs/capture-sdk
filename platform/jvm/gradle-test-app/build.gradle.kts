@@ -102,15 +102,15 @@ android {
     }
 
     // Run lint checks on every build
-//    applicationVariants.configureEach {
-//        val lintTask = tasks.named("lint${name.replaceFirstChar(Char::titlecase)}")
-//        assembleProvider.get().dependsOn(lintTask)
-//    }
-//    lint {
-//        checkDependencies = true
-//        disable.add("GradleDependency")
-//        disable.add("AndroidGradlePluginVersion")
-//    }
+    applicationVariants.configureEach {
+        val lintTask = tasks.named("lint${name.replaceFirstChar(Char::titlecase)}")
+        assembleProvider.get().dependsOn(lintTask)
+    }
+    lint {
+        checkDependencies = true
+        disable.add("GradleDependency")
+        disable.add("AndroidGradlePluginVersion")
+    }
 
     signingConfigs {
         // Important: change the keystore for a production deployment
