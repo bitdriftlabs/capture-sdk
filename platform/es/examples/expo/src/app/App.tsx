@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 import '../lib/bitdrift'; // Must be near the top
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import {
   generateDeviceCode,
-  getSessionID,
+  getSessionURL,
   info,
   debug,
   trace,
@@ -58,11 +58,11 @@ const sendRandomRequest = async () => {
   }
 };
 
-const ERROR_TYPES = ['Error', 'TypeError', 'ReferenceError', 'SyntaxError', 'RangeError', 'PromiseRejection', 'AsyncError'] as const;
+const ERROR_TYPES = ['TypeError', 'ReferenceError', 'SyntaxError', 'RangeError', 'PromiseRejection', 'AsyncError'] as const;
 
 type ErrorType = typeof ERROR_TYPES[number];
 
-const triggerGlobalJsError = (errorType: ErrorType = 'Error') => {
+const triggerGlobalJsError = (errorType: ErrorType = 'TypeError') => {
   const buildType = __DEV__ ? 'Debug' : 'Release';
   const message = `${buildType} build - ${errorType} error triggered for testing`;
   
@@ -83,8 +83,6 @@ const triggerGlobalJsError = (errorType: ErrorType = 'Error') => {
         throw new Error(message);
       }, 0);
       return;
-    default:
-      throw new Error(message);
   }
 };
 
@@ -101,9 +99,15 @@ const HomeScreen = () => {
   const [temporaryDeviceCode, setTemporaryDeviceCode] = useState<string | null>(
     null,
   );
-  const [sessionID, setSessionID] = useState<string | null>(null);
+  const [sessionURL, setSessionURL] = useState<string | null>(null);
   const [showPickerModal, setShowPickerModal] = useState(false);
   const [showErrorPickerModal, setShowErrorPickerModal] = useState(false);
+
+  useEffect(() => {
+    getSessionURL()
+      .then(setSessionURL)
+      .catch(() => {});
+  }, []);
 
   const logMessageHandler = () => {
     if (selectedLogLevel) {
@@ -123,15 +127,12 @@ const HomeScreen = () => {
     setTemporaryDeviceCode(deviceCode);
   };
 
-  const handleGetSessionID = async () => {
-    try {
-      const id = await getSessionID();
-      setSessionID(id);
-      Clipboard.setString(id);
-      Alert.alert('Copied!', 'Session ID copied to clipboard');
-    } catch (error) {
-      console.error('Failed to get session ID:', error);
-      Alert.alert('Error', 'Failed to get session ID');
+  const handleCopySessionURL = () => {
+    if (sessionURL) {
+      Clipboard.setString(sessionURL);
+      Alert.alert('Copied!', 'Session URL copied to clipboard');
+    } else {
+      Alert.alert('Error', 'Session URL not available');
     }
   };
 
@@ -139,6 +140,10 @@ const HomeScreen = () => {
     <View style={styles.container}>
       <Text style={styles.title}>
         @bitdrift/react-native Expo Integration Example
+      </Text>
+
+      <Text testID="sdk-status">
+        {sessionURL ? 'SDK Ready' : 'SDK Not Ready'}
       </Text>
 
       {!hasAPIKeyConfigured && (
@@ -167,24 +172,15 @@ const HomeScreen = () => {
         </View>
       )}
 
-      {hasAPIKeyConfigured && (
-        <View style={styles.inlineContainer}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              pressed && styles.buttonActive,
-            ]}
-            onPress={handleGetSessionID}
-          >
-            <Text style={styles.buttonText}>Get Session ID</Text>
-          </Pressable>
-          {sessionID && (
-            <Text selectable style={{ margin: 10 }}>
-              {sessionID}
-            </Text>
-          )}
-        </View>
-      )}
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          pressed && styles.buttonActive,
+        ]}
+        onPress={handleCopySessionURL}
+      >
+        <Text style={styles.buttonText}>Copy Session URL</Text>
+      </Pressable>
 
       <Pressable
         style={({ pressed }) => [styles.button, pressed && styles.buttonActive]}
@@ -341,7 +337,7 @@ const HomeScreen = () => {
           style={({ pressed }) => [styles.button, pressed && styles.buttonActive]}
           onPress={() => triggerGlobalJsError(selectedErrorType)}
         >
-          <Text style={styles.buttonText}>Trigger {selectedErrorType} Error</Text>
+          <Text style={styles.buttonText}>Trigger {selectedErrorType}</Text>
         </Pressable>
       </View>
 
