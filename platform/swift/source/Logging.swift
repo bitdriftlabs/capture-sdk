@@ -95,24 +95,11 @@ public protocol Logging {
     /// - parameter variant: An optional variant of the flag being exposed
     func setFeatureFlagExposure(withName name: String, variant: String?)
 
-    /// Records multiple feature flag exposures. Use this method to track when a user is exposed
-    /// to multiple feature flags at once.
-    ///
-    /// - parameter flags: The flags being exposed
-    func setFeatureFlagExposures(_ flags: [FeatureFlag])
 
-    /// Removes a previously recorded feature flag exposure. Use this when a specific feature flag
-    /// is no longer active for the user, such as when a flag is disabled or when the user's
-    /// variant assignment changes and you want to stop tracking the previous exposure.
-    ///
-    /// - parameter name: The name of the flag exposure to remove
-    func removeFeatureFlagExposure(withName name: String)
 
-    /// Clears all recorded feature flag exposures. Use this during state transitions when all
-    /// active flag exposures should be reset, such as when a user logs out or switches accounts.
-    /// This ensures that flag exposures from one user session don't carry over to another.
-    ///
-    func clearFeatureFlagExposures()
+
+
+
 
     /// Creates a temporary device code that can be fed into bitdrift `bd` CLI tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with

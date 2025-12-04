@@ -142,25 +142,13 @@ protocol CoreLogging: AnyObject {
     /// - parameter blocking: Whether the method should return only after the flushing completes.
     func flush(blocking: Bool)
 
-    /// Sets a feature flag with an optional variant.
+    /// Sets a feature flag exposure with an optional variant.
     ///
-    /// - parameter flag:    The name of the flag to set
-    /// - parameter variant: An optional variant to set the flag to
-    func setFeatureFlag(withName flag: String, variant: String?)
+    /// - parameter flag:    The name of the flag exposure to set
+    /// - parameter variant: An optional variant of the flag exposure to set
+    func setFeatureFlagExposure(withName flag: String, variant: String?)
 
-    /// Sets multiple feature flags.
-    ///
-    /// - parameter flags: The flags to set
-    func setFeatureFlags(_ flags: [FeatureFlag])
 
-    /// Removes a feature flag.
-    ///
-    /// - parameter name: The name of the flag to remove
-    func removeFeatureFlag(withName name: String)
-
-    /// Clears all feature flags.
-    ///
-    func clearFeatureFlags()
 
     /// Retrieves the value of a given runtime variable.
     ///

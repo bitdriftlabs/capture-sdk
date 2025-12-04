@@ -303,42 +303,6 @@ object Capture {
         }
 
         /**
-         * Records multiple feature flag exposures. Use this method to track when a user is exposed
-         * to multiple feature flags at once.
-         *
-         * @param flags the flags being exposed
-         */
-        @JvmStatic
-        @ExperimentalBitdriftApi
-        fun setFeatureFlagExposures(flags: List<FeatureFlag>) {
-            logger()?.setFeatureFlagExposures(flags)
-        }
-
-        /**
-         * Removes a previously recorded feature flag exposure. Use this when a specific feature flag
-         * is no longer active for the user, such as when a flag is disabled or when the user's
-         * variant assignment changes and you want to stop tracking the previous exposure.
-         *
-         * @param flag the name of the flag exposure to remove
-         */
-        @ExperimentalBitdriftApi
-        @JvmStatic
-        fun removeFeatureFlagExposure(flag: String) {
-            logger()?.removeFeatureFlagExposure(flag)
-        }
-
-        /**
-         * Clears all recorded feature flag exposures. Use this during state transitions when all
-         * active flag exposures should be reset, such as when a user logs out or switches accounts.
-         * This ensures that flag exposures from one user session don't carry over to another.
-         */
-        @ExperimentalBitdriftApi
-        @JvmStatic
-        fun clearFeatureFlagExposures() {
-            logger()?.clearFeatureFlagExposures()
-        }
-
-        /**
          * Logs a message at trace level.
          *
          * @param fields an optional map of additional data to include with the log.

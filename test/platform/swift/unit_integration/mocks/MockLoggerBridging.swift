@@ -138,11 +138,5 @@ extension MockLoggerBridging: LoggerBridging {
 
     public func processIssueReports(reportProcessingSession: ReportProcessingSession) {}
 
-    public func setFeatureFlag(withName flag: String, variant: String?) {}
-
-    public func setFeatureFlags(_ flags: [FeatureFlag]) {}
-
-    public func removeFeatureFlag(withName flag: String) {}
-
-    public func clearFeatureFlags() {}
+    public func setFeatureFlagExposure(withName flag: String, variant: String?) {}
 }

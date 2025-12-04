@@ -856,7 +856,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_removeLogField
 }
 
 #[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlag(
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlagExposure(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
@@ -883,69 +883,11 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlag
 
       Ok(())
     },
-    "jni set feature flag",
+    "jni set feature flag exposure",
   );
 }
 
-#[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_removeFeatureFlag(
-  env: JNIEnv<'_>,
-  _class: JClass<'_>,
-  logger_id: jlong,
-  key: JString<'_>,
-) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let key = unsafe { env.get_string_unchecked(&key) }?
-        .to_string_lossy()
-        .to_string();
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.remove_feature_flag(key);
-
-      Ok(())
-    },
-    "jni remove feature flag",
-  );
-}
-
-#[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlags(
-  mut env: JNIEnv<'_>,
-  _class: JClass<'_>,
-  logger_id: jlong,
-  flags: JObject<'_>,
-) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      // Convert the Java List of feature flag objects to Vec<(String, Option<String>)>
-      let flags_vec = ffi::jobject_list_to_feature_flags(&mut env, &flags)?;
-
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.set_feature_flags(flags_vec);
-
-      Ok(())
-    },
-    "jni set feature flags",
-  );
-}
-
-#[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_clearFeatureFlags(
-  _env: JNIEnv<'_>,
-  _class: JClass<'_>,
-  logger_id: jlong,
-) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.clear_feature_flags();
-
-      Ok(())
-    },
-    "jni clear feature flags",
-  );
-}
 
 #[no_mangle]
 // Java types are always signed, but log level/type are both unsigned.

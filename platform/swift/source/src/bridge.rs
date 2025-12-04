@@ -877,7 +877,7 @@ extern "C" fn capture_flush(logger_id: LoggerId<'_>, blocking: bool) {
 }
 
 #[no_mangle]
-extern "C" fn capture_set_feature_flag(
+extern "C" fn capture_set_feature_flag_exposure(
   logger_id: LoggerId<'_>,
   flag: *const c_char,
   variant: *const c_char,
@@ -897,49 +897,11 @@ extern "C" fn capture_set_feature_flag(
 
       Ok(())
     },
-    "swift set feature flag",
+    "swift set feature flag exposure",
   );
 }
 
-#[no_mangle]
-extern "C" fn capture_set_feature_flags(logger_id: LoggerId<'_>, flags: *const Object) {
-  with_handle_unexpected(
-    move || -> anyhow::Result<()> {
-      // Convert the Swift array of (flag: String, variant: String?) to Vec<(String,
-      // Option<String>)>
-      let flags_vec = unsafe { ffi::convert_feature_flags_array(flags) }?;
-      logger_id.set_feature_flags(flags_vec);
 
-      Ok(())
-    },
-    "swift set feature flags",
-  );
-}
-
-#[no_mangle]
-extern "C" fn capture_remove_feature_flag(logger_id: LoggerId<'_>, flag: *const c_char) {
-  with_handle_unexpected(
-    move || -> anyhow::Result<()> {
-      let flag = unsafe { CStr::from_ptr(flag) }.to_str()?;
-      logger_id.remove_feature_flag(flag.to_string());
-
-      Ok(())
-    },
-    "swift remove feature flag",
-  );
-}
-
-#[no_mangle]
-extern "C" fn capture_clear_feature_flags(logger_id: LoggerId<'_>) {
-  with_handle_unexpected(
-    move || -> anyhow::Result<()> {
-      logger_id.clear_feature_flags();
-
-      Ok(())
-    },
-    "swift clear feature flags",
-  );
-}
 
 #[no_mangle]
 extern "C" fn capture_set_sleep_mode(logger_id: LoggerId<'_>, enabled: bool) {

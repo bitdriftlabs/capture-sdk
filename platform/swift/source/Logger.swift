@@ -538,20 +538,14 @@ extension Logger: Logging {
     }
 
     public func setFeatureFlagExposure(withName flag: String, variant: String?) {
-        self.underlyingLogger.setFeatureFlag(withName: flag, variant: variant)
+        self.underlyingLogger.setFeatureFlagExposure(withName: flag, variant: variant)
     }
 
-    public func setFeatureFlagExposures(_ flags: [FeatureFlag]) {
-        self.underlyingLogger.setFeatureFlags(flags)
-    }
 
-    public func removeFeatureFlagExposure(withName name: String) {
-        self.underlyingLogger.removeFeatureFlag(withName: name)
-    }
 
-    public func clearFeatureFlagExposures() {
-        self.underlyingLogger.clearFeatureFlags()
-    }
+
+
+
 
     public func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void) {
         // Access the `deviceID` when it is needed for creating the device code, rather than

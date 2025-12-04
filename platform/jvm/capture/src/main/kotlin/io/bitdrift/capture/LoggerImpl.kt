@@ -389,19 +389,7 @@ internal class LoggerImpl(
         name: String,
         variant: String?,
     ) {
-        CaptureJniLibrary.setFeatureFlag(this.loggerId, name, variant)
-    }
-
-    override fun setFeatureFlagExposures(flags: List<FeatureFlag>) {
-        CaptureJniLibrary.setFeatureFlags(this.loggerId, flags)
-    }
-
-    override fun removeFeatureFlagExposure(flag: String) {
-        CaptureJniLibrary.removeFeatureFlag(this.loggerId, flag)
-    }
-
-    override fun clearFeatureFlagExposures() {
-        CaptureJniLibrary.clearFeatureFlags(this.loggerId)
+        CaptureJniLibrary.setFeatureFlagExposure(this.loggerId, name, variant)
     }
 
     override fun setSleepMode(sleepMode: SleepMode) {

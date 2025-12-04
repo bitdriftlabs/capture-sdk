@@ -417,30 +417,11 @@ extension Logger {
         Self.getShared()?.setFeatureFlagExposure(withName: flag, variant: variant)
     }
 
-    /// Records multiple feature flag exposures. Use this method to track when a user is exposed
-    /// to multiple feature flags at once.
-    ///
-    /// - parameter flags: The flags being exposed
-    public static func setFeatureFlagExposures(_ flags: [FeatureFlag]) {
-        Self.getShared()?.setFeatureFlagExposures(flags)
-    }
 
-    /// Removes a previously recorded feature flag exposure. Use this when a specific feature flag
-    /// is no longer active for the user, such as when a flag is disabled or when the user's
-    /// variant assignment changes and you want to stop tracking the previous exposure.
-    ///
-    /// - parameter flag: The name of the flag exposure to remove.
-    public static func removeFeatureFlagExposure(withName flag: String) {
-        Self.getShared()?.removeFeatureFlagExposure(withName: flag)
-    }
 
-    /// Clears all recorded feature flag exposures. Use this during state transitions when all
-    /// active flag exposures should be reset, such as when a user logs out or switches accounts.
-    /// This ensures that flag exposures from one user session don't carry over to another.
-    ///
-    public static func clearFeatureFlagExposures() {
-        Self.getShared()?.clearFeatureFlagExposures()
-    }
+
+
+
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with
