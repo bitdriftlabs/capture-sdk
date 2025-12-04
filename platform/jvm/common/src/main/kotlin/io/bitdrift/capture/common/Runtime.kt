@@ -112,9 +112,9 @@ sealed class RuntimeConfig(
     data object ANR_FRAME_THRESHOLD_MS : RuntimeConfig("client_feature.android.anr_frame.threshold_ms", 5000)
 
     /**
-     * The App low memory percentage configured threshold where will start reporting is_memory_low event as true. (Default threshold is 95%)
+     * The App low memory percentage configured threshold where will start reporting is_memory_low event as true. (Default threshold is 90%)
      */
-    data object APP_LOW_MEMORY_PERCENT_THRESHOLD : RuntimeConfig("client_feature.android.app_low_memory_percent_threshold", 95)
+    data object APP_LOW_MEMORY_PERCENT_THRESHOLD : RuntimeConfig("client_feature.android.app_low_memory_percent_threshold", 90)
 }
 
 /**

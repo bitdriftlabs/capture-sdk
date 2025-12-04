@@ -37,7 +37,7 @@ class MemoryMetricsProviderTest {
             MemoryMetricsProvider(activityManager, jvmMemoryProvider = jvmMemoryProvider)
         memoryMetricsProvider.runtime = runtime
         whenever(runtime.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD)).thenReturn(
-            95,
+            90,
         )
     }
 
@@ -105,7 +105,7 @@ class MemoryMetricsProviderTest {
 
     @Test
     fun isMemoryLow_whenUsageAtThreshold_shouldReturnTrue() {
-        whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(95_000L)
+        whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(90_000L)
         whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
 
         val result = memoryMetricsProvider.isMemoryLow()
@@ -115,7 +115,7 @@ class MemoryMetricsProviderTest {
 
     @Test
     fun isMemoryLow_whenUsageBelowThreshold_shouldReturnsFalse() {
-        whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(50_000L)
+        whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(89_000L)
         whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
         whenever(runtime.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD)).thenReturn(
             90,
