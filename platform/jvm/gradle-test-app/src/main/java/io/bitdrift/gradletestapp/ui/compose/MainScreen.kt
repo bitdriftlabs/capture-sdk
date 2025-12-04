@@ -198,9 +198,6 @@ fun MainScreen(
                         onAddManyFeatureFlags = {
                             onAction(FeatureFlagsTestAction.AddManyFeatureFlags)
                         },
-                        onClearFeatureFlags = {
-                            onAction(FeatureFlagsTestAction.ClearFeatureFlags)
-                        },
                     )
                 }
                 item {

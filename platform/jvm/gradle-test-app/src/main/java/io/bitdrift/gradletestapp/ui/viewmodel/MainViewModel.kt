@@ -119,7 +119,6 @@ class MainViewModel(
 
             is FeatureFlagsTestAction.AddOneFeatureFlag -> addOneFeatureFlag()
             is FeatureFlagsTestAction.AddManyFeatureFlags -> addManyFeatureFlags()
-            is FeatureFlagsTestAction.ClearFeatureFlags -> clearFeatureFlags()
 
             is ClearError -> clearError()
 
@@ -251,12 +250,6 @@ class MainViewModel(
         for (i in 1..10000) {
             Logger.setFeatureFlagExposure("flag_$i")
         }
-    }
-
-    @OptIn(ExperimentalBitdriftApi::class)
-    private fun clearFeatureFlags() {
-        Timber.i("Clearing feature flags not supported - API removed")
-        // clearFeatureFlags API has been removed
     }
 
     private fun logMessage() {
