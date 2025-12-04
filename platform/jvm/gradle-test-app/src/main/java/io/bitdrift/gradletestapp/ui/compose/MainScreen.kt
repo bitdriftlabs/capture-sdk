@@ -124,6 +124,12 @@ fun MainScreen(
 
             val listState = rememberLazyListState()
 
+            val toasterText =
+                stringResource(
+                    R.string.log_message_toast,
+                    uiState.config.selectedLogLevel,
+                )
+
             LazyColumn(
                 state = listState,
                 modifier =
@@ -163,11 +169,6 @@ fun MainScreen(
                         onLogMessage = {
                             onAction(DiagnosticsAction.LogMessage)
 
-                            val toasterText =
-                                context.getString(
-                                    R.string.log_message_toast,
-                                    uiState.config.selectedLogLevel,
-                                )
                             Toast.makeText(context, toasterText, Toast.LENGTH_SHORT).show()
                         },
                         onAction = onAction,
