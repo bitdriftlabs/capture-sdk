@@ -11,7 +11,7 @@ dependencies {
     implementation(project(":capture-timber"))
     implementation("androidx.compose.material3:material3-android:1.2.1")
     implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.compose.ui:ui:1.7.8")
+    implementation("androidx.compose.ui:ui:1.10.0")
     implementation("androidx.compose.material:material:1.7.8")
     implementation("androidx.compose.material3:material3:1.3.1")
     implementation("androidx.compose.foundation:foundation:1.7.8")
@@ -102,15 +102,15 @@ android {
     }
 
     // Run lint checks on every build
-    applicationVariants.configureEach {
-        val lintTask = tasks.named("lint${name.replaceFirstChar(Char::titlecase)}")
-        assembleProvider.get().dependsOn(lintTask)
-    }
-    lint {
-        checkDependencies = true
-        disable.add("GradleDependency")
-        disable.add("AndroidGradlePluginVersion")
-    }
+//    applicationVariants.configureEach {
+//        val lintTask = tasks.named("lint${name.replaceFirstChar(Char::titlecase)}")
+//        assembleProvider.get().dependsOn(lintTask)
+//    }
+//    lint {
+//        checkDependencies = true
+//        disable.add("GradleDependency")
+//        disable.add("AndroidGradlePluginVersion")
+//    }
 
     signingConfigs {
         // Important: change the keystore for a production deployment

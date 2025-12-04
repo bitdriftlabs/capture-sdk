@@ -6,6 +6,7 @@ androidxTestCore        = "1.6.1"
 apollo                  = "4.1.0"
 appcompat               = "1.7.0"
 assertjCore             = "3.22.0"
+composeUI               = "1.10.0"
 detektPlugin            = "1.23.7"
 dokkaPlugin             = "1.9.20"
 flatbuffers             = "25.2.10" # Unfortunately we cannot bump yet to 25.9.23 due to https://github.com/google/flatbuffers/issues/8730
@@ -28,7 +29,6 @@ rustAndroidPlugin       = "0.3.4"
 startupRuntime          = "1.2.0"
 timber                  = "5.0.1"
 truth                   = "1.1.4"
-ui                      = "1.7.6"
 
 [libraries]
 androidx-appcompat         = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
@@ -37,9 +37,9 @@ androidx-lifecycle-common  = { module = "androidx.lifecycle:lifecycle-common", v
 androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycleCommon" }
 androidx-startup-runtime   = { module = "androidx.startup:startup-runtime", version.ref = "startupRuntime" }
 androidx-test-core         = { module = "androidx.test:core", version.ref = "androidxTestCore" }
-androidx-ui                = { module = "androidx.compose.ui:ui", version.ref = "ui" }
 apollo-runtime             = { module = "com.apollographql.apollo:apollo-runtime", version.ref = "apollo" }
 assertj-core               = { module = "org.assertj:assertj-core", version.ref = "assertjCore" }
+compose-ui                 = { module = "androidx.compose.ui:ui", version.ref = "composeUI" }
 flatbuffers                = { module = "com.google.flatbuffers:flatbuffers-java", version.ref = "flatbuffers" }
 gson                       = { module = "com.google.code.gson:gson", version.ref = "gson" }
 jsr305                     = { module = "com.google.code.findbugs:jsr305", version.ref = "jsr305" }

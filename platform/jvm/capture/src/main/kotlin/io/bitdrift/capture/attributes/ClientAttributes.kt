@@ -153,7 +153,8 @@ internal class ClientAttributes(
     private fun getCurrentLocale(): String {
         val locales = ConfigurationCompat.getLocales(resources.configuration)
         return if (!locales.isEmpty) {
-            locales[0].toString()
+            // safe to !! since we're checking for empty above
+            locales[0]!!.toString()
         } else {
             UNKNOWN_FIELD_VALUE
         }

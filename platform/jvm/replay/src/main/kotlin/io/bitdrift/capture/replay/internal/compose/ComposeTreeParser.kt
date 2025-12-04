@@ -59,7 +59,7 @@ internal object ComposeTreeParser {
     ): ScannableView {
         val notAttachedOrPlaced = !this.layoutNode.isPlaced || !this.layoutNode.isAttached
         val captureIgnoreSubTree = this.unmergedConfig.getOrNull(CaptureModifier.CaptureIgnore)
-        val isVisible = !this.isTransparent && !this.unmergedConfig.contains(SemanticsProperties.InvisibleToUser)
+        val isVisible = !this.isTransparent && !this.unmergedConfig.contains(SemanticsProperties.HideFromAccessibility)
         val type =
             if (notAttachedOrPlaced) {
                 return ScannableView.IgnoredComposeView

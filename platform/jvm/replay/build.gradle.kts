@@ -10,7 +10,7 @@ plugins {
 dependencies {
     implementation(project(":common"))
     implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.ui)
+    implementation(libs.compose.ui)
     implementation(libs.okhttp)
 
     testImplementation(libs.mockito.core)
