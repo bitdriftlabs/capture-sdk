@@ -10,6 +10,7 @@
 package io.bitdrift.capture.replay.internal.compose
 
 import android.view.View
+import androidx.collection.MutableIntObjectMap
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Rect
@@ -87,7 +88,7 @@ internal object ComposeTreeParser {
     private fun SemanticsNode.toScannableView(
         windowOffsetX: Int,
         windowOffsetY: Int,
-        layoutNodeMap: Map<Int, LayoutNode>,
+        layoutNodeMap: MutableIntObjectMap<LayoutNode>,
     ): ScannableView {
         val layoutNode = layoutNodeMap[this.id] ?: return ScannableView.IgnoredComposeView
         // this is a somewhat expensive call, so avoid calling it multiple times
