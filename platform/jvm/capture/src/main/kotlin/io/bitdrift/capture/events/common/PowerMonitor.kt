@@ -11,6 +11,7 @@ import android.content.Context
 import android.os.Build
 import android.os.PowerManager
 import androidx.annotation.RequiresApi
+import androidx.collection.MutableIntObjectMap
 
 internal class PowerMonitor(
     context: Context,
@@ -21,15 +22,15 @@ internal class PowerMonitor(
 
     @RequiresApi(Build.VERSION_CODES.Q)
     private val thermalStatusMap =
-        hashMapOf(
-            PowerManager.THERMAL_STATUS_NONE to "NONE",
-            PowerManager.THERMAL_STATUS_LIGHT to "LIGHT",
-            PowerManager.THERMAL_STATUS_MODERATE to "MODERATE",
-            PowerManager.THERMAL_STATUS_SEVERE to "SEVERE",
-            PowerManager.THERMAL_STATUS_CRITICAL to "CRITICAL",
-            PowerManager.THERMAL_STATUS_EMERGENCY to "EMERGENCY",
-            PowerManager.THERMAL_STATUS_SHUTDOWN to "SHUTDOWN",
-        )
+        MutableIntObjectMap<String>().apply {
+            put(PowerManager.THERMAL_STATUS_NONE, "NONE")
+            put(PowerManager.THERMAL_STATUS_LIGHT, "LIGHT")
+            put(PowerManager.THERMAL_STATUS_MODERATE, "MODERATE")
+            put(PowerManager.THERMAL_STATUS_SEVERE, "SEVERE")
+            put(PowerManager.THERMAL_STATUS_CRITICAL, "CRITICAL")
+            put(PowerManager.THERMAL_STATUS_EMERGENCY, "EMERGENCY")
+            put(PowerManager.THERMAL_STATUS_SHUTDOWN, "SHUTDOWN")
+        }
 
     @RequiresApi(Build.VERSION_CODES.Q)
     fun toThermalStatusString(thermalStatus: Int): String = thermalStatusMap[thermalStatus] ?: "UNKNOWN"

@@ -7,9 +7,11 @@
 
 package io.bitdrift.capture.network
 
+import androidx.collection.MutableScatterMap
 import io.bitdrift.capture.InternalFieldsMap
 import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.buildScatterMap
 import io.bitdrift.capture.providers.toFields
 import java.util.UUID
 
@@ -51,14 +53,14 @@ data class HttpRequestInfo
         internal val fields: InternalFieldsMap by lazy {
             // Do not put body bytes count as a common field since response log has a more accurate
             // measurement of request' body count anyway.
-            buildMap {
+            buildScatterMap<String, FieldValue> {
                 putAll(commonFields)
                 putOptional("_request_body_bytes_expected_to_send_count", bytesExpectedToSendCount)
             }
         }
 
         internal val commonFields: InternalFieldsMap by lazy {
-            buildMap {
+            buildScatterMap<String, FieldValue> {
                 putAll(extraFields.toFields())
                 put(SpanField.Key.NAME, FieldValue.StringField("_http"))
                 putOptionalHeaderSpanFields(headers)
@@ -79,20 +81,10 @@ data class HttpRequestInfo
 
         internal val matchingFields: InternalFieldsMap = headers?.let { HTTPHeaders.normalizeHeaders(it) }.toFields()
 
-        /**
-         * Adds optional fields to the mutable map based on the provided headers.
-         *
-         * This function checks for the presence of the "x-capture-span-key" header.
-         * If the header is present, it constructs a span name and additional fields from other headers
-         * and adds them to the map. If the header is not present, it adds a default span name.
-         *
-         * @param headers The map of headers from which fields are extracted.
-         */
-        private fun MutableMap<String, FieldValue>.putOptionalHeaderSpanFields(headers: Map<String, String>?) {
+        private fun MutableScatterMap<String, FieldValue>.putOptionalHeaderSpanFields(headers: Map<String, String>?) {
             headers?.get("x-capture-span-key")?.let { spanKey ->
                 val prefix = "x-capture-span-$spanKey"
                 val spanName = "_" + headers["$prefix-name"]
-                // override _span_name
                 put(SpanField.Key.NAME, FieldValue.StringField(spanName))
                 val fieldPrefix = "$prefix-field"
                 headers.iterator().forEach { (key, value) ->
@@ -104,12 +96,7 @@ data class HttpRequestInfo
             }
         }
 
-        /**
-         * Best effort to extract graphQL operation name from the headers, this is specific to apollo3 kotlin client
-         *
-         * @param headers The map of headers from which fields are extracted.
-         */
-        private fun MutableMap<String, FieldValue>.putOptionalGraphQlHeaders(headers: Map<String, String>?) {
+        private fun MutableScatterMap<String, FieldValue>.putOptionalGraphQlHeaders(headers: Map<String, String>?) {
             headers?.get("X-APOLLO-OPERATION-NAME")?.let { gqlOperationName ->
                 put(HttpField.PATH_TEMPLATE, FieldValue.StringField("gql-$gqlOperationName"))
                 put("_operation_name", FieldValue.StringField(gqlOperationName))
@@ -119,7 +106,6 @@ data class HttpRequestInfo
                 headers["X-APOLLO-OPERATION-ID"]?.let { gqlOperationId ->
                     put("_operation_id", FieldValue.StringField(gqlOperationId))
                 }
-                // override _span_name
                 put(SpanField.Key.NAME, FieldValue.StringField("_graphql"))
             }
         }

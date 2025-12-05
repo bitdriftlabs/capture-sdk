@@ -29,14 +29,12 @@ import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
-import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
-import io.bitdrift.capture.providers.FieldValue
-import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EMPTY_LIST_MESSAGE
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
+import io.bitdrift.capture.testutils.hasFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
 import org.junit.Test
@@ -112,7 +110,16 @@ class AppExitLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
-            eq(buildExpectedAnrFields()),
+            hasFields(
+                "_app_exit_source" to "ApplicationExitInfo",
+                "_app_exit_process_name" to "test-process-name",
+                "_app_exit_importance" to "FOREGROUND",
+                "_app_exit_status" to "0",
+                "_app_exit_pss" to "1",
+                "_app_exit_rss" to "2",
+                "_app_exit_description" to "test-description",
+                "_memory_class" to "1",
+            ),
             eq(null),
             eq(LogAttributesOverrides.PreviousRunSessionId(TIME_STAMP)),
             eq(false),
@@ -194,19 +201,16 @@ class AppExitLoggerTest {
         appExitLogger.onJvmCrash(currentThread, RuntimeException("wrapper crash", appException))
 
         // ASSERT
-        val expectedFields =
-            buildMap {
-                put("_app_exit_source", "UncaughtExceptionHandler")
-                put("_app_exit_reason", "Crash")
-                put("_app_exit_info", appException.javaClass.name)
-                put("_app_exit_details", appException.message.orEmpty())
-                put("_app_exit_thread", currentThread.name)
-                putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
-            }.toFields()
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
-            eq(expectedFields),
+            hasFields(
+                "_app_exit_source" to "UncaughtExceptionHandler",
+                "_app_exit_reason" to "Crash",
+                "_app_exit_info" to appException.javaClass.name,
+                "_app_exit_details" to appException.message.orEmpty(),
+                "_app_exit_thread" to currentThread.name,
+            ),
             eq(null),
             eq(null),
             eq(true),
@@ -319,17 +323,4 @@ class AppExitLoggerTest {
             captureUncaughtExceptionHandler,
             FakeFatalIssueReporter(fatalReporterInitState),
         )
-
-    private fun buildExpectedAnrFields(): Map<String, FieldValue> =
-        buildMap {
-            put("_app_exit_source", "ApplicationExitInfo")
-            put("_app_exit_process_name", "test-process-name")
-            put("_app_exit_reason", "ANR")
-            put("_app_exit_importance", "FOREGROUND")
-            put("_app_exit_status", "0")
-            put("_app_exit_pss", "1")
-            put("_app_exit_rss", "2")
-            put("_app_exit_description", "test-description")
-            put("_memory_class", "1")
-        }.toFields()
 }

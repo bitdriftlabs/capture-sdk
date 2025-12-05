@@ -13,6 +13,7 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
+import androidx.collection.MutableScatterMap
 import androidx.core.os.ConfigurationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -73,32 +74,32 @@ internal class ClientAttributes(
     }
 
     private val cachedAttributes by lazy {
-        mutableMapOf(
+        MutableScatterMap<String, String>().apply {
             // The package name which identifies the running app (e.g. me.foobar.android).
-            "app_id" to appId,
+            put("app_id", appId)
             // Operating system. Always Android for this code path.
-            "os" to "Android",
+            put("os", "Android")
             // The operating system version (e.g. 12.1).
-            "os_version" to osVersion,
+            put("os_version", osVersion)
             // Device model name.
-            "model" to model,
+            put("model", model)
             // The SDK level (e.g. 35).
-            "_os_api_level" to osApiLevel.toString(),
+            put("_os_api_level", osApiLevel.toString())
             // The version of this package, as specified by the manifest's `versionName` attribute.
             // (e.g. 1.2.33).
-            "app_version" to appVersion,
+            put("app_version", appVersion)
             // A positive integer used as an internal version number.
             // This number helps determine whether one version is more recent than another.
-            "_app_version_code" to appVersionCode.toString(),
+            put("_app_version_code", appVersionCode.toString())
             // The current architecture e.g. (arm64-v8a).
-            "_architecture" to architecture,
-        )
+            put("_architecture", architecture)
+        }
     }
 
     override fun invoke(): Fields {
         updateForegroundState()
         updateLocaleIfNeeded()
-        return cachedAttributes
+        return cachedAttributes.asMap()
     }
 
     private fun updateForegroundState() {

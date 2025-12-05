@@ -10,6 +10,7 @@ package io.bitdrift.capture.network
 import io.bitdrift.capture.InternalFieldsMap
 import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.buildScatterMap
 import io.bitdrift.capture.providers.toFields
 
 /**
@@ -43,13 +44,13 @@ data class HttpResponseInfo
                 // HTTP specific fields such as host, path, or query and HTTP request performance
                 // metrics such as DNS resolution time.
                 val fields =
-                    buildMap {
-                        this.put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_END))
-                        this.put(
+                    buildScatterMap<String, FieldValue> {
+                        put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_END))
+                        put(
                             SpanField.Key.DURATION,
                             FieldValue.StringField(durationMs.toString()),
                         )
-                        this.put(
+                        put(
                             SpanField.Key.RESULT,
                             FieldValue.StringField(response.result.name.lowercase()),
                         )
@@ -83,19 +84,19 @@ data class HttpResponseInfo
                         }
 
                         metrics?.let<HttpRequestMetrics, Unit> {
-                            this.put(
+                            put(
                                 "_request_body_bytes_sent_count",
                                 FieldValue.StringField(it.requestBodyBytesSentCount.toString()),
                             )
-                            this.put(
+                            put(
                                 "_response_body_bytes_received_count",
                                 FieldValue.StringField(it.responseBodyBytesReceivedCount.toString()),
                             )
-                            this.put(
+                            put(
                                 "_request_headers_bytes_count",
                                 FieldValue.StringField(it.requestHeadersBytesCount.toString()),
                             )
-                            this.put(
+                            put(
                                 "_response_headers_bytes_count",
                                 FieldValue.StringField(it.responseHeadersBytesCount.toString()),
                             )

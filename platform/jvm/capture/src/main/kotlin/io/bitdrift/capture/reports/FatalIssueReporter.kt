@@ -17,6 +17,7 @@ import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.buildScatterMap
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.reports.FatalIssueReporterState.NotInitialized
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
@@ -153,7 +154,7 @@ internal class FatalIssueReporter(
     }
 
     override fun getLogStatusFieldsMap(): Map<String, FieldValue> =
-        buildMap {
+        buildScatterMap {
             put(FATAL_ISSUE_REPORTING_STATE_KEY, fatalIssueReporterState.readableType.toFieldValue())
             initializationDuration?.toFieldValue(DurationUnit.MILLISECONDS)?.let {
                 put(FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY, it)
@@ -201,7 +202,7 @@ internal class FatalIssueReporter(
         private const val FATAL_ISSUE_REPORTING_STATE_KEY = "_fatal_issue_reporting_state"
 
         fun getDisabledStatusFieldsMap(): Map<String, FieldValue> =
-            buildMap {
+            buildScatterMap {
                 put(FATAL_ISSUE_REPORTING_STATE_KEY, FatalIssueReporterState.ClientDisabled.readableType.toFieldValue())
             }
     }

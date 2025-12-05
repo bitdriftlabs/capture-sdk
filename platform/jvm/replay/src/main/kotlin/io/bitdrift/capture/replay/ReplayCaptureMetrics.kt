@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.replay
 
+import androidx.collection.MutableScatterMap
 import kotlin.time.Duration
 
 /**
@@ -35,14 +36,15 @@ data class ReplayCaptureMetrics(
      * Convert the metrics to a map
      */
     fun toMap(): Map<String, String> =
-        mapOf(
-            "view_count" to viewCount.toString(),
-            "compose_view_count" to composeViewCount.toString(),
-            "view_count_after_filter" to viewCountAfterFilter.toString(),
-            "error_view_count" to errorViewCount.toString(),
-            "exception_causing_view_count" to exceptionCausingViewCount.toString(),
-            "parse_duration_ms" to parseDuration.inWholeMilliseconds.toString(),
-            "encoding_time_ms" to encodingTimeMs.toString(),
-            "total_duration_ms" to totalDurationMs.toString(),
-        )
+        MutableScatterMap<String, String>()
+            .apply {
+                put("view_count", viewCount.toString())
+                put("compose_view_count", composeViewCount.toString())
+                put("view_count_after_filter", viewCountAfterFilter.toString())
+                put("error_view_count", errorViewCount.toString())
+                put("exception_causing_view_count", exceptionCausingViewCount.toString())
+                put("parse_duration_ms", parseDuration.inWholeMilliseconds.toString())
+                put("encoding_time_ms", encodingTimeMs.toString())
+                put("total_duration_ms", totalDurationMs.toString())
+            }.asMap()
 }

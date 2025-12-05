@@ -17,6 +17,7 @@ import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.providers.buildScatterMap
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.replay.IReplayLogger
@@ -72,7 +73,7 @@ internal class SessionReplayTarget(
         metrics: ReplayCaptureMetrics,
     ) {
         val fields =
-            buildMap {
+            buildScatterMap {
                 put("screen", encodedScreen.toFieldValue())
                 putAll(metrics.toMap().toFields())
             }
@@ -89,7 +90,7 @@ internal class SessionReplayTarget(
         metrics: ScreenshotCaptureMetrics,
     ) {
         val fields =
-            buildMap {
+            buildScatterMap {
                 put("screen_px", compressedScreen.toFieldValue())
                 putAll(metrics.toMap().toFields())
             }

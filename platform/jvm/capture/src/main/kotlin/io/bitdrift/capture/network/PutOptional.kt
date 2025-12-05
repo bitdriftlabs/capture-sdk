@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.network
 
+import androidx.collection.MutableScatterMap
 import io.bitdrift.capture.providers.FieldValue
 
 internal fun <T> MutableMap<String, FieldValue>.putOptional(
@@ -14,6 +15,17 @@ internal fun <T> MutableMap<String, FieldValue>.putOptional(
     value: T?,
     extractString: ((T) -> String) = { T -> T.toString() },
 ): MutableMap<String, FieldValue> {
+    if (value != null) {
+        this[key] = FieldValue.StringField(extractString(value))
+    }
+    return this
+}
+
+internal fun <T> MutableScatterMap<String, FieldValue>.putOptional(
+    key: String,
+    value: T?,
+    extractString: ((T) -> String) = { T -> T.toString() },
+): MutableScatterMap<String, FieldValue> {
     if (value != null) {
         this[key] = FieldValue.StringField(extractString(value))
     }

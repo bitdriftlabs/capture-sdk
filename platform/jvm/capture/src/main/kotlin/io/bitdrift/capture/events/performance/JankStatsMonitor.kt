@@ -38,6 +38,7 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.buildScatterMap
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.threading.CaptureDispatchers
 import java.util.concurrent.TimeUnit
@@ -214,7 +215,7 @@ internal class JankStatsMonitor(
         logger.log(
             LogType.UX,
             jankFrameType.logLevel,
-            buildMap {
+            buildScatterMap {
                 put(SpanField.Key.DURATION, toDurationMillis().toString().toFieldValue())
                 put(DROPPED_FRAME_TYPE_KEY, jankFrameType.fieldValue)
                 putAll(this@sendJankFrameData.states.toFields())

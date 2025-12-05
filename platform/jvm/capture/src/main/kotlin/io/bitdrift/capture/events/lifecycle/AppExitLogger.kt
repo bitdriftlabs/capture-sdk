@@ -14,6 +14,7 @@ import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
+import androidx.collection.MutableScatterMap
 import io.bitdrift.capture.InternalFieldsMap
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
@@ -23,6 +24,7 @@ import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
+import io.bitdrift.capture.providers.buildScatterMap
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.IFatalIssueReporter
@@ -144,7 +146,7 @@ internal class AppExitLogger(
         throwable: Throwable,
     ): InternalFieldsMap {
         val rootCause = throwable.getRootCause()
-        return buildMap {
+        return buildScatterMap<String, String> {
             put(APP_EXIT_SOURCE_KEY, "UncaughtExceptionHandler")
             put(APP_EXIT_REASON_KEY, "Crash")
             put(APP_EXIT_INFO_KEY, rootCause.javaClass.name)
@@ -156,7 +158,7 @@ internal class AppExitLogger(
 
     @RequiresApi(Build.VERSION_CODES.R)
     private fun buildAppExitInternalFieldsMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap =
-        buildMap {
+        buildScatterMap {
             putAll(applicationExitInfo.toMap().toFields())
             putAll(memoryMetricsProvider.getMemoryClass().toFields())
         }
@@ -164,16 +166,17 @@ internal class AppExitLogger(
     @RequiresApi(Build.VERSION_CODES.R)
     private fun ApplicationExitInfo.toMap(): Map<String, String> {
         // https://developer.android.com/reference/kotlin/android/app/ApplicationExitInfo
-        return mapOf(
-            APP_EXIT_SOURCE_KEY to "ApplicationExitInfo",
-            APP_EXIT_PROCESS_NAME_KEY to this.processName,
-            APP_EXIT_REASON_KEY to this.reason.toReasonText(),
-            APP_EXIT_IMPORTANCE_KEY to this.importance.toImportanceText(),
-            APP_EXIT_STATUS_KEY to this.status.toString(),
-            APP_EXIT_PSS_KEY to this.pss.toString(),
-            APP_EXIT_RSS_KEY to this.rss.toString(),
-            APP_EXIT_DESCRIPTION_KEY to this.description.orEmpty(),
-        )
+        return MutableScatterMap<String, String>()
+            .apply {
+                put(APP_EXIT_SOURCE_KEY, "ApplicationExitInfo")
+                put(APP_EXIT_PROCESS_NAME_KEY, this@toMap.processName)
+                put(APP_EXIT_REASON_KEY, this@toMap.reason.toReasonText())
+                put(APP_EXIT_IMPORTANCE_KEY, this@toMap.importance.toImportanceText())
+                put(APP_EXIT_STATUS_KEY, this@toMap.status.toString())
+                put(APP_EXIT_PSS_KEY, this@toMap.pss.toString())
+                put(APP_EXIT_RSS_KEY, this@toMap.rss.toString())
+                put(APP_EXIT_DESCRIPTION_KEY, this@toMap.description.orEmpty())
+            }.asMap()
     }
 
     private fun Int.toReasonText(): String =

@@ -13,6 +13,7 @@ import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.providers.buildScatterMap
 import java.io.File
 
 private const val LAST_APP_DISK_USAGE_EVENT_EMISSION_TIME = "lastAppDiskUsageEventEmissionTime"
@@ -51,7 +52,7 @@ internal class DiskUsageMonitor(
 
         preferences.setLong(LAST_APP_DISK_USAGE_EVENT_EMISSION_TIME, now)
 
-        return buildMap {
+        return buildScatterMap {
             put("_cache_dir_size_bytes", cacheDirSize.toString())
             put("_files_dir_size_bytes", filesDirSize.toString())
 
