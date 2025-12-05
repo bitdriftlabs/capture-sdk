@@ -7,6 +7,8 @@
 
 package io.bitdrift.capture.providers
 
+import io.bitdrift.capture.EMPTY_INTERNAL_FIELDS
+import io.bitdrift.capture.InternalFields
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 
@@ -125,20 +127,63 @@ internal fun Duration.toFieldValue(durationUnit: DurationUnit): FieldValue = thi
 internal fun Boolean.toFieldValue(): FieldValue = this.toString().toFieldValue()
 
 /**
- * Converts a Map<String, String> into a List<Field>.
- *
- * NOTE: Suppresses null-check warnings due to possible nulls from Java interop.
- *
+ * Converts a Map<String, FieldValue> into an Array<Field> for efficient JNI transfer.
  */
-@Suppress("SENSELESS_COMPARISON")
-internal fun Map<String, String>?.toFields(): Map<String, FieldValue> {
-    if (isNullOrEmpty()) return emptyMap()
-
-    val result = HashMap<String, FieldValue>(size)
+internal fun Map<String, String>.toFields(): InternalFields {
+    if (isEmpty()) return EMPTY_INTERNAL_FIELDS
+    val result = arrayOfNulls<Field>(size)
+    var i = 0
     for ((key, value) in this) {
-        if (key != null && value != null) {
-            result[key] = value.toFieldValue()
+        result[i++] = Field(key, value.toFieldValue())
+    }
+    @Suppress("UNCHECKED_CAST")
+    return result as InternalFields
+}
+
+/**
+ * Creates an InternalFieldsArray from pairs directly.
+ * More efficient than arrayOf() for multiple pairs as it avoids intermediate array creation.
+ *
+ * Example:
+ * ```
+ * fieldsArrayOf(
+ *     APP_EXIT_SOURCE_KEY to "ApplicationExitInfo",
+ *     APP_EXIT_PROCESS_NAME_KEY to processName,
+ *     APP_EXIT_REASON_KEY to reason.toReasonText()
+ * )
+ * ```
+ */
+internal fun fieldsOf(vararg pairs: Pair<String, String>): InternalFields =
+    Array(pairs.size) { i -> Field(pairs[i].first, pairs[i].second.toFieldValue()) }
+
+internal fun fieldsValueOf(vararg pairs: Pair<String, FieldValue>): InternalFields =
+    Array(pairs.size) { i -> Field(pairs[i].first, pairs[i].second) }
+
+/**
+ * Converts an Array<Pair<String, String>> to InternalFieldsArray.
+ */
+internal fun Array<Pair<String, String>>.toFields(): InternalFields =
+    Array(size) { i -> Field(this[i].first, this[i].second.toFieldValue()) }
+
+/**
+ * Combines multiple InternalFieldsArray into a single array efficiently.
+ * Avoids multiple intermediate array allocations from chained `+` operations.
+ *
+ * Example:
+ * ```
+ * // Instead of: array1 + array2 + array3 + array4 (3 intermediate allocations)
+ * combineFields(array1, array2, array3, array4) // single allocation
+ * ```
+ */
+internal fun combineFields(vararg arrays: InternalFields): InternalFields {
+    val totalSize = arrays.sumOf { it.size }
+    if (totalSize == 0) return EMPTY_INTERNAL_FIELDS
+
+    val result = ArrayList<Field>(totalSize)
+    for (array in arrays) {
+        for (field in array) {
+            result.add(field)
         }
     }
-    return result
+    return result.toTypedArray()
 }

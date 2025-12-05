@@ -11,6 +11,8 @@ import android.content.Context
 import android.os.Build
 import android.os.PowerManager
 import androidx.annotation.RequiresApi
+import io.bitdrift.capture.InternalFields
+import io.bitdrift.capture.providers.fieldsOf
 
 internal class PowerMonitor(
     context: Context,
@@ -34,6 +36,6 @@ internal class PowerMonitor(
     @RequiresApi(Build.VERSION_CODES.Q)
     fun toThermalStatusString(thermalStatus: Int): String = thermalStatusMap[thermalStatus] ?: "UNKNOWN"
 
-    fun isPowerSaveModeEnabledAttribute(): Pair<String, String> =
-        Pair("_low_power_enabled", if (powerManager?.isPowerSaveMode == true) "1" else "0")
+    fun isPowerSaveModeEnabledAttribute(): InternalFields =
+        fieldsOf("_low_power_enabled" to if (powerManager?.isPowerSaveMode == true) "1" else "0")
 }

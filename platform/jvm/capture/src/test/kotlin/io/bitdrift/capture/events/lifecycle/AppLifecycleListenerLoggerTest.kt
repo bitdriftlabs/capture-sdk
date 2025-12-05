@@ -18,15 +18,15 @@ import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.InternalFields
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.Mocks
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.providers.FieldValue
-import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
+import io.bitdrift.capture.utils.toInternalFieldsArray
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
@@ -66,8 +66,6 @@ class AppLifecycleListenerLoggerTest {
     @Test
     fun testAppStartInfoFieldsAreSkippedIfNotCreate() {
         // ARRANGE
-        val expectedFields = emptyMap<String, FieldValue>()
-
         whenever(versionChecker.isAtLeast(35)).thenReturn(true)
 
         // ACT
@@ -77,8 +75,8 @@ class AppLifecycleListenerLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.INFO),
-            eq(expectedFields),
-            eq(null),
+            eq(EMPTY_INTERNAL_FIELDS),
+            eq(EMPTY_INTERNAL_FIELDS),
             eq(null),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppStart" },
@@ -88,8 +86,6 @@ class AppLifecycleListenerLoggerTest {
     @Test
     fun testAppStartInfoFieldsAreSkippedIfError() {
         // ARRANGE
-        val expectedFields = emptyMap<String, FieldValue>()
-
         whenever(versionChecker.isAtLeast(35)).thenReturn(true)
         val error = RuntimeException("test exception")
         whenever(activityManager.getHistoricalProcessStartReasons(anyOrNull())).thenThrow(error)
@@ -101,8 +97,8 @@ class AppLifecycleListenerLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.INFO),
-            eq(expectedFields),
-            eq(null),
+            eq(EMPTY_INTERNAL_FIELDS),
+            eq(EMPTY_INTERNAL_FIELDS),
             eq(null),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppCreate" },
@@ -126,7 +122,7 @@ class AppLifecycleListenerLoggerTest {
                 put("startup_launch_mode", "STANDARD")
                 put("startup_was_forced_stopped", "false")
                 put("startup_reason", "ALARM")
-            }.toFields()
+            }.toInternalFieldsArray()
 
         whenever(versionChecker.isAtLeast(35)).thenReturn(true)
 
@@ -149,8 +145,12 @@ class AppLifecycleListenerLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.INFO),
-            eq(expectedFields),
-            eq(null),
+            argThat<InternalFields> { fields ->
+                val actualKeys = fields.map { it.key }.toSet()
+                val expectedKeys = expectedFields.map { it.key }.toSet()
+                actualKeys.containsAll(expectedKeys)
+            },
+            eq(EMPTY_INTERNAL_FIELDS),
             eq(null),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppCreate" },

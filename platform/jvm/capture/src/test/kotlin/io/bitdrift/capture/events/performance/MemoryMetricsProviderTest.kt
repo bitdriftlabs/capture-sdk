@@ -49,16 +49,21 @@ class MemoryMetricsProviderTest {
 
         val result = memoryMetricsProvider.getMemoryAttributes()
 
-        assertThat(result).containsKeys(
-            "_jvm_used_kb",
-            "_jvm_total_kb",
-            "_jvm_max_kb",
-            "_jvm_used_percent",
-            "_native_used_kb",
-            "_native_total_kb",
-            "_memory_class",
-            "_is_memory_low",
-        )
+        val expectedKeys =
+            listOf(
+                "_jvm_used_kb",
+                "_jvm_total_kb",
+                "_jvm_max_kb",
+                "_jvm_used_percent",
+                "_native_used_kb",
+                "_native_total_kb",
+                "_memory_class",
+                "_is_memory_low",
+            )
+        val actualKeys = result.map { it.key }
+        expectedKeys.forEach { key ->
+            assertThat(actualKeys).contains(key)
+        }
     }
 
     @Test

@@ -8,9 +8,10 @@
 package io.bitdrift.capture.providers
 
 import android.util.Log
+import io.bitdrift.capture.EMPTY_INTERNAL_FIELDS
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.IMetadataProvider
-import io.bitdrift.capture.InternalFieldsList
+import io.bitdrift.capture.InternalFields
 
 internal class MetadataProvider(
     private val dateProvider: DateProvider,
@@ -21,27 +22,30 @@ internal class MetadataProvider(
 ) : IMetadataProvider {
     override fun timestamp(): Long = dateProvider.invoke().time
 
-    override fun ootbFields(): InternalFieldsList = fields(ootbFieldProviders)
+    override fun ootbFields(): InternalFields = fields(ootbFieldProviders)
 
-    override fun customFields(): InternalFieldsList = fields(customFieldProviders)
+    override fun customFields(): InternalFields = fields(customFieldProviders)
 
-    private fun fields(fieldProviders: List<FieldProvider>): InternalFieldsList =
-        buildList {
-            for (fieldProvider in fieldProviders) {
-                try {
-                    this.addAll(
-                        fieldProvider().map {
-                            Field(key = it.key, value = it.value.toFieldValue())
-                        },
-                    )
-                } catch (e: Throwable) {
-                    // We cannot log to our logger as we are in the middle of processing
-                    // a log and want to avoid an infinite cycle of logs.
-                    // The issue is not with our code but customer's provider.
-                    val message = "Field Provider \"${fieldProvider.javaClass.name}\" threw an exception"
-                    errorLog(message, e)
-                    errorHandler.handleError(message, e)
+    private fun fields(fieldProviders: List<FieldProvider>): InternalFields {
+        if (fieldProviders.isEmpty()) return EMPTY_INTERNAL_FIELDS
+
+        // Pre-collect all fields to avoid intermediate List allocations from flatMap
+        val result = ArrayList<Field>()
+        for (fieldProvider in fieldProviders) {
+            try {
+                val providedFields = fieldProvider()
+                for ((key, value) in providedFields) {
+                    result.add(Field(key = key, value = value.toFieldValue()))
                 }
+            } catch (e: Throwable) {
+                // We cannot log to our logger as we are in the middle of processing
+                // a log and want to avoid an infinite cycle of logs.
+                // The issue is not with our code but customer's provider.
+                val message = "Field Provider \"${fieldProvider.javaClass.name}\" threw an exception"
+                errorLog(message, e)
+                errorHandler.handleError(message, e)
             }
         }
+        return result.toTypedArray()
+    }
 }

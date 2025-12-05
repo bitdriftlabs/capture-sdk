@@ -9,7 +9,9 @@ package io.bitdrift.capture.events.performance
 
 import android.app.ActivityManager
 import android.os.Debug
+import io.bitdrift.capture.InternalFields
 import io.bitdrift.capture.common.RuntimeConfig
+import io.bitdrift.capture.providers.fieldsOf
 
 private const val KB = 1024L
 
@@ -23,21 +25,18 @@ internal class MemoryMetricsProvider(
         getConfiguredLowMemoryPercentThreshold()
     }
 
-    override fun getMemoryAttributes(): Map<String, String> =
-        buildMap {
-            put("_jvm_used_kb", jvmMemoryProvider.usedMemoryBytes().bToKb())
-            put("_jvm_total_kb", jvmMemoryProvider.totalMemoryBytes().bToKb())
-            put("_jvm_max_kb", jvmMemoryProvider.maxMemoryBytes().bToKb())
-            put("_native_used_kb", allocatedNativeHeapSizeBytes().bToKb())
-            put("_native_total_kb", totalNativeHeapSizeBytes().bToKb())
-            put("_memory_class", memoryClassMB().toString())
-            if (appLowMemoryConfigThreshold != null) {
-                put("_is_memory_low", if (isMemoryLow()) "1" else "0")
-            }
-            put("_jvm_used_percent", "%.3f".format(jvmUsedPercent()))
-        }
+    override fun getMemoryAttributes(): InternalFields =
+        fieldsOf(
+            "_jvm_used_kb" to jvmMemoryProvider.usedMemoryBytes().bToKb(),
+            "_jvm_total_kb" to jvmMemoryProvider.totalMemoryBytes().bToKb(),
+            "_jvm_max_kb" to jvmMemoryProvider.maxMemoryBytes().bToKb(),
+            "_native_used_kb" to allocatedNativeHeapSizeBytes().bToKb(),
+            "_native_total_kb" to totalNativeHeapSizeBytes().bToKb(),
+            "_memory_class" to memoryClassMB().toString(),
+            "_jvm_used_percent" to "%.3f".format(jvmUsedPercent()),
+        )
 
-    override fun getMemoryClass(): Map<String, String> = buildMap { put("_memory_class", memoryClassMB().toString()) }
+    override fun getMemoryClass(): InternalFields = fieldsOf("_memory_class" to memoryClassMB().toString())
 
     override fun isMemoryLow(): Boolean {
         val thresholdPercent = appLowMemoryConfigThreshold ?: return false

@@ -41,9 +41,9 @@ class CaptureLoggerNetworkTest {
     class TestMetadataProvider : IMetadataProvider {
         override fun timestamp(): Long = Date().time
 
-        override fun ootbFields(): InternalFieldsList = listOf()
+        override fun ootbFields(): InternalFields = EMPTY_INTERNAL_FIELDS
 
-        override fun customFields(): InternalFieldsList = listOf()
+        override fun customFields(): InternalFields = EMPTY_INTERNAL_FIELDS
     }
 
     companion object {

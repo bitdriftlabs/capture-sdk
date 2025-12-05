@@ -9,6 +9,7 @@ package io.bitdrift.capture.events
 
 import android.content.Context
 import io.bitdrift.capture.ISessionReplayTarget
+import io.bitdrift.capture.InternalFields
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
@@ -17,6 +18,8 @@ import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.providers.combineFields
+import io.bitdrift.capture.providers.fieldsValueOf
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.replay.IReplayLogger
@@ -71,13 +74,10 @@ internal class SessionReplayTarget(
         screen: FilteredCapture,
         metrics: ReplayCaptureMetrics,
     ) {
-        val fields =
-            buildMap {
-                put("screen", encodedScreen.toFieldValue())
-                putAll(metrics.toMap().toFields())
-            }
-
-        logger.logSessionReplayScreen(fields, metrics.parseDuration)
+        logger.logSessionReplayScreen(
+            buildScreenCapturedFields(encodedScreen, metrics),
+            metrics.parseDuration,
+        )
     }
 
     override fun captureScreenshot() {
@@ -88,26 +88,26 @@ internal class SessionReplayTarget(
         compressedScreen: ByteArray,
         metrics: ScreenshotCaptureMetrics,
     ) {
-        val fields =
-            buildMap {
-                put("screen_px", compressedScreen.toFieldValue())
-                putAll(metrics.toMap().toFields())
-            }
-        logger.logSessionReplayScreenshot(fields, metrics.screenshotTimeMs.toDuration(DurationUnit.MILLISECONDS))
+        logger.logSessionReplayScreenshot(
+            buildScreenshotCaptureFields(compressedScreen, metrics),
+            metrics.screenshotTimeMs.toDuration(DurationUnit.MILLISECONDS),
+        )
     }
 
     override fun logVerboseInternal(
         message: String,
         fields: Map<String, String>?,
     ) {
-        logger.log(LogType.INTERNALSDK, LogLevel.TRACE, fields.toFields()) { message }
+        // NOTE: looks like fields is always empty...
+        logger.log(LogType.INTERNALSDK, LogLevel.TRACE) { message }
     }
 
     override fun logDebugInternal(
         message: String,
         fields: Map<String, String>?,
     ) {
-        logger.log(LogType.INTERNALSDK, LogLevel.DEBUG, fields.toFields()) { message }
+        // NOTE: looks like fields is always empty...
+        logger.log(LogType.INTERNALSDK, LogLevel.DEBUG) { message }
     }
 
     override fun logErrorInternal(
@@ -115,6 +115,25 @@ internal class SessionReplayTarget(
         e: Throwable?,
         fields: Map<String, String>?,
     ) {
-        logger.log(LogType.INTERNALSDK, LogLevel.ERROR, logger.extractFields(fields, e)) { message }
+        // NOTE: looks like fields is always empty...
+        logger.log(LogType.INTERNALSDK, LogLevel.ERROR) { message }
     }
+
+    private fun buildScreenCapturedFields(
+        encodedScreen: ByteArray,
+        metrics: ReplayCaptureMetrics,
+    ): InternalFields =
+        combineFields(
+            fieldsValueOf("screen" to encodedScreen.toFieldValue()),
+            metrics.toArray().toFields(),
+        )
+
+    private fun buildScreenshotCaptureFields(
+        compressedScreen: ByteArray,
+        metrics: ScreenshotCaptureMetrics,
+    ): InternalFields =
+        combineFields(
+            fieldsValueOf("screen" to compressedScreen.toFieldValue()),
+            metrics.toArray().toFields(),
+        )
 }

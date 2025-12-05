@@ -7,7 +7,7 @@
 
 package io.bitdrift.capture.network
 
-import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.providers.fieldsOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import java.util.UUID
@@ -42,7 +42,7 @@ class HttpResponseInfoTest {
             )
 
         assertThat(responseInfo.fields).isEqualTo(
-            mapOf(
+            fieldsOf(
                 "_host" to "foo.com",
                 "_method" to "GET",
                 "_path" to "/foo_path/12345",
@@ -57,7 +57,7 @@ class HttpResponseInfoTest {
                 "_error_message" to "my_error",
                 "my_extra_key_1" to "my_extra_value_1",
                 "my_extra_key_2" to "my_extra_value_2",
-            ).toFields(),
+            ),
         )
     }
 
@@ -90,7 +90,7 @@ class HttpResponseInfoTest {
             )
 
         assertThat(responseInfo.fields).isEqualTo(
-            mapOf(
+            fieldsOf(
                 "_host" to "foo.com",
                 "_method" to "GET",
                 "_path" to "/my_path/12345",
@@ -105,7 +105,7 @@ class HttpResponseInfoTest {
                 "_error_message" to "my_error",
                 "my_extra_key_1" to "my_extra_value_1",
                 "my_extra_key_2" to "my_extra_value_2",
-            ).toFields(),
+            ),
         )
     }
 
@@ -124,7 +124,7 @@ class HttpResponseInfoTest {
             )
 
         assertThat(requestInfo.fields).isEqualTo(
-            mapOf(
+            fieldsOf(
                 "_host" to "api.bitdrift.io",
                 "_method" to "GET",
                 "_path" to "/my_path/12345",
@@ -133,7 +133,7 @@ class HttpResponseInfoTest {
                 "_span_name" to "_http",
                 "_span_type" to "start",
                 "my_extra_key_1" to "my_extra_value_1",
-            ).toFields(),
+            ),
         )
 
         val responseInfo =
@@ -152,7 +152,7 @@ class HttpResponseInfoTest {
             )
 
         assertThat(responseInfo.fields).isEqualTo(
-            mapOf(
+            fieldsOf(
                 "_host" to "foo.com",
                 "_method" to "GET",
                 "_path" to "/foo_path/12345",
@@ -166,11 +166,11 @@ class HttpResponseInfoTest {
                 "_error_message" to "my_error",
                 "my_extra_key_1" to "my_extra_value_1",
                 "my_extra_key_2" to "my_extra_value_2",
-            ).toFields(),
+            ),
         )
 
         assertThat(responseInfo.matchingFields).isEqualTo(
-            mapOf(
+            fieldsOf(
                 "_request._host" to "api.bitdrift.io",
                 "_request._method" to "GET",
                 "_request._path" to "/my_path/12345",
@@ -179,7 +179,7 @@ class HttpResponseInfoTest {
                 "_request._span_type" to "start",
                 "_request._query" to "my=query",
                 "_request.my_extra_key_1" to "my_extra_value_1",
-            ).toFields(),
+            ),
         )
     }
 }

@@ -7,7 +7,7 @@
 
 package io.bitdrift.capture.network
 
-import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.providers.fieldsOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import java.util.UUID
@@ -29,7 +29,7 @@ class HttpRequestInfoTest {
             )
 
         assertThat(requestInfo.fields).isEqualTo(
-            mapOf(
+            fieldsOf(
                 "_host" to "api.bitdrift.io",
                 "_method" to "GET",
                 "_path" to "/my_path/12345",
@@ -40,13 +40,13 @@ class HttpRequestInfoTest {
                 "_span_type" to "start",
                 "_request_body_bytes_expected_to_send_count" to "4",
                 "my_extra_key_1" to "my_extra_value_1",
-            ).toFields(),
+            ),
         )
 
         assertThat(requestInfo.matchingFields).isEqualTo(
-            mapOf(
+            fieldsOf(
                 "_headers.content-type" to "json",
-            ).toFields(),
+            ),
         )
     }
 }

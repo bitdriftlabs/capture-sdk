@@ -19,13 +19,15 @@ import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.CaptureTestJniLibrary
 import io.bitdrift.capture.ErrorHandler
+import io.bitdrift.capture.InternalFields
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
-import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES
+import io.bitdrift.capture.providers.fieldsOf
 import org.junit.After
 import org.junit.Test
 import java.util.concurrent.ExecutorService
@@ -63,10 +65,43 @@ class ResourceUtilizationTargetTest {
     @Test
     @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
     fun resourceUtilizationTickEmitsLog() {
-        whenever(batteryMonitor.batteryPercentageAttribute()).thenReturn(Pair("_battery_val", "0.75"))
-        whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
+        whenever(
+            batteryMonitor.batteryPercentageAttribute(),
+        ).thenReturn(
+            arrayOf(
+                io.bitdrift.capture.providers
+                    .Field(
+                        "_battery_val",
+                        io.bitdrift.capture.providers.FieldValue
+                            .StringField("0.75"),
+                    ),
+            ),
+        )
+        whenever(
+            batteryMonitor.isBatteryChargingAttribute(),
+        ).thenReturn(
+            arrayOf(
+                io.bitdrift.capture.providers
+                    .Field(
+                        "_state",
+                        io.bitdrift.capture.providers.FieldValue
+                            .StringField("charging"),
+                    ),
+            ),
+        )
 
-        whenever(powerMonitor.isPowerSaveModeEnabledAttribute()).thenReturn(Pair("_low_power_enabled", "1"))
+        whenever(
+            powerMonitor.isPowerSaveModeEnabledAttribute(),
+        ).thenReturn(
+            arrayOf(
+                io.bitdrift.capture.providers
+                    .Field(
+                        "_low_power_enabled",
+                        io.bitdrift.capture.providers.FieldValue
+                            .StringField("1"),
+                    ),
+            ),
+        )
 
         reporter.tick()
 
@@ -74,7 +109,7 @@ class ResourceUtilizationTargetTest {
 
         verify(logger).logResourceUtilization(
             eq(
-                mapOf(
+                fieldsOf(
                     "_jvm_used_kb" to "50",
                     "_jvm_total_kb" to "100",
                     "_jvm_max_kb" to "100",
@@ -100,9 +135,42 @@ class ResourceUtilizationTargetTest {
     fun resourceUtilizationTickEmitsAppMemPressureLog() {
         memoryMetricsProvider.setIsMemoryLow(true)
 
-        whenever(batteryMonitor.batteryPercentageAttribute()).thenReturn(Pair("_battery_val", "0.75"))
-        whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
-        whenever(powerMonitor.isPowerSaveModeEnabledAttribute()).thenReturn(Pair("_low_power_enabled", "1"))
+        whenever(
+            batteryMonitor.batteryPercentageAttribute(),
+        ).thenReturn(
+            arrayOf(
+                io.bitdrift.capture.providers
+                    .Field(
+                        "_battery_val",
+                        io.bitdrift.capture.providers.FieldValue
+                            .StringField("0.75"),
+                    ),
+            ),
+        )
+        whenever(
+            batteryMonitor.isBatteryChargingAttribute(),
+        ).thenReturn(
+            arrayOf(
+                io.bitdrift.capture.providers
+                    .Field(
+                        "_state",
+                        io.bitdrift.capture.providers.FieldValue
+                            .StringField("charging"),
+                    ),
+            ),
+        )
+        whenever(
+            powerMonitor.isPowerSaveModeEnabledAttribute(),
+        ).thenReturn(
+            arrayOf(
+                io.bitdrift.capture.providers
+                    .Field(
+                        "_low_power_enabled",
+                        io.bitdrift.capture.providers.FieldValue
+                            .StringField("1"),
+                    ),
+            ),
+        )
 
         reporter.tick()
 
@@ -111,18 +179,11 @@ class ResourceUtilizationTargetTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.WARNING),
-            eq(
-                mapOf(
-                    "_jvm_used_kb" to "50",
-                    "_jvm_total_kb" to "100",
-                    "_jvm_max_kb" to "100",
-                    "_jvm_used_percent" to "50",
-                    "_native_used_kb" to "200",
-                    "_native_total_kb" to "500",
-                    "_memory_class" to "1",
-                ).toFields(),
-            ),
-            eq(null),
+            argThat<InternalFields> { fields ->
+                val actualMap = fields.associate { it.key to it.value.toString() }
+                actualMap == DEFAULT_MEMORY_ATTRIBUTES
+            },
+            eq(EMPTY_INTERNAL_FIELDS),
             eq(null),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppMemPressure" },

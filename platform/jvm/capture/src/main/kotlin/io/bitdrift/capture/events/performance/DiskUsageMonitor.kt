@@ -8,11 +8,15 @@
 package io.bitdrift.capture.events.performance
 
 import android.content.Context
+import io.bitdrift.capture.EMPTY_INTERNAL_FIELDS
 import io.bitdrift.capture.IPreferences
+import io.bitdrift.capture.InternalFields
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.providers.Field
+import io.bitdrift.capture.providers.toFieldValue
 import java.io.File
 
 private const val LAST_APP_DISK_USAGE_EVENT_EMISSION_TIME = "lastAppDiskUsageEventEmissionTime"
@@ -29,9 +33,9 @@ internal class DiskUsageMonitor(
 ) {
     var runtime: Runtime? = null
 
-    fun getDiskUsage(): Map<String, String> {
+    fun getDiskUsage(): InternalFields {
         if (runtime?.isEnabled(RuntimeFeature.DISK_USAGE_FIELDS) == false) {
-            return mapOf()
+            return EMPTY_INTERNAL_FIELDS
         }
 
         val now = clock.elapsedRealtime()
@@ -40,7 +44,7 @@ internal class DiskUsageMonitor(
 
         // The disk usage fields are emitted only once every 24 hours.
         if (lastEmission != null && (now - lastEmission < DAY_MS)) {
-            return mapOf()
+            return EMPTY_INTERNAL_FIELDS
         }
 
         val cacheDirSize = calculateCumulativeSize(context.cacheDir)
@@ -51,18 +55,16 @@ internal class DiskUsageMonitor(
 
         preferences.setLong(LAST_APP_DISK_USAGE_EVENT_EMISSION_TIME, now)
 
-        return buildMap {
-            put("_cache_dir_size_bytes", cacheDirSize.toString())
-            put("_files_dir_size_bytes", filesDirSize.toString())
-
+        return buildList {
+            add(Field("_cache_dir_size_bytes", cacheDirSize.toString().toFieldValue()))
+            add(Field("_files_dir_size_bytes", filesDirSize.toString().toFieldValue()))
             externalCacheDirSize?.let {
-                put("_external_cache_dir_size_bytes", it.toString())
+                add(Field("_external_cache_dir_size_bytes", it.toString().toFieldValue()))
             }
-
             externalFilesDirSize?.let {
-                put("_external_files_dir_size_bytes", it.toString())
+                add(Field("_external_files_dir_size_bytes", it.toString().toFieldValue()))
             }
-        }
+        }.toTypedArray()
     }
 
     private fun calculateCumulativeSize(file: File): Long {
