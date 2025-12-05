@@ -25,7 +25,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Optimized internal field handling to reduce object allocations and GC pressure.
 
 **Fixed**
 

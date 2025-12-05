@@ -7,9 +7,12 @@
 
 package io.bitdrift.capture.network
 
-import io.bitdrift.capture.InternalFieldsMap
 import io.bitdrift.capture.events.span.SpanField
-import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.FieldArraysBuilder
+import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.combineFields
+import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.providers.fieldsOfOptional
 import io.bitdrift.capture.providers.toFields
 import java.util.UUID
 
@@ -67,79 +70,116 @@ data class HttpRequestInfo
     ) {
         internal val name: String = "HTTPRequest"
 
-        internal val fields: InternalFieldsMap by lazy {
+        internal val fields: Fields by lazy {
             // Do not put body bytes count as a common field since response log has a more accurate
             // measurement of request' body count anyway.
-            buildMap {
-                putAll(commonFields)
-                putOptional("_request_body_bytes_expected_to_send_count", bytesExpectedToSendCount)
+            val baseFields =
+                combineFields(
+                    commonFields,
+                    fieldsOf(SpanField.Key.TYPE to SpanField.Value.TYPE_START),
+                )
+            if (bytesExpectedToSendCount != null) {
+                combineFields(
+                    baseFields,
+                    fieldsOf("_request_body_bytes_expected_to_send_count" to bytesExpectedToSendCount.toString()),
+                )
+            } else {
+                baseFields
             }
         }
 
-        internal val commonFields: InternalFieldsMap by lazy {
-            buildMap {
-                putAll(extraFields.toFields())
-                put(SpanField.Key.NAME, FieldValue.StringField("_http"))
-                putOptionalHeaderSpanFields(headers)
-                putOptionalGraphQlHeaders(headers)
-                put(SpanField.Key.ID, FieldValue.StringField(spanId.toString()))
-                put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_START))
-                put("_method", FieldValue.StringField(method))
-                putOptional(HttpFieldKey.HOST, host)
-                putOptional(HttpFieldKey.PATH, path?.value)
-                putOptional(HttpFieldKey.QUERY, query)
-                path?.let {
-                    it.template?.let {
-                        put(HttpField.PATH_TEMPLATE, FieldValue.StringField(it))
-                    }
-                }
-            }
+        internal val commonFields: Fields by lazy {
+            val spanName = getSpanNameOverride(headers) ?: "_http"
+
+            val baseFields =
+                fieldsOf(
+                    SpanField.Key.NAME to spanName,
+                    SpanField.Key.ID to spanId.toString(),
+                    "_method" to method,
+                )
+
+            val optionalFields =
+                fieldsOfOptional(
+                    HttpFieldKey.HOST to host,
+                    HttpFieldKey.PATH to path?.value,
+                    HttpFieldKey.QUERY to query,
+                    HttpField.PATH_TEMPLATE to path?.template,
+                )
+
+            combineFields(
+                extraFields.toFields(),
+                baseFields,
+                getOptionalHeaderSpanFields(headers),
+                getOptionalGraphQlFields(headers),
+                optionalFields,
+            )
         }
 
-        internal val matchingFields: InternalFieldsMap = headers?.let { HTTPHeaders.normalizeHeaders(it) }.toFields()
-
-        /**
-         * Adds optional fields to the mutable map based on the provided headers.
-         *
-         * This function checks for the presence of the "x-capture-span-key" header.
-         * If the header is present, it constructs a span name and additional fields from other headers
-         * and adds them to the map. If the header is not present, it adds a default span name.
-         *
-         * @param headers The map of headers from which fields are extracted.
-         */
-        private fun MutableMap<String, FieldValue>.putOptionalHeaderSpanFields(headers: Map<String, String>?) {
+        private fun getSpanNameOverride(headers: Map<String, String>?): String? {
+            headers?.get("X-APOLLO-OPERATION-NAME")?.let {
+                return "_graphql"
+            }
             headers?.get("x-capture-span-key")?.let { spanKey ->
                 val prefix = "x-capture-span-$spanKey"
-                val spanName = "_" + headers["$prefix-name"]
-                // override _span_name
-                put(SpanField.Key.NAME, FieldValue.StringField(spanName))
-                val fieldPrefix = "$prefix-field"
-                headers.iterator().forEach { (key, value) ->
-                    if (key.startsWith(fieldPrefix)) {
-                        val fieldKey = key.removePrefix(fieldPrefix).replace('-', '_')
-                        put(fieldKey, FieldValue.StringField(value))
-                    }
+                headers["$prefix-name"]?.let { name ->
+                    return "_$name"
                 }
             }
+            return null
+        }
+
+        internal val matchingFields: Fields by lazy {
+            headers?.let { HTTPHeaders.normalizeHeaders(it) } ?: Fields.EMPTY
         }
 
         /**
-         * Best effort to extract graphQL operation name from the headers, this is specific to apollo3 kotlin client
+         * Extracts optional fields from headers based on the "x-capture-span-key" header.
+         *
+         * If the header is present, it constructs additional fields from other headers
+         * matching the pattern "x-capture-span-{key}-field*".
          *
          * @param headers The map of headers from which fields are extracted.
+         * @return InternalFields containing extracted span fields, or EMPTY if none found.
          */
-        private fun MutableMap<String, FieldValue>.putOptionalGraphQlHeaders(headers: Map<String, String>?) {
-            headers?.get("X-APOLLO-OPERATION-NAME")?.let { gqlOperationName ->
-                put(HttpField.PATH_TEMPLATE, FieldValue.StringField("gql-$gqlOperationName"))
-                put("_operation_name", FieldValue.StringField(gqlOperationName))
-                headers["X-APOLLO-OPERATION-TYPE"]?.let { gqlOperationKey ->
-                    put("_operation_type", FieldValue.StringField(gqlOperationKey))
-                }
-                headers["X-APOLLO-OPERATION-ID"]?.let { gqlOperationId ->
-                    put("_operation_id", FieldValue.StringField(gqlOperationId))
-                }
-                // override _span_name
-                put(SpanField.Key.NAME, FieldValue.StringField("_graphql"))
+        private fun getOptionalHeaderSpanFields(headers: Map<String, String>?): Fields {
+            val spanKey = headers?.get("x-capture-span-key") ?: return Fields.EMPTY
+            val prefix = "x-capture-span-$spanKey"
+            val fieldPrefix = "$prefix-field"
+
+            val matchingHeaders =
+                headers.filter { (key, _) -> key.startsWith(fieldPrefix) }
+            if (matchingHeaders.isEmpty()) return Fields.EMPTY
+
+            val builder = FieldArraysBuilder(matchingHeaders.size)
+            matchingHeaders.forEach { (key, value) ->
+                val fieldKey = key.removePrefix(fieldPrefix).replace('-', '_')
+                builder.add(fieldKey, value)
             }
+            return builder.build()
+        }
+
+        /**
+         * Extracts GraphQL operation fields from headers. Specific to Apollo3 Kotlin client.
+         *
+         * @param headers The map of headers from which fields are extracted.
+         * @return InternalFields containing GraphQL operation fields, or EMPTY if none found.
+         */
+        private fun getOptionalGraphQlFields(headers: Map<String, String>?): Fields {
+            val gqlOperationName =
+                headers?.get("X-APOLLO-OPERATION-NAME") ?: return Fields.EMPTY
+
+            val requiredFields =
+                fieldsOf(
+                    HttpField.PATH_TEMPLATE to "gql-$gqlOperationName",
+                    "_operation_name" to gqlOperationName,
+                )
+
+            val optionalFields =
+                fieldsOfOptional(
+                    "_operation_type" to headers["X-APOLLO-OPERATION-TYPE"],
+                    "_operation_id" to headers["X-APOLLO-OPERATION-ID"],
+                )
+
+            return combineFields(requiredFields, optionalFields)
         }
     }

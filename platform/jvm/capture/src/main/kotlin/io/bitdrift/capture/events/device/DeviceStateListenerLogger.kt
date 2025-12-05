@@ -25,7 +25,9 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.events.performance.BatteryMonitor
-import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.combineFields
+import io.bitdrift.capture.providers.fieldsOf
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicReference
 
@@ -88,28 +90,34 @@ internal class DeviceStateListenerLogger(
             when (intent?.action) {
                 Intent.ACTION_POWER_CONNECTED ->
                     log(
-                        mapOf("_state" to "charging", batteryMonitor.batteryPercentageAttribute()),
+                        combineFields(
+                            fieldsOf("_state" to "charging"),
+                            fieldsOf(batteryMonitor.batteryPercentageAttribute()),
+                        ),
                         BATTERY_CHANGE,
                     )
 
                 Intent.ACTION_POWER_DISCONNECTED ->
                     log(
-                        mapOf("_state" to "unplugged", batteryMonitor.batteryPercentageAttribute()),
+                        combineFields(
+                            fieldsOf("_state" to "unplugged"),
+                            fieldsOf(batteryMonitor.batteryPercentageAttribute()),
+                        ),
                         BATTERY_CHANGE,
                     )
 
                 Intent.ACTION_TIMEZONE_CHANGED ->
                     log(
-                        mapOf("_time_zone" to intent.getStringExtra("time-zone").orEmpty()),
+                        fieldsOf("_time_zone" to intent.getStringExtra("time-zone").orEmpty()),
                         TIMEZONE_CHANGE,
                     )
 
                 PowerManager.ACTION_POWER_SAVE_MODE_CHANGED ->
                     log(
-                        mapOf(
-                            powerMonitor.isPowerSaveModeEnabledAttribute(),
-                            batteryMonitor.batteryPercentageAttribute(),
-                            batteryMonitor.isBatteryChargingAttribute(),
+                        combineFields(
+                            fieldsOf(powerMonitor.isPowerSaveModeEnabledAttribute()),
+                            fieldsOf(batteryMonitor.batteryPercentageAttribute()),
+                            fieldsOf(batteryMonitor.isBatteryChargingAttribute()),
                         ),
                         BATTERY_LOW,
                     )
@@ -121,12 +129,11 @@ internal class DeviceStateListenerLogger(
         executor.execute {
             val diff = newConfig.diff(prevConfig.get())
             prevConfig.set(Configuration(newConfig))
-            // detect whether the configuration change was an orientation change
             if (diff and ActivityInfo.CONFIG_ORIENTATION == ActivityInfo.CONFIG_ORIENTATION) {
                 if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                    log(mapOf("_orientation" to "landscape"), ORIENTATION_CHANGE)
+                    log(fieldsOf("_orientation" to "landscape"), ORIENTATION_CHANGE)
                 } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
-                    log(mapOf("_orientation" to "portrait"), ORIENTATION_CHANGE)
+                    log(fieldsOf("_orientation" to "portrait"), ORIENTATION_CHANGE)
                 }
             }
         }
@@ -144,13 +151,18 @@ internal class DeviceStateListenerLogger(
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun logThermalStatusChanged(status: Int) {
         // No need to run this on the executor since the callback is already using our background executor
-        log(mapOf("_thermal_state" to powerMonitor.toThermalStatusString(status)), THERMAL_STATE_CHANGE)
+        log(
+            fieldsOf(
+                "_thermal_state" to powerMonitor.toThermalStatusString(status),
+            ),
+            THERMAL_STATE_CHANGE,
+        )
     }
 
     private fun log(
-        fields: Map<String, String>,
+        fields: Fields,
         message: String,
     ) {
-        logger.log(LogType.DEVICE, LogLevel.INFO, fields.toFields()) { message }
+        logger.log(LogType.DEVICE, LogLevel.INFO, fields) { message }
     }
 }

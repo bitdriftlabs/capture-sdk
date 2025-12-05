@@ -9,7 +9,6 @@ package io.bitdrift.capture.reports
 
 import android.app.ActivityManager
 import io.bitdrift.capture.attributes.IClientAttributes
-import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 
 /**
@@ -32,8 +31,8 @@ interface IFatalIssueReporter {
     fun initializationState(): FatalIssueReporterState
 
     /**
-     * Generates the [InternalFieldsMap] to be reported upon Capture.Logger.start with
+     * Generates the fields to be reported upon Capture.Logger.start with
      * details of FatalIssueReporter state
      */
-    fun getLogStatusFieldsMap(): Map<String, FieldValue>
+    fun getLogStatusFieldsMap(): Map<String, String>
 }

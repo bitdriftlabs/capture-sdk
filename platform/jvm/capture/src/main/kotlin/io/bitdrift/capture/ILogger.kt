@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
+import io.bitdrift.capture.providers.Fields
 import java.util.UUID
 import kotlin.time.Duration
 
@@ -112,6 +113,28 @@ interface ILogger {
     fun log(
         level: LogLevel,
         fields: Map<String, String>? = null,
+        throwable: Throwable? = null,
+        message: () -> String,
+    )
+
+    /**
+     * Logs a message at a specified level using pre-constructed [Fields].
+     *
+     * This is an optimized alternative to [log] that accepts [Fields] instead of `Map<String, String>`,
+     * reducing object allocations on the hot path.
+     *
+     * To construct `Fields` instance you can use FieldProvider.fieldsOf("_key", "_value")
+     *
+     * @param level the severity of the log.
+     * @param fields key-value pairs to be added to the log line, constructed via [io.bitdrift.capture.providers.fieldsOf].
+     * @param throwable an optional throwable to include in the log line.
+     * @param message the main message of the log line, evaluated lazily.
+     * @see log for the current logging method that accepts `Map<String, String>`.
+     * @see io.bitdrift.capture.providers.fieldsOf for constructing [Fields] instances.
+     */
+    fun logOptimized(
+        level: LogLevel,
+        fields: Fields = Fields.EMPTY,
         throwable: Throwable? = null,
         message: () -> String,
     )

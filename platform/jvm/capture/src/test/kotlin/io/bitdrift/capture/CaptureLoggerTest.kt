@@ -5,6 +5,14 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+// capture-sdk - bitdrift's client SDK
+// Copyright Bitdrift, Inc. All rights reserved.
+//
+// Use of this source code is governed by a source available license that can be found in the
+// LICENSE file or at:
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+
 package io.bitdrift.capture
 
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -27,13 +35,15 @@ import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.SystemDateProvider
+import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
-import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
+import io.bitdrift.capture.utils.toStringMap
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
@@ -130,7 +140,7 @@ class CaptureLoggerTest {
             logger.log(requestInfo)
 
             val expectedRequestFields =
-                mapOf(
+                fieldsOf(
                     "_host" to "api.bitdrift.io",
                     "_method" to "GET",
                     "_path" to "/my_path/12345",
@@ -139,18 +149,18 @@ class CaptureLoggerTest {
                     "_span_name" to "_http",
                     "_span_type" to "start",
                     "my_extra_key_1" to "my_extra_value_1",
-                ).toFields()
+                )
 
             val expectedRequestMatchingFields =
-                mapOf(
+                fieldsOf(
                     "_headers.request_header" to "request_value",
-                ).toFields()
+                )
 
             Mockito.verify(logger).log(
                 eq(LogType.SPAN),
                 eq(LogLevel.DEBUG),
-                eq(expectedRequestFields),
-                eq(expectedRequestMatchingFields),
+                argThat<Fields> { toStringMap() == expectedRequestFields.toStringMap() },
+                argThat<Fields> { toStringMap() == expectedRequestMatchingFields.toStringMap() },
                 eq(null),
                 eq(false),
                 argThat { i -> i.invoke() == requestInfo.name },
@@ -172,7 +182,7 @@ class CaptureLoggerTest {
             logger.log(responseInfo)
 
             val expectedResponseFields =
-                mapOf(
+                fieldsOf(
                     "_host" to "api.bitdrift.io",
                     "_method" to "GET",
                     "_path" to "/my_path/12345",
@@ -186,10 +196,10 @@ class CaptureLoggerTest {
                     "_error_message" to "my_error",
                     "my_extra_key_1" to "my_extra_value_1",
                     "my_extra_key_2" to "my_extra_value_2",
-                ).toFields()
+                )
 
             val expectedResponseMatchingFields =
-                mapOf(
+                fieldsOf(
                     "_request._host" to "api.bitdrift.io",
                     "_request._method" to "GET",
                     "_request._path" to "/my_path/12345",
@@ -200,13 +210,13 @@ class CaptureLoggerTest {
                     "_request.my_extra_key_1" to "my_extra_value_1",
                     "_request._headers.request_header" to "request_value",
                     "_headers.response_header" to "response_value",
-                ).toFields()
+                )
 
             Mockito.verify(logger).log(
                 eq(LogType.SPAN),
                 eq(LogLevel.DEBUG),
-                eq(expectedResponseFields),
-                eq(expectedResponseMatchingFields),
+                argThat<Fields> { toStringMap() == expectedResponseFields.toStringMap() },
+                argThat<Fields> { toStringMap() == expectedResponseMatchingFields.toStringMap() },
                 eq(null),
                 eq(false),
                 argThat { i -> i.invoke() == responseInfo.name },
@@ -221,16 +231,16 @@ class CaptureLoggerTest {
             logger.log(LogLevel.ERROR, throwable = IOException("my_error")) { msg }
 
             val expectedFields =
-                mapOf(
+                fieldsOf(
                     "_error" to "java.io.IOException",
                     "_error_details" to "my_error",
-                ).toFields()
+                )
 
             verify(logger).log(
                 eq(LogType.NORMAL),
                 eq(LogLevel.ERROR),
-                eq(expectedFields),
-                eq(null),
+                argThat<Fields> { toStringMap() == expectedFields.toStringMap() },
+                eq(Fields.EMPTY),
                 eq(null),
                 eq(false),
                 argThat { i -> i.invoke() == msg },
@@ -508,6 +518,8 @@ class CaptureLoggerTest {
         ClientAttributes(
             ContextHolder.APP_CONTEXT,
             ProcessLifecycleOwner.get(),
-        ).invoke().toFields() +
-            NetworkAttributes(ContextHolder.APP_CONTEXT).invoke().toFields()
+        ).invoke().toFieldValueMap() +
+            NetworkAttributes(ContextHolder.APP_CONTEXT).invoke().toFieldValueMap()
+
+    private fun Map<String, String>.toFieldValueMap(): Map<String, FieldValue> = mapValues { (_, v) -> v.toFieldValue() }
 }

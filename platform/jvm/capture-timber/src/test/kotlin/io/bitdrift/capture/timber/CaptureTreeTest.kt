@@ -10,6 +10,7 @@ package io.bitdrift.capture.timber
 import com.google.common.truth.Truth.assertThat
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.providers.fieldsOf
 import org.junit.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
@@ -36,13 +37,17 @@ class CaptureTreeTest {
         Timber.tag(tag).e(exception, message)
 
         // ASSERT
-        val fields =
-            mapOf(
-                "source" to "Timber",
-                "tag" to tag,
-            )
+        val expectedFields = fieldsOf(
+            "source" to "Timber",
+            "tag" to tag,
+        )
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.ERROR), eq(fields), eq(exception), argCaptor.capture())
+        verify(mockLogger).logOptimized(
+            eq(LogLevel.ERROR),
+            eq(expectedFields),
+            eq(exception),
+            argCaptor.capture(),
+        )
         assertThat(argCaptor.firstValue()).isEqualTo(message + "\n" + exception.stackTraceToString())
     }
 
@@ -56,7 +61,7 @@ class CaptureTreeTest {
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.WARNING), any(), anyOrNull(), argCaptor.capture())
+        verify(mockLogger).logOptimized(eq(LogLevel.WARNING), any(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
 
@@ -70,7 +75,7 @@ class CaptureTreeTest {
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.INFO), any(), anyOrNull(), argCaptor.capture())
+        verify(mockLogger).logOptimized(eq(LogLevel.INFO), any(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
 
@@ -84,7 +89,7 @@ class CaptureTreeTest {
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.DEBUG), any(), anyOrNull(), argCaptor.capture())
+        verify(mockLogger).logOptimized(eq(LogLevel.DEBUG), any(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
 
@@ -98,7 +103,7 @@ class CaptureTreeTest {
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.TRACE), any(), anyOrNull(), argCaptor.capture())
+        verify(mockLogger).logOptimized(eq(LogLevel.TRACE), any(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
 
@@ -112,7 +117,7 @@ class CaptureTreeTest {
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.DEBUG), any(), anyOrNull(), argCaptor.capture())
+        verify(mockLogger).logOptimized(eq(LogLevel.DEBUG), any(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
 }

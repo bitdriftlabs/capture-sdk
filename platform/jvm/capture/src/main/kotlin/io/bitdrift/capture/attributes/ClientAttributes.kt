@@ -18,7 +18,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.providers.FieldProvider
-import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.LegacyFields
 import io.bitdrift.capture.utils.BuildTypeChecker
 
 internal class ClientAttributes(
@@ -95,7 +95,7 @@ internal class ClientAttributes(
         )
     }
 
-    override fun invoke(): Fields {
+    override fun invoke(): LegacyFields {
         updateForegroundState()
         updateLocaleIfNeeded()
         return cachedAttributes

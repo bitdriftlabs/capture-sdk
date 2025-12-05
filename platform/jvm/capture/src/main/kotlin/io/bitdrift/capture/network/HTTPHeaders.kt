@@ -7,14 +7,23 @@
 
 package io.bitdrift.capture.network
 
+import io.bitdrift.capture.providers.Fields
+
 private const val HEADERS_FIELD_KEY_PREFIX = "_headers"
 private val DISALLOWED_HEADER_KEYS = setOf<String>("authorization", "proxy-authorization")
 
 internal object HTTPHeaders {
-    fun normalizeHeaders(headers: Map<String, String>): Map<String, String> =
-        headers
-            .filterKeys { !DISALLOWED_HEADER_KEYS.contains(it.lowercase()) }
-            .mapKeys {
-                "$HEADERS_FIELD_KEY_PREFIX.${it.key}"
+    fun normalizeHeaders(headers: Map<String, String>): Fields {
+        if (headers.isEmpty()) return Fields.EMPTY
+        val keys = mutableListOf<String>()
+        val values = mutableListOf<String>()
+        headers.forEach { (key, value) ->
+            if (!DISALLOWED_HEADER_KEYS.contains(key.lowercase())) {
+                keys.add("$HEADERS_FIELD_KEY_PREFIX.$key")
+                values.add(value)
             }
+        }
+        if (keys.isEmpty()) return Fields.EMPTY
+        return Fields(keys.toTypedArray(), values.toTypedArray())
+    }
 }

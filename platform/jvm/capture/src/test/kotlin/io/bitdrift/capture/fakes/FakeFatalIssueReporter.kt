@@ -9,7 +9,6 @@ package io.bitdrift.capture.fakes
 
 import android.app.ActivityManager
 import io.bitdrift.capture.attributes.IClientAttributes
-import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
@@ -28,5 +27,5 @@ class FakeFatalIssueReporter(
 
     override fun initializationState(): FatalIssueReporterState = initializationState
 
-    override fun getLogStatusFieldsMap(): Map<String, FieldValue> = emptyMap()
+    override fun getLogStatusFieldsMap(): Map<String, String> = emptyMap()
 }

@@ -17,6 +17,7 @@ import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.network.HttpField
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
+import io.bitdrift.capture.utils.toStringMap
 import okhttp3.Call
 import okhttp3.EventListener
 import okhttp3.Headers.Companion.toHeaders
@@ -468,14 +469,14 @@ class CaptureOkHttpEventListenerFactoryTest {
         // validate all the extra headers are present as properly formatted fields
         assertThat(
             httpRequestInfo.fields
-                .mapValues { it.value.toString() }
+                .toStringMap()
                 .entries
                 .containsAll(expectedFields.entries),
         ).isTrue()
         // validate all request fields are present in response
         assertThat(
             httpResponseInfo.fields
-                .mapValues { it.value.toString() }
+                .toStringMap()
                 .entries
                 .containsAll(expectedFields.entries),
         ).isTrue()
@@ -544,14 +545,14 @@ class CaptureOkHttpEventListenerFactoryTest {
         // validate all the extra headers are present as properly formatted fields
         assertThat(
             httpRequestInfo.fields
-                .mapValues { it.value.toString() }
+                .toStringMap()
                 .entries
                 .containsAll(expectedFields.entries),
         ).isTrue()
         // validate all request fields are present in response
         assertThat(
             httpResponseInfo.fields
-                .mapValues { it.value.toString() }
+                .toStringMap()
                 .entries
                 .containsAll(expectedFields.entries),
         ).isTrue()

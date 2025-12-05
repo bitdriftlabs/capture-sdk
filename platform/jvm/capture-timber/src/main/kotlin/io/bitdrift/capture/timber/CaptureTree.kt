@@ -11,6 +11,10 @@ import android.util.Log
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.combineFields
+import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.providers.fieldsOfOptional
 import timber.log.Timber
 
 /**
@@ -32,7 +36,7 @@ open class CaptureTree internal constructor(
         message: String,
         t: Throwable?,
     ) {
-        logger?.log(toCaptureLogLevel(priority), extractFields(tag), t) { message }
+        logger?.logOptimized(toCaptureLogLevel(priority), extractFields(tag), t) { message }
     }
 
     private fun toCaptureLogLevel(priority: Int): LogLevel =
@@ -45,9 +49,9 @@ open class CaptureTree internal constructor(
             else -> LogLevel.DEBUG // default level
         }
 
-    private fun extractFields(tag: String?): Map<String, String> =
-        buildMap {
-            put("source", "Timber")
-            tag?.let { put("tag", it) }
-        }
+    private fun extractFields(tag: String?): Fields =
+        combineFields(
+            fieldsOf("source" to "Timber"),
+            fieldsOfOptional("tag" to tag),
+        )
 }

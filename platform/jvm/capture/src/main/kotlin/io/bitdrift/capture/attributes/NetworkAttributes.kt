@@ -36,7 +36,7 @@ import android.telephony.TelephonyManager.NETWORK_TYPE_UMTS
 import android.telephony.TelephonyManager.NETWORK_TYPE_UNKNOWN
 import androidx.core.content.ContextCompat
 import io.bitdrift.capture.providers.FieldProvider
-import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.LegacyFields
 import io.bitdrift.capture.threading.CaptureDispatchers
 import java.util.concurrent.ExecutorService
 
@@ -80,7 +80,7 @@ internal class NetworkAttributes(
         }
     }
 
-    override fun invoke(): Fields = currentFields
+    override fun invoke(): LegacyFields = currentFields
 
     @SuppressLint("NewApi")
     @Suppress("SwallowedException")

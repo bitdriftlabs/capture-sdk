@@ -14,16 +14,16 @@ import org.junit.Test
 class HttpHeadersTest {
     @Test
     fun test_authorization_headers_are_removed() {
-        assertThat(
+        val result =
             HTTPHeaders.normalizeHeaders(
                 mapOf(
                     "Authorization" to "foo",
                     "Proxy-Authorization" to "var",
                     "key" to "value",
                 ),
-            ),
-        ).isEqualTo(
-            mapOf("_headers.key" to "value"),
-        )
+            )
+        assertThat(result.size).isEqualTo(1)
+        assertThat(result.keys[0]).isEqualTo("_headers.key")
+        assertThat(result.values[0]).isEqualTo("value")
     }
 }

@@ -7,6 +7,8 @@
 
 package io.bitdrift.capture.events.performance
 
+import io.bitdrift.capture.providers.Fields
+
 /**
  * Provides Memory related attributes such as Memory class, Total JVM memory, used JVM memory, etc
  */
@@ -14,12 +16,12 @@ interface IMemoryMetricsProvider {
     /**
      * Reports current memory attributes
      */
-    fun getMemoryAttributes(): Map<String, String>
+    fun getMemoryAttributes(): Fields
 
     /**
      * Reports memory class type
      */
-    fun getMemoryClass(): Map<String, String>
+    fun getMemoryClass(): Fields
 
     /** Reports whether the device is currently experiencing a low memory condition */
     fun isMemoryLow(): Boolean
