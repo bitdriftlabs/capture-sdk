@@ -70,7 +70,10 @@ internal object ComposeTreeParser {
      * @param node The starting [LayoutNode] for the traversal.
      * @param map The mutable map to populate with `semanticsId` to `LayoutNode` pairs.
      */
-    private fun populateSemanticsIdToLayoutNodeMap(node: LayoutNode, map: MutableMap<Int, LayoutNode>) {
+    private fun populateSemanticsIdToLayoutNodeMap(
+        node: LayoutNode,
+        map: MutableMap<Int, LayoutNode>,
+    ) {
         if (node.semanticsId != 0) {
             map[node.semanticsId] = node
         }
