@@ -35,7 +35,7 @@ internal object ComposeTreeParser {
         if (androidComposeView !is AndroidComposeView) {
             SessionReplayController.L.e(
                 null,
-                "View passed to ComposeTreeParser.parse() is not an AndroidComposeView. view=${'$'}{androidComposeView.javaClass.name}",
+                "View passed to ComposeTreeParser.parse() is not an AndroidComposeView. view=${androidComposeView::class.qualifiedName}",
             )
             return ScannableView.IgnoredComposeView
         }
@@ -50,7 +50,7 @@ internal object ComposeTreeParser {
 
         val rootNode = semanticsOwner.unmergedRootSemanticsNode
         SessionReplayController.L.d(
-            "Found Compose SemanticsNode root. Parsing Compose tree. Window offset: (${'$'}{windowOffset[0]}, ${'$'}{windowOffset[1]})",
+            "Found Compose SemanticsNode root. Parsing Compose tree. Window offset: (${windowOffset[0]}, ${windowOffset[1]})",
         )
         return rootNode.toScannableView(windowOffset[0], windowOffset[1], layoutNodeMap)
     }
