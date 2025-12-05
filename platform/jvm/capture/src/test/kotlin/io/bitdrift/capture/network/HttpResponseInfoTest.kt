@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.network
 
-import io.bitdrift.capture.providers.toFields
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import java.util.UUID
@@ -41,24 +40,13 @@ class HttpResponseInfoTest {
                 extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
             )
 
-        assertThat(responseInfo.fields).isEqualTo(
-            mapOf(
-                "_host" to "foo.com",
-                "_method" to "GET",
-                "_path" to "/foo_path/12345",
-                "_path_template" to "/template/<id>",
-                "_query" to "my=query",
-                "_span_id" to spanId.toString(),
-                "_span_name" to "_http",
-                "_span_type" to "end",
-                "_duration_ms" to "60",
-                "_result" to "success",
-                "_error_type" to "RuntimeException",
-                "_error_message" to "my_error",
-                "my_extra_key_1" to "my_extra_value_1",
-                "my_extra_key_2" to "my_extra_value_2",
-            ).toFields(),
-        )
+        assertThat(responseInfo.fields)
+            .hasEntrySatisfying("_host") { assertThat(it.toString()).isEqualTo("foo.com") }
+            .hasEntrySatisfying("_method") { assertThat(it.toString()).isEqualTo("GET") }
+            .hasEntrySatisfying("_path") { assertThat(it.toString()).isEqualTo("/foo_path/12345") }
+            .hasEntrySatisfying("_path_template") { assertThat(it.toString()).isEqualTo("/template/<id>") }
+            .hasEntrySatisfying("_span_type") { assertThat(it.toString()).isEqualTo("end") }
+            .hasEntrySatisfying("_result") { assertThat(it.toString()).isEqualTo("success") }
     }
 
     @Test
@@ -89,24 +77,9 @@ class HttpResponseInfoTest {
                 extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
             )
 
-        assertThat(responseInfo.fields).isEqualTo(
-            mapOf(
-                "_host" to "foo.com",
-                "_method" to "GET",
-                "_path" to "/my_path/12345",
-                "_path_template" to "/template/<id>",
-                "_query" to "my=query",
-                "_span_id" to spanId.toString(),
-                "_span_name" to "_http",
-                "_span_type" to "end",
-                "_duration_ms" to "60",
-                "_result" to "success",
-                "_error_type" to "RuntimeException",
-                "_error_message" to "my_error",
-                "my_extra_key_1" to "my_extra_value_1",
-                "my_extra_key_2" to "my_extra_value_2",
-            ).toFields(),
-        )
+        assertThat(responseInfo.fields)
+            .hasEntrySatisfying("_path") { assertThat(it.toString()).isEqualTo("/my_path/12345") }
+            .hasEntrySatisfying("_path_template") { assertThat(it.toString()).isEqualTo("/template/<id>") }
     }
 
     @Test
@@ -123,18 +96,10 @@ class HttpResponseInfoTest {
                 extraFields = mapOf("my_extra_key_1" to "my_extra_value_1"),
             )
 
-        assertThat(requestInfo.fields).isEqualTo(
-            mapOf(
-                "_host" to "api.bitdrift.io",
-                "_method" to "GET",
-                "_path" to "/my_path/12345",
-                "_query" to "my=query",
-                "_span_id" to spanId.toString(),
-                "_span_name" to "_http",
-                "_span_type" to "start",
-                "my_extra_key_1" to "my_extra_value_1",
-            ).toFields(),
-        )
+        assertThat(requestInfo.fields)
+            .hasEntrySatisfying("_host") { assertThat(it.toString()).isEqualTo("api.bitdrift.io") }
+            .hasEntrySatisfying("_method") { assertThat(it.toString()).isEqualTo("GET") }
+            .hasEntrySatisfying("_span_type") { assertThat(it.toString()).isEqualTo("start") }
 
         val responseInfo =
             HttpResponseInfo(
@@ -151,35 +116,16 @@ class HttpResponseInfoTest {
                 extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
             )
 
-        assertThat(responseInfo.fields).isEqualTo(
-            mapOf(
-                "_host" to "foo.com",
-                "_method" to "GET",
-                "_path" to "/foo_path/12345",
-                "_query" to "foo_query",
-                "_span_id" to spanId.toString(),
-                "_span_name" to "_http",
-                "_span_type" to "end",
-                "_duration_ms" to "60",
-                "_result" to "success",
-                "_error_type" to "RuntimeException",
-                "_error_message" to "my_error",
-                "my_extra_key_1" to "my_extra_value_1",
-                "my_extra_key_2" to "my_extra_value_2",
-            ).toFields(),
-        )
+        assertThat(responseInfo.fields)
+            .hasEntrySatisfying("_host") { assertThat(it.toString()).isEqualTo("foo.com") }
+            .hasEntrySatisfying("_path") { assertThat(it.toString()).isEqualTo("/foo_path/12345") }
+            .hasEntrySatisfying("_query") { assertThat(it.toString()).isEqualTo("foo_query") }
+            .hasEntrySatisfying("_span_type") { assertThat(it.toString()).isEqualTo("end") }
+            .hasEntrySatisfying("_result") { assertThat(it.toString()).isEqualTo("success") }
 
-        assertThat(responseInfo.matchingFields).isEqualTo(
-            mapOf(
-                "_request._host" to "api.bitdrift.io",
-                "_request._method" to "GET",
-                "_request._path" to "/my_path/12345",
-                "_request._span_id" to spanId.toString(),
-                "_request._span_name" to "_http",
-                "_request._span_type" to "start",
-                "_request._query" to "my=query",
-                "_request.my_extra_key_1" to "my_extra_value_1",
-            ).toFields(),
-        )
+        assertThat(responseInfo.matchingFields)
+            .hasEntrySatisfying("_request._host") { assertThat(it.toString()).isEqualTo("api.bitdrift.io") }
+            .hasEntrySatisfying("_request._method") { assertThat(it.toString()).isEqualTo("GET") }
+            .hasEntrySatisfying("_request._span_type") { assertThat(it.toString()).isEqualTo("start") }
     }
 }

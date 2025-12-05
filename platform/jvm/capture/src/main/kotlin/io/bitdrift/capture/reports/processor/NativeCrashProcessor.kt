@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.reports.processor
 
+import androidx.collection.MutableScatterMap
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.TombstoneProtos
 import io.bitdrift.capture.TombstoneProtos.Tombstone
@@ -26,14 +27,14 @@ import java.io.InputStream
  */
 internal object NativeCrashProcessor {
     private val signalDescriptions =
-        mapOf(
-            "SIGABRT" to "Abort program",
-            "SIGBUS" to "Bus error (bad memory access)",
-            "SIGFPE" to "Floating‑point exception",
-            "SIGILL" to "Illegal instruction",
-            "SIGSEGV" to "Segmentation violation (invalid memory reference)",
-            "SIGTRAP" to "Trace/breakpoint trap",
-        )
+        MutableScatterMap<String, String>().apply {
+            put("SIGABRT", "Abort program")
+            put("SIGBUS", "Bus error (bad memory access)")
+            put("SIGFPE", "Floating‑point exception")
+            put("SIGILL", "Illegal instruction")
+            put("SIGSEGV", "Segmentation violation (invalid memory reference)")
+            put("SIGTRAP", "Trace/breakpoint trap")
+        }
 
     fun process(
         builder: FlatBufferBuilder,

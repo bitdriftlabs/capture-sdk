@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.events.performance
 
+import androidx.collection.MutableScatterMap
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.IResourceUtilizationTarget
 import io.bitdrift.capture.LogLevel
@@ -15,6 +16,7 @@ import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.common.PowerMonitor
+import io.bitdrift.capture.providers.buildScatterMap
 import io.bitdrift.capture.providers.toFields
 import java.util.concurrent.ExecutorService
 import kotlin.time.DurationUnit
@@ -36,7 +38,7 @@ internal class ResourceUtilizationTarget(
                 val start = clock.elapsedRealtime()
                 val memorySnapshot = memoryMetricsProvider.getMemoryAttributes()
                 val fields =
-                    buildMap {
+                    buildScatterMap<String, String> {
                         putAll(memorySnapshot)
                         putAll(diskUsageMonitor.getDiskUsage())
                         putPair(batteryMonitor.batteryPercentageAttribute())
@@ -65,6 +67,11 @@ internal class ResourceUtilizationTarget(
 }
 
 internal fun MutableMap<String, String>.putPair(pair: Pair<String, String>): MutableMap<String, String> {
+    this[pair.first] = pair.second
+    return this
+}
+
+internal fun MutableScatterMap<String, String>.putPair(pair: Pair<String, String>): MutableScatterMap<String, String> {
     this[pair.first] = pair.second
     return this
 }

@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.providers
 
+import androidx.collection.MutableScatterMap
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 
@@ -134,11 +135,18 @@ internal fun Boolean.toFieldValue(): FieldValue = this.toString().toFieldValue()
 internal fun Map<String, String>?.toFields(): Map<String, FieldValue> {
     if (isNullOrEmpty()) return emptyMap()
 
-    val result = HashMap<String, FieldValue>(size)
+    val result = MutableScatterMap<String, FieldValue>(size)
     for ((key, value) in this) {
         if (key != null && value != null) {
             result[key] = value.toFieldValue()
         }
     }
-    return result
+    return result.asMap()
 }
+
+/**
+ * Builds a Map using ScatterMap internally to avoid Entry object allocations.
+ * The returned Map is backed by the ScatterMap via a thin wrapper.
+ */
+internal inline fun <K, V> buildScatterMap(builderAction: MutableScatterMap<K, V>.() -> Unit): Map<K, V> =
+    MutableScatterMap<K, V>().apply(builderAction).asMap()

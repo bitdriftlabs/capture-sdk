@@ -7,6 +7,8 @@
 
 package io.bitdrift.capture.replay
 
+import androidx.collection.MutableScatterMap
+
 /**
  * Metrics about the screenshot and compression process
  */
@@ -27,12 +29,13 @@ data class ScreenshotCaptureMetrics(
      * Convert the metrics to a map
      */
     fun toMap(): Map<String, String> =
-        mapOf(
-            "screenshot_time_ms" to screenshotTimeMs.toString(),
-            "screenshot_allocation_byte_count" to screenshotAllocationByteCount.toString(),
-            "screenshot_byte_count" to screenshotByteCount.toString(),
-            "compression_time_ms" to compressionTimeMs.toString(),
-            "compression_byte_count" to compressionByteCount.toString(),
-            "total_duration_ms" to totalDurationMs.toString(),
-        )
+        MutableScatterMap<String, String>()
+            .apply {
+                put("screenshot_time_ms", screenshotTimeMs.toString())
+                put("screenshot_allocation_byte_count", screenshotAllocationByteCount.toString())
+                put("screenshot_byte_count", screenshotByteCount.toString())
+                put("compression_time_ms", compressionTimeMs.toString())
+                put("compression_byte_count", compressionByteCount.toString())
+                put("total_duration_ms", totalDurationMs.toString())
+            }.asMap()
 }

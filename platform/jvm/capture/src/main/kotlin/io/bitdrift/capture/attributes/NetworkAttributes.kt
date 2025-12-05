@@ -34,6 +34,7 @@ import android.telephony.TelephonyManager.NETWORK_TYPE_NR
 import android.telephony.TelephonyManager.NETWORK_TYPE_TD_SCDMA
 import android.telephony.TelephonyManager.NETWORK_TYPE_UMTS
 import android.telephony.TelephonyManager.NETWORK_TYPE_UNKNOWN
+import androidx.collection.MutableIntObjectMap
 import androidx.core.content.ContextCompat
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.Fields
@@ -48,21 +49,21 @@ internal class NetworkAttributes(
     FieldProvider {
     @SuppressLint("InlinedApi")
     private val radioTypeNameMap =
-        hashMapOf(
-            NETWORK_TYPE_EDGE to "edge",
-            NETWORK_TYPE_GPRS to "gprs",
-            NETWORK_TYPE_GSM to "gsm",
-            NETWORK_TYPE_HSDPA to "hsdpa",
-            NETWORK_TYPE_HSPA to "hspa",
-            NETWORK_TYPE_HSPAP to "hspap",
-            NETWORK_TYPE_HSUPA to "hsupa",
-            NETWORK_TYPE_IWLAN to "iwlan",
-            NETWORK_TYPE_LTE to "lte",
-            NETWORK_TYPE_NR to "nr",
-            NETWORK_TYPE_TD_SCDMA to "tdScdma",
-            NETWORK_TYPE_UMTS to "umts",
-            NETWORK_TYPE_UNKNOWN to UNKNOWN_FIELD_VALUE,
-        )
+        MutableIntObjectMap<String>().apply {
+            put(NETWORK_TYPE_EDGE, "edge")
+            put(NETWORK_TYPE_GPRS, "gprs")
+            put(NETWORK_TYPE_GSM, "gsm")
+            put(NETWORK_TYPE_HSDPA, "hsdpa")
+            put(NETWORK_TYPE_HSPA, "hspa")
+            put(NETWORK_TYPE_HSPAP, "hspap")
+            put(NETWORK_TYPE_HSUPA, "hsupa")
+            put(NETWORK_TYPE_IWLAN, "iwlan")
+            put(NETWORK_TYPE_LTE, "lte")
+            put(NETWORK_TYPE_NR, "nr")
+            put(NETWORK_TYPE_TD_SCDMA, "tdScdma")
+            put(NETWORK_TYPE_UMTS, "umts")
+            put(NETWORK_TYPE_UNKNOWN, UNKNOWN_FIELD_VALUE)
+        }
 
     private val telephonyManager by lazy {
         context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager

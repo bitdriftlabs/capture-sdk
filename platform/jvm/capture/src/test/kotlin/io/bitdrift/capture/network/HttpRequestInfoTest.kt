@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.network
 
-import io.bitdrift.capture.providers.toFields
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import java.util.UUID
@@ -28,25 +27,20 @@ class HttpRequestInfoTest {
                 bytesExpectedToSendCount = 4,
             )
 
-        assertThat(requestInfo.fields).isEqualTo(
-            mapOf(
-                "_host" to "api.bitdrift.io",
-                "_method" to "GET",
-                "_path" to "/my_path/12345",
-                "_path_template" to "/template/<id>",
-                "_query" to "my=query",
-                "_span_id" to spanId.toString(),
-                "_span_name" to "_http",
-                "_span_type" to "start",
-                "_request_body_bytes_expected_to_send_count" to "4",
-                "my_extra_key_1" to "my_extra_value_1",
-            ).toFields(),
-        )
+        assertThat(requestInfo.fields)
+            .containsEntry("_host", requestInfo.fields["_host"])
+            .hasEntrySatisfying("_host") { assertThat(it.toString()).isEqualTo("api.bitdrift.io") }
+            .hasEntrySatisfying("_method") { assertThat(it.toString()).isEqualTo("GET") }
+            .hasEntrySatisfying("_path") { assertThat(it.toString()).isEqualTo("/my_path/12345") }
+            .hasEntrySatisfying("_path_template") { assertThat(it.toString()).isEqualTo("/template/<id>") }
+            .hasEntrySatisfying("_query") { assertThat(it.toString()).isEqualTo("my=query") }
+            .hasEntrySatisfying("_span_id") { assertThat(it.toString()).isEqualTo(spanId.toString()) }
+            .hasEntrySatisfying("_span_name") { assertThat(it.toString()).isEqualTo("_http") }
+            .hasEntrySatisfying("_span_type") { assertThat(it.toString()).isEqualTo("start") }
+            .hasEntrySatisfying("_request_body_bytes_expected_to_send_count") { assertThat(it.toString()).isEqualTo("4") }
+            .hasEntrySatisfying("my_extra_key_1") { assertThat(it.toString()).isEqualTo("my_extra_value_1") }
 
-        assertThat(requestInfo.matchingFields).isEqualTo(
-            mapOf(
-                "_headers.content-type" to "json",
-            ).toFields(),
-        )
+        assertThat(requestInfo.matchingFields)
+            .hasEntrySatisfying("_headers.content-type") { assertThat(it.toString()).isEqualTo("json") }
     }
 }

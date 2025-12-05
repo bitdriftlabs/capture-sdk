@@ -12,6 +12,7 @@ import android.app.Application
 import android.content.Context
 import android.util.Log
 import androidx.annotation.VisibleForTesting
+import androidx.collection.MutableScatterMap
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
@@ -42,6 +43,7 @@ import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
+import io.bitdrift.capture.providers.buildScatterMap
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
@@ -509,9 +511,9 @@ internal class LoggerImpl(
             // If throwable is null AND fields is either null or empty, no need to create a HashMap.
             return emptyMap()
         }
-        // Create a hashmap of the exact target size and with the right final value type, instead
+        // Create a map of the exact target size and with the right final value type, instead
         // of creating a temporary map and then converting it with Map.toFields()
-        val extractedFields = HashMap<String, FieldValue>(initialCapacity)
+        val extractedFields = MutableScatterMap<String, FieldValue>(initialCapacity)
         fields?.let {
             for ((key, value) in it) {
                 // Java interop: clients could have passed in null keys or values.
@@ -528,7 +530,7 @@ internal class LoggerImpl(
                     .toFieldValue()
             extractedFields["_error_details"] = it.message.orEmpty().toFieldValue()
         }
-        return extractedFields
+        return extractedFields.asMap()
     }
 
     internal fun flush(blocking: Boolean) {
@@ -561,7 +563,7 @@ internal class LoggerImpl(
                     .toFieldValue()
             val isSessionReplayEnabled = sessionReplayTarget is SessionReplayTarget
             val sdkStartFields =
-                buildMap {
+                buildScatterMap<String, FieldValue> {
                     put("_app_installation_source", installationSource)
                     put("_capture_start_thread", captureStartThread.toFieldValue())
                     put(

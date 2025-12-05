@@ -7,6 +7,8 @@
 
 package io.bitdrift.capture.replay.internal
 
+import androidx.collection.MutableScatterMap
+import androidx.collection.ScatterMap
 import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 
@@ -18,9 +20,9 @@ internal class ViewMapperConfiguration(
     /**
      * Let a third party select the ReplayType for the given class name.
      */
-    val mapper: Map<String, ReplayType> by lazy {
-        val map = mutableMapOf<String, ReplayType>()
-        for ((type, viewNames) in defaultMapper) {
+    val mapper: ScatterMap<String, ReplayType> by lazy {
+        val map = MutableScatterMap<String, ReplayType>()
+        defaultMapper.forEach { type, viewNames ->
             for (viewName in viewNames) {
                 map[viewName] = type
             }
@@ -32,13 +34,14 @@ internal class ViewMapperConfiguration(
                 }
             }
         }
-        map.toMap()
+        map
     }
 
     // TODO(murki): Clean-up the list below for Compose and provide a Modifier to let users mark things a types instead.
-    private val defaultMapper: Map<ReplayType, List<String>> =
-        mapOf(
-            ReplayType.View to
+    private val defaultMapper: ScatterMap<ReplayType, List<String>> =
+        MutableScatterMap<ReplayType, List<String>>().apply {
+            put(
+                ReplayType.View,
                 listOf(
                     "View",
                     "DecorView",
@@ -54,14 +57,18 @@ internal class ViewMapperConfiguration(
                     "Row",
                     "Column",
                 ),
-            ReplayType.BackgroundImage to emptyList(),
-            ReplayType.Chevron to emptyList(),
-            ReplayType.Ignore to
+            )
+            put(ReplayType.BackgroundImage, emptyList())
+            put(ReplayType.Chevron, emptyList())
+            put(
+                ReplayType.Ignore,
                 listOf(
                     "ContentFrameLayout",
                     "FitWindowsLinearLayout",
                 ),
-            ReplayType.Image to
+            )
+            put(
+                ReplayType.Image,
                 listOf(
                     "ImageView",
                     "AppCompatImageView",
@@ -70,13 +77,17 @@ internal class ViewMapperConfiguration(
                     "Image",
                     "Icon",
                 ),
-            ReplayType.Label to
+            )
+            put(
+                ReplayType.Label,
                 listOf(
                     // Compose (Foundation)
                     "BasicText",
                     "Text",
                 ),
-            ReplayType.Button to
+            )
+            put(
+                ReplayType.Button,
                 listOf(
                     // Compose (Foundation)
                     "ClickableText",
@@ -85,23 +96,30 @@ internal class ViewMapperConfiguration(
                     "IconButton",
                     "TextButton",
                 ),
-            ReplayType.SwitchOff to
+            )
+            put(
+                ReplayType.SwitchOff,
                 listOf(
                     // Compose (Foundation)
                     "Checkbox", // TODO(murki): Figure how to handle on/off state for Compose
                 ),
-            ReplayType.Keyboard to emptyList(),
-            ReplayType.Map to
+            )
+            put(ReplayType.Keyboard, emptyList())
+            put(
+                ReplayType.Map,
                 listOf(
                     "MapView",
                 ),
-            ReplayType.TextInput to
+            )
+            put(
+                ReplayType.TextInput,
                 listOf(
                     "TextInputEditText",
                     // Compose (Foundation)
                     "TextField",
                 ),
-            ReplayType.TransparentView to emptyList(),
-            ReplayType.WebView to emptyList(),
-        )
+            )
+            put(ReplayType.TransparentView, emptyList())
+            put(ReplayType.WebView, emptyList())
+        }
 }

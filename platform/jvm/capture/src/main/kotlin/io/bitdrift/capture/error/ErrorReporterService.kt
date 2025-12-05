@@ -8,19 +8,21 @@
 package io.bitdrift.capture.error
 
 import android.util.Log
+import androidx.collection.MutableScatterMap
 import com.google.gson.annotations.SerializedName
 import io.bitdrift.capture.ApiError
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.network.okhttp.HttpApiEndpoint
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.buildScatterMap
 
 internal class ErrorReporterService(
     private val fieldProviders: List<FieldProvider>,
     private val apiClient: OkHttpApiClient,
 ) : IErrorReporter {
     private fun headers(): Map<String, String> {
-        val map = mutableMapOf<String, String>()
+        val map = MutableScatterMap<String, String>()
 
         for (fieldProvider in fieldProviders) {
             for ((key, value) in fieldProvider()) {
@@ -29,7 +31,7 @@ internal class ErrorReporterService(
             }
         }
 
-        return map
+        return map.asMap()
     }
 
     override fun reportError(
@@ -40,7 +42,7 @@ internal class ErrorReporterService(
         val typedRequest = ErrorReportRequest(message, details)
 
         val allFields =
-            buildMap {
+            buildScatterMap<String, String> {
                 putAll(headers())
                 putAll(fields)
             }

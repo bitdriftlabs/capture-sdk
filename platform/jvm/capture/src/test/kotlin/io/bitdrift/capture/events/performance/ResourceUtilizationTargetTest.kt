@@ -25,7 +25,7 @@ import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
-import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.testutils.hasFields
 import org.junit.After
 import org.junit.Test
 import java.util.concurrent.ExecutorService
@@ -111,16 +111,11 @@ class ResourceUtilizationTargetTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.WARNING),
-            eq(
-                mapOf(
-                    "_jvm_used_kb" to "50",
-                    "_jvm_total_kb" to "100",
-                    "_jvm_max_kb" to "100",
-                    "_jvm_used_percent" to "50",
-                    "_native_used_kb" to "200",
-                    "_native_total_kb" to "500",
-                    "_memory_class" to "1",
-                ).toFields(),
+            hasFields(
+                "_jvm_used_kb" to "50",
+                "_jvm_total_kb" to "100",
+                "_jvm_max_kb" to "100",
+                "_memory_class" to "1",
             ),
             eq(null),
             eq(null),

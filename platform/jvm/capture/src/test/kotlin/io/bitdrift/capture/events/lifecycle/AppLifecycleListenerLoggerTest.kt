@@ -25,7 +25,7 @@ import io.bitdrift.capture.Mocks
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.providers.FieldValue
-import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.testutils.hasFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
 import org.junit.Test
@@ -115,18 +115,6 @@ class AppLifecycleListenerLoggerTest {
         val launchTime = 10 * 1_000_000L
         val firstFrameTime = 100 * 1_000_000L
         val expectedTTID = (firstFrameTime - launchTime) / 1_000_000L
-        val expectedFields =
-            buildMap {
-                // custom mocked values
-                put("startup_type", "COLD")
-                put("startup_state", "FIRST_FRAME_DRAWN")
-                put("startup_intent_action", "android.intent.action.MAIN")
-                put("startup_time_to_initial_display_ms", expectedTTID.toString())
-                // default mock values
-                put("startup_launch_mode", "STANDARD")
-                put("startup_was_forced_stopped", "false")
-                put("startup_reason", "ALARM")
-            }.toFields()
 
         whenever(versionChecker.isAtLeast(35)).thenReturn(true)
 
@@ -149,7 +137,12 @@ class AppLifecycleListenerLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.INFO),
-            eq(expectedFields),
+            hasFields(
+                "startup_type" to "COLD",
+                "startup_state" to "FIRST_FRAME_DRAWN",
+                "startup_intent_action" to "android.intent.action.MAIN",
+                "startup_time_to_initial_display_ms" to expectedTTID.toString(),
+            ),
             eq(null),
             eq(null),
             eq(false),

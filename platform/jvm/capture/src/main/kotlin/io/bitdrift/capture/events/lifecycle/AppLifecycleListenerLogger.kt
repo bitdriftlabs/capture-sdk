@@ -11,6 +11,7 @@ import android.app.ActivityManager
 import android.app.ApplicationStartInfo
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.collection.MutableScatterMap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
@@ -21,6 +22,7 @@ import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
+import io.bitdrift.capture.providers.buildScatterMap
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.util.concurrent.ExecutorService
@@ -36,15 +38,15 @@ internal class AppLifecycleListenerLogger(
 ) : IEventListenerLogger,
     LifecycleEventObserver {
     private val lifecycleEventNames =
-        hashMapOf(
-            Lifecycle.Event.ON_CREATE to "AppCreate",
-            Lifecycle.Event.ON_START to "AppStart",
-            Lifecycle.Event.ON_RESUME to "AppResume",
-            Lifecycle.Event.ON_PAUSE to "AppPause",
-            Lifecycle.Event.ON_STOP to "AppStop",
-            Lifecycle.Event.ON_DESTROY to "AppDestroy",
-            Lifecycle.Event.ON_ANY to "AppAny",
-        )
+        MutableScatterMap<Lifecycle.Event, String>().apply {
+            put(Lifecycle.Event.ON_CREATE, "AppCreate")
+            put(Lifecycle.Event.ON_START, "AppStart")
+            put(Lifecycle.Event.ON_RESUME, "AppResume")
+            put(Lifecycle.Event.ON_PAUSE, "AppPause")
+            put(Lifecycle.Event.ON_STOP, "AppStop")
+            put(Lifecycle.Event.ON_DESTROY, "AppDestroy")
+            put(Lifecycle.Event.ON_ANY, "AppAny")
+        }
 
     override fun start() {
         mainThreadHandler.run {
@@ -90,7 +92,7 @@ internal class AppLifecycleListenerLogger(
     private fun extractAppStartInfoFields(): Map<String, String>? {
         val appStartInfo = activityManager.getHistoricalProcessStartReasons(1).firstOrNull() ?: return null
         val ts = StartupTimestamps.fromMap(appStartInfo.startupTimestamps)
-        return buildMap {
+        return buildScatterMap {
             put("startup_type", appStartInfo.startType.toStartTypeText())
             put("startup_state", appStartInfo.startupState.toStartupStateText())
             put("startup_launch_mode", appStartInfo.launchMode.toLaunchModeText())

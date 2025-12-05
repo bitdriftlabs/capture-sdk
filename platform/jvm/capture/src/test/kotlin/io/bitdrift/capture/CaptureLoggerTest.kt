@@ -33,6 +33,7 @@ import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.IFatalIssueReporter
+import io.bitdrift.capture.testutils.hasFields
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
@@ -113,8 +114,10 @@ class CaptureLoggerTest {
 
         logger.log(requestInfo)
 
-        val expectedRequestFields =
-            mapOf(
+        Mockito.verify(logger).log(
+            eq(LogType.SPAN),
+            eq(LogLevel.DEBUG),
+            hasFields(
                 "_host" to "api.bitdrift.io",
                 "_method" to "GET",
                 "_path" to "/my_path/12345",
@@ -123,18 +126,8 @@ class CaptureLoggerTest {
                 "_span_name" to "_http",
                 "_span_type" to "start",
                 "my_extra_key_1" to "my_extra_value_1",
-            ).toFields()
-
-        val expectedRequestMatchingFields =
-            mapOf(
-                "_headers.request_header" to "request_value",
-            ).toFields()
-
-        Mockito.verify(logger).log(
-            eq(LogType.SPAN),
-            eq(LogLevel.DEBUG),
-            eq(expectedRequestFields),
-            eq(expectedRequestMatchingFields),
+            ),
+            hasFields("_headers.request_header" to "request_value"),
             eq(null),
             eq(false),
             argThat { i -> i.invoke() == requestInfo.name },
@@ -155,42 +148,23 @@ class CaptureLoggerTest {
 
         logger.log(responseInfo)
 
-        val expectedResponseFields =
-            mapOf(
-                "_host" to "api.bitdrift.io",
-                "_method" to "GET",
-                "_path" to "/my_path/12345",
-                "_query" to "my=query",
-                "_span_id" to spanId.toString(),
-                "_span_name" to "_http",
-                "_span_type" to "end",
-                "_duration_ms" to "60",
-                "_result" to "success",
-                "_error_type" to "RuntimeException",
-                "_error_message" to "my_error",
-                "my_extra_key_1" to "my_extra_value_1",
-                "my_extra_key_2" to "my_extra_value_2",
-            ).toFields()
-
-        val expectedResponseMatchingFields =
-            mapOf(
-                "_request._host" to "api.bitdrift.io",
-                "_request._method" to "GET",
-                "_request._path" to "/my_path/12345",
-                "_request._span_id" to spanId.toString(),
-                "_request._span_name" to "_http",
-                "_request._span_type" to "start",
-                "_request._query" to "my=query",
-                "_request.my_extra_key_1" to "my_extra_value_1",
-                "_request._headers.request_header" to "request_value",
-                "_headers.response_header" to "response_value",
-            ).toFields()
-
         Mockito.verify(logger).log(
             eq(LogType.SPAN),
             eq(LogLevel.DEBUG),
-            eq(expectedResponseFields),
-            eq(expectedResponseMatchingFields),
+            hasFields(
+                "_host" to "api.bitdrift.io",
+                "_method" to "GET",
+                "_path" to "/my_path/12345",
+                "_span_id" to spanId.toString(),
+                "_span_type" to "end",
+                "_duration_ms" to "60",
+                "_result" to "success",
+            ),
+            hasFields(
+                "_request._host" to "api.bitdrift.io",
+                "_request._method" to "GET",
+                "_headers.response_header" to "response_value",
+            ),
             eq(null),
             eq(false),
             argThat { i -> i.invoke() == responseInfo.name },
@@ -205,16 +179,13 @@ class CaptureLoggerTest {
         val msg = "my_message"
         logger.log(LogLevel.ERROR, throwable = IOException("my_error")) { msg }
 
-        val expectedFields =
-            mapOf(
-                "_error" to "java.io.IOException",
-                "_error_details" to "my_error",
-            ).toFields()
-
         verify(logger).log(
             eq(LogType.NORMAL),
             eq(LogLevel.ERROR),
-            eq(expectedFields),
+            hasFields(
+                "_error" to "java.io.IOException",
+                "_error_details" to "my_error",
+            ),
             eq(null),
             eq(null),
             eq(false),

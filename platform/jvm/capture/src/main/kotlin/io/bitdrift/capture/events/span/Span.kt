@@ -13,6 +13,7 @@ import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
+import io.bitdrift.capture.providers.buildScatterMap
 import io.bitdrift.capture.providers.toFields
 import java.util.UUID
 
@@ -62,7 +63,7 @@ class Span internal constructor(
     // so is the recommend basis for general purpose interval timing.
     private val startTimeMs: Long = clock.elapsedRealtime()
     private val startFields: Map<String, String> =
-        buildMap {
+        buildScatterMap {
             fields?.let {
                 putAll(it)
             }
@@ -111,7 +112,7 @@ class Span internal constructor(
                 }
 
             val endFields =
-                buildMap {
+                buildScatterMap<String, String> {
                     putAll(startFields)
                     fields?.let {
                         putAll(it)

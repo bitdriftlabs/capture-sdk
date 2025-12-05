@@ -10,6 +10,7 @@ package io.bitdrift.capture.events.performance
 import android.app.ActivityManager
 import android.os.Debug
 import io.bitdrift.capture.common.RuntimeConfig
+import io.bitdrift.capture.providers.buildScatterMap
 
 private const val KB = 1024L
 
@@ -24,7 +25,7 @@ internal class MemoryMetricsProvider(
     }
 
     override fun getMemoryAttributes(): Map<String, String> =
-        buildMap {
+        buildScatterMap {
             put("_jvm_used_kb", jvmMemoryProvider.usedMemoryBytes().bToKb())
             put("_jvm_total_kb", jvmMemoryProvider.totalMemoryBytes().bToKb())
             put("_jvm_max_kb", jvmMemoryProvider.maxMemoryBytes().bToKb())
@@ -37,7 +38,7 @@ internal class MemoryMetricsProvider(
             put("_jvm_used_percent", "%.3f".format(jvmUsedPercent()))
         }
 
-    override fun getMemoryClass(): Map<String, String> = buildMap { put("_memory_class", memoryClassMB().toString()) }
+    override fun getMemoryClass(): Map<String, String> = buildScatterMap { put("_memory_class", memoryClassMB().toString()) }
 
     override fun isMemoryLow(): Boolean {
         val thresholdPercent = appLowMemoryConfigThreshold ?: return false
