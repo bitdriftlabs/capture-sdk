@@ -45,6 +45,7 @@ internal object ComposeTreeParser {
         val windowOffset = IntArray(2)
         androidComposeView.rootView.getLocationOnScreen(windowOffset)
 
+        // compute a map of semanticsId to LayoutNode for quick lookup during the recursive parsing of SemanticsNode tree
         val layoutNodeMap = buildSemanticsIdToLayoutNodeMap(androidComposeView.root)
 
         val rootNode = semanticsOwner.unmergedRootSemanticsNode
@@ -60,6 +61,15 @@ internal object ComposeTreeParser {
         return map
     }
 
+    /**
+     * Recursively traverses the [LayoutNode] tree starting from the given [node],
+     * and populates the provided [map] with a mapping from the semantics ID of each node
+     * to the node itself. This creates a quick lookup table that can be used to find a
+     * [LayoutNode] by its [SemanticsNode] ID, avoiding repeated tree traversals.
+     *
+     * @param node The starting [LayoutNode] for the traversal.
+     * @param map The mutable map to populate with `semanticsId` to `LayoutNode` pairs.
+     */
     private fun populateSemanticsIdToLayoutNodeMap(node: LayoutNode, map: MutableMap<Int, LayoutNode>) {
         if (node.semanticsId != 0) {
             map[node.semanticsId] = node
@@ -76,6 +86,7 @@ internal object ComposeTreeParser {
         layoutNodeMap: Map<Int, LayoutNode>,
     ): ScannableView {
         val layoutNode = layoutNodeMap[this.id] ?: return ScannableView.IgnoredComposeView
+        // this is a somewhat expensive call, so avoid calling it multiple times
         val config = this.config
         val captureIgnoreSubTree = config.getOrNull(CaptureModifier.CaptureIgnore)
         val isVisible = !config.contains(SemanticsProperties.InvisibleToUser)
