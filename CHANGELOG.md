@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.20.1...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.21.0...HEAD
 
 ### Both
 
@@ -11,7 +11,7 @@
 
 **Changed**
 
-- The experimental feature flag APIs have been redone and now only exposes a single `setFeatureFlagExposure` function instead of generic setters.
+- Nothing yet!
 
 **Fixed**
 
@@ -21,7 +21,7 @@
 
 **Added**
 
-- Added JVM memory usage percent as a reported OOTB field
+- Nothing yet!
 
 **Changed**
 
@@ -29,15 +29,13 @@
 
 **Fixed**
 
-- Improved accuracy of low memory detection in `MemoryMetricsProvider`.
-- Fixed `NoSuchMethodError` runtime exception when consumers target newer versions of `androidx.compose.ui:ui`.
+- Nothing yet!
 
 ### iOS
 
 **Added**
 
-- Added app memory usage percent as a reported OOTB field
-- Added new default field for reporting low memory usage
+- Nothing yet!
 
 **Changed**
 
@@ -45,7 +43,38 @@
 
 **Fixed**
 
-- Removed a misleading error message at launch where no error occurred
+- Nothing yet!
+
+## [0.21.0]
+[0.21.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.0
+
+### Both
+
+**Changed**
+
+- The experimental feature flag APIs have been redone and now only expose a single `setFeatureFlagExposure` function instead of generic setters.
+ 
+### Android
+
+**Added**
+
+- Add JVM memory usage percent as a reported OOTB field in Resource Utilization logs.
+
+**Fixed**
+
+- Improve accuracy of low memory detection in `MemoryMetricsProvider`.
+- Fix `NoSuchMethodError` runtime exception when consumers target newer versions of `androidx.compose.ui:ui`.
+
+### iOS
+
+**Added**
+
+- Add app memory usage percent as a reported OOTB field in Resource Utilization logs.
+- Add new default field for reporting low memory state in Resource Utilization logs.
+
+**Fixed**
+
+- Remove a misleading error log message at launch where no error occurred.
 
 ## [0.20.1]
 [0.20.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.20.1
@@ -70,20 +99,6 @@
 ## [0.20.0]
 [0.20.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.20.0
 
-### Both
-
-**Added**
-
-- Nothing yet!
-
-**Changed**
-
-- Nothing yet!
-
-**Fixed**
-
-- Nothing yet!
-
 ### Android
 
 **Added**
@@ -104,14 +119,6 @@
 **Added**
 
 - Add `rootFileURL` parameter to `Configuration` to allow customizing the storage location for SDK internal files.
-
-**Changed**
-
-- Nothing yet!
-
-**Fixed**
-
-- Nothing yet!
 
 ## [0.19.1]
 [0.19.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.19.1
