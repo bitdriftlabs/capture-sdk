@@ -27,7 +27,6 @@ import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.compose.CaptureModifier
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
-import java.lang.reflect.InvocationTargetException
 
 internal object ComposeTreeParser {
     @OptIn(InternalComposeUiApi::class)
@@ -77,9 +76,10 @@ internal object ComposeTreeParser {
         layoutNodeMap: Map<Int, LayoutNode>,
     ): ScannableView {
         val layoutNode = layoutNodeMap[this.id] ?: return ScannableView.IgnoredComposeView
+        val config = this.config
+        val captureIgnoreSubTree = config.getOrNull(CaptureModifier.CaptureIgnore)
+        val isVisible = !config.contains(SemanticsProperties.InvisibleToUser)
         val notAttachedOrPlaced = !layoutNode.isPlaced || !layoutNode.isAttached
-        val captureIgnoreSubTree = this.unmergedConfig.getOrNull(CaptureModifier.CaptureIgnore)
-        val isVisible = !this.isTransparent && !this.unmergedConfig.contains(SemanticsProperties.InvisibleToUser)
         val type =
             if (notAttachedOrPlaced) {
                 return ScannableView.IgnoredComposeView
@@ -94,7 +94,7 @@ internal object ComposeTreeParser {
             } else if (!isVisible) {
                 ReplayType.TransparentView
             } else {
-                this.unmergedConfig.toReplayType()
+                config.toReplayType()
             }
 
         // Handle hybrid interop AndroidViews inside Compose elements
