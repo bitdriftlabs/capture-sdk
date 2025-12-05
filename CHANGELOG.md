@@ -36,7 +36,7 @@
 **Added**
 
 - Added app memory usage percent as a reported OOTB field
-- Added `_is_memory_low` OOTB field to bring parity with Android
+- Added new default field for reporting low memory usage
 
 **Changed**
 
