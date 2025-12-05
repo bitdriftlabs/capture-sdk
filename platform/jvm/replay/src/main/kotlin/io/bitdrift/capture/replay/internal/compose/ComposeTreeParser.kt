@@ -73,7 +73,7 @@ internal object ComposeTreeParser {
      */
     private fun populateSemanticsIdToLayoutNodeMap(
         node: LayoutNode,
-        map: MutableMap<Int, LayoutNode>,
+        map: MutableIntObjectMap<LayoutNode>,
     ) {
         if (node.semanticsId != 0) {
             map[node.semanticsId] = node
