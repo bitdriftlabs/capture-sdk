@@ -1,5 +1,5 @@
 {
-  "checksum": "d5411085ec20b6e210917c1ae2dabf49cfe8d3f8600ca7889e112a6791e813a6",
+  "checksum": "a5392bf85dc9e7d3863ab32a650b7e097c146a1ececdbeb3ed668ea038e26d40",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -19472,6 +19472,10 @@
             {
               "id": "pretty_assertions 1.4.1",
               "target": "pretty_assertions"
+            },
+            {
+              "id": "tempfile 3.23.0",
+              "target": "tempfile"
             }
           ],
           "selects": {}
