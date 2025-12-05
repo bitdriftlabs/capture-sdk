@@ -43,7 +43,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Removed a misleading error message at launch where no error occurred
 
 ## [0.20.1]
 [0.20.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.20.1
