@@ -100,4 +100,9 @@ extension RuntimeVariable<UInt32> {
         name: "client_feature.ios.application_anr_reporting.threshold_ms",
         defaultValue: 2_000
     )
+
+    static let appLowMemoryPercentThreshold = RuntimeVariable(
+        name: "client_feature.ios.app_low_memory_percent_threshold",
+        defaultValue: 90
+    )
 }

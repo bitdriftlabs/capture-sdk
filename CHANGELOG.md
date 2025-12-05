@@ -35,7 +35,8 @@
 
 **Added**
 
-- Nothing yet!
+- Added app memory usage percent as a reported OOTB field
+- Added new default field for reporting low memory usage
 
 **Changed**
 

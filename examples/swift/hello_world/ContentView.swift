@@ -23,10 +23,9 @@ struct ContentView: View {
     }
 
     var body: some View {
-        VStack {
-            NavigationLink("Configuration") { ConfigurationView() }
-            Spacer()
-            VStack {
+        ScrollView {
+            VStack(spacing: 10) {
+                NavigationLink("Configuration") { ConfigurationView() }
                 Text("ACTIONS")
                 HStack {
                     Button(action: { self.loggerCustomer.log(with: self.selectedLogLevel) }) {
@@ -87,51 +86,54 @@ struct ContentView: View {
                 }) {
                     Text("Swift Assertion Failure").frame(maxWidth: .infinity)
                 }
+                Button(action: { self.loggerCustomer.forceMemoryPressure(targetPercent: 90) }) {
+                    Text("Force Memory Pressure (90%)").frame(maxWidth: .infinity)
+                }
+                Button(action: { self.loggerCustomer.clearMemoryPressure() }) {
+                    Text("Clear Memory Pressure").frame(maxWidth: .infinity)
+                }
             }
             .modify { view in
                 view.buttonStyle(.bordered)
             }
-            Spacer()
             VStack {
-                VStack {
-                    Button(action: {
-                        self.loggerCustomer.createTemporaryDeviceCode(completion: { result in
-                            switch result {
-                            case let .success(code):
-                                self.createdDeviceCode = code
-                                UIPasteboard.general.string = code
-                            case let .failure(error):
-                                self.createdDeviceCode = String(describing: error)
-                            }
-                        })
-                    }) {
-                        Text("Generate Temporary Device Code").frame(maxWidth: .infinity)
-                    }
-                    .modify { view in
-                        view.buttonStyle(.borderedProminent)
-                    }
-                    Text(self.createdDeviceCode)
+                Button(action: {
+                    self.loggerCustomer.createTemporaryDeviceCode(completion: { result in
+                        switch result {
+                        case let .success(code):
+                            self.createdDeviceCode = code
+                            UIPasteboard.general.string = code
+                        case let .failure(error):
+                            self.createdDeviceCode = String(describing: error)
+                        }
+                    })
+                }) {
+                    Text("Generate Temporary Device Code").frame(maxWidth: .infinity)
                 }
-                .padding(EdgeInsets(top: 0, leading: 0, bottom: 10, trailing: 0))
-                HStack {
-                    Button(action: { UIPasteboard.general.string = self.loggerCustomer.sessionURL }) {
-                        Text("Copy Session URL").frame(maxWidth: .infinity)
-                    }
-                    .modify { view in
-                        view.buttonStyle(.borderedProminent)
-                    }
-                    Button(action: {
-                        self.loggerCustomer.startNewSession()
-                        self.currentSessionID = self.loggerCustomer.sessionID ?? "No Session ID"
-                    }) {
-                        Text("Start New Session").frame(maxWidth: .infinity)
-                    }
-                    .modify { view in
-                        view.buttonStyle(.borderedProminent)
-                    }
+                .modify { view in
+                    view.buttonStyle(.borderedProminent)
                 }
-                Text(self.currentSessionID)
+                Text(self.createdDeviceCode)
             }
+            .padding(EdgeInsets(top: 10, leading: 0, bottom: 10, trailing: 0))
+            HStack {
+                Button(action: { UIPasteboard.general.string = self.loggerCustomer.sessionURL }) {
+                    Text("Copy Session URL").frame(maxWidth: .infinity)
+                }
+                .modify { view in
+                    view.buttonStyle(.borderedProminent)
+                }
+                Button(action: {
+                    self.loggerCustomer.startNewSession()
+                    self.currentSessionID = self.loggerCustomer.sessionID ?? "No Session ID"
+                }) {
+                    Text("Start New Session").frame(maxWidth: .infinity)
+                }
+                .modify { view in
+                    view.buttonStyle(.borderedProminent)
+                }
+            }
+            Text(self.currentSessionID)
         }
         .padding(5)
         .onAppear { self.loggerCustomer.logAppLaunchTTI() }
