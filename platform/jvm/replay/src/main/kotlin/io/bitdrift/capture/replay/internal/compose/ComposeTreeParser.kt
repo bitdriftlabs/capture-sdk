@@ -10,6 +10,7 @@
 package io.bitdrift.capture.replay.internal.compose
 
 import android.view.View
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.node.LayoutNode
@@ -82,7 +83,7 @@ internal object ComposeTreeParser {
         }
     }
 
-    @OptIn(InternalComposeUiApi::class)
+    @OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
     private fun SemanticsNode.toScannableView(
         windowOffsetX: Int,
         windowOffsetY: Int,
