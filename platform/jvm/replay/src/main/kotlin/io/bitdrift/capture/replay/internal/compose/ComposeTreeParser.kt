@@ -56,7 +56,7 @@ internal object ComposeTreeParser {
         return rootNode.toScannableView(windowOffset[0], windowOffset[1], layoutNodeMap)
     }
 
-    private fun buildSemanticsIdToLayoutNodeMap(rootNode: LayoutNode): Map<Int, LayoutNode> {
+    private fun buildSemanticsIdToLayoutNodeMap(rootNode: LayoutNode): MutableIntObjectMap<LayoutNode> {
         val map = MutableIntObjectMap<LayoutNode>()
         populateSemanticsIdToLayoutNodeMap(rootNode, map)
         return map
