@@ -70,14 +70,17 @@ extern "C" fn capture_enhance_metrickit_diagnostic_report(
 fn capture_cache_kscrash_report_impl(
   kscrash_report_path_ptr: *const Object,
 ) -> anyhow::Result<CacheResult> {
-  let kscrash_report_path = unsafe { nsstring_into_string(kscrash_report_path_ptr) }
+  let report_path = unsafe { nsstring_into_string(kscrash_report_path_ptr) }
     .map_err(|e| anyhow::anyhow!("Failed to convert KSCrash report path to string: {e}"))?;
+  parse_cached_report(report_path)
+}
 
-  if !Path::new(&kscrash_report_path).exists() {
+fn parse_cached_report(report_path: String) -> anyhow::Result<CacheResult> {
+  if !Path::new(&report_path).exists() {
     return Ok(CacheResult::ReportDoesNotExist);
   }
 
-  let file_contents = fs::read(&kscrash_report_path)?;
+  let file_contents = fs::read(&report_path)?;
 
   if file_contents.len() == 0 {
     // File is created when the writer is initialized. An empty file should
@@ -414,4 +417,42 @@ fn find_matching_named_thread_with_limit<'a>(
 
 fn call_stacks_match(call_stack_a: &[u64], call_stack_b: &[u64]) -> bool {
   !call_stack_a.is_empty() && call_stack_a == call_stack_b
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use std::io::Write;
+
+  #[test]
+  fn nonexistent_report_path_test() {
+    assert_eq!(
+      CacheResult::ReportDoesNotExist,
+      parse_cached_report("/sys/nonpath".to_string()).unwrap()
+    );
+  }
+
+  #[test]
+  fn empty_report_contents_test() {
+    let report = tempfile::Builder::new()
+      .prefix("report")
+      .tempfile()
+      .unwrap();
+    let report_path = report.path().to_str().unwrap().to_string();
+    assert_eq!(
+      CacheResult::ReportDoesNotExist,
+      parse_cached_report(report_path).unwrap()
+    );
+  }
+
+  #[test]
+  fn invalid_report_test() {
+    let mut report = tempfile::Builder::new()
+      .prefix("report")
+      .tempfile()
+      .unwrap();
+    report.write("\0\0\0".as_bytes()).unwrap();
+    let report_path = report.path().to_str().unwrap().to_string();
+    assert!(parse_cached_report(report_path).is_err());
+  }
 }
