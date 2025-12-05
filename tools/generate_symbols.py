@@ -6,7 +6,7 @@ from typing import Generator
 
 ROOT_PATH = (Path(__file__) / "../../").resolve()
 SYMBOLS_PATH = (ROOT_PATH / "platform/jvm/jni_symbols.lds").resolve()
-JNI_FILE = ROOT_PATH / "platform/jvm/src/jni.rs"
+JNI_FILE = ROOT_PATH / "platform/jvm/core/src/jni.rs"
 
 
 def parse(path: str) -> Generator[str, None, None]:

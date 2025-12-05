@@ -76,34 +76,17 @@ interface ILogger {
     fun removeField(key: String)
 
     /**
-     * Sets a feature flag with an optional variant.
+     * Records a feature flag exposure with an optional variant. Use this method to track when
+     * a user is exposed to a specific feature flag variant in your application. The exposure
+     * is recorded with a timestamp and tracked for the duration of the process.
      *
-     * @param name the name of the flag to set
-     * @param variant an optional variant
+     * @param name the name of the flag being exposed
+     * @param variant an optional variant of the flag being exposed
      */
-    fun setFeatureFlag(
+    fun setFeatureFlagExposure(
         name: String,
         variant: String?,
     )
-
-    /**
-     * Sets multiple feature flags (with optional variants).
-     *
-     * @param flags the flags to set
-     */
-    fun setFeatureFlags(flags: List<FeatureFlag>)
-
-    /**
-     * Removes a feature flag.
-     *
-     * @param flag the name of the flag to remove.
-     */
-    fun removeFeatureFlag(flag: String)
-
-    /**
-     * Clear all feature flags.
-     */
-    fun clearFeatureFlags()
 
     /**
      * Logs a message at a specified level.

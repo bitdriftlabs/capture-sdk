@@ -62,8 +62,6 @@ sealed class FeatureFlagsTestAction : AppAction {
     object AddOneFeatureFlag : FeatureFlagsTestAction()
 
     object AddManyFeatureFlags : FeatureFlagsTestAction()
-
-    object ClearFeatureFlags : FeatureFlagsTestAction()
 }
 
 sealed class NavigationAction : AppAction {

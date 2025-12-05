@@ -407,32 +407,14 @@ extension Logger {
         Self.getShared()?.removeField(withKey: key)
     }
 
-    /// Sets a feature flag with an optional variant.
+    /// Records a feature flag exposure with an optional variant. Use this method to track when
+    /// a user is exposed to a specific feature flag variant in your application. The exposure
+    /// is recorded with a timestamp and tracked for the duration of the process.
     ///
-    /// - parameter flag:    The name of the flag to set
-    /// - parameter variant: An optional variant to set the flag to
-    public static func setFeatureFlag(withName flag: String, variant: String?) {
-        Self.getShared()?.setFeatureFlag(withName: flag, variant: variant)
-    }
-
-    /// Sets multiple feature flags.
-    ///
-    /// - parameter flags: The flags to set
-    public static func setFeatureFlags(_ flags: [FeatureFlag]) {
-        Self.getShared()?.setFeatureFlags(flags)
-    }
-
-    /// Removes a feature flag.
-    ///
-    /// - parameter flag: The name of the flag to remove.
-    public static func removeFeatureFlag(withName flag: String) {
-        Self.getShared()?.removeFeatureFlag(withName: flag)
-    }
-
-    /// Clears all feature flags.
-    ///
-    public static func clearFeatureFlags() {
-        Self.getShared()?.clearFeatureFlags()
+    /// - parameter flag:    The name of the flag being exposed
+    /// - parameter variant: An optional variant of the flag being exposed
+    public static func setFeatureFlagExposure(withName flag: String, variant: String?) {
+        Self.getShared()?.setFeatureFlagExposure(withName: flag, variant: variant)
     }
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a

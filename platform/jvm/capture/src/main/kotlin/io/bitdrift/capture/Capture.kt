@@ -286,49 +286,20 @@ object Capture {
         }
 
         /**
-         * Sets a feature flag with an optional variant.
+         * Records a feature flag exposure with an optional variant. Use this method to track when
+         * a user is exposed to a specific feature flag variant in your application. The exposure
+         * is recorded with a timestamp and tracked for the duration of the process.
          *
-         * @param name the name of the flag to set
-         * @param variant an optional variant
+         * @param name the name of the flag being exposed
+         * @param variant an optional variant of the flag being exposed
          */
         @JvmStatic
         @ExperimentalBitdriftApi
-        fun setFeatureFlag(
+        fun setFeatureFlagExposure(
             name: String,
             variant: String? = null,
         ) {
-            logger()?.setFeatureFlag(name, variant)
-        }
-
-        /**
-         * Sets multiple feature flags.
-         *
-         * @param flags the flags to set
-         */
-        @JvmStatic
-        @ExperimentalBitdriftApi
-        fun setFeatureFlags(flags: List<FeatureFlag>) {
-            logger()?.setFeatureFlags(flags)
-        }
-
-        /**
-         * Removes a feature flag.
-         *
-         * @param flag the name of the flag to remove
-         */
-        @ExperimentalBitdriftApi
-        @JvmStatic
-        fun removeFeatureFlag(flag: String) {
-            logger()?.removeFeatureFlag(flag)
-        }
-
-        /**
-         * Clears all feature flags.
-         */
-        @ExperimentalBitdriftApi
-        @JvmStatic
-        fun clearFeatureFlags() {
-            logger()?.clearFeatureFlags()
+            logger()?.setFeatureFlagExposure(name, variant)
         }
 
         /**

@@ -377,36 +377,15 @@ public final class LoggerObjc: NSObject {
         Capture.Logger.removeField(withKey: key)
     }
 
-    /// Sets a feature flag with an optional variant.
+    /// Records a feature flag exposure with an optional variant. Use this method to track when
+    /// a user is exposed to a specific feature flag variant in your application. The exposure
+    /// is recorded with a timestamp and tracked for the duration of the process.
     ///
-    /// - parameter name:    The name of the flag to set
-    /// - parameter variant: An optional variant to set the flag to
+    /// - parameter name:    The name of the flag being exposed
+    /// - parameter variant: An optional variant of the flag being exposed
     @objc
-    public static func setFeatureFlag(withName name: String, variant: String?) {
-        Capture.Logger.setFeatureFlag(withName: name, variant: variant)
-    }
-
-    /// Sets multiple feature flags.
-    ///
-    /// - parameter flags: The flags to set
-    @objc
-    public static func setFeatureFlags(_ flags: [FeatureFlag]) {
-        Capture.Logger.setFeatureFlags(flags)
-    }
-
-    /// Removes a feature flag.
-    ///
-    /// - parameter name: The name of the flag to remove
-    @objc
-    public static func removeFeatureFlag(withName name: String) {
-        Capture.Logger.removeFeatureFlag(withName: name)
-    }
-
-    /// Clears all feature flags.
-    ///
-    @objc
-    public static func clearFeatureFlags() {
-        Capture.Logger.clearFeatureFlags()
+    public static func setFeatureFlagExposure(withName name: String, variant: String?) {
+        Capture.Logger.setFeatureFlagExposure(withName: name, variant: variant)
     }
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a

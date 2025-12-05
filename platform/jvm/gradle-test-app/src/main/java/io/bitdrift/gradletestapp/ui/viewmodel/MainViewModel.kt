@@ -122,7 +122,6 @@ class MainViewModel(
 
             is FeatureFlagsTestAction.AddOneFeatureFlag -> addOneFeatureFlag()
             is FeatureFlagsTestAction.AddManyFeatureFlags -> addManyFeatureFlags()
-            is FeatureFlagsTestAction.ClearFeatureFlags -> clearFeatureFlags()
 
             is StressTestAction.IncreaseMemoryPressure -> stressTestRepository.increaseMemoryPressure(action.targetPercent)
             is StressTestAction.TriggerMemoryPressureAnr -> stressTestRepository.triggerMemoryPressureAnr()
@@ -249,21 +248,17 @@ class MainViewModel(
 
     @OptIn(ExperimentalBitdriftApi::class)
     private fun addOneFeatureFlag() {
-        Timber.i("Adding one feature flag")
-        Logger.setFeatureFlag("myflag", "myvariant")
+        Timber.i("Adding one feature flag exposure")
+        Logger.setFeatureFlagExposure("myflag", "myvariant")
     }
 
     @OptIn(ExperimentalBitdriftApi::class)
     private fun addManyFeatureFlags() {
-        Timber.i("Adding many feature flags")
-        val flags = (1..10000).map { FeatureFlag.of("flag_" + it) }
-        Logger.setFeatureFlags(flags)
-    }
-
-    @OptIn(ExperimentalBitdriftApi::class)
-    private fun clearFeatureFlags() {
-        Timber.i("Clearing feature flags")
-        Logger.clearFeatureFlags()
+        Timber.i("Adding many feature flag exposures")
+        // Only single flag exposures are supported now
+        for (i in 1..10000) {
+            Logger.setFeatureFlagExposure("flag_$i")
+        }
     }
 
     private fun logMessage() {

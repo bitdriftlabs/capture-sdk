@@ -11,7 +11,7 @@
 
 **Changed**
 
-- Nothing yet!
+- The experimental feature flag APIs have been redone and now only exposes a single `setFeatureFlagExposure` function instead of generic setters.
 
 **Fixed**
 

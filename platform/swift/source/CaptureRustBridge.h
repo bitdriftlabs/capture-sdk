@@ -251,36 +251,14 @@ void capture_remove_log_field(logger_id logger_id, const char *key);
 void capture_flush(logger_id logger_id, bool blocking);
 
 /*
- * Sets a feature flag with an optional variant.
+ * Sets a feature flag exposure.
  *
- * @param logger_id the logger to set the feature flag on.
+ * @param logger_id the logger to set the feature flag exposure on.
  * @param flag the flag to set.
  * @param variant the variant to set (if null, the flag will be set with no variant).
  */
-void capture_set_feature_flag(logger_id logger_id, const char *flag, const char* _Nullable variant);
-
-/*
- * Sets multiple feature flags.
- *
- * @param logger_id the logger to set the feature flag on.
- * @param flags the flags to set.
- */
-void capture_set_feature_flags(logger_id logger_id, NSArray *flags);
-
-/*
- * Removes a feature flag.
- *
- * @param logger_id the logger to remove the feature flag on.
- * @param flag the flag to remove.
- */
-void capture_remove_feature_flag(logger_id logger_id, const char *flag);
-
-/*
- * Clears all feature flags.
- *
- * @param logger_id the logger to remove the feature flags from.
- */
-void capture_clear_feature_flags(logger_id logger_id);
+void capture_set_feature_flag_exposure(logger_id logger_id, const char *flag,
+                                       const char *_Nullable variant);
 
 /**
  * Signals the specified logger to shut down.
