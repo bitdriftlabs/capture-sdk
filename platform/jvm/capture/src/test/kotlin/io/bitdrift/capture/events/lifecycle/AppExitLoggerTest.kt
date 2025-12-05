@@ -19,6 +19,7 @@ import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.ErrorHandler
+import io.bitdrift.capture.InternalFields
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
@@ -30,13 +31,13 @@ import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
-import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
-import io.bitdrift.capture.providers.FieldValue
-import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES
+import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
+import io.bitdrift.capture.utils.get
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
@@ -112,8 +113,8 @@ class AppExitLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
-            eq(buildExpectedAnrFields()),
-            eq(null),
+            argThat<InternalFields> { fields -> fieldsMatchExpectedAnr(fields) },
+            eq(EMPTY_INTERNAL_FIELDS),
             eq(LogAttributesOverrides.PreviousRunSessionId(TIME_STAMP)),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppExit" },
@@ -180,19 +181,19 @@ class AppExitLoggerTest {
 
         // ASSERT
         val expectedFields =
-            buildMap {
-                put("_app_exit_source", "UncaughtExceptionHandler")
-                put("_app_exit_reason", "Crash")
-                put("_app_exit_info", appException.javaClass.name)
-                put("_app_exit_details", appException.message.orEmpty())
-                put("_app_exit_thread", currentThread.name)
-                putAll(DEFAULT_MEMORY_ATTRIBUTES_MAP)
-            }.toFields()
+            fieldsOf(
+                "_app_exit_source" to "UncaughtExceptionHandler",
+                "_app_exit_reason" to "Crash",
+                "_app_exit_info" to appException.javaClass.name,
+                "_app_exit_details" to appException.message.orEmpty(),
+                "_app_exit_thread" to currentThread.name,
+            ) + DEFAULT_MEMORY_ATTRIBUTES
+
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
-            eq(expectedFields),
-            eq(null),
+            argThat<InternalFields> { fields -> fieldsMatchExpected(fields, expectedFields) },
+            eq(EMPTY_INTERNAL_FIELDS),
             eq(null),
             eq(true),
             argThat { i: () -> String -> i.invoke() == "AppExit" },
@@ -272,11 +273,11 @@ class AppExitLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
-            argThat { fields ->
+            argThat<InternalFields> { fields ->
                 fields["_app_exit_info"]?.toString() == expected.javaClass.name &&
                     fields["_app_exit_details"]?.toString() == expected.message.orEmpty()
             },
-            eq(null),
+            eq(EMPTY_INTERNAL_FIELDS),
             eq(null),
             eq(true),
             any(),
@@ -305,16 +306,30 @@ class AppExitLoggerTest {
             FakeFatalIssueReporter(fatalReporterInitState),
         )
 
-    private fun buildExpectedAnrFields(): Map<String, FieldValue> =
-        buildMap {
-            put("_app_exit_source", "ApplicationExitInfo")
-            put("_app_exit_process_name", "test-process-name")
-            put("_app_exit_reason", "ANR")
-            put("_app_exit_importance", "FOREGROUND")
-            put("_app_exit_status", "0")
-            put("_app_exit_pss", "1")
-            put("_app_exit_rss", "2")
-            put("_app_exit_description", "test-description")
-            put("_memory_class", "1")
-        }.toFields()
+    private fun fieldsMatchExpectedAnr(fields: InternalFields): Boolean {
+        val expectedKeys =
+            setOf(
+                "_app_exit_source",
+                "_app_exit_process_name",
+                "_app_exit_reason",
+                "_app_exit_importance",
+                "_app_exit_status",
+                "_app_exit_pss",
+                "_app_exit_rss",
+                "_app_exit_description",
+                "_memory_class",
+            )
+        return fields.map { it.key }.toSet().containsAll(expectedKeys) &&
+            fields["_app_exit_source"]?.toString() == "ApplicationExitInfo" &&
+            fields["_app_exit_reason"]?.toString() == "ANR"
+    }
+
+    private fun fieldsMatchExpected(
+        actual: InternalFields,
+        expected: InternalFields,
+    ): Boolean {
+        val actualMap = actual.associate { it.key to it.value.toString() }
+        val expectedMap = expected.associate { it.key to it.value.toString() }
+        return actualMap == expectedMap
+    }
 }

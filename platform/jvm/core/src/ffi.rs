@@ -86,6 +86,56 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   Ok(())
 }
 
+/// Extracts a single field (key and value) from a Java Field object.
+/// This is the common extraction logic used by both array and list converters.
+fn extract_field(
+  env: &mut JNIEnv<'_>,
+  field_obj: &JObject<'_>,
+) -> anyhow::Result<(String, LogFieldValue)> {
+  let key = FIELD_KEY
+    .get()
+    .ok_or(InvariantError::Invariant)?
+    .call_method(env, field_obj, ReturnType::Object, &[])?
+    .l()?;
+  let key = unsafe { env.get_string_unchecked(&key.into()) }?
+    .to_string_lossy()
+    .to_string();
+
+  let value_type = FIELD_VALUE_TYPE
+    .get()
+    .ok_or(InvariantError::Invariant)?
+    .call_method(env, field_obj, ReturnType::Primitive(Primitive::Int), &[])?
+    .i()?;
+
+  let value = match value_type {
+    FIELD_VALUE_BYTE_ARRAY => {
+      let field_value = FIELD_BYTE_ARRAY
+        .get()
+        .ok_or(InvariantError::Invariant)?
+        .call_method(env, field_obj, ReturnType::Array, &[])?
+        .l()?;
+      let value = env.convert_byte_array(JPrimitiveArray::from(field_value))?;
+      LogFieldValue::Bytes(value)
+    },
+    FIELD_VALUE_STRING => {
+      let field_value = FIELD_STRING
+        .get()
+        .ok_or(InvariantError::Invariant)?
+        .call_method(env, field_obj, ReturnType::Object, &[])?
+        .l()?;
+      LogFieldValue::String(
+        unsafe { env.get_string_unchecked(&field_value.into()) }?
+          .to_string_lossy()
+          .to_string(),
+      )
+    },
+    _ => bail!("unknown field value type {value_type:?}"),
+  };
+
+  Ok((key, value))
+}
+
+#[allow(dead_code)]
 pub(crate) fn jobject_list_to_fields(
   env: &mut JNIEnv<'_>,
   object: &JObject<'_>,
@@ -99,49 +149,7 @@ pub(crate) fn jobject_list_to_fields(
   let mut iter = list.iter(env)?;
   while let Some(obj) = iter.next(env)? {
     env.with_local_frame(16, |env| -> anyhow::Result<()> {
-      // Key
-
-      let key = FIELD_KEY
-        .get()
-        .ok_or(InvariantError::Invariant)?
-        .call_method(env, &obj, ReturnType::Object, &[])?
-        .l()?;
-      let key = unsafe { env.get_string_unchecked(&key.into()) }?
-        .to_string_lossy()
-        .to_string();
-
-      // Field value: String or Byte Array
-
-      let value_type = FIELD_VALUE_TYPE
-        .get()
-        .ok_or(InvariantError::Invariant)?
-        .call_method(env, &obj, ReturnType::Primitive(Primitive::Int), &[])?
-        .i()?;
-      let value = match value_type {
-        FIELD_VALUE_BYTE_ARRAY => {
-          let field_value = FIELD_BYTE_ARRAY
-            .get()
-            .ok_or(InvariantError::Invariant)?
-            .call_method(env, &obj, ReturnType::Array, &[])?
-            .l()?;
-
-          let value = env.convert_byte_array(JPrimitiveArray::from(field_value))?;
-          LogFieldValue::Bytes(value)
-        },
-        FIELD_VALUE_STRING => {
-          let field_value = FIELD_STRING
-            .get()
-            .ok_or(InvariantError::Invariant)?
-            .call_method(env, &obj, ReturnType::Object, &[])?
-            .l()?;
-          LogFieldValue::String(
-            unsafe { env.get_string_unchecked(&field_value.into()) }?
-              .to_string_lossy()
-              .to_string(),
-          )
-        },
-        _ => bail!("unknown field value type {value_type:?}"),
-      };
+      let (key, value) = extract_field(env, &obj)?;
       fields.insert(key.into(), value);
       Ok(())
     })?;
@@ -150,52 +158,50 @@ pub(crate) fn jobject_list_to_fields(
   Ok(fields)
 }
 
-/// Returns `AnnotatedLogFields` copied from the provided `JMap`.
-/// Internally does a lossy conversion into UTF-8 per [`to_string_lossy`](
-/// https://docs.rs/jni/latest/jni/strings/struct.JNIStr.html#method.to_string_lossy).
-pub fn jobject_map_to_fields(
+/// Converts a Java array of Field objects into `AnnotatedLogFields`.
+/// More efficient than List because arrays allow direct indexed access without iterator overhead.
+pub fn jarray_to_annotated_fields(
   env: &mut JNIEnv<'_>,
-  object: &JObject<'_>,
+  fields_array: &JObject<'_>,
   kind: LogFieldKind,
 ) -> anyhow::Result<AnnotatedLogFields> {
-  let mut fields = AnnotatedLogFields::new();
+  use jni::objects::JObjectArray;
 
-  let map = JMap::from_env(env, object)?;
-  let mut iter = map.iter(env)?;
+  // SAFETY: We know this JObject is actually an array passed from Kotlin
+  let array = unsafe { JObjectArray::from_raw(fields_array.as_raw()) };
+  let len = env.get_array_length(&array)?;
+  let mut fields = AnnotatedLogFields::with_capacity(len as usize);
 
-  while let Some((key, value)) = iter.next(env)? {
-    // Push a local frame to ensure references are cleaned up after each iteration
+  for i in 0 .. len {
     env.with_local_frame(16, |env| -> anyhow::Result<()> {
-      let key = unsafe { env.get_string_unchecked((&key).into()) }?
-        .to_string_lossy()
-        .to_string();
-
-      let value = if env.is_instance_of(
-        &value,
-        &BINARY_FIELD.get().ok_or(InvariantError::Invariant)?.class,
-      )? {
-        let field_value = BINARY_FIELD_BYTE_ARRAY
-          .get()
-          .ok_or(InvariantError::Invariant)?
-          .call_method(env, &value, ReturnType::Array, &[])?
-          .l()?;
-
-        let value = env.convert_byte_array(JPrimitiveArray::from(field_value))?;
-        LogFieldValue::Bytes(value)
-      } else {
-        let field_value = STRING_FIELD_STRING
-          .get()
-          .ok_or(InvariantError::Invariant)?
-          .call_method(env, &value, ReturnType::Object, &[])?
-          .l()?;
-        LogFieldValue::String(
-          unsafe { env.get_string_unchecked(&field_value.into()) }?
-            .to_string_lossy()
-            .to_string(),
-        )
-      };
-
+      let field_obj = env.get_object_array_element(&array, i)?;
+      let (key, value) = extract_field(env, &field_obj)?;
       fields.insert(key.into(), AnnotatedLogField { value, kind });
+      Ok(())
+    })?;
+  }
+
+  Ok(fields)
+}
+
+/// Converts a Java array of Field objects into `LogFields`.
+/// Similar to `jarray_to_annotated_fields` but returns `LogFields` without annotations.
+pub(crate) fn jarray_to_fields(
+  env: &mut JNIEnv<'_>,
+  fields_array: &JObject<'_>,
+) -> anyhow::Result<LogFields> {
+  use jni::objects::JObjectArray;
+
+  // SAFETY: We know this JObject is actually an array passed from Kotlin
+  let array = unsafe { JObjectArray::from_raw(fields_array.as_raw()) };
+  let len = env.get_array_length(&array)?;
+  let mut fields = LogFields::with_capacity(len as usize);
+
+  for i in 0 .. len {
+    env.with_local_frame(16, |env| -> anyhow::Result<()> {
+      let field_obj = env.get_object_array_element(&array, i)?;
+      let (key, value) = extract_field(env, &field_obj)?;
+      fields.insert(key.into(), value);
       Ok(())
     })?;
   }
