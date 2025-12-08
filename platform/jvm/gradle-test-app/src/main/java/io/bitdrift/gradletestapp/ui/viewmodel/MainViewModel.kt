@@ -104,6 +104,7 @@ class MainViewModel(
 
             is SessionAction.StartNewSession -> startNewSession()
             is SessionAction.GenerateDeviceCode -> generateDeviceCode()
+            is SessionAction.QueryDeviceId -> queryDeviceId()
             is SessionAction.CopySessionUrl -> copySessionUrl()
 
             is DiagnosticsAction.LogMessage -> logMessage()
@@ -237,6 +238,17 @@ class MainViewModel(
         }
     }
 
+    private fun queryDeviceId() {
+        viewModelScope.launch {
+            val deviceId = sdkRepository.getDeviceId()
+            _uiState.update {
+                it.copy(
+                    session = it.session.copy(deviceId = deviceId),
+                )
+            }
+        }
+    }
+
     private fun copySessionUrl() {
         val sessionUrl = sdkRepository.getSessionUrl()
         if (sessionUrl != null) {
@@ -321,6 +333,7 @@ class MainViewModel(
                 isSdkInitialized = sdkRepository.isSdkInitialized(),
                 sessionId = sdkRepository.getSessionId(),
                 sessionUrl = sdkRepository.getSessionUrl(),
+                deviceId = sdkRepository.getDeviceId(),
                 deviceCode = _uiState.value.session.deviceCode,
             )
 

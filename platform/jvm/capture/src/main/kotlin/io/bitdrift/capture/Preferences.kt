@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
+import android.util.Log
 
 /**
  * Convenience wrapper for working with `SharedPreferences`.
@@ -33,7 +34,12 @@ internal class Preferences(
         underlyingPreferences.edit().putLong(key, value).apply()
     }
 
-    override fun getString(key: String): String? = underlyingPreferences.getString(key, null)
+    override fun getString(key: String): String?
+    {
+        val value = underlyingPreferences.getString(key, null)
+        Log.d("miguel-capture", "Preferences.getString($key)=$value")
+        return value
+    }
 
     @SuppressLint("ApplySharedPref")
     override fun setString(
@@ -41,6 +47,7 @@ internal class Preferences(
         value: String?,
         blocking: Boolean,
     ) {
+        Log.d("miguel-capture", "Preferences.setString($key, $value, $blocking)")
         val edit =
             if (value == null) {
                 underlyingPreferences.edit().remove(key)
