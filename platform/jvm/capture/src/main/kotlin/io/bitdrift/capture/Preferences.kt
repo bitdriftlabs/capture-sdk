@@ -34,8 +34,7 @@ internal class Preferences(
         underlyingPreferences.edit().putLong(key, value).apply()
     }
 
-    override fun getString(key: String): String?
-    {
+    override fun getString(key: String): String? {
         val value = underlyingPreferences.getString(key, null)
         Log.d("miguel-capture", "Preferences.getString($key)=$value")
         return value

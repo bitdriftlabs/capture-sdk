@@ -12,7 +12,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
 class PreferencesTest {
-
     private lateinit var context: Context
     private lateinit var preferences: Preferences
 
@@ -94,7 +93,7 @@ class PreferencesTest {
         preferences.setString(key, value, blocking = false)
 
         val savedValue = preferences.getString(key)
-        
+
         assertThat(savedValue).isEqualTo(value)
     }
 
