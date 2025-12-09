@@ -101,6 +101,9 @@ class LatestAppExitInfoProviderTest {
             is LatestAppExitReasonResult.Error -> {
                 assertThat(exitReason.message).isEqualTo(expectedMessage)
             }
+            is LatestAppExitReasonResult.None -> {
+                assertThat(expectedMessage).isNull()
+            }
         }
     }
 }

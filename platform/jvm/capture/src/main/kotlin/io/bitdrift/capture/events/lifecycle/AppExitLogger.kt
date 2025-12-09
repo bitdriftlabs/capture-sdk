@@ -95,6 +95,10 @@ internal class AppExitLogger(
                     attributesOverrides = LogAttributesOverrides.PreviousRunSessionId(timestampMs),
                 ) { APP_EXIT_EVENT_NAME }
             }
+
+            is LatestAppExitReasonResult.None -> {
+
+            }
         }
     }
 

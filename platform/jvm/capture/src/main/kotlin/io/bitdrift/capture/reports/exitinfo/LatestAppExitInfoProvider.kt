@@ -39,14 +39,10 @@ internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
                     it.processName == Application.getProcessName()
                 }
 
-            when {
-                latestKnownExitReasons.isEmpty() ->
-                    LatestAppExitReasonResult.Error(EXIT_REASON_EMPTY_LIST_MESSAGE)
-
-                matchingProcessReason == null ->
-                    LatestAppExitReasonResult.Error(EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE)
-
-                else -> LatestAppExitReasonResult.Valid(matchingProcessReason)
+            if (matchingProcessReason == null) {
+                LatestAppExitReasonResult.None
+            } else {
+                LatestAppExitReasonResult.Valid(matchingProcessReason)
             }
         } catch (error: Throwable) {
             LatestAppExitReasonResult.Error(
