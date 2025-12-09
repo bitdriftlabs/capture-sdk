@@ -56,7 +56,7 @@ internal class FatalIssueReporter(
         private set
     private var initializationDuration: Duration? = null
 
-    private lateinit var issueReporterProcessor: IssueReporterProcessor
+    private var issueReporterProcessor: IssueReporterProcessor? = null
 
     /**
      * Initializes the FatalIssueReporter handler once we have the required dependencies available
@@ -126,7 +126,7 @@ internal class FatalIssueReporter(
     /**
      * Returns the underlying report processor
      */
-    internal fun getIssueReporterProcessor(): IssueReporterProcessor = issueReporterProcessor
+    internal fun getIssueReporterProcessor(): IssueReporterProcessor? = issueReporterProcessor
 
     /**
      * Returns the current init state
@@ -141,7 +141,7 @@ internal class FatalIssueReporter(
         throwable: Throwable,
     ) {
         runCatching {
-            issueReporterProcessor.persistJvmCrash(
+            issueReporterProcessor?.persistJvmCrash(
                 callerThread = thread,
                 throwable = throwable,
                 allThreads = Thread.getAllStackTraces(),
@@ -169,7 +169,7 @@ internal class FatalIssueReporter(
             val lastReason = lastReasonResult.applicationExitInfo
             lastReason.traceInputStream?.use {
                 mapToFatalIssueType(lastReason.reason)?.let { fatalIssueType ->
-                    issueReporterProcessor.persistAppExitReport(
+                    issueReporterProcessor?.persistAppExitReport(
                         fatalIssueType = fatalIssueType,
                         timestamp = lastReason.timestamp,
                         description = lastReason.description,
