@@ -26,16 +26,12 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
-import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.FatalIssueReporterState
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EMPTY_LIST_MESSAGE
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
@@ -121,7 +117,7 @@ class AppExitLoggerTest {
     }
 
     @Test
-    fun logPreviousExitReason_whenEmptyResult_shouldReportError() {
+    fun logPreviousExitReason_whenEmptyResult_shouldNotReportError() {
         // ARRANGE
         lastExitInfo.setAsEmptyReason()
 
@@ -129,7 +125,7 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        verify(errorHandler).handleError(EXIT_REASON_EMPTY_LIST_MESSAGE)
+        verify(errorHandler, never()).handleError(any())
         verify(logger, never()).log(
             any(),
             any(),
@@ -142,7 +138,7 @@ class AppExitLoggerTest {
     }
 
     @Test
-    fun logPreviousExitReason_withoutMatchingProcessName_shouldReportError() {
+    fun logPreviousExitReason_withoutMatchingProcessName_shouldNotReportError() {
         // ARRANGE
         lastExitInfo.setAsInvalidProcessName()
 
@@ -150,7 +146,7 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        verify(errorHandler).handleError(EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE)
+        verify(errorHandler, never()).handleError(any())
         verify(logger, never()).log(
             any(),
             any(),
@@ -163,7 +159,7 @@ class AppExitLoggerTest {
     }
 
     @Test
-    fun logPreviousExitReason_whenErrorResult_shouldReportEmptyReason() {
+    fun logPreviousExitReason_whenErrorResult_shouldNotReportEmptyReason() {
         // ARRANGE
         lastExitInfo.setAsErrorResult()
 
@@ -171,7 +167,7 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        verify(errorHandler).handleError(EXIT_REASON_EXCEPTION_MESSAGE, FAKE_EXCEPTION)
+        verify(errorHandler, never()).handleError(any(), any())
         verify(logger, never()).log(
             any(),
             any(),
