@@ -125,7 +125,7 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        verify(errorHandler, never()).handleError(any())
+        verify(errorHandler).handleError(any(), anyOrNull())
         verify(logger, never()).log(
             any(),
             any(),
@@ -146,7 +146,7 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        verify(errorHandler, never()).handleError(any())
+        verify(errorHandler).handleError(any(), anyOrNull())
         verify(logger, never()).log(
             any(),
             any(),
@@ -167,7 +167,7 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        verify(errorHandler, never()).handleError(any(), any())
+        verify(errorHandler).handleError(any(), anyOrNull())
         verify(logger, never()).log(
             any(),
             any(),
