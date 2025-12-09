@@ -79,7 +79,7 @@ class LatestAppExitInfoProviderTest {
         val exitReason = latestAppExitInfoProvider.get(activityManager)
 
         assertResult<LatestAppExitReasonResult.None>(
-            exitReason
+            exitReason,
         )
     }
 
