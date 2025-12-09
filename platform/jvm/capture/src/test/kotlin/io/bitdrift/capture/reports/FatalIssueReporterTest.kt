@@ -24,6 +24,7 @@ import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
+import io.bitdrift.capture.reports.processor.IssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.utils.SdkDirectory
 import org.assertj.core.api.Assertions.assertThat
@@ -143,6 +144,32 @@ class FatalIssueReporterTest {
             any(),
             eq(exception),
         )
+    }
+
+    @Test
+    fun getIssueReporterProcessor_whenNotInitialized_shouldReturnNull() {
+        val processor = fatalIssueReporter.getIssueReporterProcessor()
+
+        assertThat(processor).isNull()
+    }
+
+    @Test
+    fun getIssueReporterProcessor_whenInitialized_shouldReturnValidProcessor() {
+        fatalIssueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
+
+        val processor = fatalIssueReporter.getIssueReporterProcessor()
+
+        assertThat(processor).isInstanceOf(IssueReporterProcessor::class.java)
+    }
+
+    @Test
+    fun getIssueReporterProcessor_whenInitCalledButDisabled_shouldReturnNull() {
+        configFile.writeText("crash_reporting.enabled,false")
+        fatalIssueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
+
+        val processor = fatalIssueReporter.getIssueReporterProcessor()
+
+        assertThat(processor).isNull()
     }
 
     private fun assertCrashFile(crashFileExist: Boolean) {
