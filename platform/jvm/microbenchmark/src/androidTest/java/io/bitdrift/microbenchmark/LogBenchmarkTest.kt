@@ -9,22 +9,19 @@
 
 package io.bitdrift.microbenchmark
 
-import android.app.ActivityManager
 import androidx.benchmark.junit4.BenchmarkRule
 import androidx.benchmark.junit4.measureRepeated
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureJniLibrary
-import io.bitdrift.capture.Configuration
-import io.bitdrift.capture.LoggerImpl
-import io.bitdrift.capture.attributes.IClientAttributes
-import io.bitdrift.capture.providers.FieldValue
-import io.bitdrift.capture.providers.SystemDateProvider
+import io.bitdrift.capture.network.HttpRequestInfo
+import io.bitdrift.capture.network.HttpResponse
+import io.bitdrift.capture.network.HttpResponse.HttpResult
+import io.bitdrift.capture.network.HttpResponseInfo
+import io.bitdrift.capture.network.HttpUrlPath
+import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueReporterState
-import io.bitdrift.capture.reports.IFatalIssueReporter
-import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.Rule
 import org.junit.Test
@@ -39,46 +36,27 @@ private const val LOG_MESSAGE = "50 characters long test message - 0123456789012
  * In microbenchmarks the number of iterations to be executed is determined by the library itself
  */
 @RunWith(AndroidJUnit4::class)
-class ClockTimeProfiler {
+class LogBenchmarkTest {
     @get:Rule
     val benchmarkRule = BenchmarkRule()
 
-    private fun startLogger() {
+    private fun startLogger(fieldProviders: List<FieldProvider> = listOf()) {
+        CaptureJniLibrary.load()
         Capture.Logger.start(
-            apiKey = "android-benchmark-test",
-            apiUrl = "https://api-tests.bitdrift.io".toHttpUrl(),
+            apiKey = "[test_api_key]",
+            apiUrl = "https://api-test.bitdrift.dev".toHttpUrl(),
+            context = InstrumentationRegistry.getInstrumentation().targetContext,
             sessionStrategy = SessionStrategy.Fixed(),
+            fieldProviders = fieldProviders
         )
     }
 
-    @Test
-    fun loggerStart() {
-        benchmarkRule.measureRepeated {
-            CaptureJniLibrary.load()
-            LoggerImpl(
-                apiKey = "android-benchmark-test",
-                apiUrl = "https://api-tests.bitdrift.io".toHttpUrl(),
-                context = InstrumentationRegistry.getInstrumentation().targetContext,
-                fieldProviders = listOf(),
-                dateProvider = SystemDateProvider(),
-                configuration = Configuration(),
-                sessionStrategy = SessionStrategy.Fixed(),
-                fatalIssueReporter =
-                    object : IFatalIssueReporter {
-                        override fun initializationState(): FatalIssueReporterState = FatalIssueReporterState.Initialized
-
-                        override fun getLogStatusFieldsMap(): Map<String, FieldValue> = emptyMap()
-
-                        override fun init(
-                            activityManager: ActivityManager,
-                            sdkDirectory: String,
-                            clientAttributes: IClientAttributes,
-                            completedReportsProcessor: ICompletedReportsProcessor,
-                        ) {
-                            // no-op
-                        }
-                    },
-            )
+    private fun createFieldProviders(providers: Int = 5, fields: Int = 10): List<FieldProvider> {
+        return (1..providers).map { providerIndex ->
+            val fields = (1..fields).associate { fieldIndex ->
+                "provider${providerIndex}_key$fieldIndex" to "provider${providerIndex}_val$fieldIndex"
+            }
+            FieldProvider { fields }
         }
     }
 
@@ -124,6 +102,45 @@ class ClockTimeProfiler {
                     "keykeykey10" to "valvalval10",
                 ),
             ) { LOG_MESSAGE }
+        }
+    }
+
+    @Test
+    fun logHttpNetworkLog50FieldsAndHeadersAndFieldProviders() {
+        startLogger(createFieldProviders())
+
+        val extraFields = (1..50).associate { "keykeykey$it" to "valvalval$it" }
+        val headers = (1..50).associate { "header$it" to "value$it" }
+
+        benchmarkRule.measureRepeated {
+            val request = HttpRequestInfo(
+                method = "GET",
+                host = "www.google.com",
+                path = HttpUrlPath(
+                    value = "/search",
+                    template = "/search"
+                ),
+                query = "q=Bitdrift",
+                headers = headers,
+                extraFields = extraFields
+            )
+            Capture.Logger.log(request)
+
+            val response = HttpResponse(
+                host = request.host,
+                path = HttpUrlPath(request.path?.value ?: "/"),
+                query = request.query,
+                statusCode = 200,
+                result = HttpResult.SUCCESS,
+                headers = headers
+            )
+            val responseInfo = HttpResponseInfo(
+                request = request,
+                response = response,
+                durationMs = 100,
+                extraFields = extraFields
+            )
+            Capture.Logger.log(responseInfo)
         }
     }
 }
