@@ -97,7 +97,6 @@ internal class AppExitLogger(
             }
 
             is LatestAppExitReasonResult.None -> {
-
             }
         }
     }

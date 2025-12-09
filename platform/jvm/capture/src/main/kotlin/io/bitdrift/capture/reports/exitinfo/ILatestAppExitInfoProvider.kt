@@ -39,7 +39,7 @@ sealed class LatestAppExitReasonResult {
     /**
      * No [ApplicationExitInfo] was available.
      */
-    data object None: LatestAppExitReasonResult()
+    data object None : LatestAppExitReasonResult()
 
     /**
      * Returns the detailed error while trying to determine prior reasons
