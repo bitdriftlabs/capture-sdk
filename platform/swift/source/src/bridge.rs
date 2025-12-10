@@ -517,8 +517,6 @@ extern "C" fn capture_create_logger(
         device,
         static_metadata,
         start_in_sleep_mode,
-        feature_flags_file_size_bytes: 1024 * 1024,
-        feature_flags_high_watermark: 0.8,
       })
       .with_internal_logger(true)
       .build()
@@ -893,7 +891,7 @@ extern "C" fn capture_set_feature_flag_exposure(
           .ok()
           .map(std::string::ToString::to_string)
       };
-      logger_id.set_feature_flag(flag.to_string(), variant);
+      logger_id.set_feature_flag_exposure(flag.to_string(), variant);
 
       Ok(())
     },
