@@ -67,6 +67,11 @@ fun NavigationCard(onAction: (AppAction) -> Unit) {
                     onClick = { onAction(NavigationAction.NavigateToDialogAndModals) },
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
                 ) { Text(stringResource(id = R.string.navigate_to_modal_bottom_sheet), maxLines = 1, softWrap = false) }
+
+                OutlinedButton(
+                    onClick = { onAction(NavigationAction.InvokeService) },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
+                ) { Text("Invoke Service", maxLines = 1, softWrap = false) }
             }
         }
     }
