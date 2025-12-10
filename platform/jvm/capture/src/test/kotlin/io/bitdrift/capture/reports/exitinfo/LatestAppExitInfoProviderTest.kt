@@ -14,9 +14,7 @@ import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EMPTY_LIST_MESSAGE
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -65,9 +63,8 @@ class LatestAppExitInfoProviderTest {
 
         val exitReason = latestAppExitInfoProvider.get(activityManager)
 
-        assertResult<LatestAppExitReasonResult.Error>(
+        assertResult<LatestAppExitReasonResult.None>(
             exitReason,
-            EXIT_REASON_EMPTY_LIST_MESSAGE,
         )
     }
 
@@ -81,9 +78,8 @@ class LatestAppExitInfoProviderTest {
 
         val exitReason = latestAppExitInfoProvider.get(activityManager)
 
-        assertResult<LatestAppExitReasonResult.Error>(
+        assertResult<LatestAppExitReasonResult.None>(
             exitReason,
-            EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE,
         )
     }
 
@@ -100,6 +96,9 @@ class LatestAppExitInfoProviderTest {
             }
             is LatestAppExitReasonResult.Error -> {
                 assertThat(exitReason.message).isEqualTo(expectedMessage)
+            }
+            is LatestAppExitReasonResult.None -> {
+                assertThat(expectedMessage).isNull()
             }
         }
     }

@@ -11,7 +11,6 @@ import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.bitdrift.capture.Capture.Logger
-import io.bitdrift.capture.FeatureFlag
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.gradletestapp.data.model.AppAction

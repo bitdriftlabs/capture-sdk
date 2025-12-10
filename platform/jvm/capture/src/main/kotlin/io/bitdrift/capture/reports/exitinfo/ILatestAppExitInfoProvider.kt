@@ -37,6 +37,12 @@ sealed class LatestAppExitReasonResult {
     ) : LatestAppExitReasonResult()
 
     /**
+     * No [ApplicationExitInfo] was available.
+     * (e.g. this is expected on first app installation)
+     */
+    data object None : LatestAppExitReasonResult()
+
+    /**
      * Returns the detailed error while trying to determine prior reasons
      * @param message
      * @param throwable

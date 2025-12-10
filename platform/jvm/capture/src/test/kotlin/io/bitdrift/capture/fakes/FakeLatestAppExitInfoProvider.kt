@@ -44,11 +44,6 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
     private var hasErrorResult: Boolean = false
 
     /**
-     * To set, if there is no matching process name on historical reasons
-     */
-    private var hasNotMatchedOnProcessName: Boolean = false
-
-    /**
      * Additional description fields for the app termination
      */
     private var description: String = DEFAULT_DESCRIPTION
@@ -58,11 +53,6 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
      */
     private var processStateSummary: ByteArray? = PROCESS_STATE_SUMMARY
 
-    /**
-     * Specifies the process name of each exit reason entry
-     */
-    private var processName: String = PROCESS_NAME
-
     /*
      * Sets to default state
      */
@@ -71,7 +61,6 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         traceInputStream = null
         hasNoPriorReason = false
         hasErrorResult = false
-        hasNotMatchedOnProcessName = false
         description = DEFAULT_DESCRIPTION
         processStateSummary = PROCESS_STATE_SUMMARY
     }
@@ -105,20 +94,9 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         hasErrorResult = true
     }
 
-    /**
-     * Forces latestAppExitInfoProvider.get() to return [LatestAppExitReasonResult.ProcessNameNotFound]
-     */
-    fun setAsInvalidProcessName() {
-        hasNotMatchedOnProcessName = true
-    }
-
     override fun get(activityManager: ActivityManager): LatestAppExitReasonResult {
         if (hasNoPriorReason) {
-            return LatestAppExitReasonResult.Error("LatestAppExitInfoProvider: getHistoricalProcessExitReasons returned an empty list")
-        } else if (hasNotMatchedOnProcessName) {
-            return LatestAppExitReasonResult.Error(
-                "LatestAppExitInfoProvider: No matching process found in getHistoricalProcessExitReasons",
-            )
+            return LatestAppExitReasonResult.None
         } else if (hasErrorResult) {
             return LatestAppExitReasonResult.Error(
                 "LatestAppExitInfoProvider: Failed to retrieve LatestAppExitReasonResult",

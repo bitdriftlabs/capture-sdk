@@ -17,10 +17,6 @@ import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
  * Concrete impl of [ILatestAppExitInfoProvider]
  */
 internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
-    internal const val EXIT_REASON_EMPTY_LIST_MESSAGE =
-        "LatestAppExitInfoProvider: getHistoricalProcessExitReasons returned an empty list"
-    internal const val EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE =
-        "LatestAppExitInfoProvider: No matching process found in getHistoricalProcessExitReasons"
     internal const val EXIT_REASON_EXCEPTION_MESSAGE =
         "LatestAppExitInfoProvider: Failed to retrieve LatestAppExitReasonResult"
 
@@ -39,14 +35,10 @@ internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
                     it.processName == Application.getProcessName()
                 }
 
-            when {
-                latestKnownExitReasons.isEmpty() ->
-                    LatestAppExitReasonResult.Error(EXIT_REASON_EMPTY_LIST_MESSAGE)
-
-                matchingProcessReason == null ->
-                    LatestAppExitReasonResult.Error(EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE)
-
-                else -> LatestAppExitReasonResult.Valid(matchingProcessReason)
+            if (matchingProcessReason == null) {
+                LatestAppExitReasonResult.None
+            } else {
+                LatestAppExitReasonResult.Valid(matchingProcessReason)
             }
         } catch (error: Throwable) {
             LatestAppExitReasonResult.Error(

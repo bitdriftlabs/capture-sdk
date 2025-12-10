@@ -95,6 +95,9 @@ internal class AppExitLogger(
                     attributesOverrides = LogAttributesOverrides.PreviousRunSessionId(timestampMs),
                 ) { APP_EXIT_EVENT_NAME }
             }
+
+            // No app exit reason available (e.g., first install)
+            is LatestAppExitReasonResult.None -> Unit
         }
     }
 
