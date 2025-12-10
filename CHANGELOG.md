@@ -7,7 +7,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added support for workflow matching on feature flag state and transitions.
 
 **Changed**
 
