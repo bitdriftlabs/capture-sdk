@@ -303,7 +303,12 @@ internal class LoggerImpl(
                 .toString()
 
     override val deviceId: String
-        get() = CaptureJniLibrary.getDeviceId(this.loggerId) ?: "unknown"
+        // Log to console the value before returning it to caller
+        get() {
+            val deviceId = CaptureJniLibrary.getDeviceId(this.loggerId) ?: "unknown"
+            Log.d("miguel-capture", "LoggerImpl.deviceId=$deviceId")
+            return deviceId
+        }
 
     override fun startNewSession() {
         CaptureJniLibrary.startNewSession(this.loggerId)
@@ -311,6 +316,7 @@ internal class LoggerImpl(
 
     override fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {
         CaptureJniLibrary.getDeviceId(this.loggerId)?.let { deviceId ->
+            Log.d("miguel-capture", "LoggerImpl.createTmpDeviceCode()-deviceId=$deviceId")
             /**
              *  Access the `deviceId` when it is needed for creating the device code, rather than
              *  at Logger's initialization time. Accessing it later almost guarantees that the
