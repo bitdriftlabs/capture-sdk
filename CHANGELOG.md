@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Made `HttpRequestInfo` and `HttpResponseInfo` properties public so they can be used with the `Logger.log()` methods directly.
 
 ### iOS
 

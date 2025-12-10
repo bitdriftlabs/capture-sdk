@@ -32,19 +32,38 @@ object HttpField {
 }
 
 /**
- * Class that encapsulates network request information. method param is required, rest are optional
+ * Encapsulates information about an outgoing HTTP request. This class is used to log the start
+ * of a network operation.
+ *
+ * An `HttpRequestInfo` object is typically created and passed to the Bitdrift SDK when a network
+ * request is initiated. It is later paired with a corresponding `HttpResponseInfo` object
+ * (matched by `spanId`) to form a complete span representing the entire network call.
+ *
+ * The `@JvmOverloads` annotation allows for convenient construction from Java with default values
+ * for optional parameters.
+ *
+ * @param method The HTTP method of the request (e.g., "GET", "POST"). This is a required field.
+ * @param host The host name or IP address of the server. Example: "api.bitdrift.io".
+ * @param path The path of the request URL, which can optionally include a template for aggregation.
+ *             See [HttpUrlPath] for more details. Example: `/v1/users/123`.
+ * @param query The query string part of the URL, without the leading '?'. Example: "id=123&type=user".
+ * @param headers A map of HTTP request headers.
+ * @param bytesExpectedToSendCount The expected size of the request body in bytes, if known.
+ * @param spanId A unique identifier for this request-response pair. If not provided, a random UUID
+ *               will be generated. This ID is crucial for matching the request with its response.
+ * @param extraFields A map of any additional custom key-value pairs to be included in the log event.
  */
 data class HttpRequestInfo
     @JvmOverloads
     constructor(
-        private val method: String,
-        private val host: String? = null,
-        internal val path: HttpUrlPath? = null,
-        private val query: String? = null,
-        private val headers: Map<String, String>? = null,
-        private val bytesExpectedToSendCount: Long? = null,
-        private val spanId: UUID = UUID.randomUUID(),
-        private val extraFields: Map<String, String> = mapOf(),
+        val method: String,
+        val host: String? = null,
+        val path: HttpUrlPath? = null,
+        val query: String? = null,
+        val headers: Map<String, String>? = null,
+        val bytesExpectedToSendCount: Long? = null,
+        val spanId: UUID = UUID.randomUUID(),
+        val extraFields: Map<String, String> = mapOf(),
     ) {
         internal val name: String = "HTTPRequest"
 

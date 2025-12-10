@@ -13,27 +13,28 @@ import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFields
 
 /**
- * Class that encapsulates the information about the HTTP response.
- * `request`, `response`, and `durationMs` parameters are required; the rest are optional.
+ * Encapsulates information about an HTTP response event. This class is used to log the completion
+ * of an HTTP request, including its duration, outcome, and associated metrics.
  *
- * While response and request logs are logged separately, they are interconnected, and every
- * response log contains all of the fields of the corresponding request log for matching purposes.
- * To ensure key field uniqueness, the names of request log fields attached to the response log are
- * prefixed with the "_request." string, so the field "query" from the request log becomes "_start.query" in
- * the response log.
+ * Request and response events are logged separately but are linked. Each response event includes all
+ * fields from its corresponding request event to facilitate correlation. To avoid field name
+ * conflicts, request fields are prefixed with `_request.` within the response event. For example,
+ * the `query` field from the request event becomes `_request.query` in the response event.
  *
- * `Host`, `path`, and `query` attributes captured by the request log are shared with the response log, with
- * an option to override them by providing these attributes in the `HTTPResponse`. Refer to `HTTPResponse`
- * for more details.
+ * @param request The original [HttpRequestInfo] that initiated this response.
+ * @param response The [HttpResponse] object containing details like status code and errors.
+ * @param durationMs The total duration of the HTTP request-response cycle in milliseconds.
+ * @param metrics Optional [HttpRequestMetrics] providing detailed performance measurements.
+ * @param extraFields A map of custom key-value pairs to be included in the event log.
  */
 data class HttpResponseInfo
     @JvmOverloads
     constructor(
-        private val request: HttpRequestInfo,
-        private val response: HttpResponse,
-        private val durationMs: Long,
-        private var metrics: HttpRequestMetrics? = null,
-        private val extraFields: Map<String, String> = mapOf(),
+        val request: HttpRequestInfo,
+        val response: HttpResponse,
+        val durationMs: Long,
+        var metrics: HttpRequestMetrics? = null,
+        val extraFields: Map<String, String> = mapOf(),
     ) {
         internal val name: String = "HTTPResponse"
 

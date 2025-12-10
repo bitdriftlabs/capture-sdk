@@ -20,8 +20,8 @@ android {
     defaultConfig {
         minSdk = 23
         testInstrumentationRunner = "androidx.benchmark.junit4.AndroidBenchmarkRunner"
-        // must be one of: 'None', 'StackSampling', or 'MethodTracing'
-        testInstrumentationRunnerArguments["androidx.benchmark.profiling.mode"] = "MethodTracing"
+        // Using 'None' to get closer to real-world timings. Switch to 'MethodTracing' or 'StackSampling' for debugging allocations
+        testInstrumentationRunnerArguments["androidx.benchmark.profiling.mode"] = "None"
     }
 
     testOptions {
