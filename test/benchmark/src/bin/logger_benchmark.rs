@@ -69,8 +69,6 @@ fn simple_log(c: &mut Criterion) {
     network: Box::new(NoopNetwork {}),
     static_metadata: Arc::new(EmptyMetadata),
     start_in_sleep_mode: false,
-    feature_flags_file_size_bytes: 1024 * 1024,
-    feature_flags_high_watermark: 0.8,
   })
   .build()
   .unwrap()
@@ -116,8 +114,6 @@ fn with_matcher_and_buffer(c: &mut Criterion) {
     network: Box::new(NoopNetwork {}),
     static_metadata: Arc::new(EmptyMetadata),
     start_in_sleep_mode: false,
-    feature_flags_file_size_bytes: 1024 * 1024,
-    feature_flags_high_watermark: 0.8,
   })
   .build()
   .unwrap()
