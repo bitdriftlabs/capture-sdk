@@ -96,8 +96,8 @@ internal class AppExitLogger(
                 ) { APP_EXIT_EVENT_NAME }
             }
 
-            is LatestAppExitReasonResult.None -> {
-            }
+            // No app exit reason available (e.g., first install)
+            is LatestAppExitReasonResult.None -> Unit
         }
     }
 

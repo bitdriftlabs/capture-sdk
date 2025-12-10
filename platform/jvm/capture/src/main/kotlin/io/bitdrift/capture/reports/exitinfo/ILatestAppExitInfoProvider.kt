@@ -38,6 +38,7 @@ sealed class LatestAppExitReasonResult {
 
     /**
      * No [ApplicationExitInfo] was available.
+     * (e.g. this is expected on first app installation)
      */
     data object None : LatestAppExitReasonResult()
 

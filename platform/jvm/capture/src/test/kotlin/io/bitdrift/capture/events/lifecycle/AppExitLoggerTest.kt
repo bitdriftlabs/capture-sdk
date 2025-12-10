@@ -12,6 +12,7 @@ import android.app.ApplicationExitInfo
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.argThat
+import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
@@ -26,17 +27,20 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.fakes.FakeFatalIssueReporter
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
+import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.FatalIssueReporterState
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
+import org.mockito.Mockito.verifyNoMoreInteractions
 import java.io.IOException
 
 class AppExitLoggerTest {
@@ -125,7 +129,7 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        verify(errorHandler).handleError(any(), anyOrNull())
+        verifyNoMoreInteractions(errorHandler)
         verify(logger, never()).log(
             any(),
             any(),
@@ -138,28 +142,7 @@ class AppExitLoggerTest {
     }
 
     @Test
-    fun logPreviousExitReason_withoutMatchingProcessName_shouldNotReportError() {
-        // ARRANGE
-        lastExitInfo.setAsInvalidProcessName()
-
-        // ACT
-        appExitLogger.logPreviousExitReasonIfAny()
-
-        // ASSERT
-        verify(errorHandler).handleError(any(), anyOrNull())
-        verify(logger, never()).log(
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-        )
-    }
-
-    @Test
-    fun logPreviousExitReason_whenErrorResult_shouldNotReportEmptyReason() {
+    fun logPreviousExitReason_whenErrorResult_shouldReportError() {
         // ARRANGE
         lastExitInfo.setAsErrorResult()
 
@@ -167,7 +150,13 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        verify(errorHandler).handleError(any(), anyOrNull())
+        val messageCaptor = argumentCaptor<String>()
+        val throwableCaptor = argumentCaptor<Throwable>()
+        verify(errorHandler).handleError(messageCaptor.capture(), throwableCaptor.capture())
+        assert(messageCaptor.firstValue == EXIT_REASON_EXCEPTION_MESSAGE)
+        assert(throwableCaptor.firstValue is Exception)
+        assert(throwableCaptor.firstValue.message == FAKE_EXCEPTION.message)
+
         verify(logger, never()).log(
             any(),
             any(),
