@@ -15,6 +15,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureJniLibrary
+import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponse.HttpResult
@@ -102,6 +104,28 @@ class LogBenchmarkTest {
                     "keykeykey10" to "valvalval10",
                 ),
             ) { LOG_MESSAGE }
+        }
+    }
+
+    @Test
+    fun trackSpansWithoutFields() {
+        startLogger(createFieldProviders())
+
+        benchmarkRule.measureRepeated {
+            val span = Capture.Logger.startSpan("Span without metadata", LogLevel.INFO)
+            span?.end(SpanResult.SUCCESS)
+        }
+    }
+
+    @Test
+    fun trackSpansWithFields() {
+        startLogger(createFieldProviders())
+
+        val metadata = (1..500).associate { "key_$it" to "value_$it" }
+
+        benchmarkRule.measureRepeated {
+            val span = Capture.Logger.startSpan("Span with metadata", LogLevel.INFO, metadata)
+            span?.end(SpanResult.SUCCESS)
         }
     }
 
