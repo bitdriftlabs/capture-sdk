@@ -1,5 +1,5 @@
 {
-  "checksum": "ccac07d42bf1ddc28c1f2a3f518e4ff253c47393cdce14ff980328393ac182ef",
+  "checksum": "37f51719b10eca135efeeb0a5d16d5e36eb0ea680d5d2c44a2a4f49c08be38e5",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -1654,7 +1654,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-api"
         }
@@ -1811,7 +1811,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-artifact-upload"
         }
@@ -1944,7 +1944,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-bonjson"
         }
@@ -2008,7 +2008,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-bonjson-ffi"
         }
@@ -2114,7 +2114,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-bounded-buffer"
         }
@@ -2190,7 +2190,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-buffer"
         }
@@ -2331,7 +2331,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-client-common"
         }
@@ -2460,7 +2460,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-client-stats"
         }
@@ -2589,7 +2589,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-client-stats-store"
         }
@@ -2682,7 +2682,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-completion"
         }
@@ -2746,7 +2746,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-crash-handler"
         }
@@ -2915,7 +2915,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-device"
         }
@@ -2991,7 +2991,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-error-reporter"
         }
@@ -3071,7 +3071,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-events"
         }
@@ -3139,7 +3139,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-grpc"
         }
@@ -3366,7 +3366,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-grpc-codec"
         }
@@ -3445,7 +3445,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-hyper-network"
         }
@@ -3570,7 +3570,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-internal-logging"
         }
@@ -3630,7 +3630,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-key-value"
         }
@@ -3722,7 +3722,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-log"
         }
@@ -3806,7 +3806,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-log-filter"
         }
@@ -3894,7 +3894,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-log-matcher"
         }
@@ -3974,7 +3974,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-log-metadata"
         }
@@ -4034,7 +4034,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-log-primitives"
         }
@@ -4110,7 +4110,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-logger"
         }
@@ -4281,6 +4281,10 @@
               "target": "flatbuffers"
             },
             {
+              "id": "fs2 0.4.3",
+              "target": "fs2"
+            },
+            {
               "id": "futures-util 0.3.31",
               "target": "futures_util"
             },
@@ -4359,7 +4363,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-metadata"
         }
@@ -4407,7 +4411,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-network-quality"
         }
@@ -4455,7 +4459,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-noop-network"
         }
@@ -4524,7 +4528,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-panic"
         }
@@ -4584,7 +4588,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-pgv"
         }
@@ -4686,7 +4690,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-proto"
         }
@@ -4796,7 +4800,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-proto-util"
         }
@@ -4912,7 +4916,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-report-parsers"
         }
@@ -4984,7 +4988,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-report-writer"
         }
@@ -5082,7 +5086,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-resilient-kv"
         }
@@ -5202,7 +5206,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-resource-utilization"
         }
@@ -5286,7 +5290,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-runtime"
         }
@@ -5379,7 +5383,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-server-stats"
         }
@@ -5475,7 +5479,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-session"
         }
@@ -5567,7 +5571,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-session-replay"
         }
@@ -5671,7 +5675,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-shutdown"
         }
@@ -5727,7 +5731,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-state"
         }
@@ -5836,7 +5840,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-stats-common"
         }
@@ -5896,7 +5900,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-test-helpers"
         }
@@ -6101,7 +6105,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-time"
         }
@@ -6178,7 +6182,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "817ed3302d8a2d4078c826243ea3ba4b9db03354"
+            "Rev": "bf4da5f278b3745a3d43c6f9c428d52a47ae0c28"
           },
           "strip_prefix": "bd-workflows"
         }
