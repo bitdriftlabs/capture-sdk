@@ -65,6 +65,7 @@ class LogBenchmarkTest {
     @Test
     fun logNotMatchedNoFields() {
         startLogger()
+
         benchmarkRule.measureRepeated {
             Capture.Logger.logInfo { LOG_MESSAGE }
         }
@@ -73,37 +74,40 @@ class LogBenchmarkTest {
     @Test
     fun logNotMatched5Fields() {
         startLogger()
+        val fields = buildFieldsMap(5)
+
         benchmarkRule.measureRepeated {
-            Capture.Logger.logInfo(
-                mapOf(
-                    "keykeykey1" to "valvalval1",
-                    "keykeykey2" to "valvalval2",
-                    "keykeykey3" to "valvalval3",
-                    "keykeykey4" to "valvalval4",
-                    "keykeykey5" to "valvalval5",
-                ),
-            ) { LOG_MESSAGE }
+            Capture.Logger.logInfo(fields) { LOG_MESSAGE }
         }
     }
 
     @Test
     fun logNotMatched10Fields() {
         startLogger()
+        val fields = buildFieldsMap(10)
+
         benchmarkRule.measureRepeated {
-            Capture.Logger.logInfo(
-                mapOf(
-                    "keykeykey1" to "valvalval1",
-                    "keykeykey2" to "valvalval2",
-                    "keykeykey3" to "valvalval3",
-                    "keykeykey4" to "valvalval4",
-                    "keykeykey5" to "valvalval5",
-                    "keykeykey6" to "valvalval6",
-                    "keykeykey7" to "valvalval7",
-                    "keykeykey8" to "valvalval8",
-                    "keykeykey9" to "valvalval9",
-                    "keykeykey10" to "valvalval10",
-                ),
-            ) { LOG_MESSAGE }
+            Capture.Logger.logInfo(fields) { LOG_MESSAGE }
+        }
+    }
+
+    @Test
+    fun logNotMatched500Fields() {
+        startLogger()
+        val fields = buildFieldsMap(500)
+
+        benchmarkRule.measureRepeated {
+            Capture.Logger.logInfo(fields) { LOG_MESSAGE }
+        }
+    }
+
+    @Test
+    fun logNotMatched5000Fields() {
+        startLogger()
+        val fields = buildFieldsMap(5000)
+
+        benchmarkRule.measureRepeated {
+            Capture.Logger.logInfo(fields) { LOG_MESSAGE }
         }
     }
 
@@ -120,8 +124,7 @@ class LogBenchmarkTest {
     @Test
     fun trackSpansWithFields() {
         startLogger(createFieldProviders())
-
-        val metadata = (1..500).associate { "key_$it" to "value_$it" }
+        val metadata = buildFieldsMap(500)
 
         benchmarkRule.measureRepeated {
             val span = Capture.Logger.startSpan("Span with metadata", LogLevel.INFO, metadata)
@@ -133,8 +136,8 @@ class LogBenchmarkTest {
     fun logHttpNetworkLog50FieldsAndHeadersAndFieldProviders() {
         startLogger(createFieldProviders())
 
-        val extraFields = (1..50).associate { "keykeykey$it" to "valvalval$it" }
-        val headers = (1..50).associate { "header$it" to "value$it" }
+        val extraFields = buildFieldsMap(50)
+        val headers = buildFieldsMap(50, keyIdentifier = "header_")
 
         benchmarkRule.measureRepeated {
             val request = HttpRequestInfo(
@@ -167,4 +170,7 @@ class LogBenchmarkTest {
             Capture.Logger.log(responseInfo)
         }
     }
+
+    private fun buildFieldsMap(size: Int, keyIdentifier: String = "key_"): Map<String, String> =
+        (1..size).associate { "$keyIdentifier$it" to "value_$it" }
 }
