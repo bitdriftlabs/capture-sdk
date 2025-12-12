@@ -49,7 +49,9 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
         testServer = TestApiServer()
 
         // Enable crash reporting by creating the config file.
-        // In production, this config is delivered from the server via runtime configuration.
+        // In production, this config is delivered from the server via runtime configuration
+        // and written by ConfigWriter. In tests, we create it manually since the async
+        // ConfigWriter may not complete in time with the synchronous test executor.
         val reportsDir = java.io.File(ContextHolder.APP_CONTEXT.filesDir, "bitdrift_capture/reports/")
         reportsDir.mkdirs()
         val configFile = java.io.File(reportsDir, "config.csv")
@@ -108,8 +110,12 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
             stream.configureAggressiveUploads()
 
             // Write a blocking log to ensure config delivery gets persisted
-            logger.log(LogLevel.INFO, mapOf(), null) { "config_init" }
-            testServer.nextUploadedLog() // Wait for the log to be uploaded
+            logger.log(
+                LogType.NORMAL,
+                LogLevel.INFO,
+                blocking = true,
+            ) { "config_init" }
+            testServer.nextUploadedLog()
         }
 
         // Phase 2: Second app start - set feature flags and simulate crash
