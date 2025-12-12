@@ -7,7 +7,8 @@
 
 **Added**
 
-- Nothing yet!
+- Added support for workflow matching on feature flag state and transitions.
+- Fixed an issue where multiple Logger instances could come up and conflict. Subsequent loggers will now noop.
 
 **Changed**
 
