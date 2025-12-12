@@ -42,6 +42,7 @@ class CaptureOkHttpEventListenerFactory internal constructor(
      * @param requestFieldProvider Provider for request-based extra fields.
      * @param responseFieldProvider Provider for response-based extra fields.
      */
+    @JvmOverloads
     constructor(
         targetEventListenerFactory: EventListener.Factory? = null,
         requestFieldProvider: OkHttpRequestFieldProvider = DEFAULT_REQUEST_FIELD_PROVIDER,
