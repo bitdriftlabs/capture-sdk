@@ -19,6 +19,11 @@ class UploadedLog(
     val rfc3339Timestamp: String,
 )
 
+class UploadedArtifact(
+    val contents: ByteArray,
+    val featureFlags: Map<String, String?>,
+)
+
 object CaptureTestJniLibrary {
     // Starts the test API server which can be used to verify interactions between
     // the mux and a real gRPC server.
@@ -96,4 +101,7 @@ object CaptureTestJniLibrary {
         streamId: Int,
         feature: String,
     )
+
+    // Returns the next received artifact upload.
+    external fun nextUploadedArtifact(): UploadedArtifact
 }

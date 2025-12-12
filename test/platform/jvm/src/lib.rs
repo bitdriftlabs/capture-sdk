@@ -18,7 +18,8 @@ use capture_core::new_global;
 use capture_core::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
 use capture_core::session_replay::TargetHandler as SessionReplayTargetHandler;
 use jni::objects::{JClass, JMap, JObject, JString};
-use jni::sys::{jint, jlong};
+use jni::signature::ReturnType;
+use jni::sys::{jint, jlong, jobject};
 use jni::JNIEnv;
 use platform_shared::LoggerId;
 use platform_test_helpers::{
@@ -394,4 +395,82 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_disableRuntimeF
 
     assert!(ack.nack.is_none());
   });
+}
+
+#[no_mangle]
+pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedArtifact<'a>(
+  mut env: JNIEnv<'a>,
+  _class: JClass<'_>,
+) -> jobject {
+  let artifact_request = platform_test_helpers::with_expected_server(|h| {
+    h.blocking_next_artifact_upload()
+      .expect("expected artifact upload")
+  });
+
+  let contents = artifact_request.contents;
+  let feature_flags = artifact_request.feature_flags;
+
+  // Create the byte array for contents
+  let contents_array = env.byte_array_from_slice(&contents).unwrap();
+
+  // Create a HashMap for feature flags
+  let hash_map_class = env.find_class("java/util/HashMap").unwrap();
+  let hash_map = env.new_object(&hash_map_class, "()V", &[]).unwrap();
+
+  // Get the put method
+  let put_method = env
+    .get_method_id(
+      &hash_map_class,
+      "put",
+      "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+    )
+    .unwrap();
+
+  // Populate the HashMap with feature flags
+  for flag in feature_flags {
+    let key_str = env.new_string(&flag.name).unwrap();
+    let value_obj = if let Some(variant) = &flag.variant {
+      env.new_string(variant).unwrap().into()
+    } else {
+      JObject::null()
+    };
+
+    unsafe {
+      env
+        .call_method_unchecked(
+          &hash_map,
+          put_method,
+          ReturnType::Object,
+          &[
+            JValueWrapper::Object(key_str.into()).into(),
+            JValueWrapper::Object(value_obj).into(),
+          ],
+        )
+        .unwrap();
+    }
+  }
+
+  // Create the UploadedArtifact object
+  let artifact_class = env
+    .find_class("io/bitdrift/capture/UploadedArtifact")
+    .unwrap();
+
+  let constructor_id = env
+    .get_method_id(&artifact_class, "<init>", "([BLjava/util/Map;)V")
+    .unwrap();
+
+  let artifact = unsafe {
+    env
+      .new_object_unchecked(
+        artifact_class,
+        constructor_id,
+        &[
+          JValueWrapper::Object(contents_array.into()).into(),
+          JValueWrapper::Object(hash_map).into(),
+        ],
+      )
+      .unwrap()
+  };
+
+  artifact.into_raw()
 }
