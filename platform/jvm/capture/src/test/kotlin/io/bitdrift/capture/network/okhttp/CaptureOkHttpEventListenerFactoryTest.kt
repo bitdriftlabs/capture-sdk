@@ -672,16 +672,18 @@ class CaptureOkHttpEventListenerFactoryTest {
 
     @Test
     fun constructorSignatures_requiredForBytecodeInstrumentation_exist() {
-        val noArgConstructor = CaptureOkHttpEventListenerFactory::class.java.constructors.find {
-            it.parameterCount == 0
-        }
+        val noArgConstructor =
+            CaptureOkHttpEventListenerFactory::class.java.constructors.find {
+                it.parameterCount == 0
+            }
         assertThat(noArgConstructor)
             .describedAs("No-arg constructor must exist for bytecode instrumentation")
             .isNotNull()
 
-        val singleFactoryArgConstructor = CaptureOkHttpEventListenerFactory::class.java.constructors.find {
-            it.parameterCount == 1 && it.parameterTypes[0] == EventListener.Factory::class.java
-        }
+        val singleFactoryArgConstructor =
+            CaptureOkHttpEventListenerFactory::class.java.constructors.find {
+                it.parameterCount == 1 && it.parameterTypes[0] == EventListener.Factory::class.java
+            }
         assertThat(singleFactoryArgConstructor)
             .describedAs("Single EventListener.Factory arg constructor must exist")
             .isNotNull()
