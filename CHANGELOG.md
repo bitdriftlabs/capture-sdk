@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.21.0...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.21.1...HEAD
 
 ### Both
 
@@ -29,8 +29,7 @@
 
 **Fixed**
 
-- Made `HttpRequestInfo` and `HttpResponseInfo` properties public so they can be used with the `Logger.log()` methods directly.
-- Fix NPE crash when using automatic OkHttp instrumentation via capture-plugin 
+- Nothing yet!
 
 ### iOS
 
@@ -45,6 +44,16 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.21.1]
+[0.21.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.1
+
+### Android
+
+**Fixed**
+
+- Made `HttpRequestInfo` and `HttpResponseInfo` properties public so they can be used with the `Logger.log()` methods directly.
+- Fix NPE crash when using automatic OkHttp instrumentation via capture-plugin 
 
 ## [0.21.0]
 [0.21.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.0
