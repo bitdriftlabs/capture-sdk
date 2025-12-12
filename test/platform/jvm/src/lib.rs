@@ -18,7 +18,6 @@ use capture_core::new_global;
 use capture_core::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
 use capture_core::session_replay::TargetHandler as SessionReplayTargetHandler;
 use jni::objects::{JClass, JMap, JObject, JString};
-use jni::signature::ReturnType;
 use jni::sys::{jint, jlong, jobject};
 use jni::JNIEnv;
 use platform_shared::LoggerId;
@@ -398,8 +397,8 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_disableRuntimeF
 }
 
 #[no_mangle]
-pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedArtifact<'a>(
-  mut env: JNIEnv<'a>,
+pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedArtifact(
+  mut env: JNIEnv<'_>,
   _class: JClass<'_>,
 ) -> jobject {
   let artifact_request = platform_test_helpers::with_expected_server(|h| {
@@ -420,6 +419,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedArt
   // Populate the HashMap with feature flags
   for flag in feature_flags {
     let key_str = env.new_string(&flag.name).unwrap();
+    #[allow(clippy::option_if_let_else)]
     let value_obj = if let Some(variant) = &flag.variant {
       env.new_string(variant).unwrap().into()
     } else {
