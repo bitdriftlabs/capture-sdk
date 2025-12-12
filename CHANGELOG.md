@@ -11,7 +11,8 @@
 
 **Changed**
 
-- Nothing yet!
+- **BREAKING**: The `variant` parameter in `setFeatureFlagExposure` (Android) / `addFeatureFlagExposure` (iOS) is now required instead of optional.
+- Added method overloads to accept `Boolean` / `Bool` values for the `variant` parameter in `setFeatureFlagExposure` (Android) / `addFeatureFlagExposure` (iOS), in addition to the existing `String` parameter.
 
 **Fixed**
 

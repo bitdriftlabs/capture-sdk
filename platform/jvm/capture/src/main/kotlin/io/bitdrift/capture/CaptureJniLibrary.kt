@@ -139,15 +139,27 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     )
 
     /**
-     * Sets a feature flag exposure with an optional variant.
+     * Sets a feature flag exposure with a variant.
      *
      * @param name the name of the flag exposure to set
-     * @param variant an optional variant of the flag exposure
+     * @param variant the variant of the flag exposure as a string
      */
     external fun setFeatureFlagExposure(
         loggerId: Long,
         name: String,
-        variant: String?,
+        variant: String,
+    )
+
+    /**
+     * Sets a feature flag exposure with a boolean variant.
+     *
+     * @param name the name of the flag exposure to set
+     * @param variant the boolean variant of the flag exposure
+     */
+    external fun setFeatureFlagExposureBool(
+        loggerId: Long,
+        name: String,
+        variant: Boolean,
     )
 
     /**

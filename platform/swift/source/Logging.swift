@@ -87,13 +87,21 @@ public protocol Logging {
     /// - parameter key: The name of the field to remove.
     func removeField(withKey key: String)
 
-    /// Records a feature flag exposure with an optional variant. Use this method to track when
+    /// Records a feature flag exposure with a variant. Use this method to track when
     /// a user is exposed to a specific feature flag variant in your application. The exposure
     /// is recorded with a timestamp and tracked for the duration of the process.
     ///
     /// - parameter name:    The name of the flag being exposed
-    /// - parameter variant: An optional variant of the flag being exposed
-    func setFeatureFlagExposure(withName name: String, variant: String?)
+    /// - parameter variant: The variant of the flag being exposed
+    func setFeatureFlagExposure(withName name: String, variant: String)
+    
+    /// Records a feature flag exposure with a boolean variant. Use this method to track when
+    /// a user is exposed to a specific feature flag variant in your application. The exposure
+    /// is recorded with a timestamp and tracked for the duration of the process.
+    ///
+    /// - parameter name:    The name of the flag being exposed
+    /// - parameter variant: The boolean variant of the flag being exposed
+    func setFeatureFlagExposure(withName name: String, variant: Bool)
 
     /// Creates a temporary device code that can be fed into bitdrift `bd` CLI tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with

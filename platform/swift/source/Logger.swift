@@ -537,8 +537,12 @@ extension Logger: Logging {
         self.underlyingLogger.removeField(withKey: key)
     }
 
-    public func setFeatureFlagExposure(withName flag: String, variant: String?) {
+    public func setFeatureFlagExposure(withName flag: String, variant: String) {
         self.underlyingLogger.setFeatureFlagExposure(withName: flag, variant: variant)
+    }
+    
+    public func setFeatureFlagExposure(withName flag: String, variant: Bool) {
+        self.underlyingLogger.setFeatureFlagExposure(withName: flag, variant: String(variant))
     }
 
     public func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void) {
