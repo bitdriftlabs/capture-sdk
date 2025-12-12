@@ -540,7 +540,7 @@ extension Logger: Logging {
     public func setFeatureFlagExposure(withName flag: String, variant: String) {
         self.underlyingLogger.setFeatureFlagExposure(withName: flag, variant: variant)
     }
-    
+
     public func setFeatureFlagExposure(withName flag: String, variant: Bool) {
         // TODO(snowp): We should make the internal state store expose a way to set the bool directly
         self.underlyingLogger.setFeatureFlagExposure(withName: flag, variant: String(variant))

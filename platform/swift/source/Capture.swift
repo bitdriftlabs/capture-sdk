@@ -416,7 +416,7 @@ extension Logger {
     public static func setFeatureFlagExposure(withName flag: String, variant: String) {
         Self.getShared()?.setFeatureFlagExposure(withName: flag, variant: variant)
     }
-    
+
     /// Records a feature flag exposure with a boolean variant. Use this method to track when
     /// a user is exposed to a specific feature flag variant in your application. The exposure
     /// is recorded with a timestamp and tracked for the duration of the process.
