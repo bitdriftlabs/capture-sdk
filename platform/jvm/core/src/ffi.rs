@@ -209,6 +209,53 @@ pub(crate) fn jarray_to_fields(
   Ok(fields)
 }
 
+/// Converts parallel Java String arrays (keys and values) into `AnnotatedLogFields`.
+/// This is more efficient than using Field objects because it avoids:
+/// 1. Creating Field wrapper objects on the Kotlin side
+/// 2. Multiple JNI method calls per field (getKey, getValueType, getValue)
+///
+/// The keys and values arrays must have the same length - keys[i] corresponds to values[i].
+pub fn string_arrays_to_annotated_fields(
+  env: &mut JNIEnv<'_>,
+  keys: &JObject<'_>,
+  values: &JObject<'_>,
+  kind: LogFieldKind,
+) -> anyhow::Result<AnnotatedLogFields> {
+  use jni::objects::JObjectArray;
+
+  // SAFETY: We know these JObjects are actually String arrays passed from Kotlin
+  let keys_array = unsafe { JObjectArray::from_raw(keys.as_raw()) };
+  let values_array = unsafe { JObjectArray::from_raw(values.as_raw()) };
+
+  let len = env.get_array_length(&keys_array)?;
+  let mut fields = AnnotatedLogFields::with_capacity(len as usize);
+
+  for i in 0 .. len {
+    env.with_local_frame(4, |env| -> anyhow::Result<()> {
+      let key_obj = env.get_object_array_element(&keys_array, i)?;
+      let value_obj = env.get_object_array_element(&values_array, i)?;
+
+      let key = unsafe { env.get_string_unchecked(&key_obj.into()) }?
+        .to_string_lossy()
+        .to_string();
+      let value = unsafe { env.get_string_unchecked(&value_obj.into()) }?
+        .to_string_lossy()
+        .to_string();
+
+      fields.insert(
+        key.into(),
+        AnnotatedLogField {
+          value: LogFieldValue::String(value),
+          kind,
+        },
+      );
+      Ok(())
+    })?;
+  }
+
+  Ok(fields)
+}
+
 // Converts passed rust hash map into Java HashMap.
 pub(crate) fn map_to_jmap<'a, S: std::hash::BuildHasher>(
   env: &mut JNIEnv<'a>,

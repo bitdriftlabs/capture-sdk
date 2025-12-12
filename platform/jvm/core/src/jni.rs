@@ -964,6 +964,96 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
     "jni write log",
   );
 }
+
+/// Optimized version of writeLog that accepts parallel String arrays instead of Field objects.
+/// This avoids allocating Field and FieldValue wrapper objects on the Kotlin side.
+#[no_mangle]
+#[allow(clippy::cast_sign_loss)]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLogStringFields(
+  mut env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  log_type: jint,
+  log_level: jint,
+  log: JString<'_>,
+  field_keys: JObject<'_>,
+  field_values: JObject<'_>,
+  matching_field_keys: JObject<'_>,
+  matching_field_values: JObject<'_>,
+  use_previous_process_session_id: jboolean,
+  override_occurred_at_unix_milliseconds: jlong,
+  blocking: jboolean,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let fields = ffi::string_arrays_to_annotated_fields(
+        &mut env,
+        &field_keys,
+        &field_values,
+        LogFieldKind::Ootb,
+      )?;
+      let matching_fields = ffi::string_arrays_to_annotated_fields(
+        &mut env,
+        &matching_field_keys,
+        &matching_field_values,
+        LogFieldKind::Ootb,
+      )?;
+
+      let attributes_overrides = if use_previous_process_session_id != JNI_TRUE
+        && override_occurred_at_unix_milliseconds <= 0
+      {
+        None
+      } else if use_previous_process_session_id != JNI_TRUE
+        && override_occurred_at_unix_milliseconds > 0
+      {
+        Some(LogAttributesOverrides::OccurredAt(
+          unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
+        ))
+      } else {
+        Some(LogAttributesOverrides::PreviousRunSessionID(
+          unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
+        ))
+      };
+
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let global_state_fields = logger
+        .previous_run_global_state
+        .iter()
+        .map(|(key, value)| {
+          (
+            key.clone(),
+            bd_logger::AnnotatedLogField::new_ootb(value.clone()),
+          )
+        })
+        .collect();
+      let fields = [global_state_fields, fields]
+        .into_iter()
+        .flatten()
+        .collect();
+      logger.log(
+        log_level as u32,
+        LogType::from_i32(log_type).unwrap_or(LogType::NORMAL),
+        unsafe { env.get_string_unchecked(&log) }?
+          .to_string_lossy()
+          .to_string()
+          .into(),
+        fields,
+        matching_fields,
+        attributes_overrides,
+        if blocking == JNI_TRUE {
+          Block::Yes(std::time::Duration::from_secs(1))
+        } else {
+          Block::No
+        },
+        &CaptureSession::default(),
+      );
+
+      Ok(())
+    },
+    "jni write log string fields",
+  );
+}
+
 #[no_mangle]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_shutdown(
   _env: JNIEnv<'_>,

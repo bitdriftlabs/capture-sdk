@@ -63,6 +63,29 @@ typealias LoggerId = Long
 internal typealias InternalFields = Array<Field>
 internal val EMPTY_INTERNAL_FIELDS: InternalFields = emptyArray()
 
+/**
+ * Holds parallel arrays of field keys and values.
+ * This is an optimization to avoid creating Field wrapper objects when passing to JNI.
+ * keys[i] corresponds to values[i].
+ */
+internal data class StringFieldArrays(
+    val keys: Array<String>,
+    val values: Array<String>,
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as StringFieldArrays
+        return keys.contentEquals(other.keys) && values.contentEquals(other.values)
+    }
+
+    override fun hashCode(): Int = 31 * keys.contentHashCode() + values.contentHashCode()
+
+    companion object {
+        val EMPTY = StringFieldArrays(emptyArray(), emptyArray())
+    }
+}
+
 internal class LoggerImpl(
     apiKey: String,
     apiUrl: HttpUrl,
@@ -371,11 +394,11 @@ internal class LoggerImpl(
         throwable: Throwable?,
         message: () -> String,
     ) {
-        log(
+        logStringFields(
             LogType.NORMAL,
             level,
-            extractFields(fields, throwable), // Single conversion: Map -> Array<Field>
-            EMPTY_INTERNAL_FIELDS,
+            extractFieldsAsArrays(fields, throwable),
+            StringFieldArrays.EMPTY,
             null,
             false,
             message,
@@ -447,6 +470,56 @@ internal class LoggerImpl(
                 message(),
                 fields,
                 matchingFields,
+                previousRunSessionId,
+                occurredAtTimestampMs,
+                blocking,
+            )
+        } catch (e: Throwable) {
+            errorHandler.handleError("write log", e)
+        }
+    }
+
+    /**
+     * Optimized log function that uses parallel string arrays instead of Field objects.
+     * This avoids allocating Field and FieldValue wrapper objects.
+     */
+    @JvmName("logStringFields")
+    @Suppress("TooGenericExceptionCaught")
+    internal fun logStringFields(
+        type: LogType,
+        level: LogLevel,
+        fields: StringFieldArrays = StringFieldArrays.EMPTY,
+        matchingFields: StringFieldArrays = StringFieldArrays.EMPTY,
+        attributesOverrides: LogAttributesOverrides? = null,
+        blocking: Boolean = false,
+        message: () -> String,
+    ) {
+        if (type == LogType.INTERNALSDK && !runtime.isEnabled(RuntimeFeature.INTERNAL_LOGS)) {
+            return
+        }
+        try {
+            val previousRunSessionId =
+                when (attributesOverrides) {
+                    is LogAttributesOverrides.PreviousRunSessionId -> true
+                    is LogAttributesOverrides.OccurredAt -> false
+                    else -> false
+                }
+            val occurredAtTimestampMs: Long =
+                when (attributesOverrides) {
+                    is LogAttributesOverrides.PreviousRunSessionId -> attributesOverrides.occurredAtTimestampMs
+                    is LogAttributesOverrides.OccurredAt -> attributesOverrides.occurredAtTimestampMs
+                    else -> 0
+                }
+
+            CaptureJniLibrary.writeLogFields(
+                this.loggerId,
+                type.value,
+                level.value,
+                message(),
+                fields.keys,
+                fields.values,
+                matchingFields.keys,
+                matchingFields.values,
                 previousRunSessionId,
                 occurredAtTimestampMs,
                 blocking,
@@ -544,6 +617,48 @@ internal class LoggerImpl(
         }
 
         return result.toTypedArray()
+    }
+
+    /**
+     * Extracts fields from a Map and optional Throwable into parallel String arrays.
+     * This avoids creating Field and FieldValue wrapper objects.
+     */
+    private fun extractFieldsAsArrays(
+        fields: Map<String, String>?,
+        throwable: Throwable?,
+    ): StringFieldArrays {
+        val hasThrowable = throwable != null
+        val fieldsSize = fields?.size ?: 0
+
+        if (fieldsSize == 0 && !hasThrowable) {
+            return StringFieldArrays.EMPTY
+        }
+
+        val throwableFieldCount = if (hasThrowable) 2 else 0
+        val totalSize = fieldsSize + throwableFieldCount
+
+        val keys = ArrayList<String>(totalSize)
+        val values = ArrayList<String>(totalSize)
+
+        fields?.forEach { (key, value) ->
+            @Suppress("SENSELESS_COMPARISON")
+            if (key != null && value != null) {
+                keys.add(key)
+                values.add(value)
+            }
+        }
+
+        throwable?.let {
+            keys.add("_error")
+            values.add(it.javaClass.name.orEmpty())
+            keys.add("_error_details")
+            values.add(it.message.orEmpty())
+        }
+
+        return StringFieldArrays(
+            keys.toTypedArray(),
+            values.toTypedArray(),
+        )
     }
 
     internal fun flush(blocking: Boolean) {
