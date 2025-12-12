@@ -883,10 +883,15 @@ extern "C" fn capture_set_feature_flag_exposure(
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
       let flag = unsafe { CStr::from_ptr(flag) }.to_str()?;
-      let variant = unsafe { CStr::from_ptr(variant) }
-        .to_str()?
-        .to_string();
-      logger_id.set_feature_flag_exposure(flag.to_string(), Some(variant));
+      let variant = if variant.is_null() {
+        None
+      } else {
+        unsafe { CStr::from_ptr(variant) }
+          .to_str()
+          .ok()
+          .map(std::string::ToString::to_string)
+      };
+      logger_id.set_feature_flag_exposure(flag.to_string(), variant);
 
       Ok(())
     },
