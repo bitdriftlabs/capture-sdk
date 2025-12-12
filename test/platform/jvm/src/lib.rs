@@ -414,8 +414,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedArt
   let contents_array = env.byte_array_from_slice(&contents).unwrap();
 
   // Create a HashMap for feature flags
-  let hash_map_class = env.find_class("java/util/HashMap").unwrap();
-  let hash_map = env.new_object(&hash_map_class, "()V", &[]).unwrap();
+  let hash_map = env.new_object("java/util/HashMap", "()V", &[]).unwrap();
 
   // Populate the HashMap with feature flags
   for flag in feature_flags {
@@ -431,10 +430,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedArt
         &hash_map,
         "put",
         "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
-        &[
-          JValueWrapper::Object(key_str.into()).into(),
-          JValueWrapper::Object(value_obj).into(),
-        ],
+        &[(&key_str).into(), (&value_obj).into()],
       )
       .unwrap();
   }
@@ -444,10 +440,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedArt
     .new_object(
       "io/bitdrift/capture/UploadedArtifact",
       "([BLjava/util/Map;)V",
-      &[
-        JValueWrapper::Object(contents_array.into()).into(),
-        JValueWrapper::Object(hash_map).into(),
-      ],
+      &[(&contents_array).into(), (&hash_map).into()],
     )
     .unwrap();
 

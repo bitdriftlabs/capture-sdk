@@ -37,7 +37,6 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
             Date(TEST_DATE_TIMESTAMP)
         }
 
-    private lateinit var logger: LoggerImpl
     private lateinit var testServer: TestApiServer
 
     @Before
@@ -49,7 +48,8 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
         CaptureJniLibrary.load()
         testServer = TestApiServer()
 
-        // Enable crash reporting by creating the config file
+        // Enable crash reporting by creating the config file.
+        // In production, this config is delivered from the server via runtime configuration.
         val reportsDir = java.io.File(ContextHolder.APP_CONTEXT.filesDir, "bitdrift_capture/reports/")
         reportsDir.mkdirs()
         val configFile = java.io.File(reportsDir, "config.csv")
@@ -59,6 +59,34 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
     @After
     fun teardown() {
         testServer.stop()
+    }
+
+    /**
+     * Helper function to run a logger instance with automatic cleanup.
+     * The logger is automatically shut down after the block executes.
+     */
+    private fun <T> withLogger(
+        sessionId: String,
+        preferences: MockPreferences,
+        block: (LoggerImpl) -> T,
+    ): T {
+        val logger =
+            LoggerImpl(
+                apiKey = "test",
+                apiUrl = testServer.url,
+                fieldProviders = listOf(),
+                dateProvider = systemDateProvider,
+                sessionStrategy = SessionStrategy.Fixed { sessionId },
+                configuration = Configuration(),
+                context = ContextHolder.APP_CONTEXT,
+                preferences = preferences,
+                fatalIssueReporter = FatalIssueReporter(dateProvider = FakeDateProvider),
+            )
+        return try {
+            block(logger)
+        } finally {
+            CaptureJniLibrary.shutdown(logger.loggerId)
+        }
     }
 
     /**
@@ -75,96 +103,54 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
         val preferences = MockPreferences()
 
         // Phase 1: Start the logger and process configuration
-        logger =
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServer.url,
-                fieldProviders = listOf(),
-                dateProvider = systemDateProvider,
-                sessionStrategy = SessionStrategy.Fixed { "session1" },
-                configuration = Configuration(),
-                context = ContextHolder.APP_CONTEXT,
-                preferences = preferences,
-                fatalIssueReporter = FatalIssueReporter(dateProvider = FakeDateProvider),
-            )
+        withLogger("session1", preferences) { logger ->
+            val stream = testServer.awaitNextStream()
+            stream.configureAggressiveUploads()
 
-        // Wait for the first API stream and configure aggressive uploads
-        val firstStream = testServer.awaitNextStream()
-        firstStream.configureAggressiveUploads()
-
-        // Write a blocking log to ensure config delivery gets persisted
-        logger.log(LogLevel.INFO, mapOf(), null) { "config_init" }
-        testServer.nextUploadedLog() // Wait for the log to be uploaded
-
-        // Shutdown the logger to simulate app termination
-        CaptureJniLibrary.shutdown(logger.loggerId)
+            // Write a blocking log to ensure config delivery gets persisted
+            logger.log(LogLevel.INFO, mapOf(), null) { "config_init" }
+            testServer.nextUploadedLog() // Wait for the log to be uploaded
+        }
 
         // Phase 2: Second app start - set feature flags and simulate crash
-        val fatalIssueReporter = FatalIssueReporter(dateProvider = FakeDateProvider)
-        logger =
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServer.url,
-                fieldProviders = listOf(),
-                dateProvider = systemDateProvider,
-                sessionStrategy = SessionStrategy.Fixed { "session2" },
-                configuration = Configuration(),
-                context = ContextHolder.APP_CONTEXT,
-                preferences = preferences,
-                fatalIssueReporter = fatalIssueReporter,
-            )
+        withLogger("session2", preferences) { logger ->
+            val stream = testServer.awaitNextStream()
+            stream.configureAggressiveUploads()
 
-        // Wait for the second stream and configure it
-        val secondStream = testServer.awaitNextStream()
-        secondStream.configureAggressiveUploads()
+            // Set feature flags before the crash
+            logger.setFeatureFlagExposure("dark_mode", "enabled")
+            logger.setFeatureFlagExposure("new_ui", "variant_b")
+            logger.setFeatureFlagExposure("experimental_feature", null)
 
-        // Set feature flags before the crash
-        logger.setFeatureFlagExposure("dark_mode", "enabled")
-        logger.setFeatureFlagExposure("new_ui", "variant_b")
-        logger.setFeatureFlagExposure("experimental_feature", null)
+            // Simulate a crash by calling persistJvmCrash on the issue processor
+            val processor = logger.getIssueProcessor()
+            assertThat(processor).isNotNull
 
-        // Simulate a crash by calling persistJvmCrash on the issue processor
-        val processor = logger.getIssueProcessor()
-        assertThat(processor).isNotNull
-
-        val crashingThread = Thread.currentThread()
-        val exception = RuntimeException("Test crash for feature flags verification")
-        processor!!.persistJvmCrash(crashingThread, exception, null)
-
-        // Shutdown the logger to ensure the crash report is persisted
-        CaptureJniLibrary.shutdown(logger.loggerId)
+            val crashingThread = Thread.currentThread()
+            val exception = RuntimeException("Test crash for feature flags verification")
+            processor!!.persistJvmCrash(crashingThread, exception, null)
+        }
 
         // Phase 3: Third app start - verify crash report contains feature flags
-        logger =
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServer.url,
-                fieldProviders = listOf(),
-                dateProvider = systemDateProvider,
-                sessionStrategy = SessionStrategy.Fixed { "session3" },
-                configuration = Configuration(),
-                context = ContextHolder.APP_CONTEXT,
-                preferences = preferences,
-                fatalIssueReporter = FatalIssueReporter(dateProvider = FakeDateProvider),
-            )
+        withLogger("session3", preferences) { _ ->
+            val stream = testServer.awaitNextStream()
+            stream.configureAggressiveUploads()
 
-        val thirdStream = testServer.awaitNextStream()
-        thirdStream.configureAggressiveUploads()
+            // The crash report should be uploaded as an artifact
+            val (report, featureFlags) = testServer.nextUploadedReport()
 
-        // The crash report should be uploaded as an artifact
-        val (report, featureFlags) = testServer.nextUploadedReport()
+            // Verify the feature flags from the upload request
+            assertThat(featureFlags).hasSize(3)
+            assertThat(featureFlags).containsEntry("dark_mode", "enabled")
+            assertThat(featureFlags).containsEntry("new_ui", "variant_b")
+            assertThat(featureFlags).containsEntry("experimental_feature", null)
 
-        // Verify the feature flags from the upload request
-        assertThat(featureFlags).hasSize(3)
-        assertThat(featureFlags).containsEntry("dark_mode", "enabled")
-        assertThat(featureFlags).containsEntry("new_ui", "variant_b")
-        assertThat(featureFlags).containsEntry("experimental_feature", null)
-
-        // Verify the crash report contains the error information
-        assertThat(report.errorsLength).isGreaterThan(0)
-        val error = report.errors(0)
-        assertThat(error).isNotNull
-        assertThat(error!!.reason).contains("Test crash for feature flags verification")
-        assertThat(error.name).isEqualTo("java.lang.RuntimeException")
+            // Verify the crash report contains the error information
+            assertThat(report.errorsLength).isGreaterThan(0)
+            val error = report.errors(0)
+            assertThat(error).isNotNull
+            assertThat(error!!.reason).contains("Test crash for feature flags verification")
+            assertThat(error.name).isEqualTo("java.lang.RuntimeException")
+        }
     }
 }
