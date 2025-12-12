@@ -76,6 +76,8 @@ sealed class NavigationAction : AppAction {
     object NavigateToDialogAndModals : NavigationAction()
 
     object NavigateToStressTest : NavigationAction()
+
+    object InvokeService : NavigationAction()
 }
 
 sealed class StressTestAction : AppAction {

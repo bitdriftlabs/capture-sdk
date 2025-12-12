@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
@@ -32,6 +33,7 @@ import io.bitdrift.gradletestapp.data.repository.NetworkTestingRepository
 import io.bitdrift.gradletestapp.data.repository.SdkRepository
 import io.bitdrift.gradletestapp.data.repository.StressTestRepository
 import io.bitdrift.gradletestapp.ui.compose.MainScreen
+import io.bitdrift.gradletestapp.ui.service.SendTelemetryService
 import io.bitdrift.gradletestapp.ui.viewmodel.MainViewModel
 import io.bitdrift.gradletestapp.ui.viewmodel.MainViewModelFactory
 
@@ -109,6 +111,13 @@ class FirstFragment : Fragment() {
                                 is NavigationAction.NavigateToStressTest -> {
                                     Logger.logScreenView("stress_test_fragment")
                                     findNavController().navigate(R.id.action_FirstFragment_to_StressTestFragment)
+                                }
+
+                                is NavigationAction.InvokeService -> {
+                                    ContextCompat.startForegroundService(
+                                        requireContext(),
+                                        SendTelemetryService.createReportIntent(requireContext()),
+                                    )
                                 }
 
                                 else -> viewModel.handleAction(action)
