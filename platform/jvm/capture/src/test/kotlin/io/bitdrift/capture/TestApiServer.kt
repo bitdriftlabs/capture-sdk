@@ -149,12 +149,25 @@ class TestApiServer {
     fun nextUploadedArtifact(): UploadedArtifact = CaptureTestJniLibrary.nextUploadedArtifact()
 
     /**
-     * Returns the next uploaded artifact decoded as a Report, blocking until one is available.
-     * Also returns the feature flags from the upload request.
+     * Data class representing an uploaded crash report with its metadata.
      */
-    fun nextUploadedReport(): Pair<Report, Map<String, String?>> {
+    data class UploadedReport(
+        val report: Report,
+        val featureFlags: Map<String, String?>,
+        val sessionId: String,
+    )
+
+    /**
+     * Returns the next uploaded artifact decoded as a Report, blocking until one is available.
+     * Also returns the feature flags and session ID from the upload request.
+     */
+    fun nextUploadedReport(): UploadedReport {
         val artifact = nextUploadedArtifact()
         val buffer = ByteBuffer.wrap(artifact.contents)
-        return Pair(Report.getRootAsReport(buffer), artifact.featureFlags)
+        return UploadedReport(
+            report = Report.getRootAsReport(buffer),
+            featureFlags = artifact.featureFlags,
+            sessionId = artifact.sessionId,
+        )
     }
 }

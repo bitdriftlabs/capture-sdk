@@ -409,6 +409,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedArt
 
   let contents = artifact_request.contents;
   let feature_flags = artifact_request.feature_flags;
+  let session_id = artifact_request.session_id;
 
   // Create the byte array for contents
   let contents_array = env.byte_array_from_slice(&contents).unwrap();
@@ -435,12 +436,19 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedArt
       .unwrap();
   }
 
+  // Create the session ID string
+  let session_id_str = env.new_string(session_id).unwrap();
+
   // Create the UploadedArtifact object
   let artifact = env
     .new_object(
       "io/bitdrift/capture/UploadedArtifact",
-      "([BLjava/util/Map;)V",
-      &[(&contents_array).into(), (&hash_map).into()],
+      "([BLjava/util/Map;Ljava/lang/String;)V",
+      &[
+        (&contents_array).into(),
+        (&hash_map).into(),
+        (&session_id_str).into(),
+      ],
     )
     .unwrap();
 

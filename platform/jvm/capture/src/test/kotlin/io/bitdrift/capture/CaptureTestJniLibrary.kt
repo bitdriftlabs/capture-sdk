@@ -22,6 +22,7 @@ class UploadedLog(
 class UploadedArtifact(
     val contents: ByteArray,
     val featureFlags: Map<String, String?>,
+    val sessionId: String,
 )
 
 object CaptureTestJniLibrary {

@@ -143,17 +143,20 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
             stream.configureAggressiveUploads()
 
             // The crash report should be uploaded as an artifact
-            val (report, featureFlags) = testServer.nextUploadedReport()
+            val uploadedReport = testServer.nextUploadedReport()
+
+            // Verify the session ID matches the session where the crash occurred
+            assertThat(uploadedReport.sessionId).isEqualTo("session2")
 
             // Verify the feature flags from the upload request
-            assertThat(featureFlags).hasSize(3)
-            assertThat(featureFlags).containsEntry("dark_mode", "enabled")
-            assertThat(featureFlags).containsEntry("new_ui", "variant_b")
-            assertThat(featureFlags).containsEntry("experimental_feature", null)
+            assertThat(uploadedReport.featureFlags).hasSize(3)
+            assertThat(uploadedReport.featureFlags).containsEntry("dark_mode", "enabled")
+            assertThat(uploadedReport.featureFlags).containsEntry("new_ui", "variant_b")
+            assertThat(uploadedReport.featureFlags).containsEntry("experimental_feature", null)
 
             // Verify the crash report contains the error information
-            assertThat(report.errorsLength).isGreaterThan(0)
-            val error = report.errors(0)
+            assertThat(uploadedReport.report.errorsLength).isGreaterThan(0)
+            val error = uploadedReport.report.errors(0)
             assertThat(error).isNotNull
             assertThat(error!!.reason).contains("Test crash for feature flags verification")
             assertThat(error.name).isEqualTo("java.lang.RuntimeException")
