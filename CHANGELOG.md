@@ -48,48 +48,12 @@
 ## [0.21.1]
 [0.21.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.1
 
-### Both
-
-**Added**
-
-- Nothing yet!
-
-**Changed**
-
-- Nothing yet!
-
-**Fixed**
-
-- Nothing yet!
- 
 ### Android
-
-**Added**
-
-- Nothing yet!
-
-**Changed**
-
-- Nothing yet!
 
 **Fixed**
 
 - Made `HttpRequestInfo` and `HttpResponseInfo` properties public so they can be used with the `Logger.log()` methods directly.
 - Fix NPE crash when using automatic OkHttp instrumentation via capture-plugin 
-
-### iOS
-
-**Added**
-
-- Nothing yet!
-
-**Changed**
-
-- Nothing yet!
-
-**Fixed**
-
-- Nothing yet!
 
 ## [0.21.0]
 [0.21.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.0
