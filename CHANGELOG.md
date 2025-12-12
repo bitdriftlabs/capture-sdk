@@ -46,7 +46,7 @@
 - Nothing yet!
 
 ## [0.21.1]
-[0.21.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.1
+[0.21.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.1
 
 ### Android
 
