@@ -103,7 +103,7 @@ cargoNdk {
                     "-Z",
                     "build-std=std,panic_abort",
                     "-Z",
-                    "build-std-features=optimize_for_size,panic_immediate_abort",
+                    "build-std-features=optimize_for_size",
                 )
             // Annoyingly we have to repeat all the flags for the release build as
             // the RUSTFLAGS values are not added together.
@@ -112,7 +112,7 @@ cargoNdk {
             extraCargoEnv =
                 mapOf(
                     "RUSTFLAGS" to
-                        "-C link-args=-Wl,-z,max-page-size=16384,--build-id -C codegen-units=1 -C embed-bitcode -C lto=fat -C opt-level=z",
+                        "-Zunstable-options -Cpanic=immediate-abort -C link-args=-Wl,-z,max-page-size=16384,--build-id -C codegen-units=1 -C embed-bitcode -C lto=fat -C opt-level=z",
                     "RUSTC_BOOTSTRAP" to "1", // Required for using unstable features in the Rust compiler
                 )
         }
