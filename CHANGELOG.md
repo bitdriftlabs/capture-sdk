@@ -30,6 +30,7 @@
 **Fixed**
 
 - Made `HttpRequestInfo` and `HttpResponseInfo` properties public so they can be used with the `Logger.log()` methods directly.
+- Fix NPE crash when using automatic OkHttp instrumentation via capture-plugin 
 
 ### iOS
 
