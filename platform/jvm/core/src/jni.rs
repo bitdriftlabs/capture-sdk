@@ -866,18 +866,12 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlag
       let key = unsafe { env.get_string_unchecked(&key) }?
         .to_string_lossy()
         .to_string();
-      let variant = if variant.is_null() {
-        None
-      } else {
-        Some(
-          unsafe { env.get_string_unchecked(&variant) }?
-            .to_string_lossy()
-            .to_string(),
-        )
-      };
+      let variant = unsafe { env.get_string_unchecked(&variant) }?
+        .to_string_lossy()
+        .to_string();
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.set_feature_flag_exposure(key, variant);
+      logger.set_feature_flag_exposure(key, Some(variant));
 
       Ok(())
     },
