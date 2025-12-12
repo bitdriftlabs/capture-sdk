@@ -116,7 +116,7 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         Logger.createTemporaryDeviceCode(completion: completion)
     }
 
-    func setFeatureFlagExposure(name: String, variant: String?) {
+    func setFeatureFlagExposure(name: String, variant: String) {
         Capture.Logger.setFeatureFlagExposure(withName: name, variant: variant)
     }
 

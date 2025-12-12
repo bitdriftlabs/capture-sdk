@@ -377,14 +377,25 @@ public final class LoggerObjc: NSObject {
         Capture.Logger.removeField(withKey: key)
     }
 
-    /// Records a feature flag exposure with an optional variant. Use this method to track when
+    /// Records a feature flag exposure with a variant. Use this method to track when
     /// a user is exposed to a specific feature flag variant in your application. The exposure
     /// is recorded with a timestamp and tracked for the duration of the process.
     ///
     /// - parameter name:    The name of the flag being exposed
-    /// - parameter variant: An optional variant of the flag being exposed
+    /// - parameter variant: The variant of the flag being exposed
     @objc
-    public static func setFeatureFlagExposure(withName name: String, variant: String?) {
+    public static func setFeatureFlagExposure(withName name: String, variant: String) {
+        Capture.Logger.setFeatureFlagExposure(withName: name, variant: variant)
+    }
+
+    /// Records a feature flag exposure with a boolean variant. Use this method to track when
+    /// a user is exposed to a specific feature flag variant in your application. The exposure
+    /// is recorded with a timestamp and tracked for the duration of the process.
+    ///
+    /// - parameter name:    The name of the flag being exposed
+    /// - parameter variant: The boolean variant of the flag being exposed
+    @objc
+    public static func setFeatureFlagExposure(withName name: String, variantBool variant: Bool) {
         Capture.Logger.setFeatureFlagExposure(withName: name, variant: variant)
     }
 
