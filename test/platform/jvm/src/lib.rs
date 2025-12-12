@@ -417,15 +417,6 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedArt
   let hash_map_class = env.find_class("java/util/HashMap").unwrap();
   let hash_map = env.new_object(&hash_map_class, "()V", &[]).unwrap();
 
-  // Get the put method
-  let put_method = env
-    .get_method_id(
-      &hash_map_class,
-      "put",
-      "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
-    )
-    .unwrap();
-
   // Populate the HashMap with feature flags
   for flag in feature_flags {
     let key_str = env.new_string(&flag.name).unwrap();
@@ -435,42 +426,30 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedArt
       JObject::null()
     };
 
-    unsafe {
-      env
-        .call_method_unchecked(
-          &hash_map,
-          put_method,
-          ReturnType::Object,
-          &[
-            JValueWrapper::Object(key_str.into()).into(),
-            JValueWrapper::Object(value_obj).into(),
-          ],
-        )
-        .unwrap();
-    }
+    env
+      .call_method(
+        &hash_map,
+        "put",
+        "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        &[
+          JValueWrapper::Object(key_str.into()).into(),
+          JValueWrapper::Object(value_obj).into(),
+        ],
+      )
+      .unwrap();
   }
 
   // Create the UploadedArtifact object
-  let artifact_class = env
-    .find_class("io/bitdrift/capture/UploadedArtifact")
+  let artifact = env
+    .new_object(
+      "io/bitdrift/capture/UploadedArtifact",
+      "([BLjava/util/Map;)V",
+      &[
+        JValueWrapper::Object(contents_array.into()).into(),
+        JValueWrapper::Object(hash_map).into(),
+      ],
+    )
     .unwrap();
-
-  let constructor_id = env
-    .get_method_id(&artifact_class, "<init>", "([BLjava/util/Map;)V")
-    .unwrap();
-
-  let artifact = unsafe {
-    env
-      .new_object_unchecked(
-        artifact_class,
-        constructor_id,
-        &[
-          JValueWrapper::Object(contents_array.into()).into(),
-          JValueWrapper::Object(hash_map).into(),
-        ],
-      )
-      .unwrap()
-  };
 
   artifact.into_raw()
 }
