@@ -30,9 +30,6 @@ build:android --android_crosstool_top=@androidndk//:toolchain
 # https://github.com/bazelbuild/rules_rust/issues/3627
 build:ios --config=fake-nightly
 build:ios --@rules_rust//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols
-
-build:ios --features=swift.enable_library_evolution
-build:ios --features=swift.emit_swiftinterface
 build:_rules_xcodeproj_build --config=ios
 
 build --@rules_rust//rust/settings:rustfmt.toml=//:rustfmt.toml
@@ -100,6 +97,8 @@ build:force-xcode-version --ios_simulator_version=18.2
 build:force-xcode-version --xcode_version=16.2
 build:release-ios --config=ios
 build:release-ios --config=release-common --config=force-xcode-version
+build:release-ios --features=swift.enable_library_evolution
+build:release-ios --features=swift.emit_swiftinterface
 # Make sure __.SYMDEF does not have a timestamp for iOS (for reproducibility)
 build:release-ios --action_env=ZERO_AR_DATE=1
 build:release-ios --repo_env=ZERO_AR_DATE=1
