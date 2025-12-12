@@ -303,6 +303,17 @@ function release_gradle_plugin() {
 
   generate_maven_file "$remote_location_prefix" "$plugin_marker"
 
+  # Prepare Maven Central bundle (group: io/bitdrift/capture-plugin, artifact: io.bitdrift.capture-plugin.gradle.plugin)
+  shopt -s nullglob
+  local poms=( *.pom )
+  if (( ${#poms[@]} > 0 )); then
+    local base="${poms[0]%.pom}"
+    package_maven_central_bundle "io/bitdrift/$plugin_name" "$plugin_marker" "$version" "$base.pom"
+  else
+    echo "Warning: No .pom found for $plugin_marker; skipping Maven Central bundle."
+  fi
+  shopt -u nullglob
+
   popd
 }
 
