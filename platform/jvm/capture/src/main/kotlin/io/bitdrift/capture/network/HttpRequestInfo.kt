@@ -7,9 +7,13 @@
 
 package io.bitdrift.capture.network
 
-import io.bitdrift.capture.InternalFieldsMap
+import io.bitdrift.capture.EMPTY_INTERNAL_FIELDS
+import io.bitdrift.capture.InternalFields
 import io.bitdrift.capture.events.span.SpanField
+import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.combineFields
+import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.toFields
 import java.util.UUID
 
@@ -67,57 +71,56 @@ data class HttpRequestInfo
     ) {
         internal val name: String = "HTTPRequest"
 
-        internal val fields: InternalFieldsMap by lazy {
-            // Do not put body bytes count as a common field since response log has a more accurate
-            // measurement of request' body count anyway.
-            buildMap {
-                putAll(commonFields)
-                putOptional("_request_body_bytes_expected_to_send_count", bytesExpectedToSendCount)
-            }
+        internal val fields: InternalFields by lazy {
+            combineFields(
+                commonFields,
+                if (bytesExpectedToSendCount != null) {
+                    fieldsOf("_request_body_bytes_expected_to_send_count" to bytesExpectedToSendCount.toString())
+                } else {
+                    EMPTY_INTERNAL_FIELDS
+                },
+            )
         }
 
-        internal val commonFields: InternalFieldsMap by lazy {
-            buildMap {
-                putAll(extraFields.toFields())
-                put(SpanField.Key.NAME, FieldValue.StringField("_http"))
-                putOptionalHeaderSpanFields(headers)
-                putOptionalGraphQlHeaders(headers)
-                put(SpanField.Key.ID, FieldValue.StringField(spanId.toString()))
-                put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_START))
-                put("_method", FieldValue.StringField(method))
-                putOptional(HttpFieldKey.HOST, host)
-                putOptional(HttpFieldKey.PATH, path?.value)
-                putOptional(HttpFieldKey.QUERY, query)
-                path?.let {
-                    it.template?.let {
-                        put(HttpField.PATH_TEMPLATE, FieldValue.StringField(it))
-                    }
-                }
-            }
+        internal val commonFields: InternalFields by lazy {
+            buildList {
+                addAll(extraFields.toFields())
+                add(Field(SpanField.Key.NAME, FieldValue.StringField("_http")))
+                addOptionalHeaderSpanFields(headers)
+                addOptionalGraphQlHeaders(headers)
+                add(Field(SpanField.Key.ID, FieldValue.StringField(spanId.toString())))
+                add(Field(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_START)))
+                add(Field("_method", FieldValue.StringField(method)))
+                host?.let { add(Field(HttpFieldKey.HOST, FieldValue.StringField(it))) }
+                path?.value?.let { add(Field(HttpFieldKey.PATH, FieldValue.StringField(it))) }
+                query?.let { add(Field(HttpFieldKey.QUERY, FieldValue.StringField(it))) }
+                path?.template?.let { add(Field(HttpField.PATH_TEMPLATE, FieldValue.StringField(it))) }
+            }.toTypedArray()
         }
 
-        internal val matchingFields: InternalFieldsMap = headers?.let { HTTPHeaders.normalizeHeaders(it) }.toFields()
+        internal val matchingFields: InternalFields by lazy {
+            headers?.let { HTTPHeaders.normalizeHeaders(it) } ?: EMPTY_INTERNAL_FIELDS
+        }
 
         /**
-         * Adds optional fields to the mutable map based on the provided headers.
+         * Adds optional fields to the mutable list based on the provided headers.
          *
          * This function checks for the presence of the "x-capture-span-key" header.
          * If the header is present, it constructs a span name and additional fields from other headers
-         * and adds them to the map. If the header is not present, it adds a default span name.
+         * and adds them to the list. If the header is not present, it adds a default span name.
          *
          * @param headers The map of headers from which fields are extracted.
          */
-        private fun MutableMap<String, FieldValue>.putOptionalHeaderSpanFields(headers: Map<String, String>?) {
+        private fun MutableList<Field>.addOptionalHeaderSpanFields(headers: Map<String, String>?) {
             headers?.get("x-capture-span-key")?.let { spanKey ->
                 val prefix = "x-capture-span-$spanKey"
                 val spanName = "_" + headers["$prefix-name"]
-                // override _span_name
-                put(SpanField.Key.NAME, FieldValue.StringField(spanName))
+                add(Field(SpanField.Key.NAME, FieldValue.StringField(spanName)))
                 val fieldPrefix = "$prefix-field"
-                headers.iterator().forEach { (key, value) ->
+                headers.forEach { (key, value) ->
                     if (key.startsWith(fieldPrefix)) {
                         val fieldKey = key.removePrefix(fieldPrefix).replace('-', '_')
-                        put(fieldKey, FieldValue.StringField(value))
+                        add(Field(fieldKey, FieldValue.StringField(value)))
                     }
                 }
             }
@@ -128,18 +131,17 @@ data class HttpRequestInfo
          *
          * @param headers The map of headers from which fields are extracted.
          */
-        private fun MutableMap<String, FieldValue>.putOptionalGraphQlHeaders(headers: Map<String, String>?) {
+        private fun MutableList<Field>.addOptionalGraphQlHeaders(headers: Map<String, String>?) {
             headers?.get("X-APOLLO-OPERATION-NAME")?.let { gqlOperationName ->
-                put(HttpField.PATH_TEMPLATE, FieldValue.StringField("gql-$gqlOperationName"))
-                put("_operation_name", FieldValue.StringField(gqlOperationName))
+                add(Field(HttpField.PATH_TEMPLATE, FieldValue.StringField("gql-$gqlOperationName")))
+                add(Field("_operation_name", FieldValue.StringField(gqlOperationName)))
                 headers["X-APOLLO-OPERATION-TYPE"]?.let { gqlOperationKey ->
-                    put("_operation_type", FieldValue.StringField(gqlOperationKey))
+                    add(Field("_operation_type", FieldValue.StringField(gqlOperationKey)))
                 }
                 headers["X-APOLLO-OPERATION-ID"]?.let { gqlOperationId ->
-                    put("_operation_id", FieldValue.StringField(gqlOperationId))
+                    add(Field("_operation_id", FieldValue.StringField(gqlOperationId)))
                 }
-                // override _span_name
-                put(SpanField.Key.NAME, FieldValue.StringField("_graphql"))
+                add(Field(SpanField.Key.NAME, FieldValue.StringField("_graphql")))
             }
         }
     }

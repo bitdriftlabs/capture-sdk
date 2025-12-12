@@ -7,13 +7,15 @@
 
 package io.bitdrift.capture.events.span
 
+import io.bitdrift.capture.InternalFields
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
-import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.providers.Field
+import io.bitdrift.capture.providers.toFieldValue
 import java.util.UUID
 
 internal object SpanField {
@@ -43,7 +45,7 @@ class Span internal constructor(
      */
     val name: String,
     private val level: LogLevel,
-    fields: Map<String, String>? = null,
+    fields: InternalFields? = null,
     private val customStartTimeMs: Long? = null,
     /**
      * An optional ID of the parent span, used to build span hierarchies. A span without a
@@ -61,24 +63,35 @@ class Span internal constructor(
     // and continues to tick even when the CPU is in power saving modes,
     // so is the recommend basis for general purpose interval timing.
     private val startTimeMs: Long = clock.elapsedRealtime()
-    private val startFields: Map<String, String> =
-        buildMap {
-            fields?.let {
-                putAll(it)
-            }
-            put(SpanField.Key.ID, id.toString())
-            put(SpanField.Key.NAME, name)
-            put(SpanField.Key.TYPE, SpanField.Value.TYPE_START)
-            parentSpanId?.let {
-                put(SpanField.Key.PARENT, it.toString())
-            }
+
+    private fun buildStartFieldsArray(fields: InternalFields?): InternalFields {
+        val initialFieldsSize = fields?.size ?: 0
+        val coreFieldsSize = 3 // ID, NAME, TYPE
+        val parentFieldsSize = if (parentSpanId != null) 1 else 0
+        val totalSize = initialFieldsSize + coreFieldsSize + parentFieldsSize
+
+        val result = ArrayList<Field>(totalSize)
+
+        fields?.let { result.addAll(it) }
+
+        result.add(Field(SpanField.Key.ID, id.toString().toFieldValue()))
+        result.add(Field(SpanField.Key.NAME, name.toFieldValue()))
+        result.add(Field(SpanField.Key.TYPE, SpanField.Value.TYPE_START.toFieldValue()))
+
+        parentSpanId?.let {
+            result.add(Field(SpanField.Key.PARENT, it.toString().toFieldValue()))
         }
+
+        return result.toTypedArray()
+    }
+
+    private val startFields: InternalFields = buildStartFieldsArray(fields)
 
     init {
         logger?.log(
             LogType.SPAN,
             level,
-            startFields.toFields(),
+            startFields,
             attributesOverrides = customStartTimeMs?.let { LogAttributesOverrides.OccurredAt(it) },
         ) { "" }
     }
@@ -99,7 +112,7 @@ class Span internal constructor(
      */
     fun end(
         result: SpanResult,
-        fields: Map<String, String>? = null,
+        fields: InternalFields? = null,
         endTimeMs: Long? = null,
     ) {
         logger?.apply {
@@ -110,21 +123,27 @@ class Span internal constructor(
                     clock.elapsedRealtime() - startTimeMs
                 }
 
-            val endFields =
-                buildMap {
-                    putAll(startFields)
-                    fields?.let {
-                        putAll(it)
-                    }
-                    put(SpanField.Key.TYPE, SpanField.Value.TYPE_END)
-                    put(SpanField.Key.DURATION, durationMs.toString())
-                    put(SpanField.Key.RESULT, result.toString().lowercase())
-                }
+            // Calculate total size: startFields + additionalFields + 3 core end fields
+            val additionalFieldsSize = fields?.size ?: 0
+            val totalSize = startFields.size + additionalFieldsSize + 3
+
+            val endFields = ArrayList<Field>(totalSize)
+
+            // Add start fields
+            endFields.addAll(startFields)
+
+            // Add additional fields
+            fields?.let { endFields.addAll(it) }
+
+            // Add core end fields
+            endFields.add(Field(SpanField.Key.TYPE, SpanField.Value.TYPE_END.toFieldValue()))
+            endFields.add(Field(SpanField.Key.DURATION, durationMs.toString().toFieldValue()))
+            endFields.add(Field(SpanField.Key.RESULT, result.toString().lowercase().toFieldValue()))
 
             this.log(
                 LogType.SPAN,
                 level,
-                endFields.toFields(),
+                endFields.toTypedArray(),
                 attributesOverrides = endTimeMs?.let { LogAttributesOverrides.OccurredAt(it) },
             ) { "" }
         }

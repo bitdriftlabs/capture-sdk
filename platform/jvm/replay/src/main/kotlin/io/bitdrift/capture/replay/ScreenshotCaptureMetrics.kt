@@ -24,10 +24,10 @@ data class ScreenshotCaptureMetrics(
         get() = screenshotTimeMs + compressionTimeMs
 
     /**
-     * Convert the metrics to a map
+     * Convert the metrics to a Array
      */
-    fun toMap(): Map<String, String> =
-        mapOf(
+    fun toArray(): Array<Pair<String, String>> =
+        arrayOf(
             "screenshot_time_ms" to screenshotTimeMs.toString(),
             "screenshot_allocation_byte_count" to screenshotAllocationByteCount.toString(),
             "screenshot_byte_count" to screenshotByteCount.toString(),

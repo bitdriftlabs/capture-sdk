@@ -9,13 +9,14 @@ package io.bitdrift.capture.events.performance
 
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.IResourceUtilizationTarget
+import io.bitdrift.capture.InternalFields
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.common.PowerMonitor
-import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.providers.combineFields
 import java.util.concurrent.ExecutorService
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -33,19 +34,26 @@ internal class ResourceUtilizationTarget(
     override fun tick() {
         executor.execute {
             try {
-                val start = clock.elapsedRealtime()
                 val memorySnapshot = memoryMetricsProvider.getMemoryAttributes()
+                val start = clock.elapsedRealtime()
+
+                // Combine all fields in a single allocation instead of 4 intermediate arrays
                 val fields =
-                    buildMap {
-                        putAll(memorySnapshot)
-                        putAll(diskUsageMonitor.getDiskUsage())
-                        putPair(batteryMonitor.batteryPercentageAttribute())
-                        putPair(batteryMonitor.isBatteryChargingAttribute())
-                        putPair(powerMonitor.isPowerSaveModeEnabledAttribute())
-                    }
+                    combineFields(
+                        memorySnapshot,
+                        diskUsageMonitor.getDiskUsage(),
+                        powerMonitor.isPowerSaveModeEnabledAttribute(),
+                        batteryMonitor.batteryPercentageAttribute(),
+                        batteryMonitor.isBatteryChargingAttribute(),
+                    )
 
                 val duration = clock.elapsedRealtime() - start
-                logger.logResourceUtilization(fields, duration.toDuration(DurationUnit.MILLISECONDS))
+
+                logger.logResourceUtilization(
+                    fields,
+                    duration.toDuration(DurationUnit.MILLISECONDS),
+                )
+
                 if (memoryMetricsProvider.isMemoryLow()) {
                     logMemoryPressure(memorySnapshot)
                 }
@@ -55,11 +63,11 @@ internal class ResourceUtilizationTarget(
         }
     }
 
-    private fun logMemoryPressure(memAttributes: Map<String, String>) {
+    private fun logMemoryPressure(memAttributes: InternalFields) {
         logger.log(
             LogType.LIFECYCLE,
             LogLevel.WARNING,
-            memAttributes.toFields(),
+            memAttributes,
         ) { "AppMemPressure" }
     }
 }

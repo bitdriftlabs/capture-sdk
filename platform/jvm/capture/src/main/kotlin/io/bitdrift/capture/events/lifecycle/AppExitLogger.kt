@@ -14,7 +14,7 @@ import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
-import io.bitdrift.capture.InternalFieldsMap
+import io.bitdrift.capture.InternalFields
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
@@ -23,7 +23,8 @@ import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
-import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.providers.combineFields
+import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.reports.FatalIssueReporterState
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
@@ -91,7 +92,7 @@ internal class AppExitLogger(
                 logger.log(
                     LogType.LIFECYCLE,
                     lastExitInfo.reason.toLogLevel(),
-                    buildAppExitInternalFieldsMap(lastExitInfo),
+                    buildAppExitInternalFields(lastExitInfo),
                     attributesOverrides = LogAttributesOverrides.PreviousRunSessionId(timestampMs),
                 ) { APP_EXIT_EVENT_NAME }
             }
@@ -145,29 +146,31 @@ internal class AppExitLogger(
     private fun buildCrashAndMemoryFieldsMap(
         thread: Thread,
         throwable: Throwable,
-    ): InternalFieldsMap {
+    ): InternalFields {
         val rootCause = throwable.getRootCause()
-        return buildMap {
-            put(APP_EXIT_SOURCE_KEY, "UncaughtExceptionHandler")
-            put(APP_EXIT_REASON_KEY, "Crash")
-            put(APP_EXIT_INFO_KEY, rootCause.javaClass.name)
-            put(APP_EXIT_DETAILS_KEY, rootCause.message.orEmpty())
-            put(APP_EXIT_THREAD_KEY, thread.name)
-            putAll(memoryMetricsProvider.getMemoryAttributes())
-        }.toFields()
+        return combineFields(
+            fieldsOf(
+                APP_EXIT_SOURCE_KEY to "UncaughtExceptionHandler",
+                APP_EXIT_REASON_KEY to "Crash",
+                APP_EXIT_INFO_KEY to rootCause.javaClass.name,
+                APP_EXIT_DETAILS_KEY to rootCause.message.orEmpty(),
+                APP_EXIT_THREAD_KEY to thread.name,
+            ),
+            memoryMetricsProvider.getMemoryAttributes(),
+        )
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    private fun buildAppExitInternalFieldsMap(applicationExitInfo: ApplicationExitInfo): InternalFieldsMap =
-        buildMap {
-            putAll(applicationExitInfo.toMap().toFields())
-            putAll(memoryMetricsProvider.getMemoryClass().toFields())
-        }
+    private fun buildAppExitInternalFields(applicationExitInfo: ApplicationExitInfo): InternalFields =
+        combineFields(
+            applicationExitInfo.toArrayFields(),
+            memoryMetricsProvider.getMemoryClass(),
+        )
 
     @RequiresApi(Build.VERSION_CODES.R)
-    private fun ApplicationExitInfo.toMap(): Map<String, String> {
+    private fun ApplicationExitInfo.toArrayFields(): InternalFields {
         // https://developer.android.com/reference/kotlin/android/app/ApplicationExitInfo
-        return mapOf(
+        return fieldsOf(
             APP_EXIT_SOURCE_KEY to "ApplicationExitInfo",
             APP_EXIT_PROCESS_NAME_KEY to this.processName,
             APP_EXIT_REASON_KEY to this.reason.toReasonText(),

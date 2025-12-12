@@ -21,11 +21,11 @@ internal interface IMetadataProvider {
      * Returns out of the box fields to be included with emitted logs. Out of the box fields
      * are fields that come from the SDK itself.
      */
-    fun ootbFields(): InternalFieldsList
+    fun ootbFields(): InternalFields
 
     /**
      * Returns custom fields to be included with emitted logs. Custom fields are fields
      * that come from the SDK customers.
      */
-    fun customFields(): InternalFieldsList
+    fun customFields(): InternalFields
 }

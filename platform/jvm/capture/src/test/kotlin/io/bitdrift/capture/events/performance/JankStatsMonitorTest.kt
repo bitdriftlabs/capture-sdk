@@ -23,6 +23,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.ErrorHandler
+import io.bitdrift.capture.InternalFields
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.Mocks
@@ -31,7 +32,7 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.JankStatsMonitor.JankFrameType
-import io.bitdrift.capture.providers.toFieldValue
+import io.bitdrift.capture.utils.get
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -306,13 +307,11 @@ class JankStatsMonitorTest {
         verify(logger).log(
             any(),
             any(),
-            eq(
-                mapOf(
-                    "_duration_ms" to jankDurationInMilli.toString().toFieldValue(),
-                    "_frame_issue_type" to JankFrameType.SLOW.fieldValue,
-                    "_screen_name" to screenName.toFieldValue(),
-                ),
-            ),
+            argThat<InternalFields> { fields ->
+                fields["_duration_ms"]?.toString() == jankDurationInMilli.toString() &&
+                    fields["_frame_issue_type"]?.toString() == JankFrameType.SLOW.value.toString() &&
+                    fields["_screen_name"]?.toString() == screenName
+            },
             anyOrNull(),
             anyOrNull(),
             any(),
@@ -342,13 +341,11 @@ class JankStatsMonitorTest {
         verify(logger).log(
             eq(LogType.UX),
             eq(expectedFrameType.logLevel),
-            eq(
-                mapOf(
-                    "_duration_ms" to jankDurationInMilli.toString().toFieldValue(),
-                    "_frame_issue_type" to expectedFrameType.fieldValue,
-                ),
-            ),
-            eq(null),
+            argThat<InternalFields> { fields ->
+                fields["_duration_ms"]?.toString() == jankDurationInMilli.toString() &&
+                    fields["_frame_issue_type"]?.toString() == expectedFrameType.value.toString()
+            },
+            eq(EMPTY_INTERNAL_FIELDS),
             eq(null),
             eq(false),
             argThat { message: () -> String -> message.invoke() == "DroppedFrame" },
