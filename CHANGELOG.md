@@ -1,7 +1,52 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.21.0...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.21.1...HEAD
+
+### Both
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+ 
+### Android
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.21.1]
+[0.21.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.1
 
 ### Both
 
