@@ -103,7 +103,7 @@ object Capture {
                 .host("api.bitdrift.io")
                 .build()
 
-        // This is a lazy property to avoid the need to initialize the main thread handler unless needed here
+        // This is a lazy property to avoid the need to initialize the main thread handler unless needed here.
         private val mainThreadHandler by lazy { MainThreadHandler() }
 
         /**
