@@ -11,6 +11,18 @@ import CaptureMocks
 import Foundation
 import XCTest
 
+// MARK: - Test Helpers
+
+extension XCTestCase {
+    /// Creates a unique temporary directory for logger tests to avoid directory lock conflicts.
+    ///
+    /// - returns: A unique temporary directory URL
+    fileprivate func makeTemporaryLoggerDirectory() -> URL {
+        return FileManager.default.temporaryDirectory
+            .appendingPathComponent("bitdrift_test_\(UUID().uuidString)")
+    }
+}
+
 // swiftlint:disable file_length
 private final class URLSessionIncompleteDelegate: NSObject, URLSessionTaskDelegate {
     var didCompleteExpectation: XCTestExpectation?
@@ -23,7 +35,10 @@ private final class URLSessionIncompleteDelegate: NSObject, URLSessionTaskDelega
 private final class URLSessionCustomDelegate: NSObject, URLSessionDelegate {
     var didReceiveChallenge: XCTestExpectation?
 
-    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
+    func urlSession(
+        _ session: URLSession,
+        didReceive challenge: URLAuthenticationChallenge
+    ) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
         self.didReceiveChallenge?.fulfill()
         return (.performDefaultHandling, nil)
     }
@@ -75,8 +90,13 @@ final class URLSessionIntegrationTests: XCTestCase {
         URLSessionIntegration.shared.disableURLSessionTaskSwizzling()
 
         Logger.resetShared(logger: self.logger)
+
         Logger
-            .start(withAPIKey: "123", sessionStrategy: .fixed())?
+            .start(
+                withAPIKey: "123",
+                sessionStrategy: .fixed(),
+                configuration: .init(rootFileURL: self.makeTemporaryLoggerDirectory())
+            )?
             .enableIntegrations([.urlSession()], disableSwizzling: !swizzle)
     }
 
@@ -180,11 +200,16 @@ final class URLSessionIntegrationTests: XCTestCase {
         let session = URLSession(configuration: .background(withIdentifier: "w00t"))
         let task = session.dataTask(with: self.makeURL())
 
-        let logRequestExpectation = self.expectation(description: "request logged")
+        let logRequestExpectation = self.expectation(
+            description: "request logged"
+        )
         self.logger.logRequestExpectation = logRequestExpectation
         task.resume()
 
-        XCTAssertEqual(.completed, XCTWaiter().wait(for: [logRequestExpectation], timeout: 3, enforceOrder: false))
+        XCTAssertEqual(
+            .completed,
+            XCTWaiter().wait(for: [logRequestExpectation], timeout: 3, enforceOrder: false)
+        )
         XCTAssertEqual(1, self.logger.logs.count)
 
         let requestInfo = try XCTUnwrap(self.logger.logs[0].request())

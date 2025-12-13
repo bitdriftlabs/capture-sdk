@@ -94,9 +94,7 @@ jobs:
       - name: Rust tests
         run: cargo test --package swift_bridge
 
-  macos_tsan:
-    # Note: tsan has been disabled because it's too flaky.
-    # https://bitdrift.slack.com/archives/C058ZD2M2CQ/p1755792021318899?thread_ts=1755784965.888369&cid=C058ZD2M2CQ
+  tests:
     runs-on: macos-14
     needs: "pre_check"
     if: needs.pre_check.outputs.should_run == 'true'
@@ -107,11 +105,11 @@ jobs:
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
-      - name: Run iOS tests (tsan)
-        run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/core/...)') --test_tag_filters=macos_only --test_output=errors --config ci --config ios
+      - name: Run iOS tests
+        run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/...)') --test_tag_filters=macos_only --test_output=errors --config ci --config ios
   verify_ios:
     runs-on: ubuntu-latest
-    needs: ["macos_tsan", "swift_hello_world", "unit_tests"]
+    needs: ["tests", "swift_hello_world", "unit_tests"]
     if: always()
     steps:
       # Checkout repo to Github Actions runner
@@ -120,5 +118,5 @@ jobs:
         with:
           fetch-depth: 1
       - run: |
-          ./ci/check_result.sh ${{ needs.macos_tsan.result }} \
+          ./ci/check_result.sh ${{ needs.tests.result }} \
           && ./ci/check_result.sh ${{ needs.swift_hello_world.result }}

@@ -16,11 +16,7 @@ final class SessionURLTests: XCTestCase {
     }
 
     func testDefaultSessionUrl() throws {
-        Logger.start(
-            withAPIKey: "api_key",
-            sessionStrategy: .fixed(),
-            configuration: .init()
-        )
+        self.startLoggerWithIsolatedDirectory(apiKey: "api_key")
         let sessionID = try XCTUnwrap(Logger.sessionID)
         XCTAssertEqual(Logger.sessionURL, "https://timeline.bitdrift.io/s/\(sessionID)?utm_source=sdk")
     }
@@ -77,9 +73,8 @@ final class SessionURLTests: XCTestCase {
     }
 
     private func configureLogger(apiURL: String) throws {
-        Logger.start(
-            withAPIKey: "api_key",
-            sessionStrategy: .fixed(),
+        self.startLoggerWithIsolatedDirectory(
+            apiKey: "api_key",
             configuration: .init(apiURL: try XCTUnwrap(URL(string: apiURL)))
         )
     }
