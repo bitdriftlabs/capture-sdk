@@ -296,7 +296,7 @@ rust.toolchain(
     #
     # tl;dr; run e.g. $ ./tools/rust_std_checksum.sh 1.82.0
     sha256s = {
-              "rust-std-" + RUST_VERSION + "-aarch64-apple-ios-sim.tar.gz": "d7485d7e1dbe8eace07e5084cea0e0b07fb5f4ffcc60fe256be27ddf1f3e4644",
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios-sim.tar.gz": "d7485d7e1dbe8eace07e5084cea0e0b07fb5f4ffcc60fe256be27ddf1f3e4644",
         "rust-std-" + RUST_VERSION + "-aarch64-apple-ios.tar.gz": "ce855e19c4a581fe066c72b722f00844fb69c1bbd2928061ec1ea7d4d51fd723",
         "rust-std-" + RUST_VERSION + "-x86_64-apple-ios.tar.gz": "f5177ccaf167e7b74945cdc5feaf103ede69977fde99619dfde9c29cf60f386f",
         "rust-std-" + RUST_VERSION + "-aarch64-linux-android.tar.gz": "4c6e35ec50d5550c190323a6114a5056c486bf244884aede93eb620f962a2402",
