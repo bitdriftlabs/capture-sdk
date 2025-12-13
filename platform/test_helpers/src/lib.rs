@@ -248,6 +248,16 @@ pub extern "C" fn configure_aggressive_continuous_uploads(stream_id: i32) {
             bd_runtime::runtime::session_replay::PeriodicScreensEnabledFlag::path(),
             ValueKind::Bool(true),
           ),
+          // Enable crash reporting.
+          (
+            bd_runtime::runtime::crash_reporting::Enabled::path(),
+            ValueKind::Bool(true),
+          ),
+          // Enable persistent storage.
+          (
+            bd_runtime::runtime::state::UsePersistentStorage::path(),
+            ValueKind::Bool(true),
+          ),
         ],
         "base".to_string(),
       ),
