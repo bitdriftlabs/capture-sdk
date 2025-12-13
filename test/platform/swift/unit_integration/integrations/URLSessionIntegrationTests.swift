@@ -15,6 +15,8 @@ import XCTest
 
 extension XCTestCase {
     /// Creates a unique temporary directory for logger tests to avoid directory lock conflicts.
+    ///
+    /// - returns: A unique temporary directory URL
     fileprivate func makeTemporaryLoggerDirectory() -> URL {
         return FileManager.default.temporaryDirectory
             .appendingPathComponent("bitdrift_test_\(UUID().uuidString)")

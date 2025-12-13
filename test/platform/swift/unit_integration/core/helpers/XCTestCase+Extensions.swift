@@ -17,7 +17,7 @@ extension XCTestCase {
     /// This helper prevents "Failed to acquire directory lock" errors when multiple tests
     /// create loggers in quick succession by giving each logger instance its own isolated directory.
     ///
-    /// - Returns: A unique temporary directory URL
+    /// - returns: A unique temporary directory URL
     func makeTemporaryLoggerDirectory() -> URL {
         return FileManager.default.temporaryDirectory
             .appendingPathComponent("bitdrift_test_\(UUID().uuidString)")
@@ -28,13 +28,13 @@ extension XCTestCase {
     /// This is a convenience wrapper around `Logger.start()` that automatically provides
     /// a unique directory for each test invocation.
     ///
-    /// - Parameters:
-    ///   - apiKey: The API key for the logger
-    ///   - sessionStrategy: The session strategy to use
-    ///   - configuration: Optional configuration (rootFileURL will be overridden)
-    ///   - fieldProviders: Optional field providers
-    ///   - dateProvider: Optional date provider
-    /// - Returns: A LoggerIntegrator instance, or nil if logger creation failed
+    /// - parameter apiKey:          The API key for the logger
+    /// - parameter sessionStrategy: The session strategy to use
+    /// - parameter configuration:   Optional configuration (rootFileURL will be overridden)
+    /// - parameter fieldProviders:  Optional field providers
+    /// - parameter dateProvider:    Optional date provider
+    ///
+    /// - returns: A LoggerIntegrator instance, or nil if logger creation failed
     @discardableResult
     func startLoggerWithIsolatedDirectory(
         apiKey: String = "test_api_key",
