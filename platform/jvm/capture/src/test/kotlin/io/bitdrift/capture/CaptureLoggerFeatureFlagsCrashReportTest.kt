@@ -126,7 +126,7 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
             // Set feature flags before the crash
             logger.setFeatureFlagExposure("dark_mode", "enabled")
             logger.setFeatureFlagExposure("new_ui", "variant_b")
-            logger.setFeatureFlagExposure("experimental_feature", null)
+            logger.setFeatureFlagExposure("experimental_feature", false)
 
             // Simulate a crash by calling persistJvmCrash on the issue processor
             val processor = logger.getIssueProcessor()
@@ -152,7 +152,7 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
             assertThat(uploadedReport.featureFlags).hasSize(3)
             assertThat(uploadedReport.featureFlags).containsEntry("dark_mode", "enabled")
             assertThat(uploadedReport.featureFlags).containsEntry("new_ui", "variant_b")
-            assertThat(uploadedReport.featureFlags).containsEntry("experimental_feature", null)
+            assertThat(uploadedReport.featureFlags).containsEntry("experimental_feature", "false")
 
             // Verify the crash report contains the error information
             assertThat(uploadedReport.report.errorsLength).isGreaterThan(0)
