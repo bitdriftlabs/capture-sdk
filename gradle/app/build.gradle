@@ -1,7 +1,7 @@
 plugins {
-    id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
-    id 'io.bitdrift.capture-plugin'
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.bd.capture.plugin)
 }
 
 android {
@@ -16,6 +16,9 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+    buildFeatures {
+        buildConfig true
     }
     buildTypes {
         debug {
@@ -59,17 +62,25 @@ android {
     }
 }
 
-dependencies {
-    implementation 'io.bitdrift:capture:0.20.1'
-    implementation 'io.bitdrift:capture-timber:0.20.1'
+bitdrift {
+    instrumentation {
+        automaticOkHttpInstrumentation = false
+    }
+}
 
-    implementation 'androidx.appcompat:appcompat:1.7.1'
-    implementation 'com.google.android.material:material:1.12.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
-    implementation 'androidx.navigation:navigation-fragment-ktx:2.9.2'
-    implementation 'androidx.navigation:navigation-ui-ktx:2.9.2'
-    implementation 'com.jakewharton.timber:timber:5.0.1'
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+dependencies {
+    implementation libs.bd.capture
+    implementation libs.bd.capture.timber
+
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.constraintlayout
+    implementation libs.androidx.navigation.fragment.ktx
+    implementation libs.androidx.navigation.ui.ktx
+    implementation libs.material
+    implementation libs.timber
+
+    testImplementation libs.junit
+
+    androidTestImplementation libs.androidx.espresso.core
+    androidTestImplementation libs.androidx.junit
 }

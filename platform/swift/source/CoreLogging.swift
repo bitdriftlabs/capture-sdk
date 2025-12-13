@@ -142,11 +142,11 @@ protocol CoreLogging: AnyObject {
     /// - parameter blocking: Whether the method should return only after the flushing completes.
     func flush(blocking: Bool)
 
-    /// Sets a feature flag exposure with an optional variant.
+    /// Sets a feature flag exposure with a variant.
     ///
     /// - parameter flag:    The name of the flag exposure to set
-    /// - parameter variant: An optional variant of the flag exposure to set
-    func setFeatureFlagExposure(withName flag: String, variant: String?)
+    /// - parameter variant: The variant of the flag exposure to set
+    func setFeatureFlagExposure(withName flag: String, variant: String)
 
     /// Retrieves the value of a given runtime variable.
     ///

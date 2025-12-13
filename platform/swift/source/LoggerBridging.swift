@@ -65,11 +65,11 @@ protocol LoggerBridging {
     /// - parameter blocking: Whether the method should return only after the flushing completes.
     func flush(blocking: Bool)
 
-    /// Sets a feature flag exposure with an optional variant.
+    /// Sets a feature flag exposure with a variant.
     ///
     /// - parameter name:    The name of the flag exposure to set
-    /// - parameter variant: An optional variant of the flag exposure to set
-    func setFeatureFlagExposure(withName name: String, variant: String?)
+    /// - parameter variant: The variant of the flag exposure to set
+    func setFeatureFlagExposure(withName name: String, variant: String)
 
     /// Retrieves a given runtime variable.
     ///

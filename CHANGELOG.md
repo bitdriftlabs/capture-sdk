@@ -7,11 +7,13 @@
 
 **Added**
 
-- Nothing yet!
+- Added support for workflow matching on feature flag state and transitions.
+- Fixed an issue where multiple Logger instances could come up and conflict. Subsequent loggers will now noop.
 
 **Changed**
 
-- Nothing yet!
+- **BREAKING**: The `variant` parameter in `setFeatureFlagExposure` (Android) / `addFeatureFlagExposure` (iOS) is now required instead of optional.
+- Added method overloads to accept `Boolean` / `Bool` values for the `variant` parameter in `setFeatureFlagExposure` (Android) / `addFeatureFlagExposure` (iOS), in addition to the existing `String` parameter.
 
 **Fixed**
 

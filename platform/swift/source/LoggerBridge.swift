@@ -236,7 +236,7 @@ final class LoggerBridge: LoggerBridging {
         capture_flush(self.loggerID, blocking)
     }
 
-    func setFeatureFlagExposure(withName flag: String, variant: String?) {
+    func setFeatureFlagExposure(withName flag: String, variant: String) {
         capture_set_feature_flag_exposure(self.loggerID, flag, variant)
     }
 

@@ -256,7 +256,7 @@ class MainViewModel(
         Timber.i("Adding many feature flag exposures")
         // Only single flag exposures are supported now
         for (i in 1..10000) {
-            Logger.setFeatureFlagExposure("flag_$i")
+            Logger.setFeatureFlagExposure("flag_$i", "variant_$i")
         }
     }
 
