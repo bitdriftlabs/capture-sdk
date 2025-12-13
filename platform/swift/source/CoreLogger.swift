@@ -178,10 +178,6 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.enableBlockingShutdown()
     }
 
-    func shutdownAndWait() {
-        self.underlyingLogger.shutdownAndWait()
-    }
-
     func setSleepMode(_ mode: SleepMode) {
         self.underlyingLogger.setSleepMode(mode)
     }
