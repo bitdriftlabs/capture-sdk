@@ -75,13 +75,13 @@ final class URLSessionIntegrationTests: XCTestCase {
         URLSessionIntegration.shared.disableURLSessionTaskSwizzling()
 
         Logger.resetShared(logger: self.logger)
-        
+
         // Create unique temp directory for this test iteration to avoid directory lock conflicts.
         // When multiple tests run in quick succession, they would otherwise try to acquire locks
         // on the same default directory, causing "Failed to acquire directory lock" errors.
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("bitdrift_test_\(UUID().uuidString)")
-        
+
         Logger
             .start(
                 withAPIKey: "123",
