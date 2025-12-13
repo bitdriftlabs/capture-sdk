@@ -11,6 +11,16 @@ import CaptureMocks
 import Foundation
 import XCTest
 
+// MARK: - Test Helpers
+
+extension XCTestCase {
+    /// Creates a unique temporary directory for logger tests to avoid directory lock conflicts.
+    fileprivate func makeTemporaryLoggerDirectory() -> URL {
+        return FileManager.default.temporaryDirectory
+            .appendingPathComponent("bitdrift_test_\(UUID().uuidString)")
+    }
+}
+
 // swiftlint:disable file_length
 private final class URLSessionIncompleteDelegate: NSObject, URLSessionTaskDelegate {
     var didCompleteExpectation: XCTestExpectation?
@@ -76,17 +86,11 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         Logger.resetShared(logger: self.logger)
 
-        // Create unique temp directory for this test iteration to avoid directory lock conflicts.
-        // When multiple tests run in quick succession, they would otherwise try to acquire locks
-        // on the same default directory, causing "Failed to acquire directory lock" errors.
-        let tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("bitdrift_test_\(UUID().uuidString)")
-
         Logger
             .start(
                 withAPIKey: "123",
                 sessionStrategy: .fixed(),
-                configuration: .init(rootFileURL: tempDir)
+                configuration: .init(rootFileURL: self.makeTemporaryLoggerDirectory())
             )?
             .enableIntegrations([.urlSession()], disableSwizzling: !swizzle)
     }

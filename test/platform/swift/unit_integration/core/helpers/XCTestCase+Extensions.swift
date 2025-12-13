@@ -8,9 +8,53 @@
 @testable import Capture
 import CapturePassable
 import Difference
+import Foundation
 import XCTest
 
 extension XCTestCase {
+    /// Creates a unique temporary directory for logger tests.
+    ///
+    /// This helper prevents "Failed to acquire directory lock" errors when multiple tests
+    /// create loggers in quick succession by giving each logger instance its own isolated directory.
+    ///
+    /// - Returns: A unique temporary directory URL
+    func makeTemporaryLoggerDirectory() -> URL {
+        return FileManager.default.temporaryDirectory
+            .appendingPathComponent("bitdrift_test_\(UUID().uuidString)")
+    }
+
+    /// Starts a logger with a unique temporary directory to avoid directory lock conflicts.
+    ///
+    /// This is a convenience wrapper around `Logger.start()` that automatically provides
+    /// a unique directory for each test invocation.
+    ///
+    /// - Parameters:
+    ///   - apiKey: The API key for the logger
+    ///   - sessionStrategy: The session strategy to use
+    ///   - configuration: Optional configuration (rootFileURL will be overridden)
+    ///   - fieldProviders: Optional field providers
+    ///   - dateProvider: Optional date provider
+    /// - Returns: A LoggerIntegrator instance, or nil if logger creation failed
+    @discardableResult
+    func startLoggerWithIsolatedDirectory(
+        apiKey: String = "test_api_key",
+        sessionStrategy: SessionStrategy = .fixed(),
+        configuration: Configuration = .init(),
+        fieldProviders: [FieldProvider] = [],
+        dateProvider: DateProvider? = nil
+    ) -> LoggerIntegrator? {
+        var config = configuration
+        config.rootFileURL = makeTemporaryLoggerDirectory()
+
+        return Logger.start(
+            withAPIKey: apiKey,
+            sessionStrategy: sessionStrategy,
+            configuration: config,
+            fieldProviders: fieldProviders,
+            dateProvider: dateProvider
+        )
+    }
+
     func assertEqual(
         _ fields1: [String: String],
         _ fields2: Fields?,
