@@ -121,6 +121,7 @@ build:benchmark-profile --config=benchmark --@rules_rust//rust/settings:extra_ru
 # Specifies that panics should automatically be treated as a panic.
 build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=-C
 build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=panic=immediate-abort
+build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=-Zunstable-options
 
 # This attempts to match what cargo-fuzz does, but it's likely a moving target with many options.
 # Occasionally check back to see if anything has changed over there.
