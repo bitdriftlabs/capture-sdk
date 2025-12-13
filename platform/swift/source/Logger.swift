@@ -372,6 +372,14 @@ public final class Logger {
         }
     }
 
+    /// Explicitly shuts down the logger, blocking until the event loop has terminated.
+    ///
+    /// Internal for testing purposes only. This ensures the logger fully releases all resources
+    /// including directory locks before proceeding.
+    func shutdownAndWait() {
+        self.underlyingLogger.shutdownAndWait()
+    }
+
     // Returns the location to use for storing files related to the Capture SDK, including the disk persisted
     // ring buffers.
     static func captureSDKDirectory() -> URL? {

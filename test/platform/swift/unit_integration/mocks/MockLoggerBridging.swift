@@ -132,6 +132,8 @@ extension MockLoggerBridging: LoggerBridging {
 
     public func enableBlockingShutdown() {}
 
+    public func shutdownAndWait() {}
+
     public func setSleepMode(_ mode: Capture.SleepMode) {
         sleepMode = mode
     }

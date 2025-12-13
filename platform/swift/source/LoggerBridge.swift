@@ -254,6 +254,10 @@ final class LoggerBridge: LoggerBridging {
         self.blockingShutdown = true
     }
 
+    func shutdownAndWait() {
+        capture_shutdown_logger(self.loggerID, true)
+    }
+
     func setSleepMode(_ mode: SleepMode) {
         capture_set_sleep_mode(self.loggerID, mode == .enabled)
     }

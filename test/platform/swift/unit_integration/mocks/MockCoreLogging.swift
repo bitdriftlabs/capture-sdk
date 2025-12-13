@@ -167,6 +167,8 @@ extension MockCoreLogging: CoreLogging {
 
     public func enableBlockingShutdown() {}
 
+    public func shutdownAndWait() {}
+
     public func setSleepMode(_ mode: SleepMode) {}
 
     public func processIssueReports(reportProcessingSession: ReportProcessingSession) {}

@@ -167,6 +167,12 @@ protocol CoreLogging: AnyObject {
     /// For tests/profiling purposes only.
     func enableBlockingShutdown()
 
+    /// Explicitly shuts down the logger, blocking until the event loop has terminated.
+    ///
+    /// For tests purposes only. This ensures the logger fully releases all resources
+    /// including directory locks before proceeding.
+    func shutdownAndWait()
+
     /// Enables or disables sleep mode, which when active places the logger in minimal activity mode
     ///
     /// - parameter mode: The mode to use

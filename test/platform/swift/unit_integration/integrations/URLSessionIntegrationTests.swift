@@ -82,6 +82,13 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     private func customTearDown() {
         URLSessionIntegration.shared.disableURLSessionTaskSwizzling()
+        
+        // Ensure the logger is fully shut down before resetting, to release directory locks.
+        // This prevents "Failed to acquire directory lock" errors when tests run in quick succession.
+        if let logger = Logger.getShared() as? Logger {
+            logger.shutdownAndWait()
+        }
+        
         Logger.resetShared()
     }
 
