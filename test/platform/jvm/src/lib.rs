@@ -18,7 +18,7 @@ use capture_core::new_global;
 use capture_core::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
 use capture_core::session_replay::TargetHandler as SessionReplayTargetHandler;
 use jni::objects::{JClass, JMap, JObject, JString};
-use jni::sys::{jint, jlong};
+use jni::sys::{jint, jlong, jobject};
 use jni::JNIEnv;
 use platform_shared::LoggerId;
 use platform_test_helpers::{
@@ -394,4 +394,63 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_disableRuntimeF
 
     assert!(ack.nack.is_none());
   });
+}
+
+#[no_mangle]
+pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedArtifact(
+  mut env: JNIEnv<'_>,
+  _class: JClass<'_>,
+) -> jobject {
+  let artifact_request = platform_test_helpers::with_expected_server(|h| {
+    h.blocking_next_artifact_upload()
+      .expect("expected artifact upload")
+  });
+
+  let contents = artifact_request.contents;
+  let feature_flags = artifact_request.feature_flags;
+  let session_id = artifact_request.session_id;
+
+  // Create the byte array for contents
+  let contents_array = env.byte_array_from_slice(&contents).unwrap();
+
+  // Create a HashMap for feature flags
+  let hash_map = env.new_object("java/util/HashMap", "()V", &[]).unwrap();
+
+  // Populate the HashMap with feature flags
+  for flag in feature_flags {
+    let key_str = env.new_string(&flag.name).unwrap();
+    #[allow(clippy::option_if_let_else)]
+    let value_obj = if let Some(variant) = &flag.variant {
+      env.new_string(variant).unwrap().into()
+    } else {
+      JObject::null()
+    };
+
+    env
+      .call_method(
+        &hash_map,
+        "put",
+        "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        &[(&key_str).into(), (&value_obj).into()],
+      )
+      .unwrap();
+  }
+
+  // Create the session ID string
+  let session_id_str = env.new_string(session_id).unwrap();
+
+  // Create the UploadedArtifact object
+  let artifact = env
+    .new_object(
+      "io/bitdrift/capture/UploadedArtifact",
+      "([BLjava/util/Map;Ljava/lang/String;)V",
+      &[
+        (&contents_array).into(),
+        (&hash_map).into(),
+        (&session_id_str).into(),
+      ],
+    )
+    .unwrap();
+
+  artifact.into_raw()
 }
