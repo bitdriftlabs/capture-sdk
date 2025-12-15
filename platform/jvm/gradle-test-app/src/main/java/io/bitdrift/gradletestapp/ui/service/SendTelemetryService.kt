@@ -1,37 +1,55 @@
 package io.bitdrift.gradletestapp.ui.service
 
-import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
-import android.util.Log
-import androidx.core.content.ContextCompat
-import io.bitdrift.capture.Capture
+import android.os.Process
+import androidx.core.app.NotificationCompat
+import timber.log.Timber
 
-@SuppressLint("LogNotTimber")
 class SendTelemetryService : Service() {
     override fun onBind(intent: Intent?): IBinder? {
-        Log.i("miguel-bd_", "SendTelemetryService.onBind() called on process ${android.os.Process.myPid()}, thread=${Thread.currentThread().name}")
-        Capture.Logger.logInfo { "SendTelemetryService.onBind() called on process ${android.os.Process.myPid()}, thread=${Thread.currentThread().name}" }
+        Timber.i("SendTelemetryService.onBind() called on process ${Process.myPid()}, thread=${Thread.currentThread().name}")
         // We don't provide binding, so return null
         return null
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.i("miguel-bd_", "SendTelemetryService.onStartCommand() called on process ${android.os.Process.myPid()}, thread=${Thread.currentThread().name}")
-        Capture.Logger.logInfo { "SendTelemetryService.onStartCommand() called on process ${android.os.Process.myPid()}, thread=${Thread.currentThread().name}" }
-        // TODO: Call startForeground()
+        Timber.i("SendTelemetryService.onStartCommand() called on process ${Process.myPid()}, thread=${Thread.currentThread().name}")
+
+        val channelId = "send_telemetry_channel"
+        val notificationId = 1
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(channelId, "Send Telemetry", NotificationManager.IMPORTANCE_LOW)
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.createNotificationChannel(channel)
+        }
+
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Sending Telemetry")
+            .setContentText("Processing...")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .build()
+
+        startForeground(notificationId, notification)
+
+        // Simulate telemetry sending work
+        Thread.sleep(500)
+        // Stopping the service after work is done
+        stopSelf()
+
         return START_NOT_STICKY
     }
 
-    @SuppressLint("LogNotTimber")
     companion object {
         fun createReportIntent(context: Context) : Intent {//, crash: Crash): Intent {
             val intent = Intent(context, SendTelemetryService::class.java)
-            //crash.fillIn(intent)
-            Log.i("miguel-bd_", "SendTelemetryService.createReportIntent() called on process ${android.os.Process.myPid()}, thread=${Thread.currentThread().name}")
-            Capture.Logger.logInfo { "SendTelemetryService.createReportIntent() called on process ${android.os.Process.myPid()}, thread=${Thread.currentThread().name}" }
+            Timber.i("SendTelemetryService.createReportIntent() called on process ${Process.myPid()}, thread=${Thread.currentThread().name}")
             return intent
         }
     }
