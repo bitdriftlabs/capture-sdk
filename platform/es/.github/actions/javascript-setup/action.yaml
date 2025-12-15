@@ -3,9 +3,6 @@ inputs:
   architecture:
     description: 'Architecture to use for node'
     default: ''
-  registry-url:
-    description: 'Optional registry to set up for auth. Will set the registry in a project level .npmrc and .yarnrc file, and set up auth to read in from env.NODE_AUTH_TOKEN.'
-    default: 'https://registry.npmjs.org'
 
 runs:
   using: composite
@@ -17,7 +14,6 @@ runs:
         node-version: 20
         cache: 'npm'
         architecture: ${{ inputs.architecture }}
-        registry-url: ${{ inputs.registry-url }}
 
     # We need to do this in a separate step otherwise the sha will change from restore to save.
     - name: Calculate package-lock sha
