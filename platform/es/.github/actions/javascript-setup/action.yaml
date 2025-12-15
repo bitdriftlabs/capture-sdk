@@ -13,7 +13,7 @@ runs:
     # Setup registry without token auth (for OIDC compatibility)
     - name: Setup npm registry
       shell: bash
-      run: echo "registry=${{ inputs.registry-url }}" > .npmrc
+      run: echo "registry=${{ inputs.registry-url }}" > ~/.npmrc
 
     # Install Node
     - name: Setup
