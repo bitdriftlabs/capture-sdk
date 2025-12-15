@@ -30,9 +30,7 @@ jobs:
           npm version --workspace @bitdrift/react-native $VERSION
           npx nx prepare-release @bitdrift/react-native
       - name: Publish release
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-        run: npm publish ./dist/react-native
+        run: npm publish ./dist/react-native --provenance
       - name: Create a PR with the updated version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -47,4 +45,3 @@ jobs:
 
           gh pr create --title "chore: release react-native $VERSION" --body "v$VERSION" --base main --head release-rn-$VERSION
           gh pr merge --auto -r
-
