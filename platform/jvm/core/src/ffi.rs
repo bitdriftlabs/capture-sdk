@@ -31,9 +31,6 @@ static FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 static BINARY_FIELD_BYTE_ARRAY: OnceLock<CachedMethod> = OnceLock::new();
 static STRING_FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 
-static FEATURE_FLAG_GET_NAME: OnceLock<CachedMethod> = OnceLock::new();
-static FEATURE_FLAG_GET_VARIANT: OnceLock<CachedMethod> = OnceLock::new();
-
 pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   let field_class = initialize_class(env, "io/bitdrift/capture/providers/Field", None)?;
   initialize_method_handle(
@@ -84,21 +81,6 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
     "getStringValue",
     "()Ljava/lang/String;",
     &STRING_FIELD_STRING,
-  )?;
-
-  initialize_method_handle(
-    env,
-    "io/bitdrift/capture/FeatureFlag",
-    "getName",
-    "()Ljava/lang/String;",
-    &FEATURE_FLAG_GET_NAME,
-  )?;
-  initialize_method_handle(
-    env,
-    "io/bitdrift/capture/FeatureFlag",
-    "getVariant",
-    "()Ljava/lang/String;",
-    &FEATURE_FLAG_GET_VARIANT,
   )?;
 
   Ok(())

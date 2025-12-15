@@ -11,7 +11,6 @@ import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.bitdrift.capture.Capture.Logger
-import io.bitdrift.capture.FeatureFlag
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.gradletestapp.data.model.AppAction
@@ -258,7 +257,7 @@ class MainViewModel(
         Timber.i("Adding many feature flag exposures")
         // Only single flag exposures are supported now
         for (i in 1..10000) {
-            Logger.setFeatureFlagExposure("flag_$i")
+            Logger.setFeatureFlagExposure("flag_$i", "variant_$i")
         }
     }
 

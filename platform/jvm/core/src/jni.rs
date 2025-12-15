@@ -702,8 +702,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         network: network_manager,
         static_metadata,
         start_in_sleep_mode: start_in_sleep_mode == JNI_TRUE,
-        feature_flags_file_size_bytes: 1024 * 1024,
-        feature_flags_high_watermark: 0.8,
       })
       .with_internal_logger(true)
       .build()
@@ -879,7 +877,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlag
       };
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.set_feature_flag(key, variant);
+      logger.set_feature_flag_exposure(key, variant);
 
       Ok(())
     },

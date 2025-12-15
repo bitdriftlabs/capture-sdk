@@ -407,13 +407,23 @@ extension Logger {
         Self.getShared()?.removeField(withKey: key)
     }
 
-    /// Records a feature flag exposure with an optional variant. Use this method to track when
+    /// Records a feature flag exposure with a variant. Use this method to track when
     /// a user is exposed to a specific feature flag variant in your application. The exposure
     /// is recorded with a timestamp and tracked for the duration of the process.
     ///
     /// - parameter flag:    The name of the flag being exposed
-    /// - parameter variant: An optional variant of the flag being exposed
-    public static func setFeatureFlagExposure(withName flag: String, variant: String?) {
+    /// - parameter variant: The variant of the flag being exposed
+    public static func setFeatureFlagExposure(withName flag: String, variant: String) {
+        Self.getShared()?.setFeatureFlagExposure(withName: flag, variant: variant)
+    }
+
+    /// Records a feature flag exposure with a boolean variant. Use this method to track when
+    /// a user is exposed to a specific feature flag variant in your application. The exposure
+    /// is recorded with a timestamp and tracked for the duration of the process.
+    ///
+    /// - parameter flag:    The name of the flag being exposed
+    /// - parameter variant: The boolean variant of the flag being exposed
+    public static func setFeatureFlagExposure(withName flag: String, variant: Bool) {
         Self.getShared()?.setFeatureFlagExposure(withName: flag, variant: variant)
     }
 

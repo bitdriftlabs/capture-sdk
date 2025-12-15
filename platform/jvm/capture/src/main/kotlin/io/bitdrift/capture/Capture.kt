@@ -103,7 +103,7 @@ object Capture {
                 .host("api.bitdrift.io")
                 .build()
 
-        // This is a lazy property to avoid the need to initialize the main thread handler unless needed here
+        // This is a lazy property to avoid the need to initialize the main thread handler unless needed here.
         private val mainThreadHandler by lazy { MainThreadHandler() }
 
         /**
@@ -286,18 +286,35 @@ object Capture {
         }
 
         /**
-         * Records a feature flag exposure with an optional variant. Use this method to track when
+         * Records a feature flag exposure with a variant. Use this method to track when
          * a user is exposed to a specific feature flag variant in your application. The exposure
          * is recorded with a timestamp and tracked for the duration of the process.
          *
          * @param name the name of the flag being exposed
-         * @param variant an optional variant of the flag being exposed
+         * @param variant the variant of the flag being exposed
          */
         @JvmStatic
         @ExperimentalBitdriftApi
         fun setFeatureFlagExposure(
             name: String,
-            variant: String? = null,
+            variant: String,
+        ) {
+            logger()?.setFeatureFlagExposure(name, variant)
+        }
+
+        /**
+         * Records a feature flag exposure with a boolean variant. Use this method to track when
+         * a user is exposed to a specific feature flag variant in your application. The exposure
+         * is recorded with a timestamp and tracked for the duration of the process.
+         *
+         * @param name the name of the flag being exposed
+         * @param variant the boolean variant of the flag being exposed
+         */
+        @JvmStatic
+        @ExperimentalBitdriftApi
+        fun setFeatureFlagExposure(
+            name: String,
+            variant: Boolean,
         ) {
             logger()?.setFeatureFlagExposure(name, variant)
         }

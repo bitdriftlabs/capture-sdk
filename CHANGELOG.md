@@ -1,17 +1,19 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.21.0...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.21.1...HEAD
 
 ### Both
 
 **Added**
 
-- Nothing yet!
+- Added support for workflow matching on feature flag state and transitions.
+- Fixed an issue where multiple Logger instances could come up and conflict. Subsequent loggers will now noop.
 
 **Changed**
 
-- Nothing yet!
+- **BREAKING**: The `variant` parameter in `setFeatureFlagExposure` (Android) / `addFeatureFlagExposure` (iOS) is now required instead of optional.
+- Added method overloads to accept `Boolean` / `Bool` values for the `variant` parameter in `setFeatureFlagExposure` (Android) / `addFeatureFlagExposure` (iOS), in addition to the existing `String` parameter.
 
 **Fixed**
 
@@ -29,7 +31,7 @@
 
 **Fixed**
 
-- Made `HttpRequestInfo` and `HttpResponseInfo` properties public so they can be used with the `Logger.log()` methods directly.
+- Nothing yet!
 
 ### iOS
 
@@ -44,6 +46,16 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.21.1]
+[0.21.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.1
+
+### Android
+
+**Fixed**
+
+- Made `HttpRequestInfo` and `HttpResponseInfo` properties public so they can be used with the `Logger.log()` methods directly.
+- Fix NPE crash when using automatic OkHttp instrumentation via capture-plugin 
 
 ## [0.21.0]
 [0.21.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.0

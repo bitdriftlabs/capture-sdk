@@ -12,6 +12,7 @@ import android.app.ApplicationExitInfo
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.argThat
+import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
@@ -33,14 +34,13 @@ import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEM
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.FatalIssueReporterState
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EMPTY_LIST_MESSAGE
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
+import org.mockito.Mockito.verifyNoMoreInteractions
 import java.io.IOException
 
 class AppExitLoggerTest {
@@ -121,7 +121,7 @@ class AppExitLoggerTest {
     }
 
     @Test
-    fun logPreviousExitReason_whenEmptyResult_shouldReportError() {
+    fun logPreviousExitReason_whenEmptyResult_shouldNotReportError() {
         // ARRANGE
         lastExitInfo.setAsEmptyReason()
 
@@ -129,7 +129,7 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        verify(errorHandler).handleError(EXIT_REASON_EMPTY_LIST_MESSAGE)
+        verifyNoMoreInteractions(errorHandler)
         verify(logger, never()).log(
             any(),
             any(),
@@ -142,28 +142,7 @@ class AppExitLoggerTest {
     }
 
     @Test
-    fun logPreviousExitReason_withoutMatchingProcessName_shouldReportError() {
-        // ARRANGE
-        lastExitInfo.setAsInvalidProcessName()
-
-        // ACT
-        appExitLogger.logPreviousExitReasonIfAny()
-
-        // ASSERT
-        verify(errorHandler).handleError(EXIT_REASON_UNMATCHED_PROCESS_NAME_MESSAGE)
-        verify(logger, never()).log(
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-        )
-    }
-
-    @Test
-    fun logPreviousExitReason_whenErrorResult_shouldReportEmptyReason() {
+    fun logPreviousExitReason_whenErrorResult_shouldReportError() {
         // ARRANGE
         lastExitInfo.setAsErrorResult()
 
@@ -171,7 +150,13 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        verify(errorHandler).handleError(EXIT_REASON_EXCEPTION_MESSAGE, FAKE_EXCEPTION)
+        val messageCaptor = argumentCaptor<String>()
+        val throwableCaptor = argumentCaptor<Throwable>()
+        verify(errorHandler).handleError(messageCaptor.capture(), throwableCaptor.capture())
+        assert(messageCaptor.firstValue == EXIT_REASON_EXCEPTION_MESSAGE)
+        assert(throwableCaptor.firstValue is Exception)
+        assert(throwableCaptor.firstValue.message == FAKE_EXCEPTION.message)
+
         verify(logger, never()).log(
             any(),
             any(),

@@ -64,10 +64,6 @@
    public <methods>;
 }
 
--keep, includedescriptorclasses class io.bitdrift.capture.FeatureFlag {
-   public <methods>;
-}
-
 -keep, includedescriptorclasses class io.bitdrift.capture.IEventsListenerTarget {
    public <methods>;
 }

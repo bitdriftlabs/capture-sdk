@@ -162,7 +162,7 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.flush(blocking: blocking)
     }
 
-    func setFeatureFlagExposure(withName name: String, variant: String?) {
+    func setFeatureFlagExposure(withName name: String, variant: String) {
         self.underlyingLogger.setFeatureFlagExposure(withName: name, variant: variant)
     }
 
