@@ -43,7 +43,6 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.IFatalIssueReporter
@@ -60,7 +59,9 @@ import kotlin.time.Duration
 import kotlin.time.DurationUnit
 
 typealias LoggerId = Long
+
 internal typealias InternalFields = Array<Field>
+
 internal val EMPTY_INTERNAL_FIELDS: InternalFields = emptyArray()
 
 /**
@@ -511,7 +512,7 @@ internal class LoggerImpl(
                     else -> 0
                 }
 
-            CaptureJniLibrary.writeLogFields(
+            CaptureJniLibrary.writeLogStringFields(
                 this.loggerId,
                 type.value,
                 level.value,
@@ -581,42 +582,6 @@ internal class LoggerImpl(
             appSizeBytes,
             durationS,
         )
-    }
-
-    private fun extractFields(
-        fields: Map<String, String>?,
-        throwable: Throwable?,
-    ): InternalFields {
-        val hasThrowable = throwable != null
-        val fieldsSize = fields?.size ?: 0
-
-        if (fieldsSize == 0 && !hasThrowable) {
-            return EMPTY_INTERNAL_FIELDS
-        }
-
-        val throwableFields = if (hasThrowable) 2 else 0
-        val result = ArrayList<Field>(fieldsSize + throwableFields)
-
-        fields?.forEach { (key, value) ->
-            @Suppress("SENSELESS_COMPARISON")
-            if (key != null && value != null) {
-                result.add(Field(key, value.toFieldValue()))
-            }
-        }
-
-        throwable?.let {
-            result.add(
-                Field(
-                    "_error",
-                    it.javaClass.name
-                        .orEmpty()
-                        .toFieldValue(),
-                ),
-            )
-            result.add(Field("_error_details", it.message.orEmpty().toFieldValue()))
-        }
-
-        return result.toTypedArray()
     }
 
     /**

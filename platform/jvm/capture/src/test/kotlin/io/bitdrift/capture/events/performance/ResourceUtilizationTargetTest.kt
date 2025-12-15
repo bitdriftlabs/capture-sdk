@@ -18,6 +18,7 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.CaptureTestJniLibrary
+import io.bitdrift.capture.EMPTY_INTERNAL_FIELDS
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.InternalFields
 import io.bitdrift.capture.LogLevel
@@ -26,8 +27,7 @@ import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
-import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES
-import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP_LOW
 import org.junit.After
 import org.junit.Test
 import java.util.concurrent.ExecutorService
@@ -103,25 +103,31 @@ class ResourceUtilizationTargetTest {
             ),
         )
 
+        whenever(diskUsageMonitor.getDiskUsage()).thenReturn(emptyArray())
+
         reporter.tick()
 
         executor.awaitTermination(1, TimeUnit.SECONDS)
 
         verify(logger).logResourceUtilization(
-            eq(
-                fieldsOf(
-                    "_jvm_used_kb" to "50",
-                    "_jvm_total_kb" to "100",
-                    "_jvm_max_kb" to "100",
-                    "_jvm_used_percent" to "50",
-                    "_native_used_kb" to "200",
-                    "_native_total_kb" to "500",
-                    "_memory_class" to "1",
-                    "_battery_val" to "0.75",
-                    "_state" to "charging",
-                    "_low_power_enabled" to "1",
-                ),
-            ),
+            argThat<InternalFields> { fields ->
+                val actualMap = fields.associate { it.key to it.value.toString() }
+                val expectedMap =
+                    mapOf(
+                        "_jvm_used_kb" to "50",
+                        "_jvm_total_kb" to "100",
+                        "_jvm_max_kb" to "100",
+                        "_jvm_used_percent" to "50",
+                        "_native_used_kb" to "200",
+                        "_native_total_kb" to "500",
+                        "_memory_class" to "1",
+                        "_is_memory_low" to "0",
+                        "_battery_val" to "0.75",
+                        "_state" to "charging",
+                        "_low_power_enabled" to "1",
+                    )
+                actualMap == expectedMap
+            },
             // workaround for Cannot invoke NullPointerException: "kotlin.time.Duration.unbox-impl()"
             // from https://stackoverflow.com/a/57394480
             Duration(any<Long>()),
@@ -172,6 +178,8 @@ class ResourceUtilizationTargetTest {
             ),
         )
 
+        whenever(diskUsageMonitor.getDiskUsage()).thenReturn(emptyArray())
+
         reporter.tick()
 
         executor.awaitTermination(1, TimeUnit.SECONDS)
@@ -181,7 +189,7 @@ class ResourceUtilizationTargetTest {
             eq(LogLevel.WARNING),
             argThat<InternalFields> { fields ->
                 val actualMap = fields.associate { it.key to it.value.toString() }
-                actualMap == DEFAULT_MEMORY_ATTRIBUTES
+                actualMap == DEFAULT_MEMORY_ATTRIBUTES_MAP_LOW
             },
             eq(EMPTY_INTERNAL_FIELDS),
             eq(null),

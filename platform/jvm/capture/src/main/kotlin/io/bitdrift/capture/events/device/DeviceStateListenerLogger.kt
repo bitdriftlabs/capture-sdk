@@ -26,10 +26,8 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.events.performance.BatteryMonitor
-import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
-import io.bitdrift.capture.providers.toFieldValue
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicReference
 
@@ -157,8 +155,7 @@ internal class DeviceStateListenerLogger(
         // No need to run this on the executor since the callback is already using our background executor
         log(
             fieldsOf(
-                "_thermal_state" to
-                        powerMonitor.toThermalStatusString(status),
+                "_thermal_state" to powerMonitor.toThermalStatusString(status),
             ),
             THERMAL_STATE_CHANGE,
         )

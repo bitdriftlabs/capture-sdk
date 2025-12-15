@@ -74,6 +74,8 @@ data class HttpRequestInfo
         internal val fields: InternalFields by lazy {
             combineFields(
                 commonFields,
+                // Add _span_type=start for request (response will add its own _span_type=end)
+                fieldsOf(SpanField.Key.TYPE to SpanField.Value.TYPE_START),
                 if (bytesExpectedToSendCount != null) {
                     fieldsOf("_request_body_bytes_expected_to_send_count" to bytesExpectedToSendCount.toString())
                 } else {
@@ -82,20 +84,46 @@ data class HttpRequestInfo
             )
         }
 
+        /**
+         * Fields that are common between request start and response end events.
+         * These fields are shared with HttpResponseInfo but exclude _span_type
+         * since request has "start" and response has "end".
+         */
         internal val commonFields: InternalFields by lazy {
             buildList {
                 addAll(extraFields.toFields())
-                add(Field(SpanField.Key.NAME, FieldValue.StringField("_http")))
+                // Add span name - check for overrides first, then default to _http
+                val spanName = getSpanNameOverride(headers) ?: "_http"
+                add(Field(SpanField.Key.NAME, FieldValue.StringField(spanName)))
                 addOptionalHeaderSpanFields(headers)
                 addOptionalGraphQlHeaders(headers)
                 add(Field(SpanField.Key.ID, FieldValue.StringField(spanId.toString())))
-                add(Field(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_START)))
+                // Note: _span_type is NOT included here - it's added separately in fields
+                // and in HttpResponseInfo since request="start" and response="end"
                 add(Field("_method", FieldValue.StringField(method)))
                 host?.let { add(Field(HttpFieldKey.HOST, FieldValue.StringField(it))) }
                 path?.value?.let { add(Field(HttpFieldKey.PATH, FieldValue.StringField(it))) }
                 query?.let { add(Field(HttpFieldKey.QUERY, FieldValue.StringField(it))) }
                 path?.template?.let { add(Field(HttpField.PATH_TEMPLATE, FieldValue.StringField(it))) }
             }.toTypedArray()
+        }
+
+        /**
+         * Determines the span name based on headers, returning null if default should be used.
+         */
+        private fun getSpanNameOverride(headers: Map<String, String>?): String? {
+            // Check for Apollo GraphQL headers
+            headers?.get("X-APOLLO-OPERATION-NAME")?.let {
+                return "_graphql"
+            }
+            // Check for custom span key header
+            headers?.get("x-capture-span-key")?.let { spanKey ->
+                val prefix = "x-capture-span-$spanKey"
+                headers["$prefix-name"]?.let { name ->
+                    return "_$name"
+                }
+            }
+            return null
         }
 
         internal val matchingFields: InternalFields by lazy {
@@ -106,16 +134,14 @@ data class HttpRequestInfo
          * Adds optional fields to the mutable list based on the provided headers.
          *
          * This function checks for the presence of the "x-capture-span-key" header.
-         * If the header is present, it constructs a span name and additional fields from other headers
-         * and adds them to the list. If the header is not present, it adds a default span name.
+         * If the header is present, it adds additional fields from other headers.
+         * Note: The span name is handled centrally in getSpanNameOverride().
          *
          * @param headers The map of headers from which fields are extracted.
          */
         private fun MutableList<Field>.addOptionalHeaderSpanFields(headers: Map<String, String>?) {
             headers?.get("x-capture-span-key")?.let { spanKey ->
                 val prefix = "x-capture-span-$spanKey"
-                val spanName = "_" + headers["$prefix-name"]
-                add(Field(SpanField.Key.NAME, FieldValue.StringField(spanName)))
                 val fieldPrefix = "$prefix-field"
                 headers.forEach { (key, value) ->
                     if (key.startsWith(fieldPrefix)) {
@@ -128,6 +154,7 @@ data class HttpRequestInfo
 
         /**
          * Best effort to extract graphQL operation name from the headers, this is specific to apollo3 kotlin client
+         * Note: The span name is handled centrally in getSpanNameOverride().
          *
          * @param headers The map of headers from which fields are extracted.
          */
@@ -141,7 +168,6 @@ data class HttpRequestInfo
                 headers["X-APOLLO-OPERATION-ID"]?.let { gqlOperationId ->
                     add(Field("_operation_id", FieldValue.StringField(gqlOperationId)))
                 }
-                add(Field(SpanField.Key.NAME, FieldValue.StringField("_graphql")))
             }
         }
     }

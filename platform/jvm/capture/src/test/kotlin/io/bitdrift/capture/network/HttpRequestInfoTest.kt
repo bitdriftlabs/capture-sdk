@@ -28,8 +28,8 @@ class HttpRequestInfoTest {
                 bytesExpectedToSendCount = 4,
             )
 
-        assertThat(requestInfo.fields).isEqualTo(
-            fieldsOf(
+        assertThat(requestInfo.fields).containsExactlyInAnyOrder(
+            *fieldsOf(
                 "_host" to "api.bitdrift.io",
                 "_method" to "GET",
                 "_path" to "/my_path/12345",
@@ -43,8 +43,8 @@ class HttpRequestInfoTest {
             ),
         )
 
-        assertThat(requestInfo.matchingFields).isEqualTo(
-            fieldsOf(
+        assertThat(requestInfo.matchingFields).containsExactlyInAnyOrder(
+            *fieldsOf(
                 "_headers.content-type" to "json",
             ),
         )

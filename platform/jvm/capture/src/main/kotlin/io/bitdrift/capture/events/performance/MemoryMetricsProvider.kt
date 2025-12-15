@@ -34,6 +34,7 @@ internal class MemoryMetricsProvider(
             "_native_total_kb" to totalNativeHeapSizeBytes().bToKb(),
             "_memory_class" to memoryClassMB().toString(),
             "_jvm_used_percent" to "%.3f".format(jvmUsedPercent()),
+            "_is_memory_low" to if (isMemoryLow()) "1" else "0",
         )
 
     override fun getMemoryClass(): InternalFields = fieldsOf("_memory_class" to memoryClassMB().toString())

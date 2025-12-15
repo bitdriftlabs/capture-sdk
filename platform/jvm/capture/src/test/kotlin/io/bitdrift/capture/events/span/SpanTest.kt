@@ -14,6 +14,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.EMPTY_INTERNAL_FIELDS
 import io.bitdrift.capture.InternalFields
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel

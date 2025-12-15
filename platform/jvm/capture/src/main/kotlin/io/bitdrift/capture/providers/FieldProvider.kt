@@ -127,17 +127,20 @@ internal fun Duration.toFieldValue(durationUnit: DurationUnit): FieldValue = thi
 internal fun Boolean.toFieldValue(): FieldValue = this.toString().toFieldValue()
 
 /**
- * Converts a Map<String, FieldValue> into an Array<Field> for efficient JNI transfer.
+ * Converts a Map<String, String> into an Array<Field> for efficient JNI transfer.
+ * Handles the Java/Kotlin interop case where values might be null despite the signature.
  */
 internal fun Map<String, String>.toFields(): InternalFields {
     if (isEmpty()) return EMPTY_INTERNAL_FIELDS
-    val result = arrayOfNulls<Field>(size)
-    var i = 0
+    val result = ArrayList<Field>(size)
     for ((key, value) in this) {
-        result[i++] = Field(key, value.toFieldValue())
+        @Suppress("SENSELESS_COMPARISON")
+        if (key != null && value != null) {
+            result.add(Field(key, value.toFieldValue()))
+        }
     }
-    @Suppress("UNCHECKED_CAST")
-    return result as InternalFields
+    if (result.isEmpty()) return EMPTY_INTERNAL_FIELDS
+    return result.toTypedArray()
 }
 
 /**
@@ -166,24 +169,18 @@ internal fun Array<Pair<String, String>>.toFields(): InternalFields =
     Array(size) { i -> Field(this[i].first, this[i].second.toFieldValue()) }
 
 /**
- * Combines multiple InternalFieldsArray into a single array efficiently.
- * Avoids multiple intermediate array allocations from chained `+` operations.
- *
- * Example:
- * ```
- * // Instead of: array1 + array2 + array3 + array4 (3 intermediate allocations)
- * combineFields(array1, array2, array3, array4) // single allocation
- * ```
+ * Combines multiple InternalFieldsArray into a single array 
  */
 internal fun combineFields(vararg arrays: InternalFields): InternalFields {
     val totalSize = arrays.sumOf { it.size }
     if (totalSize == 0) return EMPTY_INTERNAL_FIELDS
 
-    val result = ArrayList<Field>(totalSize)
+    val result = arrayOfNulls<Field>(totalSize)
+    var offset = 0
     for (array in arrays) {
-        for (field in array) {
-            result.add(field)
-        }
+        System.arraycopy(array, 0, result, offset, array.size)
+        offset += array.size
     }
-    return result.toTypedArray()
+    @Suppress("UNCHECKED_CAST")
+    return result as InternalFields
 }

@@ -9,6 +9,7 @@
 
 package io.bitdrift.capture.utils
 
+import io.bitdrift.capture.EMPTY_INTERNAL_FIELDS
 import io.bitdrift.capture.InternalFields
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldValue
@@ -17,8 +18,7 @@ import io.bitdrift.capture.providers.toFieldValue
 /**
  * Converts a Map<String, String> to InternalFieldsArray for test assertions.
  */
-fun Map<String, String>.toInternalFieldsArray(): InternalFields =
-    map { (key, value) -> Field(key, value.toFieldValue()) }.toTypedArray()
+fun Map<String, String>.toInternalFieldsArray(): InternalFields = map { (key, value) -> Field(key, value.toFieldValue()) }.toTypedArray()
 
 /**
  * Gets a value from InternalFieldsArray by key.

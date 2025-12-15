@@ -21,8 +21,7 @@ internal class BatteryMonitor(
 
     fun batteryPercentageAttribute(): InternalFields = fieldsOf("_battery_val" to batteryPercentage().toString())
 
-    fun isBatteryChargingAttribute(): InternalFields =
-        fieldsOf("_state" to if (isBatteryCharging()) "charging" else "unplugged")
+    fun isBatteryChargingAttribute(): InternalFields = fieldsOf("_state" to if (isBatteryCharging()) "charging" else "unplugged")
 
     private fun isBatteryCharging(): Boolean {
         val batteryStatus: Intent? =

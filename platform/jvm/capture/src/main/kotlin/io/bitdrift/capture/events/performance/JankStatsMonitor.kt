@@ -215,10 +215,11 @@ internal class JankStatsMonitor(
     private fun FrameData.sendJankFrameData() {
         val jankFrameType = toJankType()
 
-        val coreJankFields = fieldsOf(
-            SpanField.Key.DURATION to toDurationMillis().toString(),
-            DROPPED_FRAME_TYPE_KEY to jankFrameType.value,
-        )
+        val coreJankFields =
+            fieldsOf(
+                SpanField.Key.DURATION to toDurationMillis().toString(),
+                DROPPED_FRAME_TYPE_KEY to jankFrameType.value,
+            )
         val jankFrameStateFields = this@sendJankFrameData.states.toFieldArray()
 
         logger.log(

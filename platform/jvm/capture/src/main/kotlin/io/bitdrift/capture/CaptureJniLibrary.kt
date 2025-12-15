@@ -192,22 +192,22 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
 
     /**
      * Optimized version of writeLog that accepts parallel String arrays instead of Field objects.
-     * This avoids allocating Field and FieldValue wrapper objects.
+     * This avoids allocating Field and FieldValue wrapper objects on the Kotlin side.
      *
      * @param loggerId the ID of the logger to write to.
      * @param logType the type of the log to be logged.
      * @param logLevel the log level of the log.
      * @param log the log message of the log.
-     * @param fieldKeys array of field keys.
-     * @param fieldValues array of field values (must have same length as fieldKeys).
+     * @param fieldKeys array of field keys (parallel to fieldValues).
+     * @param fieldValues array of field values (parallel to fieldKeys).
      * @param matchingFieldKeys array of matching field keys.
-     * @param matchingFieldValues array of matching field values (must have same length as matchingFieldKeys).
+     * @param matchingFieldValues array of matching field values.
      * @param usePreviousProcessSessionId if set to true, this log will be emitted with the session ID
      *        corresponding to the last session ID during the previous process run.
      * @param overrideOccurredAtUnixMilliseconds used to override the timestamp of the log.
      * @param blocking if true, the call blocks until the log has been processed.
      */
-    external fun writeLogFields(
+    external fun writeLogStringFields(
         loggerId: Long,
         logType: Int,
         logLevel: Int,

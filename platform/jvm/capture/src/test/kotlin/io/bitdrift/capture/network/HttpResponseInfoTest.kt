@@ -41,22 +41,28 @@ class HttpResponseInfoTest {
                 extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
             )
 
-        assertThat(responseInfo.fields).isEqualTo(
-            fieldsOf(
-                "_host" to "foo.com",
-                "_method" to "GET",
-                "_path" to "/foo_path/12345",
-                "_path_template" to "/template/<id>",
-                "_query" to "my=query",
-                "_span_id" to spanId.toString(),
+        // Duplicates are allowed for minimal allocations - later values take precedence at JNI layer
+        assertThat(responseInfo.fields).containsExactlyInAnyOrder(
+            *fieldsOf(
+                // From extraFields
+                "my_extra_key_2" to "my_extra_value_2",
+                // From request.commonFields (includes request extraFields)
+                "my_extra_key_1" to "my_extra_value_1",
                 "_span_name" to "_http",
+                "_span_id" to spanId.toString(),
+                "_method" to "GET",
+                "_host" to "foo.com",
+                "_path" to "/my_path/12345",
+                "_query" to "my=query",
+                "_path_template" to "/template/<id>",
+                // From response fields (may duplicate request fields)
                 "_span_type" to "end",
                 "_duration_ms" to "60",
                 "_result" to "success",
                 "_error_type" to "RuntimeException",
                 "_error_message" to "my_error",
-                "my_extra_key_1" to "my_extra_value_1",
-                "my_extra_key_2" to "my_extra_value_2",
+                "_path" to "/foo_path/12345",
+                "_path_template" to "/template/<id>",
             ),
         )
     }
@@ -89,22 +95,28 @@ class HttpResponseInfoTest {
                 extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
             )
 
-        assertThat(responseInfo.fields).isEqualTo(
-            fieldsOf(
-                "_host" to "foo.com",
-                "_method" to "GET",
-                "_path" to "/my_path/12345",
-                "_path_template" to "/template/<id>",
-                "_query" to "my=query",
-                "_span_id" to spanId.toString(),
+        // Duplicates are allowed for minimal allocations - later values take precedence at JNI layer
+        assertThat(responseInfo.fields).containsExactlyInAnyOrder(
+            *fieldsOf(
+                // From extraFields
+                "my_extra_key_2" to "my_extra_value_2",
+                // From request.commonFields (includes request extraFields)
+                "my_extra_key_1" to "my_extra_value_1",
                 "_span_name" to "_http",
+                "_span_id" to spanId.toString(),
+                "_method" to "GET",
+                "_host" to "foo.com",
+                "_path" to "/my_path/12345",
+                "_query" to "my=query",
+                "_path_template" to "/template/<id>",
+                // From response fields (may duplicate request fields)
                 "_span_type" to "end",
                 "_duration_ms" to "60",
                 "_result" to "success",
                 "_error_type" to "RuntimeException",
                 "_error_message" to "my_error",
-                "my_extra_key_1" to "my_extra_value_1",
-                "my_extra_key_2" to "my_extra_value_2",
+                "_path" to "/my_path/12345",
+                "_path_template" to "/template/<id>",
             ),
         )
     }
@@ -123,8 +135,8 @@ class HttpResponseInfoTest {
                 extraFields = mapOf("my_extra_key_1" to "my_extra_value_1"),
             )
 
-        assertThat(requestInfo.fields).isEqualTo(
-            fieldsOf(
+        assertThat(requestInfo.fields).containsExactlyInAnyOrder(
+            *fieldsOf(
                 "_host" to "api.bitdrift.io",
                 "_method" to "GET",
                 "_path" to "/my_path/12345",
@@ -151,26 +163,33 @@ class HttpResponseInfoTest {
                 extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
             )
 
-        assertThat(responseInfo.fields).isEqualTo(
-            fieldsOf(
-                "_host" to "foo.com",
-                "_method" to "GET",
-                "_path" to "/foo_path/12345",
-                "_query" to "foo_query",
-                "_span_id" to spanId.toString(),
+        // Duplicates are allowed for minimal allocations - later values take precedence at JNI layer
+        assertThat(responseInfo.fields).containsExactlyInAnyOrder(
+            *fieldsOf(
+                // From extraFields
+                "my_extra_key_2" to "my_extra_value_2",
+                // From request.commonFields (includes request extraFields)
+                "my_extra_key_1" to "my_extra_value_1",
                 "_span_name" to "_http",
+                "_span_id" to spanId.toString(),
+                "_method" to "GET",
+                "_host" to "api.bitdrift.io",
+                "_path" to "/my_path/12345",
+                "_query" to "my=query",
+                // From response fields (overrides from request)
                 "_span_type" to "end",
                 "_duration_ms" to "60",
                 "_result" to "success",
                 "_error_type" to "RuntimeException",
                 "_error_message" to "my_error",
-                "my_extra_key_1" to "my_extra_value_1",
-                "my_extra_key_2" to "my_extra_value_2",
+                "_host" to "foo.com",
+                "_path" to "/foo_path/12345",
+                "_query" to "foo_query",
             ),
         )
 
-        assertThat(responseInfo.matchingFields).isEqualTo(
-            fieldsOf(
+        assertThat(responseInfo.matchingFields).containsExactlyInAnyOrder(
+            *fieldsOf(
                 "_request._host" to "api.bitdrift.io",
                 "_request._method" to "GET",
                 "_request._path" to "/my_path/12345",

@@ -24,7 +24,17 @@ class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
         exception?.let {
             throw it
         }
-        return DEFAULT_MEMORY_ATTRIBUTES
+        // Include _is_memory_low in returned attributes to match real implementation
+        return fieldsOf(
+            "_jvm_used_kb" to "50",
+            "_jvm_total_kb" to "100",
+            "_jvm_max_kb" to "100",
+            "_jvm_used_percent" to "50",
+            "_native_used_kb" to "200",
+            "_native_total_kb" to "500",
+            "_memory_class" to "1",
+            "_is_memory_low" to if (isMemoryLow) "1" else "0",
+        )
     }
 
     override fun isMemoryLow() = isMemoryLow
@@ -44,6 +54,24 @@ class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
     }
 
     companion object {
+        /**
+         * Default memory attributes as a Map for test comparisons (with isMemoryLow=true).
+         */
+        val DEFAULT_MEMORY_ATTRIBUTES_MAP_LOW =
+            mapOf(
+                "_jvm_used_kb" to "50",
+                "_jvm_total_kb" to "100",
+                "_jvm_max_kb" to "100",
+                "_jvm_used_percent" to "50",
+                "_native_used_kb" to "200",
+                "_native_total_kb" to "500",
+                "_memory_class" to "1",
+                "_is_memory_low" to "1",
+            )
+
+        /**
+         * Default memory attributes as InternalFields for tests that use array operations (with isMemoryLow=false).
+         */
         val DEFAULT_MEMORY_ATTRIBUTES =
             fieldsOf(
                 "_jvm_used_kb" to "50",
@@ -53,6 +81,7 @@ class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
                 "_native_used_kb" to "200",
                 "_native_total_kb" to "500",
                 "_memory_class" to "1",
+                "_is_memory_low" to "0",
             )
     }
 }
