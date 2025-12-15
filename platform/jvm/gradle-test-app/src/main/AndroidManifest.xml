@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application
         android:name=".GradleTestApp"
@@ -52,6 +54,16 @@
         <meta-data
             android:name="android.webkit.WebView.Multiprocess"
             android:value="true"/>
+
+        <!-- Separate process to avoid starting the application when starting this service -->
+        <service android:name=".ui.service.SendTelemetryService"
+            android:process=":crashReportingProcess"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="This foreground service allows users to report issues" />
+        </service>
 
     </application>
 

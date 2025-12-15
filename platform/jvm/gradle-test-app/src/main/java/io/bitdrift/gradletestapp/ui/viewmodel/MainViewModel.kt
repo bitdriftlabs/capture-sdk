@@ -136,6 +136,7 @@ class MainViewModel(
             is NavigationAction.NavigateToXml -> {}
             is NavigationAction.NavigateToDialogAndModals -> {}
             is NavigationAction.NavigateToStressTest -> {}
+            is NavigationAction.InvokeService -> {}
         }
     }
 
