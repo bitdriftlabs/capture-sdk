@@ -23,8 +23,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Setup Javascript
         uses: ./.github/actions/javascript-setup
-        with:
-          registry-url: 'https://registry.npmjs.org'
       - name: Prepare release
         run: |
           npm version --workspace @bitdrift/react-native $VERSION
