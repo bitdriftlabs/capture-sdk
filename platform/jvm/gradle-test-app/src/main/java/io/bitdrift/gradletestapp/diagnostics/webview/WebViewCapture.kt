@@ -17,24 +17,21 @@ import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.ILogger
-import io.bitdrift.capture.InternalFieldsMap
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
-import io.bitdrift.capture.providers.FieldValue
-import timber.log.Timber
 
 class WebViewCapture(
     private val original: WebViewClient,
     private val logger: ILogger? = Capture.logger(),
 ) : WebViewClient() {
 
-    // attempts to get the latest logger if one wasn't found at construction time
-    private fun getLogger(): ILogger? = logger ?: Capture.logger()
-
     // all WebViewClient callbacks are guaranteed to happen on the main thread, so no need for synchronization
     private var pageLoad: Span? = null
     private var ongoingRequest: PageLoadRequest? = null
+
+    // attempts to get the latest logger if one wasn't found at construction time
+    private fun getLogger(): ILogger? = logger ?: Capture.logger()
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
         if (ongoingRequest == null) {
@@ -139,7 +136,7 @@ class WebViewCapture(
     }
 
     companion object {
-        fun attach(webview: WebView) {
+        fun instrument(webview: WebView) {
             if (WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_CLIENT)) {
                 val original = WebViewCompat.getWebViewClient(webview)
                 webview.webViewClient = WebViewCapture(original)

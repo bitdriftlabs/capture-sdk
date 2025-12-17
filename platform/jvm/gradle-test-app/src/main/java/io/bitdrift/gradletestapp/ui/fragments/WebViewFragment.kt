@@ -7,25 +7,14 @@
 
 package io.bitdrift.gradletestapp.ui.fragments
 
-import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.fragment.app.Fragment
-import androidx.webkit.WebViewCompat
-import androidx.webkit.WebViewFeature
-import io.bitdrift.capture.Capture
-import io.bitdrift.capture.LogLevel
-import io.bitdrift.capture.events.span.Span
-import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.diagnostics.webview.WebViewCapture
-import kotlin.concurrent.Volatile
 
 /**
  * A basic WebView that can be used to test multi process.
@@ -41,7 +30,7 @@ class WebViewFragment : Fragment() {
         val webView = view.findViewById<WebView>(R.id.webView)
 
         // Instrument the WebView with bitdrift capture
-        WebViewCapture.attach(webView)
+        WebViewCapture.instrument(webView)
 
         webView.loadUrl(urls.random())
         return view
