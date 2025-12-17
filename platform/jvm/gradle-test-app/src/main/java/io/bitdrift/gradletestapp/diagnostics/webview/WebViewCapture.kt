@@ -1,3 +1,10 @@
+// capture-sdk - bitdrift's client SDK
+// Copyright Bitdrift, Inc. All rights reserved.
+//
+// Use of this source code is governed by a source available license that can be found in the
+// LICENSE file or at:
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+
 package io.bitdrift.gradletestapp.diagnostics.webview
 
 import android.graphics.Bitmap
@@ -10,9 +17,11 @@ import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.ILogger
+import io.bitdrift.capture.InternalFieldsMap
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
+import io.bitdrift.capture.providers.FieldValue
 import timber.log.Timber
 
 class WebViewCapture(
@@ -23,32 +32,33 @@ class WebViewCapture(
     // attempts to get the latest logger if one wasn't found at construction time
     private fun getLogger(): ILogger? = logger ?: Capture.logger()
 
-    @Volatile
-    var pageLoad: Span? = null
-
-    private fun logLifecycleCallback(methodName: String, url: String? = null) {
-        Timber.i("WebViewClient-$methodName(),url=$url")
-    }
-
-    override fun onLoadResource(view: WebView?, url: String?) {
-        logLifecycleCallback("onLoadResource", url)
-        super.onLoadResource(view, url)
-    }
+    // all WebViewClient callbacks are guaranteed to happen on the main thread, so no need for synchronization
+    private var pageLoad: Span? = null
+    private var ongoingRequest: PageLoadRequest? = null
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-        logLifecycleCallback("onPageStarted", url)
-        val fields = buildMap {
-            url?.let { put("_url", it) }
+        if (ongoingRequest == null) {
+            // Only for when onGoingRequest wasn't already set by an early error callback
+            ongoingRequest = PageLoadRequest(url.orEmpty())
         }
-        pageLoad = getLogger()?.startSpan("webview.pageLoad", LogLevel.INFO, fields)
+        pageLoad = getLogger()?.startSpan("webview.pageLoad", LogLevel.DEBUG, ongoingRequest?.fields)
+
         original.onPageStarted(view, url, favicon)
     }
 
+    // This callback always happens at the end, even after error callbacks
     override fun onPageFinished(view: WebView?, url: String?) {
-        logLifecycleCallback("onPageFinished", url)
-        original.onPageFinished(view, url)
-        pageLoad?.end(SpanResult.SUCCESS)
+        ongoingRequest?.let {
+            if (it.isError) {
+                pageLoad?.end(SpanResult.FAILURE, it.fields)
+            } else {
+                pageLoad?.end(SpanResult.SUCCESS)
+            }
+        }
         pageLoad = null
+        ongoingRequest = null
+
+        original.onPageFinished(view, url)
     }
 
     override fun onReceivedError(
@@ -56,29 +66,35 @@ class WebViewCapture(
         request: WebResourceRequest?,
         error: WebResourceError?
     ) {
-        logLifecycleCallback("onReceivedError", request?.url?.toString())
         // Only handle errors for the main page load, not for sub-resources like images.
         if (request?.isForMainFrame == true) {
-            val fields = buildMap {
-                put("_errorCode", error?.errorCode.toString())
-                put("_errorCodeName", error?.errorCode?.toErrorCodeName().orEmpty())
-                put("_description", error?.description?.toString().orEmpty())
-                put("_url", request.url.toString())
-            }
-
-            // End the span with a failure result
-            pageLoad?.end(SpanResult.FAILURE, fields)
-            pageLoad = null
+            ongoingRequest = PageLoadRequest(
+                url = request.url.toString(),
+                isError = true,
+                errorCode = error?.errorCode.toString(),
+                errorCodeName = error?.errorCode?.toErrorCodeName(),
+                errorDescription = error?.description?.toString(),
+            )
         }
         original.onReceivedError(view, request, error)
     }
 
+    // This callback can happen very early; even before onPageStarted
+    // see: https://issuetracker.google.com/issues/210920403
     override fun onReceivedHttpError(
         view: WebView?,
         request: WebResourceRequest?,
         errorResponse: WebResourceResponse?
     ) {
-        logLifecycleCallback("onReceivedHttpError", request?.url?.toString())
+        // Only handle errors for the main page load, not for sub-resources like images.
+        if (request?.isForMainFrame == true) {
+            ongoingRequest = PageLoadRequest(
+                url = request.url.toString(),
+                isError = true,
+                errorCode = errorResponse?.statusCode.toString(),
+                errorDescription = errorResponse?.reasonPhrase,
+            )
+        }
         super.onReceivedHttpError(view, request, errorResponse)
     }
 
@@ -102,6 +118,25 @@ class WebViewCapture(
             ERROR_UNSAFE_RESOURCE         -> "UNSAFE_RESOURCE"
             else                          -> "UNKNOWN"
         }
+
+    private data class PageLoadRequest(
+        val url: String,
+        val isError: Boolean = false,
+        val errorCode: String? = null,
+        val errorCodeName: String? = null,
+        val errorDescription: String? = null,
+    ) {
+        val fields: Map<String, String> by lazy {
+            buildMap {
+                put("_url", url)
+                if (isError) {
+                    errorCode?.let { put("_errorCode", it) }
+                    errorCodeName?.let { put("_errorCodeName", it) }
+                    errorDescription?.let { put("_description", it) }
+                }
+            }
+        }
+    }
 
     companion object {
         fun attach(webview: WebView) {

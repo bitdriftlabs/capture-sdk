@@ -50,7 +50,8 @@ class WebViewFragment : Fragment() {
     companion object {
         private val urls = listOf(
             "https://bitdrift.io/",
-            "https://bitdrift.ai/", // 404
+            "https://bitdrift.io/hello", // 404
+            "https://bitdrift.ai/", // timeout
             "https://www.wikipedia.org/",
         )
     }
