@@ -24,6 +24,7 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.gradletestapp.R
+import io.bitdrift.gradletestapp.diagnostics.webview.WebViewCapture
 import kotlin.concurrent.Volatile
 
 /**
@@ -38,49 +39,19 @@ class WebViewFragment : Fragment() {
     ): View {
         val view = inflater.inflate(R.layout.fragment_web_view, container, false)
         val webView = view.findViewById<WebView>(R.id.webView)
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_CLIENT)) {
-            val original = WebViewCompat.getWebViewClient(webView)
-            webView.webViewClient = WebViewClientWrapper(original)
-        }
-        webView.loadUrl("https://bitdrift.io/")
+
+        // Instrument the WebView with bitdrift capture
+        WebViewCapture.attach(webView)
+
+        webView.loadUrl(urls.random())
         return view
     }
 
-    class WebViewClientWrapper(private val original : WebViewClient) : WebViewClient() {
-        @Volatile
-        var onPageSpan: Span? = null
-        override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-            val fields = url?.let {
-                mapOf("_url" to it)
-            }
-            onPageSpan = Capture.Logger.startSpan("WebViewFragment.onPage", LogLevel.INFO, fields)
-            original.onPageStarted(view, url, favicon)
-        }
-        override fun onPageFinished(view: WebView?, url: String?) {
-            original.onPageFinished(view, url)
-            onPageSpan?.end(SpanResult.SUCCESS)
-            onPageSpan = null
-        }
-
-        override fun onReceivedError(
-            view: WebView?,
-            request: WebResourceRequest?,
-            error: WebResourceError?
-        ) {
-            // Only handle errors for the main page load, not for sub-resources like images.
-            if (request?.isForMainFrame == true) {
-                val fields = mapOf(
-                    "_errorCode" to error?.errorCode.toString(),
-                    "_description" to error?.description?.toString().orEmpty(),
-                    "_url" to request.url.toString(),
-                )
-                Capture.Logger.logError(fields = fields) { "WebViewFragment.onReceivedError" }
-
-                // End the span with a failure result
-                onPageSpan?.end(SpanResult.FAILURE)
-                onPageSpan = null
-            }
-            original.onReceivedError(view, request, error)
-        }
+    companion object {
+        private val urls = listOf(
+            "https://bitdrift.io/",
+            "https://bitdrift.ai/", // 404
+            "https://www.wikipedia.org/",
+        )
     }
 }

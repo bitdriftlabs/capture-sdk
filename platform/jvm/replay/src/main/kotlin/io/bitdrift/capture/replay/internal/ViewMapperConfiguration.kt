@@ -35,7 +35,6 @@ internal class ViewMapperConfiguration(
         map.toMap()
     }
 
-    // TODO(murki): Clean-up the list below for Compose and provide a Modifier to let users mark things a types instead.
     private val defaultMapper: Map<ReplayType, List<String>> =
         mapOf(
             ReplayType.View to
@@ -88,7 +87,7 @@ internal class ViewMapperConfiguration(
             ReplayType.SwitchOff to
                 listOf(
                     // Compose (Foundation)
-                    "Checkbox", // TODO(murki): Figure how to handle on/off state for Compose
+                    "Checkbox",
                 ),
             ReplayType.Keyboard to emptyList(),
             ReplayType.Map to
@@ -102,6 +101,9 @@ internal class ViewMapperConfiguration(
                     "TextField",
                 ),
             ReplayType.TransparentView to emptyList(),
-            ReplayType.WebView to emptyList(),
+            ReplayType.WebView to
+                listOf(
+                    "WebView",
+                ),
         )
 }
