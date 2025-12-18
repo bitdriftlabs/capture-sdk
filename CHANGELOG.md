@@ -1,19 +1,17 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.21.1...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.21.2...HEAD
 
 ### Both
 
 **Added**
 
-- Added support for workflow matching on feature flag state and transitions.
-- Fixed an issue where multiple Logger instances could come up and conflict. Subsequent loggers will now noop.
+- Nothing yet!
 
 **Changed**
 
-- **BREAKING**: The `variant` parameter in `setFeatureFlagExposure` (Android) / `addFeatureFlagExposure` (iOS) is now required instead of optional.
-- Added method overloads to accept `Boolean` / `Bool` values for the `variant` parameter in `setFeatureFlagExposure` (Android) / `addFeatureFlagExposure` (iOS), in addition to the existing `String` parameter.
+- Nothing yet!
 
 **Fixed**
 
@@ -42,6 +40,31 @@
 **Changed**
 
 - Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.21.2]
+[0.21.2]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.2
+
+### Both
+
+**Added**
+
+- Added support for workflow matching on feature flag state and transitions.
+- Fixed an issue where multiple Logger instances could come up and conflict. Subsequent loggers will now noop.
+
+**Changed**
+
+- **BREAKING**: The `variant` parameter in `setFeatureFlagExposure` (Android) / `addFeatureFlagExposure` (iOS) is now required instead of optional.
+- Added method overloads to accept `Boolean` / `Bool` values for the `variant` parameter in `setFeatureFlagExposure` (Android) / `addFeatureFlagExposure` (iOS), in addition to the existing `String` parameter.
+
+**Fixed**
+
+- Fixed an issue where multiple Logger instances could come up and conflict. Subsequent loggers will now noop.
+
+### iOS
 
 **Fixed**
 
