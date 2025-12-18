@@ -59,16 +59,11 @@ class FirstFragment : Fragment() {
     private val composeView get() = _composeView!!
     private lateinit var clipboardManager: ClipboardManager
 
-    private var firstFragmentToCopySessionSpan: Span? = null
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        firstFragmentToCopySessionSpan =
-            Logger.startSpan("CreateFragmentToCopySessionClick", LogLevel.INFO)
-
         _composeView = ComposeView(requireContext())
 
         clipboardManager =
@@ -137,8 +132,6 @@ class FirstFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         Logger.logScreenView("first_fragment")
-
-        firstFragmentToCopySessionSpan?.end(SpanResult.SUCCESS)
     }
 
     override fun onDestroyView() {
