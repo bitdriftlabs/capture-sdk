@@ -45,7 +45,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed an issue with JavaScript error reporting in React Native where crash reports could not be symbolicated.
 
 ## [0.21.1]
 [0.21.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.1
