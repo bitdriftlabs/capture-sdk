@@ -45,7 +45,7 @@
 
 **Fixed**
 
-- Fixed an issue with JavaScript error reporting in React Native where error reports could not be symbolicated.
+- Fixed an issue with JavaScript error reporting in the React Native SDK that prevented stack trace de-minification.
 
 ## [0.21.1]
 [0.21.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.1
