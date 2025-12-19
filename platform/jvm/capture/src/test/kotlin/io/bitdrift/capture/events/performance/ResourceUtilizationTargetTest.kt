@@ -97,7 +97,7 @@ class ResourceUtilizationTargetTest {
         )
 
         // no AppMemPressure log by default
-        verify(logger, never()).log(any(), any(), any(), any())
+        verify(logger, never()).log(any<LogLevel>(), any<Map<String, String>>(), any(), any())
     }
 
     @Test

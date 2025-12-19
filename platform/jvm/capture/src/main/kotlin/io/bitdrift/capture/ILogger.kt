@@ -126,15 +126,16 @@ interface ILogger {
      * To construct `Fields` instance you can use FieldProvider.fieldsOf("_key", "_value")
      *
      * @param level the severity of the log.
-     * @param fields key-value pairs to be added to the log line, constructed via [io.bitdrift.capture.providers.fieldsOf].
+     * @param fields key-value pairs to be added to the log line, constructed via
+     *               [io.bitdrift.capture.providers.fieldsOf]. Use [Fields.EMPTY] if no fields are needed.
      * @param throwable an optional throwable to include in the log line.
      * @param message the main message of the log line, evaluated lazily.
      * @see log for the current logging method that accepts `Map<String, String>`.
      * @see io.bitdrift.capture.providers.fieldsOf for constructing [Fields] instances.
      */
-    fun logOptimized(
+    fun log(
         level: LogLevel,
-        fields: Fields = Fields.EMPTY,
+        fields: Fields,
         throwable: Throwable? = null,
         message: () -> String,
     )
