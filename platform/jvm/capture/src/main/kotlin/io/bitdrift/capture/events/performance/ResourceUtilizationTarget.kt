@@ -35,8 +35,8 @@ internal class ResourceUtilizationTarget(
     override fun tick() {
         executor.execute {
             try {
-                val memorySnapshot = memoryMetricsProvider.getMemoryAttributes()
                 val start = clock.elapsedRealtime()
+                val memorySnapshot = memoryMetricsProvider.getMemoryAttributes()
 
                 val fields =
                     combineFields(
