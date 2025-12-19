@@ -1,11 +1,11 @@
+@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+
 // capture-sdk - bitdrift's client SDK
 // Copyright Bitdrift, Inc. All rights reserved.
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-
-@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 
 package io.bitdrift.microbenchmark
 
@@ -22,14 +22,20 @@ import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponse.HttpResult
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
+import io.bitdrift.capture.ErrorHandler
+import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.timber.CaptureTree
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import timber.log.Timber
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import timber.log.Timber
+import java.util.Date
 
 private const val LOG_MESSAGE = "50 characters long test message - 0123456789012345"
 
@@ -225,9 +231,47 @@ class LogBenchmarkTest {
         }
     }
 
+    @Test
+    fun metadataProvider10Fields() {
+        val metadataProvider: MetadataProvider = buildMetadataProvider(10)
+
+        benchmarkRule.measureRepeated {
+            metadataProvider.ootbFields()
+            metadataProvider.customFields()
+        }
+    }
+
+    @Test
+    fun metadataProvider500Fields() {
+        val metadataProvider: MetadataProvider = buildMetadataProvider(500)
+
+        benchmarkRule.measureRepeated {
+            metadataProvider.ootbFields()
+            metadataProvider.customFields()
+        }
+    }
+
+    @Test
+    fun mapToFields50Fields() {
+        val map = buildFieldsMap(50)
+        benchmarkRule.measureRepeated {
+            map.toFields()
+        }
+    }
+
     private fun plantCaptureTree() {
         Timber.uprootAll()
         Timber.plant(CaptureTree())
+    }
+
+    private fun buildMetadataProvider(size: Int): MetadataProvider {
+        val providers = createFieldProviders(providers = size, fields = size)
+        return MetadataProvider(
+            dateProvider = { Date() },
+            ootbFieldProviders = providers,
+            customFieldProviders = emptyList(),
+            errorHandler = ErrorHandler(),
+        )
     }
 
     private fun buildFieldsMap(size: Int, keyIdentifier: String = "key_"): Map<String, String> =
