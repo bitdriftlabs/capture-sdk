@@ -374,7 +374,7 @@ internal class LoggerImpl(
         )
     }
 
-    override fun log(
+    override fun logOptimized(
         level: LogLevel,
         fields: Fields,
         throwable: Throwable?,

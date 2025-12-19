@@ -42,7 +42,7 @@ class CaptureTreeTest {
             "tag" to tag,
         )
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(
+        verify(mockLogger).logOptimized(
             eq(LogLevel.ERROR),
             eq(expectedFields),
             eq(exception),
@@ -61,7 +61,7 @@ class CaptureTreeTest {
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.WARNING), any(), anyOrNull(), argCaptor.capture())
+        verify(mockLogger).logOptimized(eq(LogLevel.WARNING), any(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
 
@@ -75,7 +75,7 @@ class CaptureTreeTest {
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.INFO), any(), anyOrNull(), argCaptor.capture())
+        verify(mockLogger).logOptimized(eq(LogLevel.INFO), any(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
 
@@ -89,7 +89,7 @@ class CaptureTreeTest {
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.DEBUG), any(), anyOrNull(), argCaptor.capture())
+        verify(mockLogger).logOptimized(eq(LogLevel.DEBUG), any(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
 
@@ -103,7 +103,7 @@ class CaptureTreeTest {
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.TRACE), any(), anyOrNull(), argCaptor.capture())
+        verify(mockLogger).logOptimized(eq(LogLevel.TRACE), any(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
 
@@ -117,7 +117,7 @@ class CaptureTreeTest {
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.DEBUG), any(), anyOrNull(), argCaptor.capture())
+        verify(mockLogger).logOptimized(eq(LogLevel.DEBUG), any(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
 }
