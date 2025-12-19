@@ -43,7 +43,7 @@ use platform_shared::javascript_error::{
   DeviceMetadata,
 };
 use platform_shared::metadata::{self, Mobile};
-use platform_shared::{read_global_state_snapshot, LoggerHolder, LoggerId};
+use platform_shared::{LoggerHolder, LoggerId};
 use protobuf::Enum as _;
 use std::borrow::{Borrow, Cow};
 use std::boxed::Box;
@@ -457,7 +457,6 @@ extern "C" fn capture_create_logger(
     || {
       let storage = Box::<UserDefaultsStorage>::default();
       let store = Arc::new(bd_key_value::Store::new(storage));
-      let previous_run_global_state = read_global_state_snapshot(store.clone());
 
       let session_strategy =
         crate::session::SessionStrategy::new(session_strategy).create(store.clone())?;
@@ -520,7 +519,7 @@ extern "C" fn capture_create_logger(
       })
       .with_internal_logger(true)
       .build()
-      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future, previous_run_global_state))?;
+      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future))?;
 
       Ok(logger.into_raw())
     },
