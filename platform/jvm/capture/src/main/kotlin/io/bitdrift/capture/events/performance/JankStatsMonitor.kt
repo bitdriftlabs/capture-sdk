@@ -37,7 +37,7 @@ import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.events.span.SpanField
-import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.threading.CaptureDispatchers
@@ -228,12 +228,12 @@ internal class JankStatsMonitor(
     }
 
     @WorkerThread
-    private fun List<StateInfo>.toInternalFields(): Fields {
+    private fun List<StateInfo>.toInternalFields(): ArrayFields {
         // Convert the list of StateInfo to a map of fields using StateInfo's key and value properties
-        if (isEmpty()) return Fields.EMPTY
+        if (isEmpty()) return ArrayFields.EMPTY
         val keys = Array(size) { i -> this[i].key }
         val values = Array(size) { i -> this[i].value }
-        return Fields(keys, values)
+        return ArrayFields(keys, values)
     }
 
     private fun FrameData.toJankType(): JankFrameType {

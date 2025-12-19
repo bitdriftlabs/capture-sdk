@@ -85,14 +85,14 @@ sealed class FieldValue {
     }
 }
 
-typealias LegacyFields = Map<String, String>
+typealias Fields = Map<String, String>
 
 /**
  * A field provider is used to provide additional fields to each log event.
  *
  * It is invoked inline during logging, and so should therefore avoid doing expensive or blocking work.
  */
-fun interface FieldProvider : () -> LegacyFields
+fun interface FieldProvider : () -> Fields
 
 /**
  * Converts a String into FieldValue.StringField.
@@ -115,13 +115,12 @@ internal fun ByteArray.toFieldValue() =
  * This is an optimization to avoid creating wrapper objects when passing to JNI.
  * keys[i] corresponds to values[i].
  *
- * Note to construct it please use, fieldsOf(vararg pairs: Pair<String, String>): Fields
+ * Note to construct it please use, fieldsOf(vararg pairs: Pair<String, String>): ArrayFields
  *
  * @property keys Array of field keys
  * @property values Array of field values corresponding to keys
  */
-@Suppress("UndocumentedPublicClass", "UndocumentedPublicFunction")
-class Fields internal constructor(
+class ArrayFields internal constructor(
     internal val keys: Array<String>,
     internal val values: Array<String>,
 ) {
@@ -131,22 +130,33 @@ class Fields internal constructor(
 
     internal fun isNotEmpty(): Boolean = keys.isNotEmpty()
 
-    operator fun get(key: String): String? {
+    internal operator fun get(key: String): String? {
         val index = keys.indexOf(key)
         return if (index >= 0) values[index] else null
     }
 
+    /**
+     * Checks equality based on the contents of [keys] and [values] arrays.
+     */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is Fields) return false
+        if (other !is ArrayFields) return false
         return keys.contentEquals(other.keys) && values.contentEquals(other.values)
     }
 
+    /**
+     * Computes hash code based on the contents of [keys] and [values] arrays.
+     */
     override fun hashCode(): Int = 31 * keys.contentHashCode() + values.contentHashCode()
 
+    /**
+     * Companion object providing constants for [ArrayFields].
+     */
     companion object {
-        /** Provides an empty Fields instance **/
-        val EMPTY = Fields(emptyArray(), emptyArray())
+        /**
+         * Provides an empty ArrayFields instance.
+         */
+        val EMPTY = ArrayFields(emptyArray(), emptyArray())
     }
 }
 
@@ -161,29 +171,29 @@ internal fun jniFieldsOf(vararg pairs: Pair<String, FieldValue>): Array<Field> =
  * Used for cases where we need to mix string fields with binary fields.
  */
 internal fun combineJniFields(
-    stringFields: Fields,
+    stringArrayFields: ArrayFields,
     binaryFields: Array<Field>,
 ): Array<Field> {
-    val totalSize = stringFields.size + binaryFields.size
+    val totalSize = stringArrayFields.size + binaryFields.size
     if (totalSize == 0) return emptyArray()
 
     val result = ArrayList<Field>(totalSize)
-    for (i in 0 until stringFields.size) {
-        result.add(Field(stringFields.keys[i], FieldValue.StringField(stringFields.values[i])))
+    for (i in 0 until stringArrayFields.size) {
+        result.add(Field(stringArrayFields.keys[i], FieldValue.StringField(stringArrayFields.values[i])))
     }
     result.addAll(binaryFields)
     return result.toTypedArray()
 }
 
 /**
- * Creates a [Fields] instance containing a single key-value pair.
+ * Creates a [ArrayFields] instance containing a single key-value pair.
  *
  * This is an optimized alternative to `fieldsOf("key" to "value")` that avoids
  * creating a Pair object and useful where there is only one entry to be added.
  *
  * @param key The field key.
  * @param value The field value.
- * @return A [Fields] instance containing the single key-value pair.
+ * @return A [ArrayFields] instance containing the single key-value pair.
  *
  * Example:
  * ```
@@ -193,13 +203,13 @@ internal fun combineJniFields(
 fun fieldOf(
     key: String,
     value: String,
-): Fields = Fields(arrayOf(key), arrayOf(value))
+): ArrayFields = ArrayFields(arrayOf(key), arrayOf(value))
 
 /**
- * Creates a [Fields] instance from key-value pairs.
+ * Creates a [ArrayFields] instance from key-value pairs.
  *
  * @param pairs Vararg of key-value pairs, where each pair is created using `"key" to "value"` syntax.
- * @return A [Fields] instance containing the provided key-value pairs, or [Fields.EMPTY] if no pairs provided.
+ * @return A [ArrayFields] instance containing the provided key-value pairs, or [ArrayFields.EMPTY] if no pairs provided.
  *
  * Example:
  * ```
@@ -209,19 +219,19 @@ fun fieldOf(
  * )
  * ```
  */
-fun fieldsOf(vararg pairs: Pair<String, String>): Fields {
-    if (pairs.isEmpty()) return Fields.EMPTY
+fun fieldsOf(vararg pairs: Pair<String, String>): ArrayFields {
+    if (pairs.isEmpty()) return ArrayFields.EMPTY
     val keys = Array(pairs.size) { pairs[it].first }
     val values = Array(pairs.size) { pairs[it].second }
-    return Fields(keys, values)
+    return ArrayFields(keys, values)
 }
 
 /**
- * Creates a [Fields] instance from key-value pairs, filtering out pairs with null values.
+ * Creates a [ArrayFields] instance from key-value pairs, filtering out pairs with null values.
  *
  * @param pairs Vararg of key-value pairs, where each pair is created using `"key" to value` syntax.
  *              Pairs with null values are excluded from the result.
- * @return A [Fields] instance containing only non-null key-value pairs, or [Fields.EMPTY] if all values are null.
+ * @return A [ArrayFields] instance containing only non-null key-value pairs, or [ArrayFields.EMPTY] if all values are null.
  *
  * Example:
  * ```
@@ -232,63 +242,81 @@ fun fieldsOf(vararg pairs: Pair<String, String>): Fields {
  * )
  * ```
  */
-fun fieldsOfOptional(vararg pairs: Pair<String, String?>): Fields {
+fun fieldsOfOptional(vararg pairs: Pair<String, String?>): ArrayFields {
     val nonNull = pairs.filter { it.second != null }
-    if (nonNull.isEmpty()) return Fields.EMPTY
+    if (nonNull.isEmpty()) return ArrayFields.EMPTY
     val keys = Array(nonNull.size) { nonNull[it].first }
     val values = Array(nonNull.size) { nonNull[it].second!! }
-    return Fields(keys, values)
+    return ArrayFields(keys, values)
 }
 
 /**
  * Converts an Array<Pair<String, String>> to InternalFields.
  */
-internal fun Array<Pair<String, String>>.toFields(): Fields {
-    if (isEmpty()) return Fields.EMPTY
+internal fun Array<Pair<String, String>>.toFields(): ArrayFields {
+    if (isEmpty()) return ArrayFields.EMPTY
     val keys = Array(size) { this[it].first }
     val values = Array(size) { this[it].second }
-    return Fields(keys, values)
+    return ArrayFields(keys, values)
 }
 
 /**
  * Converts a Map<String, String> to InternalFields.
  * Handles the Java/Kotlin interop case where values might be null despite the signature.
  */
-internal fun Map<String, String>.toFields(): Fields {
-    if (isEmpty()) return Fields.EMPTY
+internal fun Map<String, String>.toFields(): ArrayFields {
+    if (isEmpty()) return ArrayFields.EMPTY
     val validEntries =
         entries.filter { (k, v) ->
             @Suppress("SENSELESS_COMPARISON")
             k != null && v != null
         }
-    if (validEntries.isEmpty()) return Fields.EMPTY
+    if (validEntries.isEmpty()) return ArrayFields.EMPTY
     val keys = Array(validEntries.size) { validEntries[it].key }
     val values = Array(validEntries.size) { validEntries[it].value }
-    return Fields(keys, values)
+    return ArrayFields(keys, values)
+}
+
+/**
+ * Converts a nullable Map<String, String> to [ArrayFields].
+ * Returns [ArrayFields.EMPTY] if the map is null or empty.
+ * Handles the Java/Kotlin interop case where values might be null despite the signature.
+ */
+fun Map<String, String>?.toFieldsOrEmpty(): ArrayFields {
+    if (this == null || isEmpty()) return ArrayFields.EMPTY
+    val validEntries =
+        entries.filter { (k, v) ->
+            @Suppress("SENSELESS_COMPARISON")
+            k != null && v != null
+        }
+    if (validEntries.isEmpty()) return ArrayFields.EMPTY
+    val keys = Array(validEntries.size) { validEntries[it].key }
+    val values = Array(validEntries.size) { validEntries[it].value }
+    return ArrayFields(keys, values)
 }
 
 /**
  * Combines multiple InternalFields into a single array.
  */
-fun combineFields(vararg arrays: Fields): Fields {
+fun combineFields(vararg arrays: ArrayFields): ArrayFields {
     val totalSize = arrays.sumOf { it.size }
-    if (totalSize == 0) return Fields.EMPTY
+    if (totalSize == 0) return ArrayFields.EMPTY
 
-    val keys = Array(totalSize) { "" }
-    val values = Array(totalSize) { "" }
+    val keys = arrayOfNulls<String>(totalSize)
+    val values = arrayOfNulls<String>(totalSize)
     var offset = 0
     for (array in arrays) {
         System.arraycopy(array.keys, 0, keys, offset, array.size)
         System.arraycopy(array.values, 0, values, offset, array.size)
         offset += array.size
     }
-    return Fields(keys, values)
+    return ArrayFields(keys.requireNoNulls(), values.requireNoNulls())
 }
 
 /**
  * Converts InternalFields to legacy Array<Field> for JNI calls that require it.
  */
-internal fun Fields.toLegacyJniFields(): Array<Field> {
+internal fun ArrayFields.toLegacyJniFields(): Array<Field> {
     if (isEmpty()) return emptyArray()
     return Array(size) { i -> Field(keys[i], FieldValue.StringField(values[i])) }
 }
@@ -322,7 +350,7 @@ internal class FieldArraysBuilder(
         return this
     }
 
-    fun addAll(other: Fields): FieldArraysBuilder {
+    fun addAll(other: ArrayFields): FieldArraysBuilder {
         for (i in 0 until other.size) {
             keys.add(other.keys[i])
             values.add(other.values[i])
@@ -332,7 +360,7 @@ internal class FieldArraysBuilder(
 
     fun addAllPrefixed(
         prefix: String,
-        other: Fields,
+        other: ArrayFields,
     ): FieldArraysBuilder {
         for (i in 0 until other.size) {
             keys.add("$prefix${other.keys[i]}")
@@ -341,8 +369,8 @@ internal class FieldArraysBuilder(
         return this
     }
 
-    fun build(): Fields {
-        if (keys.isEmpty()) return Fields.EMPTY
-        return Fields(keys.toTypedArray(), values.toTypedArray())
+    fun build(): ArrayFields {
+        if (keys.isEmpty()) return ArrayFields.EMPTY
+        return ArrayFields(keys.toTypedArray(), values.toTypedArray())
     }
 }

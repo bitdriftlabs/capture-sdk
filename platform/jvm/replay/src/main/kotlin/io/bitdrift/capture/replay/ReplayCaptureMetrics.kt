@@ -32,7 +32,7 @@ data class ReplayCaptureMetrics(
         get() = parseDuration.inWholeMilliseconds + encodingTimeMs
 
     /**
-     * Convert the metrics to a Array
+     * Convert the metrics to an Array
      */
     fun toArray(): Array<Pair<String, String>> =
         arrayOf(

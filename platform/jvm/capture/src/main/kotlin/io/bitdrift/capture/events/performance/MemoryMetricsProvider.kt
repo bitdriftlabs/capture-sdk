@@ -10,7 +10,7 @@ package io.bitdrift.capture.events.performance
 import android.app.ActivityManager
 import android.os.Debug
 import io.bitdrift.capture.common.RuntimeConfig
-import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldOf
 import io.bitdrift.capture.providers.fieldsOf
@@ -28,7 +28,7 @@ internal class MemoryMetricsProvider(
         getConfiguredLowMemoryPercentThreshold()
     }
 
-    override fun getMemoryAttributes(): Fields =
+    override fun getMemoryAttributes(): ArrayFields =
         combineFields(
             fieldsOf(
                 "_jvm_used_kb" to jvmMemoryProvider.usedMemoryBytes().bToKb(),
@@ -44,7 +44,7 @@ internal class MemoryMetricsProvider(
             ),
         )
 
-    override fun getMemoryClass(): Fields = fieldOf("_memory_class", memoryClassMB().toString())
+    override fun getMemoryClass(): ArrayFields = fieldOf("_memory_class", memoryClassMB().toString())
 
     override fun isMemoryLow(): Boolean {
         val thresholdPercent = appLowMemoryConfigThreshold ?: return false

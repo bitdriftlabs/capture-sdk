@@ -15,7 +15,7 @@ import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.common.PowerMonitor
-import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import java.util.concurrent.ExecutorService
@@ -63,7 +63,7 @@ internal class ResourceUtilizationTarget(
         }
     }
 
-    private fun logMemoryPressure(memAttributes: Fields) {
+    private fun logMemoryPressure(memAttributes: ArrayFields) {
         logger.log(
             LogType.LIFECYCLE,
             LogLevel.WARNING,

@@ -13,7 +13,7 @@ import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
-import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.toFields
@@ -46,7 +46,7 @@ class Span internal constructor(
      */
     val name: String,
     private val level: LogLevel,
-    fields: Fields? = null,
+    arrayFields: ArrayFields? = null,
     private val customStartTimeMs: Long? = null,
     /**
      * An optional ID of the parent span, used to build span hierarchies. A span without a
@@ -64,13 +64,13 @@ class Span internal constructor(
     // and continues to tick even when the CPU is in power saving modes,
     // so is the recommend basis for general purpose interval timing.
     private val startTimeMs: Long = clock.elapsedRealtime()
-    private val startFields: Fields = buildStartFields(fields)
+    private val startArrayFields: ArrayFields = buildStartFields(arrayFields)
 
     init {
         logger?.log(
             LogType.SPAN,
             level,
-            startFields,
+            startArrayFields,
             attributesOverrides = customStartTimeMs?.let { LogAttributesOverrides.OccurredAt(it) },
         ) { "" }
     }
@@ -111,9 +111,9 @@ class Span internal constructor(
 
             val endFields =
                 if (fields != null) {
-                    combineFields(startFields, fields.toFields(), endCoreFields)
+                    combineFields(startArrayFields, fields.toFields(), endCoreFields)
                 } else {
-                    combineFields(startFields, endCoreFields)
+                    combineFields(startArrayFields, endCoreFields)
                 }
 
             this.log(
@@ -126,7 +126,7 @@ class Span internal constructor(
         logger = null
     }
 
-    private fun buildStartFields(fields: Fields?): Fields {
+    private fun buildStartFields(arrayFields: ArrayFields?): ArrayFields {
         val coreFields =
             if (parentSpanId != null) {
                 fieldsOf(
@@ -142,6 +142,6 @@ class Span internal constructor(
                     SpanField.Key.TYPE to SpanField.Value.TYPE_START,
                 )
             }
-        return if (fields != null) combineFields(fields, coreFields) else coreFields
+        return if (arrayFields != null) combineFields(arrayFields, coreFields) else coreFields
     }
 }

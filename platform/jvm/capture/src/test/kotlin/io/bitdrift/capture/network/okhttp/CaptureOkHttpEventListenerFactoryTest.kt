@@ -129,45 +129,45 @@ class CaptureOkHttpEventListenerFactoryTest {
         val httpRequestInfo = httpRequestInfoCapture.firstValue
         val httpResponseInfo = httpResponseInfoCapture.firstValue
         // common request fields
-        assertThat(httpRequestInfo.fields["_span_name"].toString()).isEqualTo("_http")
-        assertThat(httpRequestInfo.fields["_host"].toString()).isEqualTo("api.bitdrift.io")
-        assertThat(httpRequestInfo.fields["_host"].toString())
-            .isEqualTo(httpResponseInfo.fields["_host"].toString())
-        assertThat(httpRequestInfo.fields["_method"].toString()).isEqualTo("POST")
-        assertThat(httpResponseInfo.fields["_method"].toString())
-            .isEqualTo(httpRequestInfo.fields["_method"].toString())
-        assertThat(httpRequestInfo.fields["_path"].toString()).isEqualTo("/my_path/12345")
-        assertThat(httpResponseInfo.fields["_path"].toString())
-            .isEqualTo(httpRequestInfo.fields["_path"].toString())
-        assertThat(httpRequestInfo.fields["_query"].toString()).isEqualTo("my_query=my_value")
-        assertThat(httpResponseInfo.fields["_query"].toString())
-            .isEqualTo(httpRequestInfo.fields["_query"].toString())
-        assertThat(httpResponseInfo.fields["_span_id"].toString())
-            .isEqualTo(httpRequestInfo.fields["_span_id"].toString())
+        assertThat(httpRequestInfo.arrayFields["_span_name"].toString()).isEqualTo("_http")
+        assertThat(httpRequestInfo.arrayFields["_host"].toString()).isEqualTo("api.bitdrift.io")
+        assertThat(httpRequestInfo.arrayFields["_host"].toString())
+            .isEqualTo(httpResponseInfo.arrayFields["_host"].toString())
+        assertThat(httpRequestInfo.arrayFields["_method"].toString()).isEqualTo("POST")
+        assertThat(httpResponseInfo.arrayFields["_method"].toString())
+            .isEqualTo(httpRequestInfo.arrayFields["_method"].toString())
+        assertThat(httpRequestInfo.arrayFields["_path"].toString()).isEqualTo("/my_path/12345")
+        assertThat(httpResponseInfo.arrayFields["_path"].toString())
+            .isEqualTo(httpRequestInfo.arrayFields["_path"].toString())
+        assertThat(httpRequestInfo.arrayFields["_query"].toString()).isEqualTo("my_query=my_value")
+        assertThat(httpResponseInfo.arrayFields["_query"].toString())
+            .isEqualTo(httpRequestInfo.arrayFields["_query"].toString())
+        assertThat(httpResponseInfo.arrayFields["_span_id"].toString())
+            .isEqualTo(httpRequestInfo.arrayFields["_span_id"].toString())
         // request-only fields
-        assertThat(httpRequestInfo.fields["_request_body_bytes_expected_to_send_count"].toString()).isEqualTo("4")
+        assertThat(httpRequestInfo.arrayFields["_request_body_bytes_expected_to_send_count"].toString()).isEqualTo("4")
         // request matching fields
-        assertThat(httpRequestInfo.matchingFields["_headers.foo"].toString()).isEqualTo("bar")
+        assertThat(httpRequestInfo.matchingArrayFields["_headers.foo"].toString()).isEqualTo("bar")
         // response-only fields
-        assertThat(httpResponseInfo.fields["_request_body_bytes_expected_to_send_count"]).isNull()
-        assertThat(httpResponseInfo.fields["_result"].toString()).isEqualTo("success")
-        assertThat(httpResponseInfo.fields["_status_code"].toString()).isEqualTo("200")
-        assertThat(httpResponseInfo.fields["_duration_ms"].toString()).isEqualTo(callDurationMs.toString())
-        assertThat(httpResponseInfo.fields["_dns_resolution_duration_ms"].toString()).isEqualTo(dnsDurationMs.toString())
-        assertThat(httpResponseInfo.fields["_tls_duration_ms"].toString()).isEqualTo(tlsDurationMs.toString())
-        assertThat(httpResponseInfo.fields["_tcp_duration_ms"].toString()).isEqualTo(tcpDurationMs.toString())
-        assertThat(httpResponseInfo.fields["_fetch_init_duration_ms"].toString()).isEqualTo(fetchInitDurationMs.toString())
-        assertThat(httpResponseInfo.fields["_response_latency_ms"].toString()).isEqualTo(responseLatencyMs.toString())
-        assertThat(httpResponseInfo.fields["_protocol"].toString()).isEqualTo("http/1.1")
+        assertThat(httpResponseInfo.arrayFields["_request_body_bytes_expected_to_send_count"]).isNull()
+        assertThat(httpResponseInfo.arrayFields["_result"].toString()).isEqualTo("success")
+        assertThat(httpResponseInfo.arrayFields["_status_code"].toString()).isEqualTo("200")
+        assertThat(httpResponseInfo.arrayFields["_duration_ms"].toString()).isEqualTo(callDurationMs.toString())
+        assertThat(httpResponseInfo.arrayFields["_dns_resolution_duration_ms"].toString()).isEqualTo(dnsDurationMs.toString())
+        assertThat(httpResponseInfo.arrayFields["_tls_duration_ms"].toString()).isEqualTo(tlsDurationMs.toString())
+        assertThat(httpResponseInfo.arrayFields["_tcp_duration_ms"].toString()).isEqualTo(tcpDurationMs.toString())
+        assertThat(httpResponseInfo.arrayFields["_fetch_init_duration_ms"].toString()).isEqualTo(fetchInitDurationMs.toString())
+        assertThat(httpResponseInfo.arrayFields["_response_latency_ms"].toString()).isEqualTo(responseLatencyMs.toString())
+        assertThat(httpResponseInfo.arrayFields["_protocol"].toString()).isEqualTo("http/1.1")
 
-        assertThat(httpResponseInfo.fields["_request_body_bytes_sent_count"].toString()).isEqualTo("4")
-        assertThat(httpResponseInfo.fields["_response_body_bytes_received_count"].toString()).isEqualTo("234")
+        assertThat(httpResponseInfo.arrayFields["_request_body_bytes_sent_count"].toString()).isEqualTo("4")
+        assertThat(httpResponseInfo.arrayFields["_response_body_bytes_received_count"].toString()).isEqualTo("234")
 
-        assertThat(httpResponseInfo.fields["_request_headers_bytes_count"].toString()).isEqualTo("10")
-        assertThat(httpResponseInfo.fields["_response_headers_bytes_count"].toString()).isEqualTo("40")
+        assertThat(httpResponseInfo.arrayFields["_request_headers_bytes_count"].toString()).isEqualTo("10")
+        assertThat(httpResponseInfo.arrayFields["_response_headers_bytes_count"].toString()).isEqualTo("40")
         // response matching fields
-        assertThat(httpResponseInfo.matchingFields["_request._headers.foo"].toString()).isEqualTo("bar")
-        assertThat(httpResponseInfo.matchingFields["_headers.response_header"].toString()).isEqualTo("response_header_value")
+        assertThat(httpResponseInfo.matchingArrayFields["_request._headers.foo"].toString()).isEqualTo("bar")
+        assertThat(httpResponseInfo.matchingArrayFields["_headers.response_header"].toString()).isEqualTo("response_header_value")
     }
 
     @Test
@@ -225,12 +225,12 @@ class CaptureOkHttpEventListenerFactoryTest {
         val httpRequestInfo = httpRequestInfoCapture.firstValue
         val httpResponseInfo = httpResponseInfoCapture.firstValue
 
-        assertThat(httpRequestInfo.fields["_path"].toString()).isEqualTo("/my_path/12345")
-        assertThat(httpResponseInfo.fields["_path"].toString())
-            .isEqualTo(httpRequestInfo.fields["_path"].toString())
-        assertThat(httpRequestInfo.fields["_path_template"].toString()).isEqualTo("/foo/<id>")
-        assertThat(httpResponseInfo.fields["_path_template"].toString())
-            .isEqualTo(httpRequestInfo.fields["_path_template"].toString())
+        assertThat(httpRequestInfo.arrayFields["_path"].toString()).isEqualTo("/my_path/12345")
+        assertThat(httpResponseInfo.arrayFields["_path"].toString())
+            .isEqualTo(httpRequestInfo.arrayFields["_path"].toString())
+        assertThat(httpRequestInfo.arrayFields["_path_template"].toString()).isEqualTo("/foo/<id>")
+        assertThat(httpResponseInfo.arrayFields["_path_template"].toString())
+            .isEqualTo(httpRequestInfo.arrayFields["_path_template"].toString())
     }
 
     @Test
@@ -289,14 +289,14 @@ class CaptureOkHttpEventListenerFactoryTest {
         val httpRequestInfo = httpRequestInfoCapture.firstValue
         val httpResponseInfo = httpResponseInfoCapture.firstValue
 
-        assertThat(httpRequestInfo.fields["_request_body_bytes_expected_to_send_count"].toString()).isEqualTo("4")
-        assertThat(httpResponseInfo.fields["_duration_ms"].toString()).isEqualTo(callDurationMs.toString())
-        assertThat(httpResponseInfo.fields["_dns_resolution_duration_ms"]).isNull()
+        assertThat(httpRequestInfo.arrayFields["_request_body_bytes_expected_to_send_count"].toString()).isEqualTo("4")
+        assertThat(httpResponseInfo.arrayFields["_duration_ms"].toString()).isEqualTo(callDurationMs.toString())
+        assertThat(httpResponseInfo.arrayFields["_dns_resolution_duration_ms"]).isNull()
 
-        assertThat(httpResponseInfo.fields["_request_body_bytes_sent_count"].toString()).isEqualTo("4")
-        assertThat(httpResponseInfo.fields["_response_body_bytes_received_count"].toString()).isEqualTo("234")
-        assertThat(httpResponseInfo.fields["_request_headers_bytes_count"].toString()).isEqualTo("10")
-        assertThat(httpResponseInfo.fields["_response_headers_bytes_count"].toString()).isEqualTo("40")
+        assertThat(httpResponseInfo.arrayFields["_request_body_bytes_sent_count"].toString()).isEqualTo("4")
+        assertThat(httpResponseInfo.arrayFields["_response_body_bytes_received_count"].toString()).isEqualTo("234")
+        assertThat(httpResponseInfo.arrayFields["_request_headers_bytes_count"].toString()).isEqualTo("10")
+        assertThat(httpResponseInfo.arrayFields["_response_headers_bytes_count"].toString()).isEqualTo("40")
     }
 
     @Test
@@ -346,9 +346,9 @@ class CaptureOkHttpEventListenerFactoryTest {
 
         val httpResponseInfo = httpResponseInfoCapture.firstValue
 
-        assertThat(httpResponseInfo.fields["_result"].toString()).isEqualTo("failure")
-        assertThat(httpResponseInfo.fields["_error_type"].toString()).isEqualTo(err::javaClass.get().simpleName)
-        assertThat(httpResponseInfo.fields["_error_message"].toString()).isEqualTo(errorMessage)
+        assertThat(httpResponseInfo.arrayFields["_result"].toString()).isEqualTo("failure")
+        assertThat(httpResponseInfo.arrayFields["_error_type"].toString()).isEqualTo(err::javaClass.get().simpleName)
+        assertThat(httpResponseInfo.arrayFields["_error_message"].toString()).isEqualTo(errorMessage)
     }
 
     @Test
@@ -398,9 +398,9 @@ class CaptureOkHttpEventListenerFactoryTest {
 
         val httpResponseInfo = httpResponseInfoCapture.firstValue
 
-        assertThat(httpResponseInfo.fields["_result"].toString()).isEqualTo("canceled")
-        assertThat(httpResponseInfo.fields["_error_type"].toString()).isEqualTo(err::javaClass.get().simpleName)
-        assertThat(httpResponseInfo.fields["_error_message"].toString()).isEqualTo(errorMessage)
+        assertThat(httpResponseInfo.arrayFields["_result"].toString()).isEqualTo("canceled")
+        assertThat(httpResponseInfo.arrayFields["_error_type"].toString()).isEqualTo(err::javaClass.get().simpleName)
+        assertThat(httpResponseInfo.arrayFields["_error_message"].toString()).isEqualTo(errorMessage)
     }
 
     @Test
@@ -465,17 +465,17 @@ class CaptureOkHttpEventListenerFactoryTest {
         val httpRequestInfo = httpRequestInfoCapture.firstValue
         val httpResponseInfo = httpResponseInfoCapture.firstValue
 
-        assertThat(httpRequestInfo.fields["_span_name"].toString()).isEqualTo(expectedSpanName)
+        assertThat(httpRequestInfo.arrayFields["_span_name"].toString()).isEqualTo(expectedSpanName)
         // validate all the extra headers are present as properly formatted fields
         assertThat(
-            httpRequestInfo.fields
+            httpRequestInfo.arrayFields
                 .toStringMap()
                 .entries
                 .containsAll(expectedFields.entries),
         ).isTrue()
         // validate all request fields are present in response
         assertThat(
-            httpResponseInfo.fields
+            httpResponseInfo.arrayFields
                 .toStringMap()
                 .entries
                 .containsAll(expectedFields.entries),
@@ -541,17 +541,17 @@ class CaptureOkHttpEventListenerFactoryTest {
         val httpRequestInfo = httpRequestInfoCapture.firstValue
         val httpResponseInfo = httpResponseInfoCapture.firstValue
 
-        assertThat(httpRequestInfo.fields["_span_name"].toString()).isEqualTo(expectedSpanName)
+        assertThat(httpRequestInfo.arrayFields["_span_name"].toString()).isEqualTo(expectedSpanName)
         // validate all the extra headers are present as properly formatted fields
         assertThat(
-            httpRequestInfo.fields
+            httpRequestInfo.arrayFields
                 .toStringMap()
                 .entries
                 .containsAll(expectedFields.entries),
         ).isTrue()
         // validate all request fields are present in response
         assertThat(
-            httpResponseInfo.fields
+            httpResponseInfo.arrayFields
                 .toStringMap()
                 .entries
                 .containsAll(expectedFields.entries),
@@ -611,9 +611,9 @@ class CaptureOkHttpEventListenerFactoryTest {
         val httpResponseInfoCapture = argumentCaptor<HttpResponseInfo>()
         verify(logger).log(httpResponseInfoCapture.capture())
         val httpRequestInfo = httpRequestInfoCapture.firstValue
-        assertThat(httpRequestInfo.fields["requestMetadata"].toString()).isEqualTo(requestMetadata)
+        assertThat(httpRequestInfo.arrayFields["requestMetadata"].toString()).isEqualTo(requestMetadata)
         val httpResponseInfo = httpResponseInfoCapture.firstValue
-        assertThat(httpResponseInfo.fields["responseMetadata"].toString()).isEqualTo("200")
+        assertThat(httpResponseInfo.arrayFields["responseMetadata"].toString()).isEqualTo("200")
     }
 
     @Test

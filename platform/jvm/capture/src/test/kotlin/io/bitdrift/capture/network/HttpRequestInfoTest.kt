@@ -28,7 +28,7 @@ class HttpRequestInfoTest {
                 bytesExpectedToSendCount = 4,
             )
 
-        assertThat(requestInfo.fields.toStringMap()).isEqualTo(
+        assertThat(requestInfo.arrayFields.toStringMap()).isEqualTo(
             mapOf(
                 "_host" to "api.bitdrift.io",
                 "_method" to "GET",
@@ -43,7 +43,7 @@ class HttpRequestInfoTest {
             ),
         )
 
-        assertThat(requestInfo.matchingFields.toStringMap()).isEqualTo(
+        assertThat(requestInfo.matchingArrayFields.toStringMap()).isEqualTo(
             mapOf(
                 "_headers.content-type" to "json",
             ),

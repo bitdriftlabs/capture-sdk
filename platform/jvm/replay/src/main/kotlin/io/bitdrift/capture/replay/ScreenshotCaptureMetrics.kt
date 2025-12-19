@@ -24,7 +24,7 @@ data class ScreenshotCaptureMetrics(
         get() = screenshotTimeMs + compressionTimeMs
 
     /**
-     * Convert the metrics to a Array
+     * Convert the metrics to an Array
      */
     fun toArray(): Array<Pair<String, String>> =
         arrayOf(

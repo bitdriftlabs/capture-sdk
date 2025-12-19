@@ -13,8 +13,8 @@ import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.FieldArraysBuilder
-import io.bitdrift.capture.providers.Fields
 import java.io.File
 
 private const val LAST_APP_DISK_USAGE_EVENT_EMISSION_TIME = "lastAppDiskUsageEventEmissionTime"
@@ -31,9 +31,9 @@ internal class DiskUsageMonitor(
 ) {
     var runtime: Runtime? = null
 
-    fun getDiskUsage(): Fields {
+    fun getDiskUsage(): ArrayFields {
         if (runtime?.isEnabled(RuntimeFeature.DISK_USAGE_FIELDS) == false) {
-            return Fields.EMPTY
+            return ArrayFields.EMPTY
         }
 
         val now = clock.elapsedRealtime()
@@ -41,7 +41,7 @@ internal class DiskUsageMonitor(
         val lastEmission = preferences.getLong(LAST_APP_DISK_USAGE_EVENT_EMISSION_TIME)
 
         if (lastEmission != null && (now - lastEmission < DAY_MS)) {
-            return Fields.EMPTY
+            return ArrayFields.EMPTY
         }
 
         val cacheDirSize = calculateCumulativeSize(context.cacheDir)

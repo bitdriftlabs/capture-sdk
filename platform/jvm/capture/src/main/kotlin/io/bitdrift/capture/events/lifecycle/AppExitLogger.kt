@@ -22,7 +22,7 @@ import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
-import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.reports.FatalIssueReporterState
@@ -145,7 +145,7 @@ internal class AppExitLogger(
     private fun buildCrashAndMemoryFieldsMap(
         thread: Thread,
         throwable: Throwable,
-    ): Fields {
+    ): ArrayFields {
         val rootCause = throwable.getRootCause()
         return combineFields(
             fieldsOf(
@@ -160,14 +160,14 @@ internal class AppExitLogger(
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    private fun buildAppExitFields(applicationExitInfo: ApplicationExitInfo): Fields =
+    private fun buildAppExitFields(applicationExitInfo: ApplicationExitInfo): ArrayFields =
         combineFields(
             applicationExitInfo.toFields(),
             memoryMetricsProvider.getMemoryClass(),
         )
 
     @RequiresApi(Build.VERSION_CODES.R)
-    private fun ApplicationExitInfo.toFields(): Fields {
+    private fun ApplicationExitInfo.toFields(): ArrayFields {
         // https://developer.android.com/reference/kotlin/android/app/ApplicationExitInfo
         return fieldsOf(
             APP_EXIT_SOURCE_KEY to "ApplicationExitInfo",

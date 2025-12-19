@@ -5,19 +5,10 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
-
-// capture-sdk - bitdrift's client SDK
-// Copyright Bitdrift, Inc. All rights reserved.
-//
-// Use of this source code is governed by a source available license that can be found in the
-// LICENSE file or at:
-// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-
 package io.bitdrift.capture.fakes
 
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
-import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.fieldOf
 import io.bitdrift.capture.providers.fieldsOf
 
@@ -25,7 +16,7 @@ class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
     private var exception: Exception? = null
     private var isMemoryLow: Boolean = false
 
-    override fun getMemoryAttributes(): Fields {
+    override fun getMemoryAttributes(): ArrayFields {
         exception?.let {
             throw it
         }
@@ -43,7 +34,7 @@ class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
 
     override fun isMemoryLow() = isMemoryLow
 
-    override fun getMemoryClass(): Fields = fieldOf("_memory_class", "1")
+    override fun getMemoryClass(): ArrayFields = fieldOf("_memory_class", "1")
 
     fun clear() {
         exception = null

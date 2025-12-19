@@ -8,8 +8,8 @@
 package io.bitdrift.capture.network
 
 import io.bitdrift.capture.events.span.SpanField
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.FieldArraysBuilder
-import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldOf
 import io.bitdrift.capture.providers.fieldsOf
@@ -71,12 +71,12 @@ data class HttpRequestInfo
     ) {
         internal val name: String = "HTTPRequest"
 
-        internal val fields: Fields by lazy {
+        internal val arrayFields: ArrayFields by lazy {
             // Do not put body bytes count as a common field since response log has a more accurate
             // measurement of request' body count anyway.
             val baseFields =
                 combineFields(
-                    commonFields,
+                    commonArrayFields,
                     fieldOf(SpanField.Key.TYPE, SpanField.Value.TYPE_START),
                 )
             if (bytesExpectedToSendCount != null) {
@@ -89,7 +89,7 @@ data class HttpRequestInfo
             }
         }
 
-        internal val commonFields: Fields by lazy {
+        internal val commonArrayFields: ArrayFields by lazy {
             val spanName = getSpanNameOverride(headers) ?: "_http"
 
             val baseFields =
@@ -129,8 +129,8 @@ data class HttpRequestInfo
             return null
         }
 
-        internal val matchingFields: Fields by lazy {
-            headers?.let { HTTPHeaders.normalizeHeaders(it) } ?: Fields.EMPTY
+        internal val matchingArrayFields: ArrayFields by lazy {
+            headers?.let { HTTPHeaders.normalizeHeaders(it) } ?: ArrayFields.EMPTY
         }
 
         /**
@@ -142,14 +142,14 @@ data class HttpRequestInfo
          * @param headers The map of headers from which fields are extracted.
          * @return InternalFields containing extracted span fields, or EMPTY if none found.
          */
-        private fun getOptionalHeaderSpanFields(headers: Map<String, String>?): Fields {
-            val spanKey = headers?.get("x-capture-span-key") ?: return Fields.EMPTY
+        private fun getOptionalHeaderSpanFields(headers: Map<String, String>?): ArrayFields {
+            val spanKey = headers?.get("x-capture-span-key") ?: return ArrayFields.EMPTY
             val prefix = "x-capture-span-$spanKey"
             val fieldPrefix = "$prefix-field"
 
             val matchingHeaders =
                 headers.filter { (key, _) -> key.startsWith(fieldPrefix) }
-            if (matchingHeaders.isEmpty()) return Fields.EMPTY
+            if (matchingHeaders.isEmpty()) return ArrayFields.EMPTY
 
             val builder = FieldArraysBuilder(matchingHeaders.size)
             matchingHeaders.forEach { (key, value) ->
@@ -165,9 +165,9 @@ data class HttpRequestInfo
          * @param headers The map of headers from which fields are extracted.
          * @return InternalFields containing GraphQL operation fields, or EMPTY if none found.
          */
-        private fun getOptionalGraphQlFields(headers: Map<String, String>?): Fields {
+        private fun getOptionalGraphQlFields(headers: Map<String, String>?): ArrayFields {
             val gqlOperationName =
-                headers?.get("X-APOLLO-OPERATION-NAME") ?: return Fields.EMPTY
+                headers?.get("X-APOLLO-OPERATION-NAME") ?: return ArrayFields.EMPTY
 
             val requiredFields =
                 fieldsOf(

@@ -10,7 +10,7 @@ package io.bitdrift.capture
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
-import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.ArrayFields
 import java.util.UUID
 import kotlin.time.Duration
 
@@ -118,24 +118,24 @@ interface ILogger {
     )
 
     /**
-     * Logs a message at a specified level using pre-constructed [Fields].
+     * Logs a message at a specified level using pre-constructed [ArrayFields].
      *
-     * This is an optimized alternative to [log] that accepts [Fields] instead of `Map<String, String>`,
+     * This is an optimized alternative to [log] that accepts [ArrayFields] instead of `Map<String, String>`,
      * reducing object allocations on the hot path.
      *
-     * To construct `Fields` instance you can use FieldProvider.fieldsOf("_key", "_value")
+     * To construct `ArrayFields` instance you can use FieldProvider.fieldsOf("_key_1" to "_value_1")
      *
      * @param level the severity of the log.
-     * @param fields key-value pairs to be added to the log line, constructed via
+     * @param arrayFields key-value pairs to be added to the log line, constructed via
      *               [io.bitdrift.capture.providers.fieldsOf]. Use [Fields.EMPTY] if no fields are needed.
      * @param throwable an optional throwable to include in the log line.
      * @param message the main message of the log line, evaluated lazily.
      * @see log for the current logging method that accepts `Map<String, String>`.
-     * @see io.bitdrift.capture.providers.fieldsOf for constructing [Fields] instances.
+     * @see io.bitdrift.capture.providers.fieldsOf for constructing [ArrayFields] instances.
      */
     fun log(
         level: LogLevel,
-        fields: Fields,
+        arrayFields: ArrayFields,
         throwable: Throwable? = null,
         message: () -> String,
     )

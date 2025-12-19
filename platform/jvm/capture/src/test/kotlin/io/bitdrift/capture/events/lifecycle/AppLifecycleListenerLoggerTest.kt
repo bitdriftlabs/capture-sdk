@@ -24,7 +24,7 @@ import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.Mocks
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
@@ -75,8 +75,8 @@ class AppLifecycleListenerLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.INFO),
-            eq(Fields.EMPTY),
-            eq(Fields.EMPTY),
+            eq(ArrayFields.EMPTY),
+            eq(ArrayFields.EMPTY),
             eq(null),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppStart" },
@@ -97,8 +97,8 @@ class AppLifecycleListenerLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.INFO),
-            eq(Fields.EMPTY),
-            eq(Fields.EMPTY),
+            eq(ArrayFields.EMPTY),
+            eq(ArrayFields.EMPTY),
             eq(null),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppCreate" },
@@ -145,12 +145,12 @@ class AppLifecycleListenerLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.INFO),
-            argThat<Fields> { fields ->
+            argThat<ArrayFields> { fields ->
                 val actualKeys = fields.keys.toSet()
                 val expectedKeys = expectedFields.keys.toSet()
                 actualKeys.containsAll(expectedKeys)
             },
-            eq(Fields.EMPTY),
+            eq(ArrayFields.EMPTY),
             eq(null),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppCreate" },

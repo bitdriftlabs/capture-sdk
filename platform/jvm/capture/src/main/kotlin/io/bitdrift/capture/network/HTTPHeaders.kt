@@ -7,14 +7,14 @@
 
 package io.bitdrift.capture.network
 
-import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.ArrayFields
 
 private const val HEADERS_FIELD_KEY_PREFIX = "_headers"
 private val DISALLOWED_HEADER_KEYS = setOf<String>("authorization", "proxy-authorization")
 
 internal object HTTPHeaders {
-    fun normalizeHeaders(headers: Map<String, String>): Fields {
-        if (headers.isEmpty()) return Fields.EMPTY
+    fun normalizeHeaders(headers: Map<String, String>): ArrayFields {
+        if (headers.isEmpty()) return ArrayFields.EMPTY
         val keys = mutableListOf<String>()
         val values = mutableListOf<String>()
         headers.forEach { (key, value) ->
@@ -23,7 +23,7 @@ internal object HTTPHeaders {
                 values.add(value)
             }
         }
-        if (keys.isEmpty()) return Fields.EMPTY
-        return Fields(keys.toTypedArray(), values.toTypedArray())
+        if (keys.isEmpty()) return ArrayFields.EMPTY
+        return ArrayFields(keys.toTypedArray(), values.toTypedArray())
     }
 }

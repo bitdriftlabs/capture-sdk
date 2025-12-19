@@ -41,7 +41,7 @@ class HttpResponseInfoTest {
                 extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
             )
 
-        assertThat(responseInfo.fields.toStringMap()).isEqualTo(
+        assertThat(responseInfo.arrayFields.toStringMap()).isEqualTo(
             mapOf(
                 "_host" to "foo.com",
                 "_method" to "GET",
@@ -89,7 +89,7 @@ class HttpResponseInfoTest {
                 extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
             )
 
-        assertThat(responseInfo.fields.toStringMap()).isEqualTo(
+        assertThat(responseInfo.arrayFields.toStringMap()).isEqualTo(
             mapOf(
                 "_host" to "foo.com",
                 "_method" to "GET",
@@ -123,7 +123,7 @@ class HttpResponseInfoTest {
                 extraFields = mapOf("my_extra_key_1" to "my_extra_value_1"),
             )
 
-        assertThat(requestInfo.fields.toStringMap()).isEqualTo(
+        assertThat(requestInfo.arrayFields.toStringMap()).isEqualTo(
             mapOf(
                 "_host" to "api.bitdrift.io",
                 "_method" to "GET",
@@ -151,7 +151,7 @@ class HttpResponseInfoTest {
                 extraFields = mapOf("my_extra_key_2" to "my_extra_value_2"),
             )
 
-        assertThat(responseInfo.fields.toStringMap()).isEqualTo(
+        assertThat(responseInfo.arrayFields.toStringMap()).isEqualTo(
             mapOf(
                 "_host" to "foo.com",
                 "_method" to "GET",
@@ -169,7 +169,7 @@ class HttpResponseInfoTest {
             ),
         )
 
-        assertThat(responseInfo.matchingFields.toStringMap()).isEqualTo(
+        assertThat(responseInfo.matchingArrayFields.toStringMap()).isEqualTo(
             mapOf(
                 "_request._host" to "api.bitdrift.io",
                 "_request._method" to "GET",

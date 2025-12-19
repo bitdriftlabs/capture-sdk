@@ -5,14 +5,6 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
-// capture-sdk - bitdrift's client SDK
-// Copyright Bitdrift, Inc. All rights reserved.
-//
-// Use of this source code is governed by a source available license that can be found in the
-// LICENSE file or at:
-// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-
 package io.bitdrift.capture
 
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -32,10 +24,10 @@ import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.FieldValue
-import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
@@ -159,8 +151,8 @@ class CaptureLoggerTest {
             Mockito.verify(logger).log(
                 eq(LogType.SPAN),
                 eq(LogLevel.DEBUG),
-                argThat<Fields> { toStringMap() == expectedRequestFields.toStringMap() },
-                argThat<Fields> { toStringMap() == expectedRequestMatchingFields.toStringMap() },
+                argThat<ArrayFields> { toStringMap() == expectedRequestFields.toStringMap() },
+                argThat<ArrayFields> { toStringMap() == expectedRequestMatchingFields.toStringMap() },
                 eq(null),
                 eq(false),
                 argThat { i -> i.invoke() == requestInfo.name },
@@ -215,8 +207,8 @@ class CaptureLoggerTest {
             Mockito.verify(logger).log(
                 eq(LogType.SPAN),
                 eq(LogLevel.DEBUG),
-                argThat<Fields> { toStringMap() == expectedResponseFields.toStringMap() },
-                argThat<Fields> { toStringMap() == expectedResponseMatchingFields.toStringMap() },
+                argThat<ArrayFields> { toStringMap() == expectedResponseFields.toStringMap() },
+                argThat<ArrayFields> { toStringMap() == expectedResponseMatchingFields.toStringMap() },
                 eq(null),
                 eq(false),
                 argThat { i -> i.invoke() == responseInfo.name },
@@ -239,8 +231,8 @@ class CaptureLoggerTest {
             verify(logger).log(
                 eq(LogType.NORMAL),
                 eq(LogLevel.ERROR),
-                argThat<Fields> { toStringMap() == expectedFields.toStringMap() },
-                eq(Fields.EMPTY),
+                argThat<ArrayFields> { toStringMap() == expectedFields.toStringMap() },
+                eq(ArrayFields.EMPTY),
                 eq(null),
                 eq(false),
                 argThat { i -> i.invoke() == msg },

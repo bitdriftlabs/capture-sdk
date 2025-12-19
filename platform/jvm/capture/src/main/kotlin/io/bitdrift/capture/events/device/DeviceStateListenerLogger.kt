@@ -25,7 +25,7 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.events.performance.BatteryMonitor
-import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldOf
 import io.bitdrift.capture.providers.fieldsOf
@@ -161,9 +161,9 @@ internal class DeviceStateListenerLogger(
     }
 
     private fun log(
-        fields: Fields,
+        arrayFields: ArrayFields,
         message: String,
     ) {
-        logger.log(LogType.DEVICE, LogLevel.INFO, fields) { message }
+        logger.log(LogType.DEVICE, LogLevel.INFO, arrayFields) { message }
     }
 }

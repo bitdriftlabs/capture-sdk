@@ -31,7 +31,7 @@ import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EX
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES
-import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.reports.FatalIssueReporterState
@@ -114,8 +114,8 @@ class AppExitLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
-            argThat<Fields> { fields -> fieldsMatchExpectedAnr(fields) },
-            eq(Fields.EMPTY),
+            argThat<ArrayFields> { fields -> fieldsMatchExpectedAnr(fields) },
+            eq(ArrayFields.EMPTY),
             eq(LogAttributesOverrides.PreviousRunSessionId(TIME_STAMP)),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppExit" },
@@ -196,8 +196,8 @@ class AppExitLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
-            argThat<Fields> { fields -> fieldsMatchExpected(fields, expectedFields) },
-            eq(Fields.EMPTY),
+            argThat<ArrayFields> { fields -> fieldsMatchExpected(fields, expectedFields) },
+            eq(ArrayFields.EMPTY),
             eq(null),
             eq(true),
             argThat { i: () -> String -> i.invoke() == "AppExit" },
@@ -277,11 +277,11 @@ class AppExitLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
-            argThat<Fields> { fields ->
+            argThat<ArrayFields> { fields ->
                 fields["_app_exit_info"] == expected.javaClass.name &&
                     fields["_app_exit_details"] == expected.message.orEmpty()
             },
-            eq(Fields.EMPTY),
+            eq(ArrayFields.EMPTY),
             eq(null),
             eq(true),
             any(),
@@ -310,7 +310,7 @@ class AppExitLoggerTest {
             FakeFatalIssueReporter(fatalReporterInitState),
         )
 
-    private fun fieldsMatchExpectedAnr(fields: Fields): Boolean {
+    private fun fieldsMatchExpectedAnr(arrayFields: ArrayFields): Boolean {
         val expectedKeys =
             setOf(
                 "_app_exit_source",
@@ -323,13 +323,13 @@ class AppExitLoggerTest {
                 "_app_exit_description",
                 "_memory_class",
             )
-        return fields.keys.toSet().containsAll(expectedKeys) &&
-            fields["_app_exit_source"] == "ApplicationExitInfo" &&
-            fields["_app_exit_reason"] == "ANR"
+        return arrayFields.keys.toSet().containsAll(expectedKeys) &&
+            arrayFields["_app_exit_source"] == "ApplicationExitInfo" &&
+            arrayFields["_app_exit_reason"] == "ANR"
     }
 
     private fun fieldsMatchExpected(
-        actual: Fields,
-        expected: Fields,
+        actual: ArrayFields,
+        expected: ArrayFields,
     ): Boolean = actual.toStringMap() == expected.toStringMap()
 }

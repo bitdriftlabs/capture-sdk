@@ -22,6 +22,7 @@ import io.bitdrift.capture.providers.combineJniFields
 import io.bitdrift.capture.providers.jniFieldsOf
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.providers.toFieldsOrEmpty
 import io.bitdrift.capture.replay.IReplayLogger
 import io.bitdrift.capture.replay.IScreenshotLogger
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
@@ -98,14 +99,14 @@ internal class SessionReplayTarget(
         message: String,
         fields: Map<String, String>?,
     ) {
-        logger.log(LogType.INTERNALSDK, LogLevel.TRACE) { message }
+        logger.log(LogType.INTERNALSDK, LogLevel.TRACE, fields.toFieldsOrEmpty()) { message }
     }
 
     override fun logDebugInternal(
         message: String,
         fields: Map<String, String>?,
     ) {
-        logger.log(LogType.INTERNALSDK, LogLevel.DEBUG) { message }
+        logger.log(LogType.INTERNALSDK, LogLevel.DEBUG, fields.toFieldsOrEmpty()) { message }
     }
 
     override fun logErrorInternal(
@@ -113,7 +114,7 @@ internal class SessionReplayTarget(
         e: Throwable?,
         fields: Map<String, String>?,
     ) {
-        logger.log(LogType.INTERNALSDK, LogLevel.ERROR) { message }
+        logger.log(LogType.INTERNALSDK, LogLevel.ERROR, logger.extractFields(fields, e)) { message }
     }
 
     private fun buildScreenCapturedFields(

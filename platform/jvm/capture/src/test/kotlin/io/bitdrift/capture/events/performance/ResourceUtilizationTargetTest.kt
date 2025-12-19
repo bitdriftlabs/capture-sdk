@@ -26,7 +26,7 @@ import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP_LOW
-import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.utils.toStringMap
 import org.junit.After
 import org.junit.Test
@@ -68,7 +68,7 @@ class ResourceUtilizationTargetTest {
         whenever(batteryMonitor.batteryPercentageAttribute()).thenReturn(Pair("_battery_val", "0.75"))
         whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
         whenever(powerMonitor.isPowerSaveModeEnabledAttribute()).thenReturn(Pair("_low_power_enabled", "1"))
-        whenever(diskUsageMonitor.getDiskUsage()).thenReturn(Fields.EMPTY)
+        whenever(diskUsageMonitor.getDiskUsage()).thenReturn(ArrayFields.EMPTY)
 
         reporter.tick()
 
@@ -90,7 +90,7 @@ class ResourceUtilizationTargetTest {
             )
 
         verify(logger).logResourceUtilization(
-            argThat<Fields> { toStringMap() == expectedMap },
+            argThat<ArrayFields> { toStringMap() == expectedMap },
             // workaround for Cannot invoke NullPointerException: "kotlin.time.Duration.unbox-impl()"
             // from https://stackoverflow.com/a/57394480
             Duration(any<Long>()),
@@ -107,7 +107,7 @@ class ResourceUtilizationTargetTest {
         whenever(batteryMonitor.batteryPercentageAttribute()).thenReturn(Pair("_battery_val", "0.75"))
         whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
         whenever(powerMonitor.isPowerSaveModeEnabledAttribute()).thenReturn(Pair("_low_power_enabled", "1"))
-        whenever(diskUsageMonitor.getDiskUsage()).thenReturn(Fields.EMPTY)
+        whenever(diskUsageMonitor.getDiskUsage()).thenReturn(ArrayFields.EMPTY)
 
         reporter.tick()
 
@@ -116,8 +116,8 @@ class ResourceUtilizationTargetTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.WARNING),
-            argThat<Fields> { toStringMap() == DEFAULT_MEMORY_ATTRIBUTES_MAP_LOW },
-            eq(Fields.EMPTY),
+            argThat<ArrayFields> { toStringMap() == DEFAULT_MEMORY_ATTRIBUTES_MAP_LOW },
+            eq(ArrayFields.EMPTY),
             eq(null),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppMemPressure" },

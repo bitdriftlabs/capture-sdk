@@ -37,10 +37,10 @@ import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.network.okhttp.OkHttpNetwork
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldProvider
-import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
@@ -343,8 +343,8 @@ internal class LoggerImpl(
         log(
             LogType.SPAN,
             LogLevel.DEBUG,
-            httpRequestInfo.fields,
-            httpRequestInfo.matchingFields,
+            httpRequestInfo.arrayFields,
+            httpRequestInfo.matchingArrayFields,
         ) { httpRequestInfo.name }
     }
 
@@ -352,8 +352,8 @@ internal class LoggerImpl(
         log(
             LogType.SPAN,
             LogLevel.DEBUG,
-            httpResponseInfo.fields,
-            httpResponseInfo.matchingFields,
+            httpResponseInfo.arrayFields,
+            httpResponseInfo.matchingArrayFields,
         ) { httpResponseInfo.name }
     }
 
@@ -367,7 +367,7 @@ internal class LoggerImpl(
             LogType.NORMAL,
             level,
             extractFields(fields, throwable),
-            Fields.EMPTY,
+            ArrayFields.EMPTY,
             null,
             false,
             message,
@@ -376,15 +376,15 @@ internal class LoggerImpl(
 
     override fun log(
         level: LogLevel,
-        fields: Fields,
+        arrayFields: ArrayFields,
         throwable: Throwable?,
         message: () -> String,
     ) {
         log(
             LogType.NORMAL,
             level,
-            fields,
-            Fields.EMPTY,
+            arrayFields,
+            ArrayFields.EMPTY,
             null,
             false,
             message,
@@ -426,8 +426,8 @@ internal class LoggerImpl(
     internal fun log(
         type: LogType,
         level: LogLevel,
-        fields: Fields = Fields.EMPTY,
-        matchingFields: Fields = Fields.EMPTY,
+        arrayFields: ArrayFields = ArrayFields.EMPTY,
+        matchingArrayFields: ArrayFields = ArrayFields.EMPTY,
         attributesOverrides: LogAttributesOverrides? = null,
         blocking: Boolean = false,
         message: () -> String,
@@ -454,10 +454,10 @@ internal class LoggerImpl(
                 type.value,
                 level.value,
                 message(),
-                fields.keys,
-                fields.values,
-                matchingFields.keys,
-                matchingFields.values,
+                arrayFields.keys,
+                arrayFields.values,
+                matchingArrayFields.keys,
+                matchingArrayFields.values,
                 previousRunSessionId,
                 occurredAtTimestampMs,
                 blocking,
@@ -490,12 +490,12 @@ internal class LoggerImpl(
     }
 
     internal fun logResourceUtilization(
-        fields: Fields,
+        arrayFields: ArrayFields,
         duration: Duration,
     ) {
         CaptureJniLibrary.writeResourceUtilizationLog(
             this.loggerId,
-            fields.toLegacyJniFields(),
+            arrayFields.toLegacyJniFields(),
             duration.toDouble(DurationUnit.SECONDS),
         )
     }
@@ -514,15 +514,15 @@ internal class LoggerImpl(
         CaptureJniLibrary.writeAppUpdateLog(this.loggerId, appVersion, appVersionCode, appSizeBytes, durationS)
     }
 
-    private fun extractFields(
+    internal fun extractFields(
         fields: Map<String, String>?,
         throwable: Throwable?,
-    ): Fields {
+    ): ArrayFields {
         val hasThrowable = throwable != null
         val fieldsSize = fields?.size ?: 0
 
         if (fieldsSize == 0 && !hasThrowable) {
-            return Fields.EMPTY
+            return ArrayFields.EMPTY
         }
 
         val throwableFieldCount = if (hasThrowable) 2 else 0
@@ -546,7 +546,7 @@ internal class LoggerImpl(
             values.add(it.message.orEmpty())
         }
 
-        return Fields(
+        return ArrayFields(
             keys.toTypedArray(),
             values.toTypedArray(),
         )

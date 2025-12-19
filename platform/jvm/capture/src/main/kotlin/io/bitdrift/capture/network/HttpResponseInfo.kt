@@ -8,8 +8,8 @@
 package io.bitdrift.capture.network
 
 import io.bitdrift.capture.events.span.SpanField
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.FieldArraysBuilder
-import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldOf
 import io.bitdrift.capture.providers.fieldsOf
@@ -42,7 +42,7 @@ data class HttpResponseInfo
     ) {
         internal val name: String = "HTTPResponse"
 
-        internal val fields: Fields =
+        internal val arrayFields: ArrayFields =
             run {
                 // Collect out-of-the-box fields specific to HTTPResponse logs. The list consists of
                 // HTTP specific fields such as host, path, or query and HTTP request performance
@@ -54,18 +54,18 @@ data class HttpResponseInfo
                         SpanField.Key.RESULT to response.result.name.lowercase(),
                     )
 
-                val statusFields =
+                val statusArrayFields =
                     response.statusCode?.let {
                         fieldOf("_status_code", it.toString())
-                    } ?: Fields.EMPTY
+                    } ?: ArrayFields.EMPTY
 
-                val errorFields =
+                val errorArrayFields =
                     response.error?.let { error ->
                         fieldsOf(
                             "_error_type" to error::class.java.simpleName,
                             "_error_message" to error.message.orEmpty(),
                         )
-                    } ?: Fields.EMPTY
+                    } ?: ArrayFields.EMPTY
 
                 val responseOverrideFields =
                     fieldsOfOptional(
@@ -74,7 +74,7 @@ data class HttpResponseInfo
                         HttpFieldKey.QUERY to response.query,
                     )
 
-                val pathTemplateFields =
+                val pathTemplateArrayFields =
                     response.path?.let { respPath ->
                         // If the path between request and response did not change and an explicit path
                         // template was provided as part of a request use it as path template on a response.
@@ -85,9 +85,9 @@ data class HttpResponseInfo
                                 respPath.template
                             }
                         template?.let { fieldOf(HttpField.PATH_TEMPLATE, it) }
-                    } ?: Fields.EMPTY
+                    } ?: ArrayFields.EMPTY
 
-                val metricsFields =
+                val metricsArrayFields =
                     metrics?.let { m ->
                         combineFields(
                             fieldsOf(
@@ -105,31 +105,31 @@ data class HttpResponseInfo
                                 "_protocol" to m.protocolName,
                             ),
                         )
-                    } ?: Fields.EMPTY
+                    } ?: ArrayFields.EMPTY
 
                 // Combine fields in the increasing order of their priority as the latter fields
                 // override the former ones in the case of field name conflicts.
                 combineFields(
                     extraFields.toFields(),
-                    request.commonFields,
+                    request.commonArrayFields,
                     baseFields,
-                    statusFields,
-                    errorFields,
+                    statusArrayFields,
+                    errorArrayFields,
                     responseOverrideFields,
-                    pathTemplateFields,
-                    metricsFields,
+                    pathTemplateArrayFields,
+                    metricsArrayFields,
                 )
             }
 
-        internal val matchingFields: Fields =
+        internal val matchingArrayFields: ArrayFields =
             run {
-                val builder = FieldArraysBuilder(request.fields.size + request.matchingFields.size + 10)
-                builder.addAllPrefixed("_request.", request.fields)
-                builder.addAllPrefixed("_request.", request.matchingFields)
+                val builder = FieldArraysBuilder(request.arrayFields.size + request.matchingArrayFields.size + 10)
+                builder.addAllPrefixed("_request.", request.arrayFields)
+                builder.addAllPrefixed("_request.", request.matchingArrayFields)
                 val requestPrefixedFields = builder.build()
 
                 val responseHeaders =
-                    response.headers?.let { HTTPHeaders.normalizeHeaders(it) } ?: Fields.EMPTY
+                    response.headers?.let { HTTPHeaders.normalizeHeaders(it) } ?: ArrayFields.EMPTY
                 combineFields(requestPrefixedFields, responseHeaders)
             }
     }
