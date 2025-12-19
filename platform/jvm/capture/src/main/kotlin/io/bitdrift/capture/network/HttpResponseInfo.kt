@@ -7,9 +7,13 @@
 
 package io.bitdrift.capture.network
 
-import io.bitdrift.capture.InternalFieldsMap
 import io.bitdrift.capture.events.span.SpanField
-import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.ArrayFields
+import io.bitdrift.capture.providers.FieldArraysBuilder
+import io.bitdrift.capture.providers.combineFields
+import io.bitdrift.capture.providers.fieldOf
+import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.providers.fieldsOfOptional
 import io.bitdrift.capture.providers.toFields
 
 /**
@@ -38,84 +42,94 @@ data class HttpResponseInfo
     ) {
         internal val name: String = "HTTPResponse"
 
-        internal val fields: InternalFieldsMap =
+        internal val arrayFields: ArrayFields =
             run {
                 // Collect out-of-the-box fields specific to HTTPResponse logs. The list consists of
                 // HTTP specific fields such as host, path, or query and HTTP request performance
                 // metrics such as DNS resolution time.
-                val fields =
-                    buildMap {
-                        this.put(SpanField.Key.TYPE, FieldValue.StringField(SpanField.Value.TYPE_END))
-                        this.put(
-                            SpanField.Key.DURATION,
-                            FieldValue.StringField(durationMs.toString()),
+                val baseFields =
+                    fieldsOf(
+                        SpanField.Key.TYPE to SpanField.Value.TYPE_END,
+                        SpanField.Key.DURATION to durationMs.toString(),
+                        SpanField.Key.RESULT to response.result.name.lowercase(),
+                    )
+
+                val statusArrayFields =
+                    response.statusCode?.let {
+                        fieldOf("_status_code", it.toString())
+                    } ?: ArrayFields.EMPTY
+
+                val errorArrayFields =
+                    response.error?.let { error ->
+                        fieldsOf(
+                            "_error_type" to error::class.java.simpleName,
+                            "_error_message" to error.message.orEmpty(),
                         )
-                        this.put(
-                            SpanField.Key.RESULT,
-                            FieldValue.StringField(response.result.name.lowercase()),
+                    } ?: ArrayFields.EMPTY
+
+                val responseOverrideFields =
+                    fieldsOfOptional(
+                        HttpFieldKey.HOST to response.host,
+                        HttpFieldKey.PATH to response.path?.value,
+                        HttpFieldKey.QUERY to response.query,
+                    )
+
+                val pathTemplateArrayFields =
+                    response.path?.let { respPath ->
+                        // If the path between request and response did not change and an explicit path
+                        // template was provided as part of a request use it as path template on a response.
+                        val template =
+                            if (request.path?.value == respPath.value) {
+                                request.path.template ?: respPath.template
+                            } else {
+                                respPath.template
+                            }
+                        template?.let { fieldOf(HttpField.PATH_TEMPLATE, it) }
+                    } ?: ArrayFields.EMPTY
+
+                val metricsArrayFields =
+                    metrics?.let { m ->
+                        combineFields(
+                            fieldsOf(
+                                "_request_body_bytes_sent_count" to m.requestBodyBytesSentCount.toString(),
+                                "_response_body_bytes_received_count" to m.responseBodyBytesReceivedCount.toString(),
+                                "_request_headers_bytes_count" to m.requestHeadersBytesCount.toString(),
+                                "_response_headers_bytes_count" to m.responseHeadersBytesCount.toString(),
+                            ),
+                            fieldsOfOptional(
+                                "_dns_resolution_duration_ms" to m.dnsResolutionDurationMs?.toString(),
+                                "_tls_duration_ms" to m.tlsDurationMs?.toString(),
+                                "_tcp_duration_ms" to m.tcpDurationMs?.toString(),
+                                "_fetch_init_duration_ms" to m.fetchInitializationMs?.toString(),
+                                "_response_latency_ms" to m.responseLatencyMs?.toString(),
+                                "_protocol" to m.protocolName,
+                            ),
                         )
-                        putOptional("_status_code", response.statusCode)
-                        putOptional(
-                            "_error_type",
-                            response.error,
-                        ) { it::javaClass.get().simpleName }
-                        putOptional(
-                            "_error_message",
-                            response.error,
-                        ) { it.message.orEmpty() }
-                        putOptional(HttpFieldKey.HOST, response.host)
-                        putOptional(HttpFieldKey.PATH, response.path?.value)
-                        putOptional(HttpFieldKey.QUERY, response.query)
-
-                        response.path?.let {
-                            val requestPathTemplate =
-                                if (request.path?.value == it.value) {
-                                    // If the path between request and response did not change and an explicit path
-                                    // template was provided as part of a request use it as path template on a response.
-                                    request.path.template
-                                } else {
-                                    null
-                                }
-
-                            putOptional(
-                                HttpField.PATH_TEMPLATE,
-                                requestPathTemplate ?: it.template,
-                            )
-                        }
-
-                        metrics?.let<HttpRequestMetrics, Unit> {
-                            this.put(
-                                "_request_body_bytes_sent_count",
-                                FieldValue.StringField(it.requestBodyBytesSentCount.toString()),
-                            )
-                            this.put(
-                                "_response_body_bytes_received_count",
-                                FieldValue.StringField(it.responseBodyBytesReceivedCount.toString()),
-                            )
-                            this.put(
-                                "_request_headers_bytes_count",
-                                FieldValue.StringField(it.requestHeadersBytesCount.toString()),
-                            )
-                            this.put(
-                                "_response_headers_bytes_count",
-                                FieldValue.StringField(it.responseHeadersBytesCount.toString()),
-                            )
-                            putOptional("_dns_resolution_duration_ms", it.dnsResolutionDurationMs)
-                            putOptional("_tls_duration_ms", it.tlsDurationMs)
-                            putOptional("_tcp_duration_ms", it.tcpDurationMs)
-                            putOptional("_fetch_init_duration_ms", it.fetchInitializationMs)
-                            putOptional("_response_latency_ms", it.responseLatencyMs)
-                            putOptional("_protocol", it.protocolName)
-                        }
-                    }
+                    } ?: ArrayFields.EMPTY
 
                 // Combine fields in the increasing order of their priority as the latter fields
                 // override the former ones in the case of field name conflicts.
-                extraFields.toFields() + request.commonFields + fields
+                combineFields(
+                    extraFields.toFields(),
+                    request.commonArrayFields,
+                    baseFields,
+                    statusArrayFields,
+                    errorArrayFields,
+                    responseOverrideFields,
+                    pathTemplateArrayFields,
+                    metricsArrayFields,
+                )
             }
 
-        internal val matchingFields: InternalFieldsMap =
-            request.fields.mapKeys { "_request.${it.key}" } +
-                request.matchingFields.mapKeys { "_request.${it.key}" } +
-                response.headers?.let { HTTPHeaders.normalizeHeaders(it) }.toFields()
+        internal val matchingArrayFields: ArrayFields =
+            run {
+                val builder = FieldArraysBuilder(request.arrayFields.size + request.matchingArrayFields.size + 10)
+                builder.addAllPrefixed("_request.", request.arrayFields)
+                builder.addAllPrefixed("_request.", request.matchingArrayFields)
+                val requestPrefixedFields = builder.build()
+
+                val responseHeaders =
+                    response.headers?.let { HTTPHeaders.normalizeHeaders(it) } ?: ArrayFields.EMPTY
+                combineFields(requestPrefixedFields, responseHeaders)
+            }
     }

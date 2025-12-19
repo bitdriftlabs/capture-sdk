@@ -25,7 +25,9 @@ import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
-import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP_LOW
+import io.bitdrift.capture.providers.ArrayFields
+import io.bitdrift.capture.utils.toStringMap
 import org.junit.After
 import org.junit.Test
 import java.util.concurrent.ExecutorService
@@ -65,35 +67,37 @@ class ResourceUtilizationTargetTest {
     fun resourceUtilizationTickEmitsLog() {
         whenever(batteryMonitor.batteryPercentageAttribute()).thenReturn(Pair("_battery_val", "0.75"))
         whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
-
         whenever(powerMonitor.isPowerSaveModeEnabledAttribute()).thenReturn(Pair("_low_power_enabled", "1"))
+        whenever(diskUsageMonitor.getDiskUsage()).thenReturn(ArrayFields.EMPTY)
 
         reporter.tick()
 
         executor.awaitTermination(1, TimeUnit.SECONDS)
 
+        val expectedMap =
+            mapOf(
+                "_jvm_used_kb" to "50",
+                "_jvm_total_kb" to "100",
+                "_jvm_max_kb" to "100",
+                "_jvm_used_percent" to "50",
+                "_native_used_kb" to "200",
+                "_native_total_kb" to "500",
+                "_memory_class" to "1",
+                "_is_memory_low" to "0",
+                "_battery_val" to "0.75",
+                "_state" to "charging",
+                "_low_power_enabled" to "1",
+            )
+
         verify(logger).logResourceUtilization(
-            eq(
-                mapOf(
-                    "_jvm_used_kb" to "50",
-                    "_jvm_total_kb" to "100",
-                    "_jvm_max_kb" to "100",
-                    "_jvm_used_percent" to "50",
-                    "_native_used_kb" to "200",
-                    "_native_total_kb" to "500",
-                    "_memory_class" to "1",
-                    "_battery_val" to "0.75",
-                    "_state" to "charging",
-                    "_low_power_enabled" to "1",
-                ),
-            ),
+            argThat<ArrayFields> { toStringMap() == expectedMap },
             // workaround for Cannot invoke NullPointerException: "kotlin.time.Duration.unbox-impl()"
             // from https://stackoverflow.com/a/57394480
             Duration(any<Long>()),
         )
 
         // no AppMemPressure log by default
-        verify(logger, never()).log(any(), any(), any(), any())
+        verify(logger, never()).log(any<LogLevel>(), any<Map<String, String>>(), any(), any())
     }
 
     @Test
@@ -103,6 +107,7 @@ class ResourceUtilizationTargetTest {
         whenever(batteryMonitor.batteryPercentageAttribute()).thenReturn(Pair("_battery_val", "0.75"))
         whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
         whenever(powerMonitor.isPowerSaveModeEnabledAttribute()).thenReturn(Pair("_low_power_enabled", "1"))
+        whenever(diskUsageMonitor.getDiskUsage()).thenReturn(ArrayFields.EMPTY)
 
         reporter.tick()
 
@@ -111,18 +116,8 @@ class ResourceUtilizationTargetTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.WARNING),
-            eq(
-                mapOf(
-                    "_jvm_used_kb" to "50",
-                    "_jvm_total_kb" to "100",
-                    "_jvm_max_kb" to "100",
-                    "_jvm_used_percent" to "50",
-                    "_native_used_kb" to "200",
-                    "_native_total_kb" to "500",
-                    "_memory_class" to "1",
-                ).toFields(),
-            ),
-            eq(null),
+            argThat<ArrayFields> { toStringMap() == DEFAULT_MEMORY_ATTRIBUTES_MAP_LOW },
+            eq(ArrayFields.EMPTY),
             eq(null),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppMemPressure" },
