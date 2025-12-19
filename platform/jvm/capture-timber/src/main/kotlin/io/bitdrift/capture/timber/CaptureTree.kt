@@ -36,7 +36,7 @@ open class CaptureTree internal constructor(
         message: String,
         t: Throwable?,
     ) {
-        logger?.logOptimized(toCaptureLogLevel(priority), extractFields(tag), t) { message }
+        logger?.log(toCaptureLogLevel(priority), extractFields(tag), t) { message }
     }
 
     private fun toCaptureLogLevel(priority: Int): LogLevel =

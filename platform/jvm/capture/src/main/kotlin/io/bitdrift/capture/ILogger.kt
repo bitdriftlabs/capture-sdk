@@ -132,9 +132,9 @@ interface ILogger {
      * @see log for the current logging method that accepts `Map<String, String>`.
      * @see io.bitdrift.capture.providers.fieldsOf for constructing [Fields] instances.
      */
-    fun logOptimized(
+    fun log(
         level: LogLevel,
-        fields: Fields = Fields.EMPTY,
+        fields: Fields,
         throwable: Throwable? = null,
         message: () -> String,
     )
