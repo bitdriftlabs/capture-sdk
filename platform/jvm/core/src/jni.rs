@@ -21,7 +21,7 @@ use crate::{
   session,
 };
 use anyhow::{anyhow, bail};
-use bd_api::{Platform, PlatformNetworkStream, StreamEvent};
+use bd_api::{Metadata, Platform, PlatformNetworkStream, StreamEvent};
 use bd_client_common::error::InvariantError;
 use bd_error_reporter::reporter::{
   handle_unexpected,
@@ -32,6 +32,7 @@ use bd_error_reporter::reporter::{
   UnexpectedErrorHandler,
 };
 use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields};
+use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::Architecture;
 use bd_proto::protos::logging::payload::LogType;
 use futures_util::FutureExt;
 use jni::descriptors::Desc;
@@ -43,12 +44,14 @@ use jni::objects::{
   JObjectArray,
   JPrimitiveArray,
   JString,
+  JValue,
   JValueGen,
   JValueOwned,
 };
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::{jboolean, jbyteArray, jdouble, jint, jlong, jobject, jvalue, JNI_ERR, JNI_TRUE};
 use jni::{JNIEnv, JavaVM};
+use platform_shared::javascript_error::{AppMetadata, DeviceMetadata};
 use platform_shared::metadata::Mobile;
 use platform_shared::{read_global_state_snapshot, LoggerHolder, LoggerId};
 use protobuf::Enum as _;
@@ -60,6 +63,137 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, OnceLock};
 use time::{Duration, OffsetDateTime};
+
+pub struct StaticMetadata {
+  pub mobile: Mobile,
+  pub app_version_code: i64,
+  pub architecture: String,
+  pub os_api_level: String,
+  pub os_version: String,
+  pub os_brand: String,
+  pub manufacturer: String,
+  pub supported_cpu_abis: Vec<String>,
+
+  pub provided_fields: LogFields,
+}
+
+impl Metadata for StaticMetadata {
+  fn sdk_version(&self) -> &'static str {
+    self.mobile.sdk_version()
+  }
+
+  fn platform(&self) -> &Platform {
+    self.mobile.platform()
+  }
+
+  fn os(&self) -> String {
+    self.mobile.os()
+  }
+
+  fn device_id(&self) -> String {
+    self.mobile.device_id()
+  }
+
+  fn collect_inner(&self) -> HashMap<String, String> {
+    self
+      .mobile
+      .collect_inner()
+      .into_iter()
+      .chain(
+        [(
+          "_app_version_code".to_string(),
+          self.app_version_code.to_string(),
+        )]
+        .into_iter(),
+      )
+      .collect()
+  }
+}
+
+impl StaticMetadata {
+  pub fn new(
+    mobile: Mobile,
+    app_version_code: i64,
+    architecture: String,
+    os_api_level: String,
+    os_version: String,
+    os_brand: String,
+    manufacturer: String,
+    supported_cpu_abis: Vec<String>,
+  ) -> Self {
+    let mut log_fields = LogFields::new();
+    log_fields.insert(
+      Cow::Borrowed("app_id"),
+      bd_logger::StringOrBytes::SharedString(mobile.app_id.clone().into()),
+    );
+    log_fields.insert(
+      Cow::Borrowed("app_id"),
+      bd_logger::StringOrBytes::SharedString("Android".to_string().into()),
+    );
+    log_fields.insert(
+      Cow::Borrowed("os_version"),
+      bd_logger::StringOrBytes::SharedString(os_version.clone().into()),
+    );
+    log_fields.insert(
+      Cow::Borrowed("model"),
+      bd_logger::StringOrBytes::SharedString(mobile.model.clone().into()),
+    );
+    log_fields.insert(
+      Cow::Borrowed("_os_api_level"),
+      bd_logger::StringOrBytes::SharedString(os_api_level.clone().into()),
+    );
+    log_fields.insert(
+      Cow::Borrowed("app_version"),
+      bd_logger::StringOrBytes::SharedString(mobile.app_version.clone().into()),
+    );
+    log_fields.insert(
+      Cow::Borrowed("_app_version_code"),
+      bd_logger::StringOrBytes::SharedString(app_version_code.to_string().into()),
+    );
+    log_fields.insert(
+      Cow::Borrowed("_architecture"),
+      bd_logger::StringOrBytes::SharedString(architecture.clone().into()),
+    );
+
+    Self {
+      mobile,
+      app_version_code,
+      architecture,
+      os_api_level,
+      os_version,
+      os_brand,
+      manufacturer,
+      supported_cpu_abis,
+      provided_fields: log_fields,
+    }
+  }
+  pub(crate) fn to_device_metadata(&self) -> DeviceMetadata {
+    let architecture = match self.architecture.as_str() {
+      "arm64" | "aarch64" => Architecture::arm64,
+      "x86_64" => Architecture::x86_64,
+      _ => Architecture::Unknown,
+    };
+    DeviceMetadata {
+      manufacturer: self.manufacturer.clone().into(),
+      model: self.mobile.model.clone().into(),
+      os_version: self.os_version.clone().into(),
+      os_brand: self.os_brand.clone().into(),
+      architecture: Some(architecture),
+      cpu_abis: self.supported_cpu_abis.clone().into(),
+    }
+  }
+  pub(crate) fn to_app_metadata(&self) -> AppMetadata {
+    AppMetadata {
+      app_id: self.mobile.app_id.clone().into(),
+      app_version: self.mobile.app_version.clone().into(),
+      version_code: Some(self.app_version_code.clone()),
+    }
+  }
+}
+
+
+pub(crate) type AndroidLoggerId<'a> = LoggerId<'a, StaticMetadata>;
+pub(crate) type AndroidLoggerHolder = LoggerHolder<StaticMetadata>;
 
 // If we are running on Android, we need to initialize the logging system to send logs to
 // `android_log` instead of `stderr. Use a compile time flag to determine if we are running on
@@ -564,9 +698,9 @@ impl bd_error_reporter::reporter::Reporter for ErrorReporterHandle {
   }
 }
 
-define_object_wrapper!(MetadataProvider);
+define_object_wrapper!(JniMetadataProvider);
 
-impl bd_logger::MetadataProvider for MetadataProvider {
+impl bd_logger::MetadataProvider for JniMetadataProvider {
   #[allow(clippy::cast_possible_truncation)]
   fn timestamp(&self) -> anyhow::Result<time::OffsetDateTime> {
     self.execute(|e, provider| {
@@ -603,6 +737,29 @@ impl bd_logger::MetadataProvider for MetadataProvider {
   }
 }
 
+struct WrappedMetadataProvider {
+  provider: JniMetadataProvider,
+  metadata: Arc<StaticMetadata>,
+}
+
+impl bd_logger::MetadataProvider for WrappedMetadataProvider {
+  fn timestamp(&self) -> anyhow::Result<time::OffsetDateTime> {
+    self.provider.timestamp()
+  }
+
+  fn fields(&self) -> anyhow::Result<(LogFields, LogFields)> {
+    let mut static_ootb_fields = self.metadata.provided_fields.clone();
+
+    let (custom_fields, mut ootb_fields) = self.provider.fields()?;
+
+    static_ootb_fields.into_iter().for_each(|(k, v)| {
+      ootb_fields.insert(k, v);
+    });
+
+    Ok((custom_fields, ootb_fields))
+  }
+}
+
 #[no_mangle]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   mut env: JNIEnv<'_>,
@@ -616,7 +773,14 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   events_listener_target: JObject<'_>,
   application_id: JString<'_>,
   application_version: JString<'_>,
+  app_version_code: jlong,
   model: JString<'_>,
+  os_version: JString<'_>,
+  os_api_level: JString<'_>,
+  os_brand: JString<'_>,
+  manufacturer: JString<'_>,
+  architecture: JString<'_>,
+  supported_abis: JObjectArray<'_>,
   network: JObject<'_>,
   preferences: JObject<'_>,
   error_reporter: JObject<'_>,
@@ -646,9 +810,9 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let session_strategy = session_strategy.create(session_strategy.clone(), store.clone())?;
 
       let device = Arc::new(bd_device::Device::new(store.clone()));
-      let static_metadata = Arc::new(Mobile {
-        app_id: Some(unsafe { env.get_string_unchecked(&application_id) }?.into()),
-        app_version: Some(unsafe { env.get_string_unchecked(&application_version) }?.into()),
+      let static_metadata = Arc::new(StaticMetadata::new(Mobile {
+        app_id: unsafe { env.get_string_unchecked(&application_id) }?.into(),
+        app_version: unsafe { env.get_string_unchecked(&application_version) }?.into(),
         platform: Platform::Android,
         // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
         // Further, "os" as sent as a log tag is hard coded as "Android" so we have a casing
@@ -657,7 +821,26 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         os: "android".to_string(),
         device: device.clone(),
         model: unsafe { env.get_string_unchecked(&model) }?.into(),
-      });
+      },
+      app_version_code,
+      unsafe { env.get_string_unchecked(&architecture) }?.into(),
+      unsafe { env.get_string_unchecked(&os_api_level) }?.into(),
+      unsafe { env.get_string_unchecked(&os_version) }?.into(),
+      unsafe { env.get_string_unchecked(&os_brand) }?.into(),
+      unsafe { env.get_string_unchecked(&manufacturer) }?.into(),
+      {
+        let count = env.get_array_length(&supported_abis)?;
+        let mut supported_abis_vec = Vec::with_capacity(count as usize);
+        for i in 0 .. count {
+          let element = env.get_object_array_element(&supported_abis, i)?;
+          let element_string: JString = element.into();
+          supported_abis_vec.push(
+            unsafe { env.get_string_unchecked(&element_string) }?.into(),
+          );
+        }
+        supported_abis_vec
+      },
+      ));
 
       let error_reporter = Arc::new(new_global!(ErrorReporterHandle, &mut env, error_reporter)?);
       let error_reporter = MetadataErrorReporter::new(
@@ -696,14 +879,17 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         sdk_directory,
         api_key: unsafe { env.get_string_unchecked(&api_key) }?.into(),
         session_strategy,
-        metadata_provider: Arc::new(new_global!(MetadataProvider, &mut env, metadata_provider)?),
+        metadata_provider: Arc::new(WrappedMetadataProvider {
+          provider: new_global!(JniMetadataProvider, &mut env, metadata_provider)?,
+          metadata: static_metadata.clone(),
+        }),
         resource_utilization_target,
         session_replay_target,
         events_listener_target,
         device,
         store,
         network: network_manager,
-        static_metadata,
+        static_metadata: static_metadata.clone(),
         start_in_sleep_mode: start_in_sleep_mode == JNI_TRUE,
       })
       .with_internal_logger(true)
@@ -725,6 +911,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
           }
           .boxed(),
           previous_run_global_state,
+          static_metadata,
         )
       })?;
 
@@ -760,7 +947,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_startLogger(
   _class: JClass<'_>,
   logger_id: jlong,
 ) {
-  let logger = unsafe { LoggerId::from_raw(logger_id) };
+  let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
   logger.start();
 }
 
@@ -770,14 +957,14 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_destroyLogger(
   _class: JClass<'_>,
   logger_id: jlong,
 ) {
-  unsafe { LoggerHolder::destroy(logger_id) }
+  unsafe { AndroidLoggerHolder::destroy(logger_id) }
 }
 
 #[no_mangle]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_startNewSession(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
-  logger_id: LoggerId<'_>,
+  logger_id: AndroidLoggerId<'_>,
 ) {
   logger_id.start_new_session();
 }
@@ -786,7 +973,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_startNewSessio
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getSessionId<'a>(
   env: JNIEnv<'a>,
   _class: JClass<'_>,
-  logger_id: LoggerId<'_>,
+  logger_id: AndroidLoggerId<'_>,
 ) -> JString<'a> {
   with_handle_unexpected_or(
     || Ok(env.new_string(logger_id.session_id())?),
@@ -799,7 +986,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getSessionId<'
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getDeviceId<'a>(
   env: JNIEnv<'a>,
   _class: JClass<'_>,
-  logger_id: LoggerId<'_>,
+  logger_id: AndroidLoggerId<'_>,
 ) -> JString<'a> {
   with_handle_unexpected_or(
     || Ok(env.new_string(logger_id.device_id())?),
@@ -825,7 +1012,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_addLogField(
         .to_string_lossy()
         .to_string();
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
       logger.add_log_field(key, value.into());
 
       Ok(())
@@ -847,7 +1034,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_removeLogField
         .to_string_lossy()
         .to_string();
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
       logger.remove_log_field(&key);
 
       Ok(())
@@ -879,7 +1066,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlag
         )
       };
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
       logger.set_feature_flag_exposure(key, variant);
 
       Ok(())
@@ -940,7 +1127,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
         ))
       };
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
       let global_state_fields = logger
         .previous_run_global_state
         .iter()
@@ -989,7 +1176,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_shutdown(
     || -> anyhow::Result<()> {
       // NOTE: This performs a blocking shutdown of the logger for use in test and eventual
       // public API. This needs additional testing before exposing in the public API.
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
       logger.shutdown(true);
       Ok(())
     },
@@ -1009,7 +1196,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
     || -> anyhow::Result<()> {
       let fields = ffi::jarray_to_annotated_fields(&mut env, &fields, LogFieldKind::Ootb)?;
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
       logger.log_session_replay_screen(fields, Duration::seconds_f64(duration_s));
 
       Ok(())
@@ -1030,7 +1217,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
     || -> anyhow::Result<()> {
       let fields = ffi::jarray_to_annotated_fields(&mut env, &fields, LogFieldKind::Ootb)?;
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
       logger.log_session_replay_screenshot(fields, Duration::seconds_f64(duration_s));
 
       Ok(())
@@ -1051,7 +1238,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeResourceU
     || -> anyhow::Result<()> {
       let fields = ffi::jarray_to_annotated_fields(&mut env, &fields, LogFieldKind::Ootb)?;
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
       logger.log_resource_utilization(fields, Duration::seconds_f64(duration_s));
 
       Ok(())
@@ -1072,7 +1259,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSDKStartL
     || -> anyhow::Result<()> {
       let fields = ffi::jarray_to_annotated_fields(&mut env, &fields, LogFieldKind::Ootb)?;
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
       logger.log_sdk_start(fields, Duration::seconds_f64(duration_s));
 
       Ok(())
@@ -1095,7 +1282,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_shouldWriteApp
         .to_string_lossy()
         .to_string();
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
       Ok(logger.should_log_app_update(
         app_version,
         bd_logger::AppVersionExtra::AppVersionCode(app_version_code),
@@ -1124,7 +1311,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppUpdate
         .to_string_lossy()
         .to_string();
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
       logger.log_app_update(
         app_version,
         bd_logger::AppVersionExtra::AppVersionCode(app_version_code),
@@ -1148,7 +1335,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppLaunch
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
       logger.log_app_launch_tti(Duration::seconds_f64(duration_s));
 
       Ok(())
@@ -1169,7 +1356,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeScreenVie
       let screen_name = unsafe { env.get_string_unchecked(&screen_name)? }
         .to_string_lossy()
         .to_string();
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
       logger.log_screen_view(screen_name);
 
       Ok(())
@@ -1187,7 +1374,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_flush(
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
       let blocking = if blocking == JNI_TRUE {
         Block::Yes(std::time::Duration::from_secs(1))
       } else {
@@ -1255,7 +1442,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setSleepModeEn
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
       logger.transition_sleep_mode(enabled == JNI_TRUE);
 
       Ok(())
@@ -1268,7 +1455,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setSleepModeEn
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processIssueReports(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
-  mut logger_id: LoggerId<'_>,
+  mut logger_id: AndroidLoggerId<'_>,
   session: JObject<'_>,
 ) {
   with_handle_unexpected(
@@ -1305,10 +1492,10 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processIssueRe
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_persistANR(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
+  logger_id: jlong,
   stream: JObject<'_>,
   timestamp: jlong,
   destination: JString<'_>,
-  attributes: JObject<'_>,
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
@@ -1317,7 +1504,9 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_persistANR(
         .to_string_lossy()
         .to_string();
 
-      report_processing::persist_anr(&mut env, &stream, timestamp, &destination, &attributes)?;
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
+
+      report_processing::persist_anr(&mut env, &logger, &stream, timestamp, &destination)?;
       Ok(())
     },
     "jni persist ANR",
@@ -1326,8 +1515,9 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_persistANR(
 
 #[no_mangle]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_persistJavaScriptError(
-  mut env: JNIEnv<'_>,
+  env: JNIEnv<'_>,
   _class: JClass<'_>,
+  logger_id: jlong,
   error_name: JString<'_>,
   error_message: JString<'_>,
   stack_trace: JString<'_>,
@@ -1336,52 +1526,36 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_persistJavaScr
   debugger_id: JString<'_>,
   timestamp: jlong,
   destination: JString<'_>,
-  attributes: JObject<'_>,
   sdk_version: JString<'_>,
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
       let error_name = unsafe { env.get_string_unchecked(&error_name) }
-        .map_err(|e| anyhow::anyhow!("failed to parse error_name: {e}"))?
-        .to_string_lossy()
-        .to_string();
+        .map_err(|e| anyhow::anyhow!("failed to parse error_name: {e}"))?;
       let error_message = unsafe { env.get_string_unchecked(&error_message) }
-        .map_err(|e| anyhow::anyhow!("failed to parse error_message: {e}"))?
-        .to_string_lossy()
-        .to_string();
+        .map_err(|e| anyhow::anyhow!("failed to parse error_message: {e}"))?;
       let stack_trace = unsafe { env.get_string_unchecked(&stack_trace) }
-        .map_err(|e| anyhow::anyhow!("failed to parse stack_trace: {e}"))?
-        .to_string_lossy()
-        .to_string();
+        .map_err(|e| anyhow::anyhow!("failed to parse stack_trace: {e}"))?;
       let engine = unsafe { env.get_string_unchecked(&engine) }
-        .map_err(|e| anyhow::anyhow!("failed to parse engine: {e}"))?
-        .to_string_lossy()
-        .to_string();
+        .map_err(|e| anyhow::anyhow!("failed to parse engine: {e}"))?;
       let debugger_id = unsafe { env.get_string_unchecked(&debugger_id) }
-        .map_err(|e| anyhow::anyhow!("failed to parse debugger_id: {e}"))?
-        .to_string_lossy()
-        .to_string();
+        .map_err(|e| anyhow::anyhow!("failed to parse debugger_id: {e}"))?;
       let destination = unsafe { env.get_string_unchecked(&destination) }
-        .map_err(|e| anyhow::anyhow!("failed to parse destination: {e}"))?
-        .to_string_lossy()
-        .to_string();
+        .map_err(|e| anyhow::anyhow!("failed to parse destination: {e}"))?;
       let sdk_version = unsafe { env.get_string_unchecked(&sdk_version) }
-        .map_err(|e| anyhow::anyhow!("failed to parse sdk_version: {e}"))?
-        .to_string_lossy()
-        .to_string();
+        .map_err(|e| anyhow::anyhow!("failed to parse sdk_version: {e}"))?;
 
       report_processing::persist_javascript_error(
-        &mut env,
-        &error_name,
-        &error_message,
-        &stack_trace,
+        logger_id,
+        &error_name.to_string_lossy(),
+        &error_message.to_string_lossy(),
+        &stack_trace.to_string_lossy(),
         is_fatal != 0,
-        &engine,
-        &debugger_id,
+        &engine.to_string_lossy(),
+        &debugger_id.to_string_lossy(),
         timestamp,
-        &destination,
-        &attributes,
-        &sdk_version,
+        &destination.to_string_lossy(),
+        &sdk_version.to_string_lossy(),
       )?;
       Ok(())
     },
@@ -1417,7 +1591,7 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_isRuntimeEnabled(
       // We default the feature to default_value to so that we don't require sending anything over
       // the wire in order to enable a feature (the default), leaving this as a kill switch in
       // case we need to override what the user configured.
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
 
       Ok(logger.runtime_snapshot().get_bool(
         unsafe { env.get_string_unchecked(&feature) }?.to_str()?,
@@ -1442,7 +1616,7 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeValue(
 ) -> jint {
   with_handle_unexpected_or(
     || {
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let logger = unsafe { LoggerId::<StaticMetadata>::from_raw(logger_id) };
       let binding = unsafe { env.get_string_unchecked(&variable_name) }?;
       let variable_name = binding.to_str()?;
       let integer_value = logger

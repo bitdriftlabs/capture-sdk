@@ -293,7 +293,16 @@ class CaptureLoggerTest {
                     "bar" to "value_bar".toFieldValue(),
                     "fields" to "passed_in".toFieldValue(),
                     "foo" to "value_foo".toFieldValue(),
-                ) + getDefaultFields()
+                ) + getDefaultFields() +
+                    mapOf(
+                        "_app_version_code" to "0".toFieldValue(),
+                        "_architecture" to "armeabi-v7a".toFieldValue(),
+                        "_os_api_level" to "24".toFieldValue(),
+                        "app_id" to "Android".toFieldValue(),
+                        "app_version" to "?.?.?".toFieldValue(),
+                        "model" to "robolectric".toFieldValue(),
+                        "os_version" to "7.0".toFieldValue(),
+                    )
 
             val sdkConfiguredLog = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(sdkConfiguredLog.message).isEqualTo("SDKConfigured")
@@ -323,7 +332,17 @@ class CaptureLoggerTest {
             val expectedFields =
                 mapOf(
                     "fields" to "passed_in".toFieldValue(),
-                ) + getDefaultFields()
+                ) + getDefaultFields() +
+                    mapOf(
+                        "_app_version_code" to "0".toFieldValue(),
+                        "_architecture" to "armeabi-v7a".toFieldValue(),
+                        "_locale" to "ar".toFieldValue(),
+                        "_os_api_level" to "24".toFieldValue(),
+                        "app_id" to "Android".toFieldValue(),
+                        "app_version" to "?.?.?".toFieldValue(),
+                        "model" to "robolectric".toFieldValue(),
+                        "os_version" to "7.0".toFieldValue(),
+                    )
 
             val sdkConfigured = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(sdkConfigured.message).isEqualTo("SDKConfigured")
