@@ -40,6 +40,7 @@ use jni::objects::{
   JClass,
   JMethodID,
   JObject,
+  JObjectArray,
   JPrimitiveArray,
   JString,
   JValueGen,
@@ -586,14 +587,16 @@ impl bd_logger::MetadataProvider for MetadataProvider {
         .ok_or(InvariantError::Invariant)?
         .call_method(e, provider, ReturnType::Object, &[])?
         .l()?;
-      let ootb_fields = ffi::jarray_to_fields(e, &ootb_fields)?;
+      let ootb_fields_array = unsafe { JObjectArray::from_raw(ootb_fields.as_raw()) };
+      let ootb_fields = ffi::jarray_to_fields(e, &ootb_fields_array)?;
 
       let custom_fields = METADATA_PROVIDER_CUSTOM_FIELDS
         .get()
         .ok_or(InvariantError::Invariant)?
         .call_method(e, provider, ReturnType::Object, &[])?
         .l()?;
-      let custom_fields = ffi::jarray_to_fields(e, &custom_fields)?;
+      let custom_fields_array = unsafe { JObjectArray::from_raw(custom_fields.as_raw()) };
+      let custom_fields = ffi::jarray_to_fields(e, &custom_fields_array)?;
 
       Ok((custom_fields, ootb_fields))
     })
@@ -897,10 +900,10 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   log_type: jint,
   log_level: jint,
   log: JString<'_>,
-  field_keys: JObject<'_>,
-  field_values: JObject<'_>,
-  matching_field_keys: JObject<'_>,
-  matching_field_values: JObject<'_>,
+  field_keys: JObjectArray<'_>,
+  field_values: JObjectArray<'_>,
+  matching_field_keys: JObjectArray<'_>,
+  matching_field_values: JObjectArray<'_>,
   use_previous_process_session_id: jboolean,
   override_occurred_at_unix_milliseconds: jlong,
   blocking: jboolean,
@@ -999,7 +1002,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
-  fields: JObject<'_>,
+  fields: JObjectArray<'_>,
   duration_s: jdouble,
 ) {
   with_handle_unexpected(
@@ -1020,7 +1023,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
-  fields: JObject<'_>,
+  fields: JObjectArray<'_>,
   duration_s: jdouble,
 ) {
   with_handle_unexpected(
@@ -1041,7 +1044,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeResourceU
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
-  fields: JObject<'_>,
+  fields: JObjectArray<'_>,
   duration_s: jdouble,
 ) {
   with_handle_unexpected(
@@ -1062,7 +1065,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSDKStartL
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
-  fields: JObject<'_>,
+  fields: JObjectArray<'_>,
   duration_s: jdouble,
 ) {
   with_handle_unexpected(

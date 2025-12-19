@@ -9,7 +9,7 @@ use crate::jni::{initialize_class, initialize_method_handle, CachedClass, Cached
 use anyhow::bail;
 use bd_client_common::error::InvariantError;
 use bd_logger::{AnnotatedLogField, AnnotatedLogFields, LogFieldKind, LogFieldValue, LogFields};
-use jni::objects::{JMap, JObject, JPrimitiveArray};
+use jni::objects::{JMap, JObject, JObjectArray, JPrimitiveArray};
 use jni::signature::{Primitive, ReturnType};
 use jni::JNIEnv;
 use std::collections::HashMap;
@@ -139,19 +139,16 @@ fn extract_field(
 /// More efficient than List because arrays allow direct indexed access without iterator overhead.
 pub fn jarray_to_annotated_fields(
   env: &mut JNIEnv<'_>,
-  fields_array: &JObject<'_>,
+  fields_array: &JObjectArray<'_>,
   kind: LogFieldKind,
 ) -> anyhow::Result<AnnotatedLogFields> {
-  use jni::objects::JObjectArray;
-
-  let array = unsafe { JObjectArray::from_raw(fields_array.as_raw()) };
-  let len = env.get_array_length(&array)?;
+  let len = env.get_array_length(fields_array)?;
   #[allow(clippy::cast_sign_loss)]
   let mut fields = AnnotatedLogFields::with_capacity(len as usize);
 
   for i in 0 .. len {
     env.with_local_frame(16, |env| -> anyhow::Result<()> {
-      let field_obj = env.get_object_array_element(&array, i)?;
+      let field_obj = env.get_object_array_element(fields_array, i)?;
       let (key, value) = extract_field(env, &field_obj)?;
       fields.insert(key.into(), AnnotatedLogField { value, kind });
       Ok(())
@@ -165,19 +162,15 @@ pub fn jarray_to_annotated_fields(
 /// Similar to `jarray_to_annotated_fields` but returns `LogFields` without annotations.
 pub(crate) fn jarray_to_fields(
   env: &mut JNIEnv<'_>,
-  fields_array: &JObject<'_>,
+  fields_array: &JObjectArray<'_>,
 ) -> anyhow::Result<LogFields> {
-  use jni::objects::JObjectArray;
-
-  // SAFETY: We know this JObject is actually an array passed from Kotlin
-  let array = unsafe { JObjectArray::from_raw(fields_array.as_raw()) };
-  let len = env.get_array_length(&array)?;
+  let len = env.get_array_length(fields_array)?;
   #[allow(clippy::cast_sign_loss)]
   let mut fields = LogFields::with_capacity(len as usize);
 
   for i in 0 .. len {
     env.with_local_frame(16, |env| -> anyhow::Result<()> {
-      let field_obj = env.get_object_array_element(&array, i)?;
+      let field_obj = env.get_object_array_element(fields_array, i)?;
       let (key, value) = extract_field(env, &field_obj)?;
       fields.insert(key.into(), value);
       Ok(())
@@ -195,23 +188,18 @@ pub(crate) fn jarray_to_fields(
 /// The keys and values arrays must have the same length - keys[i] corresponds to values[i].
 pub fn string_arrays_to_annotated_fields(
   env: &mut JNIEnv<'_>,
-  keys: &JObject<'_>,
-  values: &JObject<'_>,
+  keys: &JObjectArray<'_>,
+  values: &JObjectArray<'_>,
   kind: LogFieldKind,
 ) -> anyhow::Result<AnnotatedLogFields> {
-  use jni::objects::JObjectArray;
-
-  let keys_array = unsafe { JObjectArray::from_raw(keys.as_raw()) };
-  let values_array = unsafe { JObjectArray::from_raw(values.as_raw()) };
-
-  let len = env.get_array_length(&keys_array)?;
+  let len = env.get_array_length(keys)?;
   #[allow(clippy::cast_sign_loss)]
   let mut fields = AnnotatedLogFields::with_capacity(len as usize);
 
   for i in 0 .. len {
     env.with_local_frame(4, |env| -> anyhow::Result<()> {
-      let key_obj = env.get_object_array_element(&keys_array, i)?;
-      let value_obj = env.get_object_array_element(&values_array, i)?;
+      let key_obj = env.get_object_array_element(keys, i)?;
+      let value_obj = env.get_object_array_element(values, i)?;
 
       let key = unsafe { env.get_string_unchecked(&key_obj.into()) }?
         .to_string_lossy()
