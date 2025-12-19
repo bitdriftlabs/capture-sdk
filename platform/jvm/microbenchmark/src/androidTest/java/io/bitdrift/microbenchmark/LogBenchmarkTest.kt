@@ -24,7 +24,9 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.timber.CaptureTree
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import timber.log.Timber
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -169,6 +171,63 @@ class LogBenchmarkTest {
             )
             Capture.Logger.log(responseInfo)
         }
+    }
+
+    @Test
+    fun timberLogWithCaptureAndNoTag() {
+        startLogger()
+        plantCaptureTree()
+
+        benchmarkRule.measureRepeated {
+            Timber.i(LOG_MESSAGE)
+        }
+    }
+
+    @Test
+    fun timberLogWithCaptureAndTag() {
+        startLogger()
+        plantCaptureTree()
+
+        benchmarkRule.measureRepeated {
+            Timber.tag("MyTag").i(LOG_MESSAGE)
+        }
+    }
+
+    @Test
+    fun timberLogWithCaptureAndError() {
+        startLogger()
+        plantCaptureTree()
+        val exception = RuntimeException("test error")
+
+        benchmarkRule.measureRepeated {
+            Timber.e(exception, LOG_MESSAGE)
+        }
+    }
+
+    @Test
+    fun timberLogWithCaptureAndErrorAndTag() {
+        startLogger()
+        plantCaptureTree()
+        val exception = RuntimeException("test error")
+
+        benchmarkRule.measureRepeated {
+            Timber.tag("MyTag").e(exception, LOG_MESSAGE)
+        }
+    }
+
+    @Test
+    fun timberLogWithoutCaptureAndErrorAndTag() {
+        Timber.uprootAll()
+        val exception = RuntimeException("test error")
+
+        benchmarkRule.measureRepeated {
+            Timber.tag("MyTag").e(exception, LOG_MESSAGE)
+        }
+    }
+
+    private fun plantCaptureTree() {
+        Timber.uprootAll()
+        Timber.plant(CaptureTree())
     }
 
     private fun buildFieldsMap(size: Int, keyIdentifier: String = "key_"): Map<String, String> =

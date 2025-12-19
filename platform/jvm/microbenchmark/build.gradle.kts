@@ -45,8 +45,10 @@ android {
 dependencies {
     // the module containing code to benchmark
     androidTestImplementation(project(":capture"))
+    androidTestImplementation(project(":capture-timber"))
     androidTestImplementation(project(":common"))
 
+    androidTestImplementation(libs.timber)
     androidTestImplementation("androidx.test:runner:1.5.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("junit:junit:4.13.2")
