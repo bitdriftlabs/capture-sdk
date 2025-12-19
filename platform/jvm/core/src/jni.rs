@@ -44,7 +44,6 @@ use jni::objects::{
   JObjectArray,
   JPrimitiveArray,
   JString,
-  JValue,
   JValueGen,
   JValueOwned,
 };
@@ -95,18 +94,26 @@ impl Metadata for StaticMetadata {
   }
 
   fn collect_inner(&self) -> HashMap<String, String> {
-    self
+    let map: HashMap<String, String> = self
       .mobile
       .collect_inner()
       .into_iter()
       .chain(
-        [(
-          "_app_version_code".to_string(),
-          self.app_version_code.to_string(),
-        )]
+        [
+          (
+            "_app_version_code".to_string(),
+            self.app_version_code.to_string(),
+          ),
+          ("_os_api_level".to_string(), self.os_api_level.clone()),
+          ("os_version".to_string(), self.os_version.clone()),
+          ("_architecture".to_string(), self.architecture.clone()),
+          ("os".to_string(), "android".to_string()),
+          ("platform".to_string(), "android".to_string()),
+        ]
         .into_iter(),
       )
-      .collect()
+      .collect();
+    map
   }
 }
 
@@ -125,10 +132,6 @@ impl StaticMetadata {
     log_fields.insert(
       Cow::Borrowed("app_id"),
       bd_logger::StringOrBytes::SharedString(mobile.app_id.clone().into()),
-    );
-    log_fields.insert(
-      Cow::Borrowed("app_id"),
-      bd_logger::StringOrBytes::SharedString("Android".to_string().into()),
     );
     log_fields.insert(
       Cow::Borrowed("os_version"),
@@ -748,7 +751,7 @@ impl bd_logger::MetadataProvider for WrappedMetadataProvider {
   }
 
   fn fields(&self) -> anyhow::Result<(LogFields, LogFields)> {
-    let mut static_ootb_fields = self.metadata.provided_fields.clone();
+    let static_ootb_fields = self.metadata.provided_fields.clone();
 
     let (custom_fields, mut ootb_fields) = self.provider.fields()?;
 
@@ -833,7 +836,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         let mut supported_abis_vec = Vec::with_capacity(count as usize);
         for i in 0 .. count {
           let element = env.get_object_array_element(&supported_abis, i)?;
-          let element_string: JString = element.into();
+          let element_string: JString<'_> = element.into();
           supported_abis_vec.push(
             unsafe { env.get_string_unchecked(&element_string) }?.into(),
           );

@@ -72,17 +72,17 @@ fn capture_cache_kscrash_report_impl(
 ) -> anyhow::Result<CacheResult> {
   let report_path = unsafe { nsstring_into_string(kscrash_report_path_ptr) }
     .map_err(|e| anyhow::anyhow!("Failed to convert KSCrash report path to string: {e}"))?;
-  parse_cached_report(report_path)
+  parse_cached_report(&report_path)
 }
 
-fn parse_cached_report(report_path: String) -> anyhow::Result<CacheResult> {
-  if !Path::new(&report_path).exists() {
+fn parse_cached_report(report_path: &str) -> anyhow::Result<CacheResult> {
+  if !Path::new(report_path).exists() {
     return Ok(CacheResult::ReportDoesNotExist);
   }
 
-  let file_contents = fs::read(&report_path)?;
+  let file_contents = fs::read(report_path)?;
 
-  if file_contents.len() == 0 {
+  if file_contents.is_empty() {
     // File is created when the writer is initialized. An empty file should
     // indicate that no error occurred to be written.
     return Ok(CacheResult::ReportDoesNotExist);
@@ -277,8 +277,7 @@ fn parse_address_value(address: &Value) -> anyhow::Result<u64> {
       })
       .ok_or_else(|| anyhow::anyhow!("Address value is negative: {address}")),
     _ => Err(anyhow::anyhow!(
-      "Address value is not a valid number (got {:?})",
-      address
+      "Address value is not a valid number (got {address:?})",
     )),
   }
 }
@@ -428,7 +427,7 @@ mod tests {
   fn nonexistent_report_path_test() {
     assert_eq!(
       CacheResult::ReportDoesNotExist,
-      parse_cached_report("/sys/nonpath".to_string()).unwrap()
+      parse_cached_report("/sys/nonpath").unwrap()
     );
   }
 
@@ -441,7 +440,7 @@ mod tests {
     let report_path = report.path().to_str().unwrap().to_string();
     assert_eq!(
       CacheResult::ReportDoesNotExist,
-      parse_cached_report(report_path).unwrap()
+      parse_cached_report(&report_path).unwrap()
     );
   }
 
@@ -451,8 +450,8 @@ mod tests {
       .prefix("report")
       .tempfile()
       .unwrap();
-    report.write("\0\0\0".as_bytes()).unwrap();
+    report.write_all("\0\0\0".as_bytes()).unwrap();
     let report_path = report.path().to_str().unwrap().to_string();
-    assert!(parse_cached_report(report_path).is_err());
+    assert!(parse_cached_report(&report_path).is_err());
   }
 }
