@@ -10,6 +10,7 @@ package io.bitdrift.capture.timber
 import com.google.common.truth.Truth.assertThat
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.fieldsOf
 import org.junit.Test
 import org.mockito.kotlin.any
@@ -61,7 +62,7 @@ class CaptureTreeTest {
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.WARNING), any(), anyOrNull(), argCaptor.capture())
+        verify(mockLogger).log(eq(LogLevel.WARNING), any<Fields>(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
 
@@ -75,7 +76,7 @@ class CaptureTreeTest {
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.INFO), any(), anyOrNull(), argCaptor.capture())
+        verify(mockLogger).log(eq(LogLevel.INFO), any<Fields>(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
 
@@ -89,7 +90,7 @@ class CaptureTreeTest {
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.DEBUG), any(), anyOrNull(), argCaptor.capture())
+        verify(mockLogger).log(eq(LogLevel.DEBUG), any<Fields>(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
 
@@ -103,7 +104,7 @@ class CaptureTreeTest {
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.TRACE), any(), anyOrNull(), argCaptor.capture())
+        verify(mockLogger).log(eq(LogLevel.TRACE), any<Fields>(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
 
@@ -117,7 +118,7 @@ class CaptureTreeTest {
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()
-        verify(mockLogger).log(eq(LogLevel.DEBUG), any(), anyOrNull(), argCaptor.capture())
+        verify(mockLogger).log(eq(LogLevel.DEBUG), any<Fields>(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
 }

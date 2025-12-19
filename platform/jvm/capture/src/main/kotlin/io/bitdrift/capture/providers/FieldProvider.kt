@@ -4,15 +4,6 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-
-@file:Suppress("UndocumentedPublicClass")
-// capture-sdk - bitdrift's client SDK
-// Copyright Bitdrift, Inc. All rights reserved.
-//
-// Use of this source code is governed by a source available license that can be found in the
-// LICENSE file or at:
-// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-
 package io.bitdrift.capture.providers
 
 /**
@@ -129,7 +120,7 @@ internal fun ByteArray.toFieldValue() =
  * @property keys Array of field keys
  * @property values Array of field values corresponding to keys
  */
-@Suppress("UndocumentedPublicFunction")
+@Suppress("UndocumentedPublicClass", "UndocumentedPublicFunction")
 class Fields internal constructor(
     internal val keys: Array<String>,
     internal val values: Array<String>,
