@@ -27,6 +27,7 @@ import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.combineFields
+import io.bitdrift.capture.providers.fieldOf
 import io.bitdrift.capture.providers.fieldsOf
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicReference
@@ -91,7 +92,7 @@ internal class DeviceStateListenerLogger(
                 Intent.ACTION_POWER_CONNECTED ->
                     log(
                         combineFields(
-                            fieldsOf("_state" to "charging"),
+                            fieldOf("_state", "charging"),
                             fieldsOf(batteryMonitor.batteryPercentageAttribute()),
                         ),
                         BATTERY_CHANGE,
@@ -100,7 +101,7 @@ internal class DeviceStateListenerLogger(
                 Intent.ACTION_POWER_DISCONNECTED ->
                     log(
                         combineFields(
-                            fieldsOf("_state" to "unplugged"),
+                            fieldOf("_state", "unplugged"),
                             fieldsOf(batteryMonitor.batteryPercentageAttribute()),
                         ),
                         BATTERY_CHANGE,
@@ -108,7 +109,7 @@ internal class DeviceStateListenerLogger(
 
                 Intent.ACTION_TIMEZONE_CHANGED ->
                     log(
-                        fieldsOf("_time_zone" to intent.getStringExtra("time-zone").orEmpty()),
+                        fieldOf("_time_zone", intent.getStringExtra("time-zone").orEmpty()),
                         TIMEZONE_CHANGE,
                     )
 
@@ -131,9 +132,9 @@ internal class DeviceStateListenerLogger(
             prevConfig.set(Configuration(newConfig))
             if (diff and ActivityInfo.CONFIG_ORIENTATION == ActivityInfo.CONFIG_ORIENTATION) {
                 if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                    log(fieldsOf("_orientation" to "landscape"), ORIENTATION_CHANGE)
+                    log(fieldOf("_orientation", "landscape"), ORIENTATION_CHANGE)
                 } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
-                    log(fieldsOf("_orientation" to "portrait"), ORIENTATION_CHANGE)
+                    log(fieldOf("_orientation", "portrait"), ORIENTATION_CHANGE)
                 }
             }
         }

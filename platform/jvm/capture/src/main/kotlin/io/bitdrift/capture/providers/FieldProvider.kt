@@ -185,13 +185,36 @@ internal fun combineJniFields(
 }
 
 /**
- * Creates a Fields from pairs directly.
+ * Creates a [Fields] instance containing a single key-value pair.
+ *
+ * This is an optimized alternative to `fieldsOf("key" to "value")` that avoids
+ * creating a Pair object and useful where there is only one entry to be added.
+ *
+ * @param key The field key.
+ * @param value The field value.
+ * @return A [Fields] instance containing the single key-value pair.
+ *
+ * Example:
+ * ```
+ * fieldOf("user_id", "12345")
+ * ```
+ */
+fun fieldOf(
+    key: String,
+    value: String,
+): Fields = Fields(arrayOf(key), arrayOf(value))
+
+/**
+ * Creates a [Fields] instance from key-value pairs.
+ *
+ * @param pairs Vararg of key-value pairs, where each pair is created using `"key" to "value"` syntax.
+ * @return A [Fields] instance containing the provided key-value pairs, or [Fields.EMPTY] if no pairs provided.
  *
  * Example:
  * ```
  * fieldsOf(
- *     "_app_exit_source" to "ApplicationExitInfo",
- *     "_app_exit_reason" to reason
+ *     "key_1" to "value_1",
+ *     "key_2" to "value_2"
  * )
  * ```
  */
@@ -203,7 +226,20 @@ fun fieldsOf(vararg pairs: Pair<String, String>): Fields {
 }
 
 /**
- * Creates Fields from pairs, filtering out null values.
+ * Creates a [Fields] instance from key-value pairs, filtering out pairs with null values.
+ *
+ * @param pairs Vararg of key-value pairs, where each pair is created using `"key" to value` syntax.
+ *              Pairs with null values are excluded from the result.
+ * @return A [Fields] instance containing only non-null key-value pairs, or [Fields.EMPTY] if all values are null.
+ *
+ * Example:
+ * ```
+ * val optionalValue: String? = null
+ * fieldsOfOptional(
+ *     "key_1" to "value_1",
+ *     "key_2" to optionalValue  // This pair will be excluded
+ * )
+ * ```
  */
 fun fieldsOfOptional(vararg pairs: Pair<String, String?>): Fields {
     val nonNull = pairs.filter { it.second != null }

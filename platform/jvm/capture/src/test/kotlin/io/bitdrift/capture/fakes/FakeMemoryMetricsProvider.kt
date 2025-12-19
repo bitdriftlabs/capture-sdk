@@ -18,6 +18,7 @@ package io.bitdrift.capture.fakes
 
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.fieldOf
 import io.bitdrift.capture.providers.fieldsOf
 
 class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
@@ -42,7 +43,7 @@ class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
 
     override fun isMemoryLow() = isMemoryLow
 
-    override fun getMemoryClass(): Fields = fieldsOf("_memory_class" to "1")
+    override fun getMemoryClass(): Fields = fieldOf("_memory_class", "1")
 
     fun clear() {
         exception = null

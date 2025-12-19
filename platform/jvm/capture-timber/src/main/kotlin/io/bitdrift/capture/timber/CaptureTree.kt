@@ -13,7 +13,7 @@ import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.combineFields
-import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.providers.fieldOf
 import io.bitdrift.capture.providers.fieldsOfOptional
 import timber.log.Timber
 
@@ -51,7 +51,7 @@ open class CaptureTree internal constructor(
 
     private fun extractFields(tag: String?): Fields =
         combineFields(
-            fieldsOf("source" to "Timber"),
+            fieldOf("source", "Timber"),
             fieldsOfOptional("tag" to tag),
         )
 }

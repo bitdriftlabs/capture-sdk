@@ -11,6 +11,7 @@ import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.FieldArraysBuilder
 import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.combineFields
+import io.bitdrift.capture.providers.fieldOf
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.fieldsOfOptional
 import io.bitdrift.capture.providers.toFields
@@ -55,7 +56,7 @@ data class HttpResponseInfo
 
                 val statusFields =
                     response.statusCode?.let {
-                        fieldsOf("_status_code" to it.toString())
+                        fieldOf("_status_code", it.toString())
                     } ?: Fields.EMPTY
 
                 val errorFields =
@@ -83,7 +84,7 @@ data class HttpResponseInfo
                             } else {
                                 respPath.template
                             }
-                        template?.let { fieldsOf(HttpField.PATH_TEMPLATE to it) }
+                        template?.let { fieldOf(HttpField.PATH_TEMPLATE, it) }
                     } ?: Fields.EMPTY
 
                 val metricsFields =

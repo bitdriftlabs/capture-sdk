@@ -11,6 +11,7 @@ import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.FieldArraysBuilder
 import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.combineFields
+import io.bitdrift.capture.providers.fieldOf
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.fieldsOfOptional
 import io.bitdrift.capture.providers.toFields
@@ -76,12 +77,12 @@ data class HttpRequestInfo
             val baseFields =
                 combineFields(
                     commonFields,
-                    fieldsOf(SpanField.Key.TYPE to SpanField.Value.TYPE_START),
+                    fieldOf(SpanField.Key.TYPE, SpanField.Value.TYPE_START),
                 )
             if (bytesExpectedToSendCount != null) {
                 combineFields(
                     baseFields,
-                    fieldsOf("_request_body_bytes_expected_to_send_count" to bytesExpectedToSendCount.toString()),
+                    fieldOf("_request_body_bytes_expected_to_send_count", bytesExpectedToSendCount.toString()),
                 )
             } else {
                 baseFields
