@@ -115,7 +115,7 @@ final class LoggerColdConfigurationBenchmark: AnyBenchmark {
 }
 
 public let kPreConfigLogBenchmark = BenchmarkSuite(name: "Logging - Pre-Config") { suite in
-    guard let logger = try? Logger.make() else {
+    guard let logger = try? Logger.make(directoryURL: try? makeTmpDirectory()) else {
         return assertionFailure("failed to create a logger")
     }
 
@@ -131,7 +131,7 @@ public let kPreConfigLogBenchmark = BenchmarkSuite(name: "Logging - Pre-Config")
         )
     }
 
-    guard let logger5Fields = try? Logger.make() else {
+    guard let logger5Fields = try? Logger.make(directoryURL: try? makeTmpDirectory()) else {
         return assertionFailure("failed to create a logger")
     }
 
@@ -153,7 +153,7 @@ public let kPreConfigLogBenchmark = BenchmarkSuite(name: "Logging - Pre-Config")
         )
     }
 
-    guard let logger10Fields = try? Logger.make() else {
+    guard let logger10Fields = try? Logger.make(directoryURL: try? makeTmpDirectory()) else {
         return assertionFailure("failed to create a logger")
     }
 
@@ -180,7 +180,7 @@ public let kPreConfigLogBenchmark = BenchmarkSuite(name: "Logging - Pre-Config")
         )
     }
 
-    guard let loggerOverflow = try? Logger.make() else {
+    guard let loggerOverflow = try? Logger.make(directoryURL: try? makeTmpDirectory()) else {
         return assertionFailure("failed to create a logger")
     }
 

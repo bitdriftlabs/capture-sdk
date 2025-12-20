@@ -25,19 +25,13 @@ final class ConfigurationTests: XCTestCase {
     }
 
     func testConfigurationSimple() throws {
-        Logger.start(
-            withAPIKey: "api_key",
-            sessionStrategy: .fixed()
-        )
+        self.startLoggerWithIsolatedDirectory(apiKey: "api_key")
 
         XCTAssertNotNil(Logger.getShared())
     }
 
     func testConfigurationDefault() throws {
-        Logger.start(
-            withAPIKey: "api_key",
-            sessionStrategy: .fixed()
-        )
+        self.startLoggerWithIsolatedDirectory(apiKey: "api_key")
 
         XCTAssertNotNil(Logger.getShared())
     }
@@ -48,8 +42,7 @@ final class ConfigurationTests: XCTestCase {
     }
 
     func testLoggerRootPath() throws {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-            .appendingPathComponent(UUID().uuidString)
+        let tempDir = self.makeTemporaryLoggerDirectory()
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: tempDir.path))
 
