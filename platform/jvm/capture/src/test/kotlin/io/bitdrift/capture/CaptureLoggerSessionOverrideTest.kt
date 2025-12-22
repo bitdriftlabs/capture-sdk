@@ -10,15 +10,23 @@ package io.bitdrift.capture
 import android.annotation.TargetApi
 import android.app.ActivityManager
 import android.app.ApplicationExitInfo
+import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.os.Build
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
+import com.nhaarman.mockitokotlin2.doReturn
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.providers.DateProvider
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
@@ -73,8 +81,46 @@ class CaptureLoggerSessionOverrideTest {
      *  Verify that upon the launch of the SDK it's possible to emit logs with session Id
      *  equal to the last active session ID from the previous run of the SDK.
      */
+
     @Test
     fun testSessionIdOverride() {
+        val oldAppVersion = "1.2.3"
+        val oldAppVersionCode = 123L
+        val newAppVersion = "1.2.4"
+        val newAppVersionCode = 124L
+        val packageName = ContextHolder.APP_CONTEXT.packageName
+
+        // Mock package manager to return old version
+        val packageManager = mock<PackageManager>()
+        val packageInfo =
+            PackageInfo().apply {
+                versionName = oldAppVersion
+                @Suppress("DEPRECATION")
+                versionCode = oldAppVersionCode.toInt()
+            }
+        whenever(packageManager.getPackageInfo(packageName, 0)).thenReturn(packageInfo)
+
+        val context = mock<android.content.Context>(defaultAnswer = Mockito.RETURNS_DEEP_STUBS)
+        whenever(context.packageManager).thenReturn(packageManager)
+        whenever(context.packageName).thenReturn(packageName)
+        whenever(context.resources).thenReturn(ContextHolder.APP_CONTEXT.resources)
+        whenever(context.getSystemService(android.content.Context.ACTIVITY_SERVICE)).thenReturn(activityManager)
+
+        val batteryManager = mock<android.os.BatteryManager>()
+        whenever(context.getSystemService(android.content.Context.BATTERY_SERVICE)).thenReturn(batteryManager)
+
+        val windowManager = mock<android.view.WindowManager>()
+        whenever(context.getSystemService(android.content.Context.WINDOW_SERVICE)).thenReturn(windowManager)
+
+        val lifecycleOwner = mock<LifecycleOwner>()
+        val lifecycleRegistry = LifecycleRegistry(lifecycleOwner)
+        lifecycleRegistry.currentState = Lifecycle.State.STARTED
+        doReturn(lifecycleRegistry).whenever(lifecycleOwner).lifecycle
+
+        val clientAttributes = ClientAttributes(context, lifecycleOwner)
+        // Force initial attributes population
+        clientAttributes.invoke()
+
         // Start the logger and process one log with it just so that
         // it generates a session Id that's stored in passed `Preferences` instance.
         val preferences = MockPreferences()
@@ -86,11 +132,15 @@ class CaptureLoggerSessionOverrideTest {
                 fieldProviders = listOf(),
                 dateProvider = systemDateProvider,
                 sessionStrategy = SessionStrategy.Fixed { "foo" },
-                configuration = Configuration(),
-                context = ContextHolder.APP_CONTEXT,
+                configuration = Configuration(sessionReplayConfiguration = null),
+                context = context,
                 preferences = preferences,
                 issueReporter = issueReporter,
+                clientAttributes = clientAttributes,
             )
+
+        // Force attributes update again after logger creation
+        clientAttributes.invoke()
 
         // Let the first logger process come up and send it the configuration to aggressively upload
         // the data. On the second startup it should read this configuration from cache.
@@ -98,7 +148,21 @@ class CaptureLoggerSessionOverrideTest {
         assertThat(firstApiStreamId).isNotEqualTo(-1)
         CaptureTestJniLibrary.configureAggressiveContinuousUploads(firstApiStreamId)
 
-        val timestamp = 123L
+        // Emit a log to ensure the session and its attributes are persisted
+        logger.log(LogLevel.INFO, null, null) { "warmup log" }
+        logger.flush(true)
+
+        var warmupLogFound = false
+        while (!warmupLogFound) {
+            val log = CaptureTestJniLibrary.nextUploadedLog()
+            if (log.message == "warmup log") {
+                assertThat(log.sessionId).isEqualTo("foo")
+                assertThat(log.fields["app_version"]).isEqualTo(FieldValue.StringField(oldAppVersion))
+                warmupLogFound = true
+            }
+        }
+
+        val timestamp = TEST_DATE_TIMESTAMP + 100L
         val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = Mockito.RETURNS_DEEP_STUBS)
         whenever(mockExitInfo.timestamp).thenReturn(timestamp)
         whenever(mockExitInfo.processName).thenReturn(ContextHolder.APP_CONTEXT.packageName)
@@ -114,6 +178,17 @@ class CaptureLoggerSessionOverrideTest {
         // on the ring buffer.
         CaptureJniLibrary.shutdown(logger.loggerId)
 
+        // Update mock package manager to return new version
+        val newPackageInfo =
+            PackageInfo().apply {
+                versionName = newAppVersion
+                @Suppress("DEPRECATION")
+                versionCode = newAppVersionCode.toInt()
+            }
+        whenever(packageManager.getPackageInfo(packageName, 0)).thenReturn(newPackageInfo)
+
+        val newClientAttributes = ClientAttributes(context, lifecycleOwner)
+
         // Start another logger instance. Notice how its session strategy specifies "bar"
         // session Id.
         logger =
@@ -123,11 +198,12 @@ class CaptureLoggerSessionOverrideTest {
                 fieldProviders = listOf(),
                 dateProvider = systemDateProvider,
                 sessionStrategy = SessionStrategy.Fixed { "bar" },
-                configuration = Configuration(),
-                context = ContextHolder.APP_CONTEXT,
+                configuration = Configuration(sessionReplayConfiguration = null),
+                context = context,
                 preferences = preferences,
                 activityManager = activityManager,
                 issueReporter = issueReporter,
+                clientAttributes = newClientAttributes,
             )
 
         val secondApiStreamId = CaptureTestJniLibrary.awaitNextApiStream()
@@ -140,8 +216,23 @@ class CaptureLoggerSessionOverrideTest {
             if (log.message == "AppExit") {
                 assertThat(log.level).isEqualTo(LogLevel.ERROR.value)
                 assertThat(log.sessionId).isEqualTo("foo")
-                assertThat(log.rfc3339Timestamp).isEqualTo("1970-01-01T00:00:00.123Z")
+                assertThat(log.rfc3339Timestamp).isEqualTo("2022-07-05T18:55:58.223Z")
+                assertThat(log.fields["app_version"]).isEqualTo(FieldValue.StringField(oldAppVersion))
+                assertThat(log.fields["_app_version_code"]).isEqualTo(FieldValue.StringField(oldAppVersionCode.toString()))
                 appExitLogFound = true
+            }
+        }
+
+        logger.log(LogLevel.INFO, null, null) { "test log" }
+
+        var nextLogFound = false
+        while (!nextLogFound) {
+            val log = CaptureTestJniLibrary.nextUploadedLog()
+            if (log.message == "test log") {
+                assertThat(log.sessionId).isEqualTo("bar")
+                assertThat(log.fields["app_version"]).isEqualTo(FieldValue.StringField(newAppVersion))
+                assertThat(log.fields["_app_version_code"]).isEqualTo(FieldValue.StringField(newAppVersionCode.toString()))
+                nextLogFound = true
             }
         }
     }
