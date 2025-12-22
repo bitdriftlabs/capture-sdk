@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.network.okhttp.OkHttpNetwork
+import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
 import io.bitdrift.capture.threading.CaptureDispatchers
@@ -41,9 +42,9 @@ class CaptureLoggerNetworkTest {
     class TestMetadataProvider : IMetadataProvider {
         override fun timestamp(): Long = Date().time
 
-        override fun ootbFields(): InternalFieldsList = listOf()
+        override fun ootbFields(): Array<Field> = emptyArray()
 
-        override fun customFields(): InternalFieldsList = listOf()
+        override fun customFields(): Array<Field> = emptyArray()
     }
 
     companion object {

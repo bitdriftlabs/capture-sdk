@@ -49,17 +49,13 @@ class MetadataProviderTest {
                 errorLog = { _, _ -> },
             )
 
-        assertThat(metadataProvider.ootbFields()).isEqualTo(
-            listOf(
-                Field("key1", FieldValue.StringField("value1")),
-                Field("key2", FieldValue.StringField("value2")),
-            ),
+        assertThat(metadataProvider.ootbFields()).containsExactly(
+            Field("key1", FieldValue.StringField("value1")),
+            Field("key2", FieldValue.StringField("value2")),
         )
-        assertThat(metadataProvider.customFields()).isEqualTo(
-            listOf(
-                Field("key1", FieldValue.StringField("value3")),
-                Field("key2", FieldValue.StringField("value4")),
-            ),
+        assertThat(metadataProvider.customFields()).containsExactly(
+            Field("key1", FieldValue.StringField("value3")),
+            Field("key2", FieldValue.StringField("value4")),
         )
     }
 }
