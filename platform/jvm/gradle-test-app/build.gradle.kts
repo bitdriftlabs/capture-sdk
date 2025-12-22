@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.apollo.graphql)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    id("io.bitdrift.capture-plugin") version("LOCAL-SNAPSHOT")
 }
 
 dependencies {
@@ -164,5 +165,12 @@ apollo {
     service("service") {
         // https://apollo-fullstack-tutorial.herokuapp.com/graphql
         packageName.set("com.example.rocketreserver")
+    }
+}
+
+bitdrift {
+    instrumentation {
+        automaticOkHttpInstrumentation = true
+        // automaticWebViewInstrumentation = true
     }
 }

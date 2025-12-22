@@ -14,7 +14,7 @@ import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.fragment.app.Fragment
 import io.bitdrift.gradletestapp.R
-import io.bitdrift.gradletestapp.diagnostics.webview.WebViewCapture
+import io.bitdrift.capture.events.webview.WebViewCapture
 
 /**
  * A basic WebView that can be used to test multi process.
@@ -30,8 +30,9 @@ class WebViewFragment : Fragment() {
         val webView = view.findViewById<WebView>(R.id.webView)
 
         // Instrument the WebView with bitdrift capture
-        WebViewCapture.instrument(webView)
-
+//        WebViewCapture.instrument(webView).loadUrl(urls.random())
+        webView.loadUrl(urls.random())
+//        WebViewCapture.instrument(webView).loadUrl(urls.random())
         webView.loadUrl(urls.random())
         return view
     }

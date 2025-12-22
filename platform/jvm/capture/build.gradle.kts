@@ -32,6 +32,7 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.performance)
     implementation(libs.protobuf.kotlinlite)
+    implementation(libs.androidx.webkit)
 
     compileOnly(libs.retrofit)
 

@@ -27,6 +27,8 @@ gradlePlugin {
             id = "io.bitdrift.capture-plugin"
             implementationClass = "io.bitdrift.capture.CapturePlugin"
         }
+        group = "io.bitdrift.capture-plugin"
+        version = "LOCAL-SNAPSHOT"
     }
 }
 

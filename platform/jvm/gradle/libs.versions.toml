@@ -29,6 +29,7 @@ startupRuntime          = "1.2.0"
 timber                  = "5.0.1"
 truth                   = "1.1.4"
 ui                      = "1.7.6"
+webkit = "1.15.0"
 
 [libraries]
 androidx-appcompat         = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
@@ -57,6 +58,7 @@ retrofit                   = { module = "com.squareup.retrofit2:retrofit", versi
 robolectric                = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 timber                     = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 truth                      = { module = "com.google.truth:truth", version.ref = "truth" }
+androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

@@ -1,13 +1,7 @@
-// capture-sdk - bitdrift's client SDK
-// Copyright Bitdrift, Inc. All rights reserved.
-//
-// Use of this source code is governed by a source available license that can be found in the
-// LICENSE file or at:
-// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-
-package io.bitdrift.gradletestapp.diagnostics.webview
+package io.bitdrift.capture.events.webview
 
 import android.graphics.Bitmap
+import android.util.Log
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -21,6 +15,26 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 
+/**
+ * A [WebViewClient] that wraps an existing [WebViewClient] to automatically capture
+ * events and metrics related to page loads in a [WebView].
+ *
+ * This class intercepts key callbacks from the [WebViewClient] lifecycle to create a [Span]
+ * that measures the duration of a page load. It records whether the load was successful or
+ * resulted in an error, and attaches relevant details such as the URL and any error information.
+ *
+ * It is designed to be a transparent wrapper. All intercepted callbacks are forwarded to the
+ * original [WebViewClient] instance after the capture logic is executed, ensuring that existing
+ * functionality is not broken.
+ *
+ * Use the [WebViewCapture.instrument] companion object function to easily apply this to an
+ * existing [WebView] instance.
+ *
+ * @property original The original [WebViewClient] that was set on the [WebView]. All callback
+ * events are forwarded to this client after being processed by [WebViewCapture].
+ * @property logger An optional [ILogger] instance used for logging spans. If not provided, it
+ * will attempt to retrieve the default logger from [Capture.logger].
+ */
 class WebViewCapture(
     private val original: WebViewClient,
     private val logger: ILogger? = Capture.logger(),
@@ -135,12 +149,40 @@ class WebViewCapture(
         }
     }
 
+    /**
+     * Provides a factory method for instrumenting a [WebView].
+     */
     companion object {
-        fun instrument(webview: WebView) {
-            if (WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_CLIENT)) {
-                val original = WebViewCompat.getWebViewClient(webview)
-                webview.webViewClient = WebViewCapture(original)
+        /**
+         * Instruments a [WebView] to capture page load events.
+         *
+         * This function wraps the existing [WebViewClient] of the given [webview] with a [WebViewCapture]
+         * instance. This allows for the interception of page load lifecycle callbacks (`onPageStarted`,
+         * `onPageFinished`, `onReceivedError`, etc.) to create spans that measure page load performance
+         * and capture errors.
+         *
+         * If the WebView has already been instrumented with `WebViewCapture`, this function will do nothing
+         * and return the original WebView. It also checks for the required `WebViewFeature.GET_WEB_VIEW_CLIENT`
+         * and will not instrument if the feature is unsupported on the device.
+         *
+         * @param webview The [WebView] instance to instrument.
+         * @return The instrumented [WebView] instance.
+         */
+        @JvmStatic
+        fun instrument(webview: WebView): WebView {
+            if (!WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_CLIENT)) {
+                Log.i("miguel", "WebViewCapture.instrument(): WebView client not supported, skipping instrumentation")
+                return webview
             }
+            // noinspection RequiresFeature
+            val original = WebViewCompat.getWebViewClient(webview)
+            if (original is WebViewCapture) {
+                Log.i("miguel", "WebViewCapture.instrument(): WebView already instrumented, skipping instrumentation")
+                return webview
+            }
+            webview.webViewClient = WebViewCapture(original)
+            Log.i("miguel", "WebViewCapture.instrument(): WebView instrumented with WebViewCapture successfully")
+            return webview
         }
     }
 }

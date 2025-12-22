@@ -42,12 +42,12 @@ class NetworkTestingRepository {
     private val okHttpClient: OkHttpClient =
         OkHttpClient
             .Builder()
-            .eventListenerFactory(
-                CaptureOkHttpEventListenerFactory(
-                    requestFieldProvider = RetrofitUrlPathProvider(CustomRequestFieldProvider()),
-                    responseFieldProvider = CustomResponseFieldProvider(),
-                ),
-            ).build()
+//            .eventListenerFactory(
+//                CaptureOkHttpEventListenerFactory(
+//                    requestFieldProvider = RetrofitUrlPathProvider(CustomRequestFieldProvider()),
+//                    responseFieldProvider = CustomResponseFieldProvider(),
+//                ))
+            .build()
     private val apolloClient: ApolloClient =
         ApolloClient
             .Builder()
