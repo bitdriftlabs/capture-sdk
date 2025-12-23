@@ -37,6 +37,8 @@ sealed class SessionAction : AppAction {
 
     object GenerateDeviceCode : SessionAction()
 
+    object QueryDeviceId : SessionAction()
+
     object CopySessionUrl : SessionAction()
 }
 
