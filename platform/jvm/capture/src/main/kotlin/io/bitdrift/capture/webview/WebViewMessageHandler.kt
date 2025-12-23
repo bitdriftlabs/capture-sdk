@@ -46,14 +46,13 @@ internal class WebViewMessageHandler(
         }
 
         val type = json.get("type")?.asString ?: return
-        val timestamp = json.get("timestamp")?.asLong ?: System.currentTimeMillis()
 
         when (type) {
             "bridgeReady" -> handleBridgeReady(json, capture)
-            "webVital" -> handleWebVital(json, timestamp)
-            "networkRequest" -> handleNetworkRequest(json, timestamp)
-            "navigation" -> handleNavigation(json, timestamp)
-            "error" -> handleError(json, timestamp)
+            "webVital" -> handleWebVital(json)
+            "networkRequest" -> handleNetworkRequest(json)
+            "navigation" -> handleNavigation(json)
+            "error" -> handleError(json)
         }
     }
 
@@ -66,7 +65,7 @@ internal class WebViewMessageHandler(
         }
     }
 
-    private fun handleWebVital(json: JsonObject, timestamp: Long) {
+    private fun handleWebVital(json: JsonObject) {
         val name = json.get("name")?.asString ?: return
         val value = json.get("value")?.asDouble ?: return
         val rating = json.get("rating")?.asString ?: "unknown"
@@ -93,8 +92,7 @@ internal class WebViewMessageHandler(
         }
     }
 
-    private fun handleNetworkRequest(json: JsonObject, timestamp: Long) {
-        val requestId = json.get("requestId")?.asString ?: return
+    private fun handleNetworkRequest(json: JsonObject) {
         val method = json.get("method")?.asString ?: "GET"
         val url = json.get("url")?.asString ?: return
         val statusCode = json.get("statusCode")?.asInt ?: 0
@@ -132,7 +130,7 @@ internal class WebViewMessageHandler(
         }
     }
 
-    private fun handleNavigation(json: JsonObject, timestamp: Long) {
+    private fun handleNavigation(json: JsonObject) {
         val fromUrl = json.get("fromUrl")?.asString ?: ""
         val toUrl = json.get("toUrl")?.asString ?: ""
         val method = json.get("method")?.asString ?: ""
@@ -149,7 +147,7 @@ internal class WebViewMessageHandler(
         }
     }
 
-    private fun handleError(json: JsonObject, timestamp: Long) {
+    private fun handleError(json: JsonObject) {
         val errorMessage = json.get("message")?.asString ?: "Unknown error"
         val stack = json.get("stack")?.asString
         val filename = json.get("filename")?.asString

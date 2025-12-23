@@ -163,7 +163,9 @@ class WebViewCapture(
             }
         }
     }
-
+    /**
+     * Companion object for WebViewCapture.
+     */
     companion object {
         private const val TAG = "WebViewCapture"
         private const val BRIDGE_NAME = "BitdriftLogger"
