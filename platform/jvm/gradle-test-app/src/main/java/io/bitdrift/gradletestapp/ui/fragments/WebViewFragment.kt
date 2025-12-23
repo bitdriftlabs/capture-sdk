@@ -13,8 +13,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.fragment.app.Fragment
+import io.bitdrift.capture.webview.WebViewCapture
 import io.bitdrift.gradletestapp.R
-import io.bitdrift.gradletestapp.diagnostics.webview.WebViewCapture
 
 /**
  * A basic WebView that can be used to test multi process.
