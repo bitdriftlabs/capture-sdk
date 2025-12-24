@@ -4,7 +4,7 @@
     <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">Capture SDK Gradle Test App</string>
     <string name="second_fragment_label">Second Fragment</string>
-    <string name="web_view_fragment_label">WebView Fragment</string>
+    <string name="web_view_fragment_label">`Fragment</string>
     <string name="config_fragment_label">Settings</string>
     <string name="navigate_config">Navigate to Configuration</string>
     <string name="okhttp">Perform OkHttp Request</string>
@@ -51,4 +51,5 @@
     <string name="restart_warning_title">Restart the App to apply changes</string>
     <string name="restart_warning_summary">Click here to restart and apply your configuration changes</string>
     <string name="log_message_toast">Log message sent with level: %1$s</string>
+    <string name="webview_testing">WebView Testing</string>
 </resources>
