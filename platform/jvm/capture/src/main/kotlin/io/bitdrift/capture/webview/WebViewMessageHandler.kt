@@ -12,7 +12,12 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonSyntaxException
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.LogLevel
-import io.bitdrift.capture.events.span.SpanResult
+import io.bitdrift.capture.network.HttpRequestInfo
+import io.bitdrift.capture.network.HttpRequestMetrics
+import io.bitdrift.capture.network.HttpResponse
+import io.bitdrift.capture.network.HttpResponseInfo
+import io.bitdrift.capture.network.HttpUrlPath
+import java.net.URI
 
 /**
  * Handles incoming messages from the WebView JavaScript bridge and routes them
@@ -22,9 +27,6 @@ internal class WebViewMessageHandler(
     private val logger: ILogger?,
 ) {
     private val gson = Gson()
-
-    // Track ongoing network request spans by requestId
-    private val networkSpans = mutableMapOf<String, io.bitdrift.capture.events.span.Span>()
 
     fun handleMessage(message: String, capture: WebViewCapture) {
         val json = try {
@@ -97,40 +99,80 @@ internal class WebViewMessageHandler(
     private fun handleNetworkRequest(json: JsonObject, timestamp: Long) {
         val method = json.get("method")?.asString ?: "GET"
         val url = json.get("url")?.asString ?: return
-        val statusCode = json.get("statusCode")?.asInt ?: 0
+        val statusCode = json.get("statusCode")?.asInt
         val durationMs = json.get("durationMs")?.asLong ?: 0
         val success = json.get("success")?.asBoolean ?: false
-        val error = json.get("error")?.asString
+        val errorMessage = json.get("error")?.asString
         val requestType = json.get("requestType")?.asString ?: "unknown"
-
-        // Extract timing data if available
         val timing = json.getAsJsonObject("timing")
+
+        // Parse URL components
+        val uri = try {
+            URI(url)
+        } catch (e: Exception) {
+            null
+        }
         
-        val fields = buildMap {
-            put("_url", url)
-            put("_method", method)
-            put("_statusCode", statusCode.toString())
-            put("_durationMs", durationMs.toString())
-            put("_requestType", requestType)
+        val host = uri?.host
+        val path = uri?.path?.takeIf { it.isNotEmpty() }
+        val query = uri?.query
+
+        // Build extra fields for WebView-specific data
+        val extraFields = buildMap {
             put("_source", "webview")
+            put("_request_type", requestType)
             put("_timestamp", timestamp.toString())
-            error?.let { put("_error", it) }
-            
-            timing?.let { t ->
-                t.get("dnsMs")?.asDouble?.let { put("_dnsMs", it.toString()) }
-                t.get("connectMs")?.asDouble?.let { put("_connectMs", it.toString()) }
-                t.get("tlsMs")?.asDouble?.let { put("_tlsMs", it.toString()) }
-                t.get("ttfbMs")?.asDouble?.let { put("_ttfbMs", it.toString()) }
-                t.get("downloadMs")?.asDouble?.let { put("_downloadMs", it.toString()) }
-                t.get("transferSize")?.asLong?.let { put("_transferSize", it.toString()) }
-            }
         }
 
-        val level = if (success) LogLevel.DEBUG else LogLevel.WARNING
-        
-        logger?.log(level, fields) {
-            "webview.network"
+        // Create HttpRequestInfo
+        val requestInfo = HttpRequestInfo(
+            method = method,
+            host = host,
+            path = path?.let { HttpUrlPath(it) },
+            query = query,
+            extraFields = extraFields,
+        )
+
+        // Build metrics from timing data if available
+        val metrics = timing?.let { t ->
+            HttpRequestMetrics(
+                requestBodyBytesSentCount = 0,
+                responseBodyBytesReceivedCount = t.get("transferSize")?.asLong ?: 0,
+                requestHeadersBytesCount = 0,
+                responseHeadersBytesCount = 0,
+                dnsResolutionDurationMs = t.get("dnsMs")?.asLong,
+                tlsDurationMs = t.get("tlsMs")?.asLong,
+                tcpDurationMs = t.get("connectMs")?.asLong,
+                responseLatencyMs = t.get("ttfbMs")?.asLong,
+            )
         }
+
+        // Determine result based on success/error
+        val result = when {
+            success -> HttpResponse.HttpResult.SUCCESS
+            errorMessage != null -> HttpResponse.HttpResult.FAILURE
+            statusCode != null && statusCode >= 400 -> HttpResponse.HttpResult.FAILURE
+            else -> HttpResponse.HttpResult.FAILURE
+        }
+
+        // Build error if present
+        val error = errorMessage?.let { Exception(it) }
+
+        // Create HttpResponseInfo
+        val responseInfo = HttpResponseInfo(
+            request = requestInfo,
+            response = HttpResponse(
+                result = result,
+                statusCode = statusCode,
+                error = error,
+            ),
+            durationMs = durationMs,
+            metrics = metrics,
+        )
+
+        // Log the request and response as a span pair
+        logger?.log(requestInfo)
+        logger?.log(responseInfo)
     }
 
     private fun handleNavigation(json: JsonObject, timestamp: Long) {
