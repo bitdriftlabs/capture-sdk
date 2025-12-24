@@ -15,70 +15,70 @@ import com.google.gson.annotations.SerializedName
  */
 internal data class WebViewBridgeMessage(
     @SerializedName("v") val version: Int = 0,
-    val tag: String? = null,
-    val type: String? = null,
-    val timestamp: Long? = null,
+    @SerializedName("tag") val tag: String? = null,
+    @SerializedName("type") val type: String? = null,
+    @SerializedName("timestamp") val timestamp: Long? = null,
     // bridgeReady
-    val url: String? = null,
+    @SerializedName("url") val url: String? = null,
     // webVital
-    val metric: WebVitalMetric? = null,
-    val parentSpanId: String? = null,
+    @SerializedName("metric") val metric: WebVitalMetric? = null,
+    @SerializedName("parentSpanId") val parentSpanId: String? = null,
     // networkRequest
-    val method: String? = null,
-    val statusCode: Int? = null,
-    val durationMs: Long? = null,
-    val success: Boolean? = null,
-    val error: String? = null,
-    val requestType: String? = null,
-    val timing: NetworkTiming? = null,
+    @SerializedName("method") val method: String? = null,
+    @SerializedName("statusCode") val statusCode: Int? = null,
+    @SerializedName("durationMs") val durationMs: Long? = null,
+    @SerializedName("success") val success: Boolean? = null,
+    @SerializedName("error") val error: String? = null,
+    @SerializedName("requestType") val requestType: String? = null,
+    @SerializedName("timing") val timing: NetworkTiming? = null,
     // navigation
-    val fromUrl: String? = null,
-    val toUrl: String? = null,
+    @SerializedName("fromUrl") val fromUrl: String? = null,
+    @SerializedName("toUrl") val toUrl: String? = null,
     // pageView
-    val action: String? = null,
-    val spanId: String? = null,
-    val reason: String? = null,
+    @SerializedName("action") val action: String? = null,
+    @SerializedName("spanId") val spanId: String? = null,
+    @SerializedName("reason") val reason: String? = null,
     // lifecycle
-    val event: String? = null,
-    val performanceTime: Double? = null,
-    val visibilityState: String? = null,
+    @SerializedName("event") val event: String? = null,
+    @SerializedName("performanceTime") val performanceTime: Double? = null,
+    @SerializedName("visibilityState") val visibilityState: String? = null,
     // error
-    val name: String? = null,
-    val message: String? = null,
-    val stack: String? = null,
-    val filename: String? = null,
-    val lineno: Int? = null,
-    val colno: Int? = null,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("message") val message: String? = null,
+    @SerializedName("stack") val stack: String? = null,
+    @SerializedName("filename") val filename: String? = null,
+    @SerializedName("lineno") val lineno: Int? = null,
+    @SerializedName("colno") val colno: Int? = null,
     // longTask
-    val startTime: Double? = null,
-    val attribution: LongTaskAttribution? = null,
+    @SerializedName("startTime") val startTime: Double? = null,
+    @SerializedName("attribution") val attribution: LongTaskAttribution? = null,
     // resourceError
-    val resourceType: String? = null,
-    val tagName: String? = null,
+    @SerializedName("resourceType") val resourceType: String? = null,
+    @SerializedName("tagName") val tagName: String? = null,
     // console
-    val level: String? = null,
-    val args: List<String>? = null,
+    @SerializedName("level") val level: String? = null,
+    @SerializedName("args") val args: List<String>? = null,
     // userInteraction
-    val interactionType: String? = null,
-    val elementId: String? = null,
-    val className: String? = null,
-    val textContent: String? = null,
-    val isClickable: Boolean? = null,
-    val clickCount: Int? = null,
-    val timeWindowMs: Int? = null,
+    @SerializedName("interactionType") val interactionType: String? = null,
+    @SerializedName("elementId") val elementId: String? = null,
+    @SerializedName("className") val className: String? = null,
+    @SerializedName("textContent") val textContent: String? = null,
+    @SerializedName("isClickable") val isClickable: Boolean? = null,
+    @SerializedName("clickCount") val clickCount: Int? = null,
+    @SerializedName("timeWindowMs") val timeWindowMs: Int? = null,
 )
 
 /**
  * Web Vital metric data from the web-vitals library.
  */
 internal data class WebVitalMetric(
-    val name: String? = null,
-    val value: Double? = null,
-    val rating: String? = null,
-    val delta: Double? = null,
-    val id: String? = null,
-    val navigationType: String? = null,
-    val entries: List<WebVitalEntry>? = null,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("value") val value: Double? = null,
+    @SerializedName("rating") val rating: String? = null,
+    @SerializedName("delta") val delta: Double? = null,
+    @SerializedName("id") val id: String? = null,
+    @SerializedName("navigationType") val navigationType: String? = null,
+    @SerializedName("entries") val entries: List<WebVitalEntry>? = null,
 )
 
 /**
@@ -87,51 +87,51 @@ internal data class WebVitalMetric(
  */
 internal data class WebVitalEntry(
     // Common fields
-    val startTime: Double? = null,
-    val entryType: String? = null,
+    @SerializedName("startTime") val startTime: Double? = null,
+    @SerializedName("entryType") val entryType: String? = null,
     // LCP-specific
-    val element: String? = null,
-    val url: String? = null,
-    val size: Long? = null,
-    val renderTime: Double? = null,
-    val loadTime: Double? = null,
+    @SerializedName("element") val element: String? = null,
+    @SerializedName("url") val url: String? = null,
+    @SerializedName("size") val size: Long? = null,
+    @SerializedName("renderTime") val renderTime: Double? = null,
+    @SerializedName("loadTime") val loadTime: Double? = null,
     // FCP-specific
-    val name: String? = null,
+    @SerializedName("name") val name: String? = null,
     // TTFB-specific (PerformanceNavigationTiming)
-    val domainLookupStart: Double? = null,
-    val domainLookupEnd: Double? = null,
-    val connectStart: Double? = null,
-    val connectEnd: Double? = null,
-    val secureConnectionStart: Double? = null,
-    val requestStart: Double? = null,
-    val responseStart: Double? = null,
+    @SerializedName("domainLookupStart") val domainLookupStart: Double? = null,
+    @SerializedName("domainLookupEnd") val domainLookupEnd: Double? = null,
+    @SerializedName("connectStart") val connectStart: Double? = null,
+    @SerializedName("connectEnd") val connectEnd: Double? = null,
+    @SerializedName("secureConnectionStart") val secureConnectionStart: Double? = null,
+    @SerializedName("requestStart") val requestStart: Double? = null,
+    @SerializedName("responseStart") val responseStart: Double? = null,
     // INP-specific
-    val processingStart: Double? = null,
-    val processingEnd: Double? = null,
-    val duration: Double? = null,
-    val interactionId: Long? = null,
+    @SerializedName("processingStart") val processingStart: Double? = null,
+    @SerializedName("processingEnd") val processingEnd: Double? = null,
+    @SerializedName("duration") val duration: Double? = null,
+    @SerializedName("interactionId") val interactionId: Long? = null,
     // CLS-specific
-    val value: Double? = null,
+    @SerializedName("value") val value: Double? = null,
 )
 
 /**
  * Network timing data from the Performance API.
  */
 internal data class NetworkTiming(
-    val transferSize: Long? = null,
-    val dnsMs: Long? = null,
-    val tlsMs: Long? = null,
-    val connectMs: Long? = null,
-    val ttfbMs: Long? = null,
+    @SerializedName("transferSize") val transferSize: Long? = null,
+    @SerializedName("dnsMs") val dnsMs: Long? = null,
+    @SerializedName("tlsMs") val tlsMs: Long? = null,
+    @SerializedName("connectMs") val connectMs: Long? = null,
+    @SerializedName("ttfbMs") val ttfbMs: Long? = null,
 )
 
 /**
  * Long task attribution data.
  */
 internal data class LongTaskAttribution(
-    val name: String? = null,
-    val containerType: String? = null,
-    val containerSrc: String? = null,
-    val containerId: String? = null,
-    val containerName: String? = null,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("containerType") val containerType: String? = null,
+    @SerializedName("containerSrc") val containerSrc: String? = null,
+    @SerializedName("containerId") val containerId: String? = null,
+    @SerializedName("containerName") val containerName: String? = null,
 )

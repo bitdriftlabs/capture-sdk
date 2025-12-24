@@ -121,3 +121,9 @@
 -dontwarn org.openjsse.javax.net.ssl.SSLParameters
 -dontwarn org.openjsse.javax.net.ssl.SSLSocket
 -dontwarn org.openjsse.net.ssl.OpenJSSE
+
+# WebViewCapture.instrument() - called by Gradle plugin bytecode injection when `automaticWebViewInstrumentation` is set to true
+-keep class io.bitdrift.capture.webview.WebViewCapture {
+    public static void instrument(android.webkit.WebView);
+    public static void instrument(android.webkit.WebView, io.bitdrift.capture.ILogger);
+}

@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.apollo.graphql)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    id("io.bitdrift.capture-plugin") version "0.22.1"
 }
 
 dependencies {
@@ -164,5 +165,13 @@ apollo {
     service("service") {
         // https://apollo-fullstack-tutorial.herokuapp.com/graphql
         packageName.set("com.example.rocketreserver")
+    }
+}
+
+bitdrift {
+    instrumentation {
+        automaticOkHttpInstrumentation = true
+        // TODO(Fran): BIT-7218. To uncomment below once the capture-plugin release that contains automactic webview instrumentation is publicly enabled
+        //  automaticWebViewInstrumentation = true
     }
 }
