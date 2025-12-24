@@ -114,8 +114,7 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     }
     
     private func handleNetworkRequest(_ message: [String: Any]) {
-        guard let requestId = message["requestId"] as? String,
-              let url = message["url"] as? String else { return }
+        guard let urlString = message["url"] as? String else { return }
         
         let method = message["method"] as? String ?? "GET"
         let statusCode = message["statusCode"] as? Int ?? 0
@@ -124,48 +123,76 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         let error = message["error"] as? String
         let requestType = message["requestType"] as? String ?? "unknown"
         
-        var fields: Fields = [
-            "_url": url,
-            "_method": method,
-            "_statusCode": String(statusCode),
-            "_durationMs": String(durationMs),
-            "_requestType": requestType,
-            "_source": "webview"
+        // Parse URL components
+        let urlComponents = URLComponents(string: urlString)
+        let host = urlComponents?.host
+        let path = urlComponents?.path
+        let query = urlComponents?.query
+        
+        // Build extra fields for webview context
+        var extraFields: Fields = [
+            "_source": "webview",
+            "_request_type": requestType
         ]
         
         if let err = error {
-            fields["_error"] = err
+            extraFields["_error"] = err
         }
         
-        // Extract timing data if available
+        // Build metrics from timing data
+        var metrics: HTTPRequestMetrics?
         if let timing = message["timing"] as? [String: Any] {
-            if let dnsMs = timing["dnsMs"] as? Double {
-                fields["_dnsMs"] = String(dnsMs)
-            }
-            if let connectMs = timing["connectMs"] as? Double {
-                fields["_connectMs"] = String(connectMs)
-            }
-            if let tlsMs = timing["tlsMs"] as? Double {
-                fields["_tlsMs"] = String(tlsMs)
-            }
-            if let ttfbMs = timing["ttfbMs"] as? Double {
-                fields["_ttfbMs"] = String(ttfbMs)
-            }
-            if let downloadMs = timing["downloadMs"] as? Double {
-                fields["_downloadMs"] = String(downloadMs)
-            }
-            if let transferSize = timing["transferSize"] as? Int {
-                fields["_transferSize"] = String(transferSize)
-            }
+            let dnsMs = timing["dnsMs"] as? Double
+            let connectMs = timing["connectMs"] as? Double
+            let tlsMs = timing["tlsMs"] as? Double
+            let ttfbMs = timing["ttfbMs"] as? Double
+            let transferSize = timing["transferSize"] as? Int
+            
+            metrics = HTTPRequestMetrics(
+                responseBodyBytesReceivedCount: transferSize.map { Int64($0) },
+                dnsResolutionDuration: dnsMs.map { $0 / 1000.0 },
+                tlsDuration: tlsMs.map { $0 / 1000.0 },
+                tcpDuration: connectMs.map { $0 / 1000.0 },
+                responseLatency: ttfbMs.map { $0 / 1000.0 }
+            )
         }
         
-        let level: LogLevel = success ? .debug : .warning
-        
-        logger?.log(
-            level: level,
-            message: "webview.network",
-            fields: fields
+        // Create request info
+        let requestInfo = HTTPRequestInfo(
+            method: method,
+            host: host,
+            path: path.map { HTTPURLPath(value: $0) },
+            query: query,
+            extraFields: extraFields
         )
+        
+        // Determine result
+        let result: HTTPResponse.HTTPResult
+        if !success {
+            result = .failure
+        } else {
+            result = .success
+        }
+        
+        // Create response
+        let response = HTTPResponse(
+            result: result,
+            statusCode: statusCode > 0 ? statusCode : nil,
+            error: nil
+        )
+        
+        // Create response info
+        let responseInfo = HTTPResponseInfo(
+            requestInfo: requestInfo,
+            response: response,
+            duration: TimeInterval(durationMs) / 1000.0,
+            metrics: metrics,
+            extraFields: extraFields
+        )
+        
+        // Log using native HTTP logging
+        logger?.log(requestInfo, file: nil, line: nil, function: nil)
+        logger?.log(responseInfo, file: nil, line: nil, function: nil)
     }
     
     private func handleNavigation(_ message: [String: Any]) {

@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import type { AnyBridgeMessage } from './types';
+import type { AnyBridgeMessage } from "./types";
 
 /**
  * Platform-agnostic bridge for communicating with native code.
@@ -37,16 +37,16 @@ declare global {
   }
 }
 
-type Platform = 'ios' | 'android' | 'unknown';
+type Platform = "ios" | "android" | "unknown";
 
 function detectPlatform(): Platform {
   if (window.webkit?.messageHandlers?.BitdriftLogger) {
-    return 'ios';
+    return "ios";
   }
   if (window.BitdriftLogger) {
-    return 'android';
+    return "android";
   }
-  return 'unknown';
+  return "unknown";
 }
 
 function sendToNative(message: AnyBridgeMessage): void {
@@ -54,16 +54,16 @@ function sendToNative(message: AnyBridgeMessage): void {
   const serialized = JSON.stringify(message);
 
   switch (platform) {
-    case 'ios':
+    case "ios":
       window.webkit?.messageHandlers?.BitdriftLogger?.postMessage(message);
       break;
-    case 'android':
+    case "android":
       window.BitdriftLogger?.log(serialized);
       break;
-    case 'unknown':
+    case "unknown":
       // In development/testing, log to console
-      if (typeof console !== 'undefined') {
-        console.debug('[Bitdrift WebView]', message);
+      if (typeof console !== "undefined") {
+        console.debug("[Bitdrift WebView]", message);
       }
       break;
   }
@@ -88,7 +88,7 @@ export function initBridge(): void {
  */
 export function log(message: AnyBridgeMessage): void {
   if (window.bitdrift) {
-    console.log('[Bitdrift WebView] Logging message via bridge', message);
+    console.log("[Bitdrift WebView] Logging message via bridge", message);
     window.bitdrift.log(message);
   } else {
     sendToNative(message);
@@ -99,7 +99,7 @@ export function log(message: AnyBridgeMessage): void {
  * Helper to create a timestamped message
  */
 export function createMessage<T extends AnyBridgeMessage>(
-  partial: Omit<T, 'v' | 'timestamp'>
+  partial: Omit<T, "v" | "timestamp">
 ): T {
   return {
     v: 1,
