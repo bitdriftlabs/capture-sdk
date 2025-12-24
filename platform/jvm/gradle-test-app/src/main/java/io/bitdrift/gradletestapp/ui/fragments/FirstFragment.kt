@@ -85,7 +85,10 @@ class FirstFragment : Fragment() {
 
                                 is NavigationAction.NavigateToWebView -> {
                                     Logger.logScreenView("web_view_fragment")
-                                    findNavController().navigate(R.id.action_FirstFragment_to_WebViewFragment)
+                                    val bundle = Bundle().apply {
+                                        putString(WebViewFragment.ARG_URL, action.url)
+                                    }
+                                    findNavController().navigate(R.id.action_FirstFragment_to_WebViewFragment, bundle)
                                 }
 
                                 is NavigationAction.NavigateToCompose -> {

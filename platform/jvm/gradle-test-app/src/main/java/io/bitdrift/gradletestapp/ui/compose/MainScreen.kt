@@ -41,6 +41,7 @@ import io.bitdrift.gradletestapp.ui.compose.components.SdkStatusCard
 import io.bitdrift.gradletestapp.ui.compose.components.SessionManagementCard
 import io.bitdrift.gradletestapp.ui.compose.components.SleepModeCard
 import io.bitdrift.gradletestapp.ui.compose.components.TestingToolsCard
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewCard
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -206,6 +207,11 @@ fun MainScreen(
                         onAddManyFeatureFlags = {
                             onAction(FeatureFlagsTestAction.AddManyFeatureFlags)
                         },
+                    )
+                }
+                item {
+                    WebViewCard(
+                        onAction = onAction,
                     )
                 }
                 item {

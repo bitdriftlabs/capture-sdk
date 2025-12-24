@@ -1,0 +1,421 @@
+// capture-sdk - bitdrift's client SDK
+// Copyright Bitdrift, Inc. All rights reserved.
+//
+// Use of this source code is governed by a source available license that can be found in the
+// LICENSE file or at:
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+
+package io.bitdrift.capture.webview
+
+import com.google.gson.Gson
+import com.google.gson.JsonObject
+import com.google.gson.JsonSyntaxException
+import io.bitdrift.capture.ILogger
+import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.events.span.SpanResult
+import io.bitdrift.capture.network.HttpRequestInfo
+import io.bitdrift.capture.network.HttpRequestMetrics
+import io.bitdrift.capture.network.HttpResponse
+import io.bitdrift.capture.network.HttpResponseInfo
+import io.bitdrift.capture.network.HttpUrlPath
+import java.net.URI
+
+/**
+ * Handles incoming messages from the WebView JavaScript bridge and routes them
+ * to the appropriate logging methods.
+ */
+internal class WebViewMessageHandler(
+    private val logger: ILogger?,
+) {
+    private val gson = Gson()
+
+    fun handleMessage(message: String, capture: WebViewCapture) {
+        val json = try {
+            gson.fromJson(message, JsonObject::class.java)
+        } catch (e: JsonSyntaxException) {
+            logger?.log(LogLevel.WARNING, mapOf("_raw" to message.take(100))) {
+                "Invalid JSON from WebView bridge"
+            }
+            return
+        }
+
+        // Check protocol version
+        val version = json.get("v")?.asInt ?: 0
+        if (version != 1) {
+            logger?.log(LogLevel.WARNING, mapOf("_version" to version.toString())) {
+                "Unsupported WebView bridge protocol version"
+            }
+            return
+        }
+
+        val type = json.get("type")?.asString ?: return
+        val timestamp = json.get("timestamp")?.asLong ?: System.currentTimeMillis()
+
+        when (type) {
+            "bridgeReady" -> handleBridgeReady(json, capture)
+            "webVital" -> handleWebVital(json, timestamp)
+            "networkRequest" -> handleNetworkRequest(json, timestamp)
+            "navigation" -> handleNavigation(json, timestamp)
+            "error" -> handleError(json, timestamp)
+        }
+    }
+
+    private fun handleBridgeReady(json: JsonObject, capture: WebViewCapture) {
+        capture.onBridgeReady()
+        
+        val url = json.get("url")?.asString ?: ""
+        logger?.log(LogLevel.DEBUG, mapOf("_url" to url)) {
+            "WebView bridge ready"
+        }
+    }
+
+    private fun handleWebVital(json: JsonObject, timestamp: Long) {
+        val metric = json.getAsJsonObject("metric") ?: return
+        val name = metric.get("name")?.asString ?: return
+        val value = metric.get("value")?.asDouble ?: return
+        val rating = metric.get("rating")?.asString ?: "unknown"
+        val delta = metric.get("delta")?.asDouble
+        val id = metric.get("id")?.asString
+        val navigationType = metric.get("navigationType")?.asString
+
+        // Determine log level based on rating
+        val level = when (rating) {
+            "good" -> LogLevel.DEBUG
+            "needs-improvement" -> LogLevel.INFO
+            "poor" -> LogLevel.WARNING
+            else -> LogLevel.DEBUG
+        }
+
+        // Build common fields for all web vitals
+        val commonFields = buildMap {
+            put("_metric", name)
+            put("_value", value.toString())
+            put("_rating", rating)
+            delta?.let { put("_delta", it.toString()) }
+            id?.let { put("_metric_id", it) }
+            navigationType?.let { put("_navigation_type", it) }
+            put("_source", "webview")
+        }
+
+        // Duration-based metrics are logged as spans (LCP, FCP, TTFB, INP)
+        // CLS is a cumulative score, not a duration, so it's logged as a regular log
+        when (name) {
+            "LCP" -> handleLCPMetric(metric, timestamp, value, level, commonFields)
+            "FCP" -> handleFCPMetric(metric, timestamp, value, level, commonFields)
+            "TTFB" -> handleTTFBMetric(metric, timestamp, value, level, commonFields)
+            "INP" -> handleINPMetric(metric, timestamp, value, level, commonFields)
+            "CLS" -> handleCLSMetric(metric, level, commonFields)
+            else -> {
+                // Unknown metric type - log as regular log
+                logger?.log(level, commonFields) {
+                    "webview.webVital.$name"
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle Largest Contentful Paint (LCP) metric.
+     * LCP measures loading performance - when the largest content element becomes visible.
+     * Logged as a span from navigation start to LCP time.
+     */
+    private fun handleLCPMetric(
+        metric: JsonObject,
+        timestamp: Long,
+        value: Double,
+        level: LogLevel,
+        commonFields: Map<String, String>,
+    ) {
+        val fields = commonFields.toMutableMap()
+
+        // Extract LCP-specific entry data if available
+        metric.getAsJsonArray("entries")?.firstOrNull()?.asJsonObject?.let { entry ->
+            entry.get("element")?.asString?.let { fields["_element"] = it }
+            entry.get("url")?.asString?.let { fields["_url"] = it }
+            entry.get("size")?.asLong?.let { fields["_size"] = it.toString() }
+            entry.get("renderTime")?.asDouble?.let { fields["_render_time"] = it.toString() }
+            entry.get("loadTime")?.asDouble?.let { fields["_load_time"] = it.toString() }
+        }
+
+        logDurationSpan("webview.LCP", timestamp, value, level, fields)
+    }
+
+    /**
+     * Handle First Contentful Paint (FCP) metric.
+     * FCP measures when the first content is painted to the screen.
+     * Logged as a span from navigation start to FCP time.
+     */
+    private fun handleFCPMetric(
+        metric: JsonObject,
+        timestamp: Long,
+        value: Double,
+        level: LogLevel,
+        commonFields: Map<String, String>,
+    ) {
+        val fields = commonFields.toMutableMap()
+
+        // Extract FCP-specific entry data if available (PerformancePaintTiming)
+        metric.getAsJsonArray("entries")?.firstOrNull()?.asJsonObject?.let { entry ->
+            entry.get("name")?.asString?.let { fields["_paint_type"] = it }
+            entry.get("startTime")?.asDouble?.let { fields["_start_time"] = it.toString() }
+            entry.get("entryType")?.asString?.let { fields["_entry_type"] = it }
+        }
+
+        logDurationSpan("webview.FCP", timestamp, value, level, fields)
+    }
+
+    /**
+     * Handle Time to First Byte (TTFB) metric.
+     * TTFB measures the time from request start to receiving the first byte of the response.
+     * Logged as a span from navigation start to TTFB time.
+     */
+    private fun handleTTFBMetric(
+        metric: JsonObject,
+        timestamp: Long,
+        value: Double,
+        level: LogLevel,
+        commonFields: Map<String, String>,
+    ) {
+        val fields = commonFields.toMutableMap()
+
+        // Extract TTFB-specific entry data if available (PerformanceNavigationTiming)
+        metric.getAsJsonArray("entries")?.firstOrNull()?.asJsonObject?.let { entry ->
+            entry.get("domainLookupStart")?.asDouble?.let { fields["_dns_start"] = it.toString() }
+            entry.get("domainLookupEnd")?.asDouble?.let { fields["_dns_end"] = it.toString() }
+            entry.get("connectStart")?.asDouble?.let { fields["_connect_start"] = it.toString() }
+            entry.get("connectEnd")?.asDouble?.let { fields["_connect_end"] = it.toString() }
+            entry.get("secureConnectionStart")?.asDouble?.let { fields["_tls_start"] = it.toString() }
+            entry.get("requestStart")?.asDouble?.let { fields["_request_start"] = it.toString() }
+            entry.get("responseStart")?.asDouble?.let { fields["_response_start"] = it.toString() }
+        }
+
+        logDurationSpan("webview.TTFB", timestamp, value, level, fields)
+    }
+
+    /**
+     * Handle Interaction to Next Paint (INP) metric.
+     * INP measures responsiveness - the time from user interaction to the next frame paint.
+     * Logged as a span representing the interaction duration.
+     */
+    private fun handleINPMetric(
+        metric: JsonObject,
+        timestamp: Long,
+        value: Double,
+        level: LogLevel,
+        commonFields: Map<String, String>,
+    ) {
+        val fields = commonFields.toMutableMap()
+
+        // Extract INP-specific entry data if available
+        metric.getAsJsonArray("entries")?.firstOrNull()?.asJsonObject?.let { entry ->
+            entry.get("name")?.asString?.let { fields["_event_type"] = it }
+            entry.get("startTime")?.asDouble?.let { fields["_interaction_time"] = it.toString() }
+            entry.get("processingStart")?.asDouble?.let { fields["_processing_start"] = it.toString() }
+            entry.get("processingEnd")?.asDouble?.let { fields["_processing_end"] = it.toString() }
+            entry.get("duration")?.asDouble?.let { fields["_duration"] = it.toString() }
+            entry.get("interactionId")?.asLong?.let { fields["_interaction_id"] = it.toString() }
+        }
+
+        logDurationSpan("webview.INP", timestamp, value, level, fields)
+    }
+
+    /**
+     * Handle Cumulative Layout Shift (CLS) metric.
+     * CLS measures visual stability - the sum of all unexpected layout shift scores.
+     * Unlike other metrics, CLS is a score (0-1+), not a duration, so it's logged as a regular log.
+     */
+    private fun handleCLSMetric(
+        metric: JsonObject,
+        level: LogLevel,
+        commonFields: Map<String, String>,
+    ) {
+        val fields = commonFields.toMutableMap()
+
+        // Extract CLS-specific data from entries
+        val entries = metric.getAsJsonArray("entries")
+        if (entries != null && entries.size() > 0) {
+            // Find the largest shift
+            var largestShiftValue = 0.0
+            var largestShiftTime = 0.0
+
+            for (entry in entries) {
+                val entryObj = entry.asJsonObject
+                val shiftValue = entryObj.get("value")?.asDouble ?: 0.0
+                if (shiftValue > largestShiftValue) {
+                    largestShiftValue = shiftValue
+                    largestShiftTime = entryObj.get("startTime")?.asDouble ?: 0.0
+                }
+            }
+
+            if (largestShiftValue > 0) {
+                fields["_largest_shift_value"] = largestShiftValue.toString()
+                fields["_largest_shift_time"] = largestShiftTime.toString()
+            }
+
+            fields["_shift_count"] = entries.size().toString()
+        }
+
+        logger?.log(level, fields) {
+            "webview.CLS"
+        }
+    }
+
+    /**
+     * Log a duration-based web vital as a span with custom start/end times.
+     * The start time is calculated as (timestamp - value) where value is the duration in ms,
+     * and end time is the timestamp when the metric was reported.
+     */
+    private fun logDurationSpan(
+        spanName: String,
+        timestamp: Long,
+        durationMs: Double,
+        level: LogLevel,
+        fields: Map<String, String>,
+    ) {
+        // Calculate start time: the metric value represents duration from navigation start
+        // timestamp is when the metric was captured (effectively the end time)
+        val startTimeMs = timestamp - durationMs.toLong()
+        val endTimeMs = timestamp
+
+        // Determine span result based on rating
+        val result = when (fields["_rating"]) {
+            "good" -> SpanResult.SUCCESS
+            "needs-improvement", "poor" -> SpanResult.FAILURE
+            else -> SpanResult.UNKNOWN
+        }
+
+        // Start span with custom start time
+        val span = logger?.startSpan(
+            name = spanName,
+            level = level,
+            fields = fields,
+            startTimeMs = startTimeMs,
+        )
+
+        // End span with custom end time
+        span?.end(
+            result = result,
+            fields = fields,
+            endTimeMs = endTimeMs,
+        )
+    }
+
+    private fun handleNetworkRequest(json: JsonObject, timestamp: Long) {
+        val method = json.get("method")?.asString ?: "GET"
+        val url = json.get("url")?.asString ?: return
+        val statusCode = json.get("statusCode")?.asInt
+        val durationMs = json.get("durationMs")?.asLong ?: 0
+        val success = json.get("success")?.asBoolean ?: false
+        val errorMessage = json.get("error")?.asString
+        val requestType = json.get("requestType")?.asString ?: "unknown"
+        val timing = json.getAsJsonObject("timing")
+
+        // Parse URL components
+        val uri = try {
+            URI(url)
+        } catch (e: Exception) {
+            null
+        }
+        
+        val host = uri?.host
+        val path = uri?.path?.takeIf { it.isNotEmpty() }
+        val query = uri?.query
+
+        // Build extra fields for WebView-specific data
+        val extraFields = buildMap {
+            put("_source", "webview")
+            put("_request_type", requestType)
+            put("_timestamp", timestamp.toString())
+        }
+
+        // Create HttpRequestInfo
+        val requestInfo = HttpRequestInfo(
+            method = method,
+            host = host,
+            path = path?.let { HttpUrlPath(it) },
+            query = query,
+            extraFields = extraFields,
+        )
+
+        // Build metrics from timing data if available
+        val metrics = timing?.let { t ->
+            HttpRequestMetrics(
+                requestBodyBytesSentCount = 0,
+                responseBodyBytesReceivedCount = t.get("transferSize")?.asLong ?: 0,
+                requestHeadersBytesCount = 0,
+                responseHeadersBytesCount = 0,
+                dnsResolutionDurationMs = t.get("dnsMs")?.asLong,
+                tlsDurationMs = t.get("tlsMs")?.asLong,
+                tcpDurationMs = t.get("connectMs")?.asLong,
+                responseLatencyMs = t.get("ttfbMs")?.asLong,
+            )
+        }
+
+        // Determine result based on success/error
+        val result = when {
+            success -> HttpResponse.HttpResult.SUCCESS
+            errorMessage != null -> HttpResponse.HttpResult.FAILURE
+            statusCode != null && statusCode >= 400 -> HttpResponse.HttpResult.FAILURE
+            else -> HttpResponse.HttpResult.FAILURE
+        }
+
+        // Build error if present
+        val error = errorMessage?.let { Exception(it) }
+
+        // Create HttpResponseInfo
+        val responseInfo = HttpResponseInfo(
+            request = requestInfo,
+            response = HttpResponse(
+                result = result,
+                statusCode = statusCode,
+                error = error,
+            ),
+            durationMs = durationMs,
+            metrics = metrics,
+        )
+
+        // Log the request and response as a span pair
+        logger?.log(requestInfo)
+        logger?.log(responseInfo)
+    }
+
+    private fun handleNavigation(json: JsonObject, timestamp: Long) {
+        val fromUrl = json.get("fromUrl")?.asString ?: ""
+        val toUrl = json.get("toUrl")?.asString ?: ""
+        val method = json.get("method")?.asString ?: ""
+
+        val fields = mapOf(
+            "_fromUrl" to fromUrl,
+            "_toUrl" to toUrl,
+            "_method" to method,
+            "_source" to "webview",
+            "_timestamp" to timestamp.toString()
+        )
+
+        logger?.log(LogLevel.DEBUG, fields) {
+            "webview.navigation"
+        }
+    }
+
+    private fun handleError(json: JsonObject, timestamp: Long) {
+        val errorMessage = json.get("message")?.asString ?: "Unknown error"
+        val stack = json.get("stack")?.asString
+        val filename = json.get("filename")?.asString
+        val lineno = json.get("lineno")?.asInt
+        val colno = json.get("colno")?.asInt
+
+        val fields = buildMap {
+            put("_message", errorMessage)
+            put("_source", "webview")
+            stack?.let { put("_stack", it.take(1000)) } // Limit stack trace size
+            filename?.let { put("_filename", it) }
+            lineno?.let { put("_lineno", it.toString()) }
+            colno?.let { put("_colno", it.toString()) }
+            put("_timestamp", timestamp.toString())
+        }
+
+        logger?.log(LogLevel.ERROR, fields) {
+            "webview.error"
+        }
+    }
+}
