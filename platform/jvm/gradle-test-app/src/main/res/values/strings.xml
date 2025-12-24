@@ -4,7 +4,7 @@
     <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">Capture SDK Gradle Test App</string>
     <string name="second_fragment_label">Second Fragment</string>
-    <string name="web_view_fragment_label">`Fragment</string>
+    <string name="web_view_fragment_label">WebView Fragment</string>
     <string name="config_fragment_label">Settings</string>
     <string name="navigate_config">Navigate to Configuration</string>
     <string name="okhttp">Perform OkHttp Request</string>
