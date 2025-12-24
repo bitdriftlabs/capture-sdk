@@ -32,16 +32,23 @@ class WebViewFragment : Fragment() {
         // Instrument the WebView with bitdrift capture
         WebViewCapture.instrument(webView)
 
-        webView.loadUrl(urls.random())
+        val url = arguments?.getString(ARG_URL) ?: WEBVIEW_URLS.first().second
+        webView.loadUrl(url)
         return view
     }
 
     companion object {
-        private val urls = listOf(
-            "https://bitdrift.io/",
-            "https://bitdrift.io/hello", // 404
-            "https://bitdrift.ai/", // timeout
-            "https://www.wikipedia.org/",
+        const val ARG_URL = "url"
+
+        /**
+         * List of URLs available for WebView testing.
+         * Pair of (display name, URL)
+         */
+        val WEBVIEW_URLS = listOf(
+            "bitdrift.io" to "https://bitdrift.io/",
+            "bitdrift.io/hello (404)" to "https://bitdrift.io/hello",
+            "bitdrift.ai (timeout)" to "https://bitdrift.ai/",
+            "Wikipedia" to "https://www.wikipedia.org/",
         )
     }
 }
