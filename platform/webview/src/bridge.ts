@@ -88,6 +88,7 @@ export function initBridge(): void {
  */
 export function log(message: AnyBridgeMessage): void {
   if (window.bitdrift) {
+    console.log('[Bitdrift WebView] Logging message via bridge', message);
     window.bitdrift.log(message);
   } else {
     sendToNative(message);

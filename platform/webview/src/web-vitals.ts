@@ -5,22 +5,26 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import { onLCP, onCLS, onINP, onFCP, onTTFB, type Metric } from 'web-vitals';
-import { log, createMessage } from './bridge';
-import type { WebVitalMessage } from './types';
+import {
+  onLCP,
+  onCLS,
+  onINP,
+  onFCP,
+  onTTFB,
+  type MetricType,
+} from "web-vitals";
+import { log, createMessage } from "./bridge";
+import type { WebVitalMessage } from "./types";
 
 /**
  * Initialize Core Web Vitals monitoring using the web-vitals library.
  * Reports: LCP, CLS, INP, FCP, TTFB
  */
 export function initWebVitals(): void {
-  const reportMetric = (metric: Metric): void => {
+  const reportMetric = (metric: MetricType): void => {
     const message = createMessage<WebVitalMessage>({
-      type: 'webVital',
-      name: metric.name,
-      value: metric.value,
-      rating: metric.rating,
-      navigationType: metric.navigationType,
+      type: "webVital",
+      metric,
     });
     log(message);
   };
