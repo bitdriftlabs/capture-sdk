@@ -46,13 +46,14 @@ internal class WebViewMessageHandler(
         }
 
         val type = json.get("type")?.asString ?: return
+        val timestamp = json.get("timestamp")?.asLong ?: System.currentTimeMillis()
 
         when (type) {
             "bridgeReady" -> handleBridgeReady(json, capture)
-            "webVital" -> handleWebVital(json)
-            "networkRequest" -> handleNetworkRequest(json)
-            "navigation" -> handleNavigation(json)
-            "error" -> handleError(json)
+            "webVital" -> handleWebVital(json, timestamp)
+            "networkRequest" -> handleNetworkRequest(json, timestamp)
+            "navigation" -> handleNavigation(json, timestamp)
+            "error" -> handleError(json, timestamp)
         }
     }
 
@@ -65,18 +66,19 @@ internal class WebViewMessageHandler(
         }
     }
 
-    private fun handleWebVital(json: JsonObject) {
-        val name = json.get("name")?.asString ?: return
-        val value = json.get("value")?.asDouble ?: return
-        val rating = json.get("rating")?.asString ?: "unknown"
-        val navigationType = json.get("navigationType")?.asString
-
+    private fun handleWebVital(json: JsonObject, timestamp: Long) {
+        val metric = json.getAsJsonObject("metric") ?: return
+        val name = metric.get("name")?.asString ?: return
+        val value = metric.get("value")?.asDouble ?: return
+        val rating = metric.get("rating")?.asString ?: "unknown"
+        val navigationType = metric.get("navigationType")?.asString
         val fields = buildMap {
             put("_metric", name)
             put("_value", value.toString())
             put("_rating", rating)
             navigationType?.let { put("_navigationType", it) }
             put("_source", "webview")
+            put("_timestamp", timestamp.toString())
         }
 
         // Determine log level based on rating
@@ -92,7 +94,7 @@ internal class WebViewMessageHandler(
         }
     }
 
-    private fun handleNetworkRequest(json: JsonObject) {
+    private fun handleNetworkRequest(json: JsonObject, timestamp: Long) {
         val method = json.get("method")?.asString ?: "GET"
         val url = json.get("url")?.asString ?: return
         val statusCode = json.get("statusCode")?.asInt ?: 0
@@ -111,6 +113,7 @@ internal class WebViewMessageHandler(
             put("_durationMs", durationMs.toString())
             put("_requestType", requestType)
             put("_source", "webview")
+            put("_timestamp", timestamp.toString())
             error?.let { put("_error", it) }
             
             timing?.let { t ->
@@ -130,7 +133,7 @@ internal class WebViewMessageHandler(
         }
     }
 
-    private fun handleNavigation(json: JsonObject) {
+    private fun handleNavigation(json: JsonObject, timestamp: Long) {
         val fromUrl = json.get("fromUrl")?.asString ?: ""
         val toUrl = json.get("toUrl")?.asString ?: ""
         val method = json.get("method")?.asString ?: ""
@@ -140,6 +143,7 @@ internal class WebViewMessageHandler(
             "_toUrl" to toUrl,
             "_method" to method,
             "_source" to "webview",
+            "_timestamp" to timestamp.toString()
         )
 
         logger?.log(LogLevel.DEBUG, fields) {
@@ -147,7 +151,7 @@ internal class WebViewMessageHandler(
         }
     }
 
-    private fun handleError(json: JsonObject) {
+    private fun handleError(json: JsonObject, timestamp: Long) {
         val errorMessage = json.get("message")?.asString ?: "Unknown error"
         val stack = json.get("stack")?.asString
         val filename = json.get("filename")?.asString
@@ -161,6 +165,7 @@ internal class WebViewMessageHandler(
             filename?.let { put("_filename", it) }
             lineno?.let { put("_lineno", it.toString()) }
             colno?.let { put("_colno", it.toString()) }
+            put("_timestamp", timestamp.toString())
         }
 
         logger?.log(LogLevel.ERROR, fields) {
