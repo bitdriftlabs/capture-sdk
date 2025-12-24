@@ -66,9 +66,9 @@ export interface NetworkRequestMessage extends BridgeMessage {
   /** Error message if request failed */
   error?: string;
   /** Request type: 'fetch' | 'xhr' */
-  requestType: "fetch" | "xhr";
+  requestType: PerformanceResourceTiming["initiatorType"];
   /** Resource timing data if available */
-  timing?: ResourceTimingData;
+  timing?: PerformanceResourceTiming;
 }
 
 /**
