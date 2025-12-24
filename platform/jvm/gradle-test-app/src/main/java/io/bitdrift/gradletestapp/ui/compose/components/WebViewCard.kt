@@ -9,11 +9,17 @@ package io.bitdrift.gradletestapp.ui.compose.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.*
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -21,11 +27,12 @@ import androidx.compose.ui.unit.dp
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.NavigationAction
+import io.bitdrift.gradletestapp.ui.fragments.WebViewFragment
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun NavigationCard(onAction: (AppAction) -> Unit) {
+fun WebViewCard(onAction: (AppAction) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -33,12 +40,12 @@ fun NavigationCard(onAction: (AppAction) -> Unit) {
         shape = MaterialTheme.shapes.medium,
         border = BorderStroke(width = 1.dp, color = BitdriftColors.Border.copy(alpha = 0.3f)),
     ) {
-        androidx.compose.foundation.layout.Column(
+        Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                text = stringResource(id = R.string.navigation),
+                text = stringResource(id = R.string.webview_testing),
                 style = MaterialTheme.typography.titleMedium,
                 color = BitdriftColors.TextPrimary,
             )
@@ -48,25 +55,14 @@ fun NavigationCard(onAction: (AppAction) -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedButton(
-                    onClick = { onAction(NavigationAction.NavigateToCompose) },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
-                ) { Text(stringResource(id = R.string.navigate_second), maxLines = 1, softWrap = false) }
-
-                OutlinedButton(
-                    onClick = { onAction(NavigationAction.NavigateToXml) },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
-                ) { Text(stringResource(id = R.string.navigate_to_xml_view), maxLines = 1, softWrap = false) }
-
-                OutlinedButton(
-                    onClick = { onAction(NavigationAction.NavigateToDialogAndModals) },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
-                ) { Text(stringResource(id = R.string.navigate_to_modal_bottom_sheet), maxLines = 1, softWrap = false) }
-
-                OutlinedButton(
-                    onClick = { onAction(NavigationAction.InvokeService) },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
-                ) { Text("Invoke Service", maxLines = 1, softWrap = false) }
+                WebViewFragment.WEBVIEW_URLS.forEach { (name, url) ->
+                    OutlinedButton(
+                        onClick = { onAction(NavigationAction.NavigateToWebView(url)) },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
+                    ) {
+                        Text(name, maxLines = 1, softWrap = false)
+                    }
+                }
             }
         }
     }
