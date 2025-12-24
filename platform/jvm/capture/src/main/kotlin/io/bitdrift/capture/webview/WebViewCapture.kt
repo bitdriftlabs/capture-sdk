@@ -29,8 +29,7 @@ import io.bitdrift.capture.events.span.SpanResult
  * WebView instrumentation for capturing page load events, performance metrics,
  * and network activity from within WebViews.
  *
- * This class wraps an existing WebViewClient to intercept page load events and
- * injects a JavaScript bridge to capture Core Web Vitals and network requests
+ * This class injects a JavaScript bridge to capture Core Web Vitals and network requests
  * made from within the web content.
  *
  * Usage:
@@ -45,77 +44,9 @@ class WebViewCapture(
     private val logger: ILogger? = Capture.logger(),
 ) : WebViewClient() {
 
-    // All WebViewClient callbacks are guaranteed to happen on the main thread
-    private var pageLoad: Span? = null
-    private var ongoingRequest: PageLoadRequest? = null
     private var bridgeReady = false
 
     private fun getLogger(): ILogger? = logger ?: Capture.logger()
-
-    override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-        if (ongoingRequest == null) {
-            ongoingRequest = PageLoadRequest(url.orEmpty())
-        }
-        pageLoad = getLogger()?.startSpan("webview.pageLoad", LogLevel.DEBUG, ongoingRequest?.fields)
-        bridgeReady = false
-
-        original.onPageStarted(view, url, favicon)
-    }
-
-    override fun onPageFinished(view: WebView?, url: String?) {
-        ongoingRequest?.let {
-            if (it.isError) {
-                pageLoad?.end(SpanResult.FAILURE, it.fields)
-            } else {
-                pageLoad?.end(SpanResult.SUCCESS)
-            }
-        }
-        
-        // Log if bridge was not ready before page finished (late injection)
-        if (!bridgeReady) {
-            getLogger()?.log(LogLevel.WARNING, mapOf("_url" to (url ?: ""))) {
-                "WebView bridge not ready before page finished"
-            }
-        }
-        
-        pageLoad = null
-        ongoingRequest = null
-
-        original.onPageFinished(view, url)
-    }
-
-    override fun onReceivedError(
-        view: WebView?,
-        request: WebResourceRequest?,
-        error: WebResourceError?
-    ) {
-        if (request?.isForMainFrame == true) {
-            ongoingRequest = PageLoadRequest(
-                url = request.url.toString(),
-                isError = true,
-                errorCode = error?.errorCode.toString(),
-                errorCodeName = error?.errorCode?.toErrorCodeName(),
-                errorDescription = error?.description?.toString(),
-            )
-        }
-        original.onReceivedError(view, request, error)
-    }
-
-    override fun onReceivedHttpError(
-        view: WebView?,
-        request: WebResourceRequest?,
-        errorResponse: WebResourceResponse?
-    ) {
-        if (request?.isForMainFrame == true) {
-            ongoingRequest = PageLoadRequest(
-                url = request.url.toString(),
-                isError = true,
-                errorCode = errorResponse?.statusCode.toString(),
-                errorDescription = errorResponse?.reasonPhrase,
-            )
-        }
-        super.onReceivedHttpError(view, request, errorResponse)
-    }
 
     /**
      * Marks the bridge as ready. Called from the JavaScript bridge handler.
@@ -124,45 +55,6 @@ class WebViewCapture(
         bridgeReady = true
     }
 
-    private fun Int.toErrorCodeName(): String =
-        when (this) {
-            ERROR_UNKNOWN                 -> "UNKNOWN"
-            ERROR_HOST_LOOKUP             -> "HOST_LOOKUP"
-            ERROR_UNSUPPORTED_AUTH_SCHEME -> "UNSUPPORTED_AUTH_SCHEME"
-            ERROR_AUTHENTICATION          -> "AUTHENTICATION"
-            ERROR_PROXY_AUTHENTICATION    -> "PROXY_AUTHENTICATION"
-            ERROR_CONNECT                 -> "CONNECT"
-            ERROR_IO                      -> "IO"
-            ERROR_TIMEOUT                 -> "TIMEOUT"
-            ERROR_REDIRECT_LOOP           -> "REDIRECT_LOOP"
-            ERROR_UNSUPPORTED_SCHEME      -> "UNSUPPORTED_SCHEME"
-            ERROR_FAILED_SSL_HANDSHAKE    -> "FAILED_SSL_HANDSHAKE"
-            ERROR_BAD_URL                 -> "BAD_URL"
-            ERROR_FILE                    -> "FILE"
-            ERROR_FILE_NOT_FOUND          -> "FILE_NOT_FOUND"
-            ERROR_TOO_MANY_REQUESTS       -> "TOO_MANY_REQUESTS"
-            ERROR_UNSAFE_RESOURCE         -> "UNSAFE_RESOURCE"
-            else                          -> "UNKNOWN"
-        }
-
-    private data class PageLoadRequest(
-        val url: String,
-        val isError: Boolean = false,
-        val errorCode: String? = null,
-        val errorCodeName: String? = null,
-        val errorDescription: String? = null,
-    ) {
-        val fields: Map<String, String> by lazy {
-            buildMap {
-                put("_url", url)
-                if (isError) {
-                    errorCode?.let { put("_errorCode", it) }
-                    errorCodeName?.let { put("_errorCodeName", it) }
-                    errorDescription?.let { put("_description", it) }
-                }
-            }
-        }
-    }
     /**
      * Companion object for WebViewCapture.
      */
@@ -171,11 +63,9 @@ class WebViewCapture(
         private const val BRIDGE_NAME = "BitdriftLogger"
 
         /**
-         * Instruments a WebView to capture page load events, Core Web Vitals,
-         * and network requests.
+         * Instruments a WebView to capture Core Web Vitals and network requests.
          *
          * This method:
-         * - Wraps the existing WebViewClient to capture page load events
          * - Enables JavaScript execution
          * - Injects the Bitdrift JavaScript bridge at document start
          * - Registers a native interface for receiving bridge messages
