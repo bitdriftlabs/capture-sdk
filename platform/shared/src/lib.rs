@@ -62,14 +62,14 @@ use std::sync::Arc;
 /// unsafe, this seems no worse than passing i64 and doing an unsafe call at the start of the
 /// function.
 #[repr(transparent)]
-pub struct LoggerId<'a> {
+pub struct LoggerId<'a, M> {
   value: i64,
   // A fake lifetime to allow us to link a non-static lifetime to the type, which allows us to
   // limit its usage outside of the current function scope.
-  _lifetime: std::marker::PhantomData<&'a ()>,
+  _lifetime: std::marker::PhantomData<&'a M>,
 }
 
-impl LoggerId<'_> {
+impl<M> LoggerId<'_, M> {
   /// Creates a new `LoggerId` from a raw pointer to a `LoggerHolder`. Use this in cases where you
   /// need a manual conversion from an i64 to a `LoggerId`.
   ///
@@ -85,22 +85,22 @@ impl LoggerId<'_> {
 
   /// Returns a reference to the `LoggerHolder` object that this `LoggerId` represents. This is
   /// safe because all instances of `LoggerId` are assumed to wrap a valid `LoggerHolder` object.
-  const fn logger_holder(&self) -> &LoggerHolder {
-    unsafe { &*(self.value as *const LoggerHolder) }
+  const fn logger_holder(&self) -> &LoggerHolder<M> {
+    unsafe { &*(self.value as *const LoggerHolder<M>) }
   }
 }
 
-impl Deref for LoggerId<'_> {
-  type Target = LoggerHolder;
+impl<M> Deref for LoggerId<'_, M> {
+  type Target = LoggerHolder<M>;
 
   fn deref(&self) -> &Self::Target {
     self.logger_holder()
   }
 }
 
-impl DerefMut for LoggerId<'_> {
+impl<M> DerefMut for LoggerId<'_, M> {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    unsafe { &mut *(self.value as *mut LoggerHolder) }
+    unsafe { &mut *(self.value as *mut LoggerHolder<M>) }
   }
 }
 
@@ -114,15 +114,16 @@ pub type LoggerFuture =
 /// A wrapper around the logger and a handle to it. The platform code passes a pointer to this
 /// struct as the logger ID, allowing the ffi functions to cast this to the correct type and access
 /// these fields to support the logging API.
-pub struct LoggerHolder {
+pub struct LoggerHolder<M> {
   logger: bd_logger::Logger,
   handle: bd_logger::LoggerHandle,
   future: parking_lot::Mutex<Option<LoggerFuture>>,
   app_launch_tti_log: Once,
   pub previous_run_global_state: bd_logger::LogFields,
+  pub metadata: Arc<M>,
 }
 
-impl Deref for LoggerHolder {
+impl<M> Deref for LoggerHolder<M> {
   type Target = bd_logger::LoggerHandle;
 
   fn deref(&self) -> &Self::Target {
@@ -130,11 +131,12 @@ impl Deref for LoggerHolder {
   }
 }
 
-impl LoggerHolder {
+impl<M: bd_api::Metadata> LoggerHolder<M> {
   pub fn new(
     logger: bd_logger::Logger,
     future: LoggerFuture,
     previous_run_global_state: bd_logger::LogFields,
+    metadata: Arc<M>,
   ) -> Self {
     let handle = logger.new_logger_handle();
     Self {
@@ -143,6 +145,7 @@ impl LoggerHolder {
       future: parking_lot::Mutex::new(Some(future)),
       app_launch_tti_log: Once::new(),
       previous_run_global_state,
+      metadata,
     }
   }
 
@@ -158,7 +161,7 @@ impl LoggerHolder {
   /// Consumes the logger and returns the raw pointer to it. This effectively leaks the object, so
   /// in order to avoid leaks the caller must ensure that the `destroy` is called with the returned
   /// value.
-  pub fn into_raw<'a>(self) -> LoggerId<'a> {
+  pub fn into_raw<'a>(self) -> LoggerId<'a, M> {
     LoggerId {
       value: Box::into_raw(Box::new(self)) as i64,
       _lifetime: std::marker::PhantomData,
@@ -244,8 +247,8 @@ impl LoggerHolder {
   }
 }
 
-impl<'a> From<LoggerId<'a>> for i64 {
-  fn from(logger: LoggerId<'a>) -> Self {
+impl<'a, M> From<LoggerId<'a, M>> for i64 {
+  fn from(logger: LoggerId<'a, M>) -> Self {
     logger.value
   }
 }

@@ -14,7 +14,7 @@ import com.google.common.util.concurrent.MoreExecutors
 import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueReporter
+import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
@@ -82,7 +82,7 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
                 configuration = Configuration(),
                 context = ContextHolder.APP_CONTEXT,
                 preferences = preferences,
-                fatalIssueReporter = FatalIssueReporter(dateProvider = FakeDateProvider),
+                issueReporter = IssueReporter(dateProvider = FakeDateProvider),
             )
         return try {
             block(logger)

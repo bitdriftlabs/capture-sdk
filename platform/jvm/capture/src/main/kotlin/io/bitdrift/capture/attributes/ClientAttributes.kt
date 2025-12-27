@@ -73,26 +73,7 @@ internal class ClientAttributes(
     }
 
     private val cachedAttributes by lazy {
-        mutableMapOf(
-            // The package name which identifies the running app (e.g. me.foobar.android).
-            "app_id" to appId,
-            // Operating system. Always Android for this code path.
-            "os" to "Android",
-            // The operating system version (e.g. 12.1).
-            "os_version" to osVersion,
-            // Device model name.
-            "model" to model,
-            // The SDK level (e.g. 35).
-            "_os_api_level" to osApiLevel.toString(),
-            // The version of this package, as specified by the manifest's `versionName` attribute.
-            // (e.g. 1.2.33).
-            "app_version" to appVersion,
-            // A positive integer used as an internal version number.
-            // This number helps determine whether one version is more recent than another.
-            "_app_version_code" to appVersionCode.toString(),
-            // The current architecture e.g. (arm64-v8a).
-            "_architecture" to architecture,
-        )
+        mutableMapOf<String, String>()
     }
 
     override fun invoke(): Fields {
