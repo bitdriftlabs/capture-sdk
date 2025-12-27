@@ -5,13 +5,18 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use crate::jni::{initialize_method_handle, CachedMethod, JValueWrapper};
+use crate::jni::{
+  initialize_method_handle,
+  AndroidLoggerHolder,
+  AndroidLoggerId,
+  CachedMethod,
+  JValueWrapper,
+};
 use bd_client_common::error::InvariantError;
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
   AppBuildNumber,
   AppBuildNumberArgs,
   AppMetricsArgs,
-  Architecture,
   DeviceMetricsArgs,
   OSBuild,
   OSBuildArgs,
@@ -23,11 +28,7 @@ use jni::objects::JObject;
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::jlong;
 use jni::JNIEnv;
-use platform_shared::javascript_error::{
-  persist_javascript_error_report,
-  AppMetadata,
-  DeviceMetadata,
-};
+use platform_shared::javascript_error::persist_javascript_error_report;
 use std::io::{Seek, Write};
 use std::sync::OnceLock;
 
@@ -147,10 +148,10 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
 
 pub(crate) fn persist_anr(
   env: &mut JNIEnv<'_>,
+  logger: &AndroidLoggerHolder,
   source_stream: &JObject<'_>,
   timestamp_millis: jlong,
   destination: &str,
-  attributes: &JObject<'_>,
 ) -> anyhow::Result<()> {
   let mut builder = FlatBufferBuilder::new();
   let source_file = read_stream_to_file(env, source_stream)?;
@@ -160,8 +161,8 @@ pub(crate) fn persist_anr(
     u64::try_from(timestamp_millis / 1_000).unwrap_or_default(),
     u32::try_from((timestamp_millis % 1_000) * 1_000).unwrap_or_default(),
   );
-  let mut device_info = build_device_metrics(env, &mut builder, attributes, &timestamp)?;
-  let mut app_info = build_app_metrics(env, &mut builder, attributes)?;
+  let mut device_info = build_device_metrics(logger, &mut builder, &timestamp)?;
+  let mut app_info = build_app_metrics(logger, &mut builder)?;
   let (_, report_offset) = bd_report_parsers::android::build_anr(
     &mut builder,
     &mut app_info,
@@ -177,64 +178,27 @@ pub(crate) fn persist_anr(
 }
 
 pub(crate) fn persist_javascript_error(
-  env: &mut JNIEnv<'_>,
+  logger_id: jlong,
   error_name: &str,
   error_message: &str,
   stack_trace: &str,
   is_fatal: bool,
   engine: &str,
-  debugger_id: &str,
+  debug_id: &str,
   timestamp_millis: jlong,
   destination: &str,
-  attributes: &JObject<'_>,
   sdk_version: &str,
 ) -> anyhow::Result<()> {
-  let debug_id = if debugger_id.is_empty() {
+  let logger = unsafe { AndroidLoggerId::from_raw(logger_id) };
+
+  let debug_id = if debug_id.is_empty() {
     None
   } else {
-    Some(debugger_id)
+    Some(debug_id)
   };
 
   let timestamp_seconds = u64::try_from(timestamp_millis / 1_000).unwrap_or_default();
   let timestamp_nanos = u32::try_from((timestamp_millis % 1_000) * 1_000).unwrap_or_default();
-
-  let manufacturer = read_string(env, attributes, &CLIENT_ATTRS_MANUFACTURER).ok();
-  let model = read_string(env, attributes, &CLIENT_ATTRS_MODEL).ok();
-  let os_brand = read_string(env, attributes, &CLIENT_ATTRS_OS_BRAND).ok();
-  let os_version = read_string(env, attributes, &CLIENT_ATTRS_OS_VERSION).ok();
-  let architecture_str = read_string(env, attributes, &CLIENT_ATTRS_ARCHITECTURE).ok();
-  let architecture = architecture_str
-    .as_ref()
-    .map_or(Architecture::Unknown, |arch| match arch.as_str() {
-      "arm64" | "aarch64" => Architecture::arm64,
-      "x86_64" => Architecture::x86_64,
-      _ => Architecture::Unknown,
-    });
-  let cpu_abis = read_string_list(env, attributes, &CLIENT_ATTRS_SUPPORTED_ABIS).ok();
-
-  let app_id = read_string(env, attributes, &CLIENT_ATTRS_APP_ID).ok();
-  let app_version = read_string(env, attributes, &CLIENT_ATTRS_APP_VERSION).ok();
-  let version_code = CLIENT_ATTRS_VERSIONCODE
-    .get()
-    .ok_or(InvariantError::Invariant)?
-    .call_method(env, attributes, ReturnType::Primitive(Primitive::Long), &[])?
-    .j()
-    .ok();
-
-  let device_metadata = DeviceMetadata {
-    manufacturer,
-    model,
-    os_version,
-    os_brand,
-    architecture: Some(architecture),
-    cpu_abis,
-  };
-
-  let app_metadata = AppMetadata {
-    app_id,
-    app_version,
-    version_code,
-  };
 
   persist_javascript_error_report(
     error_name,
@@ -248,8 +212,8 @@ pub(crate) fn persist_javascript_error(
     "io.bitdrift.capture-android",
     sdk_version,
     destination,
-    device_metadata,
-    app_metadata,
+    logger.metadata.to_device_metadata(),
+    logger.metadata.to_app_metadata(),
     engine,
   )?;
 
@@ -257,27 +221,18 @@ pub(crate) fn persist_javascript_error(
 }
 
 fn build_device_metrics<'fbb>(
-  env: &mut JNIEnv<'_>,
+  logger: &AndroidLoggerHolder,
   builder: &mut FlatBufferBuilder<'fbb>,
-  attributes: &JObject<'_>,
   timestamp: &'fbb Timestamp,
 ) -> anyhow::Result<DeviceMetricsArgs<'fbb>> {
-  let manufacturer = read_string(env, attributes, &CLIENT_ATTRS_MANUFACTURER)
-    .map_err(|e| anyhow::anyhow!("failed to parse manufacturer: {e}"))?;
-  let model = read_string(env, attributes, &CLIENT_ATTRS_MODEL)
-    .map_err(|e| anyhow::anyhow!("failed to parse model: {e}"))?;
-  let os_brand = read_string(env, attributes, &CLIENT_ATTRS_OS_BRAND)
-    .map_err(|e| anyhow::anyhow!("failed to parse brand: {e}"))?;
-  let os_version = read_string(env, attributes, &CLIENT_ATTRS_OS_VERSION)
-    .map_err(|e| anyhow::anyhow!("failed to parse os version: {e}"))?;
   let os_build = OSBuildArgs {
-    brand: Some(builder.create_string(&os_brand)),
-    version: Some(builder.create_string(&os_version)),
+    brand: Some(builder.create_string(&logger.metadata.os_brand)),
+    version: Some(builder.create_string(&logger.metadata.os_version)),
     ..Default::default()
   };
   Ok(DeviceMetricsArgs {
-    manufacturer: Some(builder.create_string(&manufacturer)),
-    model: Some(builder.create_string(&model)),
+    manufacturer: Some(builder.create_string(&logger.metadata.manufacturer)),
+    model: Some(builder.create_string(&logger.metadata.mobile.model)),
     os_build: Some(OSBuild::create(builder, &os_build)),
     time: Some(timestamp),
     ..Default::default()
@@ -285,76 +240,22 @@ fn build_device_metrics<'fbb>(
 }
 
 fn build_app_metrics<'fbb>(
-  env: &mut JNIEnv<'_>,
+  logger: &AndroidLoggerHolder,
   builder: &mut FlatBufferBuilder<'fbb>,
-  attributes: &JObject<'_>,
 ) -> anyhow::Result<AppMetricsArgs<'fbb>> {
-  let version_code = CLIENT_ATTRS_VERSIONCODE
-    .get()
-    .ok_or(InvariantError::Invariant)?
-    .call_method(env, attributes, ReturnType::Primitive(Primitive::Long), &[])?
-    .j()?;
   let build_number = Some(AppBuildNumber::create(
     builder,
     &AppBuildNumberArgs {
-      version_code,
+      version_code: logger.metadata.app_version_code,
       ..Default::default()
     },
   ));
-  let app_id = read_string(env, attributes, &CLIENT_ATTRS_APP_ID)
-    .map_err(|e| anyhow::anyhow!("failed to parse app_id: {e}"))?;
-  let app_version = read_string(env, attributes, &CLIENT_ATTRS_APP_VERSION)
-    .map_err(|e| anyhow::anyhow!("failed to parse app_version: {e}"))?;
   Ok(AppMetricsArgs {
-    app_id: Some(builder.create_string(&app_id)),
-    version: Some(builder.create_string(&app_version)),
+    app_id: Some(builder.create_string(&logger.metadata.mobile.app_id)),
+    version: Some(builder.create_string(&logger.metadata.mobile.app_version)),
     build_number,
     ..Default::default()
   })
-}
-
-fn read_string(
-  env: &mut JNIEnv<'_>,
-  attributes: &JObject<'_>,
-  method: &OnceLock<CachedMethod>,
-) -> anyhow::Result<String> {
-  let value = method
-    .get()
-    .ok_or(InvariantError::Invariant)?
-    .call_method(env, attributes, ReturnType::Object, &[])?
-    .l()?;
-
-  Ok(
-    unsafe { env.get_string_unchecked(&value.into())? }
-      .to_string_lossy()
-      .to_string(),
-  )
-}
-
-fn read_string_list(
-  env: &mut JNIEnv<'_>,
-  attributes: &JObject<'_>,
-  method: &OnceLock<CachedMethod>,
-) -> anyhow::Result<Vec<String>> {
-  let list_obj = method
-    .get()
-    .ok_or(InvariantError::Invariant)?
-    .call_method(env, attributes, ReturnType::Object, &[])?
-    .l()?;
-
-  let list = jni::objects::JList::from_env(env, &list_obj)?;
-  let size = list.size(env)?;
-  let mut result = Vec::with_capacity(size.max(0).try_into().unwrap_or(0));
-
-  for i in 0 .. size {
-    if let Some(item) = list.get(env, i)? {
-      let string_obj: jni::objects::JString<'_> = item.into();
-      let string_val = unsafe { env.get_string_unchecked(&string_obj)? };
-      result.push(string_val.to_string_lossy().to_string());
-    }
-  }
-
-  Ok(result)
 }
 
 fn read_stream_to_file(

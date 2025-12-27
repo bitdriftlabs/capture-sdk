@@ -27,7 +27,6 @@ pub fn parse_javascript_engine(engine: &str) -> v_1::JavaScriptEngine {
 }
 
 /// Device metadata for JavaScript error reports
-#[allow(elided_lifetimes_in_paths)]
 pub struct DeviceMetadata {
   pub manufacturer: Option<String>,
   pub model: Option<String>,
