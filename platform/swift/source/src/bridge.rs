@@ -59,6 +59,8 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
 
+type IosLoggerId<'a> = LoggerId<'a, Mobile>;
+
 static LOGGING_INIT: Once = Once::new();
 
 fn initialize_logging() {
@@ -445,7 +447,7 @@ extern "C" fn capture_create_logger(
   bd_network_nsobject: *mut Object,
   error_reporter_ns_object: *mut Object,
   start_in_sleep_mode: bool,
-) -> LoggerId<'static> {
+) -> IosLoggerId<'static> {
   initialize_logging();
 
   // Safety: Guaranteed to be a valid Id per the Objective-C signature.
@@ -466,8 +468,8 @@ extern "C" fn capture_create_logger(
 
       let static_metadata = Arc::new(Mobile {
         // String conversion can fail if the provided string is not UTF-8.
-        app_id: Some(unsafe { CStr::from_ptr(app_id) }.to_str()?.to_string()),
-        app_version: Some(unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string()),
+        app_id: unsafe { CStr::from_ptr(app_id) }.to_str()?.to_string(),
+        app_version: unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string(),
         platform: Platform::Apple,
         // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
         // Further, "os" as sent as a log tag is hard coded as "iOS" so we have a casing
@@ -515,12 +517,14 @@ extern "C" fn capture_create_logger(
         network: network_manager,
         store,
         device,
-        static_metadata,
+        static_metadata: static_metadata.clone(),
         start_in_sleep_mode,
       })
       .with_internal_logger(true)
       .build()
-      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future, previous_run_global_state))?;
+      .map(|(logger, _, future, _)| {
+        LoggerHolder::new(logger, future, previous_run_global_state, static_metadata)
+      })?;
 
       Ok(logger.into_raw())
     },
@@ -530,7 +534,7 @@ extern "C" fn capture_create_logger(
 }
 
 #[no_mangle]
-extern "C" fn capture_start_logger(logger_id: LoggerId<'_>) {
+extern "C" fn capture_start_logger(logger_id: IosLoggerId<'_>) {
   with_handle_unexpected_or(
     move || {
       logger_id.start();
@@ -542,13 +546,13 @@ extern "C" fn capture_start_logger(logger_id: LoggerId<'_>) {
 }
 
 #[no_mangle]
-extern "C" fn capture_shutdown_logger(logger_id: LoggerId<'_>, blocking: bool) {
+extern "C" fn capture_shutdown_logger(logger_id: IosLoggerId<'_>, blocking: bool) {
   logger_id.shutdown(blocking);
 }
 
 #[no_mangle]
 extern "C" fn capture_process_issue_reports(
-  mut logger_id: LoggerId<'_>,
+  mut logger_id: IosLoggerId<'_>,
   report_processing_session_value: i32,
 ) {
   with_handle_unexpected(
@@ -573,7 +577,7 @@ extern "C" fn capture_process_issue_reports(
 
 #[no_mangle]
 extern "C" fn capture_runtime_bool_variable_value(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   variable_name: *const c_char,
   default_value: bool,
 ) -> bool {
@@ -593,7 +597,7 @@ extern "C" fn capture_runtime_bool_variable_value(
 
 #[no_mangle]
 extern "C" fn capture_runtime_uint32_variable_value(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   variable_name: *const c_char,
   default_value: u32,
 ) -> u32 {
@@ -613,7 +617,7 @@ extern "C" fn capture_runtime_uint32_variable_value(
 
 #[no_mangle]
 extern "C" fn capture_write_log(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   log_level: LogLevel,
   log_type: u32,
   log: *const c_char,
@@ -663,7 +667,7 @@ extern "C" fn capture_write_log(
 
 #[no_mangle]
 extern "C" fn capture_write_session_replay_screen_log(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   fields: *const Object,
   duration_s: f64,
 ) {
@@ -680,7 +684,7 @@ extern "C" fn capture_write_session_replay_screen_log(
 
 #[no_mangle]
 extern "C" fn capture_write_session_replay_screenshot_log(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   fields: *const Object,
   duration_s: f64,
 ) {
@@ -697,7 +701,7 @@ extern "C" fn capture_write_session_replay_screenshot_log(
 
 #[no_mangle]
 extern "C" fn capture_write_resource_utilization_log(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   fields: *const Object,
   duration_s: f64,
 ) {
@@ -714,7 +718,7 @@ extern "C" fn capture_write_resource_utilization_log(
 
 #[no_mangle]
 extern "C" fn capture_write_sdk_start_log(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   fields: *const Object,
   duration_s: f64,
 ) {
@@ -731,7 +735,7 @@ extern "C" fn capture_write_sdk_start_log(
 
 #[no_mangle]
 extern "C" fn capture_should_write_app_update_log(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   app_version: *const Object,
   build_number: *const Object,
 ) -> bool {
@@ -752,7 +756,7 @@ extern "C" fn capture_should_write_app_update_log(
 
 #[no_mangle]
 extern "C" fn capture_write_app_update_log(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   app_version: *const Object,
   build_number: *const Object,
   app_install_size_bytes: u64,
@@ -777,7 +781,7 @@ extern "C" fn capture_write_app_update_log(
 }
 
 #[no_mangle]
-extern "C" fn capture_write_app_launch_tti_log(logger_id: LoggerId<'_>, duration_s: f64) {
+extern "C" fn capture_write_app_launch_tti_log(logger_id: IosLoggerId<'_>, duration_s: f64) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
       logger_id.log_app_launch_tti(Duration::seconds_f64(duration_s));
@@ -788,7 +792,10 @@ extern "C" fn capture_write_app_launch_tti_log(logger_id: LoggerId<'_>, duration
 }
 
 #[no_mangle]
-extern "C" fn capture_write_screen_view_log(logger_id: LoggerId<'_>, screen_name: *const Object) {
+extern "C" fn capture_write_screen_view_log(
+  logger_id: IosLoggerId<'_>,
+  screen_name: *const Object,
+) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
       let screen_name = unsafe { nsstring_into_string(screen_name) }?;
@@ -800,19 +807,19 @@ extern "C" fn capture_write_screen_view_log(logger_id: LoggerId<'_>, screen_name
 }
 
 #[no_mangle]
-extern "C" fn capture_start_new_session(logger_id: LoggerId<'_>) {
+extern "C" fn capture_start_new_session(logger_id: IosLoggerId<'_>) {
   logger_id.start_new_session();
 }
 
 #[no_mangle]
-extern "C" fn capture_get_session_id(logger_id: LoggerId<'_>) -> *const Object {
+extern "C" fn capture_get_session_id(logger_id: IosLoggerId<'_>) -> *const Object {
   make_nsstring(&logger_id.session_id())
     .unwrap_or_else(|_| make_empty_nsstring())
     .autorelease()
 }
 
 #[no_mangle]
-extern "C" fn capture_get_device_id(logger_id: LoggerId<'_>) -> *const Object {
+extern "C" fn capture_get_device_id(logger_id: IosLoggerId<'_>) -> *const Object {
   make_nsstring(&logger_id.device_id())
     .unwrap_or_else(|_| make_empty_nsstring())
     .autorelease()
@@ -827,7 +834,7 @@ extern "C" fn capture_get_sdk_version() -> *const Object {
 
 #[no_mangle]
 extern "C" fn capture_add_log_field(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   key: *const c_char,
   value: *const c_char,
 ) {
@@ -845,7 +852,7 @@ extern "C" fn capture_add_log_field(
 }
 
 #[no_mangle]
-extern "C" fn capture_remove_log_field(logger_id: LoggerId<'_>, key: *const c_char) {
+extern "C" fn capture_remove_log_field(logger_id: IosLoggerId<'_>, key: *const c_char) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
       let key = unsafe { CStr::from_ptr(key) }.to_str()?.to_string();
@@ -858,7 +865,7 @@ extern "C" fn capture_remove_log_field(logger_id: LoggerId<'_>, key: *const c_ch
 }
 
 #[no_mangle]
-extern "C" fn capture_flush(logger_id: LoggerId<'_>, blocking: bool) {
+extern "C" fn capture_flush(logger_id: IosLoggerId<'_>, blocking: bool) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
       let blocking = if blocking {
@@ -876,7 +883,7 @@ extern "C" fn capture_flush(logger_id: LoggerId<'_>, blocking: bool) {
 
 #[no_mangle]
 extern "C" fn capture_set_feature_flag_exposure(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   flag: *const c_char,
   variant: *const c_char,
 ) {
@@ -902,7 +909,7 @@ extern "C" fn capture_set_feature_flag_exposure(
 
 
 #[no_mangle]
-extern "C" fn capture_set_sleep_mode(logger_id: LoggerId<'_>, enabled: bool) {
+extern "C" fn capture_set_sleep_mode(logger_id: IosLoggerId<'_>, enabled: bool) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
       logger_id.transition_sleep_mode(enabled);
