@@ -216,7 +216,7 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
           let string_value = nsstring_into_string(ptr)?;
           results.insert(result_id, Value::String(string_value));
         } else if msg_send![ptr, isKindOfClass: class!(NSNumber)] {
-          results.insert(result_id, extract_nsnumber_value(ptr)?);
+          results.insert(result_id, extract_nsnumber_value(ptr));
         } else if msg_send![ptr, isKindOfClass: class!(NSNull)] {
           results.insert(result_id, Value::Null);
         } else {
@@ -268,7 +268,7 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
     .ok_or_else(|| anyhow::Error::from(InvariantError::Invariant))
 }
 
-fn extract_nsnumber_value(ptr: *const Object) -> anyhow::Result<Value> {
+fn extract_nsnumber_value(ptr: *const Object) -> Value {
   let num_i64: i64 = unsafe { msg_send![ptr, longLongValue] };
   let num_u64: u64 = unsafe { msg_send![ptr, unsignedLongLongValue] };
   let num_f64: f64 = unsafe { msg_send![ptr, doubleValue] };
@@ -286,7 +286,7 @@ fn extract_nsnumber_value(ptr: *const Object) -> anyhow::Result<Value> {
   } else {
     Value::Unsigned(num_u64)
   };
-  Ok(value)
+  value
 }
 
 /// Deep-convert a Rust `Value` to its Objective-C equivalent.
