@@ -297,16 +297,7 @@ class CaptureLoggerTest {
                     "bar" to "value_bar".toFieldValue(),
                     "fields" to "passed_in".toFieldValue(),
                     "foo" to "value_foo".toFieldValue(),
-                ) + getDefaultFields() +
-                    mapOf(
-                        "_app_version_code" to "0".toFieldValue(),
-                        "_architecture" to "armeabi-v7a".toFieldValue(),
-                        "_os_api_level" to "24".toFieldValue(),
-                        "app_id" to "io.bitdrift.capture".toFieldValue(),
-                        "app_version" to "?.?.?".toFieldValue(),
-                        "model" to "robolectric".toFieldValue(),
-                        "os_version" to "7.0".toFieldValue(),
-                    )
+                ) + getDefaultFields()
 
             val sdkConfiguredLog = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(sdkConfiguredLog.message).isEqualTo("SDKConfigured")
@@ -336,17 +327,7 @@ class CaptureLoggerTest {
             val expectedFields =
                 mapOf(
                     "fields" to "passed_in".toFieldValue(),
-                ) + getDefaultFields() +
-                    mapOf(
-                        "_app_version_code" to "0".toFieldValue(),
-                        "_architecture" to "armeabi-v7a".toFieldValue(),
-                        "_locale" to "ar".toFieldValue(),
-                        "_os_api_level" to "24".toFieldValue(),
-                        "app_id" to "io.bitdrift.capture".toFieldValue(),
-                        "app_version" to "?.?.?".toFieldValue(),
-                        "model" to "robolectric".toFieldValue(),
-                        "os_version" to "7.0".toFieldValue(),
-                    )
+                ) + getDefaultFields()
 
             val sdkConfigured = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(sdkConfigured.message).isEqualTo("SDKConfigured")
@@ -535,6 +516,16 @@ class CaptureLoggerTest {
             ProcessLifecycleOwner.get(),
         ).invoke().toFieldValueMap() +
             NetworkAttributes(ContextHolder.APP_CONTEXT).invoke().toFieldValueMap()
-
-    private fun Map<String, String>.toFieldValueMap(): Map<String, FieldValue> = mapValues { (_, v) -> v.toFieldValue() }
+            NetworkAttributes(ContextHolder.APP_CONTEXT).invoke().toFields() +
+            mapOf(
+                "_app_version_code" to "0".toFieldValue(),
+                "_architecture" to "armeabi-v7a".toFieldValue(),
+                "_locale" to "ar".toFieldValue(),
+                "_os_api_level" to "24".toFieldValue(),
+                "app_id" to "io.bitdrift.capture".toFieldValue(),
+                "app_version" to "?.?.?".toFieldValue(),
+                "model" to "robolectric".toFieldValue(),
+                "os_version" to "7.0".toFieldValue(),
+            )
++    private fun Map<String, String>.toFieldValueMap(): Map<String, FieldValue> = mapValues { (_, v) -> v.toFieldValue() }
 }
