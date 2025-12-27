@@ -280,7 +280,9 @@ pub extern "C" fn configure_aggressive_continuous_uploads(stream_id: i32) {
 }
 
 #[no_mangle]
-pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_, platform_shared::metadata::Mobile>) -> bool {
+pub extern "C" fn run_large_upload_test(
+  logger_id: LoggerId<'_, platform_shared::metadata::Mobile>,
+) -> bool {
   let stream_id = await_next_api_stream();
 
   let is_succes = with_expected_server(|h| {
@@ -416,7 +418,9 @@ pub extern "C" fn run_aggressive_upload_test_with_stream_drops(
 // a number of logs which we then see uploaded. Some logs are left in the upload buffer to give test
 // coverage to the case where the network is shut down while the logger is still processing uploads.
 #[no_mangle]
-pub extern "C" fn run_aggressive_upload_test(logger_id: LoggerId<'_, platform_shared::metadata::Mobile>) {
+pub extern "C" fn run_aggressive_upload_test(
+  logger_id: LoggerId<'_, platform_shared::metadata::Mobile>,
+) {
   let stream_id = await_next_api_stream();
   assert_ne!(stream_id, -1);
 
