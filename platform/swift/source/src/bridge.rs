@@ -522,7 +522,9 @@ extern "C" fn capture_create_logger(
       })
       .with_internal_logger(true)
       .build()
-      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future, previous_run_global_state, static_metadata))?;
+      .map(|(logger, _, future, _)| {
+        LoggerHolder::new(logger, future, previous_run_global_state, static_metadata)
+      })?;
 
       Ok(logger.into_raw())
     },
@@ -790,7 +792,10 @@ extern "C" fn capture_write_app_launch_tti_log(logger_id: IosLoggerId<'_>, durat
 }
 
 #[no_mangle]
-extern "C" fn capture_write_screen_view_log(logger_id: IosLoggerId<'_>, screen_name: *const Object) {
+extern "C" fn capture_write_screen_view_log(
+  logger_id: IosLoggerId<'_>,
+  screen_name: *const Object,
+) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
       let screen_name = unsafe { nsstring_into_string(screen_name) }?;

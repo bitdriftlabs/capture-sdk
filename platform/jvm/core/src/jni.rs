@@ -813,36 +813,35 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let session_strategy = session_strategy.create(session_strategy.clone(), store.clone())?;
 
       let device = Arc::new(bd_device::Device::new(store.clone()));
-      let static_metadata = Arc::new(StaticMetadata::new(Mobile {
-        app_id: unsafe { env.get_string_unchecked(&application_id) }?.into(),
-        app_version: unsafe { env.get_string_unchecked(&application_version) }?.into(),
-        platform: Platform::Android,
-        // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
-        // Further, "os" as sent as a log tag is hard coded as "Android" so we have a casing
-        // mismatch. We need to untangle all of this but we can do that when we send all fixed
-        // fields as metadata and only use the fixed fields on logs for matching.
-        os: "android".to_string(),
-        device: device.clone(),
-        model: unsafe { env.get_string_unchecked(&model) }?.into(),
-      },
-      app_version_code,
-      unsafe { env.get_string_unchecked(&architecture) }?.into(),
-      unsafe { env.get_string_unchecked(&os_api_level) }?.into(),
-      unsafe { env.get_string_unchecked(&os_version) }?.into(),
-      unsafe { env.get_string_unchecked(&os_brand) }?.into(),
-      unsafe { env.get_string_unchecked(&manufacturer) }?.into(),
-      {
-        let count = env.get_array_length(&supported_abis)?;
-        let mut supported_abis_vec = Vec::with_capacity(count as usize);
-        for i in 0 .. count {
-          let element = env.get_object_array_element(&supported_abis, i)?;
-          let element_string: JString<'_> = element.into();
-          supported_abis_vec.push(
-            unsafe { env.get_string_unchecked(&element_string) }?.into(),
-          );
-        }
-        supported_abis_vec
-      },
+      let static_metadata = Arc::new(StaticMetadata::new(
+        Mobile {
+          app_id: unsafe { env.get_string_unchecked(&application_id) }?.into(),
+          app_version: unsafe { env.get_string_unchecked(&application_version) }?.into(),
+          platform: Platform::Android,
+          // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
+          // Further, "os" as sent as a log tag is hard coded as "Android" so we have a casing
+          // mismatch. We need to untangle all of this but we can do that when we send all fixed
+          // fields as metadata and only use the fixed fields on logs for matching.
+          os: "android".to_string(),
+          device: device.clone(),
+          model: unsafe { env.get_string_unchecked(&model) }?.into(),
+        },
+        app_version_code,
+        unsafe { env.get_string_unchecked(&architecture) }?.into(),
+        unsafe { env.get_string_unchecked(&os_api_level) }?.into(),
+        unsafe { env.get_string_unchecked(&os_version) }?.into(),
+        unsafe { env.get_string_unchecked(&os_brand) }?.into(),
+        unsafe { env.get_string_unchecked(&manufacturer) }?.into(),
+        {
+          let count = env.get_array_length(&supported_abis)?;
+          let mut supported_abis_vec = Vec::with_capacity(count as usize);
+          for i in 0 .. count {
+            let element = env.get_object_array_element(&supported_abis, i)?;
+            let element_string: JString<'_> = element.into();
+            supported_abis_vec.push(unsafe { env.get_string_unchecked(&element_string) }?.into());
+          }
+          supported_abis_vec
+        },
       ));
 
       let error_reporter = Arc::new(new_global!(ErrorReporterHandle, &mut env, error_reporter)?);
