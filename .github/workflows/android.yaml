@@ -163,8 +163,8 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
-          git fetch origin binary-size-baseline
-          git worktree add temp-worktree origin/binary-size-baseline
+          git fetch origin ci-baseline
+          git worktree add temp-worktree origin/ci-baseline
 
           cp "$APK_SIZE_FILE" temp-worktree/ci/
           cp "$SO_SIZE_FILE" temp-worktree/ci/
@@ -174,7 +174,7 @@ jobs:
 
           if ! git diff --cached --quiet; then
             git commit -m "ci: update APK and AAR SO size baselines [skip ci]"
-            git push origin HEAD:binary-size-baseline
+            git push origin HEAD:ci-baseline
           else
             echo "No changes to baseline sizes."
           fi
@@ -185,8 +185,8 @@ jobs:
       - name: Fetch size baselines from branch (PR only)
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         run: |
-          git fetch origin binary-size-baseline
-          git worktree add temp-baseline origin/binary-size-baseline
+          git fetch origin ci-baseline
+          git worktree add temp-baseline origin/ci-baseline
           cp temp-baseline/ci/baseline_binary_size.txt ci/
           if [ -f temp-baseline/ci/baseline_so_size_x86_64_kb.txt ]; then
             cp temp-baseline/ci/baseline_so_size_x86_64_kb.txt ci/
@@ -342,27 +342,9 @@ jobs:
 
     - name: Setup Android cmd line tools + NDK
       uses: ./.github/actions/common-android-setup
-
-    - name: Accept Android SDK licenses
-      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-
-    # See https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/
-    - name: Enable KVM group perms
-      run: |
-        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-        sudo udevadm control --reload-rules
-        sudo udevadm trigger --name-match=kvm
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
       with:
-        distribution: 'zulu'
-        java-version: '17'
-        cache: gradle
-    - uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
-      with:
-        toolchain: stable
-        targets: x86_64-unknown-linux-gnu,x86_64-linux-android,aarch64-linux-android
-        components: rust-src
+        setup-emulator: 'true'
+
     - name: AVD cache
       uses: actions/cache@v4
       id: avd-cache
@@ -410,6 +392,210 @@ jobs:
         disable-animations: true
         emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
         script: cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test; adb uninstall io.bitdrift.gradletestapp; cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm gradle-test-app:check gradle-test-app:connectedCheck --stacktrace
+
+  run_android_benchmarks:
+    runs-on: ubuntu-latest-8-cores
+    continue-on-error: true
+    env:
+      SKIP_PROTO_GEN: 1
+    if: needs.pre_check.outputs.should_run == 'true'
+    needs: pre_check
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Android cmd line tools + NDK
+        uses: ./.github/actions/common-android-setup
+        with:
+          setup-emulator: 'true'
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: ${{ runner.os }}-avd-api31-benchmark
+
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 30
+        uses: reactivecircus/android-emulator-runner@62dbb605bba737720e10b196cb4220d374026a6d # pin@v2.33
+        with:
+          channel: stable
+          force-avd-creation: false
+          api-level: 31
+          target: default
+          ram-size: 2048M
+          arch: x86_64
+          disk-size: 6144M
+          profile: Nexus 6
+          disable-animations: true
+          emulator-options: -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Run Microbenchmarks
+        uses: reactivecircus/android-emulator-runner@62dbb605bba737720e10b196cb4220d374026a6d # pin@v2.33
+        timeout-minutes: 30
+        with:
+          channel: stable
+          force-avd-creation: false
+          api-level: 31
+          target: default
+          ram-size: 2048M
+          arch: x86_64
+          disk-size: 6144M
+          profile: Nexus 6
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm microbenchmark:connectedReleaseAndroidTest -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR,UNLOCKED --stacktrace
+
+      - name: Find benchmark JSON
+        id: find_benchmark
+        run: |
+          BENCHMARK_JSON=$(find platform/jvm/microbenchmark/build/outputs -name "*benchmarkData.json" -type f | head -n 1)
+          if [ -z "$BENCHMARK_JSON" ]; then
+            echo "No benchmark JSON file found!"
+            echo "found=false" >> $GITHUB_OUTPUT
+          else
+            echo "Found benchmark file: $BENCHMARK_JSON"
+            echo "found=true" >> $GITHUB_OUTPUT
+            echo "path=$BENCHMARK_JSON" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Save benchmark baseline (main only)
+        if: github.ref == 'refs/heads/main' && steps.find_benchmark.outputs.found == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BENCHMARK_JSON="${{ steps.find_benchmark.outputs.path }}"
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          git fetch origin ci-baseline || true
+          git worktree add temp-worktree origin/ci-baseline
+
+          cp "$BENCHMARK_JSON" temp-worktree/ci/android_benchmark_baseline.json
+
+          cd temp-worktree
+          git add ci/android_benchmark_baseline.json
+
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: update benchmark baseline [skip ci]"
+            git push origin HEAD:ci-baseline
+          else
+            echo "No changes to benchmark baseline."
+          fi
+
+          cd ..
+          git worktree remove temp-worktree --force
+
+      - name: Fetch benchmark baseline (PR only)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        id: fetch_baseline
+        run: |
+          git fetch origin ci-baseline || true
+          git worktree add temp-baseline origin/ci-baseline || true
+
+          echo "Checking for baseline file..."
+          ls -la temp-baseline/ci/ || echo "Could not list temp-baseline/ci/"
+
+          if [ -f temp-baseline/ci/android_benchmark_baseline.json ]; then
+            echo "Found baseline file, copying..."
+            cp temp-baseline/ci/android_benchmark_baseline.json ci/android_benchmark_baseline.json
+            echo "found=true" >> $GITHUB_OUTPUT
+            echo "Baseline found and copied."
+          else
+            echo "No benchmark baseline found."
+            echo "found=false" >> $GITHUB_OUTPUT
+          fi
+
+          git worktree remove temp-baseline --force || true
+
+      - name: Parse and compare benchmark results
+        if: github.event_name == 'pull_request' && steps.find_benchmark.outputs.found == 'true'
+        id: benchmark_results
+        run: |
+          BENCHMARK_JSON="${{ steps.find_benchmark.outputs.path }}"
+          BASELINE_JSON=""
+
+          echo "fetch_baseline.outputs.found = '${{ steps.fetch_baseline.outputs.found }}'"
+
+          if [ "${{ steps.fetch_baseline.outputs.found }}" == "true" ]; then
+            BASELINE_JSON="ci/android_benchmark_baseline.json"
+            echo "Using baseline: $BASELINE_JSON"
+          else
+            echo "No baseline found, running without comparison"
+          fi
+
+          # Parse and format the benchmark results using Python
+          if [ -n "$BASELINE_JSON" ]; then
+            python3 ./ci/parse_benchmark_results.py "$BENCHMARK_JSON" "$BASELINE_JSON" > benchmark_report.md
+          else
+            python3 ./ci/parse_benchmark_results.py "$BENCHMARK_JSON" > benchmark_report.md
+          fi
+
+          echo "Generated report:"
+          cat benchmark_report.md
+
+          # Store the report for the PR comment (handle multiline)
+          {
+            echo 'benchmark_report<<EOF'
+            cat benchmark_report.md
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            platform/jvm/microbenchmark/build/outputs/connected_android_test_additional_output/
+            benchmark_report.md
+        if: always()
+
+      - name: Report benchmarks on PR
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        uses: actions/github-script@v6
+        env:
+          BENCHMARK_REPORT: ${{ steps.benchmark_results.outputs.benchmark_report }}
+        with:
+          script: |
+            const benchmarkReport = process.env.BENCHMARK_REPORT;
+
+            let body = '## Android Benchmark Results\n\n';
+            body += benchmarkReport || 'No benchmark data available.';
+
+            // Look for existing benchmark comment to update
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+
+            const markerText = '## Android Benchmark Results';
+            const foundComment = comments.data.find((c) => 
+              c.user.login === 'github-actions[bot]' && c.body.includes(markerText)
+            );
+
+            const comment = {
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body,
+            };
+
+            if (foundComment?.id) {
+              comment.comment_id = foundComment.id;
+              await github.rest.issues.updateComment(comment);
+            } else {
+              await github.rest.issues.createComment(comment);
+            }
 
   verify_android_hello_world_per_version:
     needs: build_and_compare_sizes
@@ -475,7 +661,7 @@ jobs:
   # job completing, we are able to gate it on all the previous jobs without explicitly enumerating them.
   verify_android:
     runs-on: ubuntu-latest
-    needs: ["pre_check", "build_and_compare_sizes", "verify_android_hello_world_per_version", "gradle_tests"]
+    needs: ["pre_check", "build_and_compare_sizes", "verify_android_hello_world_per_version", "gradle_tests", "run_android_benchmarks"]
     if: always()
     steps:
     # Checkout repo to Github Actions runner

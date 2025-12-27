@@ -191,23 +191,24 @@ unsafe extern "C" fn next_uploaded_log(uploaded_log: *mut Object) -> bool {
     for (key, value) in received_log.typed_fields() {
       let key = make_nsstring(&key).unwrap();
 
-      match value {
-        StringOrBytes::String(s) => {
-          let value = make_nsstring(&s).unwrap();
-
-          let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
-        },
-        StringOrBytes::SharedString(s) => {
-          let value = make_nsstring(&s).unwrap();
-
-          let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
-        },
+      let string = match value {
+        StringOrBytes::String(s) => s,
+        StringOrBytes::SharedString(s) => s.to_string(),
+        StringOrBytes::StaticString(s) => s.to_string(),
         StringOrBytes::Bytes(s) => {
           let value = make_nsdata(&s);
 
           let () = msg_send![uploaded_log, addBinaryFieldWithKey:key value:value];
+          continue;
         },
-      }
+        StringOrBytes::Boolean(value) => value.to_string(),
+        StringOrBytes::U64(value) => value.to_string(),
+        StringOrBytes::I64(value) => value.to_string(),
+        StringOrBytes::Double(value) => value.to_string(),
+      };
+
+      let value = make_nsstring(&string).unwrap();
+      let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
     }
 
     true

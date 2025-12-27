@@ -32,8 +32,8 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
-import io.bitdrift.capture.reports.FatalIssueReporter
-import io.bitdrift.capture.reports.IFatalIssueReporter
+import io.bitdrift.capture.reports.IIssueReporter
+import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.toStringMap
 import okhttp3.HttpUrl
@@ -64,7 +64,7 @@ class CaptureLoggerTest {
         }
 
     private var testServerPort: Int? = null
-    private val fatalIssueReporter: IFatalIssueReporter = FatalIssueReporter(dateProvider = FakeDateProvider)
+    private val issueReporter: IIssueReporter = IssueReporter(dateProvider = FakeDateProvider)
 
     @Before
     fun setUp() {
@@ -258,6 +258,10 @@ class CaptureLoggerTest {
                         "device_id" to deviceId,
                         "platform" to "android",
                         "model" to "robolectric",
+                        "_app_version_code" to "0",
+                        "_os_api_level" to "24",
+                        "os_version" to "7.0",
+                        "_architecture" to "armeabi-v7a",
                     ),
                     listOf("sdk_version", "config_version"),
                 ),
@@ -490,7 +494,7 @@ class CaptureLoggerTest {
                 context = ContextHolder.APP_CONTEXT,
                 dateProvider = dateProvider,
                 configuration = Configuration(),
-                fatalIssueReporter = fatalIssueReporter,
+                issueReporter = issueReporter,
             )
         val sdkConfiguredDuration =
             LoggerImpl.SdkConfiguredDuration(
@@ -511,7 +515,17 @@ class CaptureLoggerTest {
             ContextHolder.APP_CONTEXT,
             ProcessLifecycleOwner.get(),
         ).invoke().toFieldValueMap() +
-            NetworkAttributes(ContextHolder.APP_CONTEXT).invoke().toFieldValueMap()
+            NetworkAttributes(ContextHolder.APP_CONTEXT).invoke().toFieldValueMap() +
+            mapOf(
+                "_app_version_code" to "0".toFieldValue(),
+                "_architecture" to "armeabi-v7a".toFieldValue(),
+                "_locale" to "ar".toFieldValue(),
+                "_os_api_level" to "24".toFieldValue(),
+                "app_id" to "io.bitdrift.capture".toFieldValue(),
+                "app_version" to "?.?.?".toFieldValue(),
+                "model" to "robolectric".toFieldValue(),
+                "os_version" to "7.0".toFieldValue(),
+            )
 
     private fun Map<String, String>.toFieldValueMap(): Map<String, FieldValue> = mapValues { (_, v) -> v.toFieldValue() }
 }

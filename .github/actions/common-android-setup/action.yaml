@@ -1,11 +1,19 @@
 name: Common Android SDK/NDK setup
-description: Sets up Android SDK cmdline-tools and installs the NDK
+description: Sets up Android SDK cmdline-tools, NDK, JDK, Rust toolchain, and emulator prerequisites
 
 inputs:
   ndk-version:
     description: Android NDK version to install
     required: false
     default: "27.2.12479018"
+  java-version:
+    description: JDK version to install
+    required: false
+    default: "17"
+  setup-emulator:
+    description: Whether to set up emulator prerequisites (KVM, licenses)
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -15,6 +23,30 @@ runs:
       run: |
         echo "ANDROID_HOME=${{ github.workspace }}/android-sdk" >> $GITHUB_ENV
         echo "ANDROID_SDK_ROOT=${{ github.workspace }}/android-sdk" >> $GITHUB_ENV
+
+    - name: Enable KVM group perms
+      if: inputs.setup-emulator == 'true'
+      shell: bash
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    - name: Set up JDK
+      if: inputs.setup-emulator == 'true'
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: ${{ inputs.java-version }}
+        cache: gradle
+
+    - name: Set up Rust toolchain
+      if: inputs.setup-emulator == 'true'
+      uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
+      with:
+        toolchain: stable
+        targets: x86_64-unknown-linux-gnu,x86_64-linux-android,aarch64-linux-android
+        components: rust-src
 
     - name: Cache Android NDK
       id: ndk-cache
@@ -48,6 +80,11 @@ runs:
         export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
         echo "y" | sdkmanager --sdk_root=$ANDROID_HOME "ndk;${{ inputs.ndk-version }}"
 
+    - name: Accept Android SDK licenses
+      if: inputs.setup-emulator == 'true'
+      shell: bash
+      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
     - name: Touch local.properties
       shell: bash
       run: touch platform/jvm/local.properties
@@ -58,6 +95,7 @@ runs:
       with:
         path: ~/.cargo/bin/cargo-ndk
         key: ${{ runner.os }}-cargo-ndk-3.4
+
     - name: Install cargo-ndk
       if: steps.cargo-ndk-cache.outputs.cache-hit != 'true'
       shell: bash

@@ -42,9 +42,9 @@ final class DeviceAttributes {
 extension DeviceAttributes: FieldProvider {
     public func getFields() -> Fields {
         return [
-            /// The iPhone device model (e.g. iPhone13,1)
-            "model": self.hardwareVersion,
             /// The device locale (e.g. en_US)
+            /// Note: The 'model' field is now passed directly to Rust at logger creation time
+            /// as it's a static value.
             "_locale": self.locale.load(),
         ]
     }

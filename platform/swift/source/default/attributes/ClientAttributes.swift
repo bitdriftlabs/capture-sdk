@@ -20,20 +20,3 @@ final class ClientAttributes {
 
     private let osVersion = UIDevice.current.systemVersion
 }
-
-extension ClientAttributes: FieldProvider {
-    public func getFields() -> Fields {
-        return [
-            /// The bundle ID which identifies the running app (e.g. com.zimride.instant).
-            "app_id": self.appID,
-            /// Operating system. Always iOS for this code path.
-            "os": "iOS",
-            /// The operating system version (e.g. 13.0).
-            "os_version": self.osVersion,
-            /// The release version of the app (e.g. 1.2.33).
-            "app_version": self.appVersion,
-            /// The build number (e.g. 1234 or 1.2.33.12314).
-            "_build_number": self.buildNumber,
-        ]
-    }
-}
