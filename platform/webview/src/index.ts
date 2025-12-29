@@ -10,6 +10,11 @@ import { initWebVitals } from './web-vitals';
 import { initNetworkInterceptor } from './network';
 import { initNavigationTracking } from './navigation';
 import { initPageViewTracking } from './page-view';
+import { initLongTaskMonitoring } from './long-tasks';
+import { initResourceErrorMonitoring } from './resource-errors';
+import { initConsoleCapture } from './console-capture';
+import { initUserInteractionMonitoring } from './user-interactions';
+import { initErrorMonitoring, initPromiseRejectionMonitoring } from './error';
 import type { BridgeReadyMessage } from './types';
 
 /**
@@ -17,23 +22,29 @@ import type { BridgeReadyMessage } from './types';
  * This runs immediately when injected into a WebView.
  */
 function init(): void {
-  // Initialize the bridge first
-  initBridge();
+    // Initialize the bridge first
+    initBridge();
 
-  // Send bridge ready signal immediately
-  const readyMessage = createMessage<BridgeReadyMessage>({
-    type: 'bridgeReady',
-    url: window.location.href,
-  });
-  log(readyMessage);
+    // Send bridge ready signal immediately
+    const readyMessage = createMessage<BridgeReadyMessage>({
+        type: 'bridgeReady',
+        url: window.location.href,
+    });
+    log(readyMessage);
 
-  // Initialize page view tracking first to establish parent span
-  initPageViewTracking();
+    // Initialize page view tracking first to establish parent span
+    initPageViewTracking();
 
-  // Initialize all monitoring modules
-  initNetworkInterceptor();
-  initNavigationTracking();
-  initWebVitals();
+    // Initialize all monitoring modules
+    initNetworkInterceptor();
+    initNavigationTracking();
+    initWebVitals();
+    initLongTaskMonitoring();
+    initResourceErrorMonitoring();
+    initConsoleCapture();
+    initPromiseRejectionMonitoring();
+    initUserInteractionMonitoring();
+    initErrorMonitoring();
 }
 
 // Run immediately
