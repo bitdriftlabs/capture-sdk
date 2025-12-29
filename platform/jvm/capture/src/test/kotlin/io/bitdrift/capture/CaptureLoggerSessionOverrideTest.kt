@@ -49,6 +49,8 @@ private const val TEST_DATE_TIMESTAMP: Long = 1657047358123
 @TargetApi(Build.VERSION_CODES.R)
 class CaptureLoggerSessionOverrideTest {
     private val activityManager: ActivityManager = mock()
+    private val preferences = MockPreferences()
+    private val lifecycleOwner = mock<LifecycleOwner>()
 
     private val systemDateProvider =
         DateProvider {
@@ -70,6 +72,11 @@ class CaptureLoggerSessionOverrideTest {
         CaptureDispatchers.setTestExecutorService(MoreExecutors.newDirectExecutorService())
         CaptureJniLibrary.load()
         testServerPort = CaptureTestJniLibrary.startTestApiServer(-1)
+
+        val lifecycleRegistry = LifecycleRegistry(lifecycleOwner)
+
+        lifecycleRegistry.currentState = Lifecycle.State.STARTED
+        doReturn(lifecycleRegistry).whenever(lifecycleOwner).lifecycle
     }
 
     @After
@@ -77,26 +84,19 @@ class CaptureLoggerSessionOverrideTest {
         CaptureTestJniLibrary.stopTestApiServer()
     }
 
-    /**
-     *  Verify that upon the launch of the SDK it's possible to emit logs with session Id
-     *  equal to the last active session ID from the previous run of the SDK.
-     */
-
-    @Test
-    fun testSessionIdOverride() {
-        val oldAppVersion = "1.2.3"
-        val oldAppVersionCode = 123L
-        val newAppVersion = "1.2.4"
-        val newAppVersionCode = 124L
+    private fun contextWithAppVersion(
+        version: String,
+        appVersionCode: Int,
+    ): android.content.Context {
         val packageName = ContextHolder.APP_CONTEXT.packageName
 
         // Mock package manager to return old version
         val packageManager = mock<PackageManager>()
         val packageInfo =
             PackageInfo().apply {
-                versionName = oldAppVersion
+                versionName = version
                 @Suppress("DEPRECATION")
-                versionCode = oldAppVersionCode.toInt()
+                versionCode = appVersionCode
             }
         whenever(packageManager.getPackageInfo(packageName, 0)).thenReturn(packageInfo)
 
@@ -106,18 +106,18 @@ class CaptureLoggerSessionOverrideTest {
         // We still need to mock ActivityManager to control getHistoricalProcessExitReasons
         whenever(context.getSystemService(android.content.Context.ACTIVITY_SERVICE)).thenReturn(activityManager)
 
-        val lifecycleOwner = mock<LifecycleOwner>()
-        val lifecycleRegistry = LifecycleRegistry(lifecycleOwner)
-        lifecycleRegistry.currentState = Lifecycle.State.STARTED
-        doReturn(lifecycleRegistry).whenever(lifecycleOwner).lifecycle
+        return context
+    }
 
+    @Test
+    fun testSessionIdOverride() {
+        val oldAppVersion = "1.2.3"
+        val oldAppVersionCode = 123
+        val newAppVersion = "1.2.4"
+        val newAppVersionCode = 124
+
+        val context = contextWithAppVersion(oldAppVersion, oldAppVersionCode)
         val clientAttributes = ClientAttributes(context, lifecycleOwner)
-        // Force initial attributes population
-        clientAttributes.invoke()
-
-        // Start the logger and process one log with it just so that
-        // it generates a session Id that's stored in passed `Preferences` instance.
-        val preferences = MockPreferences()
 
         logger =
             LoggerImpl(
@@ -133,9 +133,6 @@ class CaptureLoggerSessionOverrideTest {
                 issueReporter = issueReporter,
                 clientAttributes = clientAttributes,
             )
-
-        // Force attributes update again after logger creation
-        clientAttributes.invoke()
 
         // Let the first logger process come up and send it the configuration to aggressively upload
         // the data. On the second startup it should read this configuration from cache.
@@ -162,16 +159,8 @@ class CaptureLoggerSessionOverrideTest {
         // on the ring buffer.
         CaptureJniLibrary.shutdown(logger.loggerId)
 
-        // Update mock package manager to return new version
-        val newPackageInfo =
-            PackageInfo().apply {
-                versionName = newAppVersion
-                @Suppress("DEPRECATION")
-                versionCode = newAppVersionCode.toInt()
-            }
-        whenever(packageManager.getPackageInfo(packageName, 0)).thenReturn(newPackageInfo)
-
-        val newClientAttributes = ClientAttributes(context, lifecycleOwner)
+        val newContext = contextWithAppVersion(newAppVersion, newAppVersionCode)
+        val newClientAttributes = ClientAttributes(newContext, lifecycleOwner)
 
         // Start another logger instance. Notice how its session strategy specifies "bar"
         // session Id.
