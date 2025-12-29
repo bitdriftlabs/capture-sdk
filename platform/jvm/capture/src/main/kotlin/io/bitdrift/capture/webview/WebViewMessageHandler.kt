@@ -21,6 +21,7 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.providers.toFields
 import java.net.URI
+import java.util.UUID
 
 /**
  * Handles incoming messages from the WebView JavaScript bridge and routes them
@@ -30,6 +31,12 @@ internal class WebViewMessageHandler(
     private val logger: LoggerImpl?,
 ) {
     private val gson = Gson()
+
+    /** Current page view span ID for nesting child events */
+    private var currentPageSpanId: String? = null
+
+    /** Active page view spans, keyed by span ID */
+    private val activePageViewSpans = mutableMapOf<String, io.bitdrift.capture.events.span.Span>()
 
     fun handleMessage(message: String, capture: WebViewCapture) {
         val json = try {
@@ -58,6 +65,8 @@ internal class WebViewMessageHandler(
             "webVital" -> handleWebVital(json, timestamp)
             "networkRequest" -> handleNetworkRequest(json, timestamp)
             "navigation" -> handleNavigation(json, timestamp)
+            "pageView" -> handlePageView(json, timestamp)
+            "lifecycle" -> handleLifecycle(json, timestamp)
             "error" -> handleError(json, timestamp)
         }
     }
@@ -79,6 +88,9 @@ internal class WebViewMessageHandler(
         val delta = metric.get("delta")?.asDouble
         val id = metric.get("id")?.asString
         val navigationType = metric.get("navigationType")?.asString
+        
+        // Extract parentSpanId from the message (set by JS SDK)
+        val parentSpanId = json.get("parentSpanId")?.asString ?: currentPageSpanId
 
         // Determine log level based on rating
         val level = when (rating) {
@@ -96,16 +108,17 @@ internal class WebViewMessageHandler(
             delta?.let { put("_delta", it.toString()) }
             id?.let { put("_metric_id", it) }
             navigationType?.let { put("_navigation_type", it) }
+            parentSpanId?.let { put("_span_parent_id", it) }
             put("_source", "webview")
         }
 
         // Duration-based metrics are logged as spans (LCP, FCP, TTFB, INP)
         // CLS is a cumulative score, not a duration, so it's logged as a regular log
         when (name) {
-            "LCP" -> handleLCPMetric(metric, timestamp, value, level, commonFields)
-            "FCP" -> handleFCPMetric(metric, timestamp, value, level, commonFields)
-            "TTFB" -> handleTTFBMetric(metric, timestamp, value, level, commonFields)
-            "INP" -> handleINPMetric(metric, timestamp, value, level, commonFields)
+            "LCP" -> handleLCPMetric(metric, timestamp, value, level, commonFields, parentSpanId)
+            "FCP" -> handleFCPMetric(metric, timestamp, value, level, commonFields, parentSpanId)
+            "TTFB" -> handleTTFBMetric(metric, timestamp, value, level, commonFields, parentSpanId)
+            "INP" -> handleINPMetric(metric, timestamp, value, level, commonFields, parentSpanId)
             "CLS" -> handleCLSMetric(metric, level, commonFields)
             else -> {
                 // Unknown metric type - log as regular log with UX type
@@ -127,6 +140,7 @@ internal class WebViewMessageHandler(
         value: Double,
         level: LogLevel,
         commonFields: Map<String, String>,
+        parentSpanId: String?,
     ) {
         val fields = commonFields.toMutableMap()
 
@@ -139,7 +153,7 @@ internal class WebViewMessageHandler(
             entry.get("loadTime")?.asDouble?.let { fields["_load_time"] = it.toString() }
         }
 
-        logDurationSpan("webview.LCP", timestamp, value, level, fields)
+        logDurationSpan("webview.LCP", timestamp, value, level, fields, parentSpanId)
     }
 
     /**
@@ -153,6 +167,7 @@ internal class WebViewMessageHandler(
         value: Double,
         level: LogLevel,
         commonFields: Map<String, String>,
+        parentSpanId: String?,
     ) {
         val fields = commonFields.toMutableMap()
 
@@ -163,7 +178,7 @@ internal class WebViewMessageHandler(
             entry.get("entryType")?.asString?.let { fields["_entry_type"] = it }
         }
 
-        logDurationSpan("webview.FCP", timestamp, value, level, fields)
+        logDurationSpan("webview.FCP", timestamp, value, level, fields, parentSpanId)
     }
 
     /**
@@ -177,6 +192,7 @@ internal class WebViewMessageHandler(
         value: Double,
         level: LogLevel,
         commonFields: Map<String, String>,
+        parentSpanId: String?,
     ) {
         val fields = commonFields.toMutableMap()
 
@@ -191,7 +207,7 @@ internal class WebViewMessageHandler(
             entry.get("responseStart")?.asDouble?.let { fields["_response_start"] = it.toString() }
         }
 
-        logDurationSpan("webview.TTFB", timestamp, value, level, fields)
+        logDurationSpan("webview.TTFB", timestamp, value, level, fields, parentSpanId)
     }
 
     /**
@@ -205,6 +221,7 @@ internal class WebViewMessageHandler(
         value: Double,
         level: LogLevel,
         commonFields: Map<String, String>,
+        parentSpanId: String?,
     ) {
         val fields = commonFields.toMutableMap()
 
@@ -218,7 +235,7 @@ internal class WebViewMessageHandler(
             entry.get("interactionId")?.asLong?.let { fields["_interaction_id"] = it.toString() }
         }
 
-        logDurationSpan("webview.INP", timestamp, value, level, fields)
+        logDurationSpan("webview.INP", timestamp, value, level, fields, parentSpanId)
     }
 
     /**
@@ -273,6 +290,7 @@ internal class WebViewMessageHandler(
         durationMs: Double,
         level: LogLevel,
         fields: Map<String, String>,
+        parentSpanId: String?,
     ) {
         // Calculate start time: the metric value represents duration from navigation start
         // timestamp is when the metric was captured (effectively the end time)
@@ -286,12 +304,22 @@ internal class WebViewMessageHandler(
             else -> SpanResult.UNKNOWN
         }
 
-        // Start span with custom start time
+        // Convert parentSpanId string to UUID
+        val parentUuid = parentSpanId?.let {
+            try {
+                UUID.fromString(it)
+            } catch (e: IllegalArgumentException) {
+                null
+            }
+        }
+
+        // Start span with custom start time and parent span ID
         val span = logger?.startSpan(
             name = spanName,
             level = level,
             fields = fields,
             startTimeMs = startTimeMs,
+            parentSpanId = parentUuid,
         )
 
         // End span with custom end time
@@ -379,6 +407,93 @@ internal class WebViewMessageHandler(
         // Log the request and response as a span pair
         logger?.log(requestInfo)
         logger?.log(responseInfo)
+    }
+
+    /**
+     * Handle page view span start/end messages.
+     * Page view spans group all events within a single page session.
+     */
+    private fun handlePageView(json: JsonObject, timestamp: Long) {
+        val action = json.get("action")?.asString ?: return
+        val spanId = json.get("spanId")?.asString ?: return
+        val url = json.get("url")?.asString ?: ""
+        val reason = json.get("reason")?.asString ?: ""
+
+        when (action) {
+            "start" -> {
+                currentPageSpanId = spanId
+                
+                val fields = mapOf(
+                    "_span_id" to spanId,
+                    "_url" to url,
+                    "_reason" to reason,
+                    "_source" to "webview",
+                    "_timestamp" to timestamp.toString()
+                )
+
+                // Start the page view span (include URL in name for visibility)
+                val span = logger?.startSpan(
+                    name = "webview.pageView: $url",
+                    level = LogLevel.DEBUG,
+                    fields = fields,
+                    startTimeMs = timestamp,
+                )
+
+                // Store the span for later ending
+                if (span != null) {
+                    activePageViewSpans[spanId] = span
+                }
+            }
+            "end" -> {
+                val durationMs = json.get("durationMs")?.asDouble
+
+                val fields = buildMap {
+                    put("_span_id", spanId)
+                    put("_url", url)
+                    put("_reason", reason)
+                    put("_source", "webview")
+                    put("_timestamp", timestamp.toString())
+                    durationMs?.let { put("_duration_ms", it.toString()) }
+                }
+
+                // End the page view span
+                activePageViewSpans.remove(spanId)?.end(
+                    result = SpanResult.SUCCESS,
+                    fields = fields,
+                    endTimeMs = timestamp,
+                )
+
+                // Clear current page span ID if it matches
+                if (currentPageSpanId == spanId) {
+                    currentPageSpanId = null
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle lifecycle events (DOMContentLoaded, load, visibilitychange).
+     * These are markers within the page view span.
+     */
+    private fun handleLifecycle(json: JsonObject, timestamp: Long) {
+        val event = json.get("event")?.asString ?: return
+        val parentSpanId = json.get("parentSpanId")?.asString ?: currentPageSpanId
+        val performanceTime = json.get("performanceTime")?.asDouble
+        val visibilityState = json.get("visibilityState")?.asString
+
+        val fields = buildMap {
+            put("_event", event)
+            put("_source", "webview")
+            put("_timestamp", timestamp.toString())
+            parentSpanId?.let { put("_span_parent_id", it) }
+            performanceTime?.let { put("_performance_time", it.toString()) }
+            visibilityState?.let { put("_visibility_state", it) }
+        }
+
+        // Log lifecycle event as UX type
+        logger?.log(LogType.UX, LogLevel.DEBUG, fields.toFields()) {
+            "webview.lifecycle.$event"
+        }
     }
 
     private fun handleNavigation(json: JsonObject, timestamp: Long) {

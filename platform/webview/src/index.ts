@@ -9,6 +9,7 @@ import { initBridge, log, createMessage } from './bridge';
 import { initWebVitals } from './web-vitals';
 import { initNetworkInterceptor } from './network';
 import { initNavigationTracking } from './navigation';
+import { initPageViewTracking } from './page-view';
 import type { BridgeReadyMessage } from './types';
 
 /**
@@ -25,6 +26,9 @@ function init(): void {
     url: window.location.href,
   });
   log(readyMessage);
+
+  // Initialize page view tracking first to establish parent span
+  initPageViewTracking();
 
   // Initialize all monitoring modules
   initNetworkInterceptor();

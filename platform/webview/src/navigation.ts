@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
+import { startPageView } from './page-view';
 import type { NavigationMessage } from './types';
 
 let currentUrl = '';
@@ -30,6 +31,8 @@ export function initNavigationTracking(): void {
     if (fromUrl !== toUrl) {
       currentUrl = toUrl;
       logNavigation(fromUrl, toUrl, 'pushState');
+      // Start new page view span for SPA navigation
+      startPageView(toUrl, 'navigation');
     }
   };
 
@@ -47,6 +50,8 @@ export function initNavigationTracking(): void {
     if (fromUrl !== toUrl) {
       currentUrl = toUrl;
       logNavigation(fromUrl, toUrl, 'replaceState');
+      // Start new page view span for SPA navigation
+      startPageView(toUrl, 'navigation');
     }
   };
 
@@ -58,6 +63,8 @@ export function initNavigationTracking(): void {
     if (fromUrl !== toUrl) {
       currentUrl = toUrl;
       logNavigation(fromUrl, toUrl, 'popstate');
+      // Start new page view span for back/forward navigation
+      startPageView(toUrl, 'navigation');
     }
   });
 }
