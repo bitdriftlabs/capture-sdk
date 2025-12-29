@@ -71,6 +71,16 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
             handleLifecycle(message)
         case "error":
             handleError(message)
+        case "longTask":
+            handleLongTask(message)
+        case "resourceError":
+            handleResourceError(message)
+        case "console":
+            handleConsole(message)
+        case "promiseRejection":
+            handlePromiseRejection(message)
+        case "userInteraction":
+            handleUserInteraction(message)
         default:
             break
         }
@@ -602,13 +612,16 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     }
     
     private func handleError(_ message: [String: Any]) {
+        let name = message["name"] as? String ?? "Error"
         let errorMessage = message["message"] as? String ?? "Unknown error"
         let stack = message["stack"] as? String
         let filename = message["filename"] as? String
         let lineno = message["lineno"] as? Int
         let colno = message["colno"] as? Int
+        let parentSpanId = message["parentSpanId"] as? String ?? currentPageSpanId
         
         var fields: Fields = [
+            "_name": name,
             "_message": errorMessage,
             "_source": "webview"
         ]
@@ -625,10 +638,210 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         if let c = colno {
             fields["_colno"] = String(c)
         }
+        if let pSpanId = parentSpanId {
+            fields["_span_parent_id"] = pSpanId
+        }
         
         logger?.log(
             level: .error,
             message: "webview.error",
+            fields: fields
+        )
+    }
+    
+    /// Handle long task events (main thread blocked > 50ms).
+    private func handleLongTask(_ message: [String: Any]) {
+        guard let durationMs = message["durationMs"] as? Double else { return }
+        
+        let startTime = message["startTime"] as? Double
+        let parentSpanId = message["parentSpanId"] as? String ?? currentPageSpanId
+        let attribution = message["attribution"] as? [String: Any]
+        
+        var fields: Fields = [
+            "_duration_ms": String(durationMs),
+            "_source": "webview"
+        ]
+        
+        if let st = startTime {
+            fields["_start_time"] = String(st)
+        }
+        if let pSpanId = parentSpanId {
+            fields["_span_parent_id"] = pSpanId
+        }
+        
+        // Extract attribution data
+        if let attr = attribution {
+            if let name = attr["name"] as? String {
+                fields["_attribution_name"] = name
+            }
+            if let containerType = attr["containerType"] as? String {
+                fields["_container_type"] = containerType
+            }
+            if let containerSrc = attr["containerSrc"] as? String {
+                fields["_container_src"] = containerSrc
+            }
+            if let containerId = attr["containerId"] as? String {
+                fields["_container_id"] = containerId
+            }
+            if let containerName = attr["containerName"] as? String {
+                fields["_container_name"] = containerName
+            }
+        }
+        
+        // Determine log level based on duration
+        let level: LogLevel
+        if durationMs >= 200 {
+            level = .warning
+        } else if durationMs >= 100 {
+            level = .info
+        } else {
+            level = .debug
+        }
+        
+        logger?.log(
+            level: level,
+            message: "webview.longTask",
+            fields: fields
+        )
+    }
+    
+    /// Handle resource loading failures (images, scripts, stylesheets, etc.).
+    private func handleResourceError(_ message: [String: Any]) {
+        let resourceType = message["resourceType"] as? String ?? "unknown"
+        let url = message["url"] as? String ?? ""
+        let tagName = message["tagName"] as? String ?? ""
+        let parentSpanId = message["parentSpanId"] as? String ?? currentPageSpanId
+        
+        var fields: Fields = [
+            "_resource_type": resourceType,
+            "_url": url,
+            "_tag_name": tagName,
+            "_source": "webview"
+        ]
+        
+        if let pSpanId = parentSpanId {
+            fields["_span_parent_id"] = pSpanId
+        }
+        
+        logger?.log(
+            level: .warning,
+            message: "webview.resourceError",
+            fields: fields
+        )
+    }
+    
+    /// Handle console messages (log, warn, error, info, debug).
+    private func handleConsole(_ message: [String: Any]) {
+        let consoleLevel = message["level"] as? String ?? "log"
+        let consoleMessage = message["message"] as? String ?? ""
+        let parentSpanId = message["parentSpanId"] as? String ?? currentPageSpanId
+        
+        var fields: Fields = [
+            "_level": consoleLevel,
+            "_message": String(consoleMessage.prefix(500)),
+            "_source": "webview"
+        ]
+        
+        if let pSpanId = parentSpanId {
+            fields["_span_parent_id"] = pSpanId
+        }
+        
+        // Extract additional args if present
+        if let args = message["args"] as? [String], !args.isEmpty {
+            let argsStr = args.prefix(5).joined(separator: ", ")
+            fields["_args"] = String(argsStr.prefix(500))
+        }
+        
+        // Map console level to LogLevel
+        let level: LogLevel
+        switch consoleLevel {
+        case "error":
+            level = .error
+        case "warn":
+            level = .warning
+        case "info":
+            level = .info
+        default:
+            level = .debug
+        }
+        
+        logger?.log(
+            level: level,
+            message: "webview.console.\(consoleLevel)",
+            fields: fields
+        )
+    }
+    
+    /// Handle unhandled promise rejections.
+    private func handlePromiseRejection(_ message: [String: Any]) {
+        let reason = message["reason"] as? String ?? "Unknown rejection"
+        let stack = message["stack"] as? String
+        let parentSpanId = message["parentSpanId"] as? String ?? currentPageSpanId
+        
+        var fields: Fields = [
+            "_reason": reason,
+            "_source": "webview"
+        ]
+        
+        if let s = stack {
+            fields["_stack"] = String(s.prefix(1000))
+        }
+        if let pSpanId = parentSpanId {
+            fields["_span_parent_id"] = pSpanId
+        }
+        
+        logger?.log(
+            level: .error,
+            message: "webview.promiseRejection",
+            fields: fields
+        )
+    }
+    
+    /// Handle user interaction events (clicks and rage clicks).
+    private func handleUserInteraction(_ message: [String: Any]) {
+        guard let interactionType = message["interactionType"] as? String else { return }
+        
+        let tagName = message["tagName"] as? String ?? ""
+        let elementId = message["elementId"] as? String
+        let className = message["className"] as? String
+        let textContent = message["textContent"] as? String
+        let isClickable = message["isClickable"] as? Bool ?? false
+        let clickCount = message["clickCount"] as? Int
+        let timeWindowMs = message["timeWindowMs"] as? Int
+        let parentSpanId = message["parentSpanId"] as? String ?? currentPageSpanId
+        
+        var fields: Fields = [
+            "_interaction_type": interactionType,
+            "_tag_name": tagName,
+            "_is_clickable": String(isClickable),
+            "_source": "webview"
+        ]
+        
+        if let elId = elementId {
+            fields["_element_id"] = elId
+        }
+        if let clsName = className {
+            fields["_class_name"] = String(clsName.prefix(100))
+        }
+        if let txt = textContent {
+            fields["_text_content"] = String(txt.prefix(50))
+        }
+        if let cc = clickCount {
+            fields["_click_count"] = String(cc)
+        }
+        if let tw = timeWindowMs {
+            fields["_time_window_ms"] = String(tw)
+        }
+        if let pSpanId = parentSpanId {
+            fields["_span_parent_id"] = pSpanId
+        }
+        
+        // Rage clicks are more important
+        let level: LogLevel = interactionType == "rageClick" ? .warning : .debug
+        
+        logger?.log(
+            level: level,
+            message: "webview.userInteraction.\(interactionType)",
             fields: fields
         )
     }
