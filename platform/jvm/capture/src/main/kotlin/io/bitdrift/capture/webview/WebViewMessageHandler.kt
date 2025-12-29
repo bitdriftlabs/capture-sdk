@@ -68,6 +68,11 @@ internal class WebViewMessageHandler(
             "pageView" -> handlePageView(json, timestamp)
             "lifecycle" -> handleLifecycle(json, timestamp)
             "error" -> handleError(json, timestamp)
+            "longTask" -> handleLongTask(json, timestamp)
+            "resourceError" -> handleResourceError(json, timestamp)
+            "console" -> handleConsole(json, timestamp)
+            "promiseRejection" -> handlePromiseRejection(json, timestamp)
+            "userInteraction" -> handleUserInteraction(json, timestamp)
         }
     }
 
@@ -515,24 +520,182 @@ internal class WebViewMessageHandler(
     }
 
     private fun handleError(json: JsonObject, timestamp: Long) {
+        val name = json.get("name")?.asString ?: "Error"
         val errorMessage = json.get("message")?.asString ?: "Unknown error"
         val stack = json.get("stack")?.asString
         val filename = json.get("filename")?.asString
         val lineno = json.get("lineno")?.asInt
         val colno = json.get("colno")?.asInt
+        val parentSpanId = json.get("parentSpanId")?.asString ?: currentPageSpanId
 
         val fields = buildMap {
+            put("_name", name)
             put("_message", errorMessage)
             put("_source", "webview")
             stack?.let { put("_stack", it.take(1000)) } // Limit stack trace size
             filename?.let { put("_filename", it) }
             lineno?.let { put("_lineno", it.toString()) }
             colno?.let { put("_colno", it.toString()) }
+            parentSpanId?.let { put("_span_parent_id", it) }
             put("_timestamp", timestamp.toString())
         }
 
         logger?.log(LogLevel.ERROR, fields) {
             "webview.error"
+        }
+    }
+
+    /**
+     * Handle long task events (main thread blocked > 50ms).
+     */
+    private fun handleLongTask(json: JsonObject, timestamp: Long) {
+        val durationMs = json.get("durationMs")?.asDouble ?: return
+        val startTime = json.get("startTime")?.asDouble
+        val parentSpanId = json.get("parentSpanId")?.asString ?: currentPageSpanId
+
+        val fields = buildMap {
+            put("_duration_ms", durationMs.toString())
+            put("_source", "webview")
+            startTime?.let { put("_start_time", it.toString()) }
+            parentSpanId?.let { put("_span_parent_id", it) }
+            put("_timestamp", timestamp.toString())
+
+            // Extract attribution data
+            json.getAsJsonObject("attribution")?.let { attr ->
+                attr.get("name")?.asString?.let { put("_attribution_name", it) }
+                attr.get("containerType")?.asString?.let { put("_container_type", it) }
+                attr.get("containerSrc")?.asString?.let { put("_container_src", it) }
+                attr.get("containerId")?.asString?.let { put("_container_id", it) }
+                attr.get("containerName")?.asString?.let { put("_container_name", it) }
+            }
+        }
+
+        // Determine log level based on duration
+        val level = when {
+            durationMs >= 200 -> LogLevel.WARNING
+            durationMs >= 100 -> LogLevel.INFO
+            else -> LogLevel.DEBUG
+        }
+
+        logger?.log(LogType.UX, level, fields.toFields()) {
+            "webview.longTask"
+        }
+    }
+
+    /**
+     * Handle resource loading failures (images, scripts, stylesheets, etc.).
+     */
+    private fun handleResourceError(json: JsonObject, timestamp: Long) {
+        val resourceType = json.get("resourceType")?.asString ?: "unknown"
+        val url = json.get("url")?.asString ?: ""
+        val tagName = json.get("tagName")?.asString ?: ""
+        val parentSpanId = json.get("parentSpanId")?.asString ?: currentPageSpanId
+
+        val fields = buildMap {
+            put("_resource_type", resourceType)
+            put("_url", url)
+            put("_tag_name", tagName)
+            put("_source", "webview")
+            parentSpanId?.let { put("_span_parent_id", it) }
+            put("_timestamp", timestamp.toString())
+        }
+
+        logger?.log(LogLevel.WARNING, fields) {
+            "webview.resourceError"
+        }
+    }
+
+    /**
+     * Handle console messages (log, warn, error, info, debug).
+     */
+    private fun handleConsole(json: JsonObject, timestamp: Long) {
+        val level = json.get("level")?.asString ?: "log"
+        val consoleMessage = json.get("message")?.asString ?: ""
+        val parentSpanId = json.get("parentSpanId")?.asString ?: currentPageSpanId
+
+        val fields = buildMap {
+            put("_level", level)
+            put("_message", consoleMessage)
+            put("_source", "webview")
+            parentSpanId?.let { put("_span_parent_id", it) }
+            put("_timestamp", timestamp.toString())
+
+            // Extract additional args if present
+            json.getAsJsonArray("args")?.let { args ->
+                if (args.size() > 0) {
+                    val argsStr = args.mapNotNull { it.asString }.take(5).joinToString(", ")
+                    put("_args", argsStr)
+                }
+            }
+        }
+
+        // Map console level to LogLevel
+        val logLevel = when (level) {
+            "error" -> LogLevel.ERROR
+            "warn" -> LogLevel.WARNING
+            "info" -> LogLevel.INFO
+            else -> LogLevel.DEBUG
+        }
+
+        logger?.log(logLevel, fields) {
+            "webview.console.$level"
+        }
+    }
+
+    /**
+     * Handle unhandled promise rejections.
+     */
+    private fun handlePromiseRejection(json: JsonObject, timestamp: Long) {
+        val reason = json.get("reason")?.asString ?: "Unknown rejection"
+        val stack = json.get("stack")?.asString
+        val parentSpanId = json.get("parentSpanId")?.asString ?: currentPageSpanId
+
+        val fields = buildMap {
+            put("_reason", reason)
+            put("_source", "webview")
+            stack?.let { put("_stack", it.take(1000)) }
+            parentSpanId?.let { put("_span_parent_id", it) }
+            put("_timestamp", timestamp.toString())
+        }
+
+        logger?.log(LogLevel.ERROR, fields) {
+            "webview.promiseRejection"
+        }
+    }
+
+    /**
+     * Handle user interaction events (clicks and rage clicks).
+     */
+    private fun handleUserInteraction(json: JsonObject, timestamp: Long) {
+        val interactionType = json.get("interactionType")?.asString ?: return
+        val tagName = json.get("tagName")?.asString ?: ""
+        val elementId = json.get("elementId")?.asString
+        val className = json.get("className")?.asString
+        val textContent = json.get("textContent")?.asString
+        val isClickable = json.get("isClickable")?.asBoolean ?: false
+        val clickCount = json.get("clickCount")?.asInt
+        val timeWindowMs = json.get("timeWindowMs")?.asInt
+        val parentSpanId = json.get("parentSpanId")?.asString ?: currentPageSpanId
+
+        val fields = buildMap {
+            put("_interaction_type", interactionType)
+            put("_tag_name", tagName)
+            put("_is_clickable", isClickable.toString())
+            put("_source", "webview")
+            elementId?.let { put("_element_id", it) }
+            className?.let { put("_class_name", it.take(100)) }
+            textContent?.let { put("_text_content", it.take(50)) }
+            clickCount?.let { put("_click_count", it.toString()) }
+            timeWindowMs?.let { put("_time_window_ms", it.toString()) }
+            parentSpanId?.let { put("_span_parent_id", it) }
+            put("_timestamp", timestamp.toString())
+        }
+
+        // Rage clicks are more important
+        val level = if (interactionType == "rageClick") LogLevel.WARNING else LogLevel.DEBUG
+
+        logger?.log(LogType.UX, level, fields.toFields()) {
+            "webview.userInteraction.$interactionType"
         }
     }
 }
