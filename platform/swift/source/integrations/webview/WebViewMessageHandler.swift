@@ -15,6 +15,12 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     /// Whether the bridge has signaled it's ready
     var bridgeReady = false
     
+    /// Current page view span ID for nesting child events
+    private var currentPageSpanId: String?
+    
+    /// Active page view spans, keyed by span ID
+    private var activePageViewSpans: [String: Span] = [:]
+    
     init(logger: Logging?) {
         self.logger = logger
         super.init()
@@ -59,6 +65,10 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
             handleNetworkRequest(message)
         case "navigation":
             handleNavigation(message)
+        case "pageView":
+            handlePageView(message)
+        case "lifecycle":
+            handleLifecycle(message)
         case "error":
             handleError(message)
         default:
@@ -87,6 +97,9 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         let navigationType = metric["navigationType"] as? String
         let entries = metric["entries"] as? [[String: Any]]
         let timestamp = message["timestamp"] as? Double ?? (Date().timeIntervalSince1970 * 1000)
+        
+        // Extract parentSpanId from the message (set by JS SDK)
+        let parentSpanId = message["parentSpanId"] as? String ?? currentPageSpanId
         
         // Determine log level based on rating
         let level: LogLevel
@@ -118,18 +131,21 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         if let navType = navigationType {
             commonFields["_navigation_type"] = navType
         }
+        if let pSpanId = parentSpanId {
+            commonFields["_span_parent_id"] = pSpanId
+        }
         
         // Duration-based metrics are logged as spans (LCP, FCP, TTFB, INP)
         // CLS is a cumulative score, not a duration, so it's logged as a regular log
         switch name {
         case "LCP":
-            handleLCPMetric(entries: entries, timestamp: timestamp, value: value, level: level, commonFields: commonFields)
+            handleLCPMetric(entries: entries, timestamp: timestamp, value: value, level: level, commonFields: commonFields, parentSpanId: parentSpanId)
         case "FCP":
-            handleFCPMetric(entries: entries, timestamp: timestamp, value: value, level: level, commonFields: commonFields)
+            handleFCPMetric(entries: entries, timestamp: timestamp, value: value, level: level, commonFields: commonFields, parentSpanId: parentSpanId)
         case "TTFB":
-            handleTTFBMetric(entries: entries, timestamp: timestamp, value: value, level: level, commonFields: commonFields)
+            handleTTFBMetric(entries: entries, timestamp: timestamp, value: value, level: level, commonFields: commonFields, parentSpanId: parentSpanId)
         case "INP":
-            handleINPMetric(entries: entries, timestamp: timestamp, value: value, level: level, commonFields: commonFields)
+            handleINPMetric(entries: entries, timestamp: timestamp, value: value, level: level, commonFields: commonFields, parentSpanId: parentSpanId)
         case "CLS":
             handleCLSMetric(entries: entries, level: level, commonFields: commonFields)
         default:
@@ -150,7 +166,8 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         timestamp: Double,
         value: Double,
         level: LogLevel,
-        commonFields: Fields
+        commonFields: Fields,
+        parentSpanId: String?
     ) {
         var fields = commonFields
         
@@ -173,7 +190,7 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
             }
         }
         
-        logDurationSpan(spanName: "webview.LCP", timestamp: timestamp, durationMs: value, level: level, fields: fields)
+        logDurationSpan(spanName: "webview.LCP", timestamp: timestamp, durationMs: value, level: level, fields: fields, parentSpanId: parentSpanId)
     }
     
     /// Handle First Contentful Paint (FCP) metric.
@@ -184,7 +201,8 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         timestamp: Double,
         value: Double,
         level: LogLevel,
-        commonFields: Fields
+        commonFields: Fields,
+        parentSpanId: String?
     ) {
         var fields = commonFields
         
@@ -201,7 +219,7 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
             }
         }
         
-        logDurationSpan(spanName: "webview.FCP", timestamp: timestamp, durationMs: value, level: level, fields: fields)
+        logDurationSpan(spanName: "webview.FCP", timestamp: timestamp, durationMs: value, level: level, fields: fields, parentSpanId: parentSpanId)
     }
     
     /// Handle Time to First Byte (TTFB) metric.
@@ -212,7 +230,8 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         timestamp: Double,
         value: Double,
         level: LogLevel,
-        commonFields: Fields
+        commonFields: Fields,
+        parentSpanId: String?
     ) {
         var fields = commonFields
         
@@ -241,7 +260,7 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
             }
         }
         
-        logDurationSpan(spanName: "webview.TTFB", timestamp: timestamp, durationMs: value, level: level, fields: fields)
+        logDurationSpan(spanName: "webview.TTFB", timestamp: timestamp, durationMs: value, level: level, fields: fields, parentSpanId: parentSpanId)
     }
     
     /// Handle Interaction to Next Paint (INP) metric.
@@ -252,7 +271,8 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         timestamp: Double,
         value: Double,
         level: LogLevel,
-        commonFields: Fields
+        commonFields: Fields,
+        parentSpanId: String?
     ) {
         var fields = commonFields
         
@@ -278,7 +298,7 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
             }
         }
         
-        logDurationSpan(spanName: "webview.INP", timestamp: timestamp, durationMs: value, level: level, fields: fields)
+        logDurationSpan(spanName: "webview.INP", timestamp: timestamp, durationMs: value, level: level, fields: fields, parentSpanId: parentSpanId)
     }
     
     /// Handle Cumulative Layout Shift (CLS) metric.
@@ -328,7 +348,8 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         timestamp: Double,
         durationMs: Double,
         level: LogLevel,
-        fields: Fields
+        fields: Fields,
+        parentSpanId: String?
     ) {
         // Calculate start time: the metric value represents duration from navigation start
         // timestamp is when the metric was captured (effectively the end time)
@@ -350,6 +371,9 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
             result = .unknown
         }
         
+        // Convert parentSpanId string to UUID
+        let parentUUID: UUID? = parentSpanId.flatMap { UUID(uuidString: $0) }
+        
         // Start span with custom start time
         let span = logger?.startSpan(
             name: spanName,
@@ -359,7 +383,7 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
             function: nil,
             fields: fields,
             startTimeInterval: startTimeInterval,
-            parentSpanID: nil
+            parentSpanID: parentUUID
         )
         
         // End span with custom end time
@@ -470,6 +494,109 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         logger?.log(
             level: .debug,
             message: "webview.navigation",
+            fields: fields
+        )
+    }
+    
+    /// Handle page view span start/end messages.
+    /// Page view spans group all events within a single page session.
+    private func handlePageView(_ message: [String: Any]) {
+        guard let action = message["action"] as? String,
+              let spanId = message["spanId"] as? String else { return }
+        
+        let url = message["url"] as? String ?? ""
+        let reason = message["reason"] as? String ?? ""
+        let timestamp = message["timestamp"] as? Double ?? (Date().timeIntervalSince1970 * 1000)
+        let timestampInterval = timestamp / 1000.0
+        
+        switch action {
+        case "start":
+            currentPageSpanId = spanId
+            
+            let fields: Fields = [
+                "_span_id": spanId,
+                "_url": url,
+                "_reason": reason,
+                "_source": "webview"
+            ]
+            
+            // Start the page view span (include URL in name for visibility)
+            if let span = logger?.startSpan(
+                name: "webview.pageView: \(url)",
+                level: .debug,
+                file: nil,
+                line: nil,
+                function: nil,
+                fields: fields,
+                startTimeInterval: timestampInterval,
+                parentSpanID: nil
+            ) {
+                activePageViewSpans[spanId] = span
+            }
+            
+        case "end":
+            let durationMs = message["durationMs"] as? Double
+            
+            var fields: Fields = [
+                "_span_id": spanId,
+                "_url": url,
+                "_reason": reason,
+                "_source": "webview"
+            ]
+            
+            if let duration = durationMs {
+                fields["_duration_ms"] = String(duration)
+            }
+            
+            // End the page view span
+            if let span = activePageViewSpans.removeValue(forKey: spanId) {
+                span.end(
+                    .success,
+                    file: nil,
+                    line: nil,
+                    function: nil,
+                    fields: fields,
+                    endTimeInterval: timestampInterval
+                )
+            }
+            
+            // Clear current page span ID if it matches
+            if currentPageSpanId == spanId {
+                currentPageSpanId = nil
+            }
+            
+        default:
+            break
+        }
+    }
+    
+    /// Handle lifecycle events (DOMContentLoaded, load, visibilitychange).
+    /// These are markers within the page view span.
+    private func handleLifecycle(_ message: [String: Any]) {
+        guard let event = message["event"] as? String else { return }
+        
+        let parentSpanId = message["parentSpanId"] as? String ?? currentPageSpanId
+        let performanceTime = message["performanceTime"] as? Double
+        let visibilityState = message["visibilityState"] as? String
+        
+        var fields: Fields = [
+            "_event": event,
+            "_source": "webview"
+        ]
+        
+        if let pSpanId = parentSpanId {
+            fields["_span_parent_id"] = pSpanId
+        }
+        if let perfTime = performanceTime {
+            fields["_performance_time"] = String(perfTime)
+        }
+        if let visState = visibilityState {
+            fields["_visibility_state"] = visState
+        }
+        
+        logger?.log(
+            level: .debug,
+            message: "webview.lifecycle.\(event)",
             fields: fields
         )
     }

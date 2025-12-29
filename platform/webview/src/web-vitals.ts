@@ -14,6 +14,7 @@ import {
   type MetricType,
 } from "web-vitals";
 import { log, createMessage } from "./bridge";
+import { getCurrentPageSpanId } from "./page-view";
 import type { WebVitalMessage } from "./types";
 
 /**
@@ -22,9 +23,11 @@ import type { WebVitalMessage } from "./types";
  */
 export function initWebVitals(): void {
   const reportMetric = (metric: MetricType): void => {
+    const parentSpanId = getCurrentPageSpanId();
     const message = createMessage<WebVitalMessage>({
       type: "webVital",
       metric,
+      ...(parentSpanId && { parentSpanId }),
     });
     log(message);
   };

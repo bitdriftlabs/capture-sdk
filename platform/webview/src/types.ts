@@ -15,6 +15,8 @@ export type MessageType =
   | "webVital"
   | "networkRequest"
   | "navigation"
+  | "pageView"
+  | "lifecycle"
   | "error";
 
 /**
@@ -44,6 +46,8 @@ export interface BridgeReadyMessage extends BridgeMessage {
 export interface WebVitalMessage extends BridgeMessage {
   type: "webVital";
   metric: MetricType;
+  /** Parent span ID for nesting under page view */
+  parentSpanId?: string;
 }
 
 /**
@@ -120,6 +124,38 @@ export interface ErrorMessage extends BridgeMessage {
 }
 
 /**
+ * Page view span for grouping events within a page session
+ */
+export interface PageViewMessage extends BridgeMessage {
+  type: "pageView";
+  /** Action: start or end of page view */
+  action: "start" | "end";
+  /** Unique span ID for this page view */
+  spanId: string;
+  /** URL of the page */
+  url: string;
+  /** Reason for the page view event */
+  reason: "initial" | "navigation" | "unload" | "hidden";
+  /** Duration of page view in ms (only on end) */
+  durationMs?: number;
+}
+
+/**
+ * Lifecycle events within a page view
+ */
+export interface LifecycleMessage extends BridgeMessage {
+  type: "lifecycle";
+  /** Lifecycle event type */
+  event: "DOMContentLoaded" | "load" | "visibilitychange";
+  /** Parent page view span ID */
+  parentSpanId?: string;
+  /** Performance time when event occurred */
+  performanceTime: number;
+  /** Visibility state (for visibilitychange) */
+  visibilityState?: string;
+}
+
+/**
  * Union type of all possible messages
  */
 export type AnyBridgeMessage =
@@ -127,4 +163,6 @@ export type AnyBridgeMessage =
   | WebVitalMessage
   | NetworkRequestMessage
   | NavigationMessage
+  | PageViewMessage
+  | LifecycleMessage
   | ErrorMessage;
