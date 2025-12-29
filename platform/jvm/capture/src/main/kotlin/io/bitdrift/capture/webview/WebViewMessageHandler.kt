@@ -10,14 +10,16 @@ package io.bitdrift.capture.webview
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonSyntaxException
-import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.LogType
+import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpRequestMetrics
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
+import io.bitdrift.capture.providers.toFields
 import java.net.URI
 
 /**
@@ -25,7 +27,7 @@ import java.net.URI
  * to the appropriate logging methods.
  */
 internal class WebViewMessageHandler(
-    private val logger: ILogger?,
+    private val logger: LoggerImpl?,
 ) {
     private val gson = Gson()
 
@@ -106,8 +108,8 @@ internal class WebViewMessageHandler(
             "INP" -> handleINPMetric(metric, timestamp, value, level, commonFields)
             "CLS" -> handleCLSMetric(metric, level, commonFields)
             else -> {
-                // Unknown metric type - log as regular log
-                logger?.log(level, commonFields) {
+                // Unknown metric type - log as regular log with UX type
+                logger?.log(LogType.UX, level, commonFields.toFields()) {
                     "webview.webVital.$name"
                 }
             }
@@ -255,7 +257,7 @@ internal class WebViewMessageHandler(
             fields["_shift_count"] = entries.size().toString()
         }
 
-        logger?.log(level, fields) {
+        logger?.log(LogType.UX, level, fields.toFields()) {
             "webview.CLS"
         }
     }
