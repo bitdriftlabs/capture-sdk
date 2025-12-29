@@ -22,6 +22,7 @@ import androidx.webkit.WebViewFeature
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 
@@ -78,6 +79,7 @@ class WebViewCapture(
         @JvmOverloads
         fun instrument(webview: WebView, logger: ILogger? = null) {
             val effectiveLogger = logger ?: Capture.logger()
+            val loggerImpl = effectiveLogger as? LoggerImpl
             
             // Wrap existing WebViewClient
             val capture = if (WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_CLIENT)) {
@@ -93,7 +95,7 @@ class WebViewCapture(
             webview.settings.javaScriptEnabled = true
 
             // Register JavaScript interface for receiving bridge messages
-            val bridgeHandler = WebViewBridgeHandler(effectiveLogger, capture)
+            val bridgeHandler = WebViewBridgeHandler(loggerImpl, effectiveLogger, capture)
             webview.addJavascriptInterface(bridgeHandler, BRIDGE_NAME)
 
             // Inject JavaScript at document start for early initialization
@@ -130,10 +132,11 @@ class WebViewCapture(
  * JavaScript interface that receives messages from the injected bridge script.
  */
 internal class WebViewBridgeHandler(
+    loggerImpl: LoggerImpl?,
     private val logger: ILogger?,
     private val capture: WebViewCapture,
 ) {
-    private val messageHandler = WebViewMessageHandler(logger)
+    private val messageHandler = WebViewMessageHandler(loggerImpl)
 
     @JavascriptInterface
     fun log(message: String) {
