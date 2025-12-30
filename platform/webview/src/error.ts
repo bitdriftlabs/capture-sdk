@@ -6,7 +6,6 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
-import { getCurrentPageSpanId } from './page-view';
 import type { ErrorMessage, PromiseRejectionMessage } from './types';
 
 /**
@@ -36,7 +35,6 @@ export function initErrorMonitoring(): void {
             filename: event.filename || undefined,
             lineno: event.lineno || undefined,
             colno: event.colno || undefined,
-            parentSpanId: getCurrentPageSpanId() ?? undefined,
         });
         log(message);
     });
@@ -67,7 +65,6 @@ export function initPromiseRejectionMonitoring(): void {
             type: 'promiseRejection',
             reason,
             stack: stack?.slice(0, 2000), // Limit stack trace size
-            parentSpanId: getCurrentPageSpanId() ?? undefined,
         });
         log(message);
     });

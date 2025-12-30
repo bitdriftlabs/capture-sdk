@@ -8,23 +8,15 @@
 package io.bitdrift.capture.webview
 
 import android.annotation.SuppressLint
-import android.graphics.Bitmap
-import android.os.Build
 import android.webkit.JavascriptInterface
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.annotation.RequiresApi
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LoggerImpl
-import io.bitdrift.capture.events.span.Span
-import io.bitdrift.capture.events.span.SpanResult
 
 /**
  * WebView instrumentation for capturing page load events, performance metrics,
@@ -44,7 +36,6 @@ class WebViewCapture(
     private val original: WebViewClient,
     private val logger: ILogger? = Capture.logger(),
 ) : WebViewClient() {
-
     private var bridgeReady = false
 
     private fun getLogger(): ILogger? = logger ?: Capture.logger()
@@ -77,18 +68,22 @@ class WebViewCapture(
         @SuppressLint("SetJavaScriptEnabled", "RequiresFeature")
         @JvmStatic
         @JvmOverloads
-        fun instrument(webview: WebView, logger: ILogger? = null) {
+        fun instrument(
+            webview: WebView,
+            logger: ILogger? = null,
+        ) {
             val effectiveLogger = logger ?: Capture.logger()
             val loggerImpl = effectiveLogger as? LoggerImpl
-            
+
             // Wrap existing WebViewClient
-            val capture = if (WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_CLIENT)) {
-                val original = WebViewCompat.getWebViewClient(webview)
-                WebViewCapture(original, effectiveLogger)
-            } else {
-                WebViewCapture(WebViewClient(), effectiveLogger)
-            }
-            
+            val capture =
+                if (WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_CLIENT)) {
+                    val original = WebViewCompat.getWebViewClient(webview)
+                    WebViewCapture(original, effectiveLogger)
+                } else {
+                    WebViewCapture(WebViewClient(), effectiveLogger)
+                }
+
             webview.webViewClient = capture
 
             // Enable JavaScript (required for bridge)
@@ -103,7 +98,10 @@ class WebViewCapture(
         }
 
         @SuppressLint("RequiresFeature")
-        private fun injectScript(webview: WebView, logger: ILogger?) {
+        private fun injectScript(
+            webview: WebView,
+            logger: ILogger?,
+        ) {
             if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
                 // Fall back to evaluateJavascript after page load on older WebViews
                 logger?.log(LogLevel.DEBUG, emptyMap()) {
@@ -117,7 +115,7 @@ class WebViewCapture(
                 WebViewCompat.addDocumentStartJavaScript(
                     webview,
                     script,
-                    setOf("*") // Apply to all frames
+                    setOf("*"), // Apply to all frames
                 )
             } catch (e: Exception) {
                 logger?.log(LogLevel.WARNING, mapOf("_error" to (e.message ?: ""))) {

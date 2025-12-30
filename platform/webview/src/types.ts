@@ -129,8 +129,6 @@ export interface ErrorMessage extends BridgeMessage {
     lineno?: number;
     /** Column number */
     colno?: number;
-    /** Parent page view span ID */
-    parentSpanId?: string;
 }
 
 /**
@@ -157,8 +155,6 @@ export interface LifecycleMessage extends BridgeMessage {
     type: 'lifecycle';
     /** Lifecycle event type */
     event: 'DOMContentLoaded' | 'load' | 'visibilitychange';
-    /** Parent page view span ID */
-    parentSpanId?: string;
     /** Performance time when event occurred */
     performanceTime: number;
     /** Visibility state (for visibilitychange) */
@@ -182,8 +178,6 @@ export interface LongTaskMessage extends BridgeMessage {
         containerId?: string;
         containerName?: string;
     };
-    /** Parent page view span ID */
-    parentSpanId?: string;
 }
 
 /**
@@ -197,8 +191,6 @@ export interface ResourceErrorMessage extends BridgeMessage {
     url: string;
     /** Tag name of the element */
     tagName: string;
-    /** Parent page view span ID */
-    parentSpanId?: string;
 }
 
 /**
@@ -212,8 +204,6 @@ export interface ConsoleMessage extends BridgeMessage {
     message: string;
     /** Additional arguments passed to console */
     args?: string[];
-    /** Parent page view span ID */
-    parentSpanId?: string;
 }
 
 /**
@@ -225,8 +215,6 @@ export interface PromiseRejectionMessage extends BridgeMessage {
     reason: string;
     /** Stack trace if available */
     stack?: string;
-    /** Parent page view span ID */
-    parentSpanId?: string;
 }
 
 /**
@@ -250,8 +238,6 @@ export interface UserInteractionMessage extends BridgeMessage {
     clickCount?: number;
     /** Time window for rage clicks in ms */
     timeWindowMs?: number;
-    /** Parent page view span ID */
-    parentSpanId?: string;
 }
 
 /**

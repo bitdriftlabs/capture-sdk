@@ -114,7 +114,6 @@ function logLifecycleEvent(
     const message = createMessage<LifecycleMessage>({
         type: 'lifecycle',
         event,
-        parentSpanId: currentPageSpanId ?? undefined,
         performanceTime: performance.now(),
         ...details,
     });

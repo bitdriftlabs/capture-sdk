@@ -6,7 +6,6 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
-import { getCurrentPageSpanId } from './page-view';
 import type { UserInteractionMessage } from './types';
 
 /** Clickable element tags */
@@ -160,7 +159,6 @@ function logUserInteraction(
         isClickable,
         clickCount: interactionType === 'rageClick' ? clickCount : undefined,
         timeWindowMs: interactionType === 'rageClick' ? RAGE_CLICK_TIME_WINDOW_MS : undefined,
-        parentSpanId: getCurrentPageSpanId() ?? undefined,
     });
     log(message);
 }

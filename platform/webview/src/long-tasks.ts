@@ -6,7 +6,6 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
-import { getCurrentPageSpanId } from './page-view';
 import type { LongTaskMessage } from './types';
 
 /**
@@ -46,7 +45,6 @@ export function initLongTaskMonitoring(): void {
                               containerName: attribution.containerName,
                           }
                         : undefined,
-                    parentSpanId: getCurrentPageSpanId() ?? undefined,
                 });
                 log(message);
             }

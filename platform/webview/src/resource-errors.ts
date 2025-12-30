@@ -6,7 +6,6 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
-import { getCurrentPageSpanId } from './page-view';
 import type { ResourceErrorMessage } from './types';
 
 /**
@@ -57,7 +56,6 @@ export function initResourceErrorMonitoring(): void {
                 resourceType: getResourceType(tagName, target),
                 url,
                 tagName,
-                parentSpanId: getCurrentPageSpanId() ?? undefined,
             });
             log(message);
         },
