@@ -46,9 +46,8 @@ public final class WebViewCapture: NSObject {
     /// - Registers a message handler for receiving bridge messages
     /// - Wraps the navigation delegate to capture page load events
     ///
-    /// - Parameters:
-    ///   - webView: The WKWebView to instrument
-    ///   - logger: Optional logger instance. If nil, uses `Capture.Logger.shared`
+    /// - parameter webView: The WKWebView to instrument.
+    /// - parameter logger:  Optional logger instance. If nil, uses `Capture.Logger.shared`.
     @MainActor
     public static func instrument(_ webView: WKWebView, logger: Logging? = nil) {
         lock.lock()
@@ -96,7 +95,7 @@ public final class WebViewCapture: NSObject {
 
     /// Removes instrumentation from a WKWebView.
     ///
-    /// - Parameter webView: The WKWebView to remove instrumentation from
+    /// - parameter webView: The WKWebView to remove instrumentation from.
     @MainActor
     public static func removeInstrumentation(from webView: WKWebView) {
         lock.lock()
