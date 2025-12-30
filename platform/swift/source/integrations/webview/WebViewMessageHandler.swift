@@ -171,6 +171,13 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     /// Handle Largest Contentful Paint (LCP) metric.
     /// LCP measures loading performance - when the largest content element becomes visible.
     /// Logged as a span from navigation start to LCP time.
+    ///
+    /// - parameter entries:      The performance entries for this metric.
+    /// - parameter timestamp:    The timestamp when the metric was captured (ms since epoch).
+    /// - parameter value:        The metric value in milliseconds.
+    /// - parameter level:        The log level to use.
+    /// - parameter commonFields: Common fields to include in the log.
+    /// - parameter parentSpanId: The parent span ID for correlation.
     private func handleLCPMetric(
         entries: [[String: Any]]?,
         timestamp: Double,
@@ -206,6 +213,13 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     /// Handle First Contentful Paint (FCP) metric.
     /// FCP measures when the first content is painted to the screen.
     /// Logged as a span from navigation start to FCP time.
+    ///
+    /// - parameter entries:      The performance entries for this metric.
+    /// - parameter timestamp:    The timestamp when the metric was captured (ms since epoch).
+    /// - parameter value:        The metric value in milliseconds.
+    /// - parameter level:        The log level to use.
+    /// - parameter commonFields: Common fields to include in the log.
+    /// - parameter parentSpanId: The parent span ID for correlation.
     private func handleFCPMetric(
         entries: [[String: Any]]?,
         timestamp: Double,
@@ -235,6 +249,13 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     /// Handle Time to First Byte (TTFB) metric.
     /// TTFB measures the time from request start to receiving the first byte of the response.
     /// Logged as a span from navigation start to TTFB time.
+    ///
+    /// - parameter entries:      The performance entries for this metric.
+    /// - parameter timestamp:    The timestamp when the metric was captured (ms since epoch).
+    /// - parameter value:        The metric value in milliseconds.
+    /// - parameter level:        The log level to use.
+    /// - parameter commonFields: Common fields to include in the log.
+    /// - parameter parentSpanId: The parent span ID for correlation.
     private func handleTTFBMetric(
         entries: [[String: Any]]?,
         timestamp: Double,
@@ -276,6 +297,13 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     /// Handle Interaction to Next Paint (INP) metric.
     /// INP measures responsiveness - the time from user interaction to the next frame paint.
     /// Logged as a span representing the interaction duration.
+    ///
+    /// - parameter entries:      The performance entries for this metric.
+    /// - parameter timestamp:    The timestamp when the metric was captured (ms since epoch).
+    /// - parameter value:        The metric value in milliseconds.
+    /// - parameter level:        The log level to use.
+    /// - parameter commonFields: Common fields to include in the log.
+    /// - parameter parentSpanId: The parent span ID for correlation.
     private func handleINPMetric(
         entries: [[String: Any]]?,
         timestamp: Double,
@@ -314,6 +342,10 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     /// Handle Cumulative Layout Shift (CLS) metric.
     /// CLS measures visual stability - the sum of all unexpected layout shift scores.
     /// Unlike other metrics, CLS is a score (0-1+), not a duration, so it's logged as a regular log.
+    ///
+    /// - parameter entries:      The performance entries for this metric.
+    /// - parameter level:        The log level to use.
+    /// - parameter commonFields: Common fields to include in the log.
     private func handleCLSMetric(
         entries: [[String: Any]]?,
         level: LogLevel,
@@ -353,6 +385,13 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     /// Log a duration-based web vital as a span with custom start/end times.
     /// The start time is calculated as (timestamp - value) where value is the duration in ms,
     /// and end time is the timestamp when the metric was reported.
+    ///
+    /// - parameter spanName:     The name of the span to create.
+    /// - parameter timestamp:    The end timestamp in milliseconds since epoch.
+    /// - parameter durationMs:   The duration of the span in milliseconds.
+    /// - parameter level:        The log level to use.
+    /// - parameter fields:       The fields to include in the span.
+    /// - parameter parentSpanId: The parent span ID for correlation.
     private func logDurationSpan(
         spanName: String,
         timestamp: Double,
@@ -510,6 +549,8 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
 
     /// Handle page view span start/end messages.
     /// Page view spans group all events within a single page session.
+    ///
+    /// - parameter message: The message dictionary from the JavaScript bridge.
     private func handlePageView(_ message: [String: Any]) {
         guard let action = message["action"] as? String,
               let spanId = message["spanId"] as? String else { return }
@@ -582,6 +623,8 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
 
     /// Handle lifecycle events (DOMContentLoaded, load, visibilitychange).
     /// These are markers within the page view span.
+    ///
+    /// - parameter message: The message dictionary from the JavaScript bridge.
     private func handleLifecycle(_ message: [String: Any]) {
         guard let event = message["event"] as? String else { return }
 
@@ -607,6 +650,9 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         )
     }
 
+    /// Handle unhandled JavaScript errors.
+    ///
+    /// - parameter message: The message dictionary from the JavaScript bridge.
     private func handleError(_ message: [String: Any]) {
         let name = message["name"] as? String ?? "Error"
         let errorMessage = message["message"] as? String ?? "Unknown error"
@@ -642,6 +688,8 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     }
 
     /// Handle long task events (main thread blocked > 50ms).
+    ///
+    /// - parameter message: The message dictionary from the JavaScript bridge.
     private func handleLongTask(_ message: [String: Any]) {
         guard let durationMs = message["durationMs"] as? Double else { return }
 
@@ -694,6 +742,8 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     }
 
     /// Handle resource loading failures (images, scripts, stylesheets, etc.).
+    ///
+    /// - parameter message: The message dictionary from the JavaScript bridge.
     private func handleResourceError(_ message: [String: Any]) {
         let resourceType = message["resourceType"] as? String ?? "unknown"
         let url = message["url"] as? String ?? ""
@@ -714,6 +764,8 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     }
 
     /// Handle console messages (log, warn, error, info, debug).
+    ///
+    /// - parameter message: The message dictionary from the JavaScript bridge.
     private func handleConsole(_ message: [String: Any]) {
         let consoleLevel = message["level"] as? String ?? "log"
         let consoleMessage = message["message"] as? String ?? ""
@@ -751,6 +803,8 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     }
 
     /// Handle unhandled promise rejections.
+    ///
+    /// - parameter message: The message dictionary from the JavaScript bridge.
     private func handlePromiseRejection(_ message: [String: Any]) {
         let reason = message["reason"] as? String ?? "Unknown rejection"
         let stack = message["stack"] as? String
@@ -772,6 +826,8 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     }
 
     /// Handle user interaction events (clicks and rage clicks).
+    ///
+    /// - parameter message: The message dictionary from the JavaScript bridge.
     private func handleUserInteraction(_ message: [String: Any]) {
         guard let interactionType = message["interactionType"] as? String else { return }
 
