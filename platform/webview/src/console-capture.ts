@@ -6,7 +6,6 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage, pristine, isAnyBridgeMessage } from './bridge';
-import { getCurrentPageSpanId } from './page-view';
 import type { ConsoleMessage } from './types';
 
 const LEVELS = ['log', 'warn', 'error', 'info', 'debug'] as const;
@@ -38,7 +37,6 @@ export function initConsoleCapture(): void {
                 level,
                 message: messageStr,
                 args: additionalArgs,
-                parentSpanId: getCurrentPageSpanId() ?? undefined,
             });
             log(message);
         };
