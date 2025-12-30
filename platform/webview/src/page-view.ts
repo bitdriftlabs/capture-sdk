@@ -57,7 +57,7 @@ export function startPageView(url: string, reason: 'initial' | 'navigation' = 'n
     // For initial page view, use navigation start time (performance.timeOrigin)
     // For SPA navigations, use current time
     if (reason === 'initial') {
-        pageViewStartTimeMs = performance.timeOrigin;
+        pageViewStartTimeMs = Math.round(performance.timeOrigin);
     } else {
         pageViewStartTimeMs = Date.now();
     }
