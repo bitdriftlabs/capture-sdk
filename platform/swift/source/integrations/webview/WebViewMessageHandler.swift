@@ -585,7 +585,6 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     private func handleLifecycle(_ message: [String: Any]) {
         guard let event = message["event"] as? String else { return }
         
-        let parentSpanId = message["parentSpanId"] as? String ?? currentPageSpanId
         let performanceTime = message["performanceTime"] as? Double
         let visibilityState = message["visibilityState"] as? String
         
@@ -594,9 +593,6 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
             "_source": "webview"
         ]
         
-        if let pSpanId = parentSpanId {
-            fields["_span_parent_id"] = pSpanId
-        }
         if let perfTime = performanceTime {
             fields["_performance_time"] = String(perfTime)
         }
@@ -618,7 +614,6 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         let filename = message["filename"] as? String
         let lineno = message["lineno"] as? Int
         let colno = message["colno"] as? Int
-        let parentSpanId = message["parentSpanId"] as? String ?? currentPageSpanId
         
         var fields: Fields = [
             "_name": name,
@@ -638,9 +633,6 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         if let c = colno {
             fields["_colno"] = String(c)
         }
-        if let pSpanId = parentSpanId {
-            fields["_span_parent_id"] = pSpanId
-        }
         
         logger?.log(
             level: .error,
@@ -654,7 +646,6 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         guard let durationMs = message["durationMs"] as? Double else { return }
         
         let startTime = message["startTime"] as? Double
-        let parentSpanId = message["parentSpanId"] as? String ?? currentPageSpanId
         let attribution = message["attribution"] as? [String: Any]
         
         var fields: Fields = [
@@ -664,9 +655,6 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         
         if let st = startTime {
             fields["_start_time"] = String(st)
-        }
-        if let pSpanId = parentSpanId {
-            fields["_span_parent_id"] = pSpanId
         }
         
         // Extract attribution data
@@ -710,18 +698,13 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         let resourceType = message["resourceType"] as? String ?? "unknown"
         let url = message["url"] as? String ?? ""
         let tagName = message["tagName"] as? String ?? ""
-        let parentSpanId = message["parentSpanId"] as? String ?? currentPageSpanId
         
-        var fields: Fields = [
+        let fields: Fields = [
             "_resource_type": resourceType,
             "_url": url,
             "_tag_name": tagName,
             "_source": "webview"
         ]
-        
-        if let pSpanId = parentSpanId {
-            fields["_span_parent_id"] = pSpanId
-        }
         
         logger?.log(
             level: .warning,
@@ -734,17 +717,12 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     private func handleConsole(_ message: [String: Any]) {
         let consoleLevel = message["level"] as? String ?? "log"
         let consoleMessage = message["message"] as? String ?? ""
-        let parentSpanId = message["parentSpanId"] as? String ?? currentPageSpanId
         
         var fields: Fields = [
             "_level": consoleLevel,
             "_message": String(consoleMessage.prefix(500)),
             "_source": "webview"
         ]
-        
-        if let pSpanId = parentSpanId {
-            fields["_span_parent_id"] = pSpanId
-        }
         
         // Extract additional args if present
         if let args = message["args"] as? [String], !args.isEmpty {
@@ -776,7 +754,6 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
     private func handlePromiseRejection(_ message: [String: Any]) {
         let reason = message["reason"] as? String ?? "Unknown rejection"
         let stack = message["stack"] as? String
-        let parentSpanId = message["parentSpanId"] as? String ?? currentPageSpanId
         
         var fields: Fields = [
             "_reason": reason,
@@ -785,9 +762,6 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         
         if let s = stack {
             fields["_stack"] = String(s.prefix(1000))
-        }
-        if let pSpanId = parentSpanId {
-            fields["_span_parent_id"] = pSpanId
         }
         
         logger?.log(
@@ -808,7 +782,6 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         let isClickable = message["isClickable"] as? Bool ?? false
         let clickCount = message["clickCount"] as? Int
         let timeWindowMs = message["timeWindowMs"] as? Int
-        let parentSpanId = message["parentSpanId"] as? String ?? currentPageSpanId
         
         var fields: Fields = [
             "_interaction_type": interactionType,
@@ -831,9 +804,6 @@ final class WebViewMessageHandler: NSObject, WKScriptMessageHandler {
         }
         if let tw = timeWindowMs {
             fields["_time_window_ms"] = String(tw)
-        }
-        if let pSpanId = parentSpanId {
-            fields["_span_parent_id"] = pSpanId
         }
         
         // Rage clicks are more important
