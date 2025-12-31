@@ -48,8 +48,14 @@
     "@types/react": "^18.2.44"
   },
   "peerDependencies": {
+    "expo": ">=47.0.0",
     "react": "*",
     "react-native": "*"
+  },
+  "peerDependenciesMeta": {
+    "expo": {
+      "optional": true
+    }
   },
   "packageManager": "yarn@3.6.1",
   "codegenConfig": {
@@ -76,7 +82,9 @@
     ]
   },
   "dependencies": {
-    "@expo/config-plugins": "^9.0.14",
     "fast-json-stringify": "^6.0.0"
+  },
+  "devDependencies": {
+    "@expo/config-plugins": "^9.0.14"
   }
 }
