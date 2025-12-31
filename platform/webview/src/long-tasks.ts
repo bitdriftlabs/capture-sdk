@@ -21,13 +21,13 @@ export function initLongTaskMonitoring(): void {
         const observer = new PerformanceObserver((list) => {
             for (const entry of list.getEntries()) {
                 const taskEntry = entry as PerformanceEntry & {
-                    attribution?: Array<{
+                    attribution?: {
                         name?: string;
                         containerType?: string;
                         containerSrc?: string;
                         containerId?: string;
                         containerName?: string;
-                    }>;
+                    }[];
                 };
 
                 const attribution = taskEntry.attribution?.[0];
@@ -36,15 +36,7 @@ export function initLongTaskMonitoring(): void {
                     type: 'longTask',
                     durationMs: entry.duration,
                     startTime: entry.startTime,
-                    attribution: attribution
-                        ? {
-                              name: attribution.name,
-                              containerType: attribution.containerType,
-                              containerSrc: attribution.containerSrc,
-                              containerId: attribution.containerId,
-                              containerName: attribution.containerName,
-                          }
-                        : undefined,
+                    attribution: attribution,
                 });
                 log(message);
             }
