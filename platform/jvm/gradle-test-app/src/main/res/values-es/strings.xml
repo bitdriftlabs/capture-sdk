@@ -43,4 +43,5 @@
     <string name="restart_warning_title">Reiniciar APP para aplicar cambios</string>
     <string name="restart_warning_summary">Haz click aquí para reinciar</string>
     <string name="log_message_toast">Log enviado con nivel: %1$s</string>
+    <string name="webview_testing">WebView Testing</string>
 </resources>

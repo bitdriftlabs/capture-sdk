@@ -27,7 +27,7 @@ exclude_dirs = (
     './target/',
 )
 
-extensions_to_check = ('.rs', '.toml', '.kt', '.java', '.swift')
+extensions_to_check = ('.rs', '.toml', '.kt', '.java', '.swift', '.js', '.ts')
 
 
 def check_file(file_path):
