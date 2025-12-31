@@ -9,7 +9,6 @@ import { log, createMessage, pristine, isAnyBridgeMessage } from './bridge';
 import type { ConsoleMessage } from './types';
 
 const LEVELS = ['log', 'warn', 'error', 'info', 'debug'] as const;
-type ConsoleLevel = (typeof LEVELS)[number];
 
 /**
  * Initialize console log capture.
