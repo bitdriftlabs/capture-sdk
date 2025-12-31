@@ -64,7 +64,7 @@ export function initPromiseRejectionMonitoring(): void {
         const message = createMessage<PromiseRejectionMessage>({
             type: 'promiseRejection',
             reason,
-            stack: stack?.slice(0, 2000), // Limit stack trace size
+            stack: stack,
         });
         log(message);
     });
