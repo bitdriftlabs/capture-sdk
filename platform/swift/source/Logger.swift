@@ -8,7 +8,6 @@
 internal import CaptureLoggerBridge
 internal import CapturePassable
 import Foundation
-import UIKit
 
 public final class Logger {
     enum State {
