@@ -126,9 +126,9 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
     func testLoggerE2E() async throws {
         // Use the default logger configuration.
         let appStateAttributes = AppStateAttributes()
-        let clientAttributes = ClientAttributes()
         let deviceAttributes = DeviceAttributes()
         let networkAttributes = NetworkAttributes()
+        let clientAttributes = ClientAttributes()
 
         deviceAttributes.start()
         networkAttributes.start(with: MockCoreLogging())
@@ -189,9 +189,16 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         XCTAssertEqual(helloWorldLog.sessionID, "mock-group-id")
 
         let defaultFields = appStateAttributes.getFields()
-            .mergedOverwritingConflictingKeys(clientAttributes.getFields())
             .mergedOverwritingConflictingKeys(deviceAttributes.getFields())
             .mergedOverwritingConflictingKeys(networkAttributes.getFields())
+            .mergedOverwritingConflictingKeys([
+                "app_id": clientAttributes.appID,
+                "os": "iOS",
+                "os_version": clientAttributes.osVersion,
+                "model": deviceAttributes.hardwareVersion,
+                "app_version": clientAttributes.appVersion,
+                "_build_number": Bundle.main.infoDictionary?[kCFBundleVersionKey as String] as? String ?? "?",
+            ])
 
         let helloWorldExpectedFields: [String: Encodable] = [
             "bar": "value_bar",
