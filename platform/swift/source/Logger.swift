@@ -187,7 +187,7 @@ public final class Logger {
             appID: clientAttributes.appID,
             releaseVersion: clientAttributes.appVersion,
             buildNumber: clientAttributes.buildNumber,
-            osVersion: UIDevice.current.systemVersion,
+            osVersion: clientAttributes.osVersion,
             osBrand: "Apple",
             model: deviceAttributes.hardwareVersion,
             network: network,

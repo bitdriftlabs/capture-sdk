@@ -10,13 +10,13 @@ import UIKit
 /// Client attributes related to the app metadata and OS.
 final class ClientAttributes {
     /// The app ID.
-    private(set) var appID = Bundle.main.bundleIdentifier ?? "unknown"
+    let appID = Bundle.main.bundleIdentifier ?? "unknown"
     /// The app version. Up to three integers split using "." character.
-    private(set) var appVersion: String =
+    let appVersion: String =
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?.?.?"
     /// The build number identifier.
-    private(set) var buildNumber: String =
+    let buildNumber: String =
         Bundle.main.infoDictionary?[kCFBundleVersionKey as String] as? String ?? "?"
-
-    private let osVersion = UIDevice.current.systemVersion
+    /// The operating system version (e.g. 15.0).
+    let osVersion = UIDevice.current.systemVersion
 }
