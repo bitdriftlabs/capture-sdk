@@ -467,7 +467,7 @@ jobs:
           fi
 
       - name: Save benchmark baseline (main only)
-        if: github.ref == 'refs/heads/main' && steps.find_benchmark.outputs.found == 'true'
+        #if: github.ref == 'refs/heads/main' && steps.find_benchmark.outputs.found == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
