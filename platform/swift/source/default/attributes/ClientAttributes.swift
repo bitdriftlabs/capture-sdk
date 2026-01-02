@@ -10,30 +10,13 @@ import UIKit
 /// Client attributes related to the app metadata and OS.
 final class ClientAttributes {
     /// The app ID.
-    private(set) var appID = Bundle.main.bundleIdentifier ?? "unknown"
+    let appID = Bundle.main.bundleIdentifier ?? "unknown"
     /// The app version. Up to three integers split using "." character.
-    private(set) var appVersion: String =
+    let appVersion: String =
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?.?.?"
     /// The build number identifier.
-    private(set) var buildNumber: String =
+    let buildNumber: String =
         Bundle.main.infoDictionary?[kCFBundleVersionKey as String] as? String ?? "?"
-
-    private let osVersion = UIDevice.current.systemVersion
-}
-
-extension ClientAttributes: FieldProvider {
-    public func getFields() -> Fields {
-        return [
-            /// The bundle ID which identifies the running app (e.g. com.zimride.instant).
-            "app_id": self.appID,
-            /// Operating system. Always iOS for this code path.
-            "os": "iOS",
-            /// The operating system version (e.g. 13.0).
-            "os_version": self.osVersion,
-            /// The release version of the app (e.g. 1.2.33).
-            "app_version": self.appVersion,
-            /// The build number (e.g. 1234 or 1.2.33.12314).
-            "_build_number": self.buildNumber,
-        ]
-    }
+    /// The operating system version (e.g. 15.0).
+    let osVersion = UIDevice.current.systemVersion
 }

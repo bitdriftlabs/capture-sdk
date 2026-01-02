@@ -152,14 +152,35 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
   mut env: JNIEnv<'a>,
   _class: JClass<'_>,
 ) -> JObject<'a> {
+  fn convert_str<'a>(env: &mut JNIEnv<'a>, s: &str) -> JObject<'a> {
+    let value = env.new_string(s).unwrap();
+
+    let class = env
+      .find_class("io/bitdrift/capture/providers/FieldValue$StringField")
+      .unwrap();
+
+    let constructor_id = env
+      .get_method_id(&class, "<init>", "(Ljava/lang/String;)V")
+      .unwrap();
+
+    unsafe {
+      env.new_object_unchecked(
+        class,
+        constructor_id,
+        &[JValueWrapper::Object(value.into()).into()],
+      )
+    }
+    .unwrap()
+  }
   platform_test_helpers::with_expected_server(|h| {
     let log_request = h.blocking_next_log_upload().expect("expected log upload");
     let log = &log_request.logs()[0];
 
+    // TODO(snowp): Handle other types.
     let message: JObject<'_> = match log.typed_message() {
       StringOrBytes::String(s) => env.new_string(&s).unwrap().into(),
       StringOrBytes::SharedString(s) => env.new_string(&*s).unwrap().into(),
-      StringOrBytes::Bytes(_) => JObject::null(),
+      _ => JObject::null(),
     };
 
     // TODO(Augustyniak): Extract the logic below into a helper function.
@@ -170,46 +191,13 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
         let key = env.new_string(key).unwrap();
 
         let value = match value {
-          StringOrBytes::String(s) => {
-            let value = env.new_string(s).unwrap();
-
-            let class = env
-              .find_class("io/bitdrift/capture/providers/FieldValue$StringField")
-              .unwrap();
-
-            let constructor_id = env
-              .get_method_id(&class, "<init>", "(Ljava/lang/String;)V")
-              .unwrap();
-
-            unsafe {
-              env.new_object_unchecked(
-                class,
-                constructor_id,
-                &[JValueWrapper::Object(value.into()).into()],
-              )
-            }
-            .unwrap()
-          },
-          StringOrBytes::SharedString(s) => {
-            let value = env.new_string(&**s).unwrap();
-
-            let class = env
-              .find_class("io/bitdrift/capture/providers/FieldValue$StringField")
-              .unwrap();
-
-            let constructor_id = env
-              .get_method_id(&class, "<init>", "(Ljava/lang/String;)V")
-              .unwrap();
-
-            unsafe {
-              env.new_object_unchecked(
-                class,
-                constructor_id,
-                &[JValueWrapper::Object(value.into()).into()],
-              )
-            }
-            .unwrap()
-          },
+          StringOrBytes::String(s) => convert_str(&mut env, s),
+          StringOrBytes::SharedString(s) => convert_str(&mut env, s),
+          StringOrBytes::StaticString(s) => convert_str(&mut env, s),
+          StringOrBytes::Boolean(b) => convert_str(&mut env, &b.to_string()),
+          StringOrBytes::U64(i) => convert_str(&mut env, &i.to_string()),
+          StringOrBytes::I64(i) => convert_str(&mut env, &i.to_string()),
+          StringOrBytes::Double(f) => convert_str(&mut env, &f.to_string()),
           StringOrBytes::Bytes(b) => {
             let value = env.byte_array_from_slice(b).unwrap();
 
