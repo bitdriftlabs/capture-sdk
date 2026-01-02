@@ -10,6 +10,7 @@ package io.bitdrift.capture.providers
 import android.util.Log
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.IMetadataProvider
+import io.bitdrift.capture.InternalFieldsList
 
 internal class MetadataProvider(
     private val dateProvider: DateProvider,
@@ -20,30 +21,27 @@ internal class MetadataProvider(
 ) : IMetadataProvider {
     override fun timestamp(): Long = dateProvider.invoke().time
 
-    override fun ootbFields(): Array<Field> = fields(ootbFieldProviders)
+    override fun ootbFields(): InternalFieldsList = fields(ootbFieldProviders)
 
-    override fun customFields(): Array<Field> = fields(customFieldProviders)
+    override fun customFields(): InternalFieldsList = fields(customFieldProviders)
 
-    private fun fields(fieldProviders: List<FieldProvider>): Array<Field> {
-        if (fieldProviders.isEmpty()) return emptyArray()
-
-        val result = mutableListOf<Field>()
-        for (fieldProvider in fieldProviders) {
-            try {
-                val providedFields = fieldProvider()
-                for ((key, value) in providedFields) {
-                    result.add(Field(key, FieldValue.StringField(value)))
+    private fun fields(fieldProviders: List<FieldProvider>): InternalFieldsList =
+        buildList {
+            for (fieldProvider in fieldProviders) {
+                try {
+                    this.addAll(
+                        fieldProvider().map {
+                            Field(key = it.key, value = it.value.toFieldValue())
+                        },
+                    )
+                } catch (e: Throwable) {
+                    // We cannot log to our logger as we are in the middle of processing
+                    // a log and want to avoid an infinite cycle of logs.
+                    // The issue is not with our code but customer's provider.
+                    val message = "Field Provider \"${fieldProvider.javaClass.name}\" threw an exception"
+                    errorLog(message, e)
+                    errorHandler.handleError(message, e)
                 }
-            } catch (e: Throwable) {
-                // We cannot log to our logger as we are in the middle of processing
-                // a log and want to avoid an infinite cycle of logs.
-                // The issue is not with our code but customer's provider.
-                val message = "Field Provider \"${fieldProvider.javaClass.name}\" threw an exception"
-                errorLog(message, e)
-                errorHandler.handleError(message, e)
             }
         }
-        if (result.isEmpty()) return emptyArray()
-        return result.toTypedArray()
-    }
 }

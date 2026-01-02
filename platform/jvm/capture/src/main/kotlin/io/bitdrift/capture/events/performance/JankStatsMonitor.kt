@@ -37,9 +37,8 @@ import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.events.span.SpanField
-import io.bitdrift.capture.providers.ArrayFields
-import io.bitdrift.capture.providers.combineFields
-import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.threading.CaptureDispatchers
 import java.util.concurrent.TimeUnit
 
@@ -212,28 +211,23 @@ internal class JankStatsMonitor(
     @WorkerThread
     private fun FrameData.sendJankFrameData() {
         val jankFrameType = toJankType()
-
-        val coreJankFields =
-            fieldsOf(
-                SpanField.Key.DURATION to toDurationMillis().toString(),
-                DROPPED_FRAME_TYPE_KEY to jankFrameType.value,
-            )
-        val jankFrameStateFields = this@sendJankFrameData.states.toInternalFields()
-
         logger.log(
             LogType.UX,
             jankFrameType.logLevel,
-            combineFields(coreJankFields, jankFrameStateFields),
+            buildMap {
+                put(SpanField.Key.DURATION, toDurationMillis().toString().toFieldValue())
+                put(DROPPED_FRAME_TYPE_KEY, jankFrameType.fieldValue)
+                putAll(this@sendJankFrameData.states.toFields())
+            },
         ) { DROPPED_FRAME_MESSAGE_ID }
     }
 
     @WorkerThread
-    private fun List<StateInfo>.toInternalFields(): ArrayFields {
+    private fun List<StateInfo>.toFields(): Map<String, FieldValue> {
         // Convert the list of StateInfo to a map of fields using StateInfo's key and value properties
-        if (isEmpty()) return ArrayFields.EMPTY
-        val keys = Array(size) { i -> this[i].key }
-        val values = Array(size) { i -> this[i].value }
-        return ArrayFields(keys, values)
+        return this.associate { stateInfo ->
+            stateInfo.key to stateInfo.value.toFieldValue()
+        }
     }
 
     private fun FrameData.toJankType(): JankFrameType {
@@ -264,22 +258,22 @@ internal class JankStatsMonitor(
     @OpenForTesting
     internal enum class JankFrameType(
         val logLevel: LogLevel,
-        val value: String,
+        val fieldValue: FieldValue,
     ) {
         /**
          * Has a duration >= 16 ms and below [RuntimeConfig.FROZEN_FRAME_THRESHOLD_MS]
          */
-        SLOW(LogLevel.WARNING, "Slow"),
+        SLOW(LogLevel.WARNING, "Slow".toFieldValue()),
 
         /**
          * With a duration between [RuntimeConfig.FROZEN_FRAME_THRESHOLD_MS] and below [RuntimeConfig.ANR_FRAME_THRESHOLD_MS]
          */
-        FROZEN(LogLevel.ERROR, "Frozen"),
+        FROZEN(LogLevel.ERROR, "Frozen".toFieldValue()),
 
         /**
          * With a duration above [RuntimeConfig.ANR_FRAME_THRESHOLD_MS]
          */
-        ANR(LogLevel.ERROR, "ANR"),
+        ANR(LogLevel.ERROR, "ANR".toFieldValue()),
     }
 
     private companion object {

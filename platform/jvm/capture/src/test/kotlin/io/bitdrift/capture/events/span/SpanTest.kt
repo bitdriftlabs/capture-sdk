@@ -14,13 +14,13 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.InternalFieldsMap
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.IClock
-import io.bitdrift.capture.providers.ArrayFields
-import io.bitdrift.capture.utils.toStringMap
+import io.bitdrift.capture.providers.toFieldValue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 
@@ -32,45 +32,43 @@ class SpanTest {
     fun logs() {
         val span = Span(logger, "name", LogLevel.INFO, clock = clock)
 
-        val arrayFields = argumentCaptor<ArrayFields>()
+        val fields = argumentCaptor<InternalFieldsMap>()
         span.end(SpanResult.SUCCESS)
 
         verify(logger, times(2)).log(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
-            arrayFields.capture(),
-            eq(ArrayFields.EMPTY),
+            fields.capture(),
+            eq(null),
             eq(null),
             eq(false),
             any(),
         )
 
         // start
-        val startFields = arrayFields.firstValue.toStringMap()
-        assertThat(startFields).containsKey("_span_id")
-        assertThat(startFields).containsEntry("_span_name", "name")
-        assertThat(startFields).containsEntry("_span_type", "start")
+        assertThat(fields.firstValue).containsKey("_span_id")
+        assertThat(fields.firstValue).containsEntry("_span_name", "name".toFieldValue())
+        assertThat(fields.firstValue).containsEntry("_span_type", "start".toFieldValue())
         // end
-        val endFields = arrayFields.secondValue.toStringMap()
-        assertThat(endFields).containsKey("_span_id")
-        assertThat(endFields).containsEntry("_span_name", "name")
-        assertThat(endFields).containsEntry("_span_type", "end")
-        assertThat(endFields).containsKey("_duration_ms")
-        assertThat(endFields).containsEntry("_result", "success")
+        assertThat(fields.secondValue).containsKey("_span_id")
+        assertThat(fields.secondValue).containsEntry("_span_name", "name".toFieldValue())
+        assertThat(fields.secondValue).containsEntry("_span_type", "end".toFieldValue())
+        assertThat(fields.secondValue).containsKey("_duration_ms")
+        assertThat(fields.secondValue).containsEntry("_result", "success".toFieldValue())
     }
 
     @Test
     fun spansWithStartAndEnd() {
         val span = Span(logger, "name", LogLevel.INFO, clock = clock, customStartTimeMs = 1L)
 
-        val arrayFields = argumentCaptor<ArrayFields>()
+        val fields = argumentCaptor<InternalFieldsMap>()
         span.end(SpanResult.SUCCESS, endTimeMs = 1000L)
 
         verify(logger).log(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
-            arrayFields.capture(),
-            eq(ArrayFields.EMPTY),
+            fields.capture(),
+            eq(null),
             eq(LogAttributesOverrides.OccurredAt(1)),
             eq(false),
             any(),
@@ -78,37 +76,35 @@ class SpanTest {
         verify(logger).log(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
-            arrayFields.capture(),
-            eq(ArrayFields.EMPTY),
+            fields.capture(),
+            eq(null),
             eq(LogAttributesOverrides.OccurredAt(1000)),
             eq(false),
             any(),
         )
 
         // start
-        val startFields = arrayFields.firstValue.toStringMap()
-        assertThat(startFields).containsKey("_span_id")
-        assertThat(startFields).containsEntry("_span_name", "name")
-        assertThat(startFields).containsEntry("_span_type", "start")
+        assertThat(fields.firstValue).containsKey("_span_id")
+        assertThat(fields.firstValue).containsEntry("_span_name", "name".toFieldValue())
+        assertThat(fields.firstValue).containsEntry("_span_type", "start".toFieldValue())
         // end
-        val endFields = arrayFields.secondValue.toStringMap()
-        assertThat(endFields).containsKey("_span_id")
-        assertThat(endFields).containsEntry("_duration_ms", "999")
+        assertThat(fields.secondValue).containsKey("_span_id")
+        assertThat(fields.secondValue).containsEntry("_duration_ms", "999".toFieldValue())
     }
 
     @Test
     fun spansWithStartAndNoEnd() {
         whenever(clock.elapsedRealtime()).thenReturn(0L)
         val spanWithNoEnd = Span(logger, "name", LogLevel.INFO, clock = clock, customStartTimeMs = 1L)
-        val arrayFieldsWithNoEnd = argumentCaptor<ArrayFields>()
+        val fieldsWithNoEnd = argumentCaptor<InternalFieldsMap>()
         whenever(clock.elapsedRealtime()).thenReturn(1337L)
         spanWithNoEnd.end(SpanResult.SUCCESS)
 
         verify(logger).log(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
-            arrayFieldsWithNoEnd.capture(),
-            eq(ArrayFields.EMPTY),
+            fieldsWithNoEnd.capture(),
+            eq(null),
             eq(null),
             eq(false),
             any(),
@@ -117,31 +113,30 @@ class SpanTest {
         verify(logger).log(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
-            arrayFieldsWithNoEnd.capture(),
-            eq(ArrayFields.EMPTY),
+            fieldsWithNoEnd.capture(),
+            eq(null),
             eq(null),
             eq(false),
             any(),
         )
 
-        val endFields = arrayFieldsWithNoEnd.secondValue.toStringMap()
-        assertThat(endFields).containsKey("_span_id")
-        assertThat(endFields).containsEntry("_duration_ms", "1337")
+        assertThat(fieldsWithNoEnd.secondValue).containsKey("_span_id")
+        assertThat(fieldsWithNoEnd.secondValue).containsEntry("_duration_ms", "1337".toFieldValue())
     }
 
     @Test
     fun spansWithNoStartAndEnd() {
         whenever(clock.elapsedRealtime()).thenReturn(1337L)
         val spanWithNoStart = Span(logger, "name", LogLevel.INFO, clock = clock)
-        val arrayFieldsWithNoStart = argumentCaptor<ArrayFields>()
+        val fieldsWithNoStart = argumentCaptor<InternalFieldsMap>()
         whenever(clock.elapsedRealtime()).thenReturn(1338L)
         spanWithNoStart.end(SpanResult.SUCCESS, endTimeMs = 1337)
 
         verify(logger).log(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
-            arrayFieldsWithNoStart.capture(),
-            eq(ArrayFields.EMPTY),
+            fieldsWithNoStart.capture(),
+            eq(null),
             eq(null),
             eq(false),
             any(),
@@ -150,15 +145,14 @@ class SpanTest {
         verify(logger).log(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
-            arrayFieldsWithNoStart.capture(),
-            eq(ArrayFields.EMPTY),
+            fieldsWithNoStart.capture(),
+            eq(null),
             eq(LogAttributesOverrides.OccurredAt(1337)),
             eq(false),
             any(),
         )
 
-        val endFields = arrayFieldsWithNoStart.secondValue.toStringMap()
-        assertThat(endFields).containsKey("_span_id")
-        assertThat(endFields).containsEntry("_duration_ms", "1")
+        assertThat(fieldsWithNoStart.secondValue).containsKey("_span_id")
+        assertThat(fieldsWithNoStart.secondValue).containsEntry("_duration_ms", "1".toFieldValue())
     }
 }

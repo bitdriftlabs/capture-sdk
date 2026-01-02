@@ -24,7 +24,7 @@ import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.Mocks
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.providers.ArrayFields
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.junit.Before
@@ -66,6 +66,8 @@ class AppLifecycleListenerLoggerTest {
     @Test
     fun testAppStartInfoFieldsAreSkippedIfNotCreate() {
         // ARRANGE
+        val expectedFields = emptyMap<String, FieldValue>()
+
         whenever(versionChecker.isAtLeast(35)).thenReturn(true)
 
         // ACT
@@ -75,8 +77,8 @@ class AppLifecycleListenerLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.INFO),
-            eq(ArrayFields.EMPTY),
-            eq(ArrayFields.EMPTY),
+            eq(expectedFields),
+            eq(null),
             eq(null),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppStart" },
@@ -86,6 +88,8 @@ class AppLifecycleListenerLoggerTest {
     @Test
     fun testAppStartInfoFieldsAreSkippedIfError() {
         // ARRANGE
+        val expectedFields = emptyMap<String, FieldValue>()
+
         whenever(versionChecker.isAtLeast(35)).thenReturn(true)
         val error = RuntimeException("test exception")
         whenever(activityManager.getHistoricalProcessStartReasons(anyOrNull())).thenThrow(error)
@@ -97,8 +101,8 @@ class AppLifecycleListenerLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.INFO),
-            eq(ArrayFields.EMPTY),
-            eq(ArrayFields.EMPTY),
+            eq(expectedFields),
+            eq(null),
             eq(null),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppCreate" },
@@ -145,12 +149,8 @@ class AppLifecycleListenerLoggerTest {
         verify(logger).log(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.INFO),
-            argThat<ArrayFields> { fields ->
-                val actualKeys = fields.keys.toSet()
-                val expectedKeys = expectedFields.keys.toSet()
-                actualKeys.containsAll(expectedKeys)
-            },
-            eq(ArrayFields.EMPTY),
+            eq(expectedFields),
+            eq(null),
             eq(null),
             eq(false),
             argThat { i: () -> String -> i.invoke() == "AppCreate" },

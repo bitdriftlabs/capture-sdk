@@ -10,7 +10,7 @@ package io.bitdrift.capture
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
-import io.bitdrift.capture.providers.Field
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
 import io.bitdrift.capture.reports.processor.IStreamingReportProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
@@ -169,12 +169,12 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param logType the type of the log to be logged.
      * @param logLevel the log level of the log.
      * @param log the log message of the log.
-     * @param fieldKeys array of field keys (parallel to fieldValues).
-     * @param fieldValues array of field values (parallel to fieldKeys).
-     * @param matchingFieldKeys array of matching field keys.
-     * @param matchingFieldValues array of matching field values.
+     * @param fields fields map of arbitrary key-value fields to include with the log.
+     * @param matchingFields fields map of arbitrary key-value fields that can be read when processing
+     *        a given log but are not a part of the log itself.
      * @param usePreviousProcessSessionId if set to true, this log will be emitted with the session ID
-     *        corresponding to the last session ID during the previous process run.
+     *        corresponding to the last session ID during the previous process run. This is helpful for reporting
+     *        crashes on next app launch.
      * @param overrideOccurredAtUnixMilliseconds used to override the timestamp of the log.
      * @param blocking if true, the call blocks until the log has been processed.
      */
@@ -183,10 +183,8 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         logType: Int,
         logLevel: Int,
         log: String,
-        fieldKeys: Array<String>,
-        fieldValues: Array<String>,
-        matchingFieldKeys: Array<String>,
-        matchingFieldValues: Array<String>,
+        fields: Map<String, FieldValue>,
+        matchingFields: Map<String, FieldValue>,
         usePreviousProcessSessionId: Boolean,
         overrideOccurredAtUnixMilliseconds: Long,
         blocking: Boolean,
@@ -207,7 +205,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      */
     external fun writeSessionReplayScreenLog(
         loggerId: Long,
-        fields: Array<Field>,
+        fields: Map<String, FieldValue>,
         duration: Double,
     )
 
@@ -220,7 +218,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      */
     external fun writeSessionReplayScreenshotLog(
         loggerId: Long,
-        fields: Array<Field>,
+        fields: Map<String, FieldValue>,
         duration: Double,
     )
 
@@ -233,7 +231,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      */
     external fun writeResourceUtilizationLog(
         loggerId: Long,
-        fields: Array<Field>,
+        fields: Map<String, FieldValue>,
         duration: Double,
     )
 
@@ -246,7 +244,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      */
     external fun writeSDKStartLog(
         loggerId: Long,
-        fields: Array<Field>,
+        fields: Map<String, FieldValue>,
         duration: Double,
     )
 

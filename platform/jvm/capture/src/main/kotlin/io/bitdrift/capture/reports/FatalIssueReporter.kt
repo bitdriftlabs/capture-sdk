@@ -16,6 +16,8 @@ import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.providers.DateProvider
+import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.reports.FatalIssueReporterState.NotInitialized
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
@@ -150,11 +152,11 @@ internal class FatalIssueReporter(
         }
     }
 
-    override fun getLogStatusFieldsMap(): Map<String, String> =
+    override fun getLogStatusFieldsMap(): Map<String, FieldValue> =
         buildMap {
-            put(FATAL_ISSUE_REPORTING_STATE_KEY, fatalIssueReporterState.readableType)
-            initializationDuration?.let {
-                put(FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY, it.toDouble(DurationUnit.MILLISECONDS).toString())
+            put(FATAL_ISSUE_REPORTING_STATE_KEY, fatalIssueReporterState.readableType.toFieldValue())
+            initializationDuration?.toFieldValue(DurationUnit.MILLISECONDS)?.let {
+                put(FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY, it)
             }
         }
 
@@ -198,9 +200,9 @@ internal class FatalIssueReporter(
         private const val FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY = "_fatal_issue_reporting_duration_ms"
         private const val FATAL_ISSUE_REPORTING_STATE_KEY = "_fatal_issue_reporting_state"
 
-        fun getDisabledStatusFieldsMap(): Map<String, String> =
+        fun getDisabledStatusFieldsMap(): Map<String, FieldValue> =
             buildMap {
-                put(FATAL_ISSUE_REPORTING_STATE_KEY, FatalIssueReporterState.ClientDisabled.readableType)
+                put(FATAL_ISSUE_REPORTING_STATE_KEY, FatalIssueReporterState.ClientDisabled.readableType.toFieldValue())
             }
     }
 }

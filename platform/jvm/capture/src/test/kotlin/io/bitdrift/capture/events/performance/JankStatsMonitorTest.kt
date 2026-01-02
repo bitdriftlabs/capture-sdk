@@ -31,7 +31,7 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.JankStatsMonitor.JankFrameType
-import io.bitdrift.capture.providers.ArrayFields
+import io.bitdrift.capture.providers.toFieldValue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -306,11 +306,13 @@ class JankStatsMonitorTest {
         verify(logger).log(
             any(),
             any(),
-            argThat<ArrayFields> { fields ->
-                fields["_duration_ms"] == jankDurationInMilli.toString() &&
-                    fields["_frame_issue_type"] == JankFrameType.SLOW.value.toString() &&
-                    fields["_screen_name"] == screenName
-            },
+            eq(
+                mapOf(
+                    "_duration_ms" to jankDurationInMilli.toString().toFieldValue(),
+                    "_frame_issue_type" to JankFrameType.SLOW.fieldValue,
+                    "_screen_name" to screenName.toFieldValue(),
+                ),
+            ),
             anyOrNull(),
             anyOrNull(),
             any(),
@@ -340,11 +342,13 @@ class JankStatsMonitorTest {
         verify(logger).log(
             eq(LogType.UX),
             eq(expectedFrameType.logLevel),
-            argThat<ArrayFields> { fields ->
-                fields["_duration_ms"] == jankDurationInMilli.toString() &&
-                    fields["_frame_issue_type"] == expectedFrameType.value.toString()
-            },
-            eq(ArrayFields.EMPTY),
+            eq(
+                mapOf(
+                    "_duration_ms" to jankDurationInMilli.toString().toFieldValue(),
+                    "_frame_issue_type" to expectedFrameType.fieldValue,
+                ),
+            ),
+            eq(null),
             eq(null),
             eq(false),
             argThat { message: () -> String -> message.invoke() == "DroppedFrame" },

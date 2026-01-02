@@ -8,33 +8,24 @@
 package io.bitdrift.capture.fakes
 
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
-import io.bitdrift.capture.providers.ArrayFields
-import io.bitdrift.capture.providers.fieldOf
-import io.bitdrift.capture.providers.fieldsOf
 
+/**
+ * Fake [IMemoryMetricsProvider] with default memory attribute values
+ */
 class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
     private var exception: Exception? = null
     private var isMemoryLow: Boolean = false
 
-    override fun getMemoryAttributes(): ArrayFields {
+    override fun getMemoryAttributes(): Map<String, String> {
         exception?.let {
             throw it
         }
-        return fieldsOf(
-            "_jvm_used_kb" to "50",
-            "_jvm_total_kb" to "100",
-            "_jvm_max_kb" to "100",
-            "_jvm_used_percent" to "50",
-            "_native_used_kb" to "200",
-            "_native_total_kb" to "500",
-            "_memory_class" to "1",
-            "_is_memory_low" to if (isMemoryLow) "1" else "0",
-        )
+        return DEFAULT_MEMORY_ATTRIBUTES_MAP
     }
 
     override fun isMemoryLow() = isMemoryLow
 
-    override fun getMemoryClass(): ArrayFields = fieldOf("_memory_class", "1")
+    override fun getMemoryClass(): Map<String, String> = mapOf("_memory_class" to "1")
 
     fun clear() {
         exception = null
@@ -49,7 +40,7 @@ class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
     }
 
     companion object {
-        val DEFAULT_MEMORY_ATTRIBUTES_MAP_LOW =
+        val DEFAULT_MEMORY_ATTRIBUTES_MAP =
             mapOf(
                 "_jvm_used_kb" to "50",
                 "_jvm_total_kb" to "100",
@@ -58,19 +49,6 @@ class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
                 "_native_used_kb" to "200",
                 "_native_total_kb" to "500",
                 "_memory_class" to "1",
-                "_is_memory_low" to "1",
-            )
-
-        val DEFAULT_MEMORY_ATTRIBUTES =
-            fieldsOf(
-                "_jvm_used_kb" to "50",
-                "_jvm_total_kb" to "100",
-                "_jvm_max_kb" to "100",
-                "_jvm_used_percent" to "50",
-                "_native_used_kb" to "200",
-                "_native_total_kb" to "500",
-                "_memory_class" to "1",
-                "_is_memory_low" to "0",
             )
     }
 }

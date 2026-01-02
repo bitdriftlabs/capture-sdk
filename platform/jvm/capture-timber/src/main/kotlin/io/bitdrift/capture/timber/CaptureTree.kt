@@ -11,10 +11,6 @@ import android.util.Log
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.LogLevel
-import io.bitdrift.capture.providers.ArrayFields
-import io.bitdrift.capture.providers.combineFields
-import io.bitdrift.capture.providers.fieldOf
-import io.bitdrift.capture.providers.fieldsOfOptional
 import timber.log.Timber
 
 /**
@@ -49,9 +45,9 @@ open class CaptureTree internal constructor(
             else -> LogLevel.DEBUG // default level
         }
 
-    private fun extractFields(tag: String?): ArrayFields =
-        combineFields(
-            fieldOf("source", "Timber"),
-            fieldsOfOptional("tag" to tag),
-        )
+    private fun extractFields(tag: String?): Map<String, String> =
+        buildMap {
+            put("source", "Timber")
+            tag?.let { put("tag", it) }
+        }
 }

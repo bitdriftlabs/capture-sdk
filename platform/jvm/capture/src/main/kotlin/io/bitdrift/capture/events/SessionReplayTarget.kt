@@ -17,12 +17,8 @@ import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.providers.Field
-import io.bitdrift.capture.providers.combineJniFields
-import io.bitdrift.capture.providers.jniFieldsOf
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.providers.toFieldsOrEmpty
 import io.bitdrift.capture.replay.IReplayLogger
 import io.bitdrift.capture.replay.IScreenshotLogger
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
@@ -75,10 +71,13 @@ internal class SessionReplayTarget(
         screen: FilteredCapture,
         metrics: ReplayCaptureMetrics,
     ) {
-        logger.logSessionReplayScreen(
-            buildScreenCapturedFields(encodedScreen, metrics),
-            metrics.parseDuration,
-        )
+        val fields =
+            buildMap {
+                put("screen", encodedScreen.toFieldValue())
+                putAll(metrics.toMap().toFields())
+            }
+
+        logger.logSessionReplayScreen(fields, metrics.parseDuration)
     }
 
     override fun captureScreenshot() {
@@ -89,24 +88,26 @@ internal class SessionReplayTarget(
         compressedScreen: ByteArray,
         metrics: ScreenshotCaptureMetrics,
     ) {
-        logger.logSessionReplayScreenshot(
-            buildScreenshotCaptureFields(compressedScreen, metrics),
-            metrics.screenshotTimeMs.toDuration(DurationUnit.MILLISECONDS),
-        )
+        val fields =
+            buildMap {
+                put("screen_px", compressedScreen.toFieldValue())
+                putAll(metrics.toMap().toFields())
+            }
+        logger.logSessionReplayScreenshot(fields, metrics.screenshotTimeMs.toDuration(DurationUnit.MILLISECONDS))
     }
 
     override fun logVerboseInternal(
         message: String,
         fields: Map<String, String>?,
     ) {
-        logger.log(LogType.INTERNALSDK, LogLevel.TRACE, fields.toFieldsOrEmpty()) { message }
+        logger.log(LogType.INTERNALSDK, LogLevel.TRACE, fields.toFields()) { message }
     }
 
     override fun logDebugInternal(
         message: String,
         fields: Map<String, String>?,
     ) {
-        logger.log(LogType.INTERNALSDK, LogLevel.DEBUG, fields.toFieldsOrEmpty()) { message }
+        logger.log(LogType.INTERNALSDK, LogLevel.DEBUG, fields.toFields()) { message }
     }
 
     override fun logErrorInternal(
@@ -116,22 +117,4 @@ internal class SessionReplayTarget(
     ) {
         logger.log(LogType.INTERNALSDK, LogLevel.ERROR, logger.extractFields(fields, e)) { message }
     }
-
-    private fun buildScreenCapturedFields(
-        encodedScreen: ByteArray,
-        metrics: ReplayCaptureMetrics,
-    ): Array<Field> =
-        combineJniFields(
-            metrics.toArray().toFields(),
-            jniFieldsOf("screen" to encodedScreen.toFieldValue()),
-        )
-
-    private fun buildScreenshotCaptureFields(
-        compressedScreen: ByteArray,
-        metrics: ScreenshotCaptureMetrics,
-    ): Array<Field> =
-        combineJniFields(
-            metrics.toArray().toFields(),
-            jniFieldsOf("screen" to compressedScreen.toFieldValue()),
-        )
 }

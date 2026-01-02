@@ -37,16 +37,14 @@ import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.network.okhttp.OkHttpNetwork
-import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
-import io.bitdrift.capture.providers.combineFields
-import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
-import io.bitdrift.capture.providers.toLegacyJniFields
 import io.bitdrift.capture.reports.FatalIssueReporter
 import io.bitdrift.capture.reports.IFatalIssueReporter
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
@@ -62,6 +60,8 @@ import kotlin.time.Duration
 import kotlin.time.DurationUnit
 
 typealias LoggerId = Long
+internal typealias InternalFieldsList = List<Field>
+internal typealias InternalFieldsMap = Map<String, FieldValue>
 
 internal class LoggerImpl(
     apiKey: String,
@@ -337,14 +337,14 @@ internal class LoggerImpl(
         fields: Map<String, String>?,
         startTimeMs: Long?,
         parentSpanId: UUID?,
-    ): Span = Span(this, name, level, fields?.toFields(), startTimeMs, parentSpanId)
+    ): Span = Span(this, name, level, fields, startTimeMs, parentSpanId)
 
     override fun log(httpRequestInfo: HttpRequestInfo) {
         log(
             LogType.SPAN,
             LogLevel.DEBUG,
-            httpRequestInfo.arrayFields,
-            httpRequestInfo.matchingArrayFields,
+            httpRequestInfo.fields,
+            httpRequestInfo.matchingFields,
         ) { httpRequestInfo.name }
     }
 
@@ -352,8 +352,8 @@ internal class LoggerImpl(
         log(
             LogType.SPAN,
             LogLevel.DEBUG,
-            httpResponseInfo.arrayFields,
-            httpResponseInfo.matchingArrayFields,
+            httpResponseInfo.fields,
+            httpResponseInfo.matchingFields,
         ) { httpResponseInfo.name }
     }
 
@@ -367,24 +367,7 @@ internal class LoggerImpl(
             LogType.NORMAL,
             level,
             extractFields(fields, throwable),
-            ArrayFields.EMPTY,
             null,
-            false,
-            message,
-        )
-    }
-
-    override fun log(
-        level: LogLevel,
-        arrayFields: ArrayFields,
-        throwable: Throwable?,
-        message: () -> String,
-    ) {
-        log(
-            LogType.NORMAL,
-            level,
-            arrayFields,
-            ArrayFields.EMPTY,
             null,
             false,
             message,
@@ -426,8 +409,8 @@ internal class LoggerImpl(
     internal fun log(
         type: LogType,
         level: LogLevel,
-        arrayFields: ArrayFields = ArrayFields.EMPTY,
-        matchingArrayFields: ArrayFields = ArrayFields.EMPTY,
+        fields: InternalFieldsMap? = null,
+        matchingFields: InternalFieldsMap? = null,
         attributesOverrides: LogAttributesOverrides? = null,
         blocking: Boolean = false,
         message: () -> String,
@@ -454,10 +437,8 @@ internal class LoggerImpl(
                 type.value,
                 level.value,
                 message(),
-                arrayFields.keys,
-                arrayFields.values,
-                matchingArrayFields.keys,
-                matchingArrayFields.values,
+                fields ?: mapOf(),
+                matchingFields ?: mapOf(),
                 previousRunSessionId,
                 occurredAtTimestampMs,
                 blocking,
@@ -468,7 +449,7 @@ internal class LoggerImpl(
     }
 
     internal fun logSessionReplayScreen(
-        fields: Array<Field>,
+        fields: Map<String, FieldValue>,
         duration: Duration,
     ) {
         CaptureJniLibrary.writeSessionReplayScreenLog(
@@ -479,7 +460,7 @@ internal class LoggerImpl(
     }
 
     internal fun logSessionReplayScreenshot(
-        fields: Array<Field>,
+        fields: Map<String, FieldValue>,
         duration: Duration,
     ) {
         CaptureJniLibrary.writeSessionReplayScreenshotLog(
@@ -490,12 +471,12 @@ internal class LoggerImpl(
     }
 
     internal fun logResourceUtilization(
-        arrayFields: ArrayFields,
+        fields: Map<String, String>,
         duration: Duration,
     ) {
         CaptureJniLibrary.writeResourceUtilizationLog(
             this.loggerId,
-            arrayFields.toLegacyJniFields(),
+            fields.toFields(),
             duration.toDouble(DurationUnit.SECONDS),
         )
     }
@@ -517,39 +498,33 @@ internal class LoggerImpl(
     internal fun extractFields(
         fields: Map<String, String>?,
         throwable: Throwable?,
-    ): ArrayFields {
-        val hasThrowable = throwable != null
-        val fieldsSize = fields?.size ?: 0
-
-        if (fieldsSize == 0 && !hasThrowable) {
-            return ArrayFields.EMPTY
+    ): InternalFieldsMap {
+        // Maintainer note: keep initialCapacity in sync with the code adding fields to the map.
+        val initialCapacity = (fields?.size ?: 0) + (throwable?.let { 2 } ?: 0)
+        if (initialCapacity == 0) {
+            // If throwable is null AND fields is either null or empty, no need to create a HashMap.
+            return emptyMap()
         }
-
-        val throwableFieldCount = if (hasThrowable) 2 else 0
-        val totalSize = fieldsSize + throwableFieldCount
-
-        val keys = ArrayList<String>(totalSize)
-        val values = ArrayList<String>(totalSize)
-
-        fields?.forEach { (key, value) ->
-            @Suppress("SENSELESS_COMPARISON")
-            if (key != null && value != null) {
-                keys.add(key)
-                values.add(value)
+        // Create a hashmap of the exact target size and with the right final value type, instead
+        // of creating a temporary map and then converting it with Map.toFields()
+        val extractedFields = HashMap<String, FieldValue>(initialCapacity)
+        fields?.let {
+            for ((key, value) in it) {
+                // Java interop: clients could have passed in null keys or values.
+                @Suppress("SENSELESS_COMPARISON")
+                if (key != null && value != null) {
+                    extractedFields[key] = value.toFieldValue()
+                }
             }
         }
-
         throwable?.let {
-            keys.add("_error")
-            values.add(it.javaClass.name.orEmpty())
-            keys.add("_error_details")
-            values.add(it.message.orEmpty())
+            extractedFields["_error"] =
+                it.javaClass.name
+                    .orEmpty()
+                    .toFieldValue()
+            extractedFields["_error_details"] = it.message.orEmpty().toFieldValue()
         }
-
-        return ArrayFields(
-            keys.toTypedArray(),
-            values.toTypedArray(),
-        )
+        return extractedFields
     }
 
     internal fun flush(blocking: Boolean) {
@@ -579,27 +554,28 @@ internal class LoggerImpl(
             val installationSource =
                 clientAttributes
                     .getInstallationSource(appContext, errorHandler)
+                    .toFieldValue()
             val isSessionReplayEnabled = sessionReplayTarget is SessionReplayTarget
-            val baseFields =
-                fieldsOf(
-                    "_app_installation_source" to installationSource,
-                    "_capture_start_thread" to captureStartThread,
-                    "_native_load_duration_ms" to
-                        sdkConfiguredDuration.nativeLoadDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
-                    "_logger_build_duration_ms" to
-                        sdkConfiguredDuration.loggerImplBuildDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
-                    "_session_replay_enabled" to isSessionReplayEnabled.toString(),
-                )
-            val fatalIssueFields =
-                (
-                    fatalIssueReporter?.getLogStatusFieldsMap()
-                        ?: FatalIssueReporter.getDisabledStatusFieldsMap()
-                ).toFields()
-            val sdkStartFields = combineFields(baseFields, fatalIssueFields)
+            val sdkStartFields =
+                buildMap {
+                    put("_app_installation_source", installationSource)
+                    put("_capture_start_thread", captureStartThread.toFieldValue())
+                    put(
+                        "_native_load_duration_ms",
+                        sdkConfiguredDuration.nativeLoadDuration.toFieldValue(DurationUnit.MILLISECONDS),
+                    )
+                    put("_logger_build_duration_ms", sdkConfiguredDuration.loggerImplBuildDuration.toFieldValue(DurationUnit.MILLISECONDS))
+                    put("_session_replay_enabled", isSessionReplayEnabled.toFieldValue())
+                    fatalIssueReporter?.let {
+                        putAll(it.getLogStatusFieldsMap())
+                    } ?: run {
+                        putAll(FatalIssueReporter.getDisabledStatusFieldsMap())
+                    }
+                }
 
             CaptureJniLibrary.writeSDKStartLog(
                 this.loggerId,
-                sdkStartFields.toLegacyJniFields(),
+                sdkStartFields,
                 sdkConfiguredDuration.wholeStartDuration.toDouble(DurationUnit.SECONDS),
             )
         }

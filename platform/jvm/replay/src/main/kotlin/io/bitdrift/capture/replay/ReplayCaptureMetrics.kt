@@ -32,10 +32,10 @@ data class ReplayCaptureMetrics(
         get() = parseDuration.inWholeMilliseconds + encodingTimeMs
 
     /**
-     * Convert the metrics to an Array
+     * Convert the metrics to a map
      */
-    fun toArray(): Array<Pair<String, String>> =
-        arrayOf(
+    fun toMap(): Map<String, String> =
+        mapOf(
             "view_count" to viewCount.toString(),
             "compose_view_count" to composeViewCount.toString(),
             "view_count_after_filter" to viewCountAfterFilter.toString(),

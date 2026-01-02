@@ -19,6 +19,6 @@ class FieldProviderTest {
 
         val convertedFields = mapWithNullValue.toFields()
 
-        assertThat(convertedFields.isEmpty()).isTrue()
+        assertThat(convertedFields).isEmpty()
     }
 }

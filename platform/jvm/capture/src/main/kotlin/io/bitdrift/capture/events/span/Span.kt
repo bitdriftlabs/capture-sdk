@@ -13,9 +13,6 @@ import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
-import io.bitdrift.capture.providers.ArrayFields
-import io.bitdrift.capture.providers.combineFields
-import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.toFields
 import java.util.UUID
 
@@ -46,7 +43,7 @@ class Span internal constructor(
      */
     val name: String,
     private val level: LogLevel,
-    arrayFields: ArrayFields? = null,
+    fields: Map<String, String>? = null,
     private val customStartTimeMs: Long? = null,
     /**
      * An optional ID of the parent span, used to build span hierarchies. A span without a
@@ -64,13 +61,24 @@ class Span internal constructor(
     // and continues to tick even when the CPU is in power saving modes,
     // so is the recommend basis for general purpose interval timing.
     private val startTimeMs: Long = clock.elapsedRealtime()
-    private val startArrayFields: ArrayFields = buildStartFields(arrayFields)
+    private val startFields: Map<String, String> =
+        buildMap {
+            fields?.let {
+                putAll(it)
+            }
+            put(SpanField.Key.ID, id.toString())
+            put(SpanField.Key.NAME, name)
+            put(SpanField.Key.TYPE, SpanField.Value.TYPE_START)
+            parentSpanId?.let {
+                put(SpanField.Key.PARENT, it.toString())
+            }
+        }
 
     init {
         logger?.log(
             LogType.SPAN,
             level,
-            startArrayFields,
+            startFields.toFields(),
             attributesOverrides = customStartTimeMs?.let { LogAttributesOverrides.OccurredAt(it) },
         ) { "" }
     }
@@ -102,46 +110,24 @@ class Span internal constructor(
                     clock.elapsedRealtime() - startTimeMs
                 }
 
-            val endCoreFields =
-                fieldsOf(
-                    SpanField.Key.TYPE to SpanField.Value.TYPE_END,
-                    SpanField.Key.DURATION to durationMs.toString(),
-                    SpanField.Key.RESULT to result.toString().lowercase(),
-                )
-
             val endFields =
-                if (fields != null) {
-                    combineFields(startArrayFields, fields.toFields(), endCoreFields)
-                } else {
-                    combineFields(startArrayFields, endCoreFields)
+                buildMap {
+                    putAll(startFields)
+                    fields?.let {
+                        putAll(it)
+                    }
+                    put(SpanField.Key.TYPE, SpanField.Value.TYPE_END)
+                    put(SpanField.Key.DURATION, durationMs.toString())
+                    put(SpanField.Key.RESULT, result.toString().lowercase())
                 }
 
             this.log(
                 LogType.SPAN,
                 level,
-                endFields,
+                endFields.toFields(),
                 attributesOverrides = endTimeMs?.let { LogAttributesOverrides.OccurredAt(it) },
             ) { "" }
         }
         logger = null
-    }
-
-    private fun buildStartFields(arrayFields: ArrayFields?): ArrayFields {
-        val coreFields =
-            if (parentSpanId != null) {
-                fieldsOf(
-                    SpanField.Key.ID to id.toString(),
-                    SpanField.Key.NAME to name,
-                    SpanField.Key.TYPE to SpanField.Value.TYPE_START,
-                    SpanField.Key.PARENT to parentSpanId.toString(),
-                )
-            } else {
-                fieldsOf(
-                    SpanField.Key.ID to id.toString(),
-                    SpanField.Key.NAME to name,
-                    SpanField.Key.TYPE to SpanField.Value.TYPE_START,
-                )
-            }
-        return if (arrayFields != null) combineFields(arrayFields, coreFields) else coreFields
     }
 }
