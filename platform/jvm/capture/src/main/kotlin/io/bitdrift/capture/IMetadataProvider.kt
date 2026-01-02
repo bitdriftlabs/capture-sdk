@@ -7,6 +7,8 @@
 
 package io.bitdrift.capture
 
+import io.bitdrift.capture.providers.Field
+
 /**
  * Used to allow the logger to call back up into the platform layer to determine the current
  * group and timestamp.
@@ -21,11 +23,11 @@ internal interface IMetadataProvider {
      * Returns out of the box fields to be included with emitted logs. Out of the box fields
      * are fields that come from the SDK itself.
      */
-    fun ootbFields(): InternalFieldsList
+    fun ootbFields(): Array<Field>
 
     /**
      * Returns custom fields to be included with emitted logs. Custom fields are fields
      * that come from the SDK customers.
      */
-    fun customFields(): InternalFieldsList
+    fun customFields(): Array<Field>
 }
