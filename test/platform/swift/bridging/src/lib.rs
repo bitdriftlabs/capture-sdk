@@ -202,10 +202,35 @@ unsafe extern "C" fn next_uploaded_log(uploaded_log: *mut Object) -> bool {
 
           let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
         },
+        StringOrBytes::StaticString(s) => {
+          let value = make_nsstring(s).unwrap();
+
+          let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
+        },
         StringOrBytes::Bytes(s) => {
           let value = make_nsdata(&s);
 
           let () = msg_send![uploaded_log, addBinaryFieldWithKey:key value:value];
+        },
+        StringOrBytes::Boolean(b) => {
+          let value = make_nsstring(&b.to_string()).unwrap();
+
+          let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
+        },
+        StringOrBytes::U64(n) => {
+          let value = make_nsstring(&n.to_string()).unwrap();
+
+          let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
+        },
+        StringOrBytes::I64(n) => {
+          let value = make_nsstring(&n.to_string()).unwrap();
+
+          let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
+        },
+        StringOrBytes::Double(n) => {
+          let value = make_nsstring(&n.to_string()).unwrap();
+
+          let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
         },
       }
     }
