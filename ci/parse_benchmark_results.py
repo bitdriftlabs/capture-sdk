@@ -41,13 +41,16 @@ def format_allocations(count):
     elif count >= 1_000:
         return f"{count / 1_000:.1f}K"
     else:
-        return f"{count:.0f}"
+        return f"{int(round(count))}"
 
 
-def format_diff_percent(current, baseline):
+def format_diff_percent(current, baseline, current_formatted, baseline_formatted):
     """Format the difference as a percentage with indicator."""
     if baseline == 0:
         return "N/A"
+    # If the formatted display values are the same, show 0%
+    if current_formatted == baseline_formatted:
+        return "0.0%"
     diff_percent = ((current - baseline) / baseline) * 100
     if diff_percent > 5:
         return f"+{diff_percent:.1f}%"
@@ -117,7 +120,7 @@ def generate_markdown_report(results, baseline=None):
         if baseline and name in baseline:
             baseline_alloc = baseline[name]["alloc_median"]
             alloc_baseline_fmt = format_allocations(baseline_alloc)
-            alloc_diff = format_diff_percent(data["alloc_median"], baseline_alloc)
+            alloc_diff = format_diff_percent(data["alloc_median"], baseline_alloc, alloc_median, alloc_baseline_fmt)
             lines.append(f"| {name} | {alloc_median} | {alloc_baseline_fmt} | {alloc_diff} |")
         elif baseline:
             lines.append(f"| {name} | {alloc_median} | N/A | N/A |")
@@ -141,7 +144,7 @@ def generate_markdown_report(results, baseline=None):
         if baseline and name in baseline:
             baseline_time = baseline[name]["time_median"]
             time_baseline_fmt = format_time_ns(baseline_time)
-            time_diff = format_diff_percent(data["time_median"], baseline_time)
+            time_diff = format_diff_percent(data["time_median"], baseline_time, time_median, time_baseline_fmt)
             lines.append(f"| {name} | {time_median} | {time_baseline_fmt} | {time_diff} |")
         elif baseline:
             lines.append(f"| {name} | {time_median} | N/A | N/A |")
