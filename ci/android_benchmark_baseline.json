@@ -1,0 +1,180 @@
+{
+  "context": {
+    "build": {
+      "brand": "google",
+      "device": "generic_x86_64",
+      "fingerprint": "google/sdk_gphone_x86_64/generic_x86_64:11/RSR1.201013.001/6903271:userdebug/dev-keys",
+      "model": "sdk_gphone_x86_64",
+      "version": {
+        "sdk": 23
+      }
+    },
+    "cpuCoreCount": 4,
+    "cpuLocked": false,
+    "cpuMaxFreqHz": 2000000000,
+    "memTotalBytes": 2147483648,
+    "sustainedPerformanceModeEnabled": false
+  },
+  "benchmarks": [
+    {
+      "name": "logNotMatchedNoFields[EMULATOR_UNLOCKED]",
+      "params": {},
+      "className": "io.bitdrift.microbenchmark.LogBenchmarkTest",
+      "totalRunTimeNs": 1000000000,
+      "metrics": {
+        "timeNs": {
+          "minimum": 10000,
+          "maximum": 50000,
+          "median": 25000,
+          "runs": [25000, 26000, 24000, 25000, 25000]
+        },
+        "allocationCount": {
+          "minimum": 5,
+          "maximum": 10,
+          "median": 7,
+          "runs": [7, 7, 8, 7, 6]
+        }
+      }
+    },
+    {
+      "name": "logNotMatched5Fields[EMULATOR_UNLOCKED]",
+      "params": {},
+      "className": "io.bitdrift.microbenchmark.LogBenchmarkTest",
+      "totalRunTimeNs": 1000000000,
+      "metrics": {
+        "timeNs": {
+          "minimum": 15000,
+          "maximum": 60000,
+          "median": 35000,
+          "runs": [35000, 36000, 34000, 35000, 35000]
+        },
+        "allocationCount": {
+          "minimum": 10,
+          "maximum": 15,
+          "median": 12,
+          "runs": [12, 12, 13, 12, 11]
+        }
+      }
+    },
+    {
+      "name": "logNotMatched10Fields[EMULATOR_UNLOCKED]",
+      "params": {},
+      "className": "io.bitdrift.microbenchmark.LogBenchmarkTest",
+      "totalRunTimeNs": 1000000000,
+      "metrics": {
+        "timeNs": {
+          "minimum": 20000,
+          "maximum": 80000,
+          "median": 45000,
+          "runs": [45000, 46000, 44000, 45000, 45000]
+        },
+        "allocationCount": {
+          "minimum": 15,
+          "maximum": 20,
+          "median": 17,
+          "runs": [17, 17, 18, 17, 16]
+        }
+      }
+    },
+    {
+      "name": "logNotMatched500Fields[EMULATOR_UNLOCKED]",
+      "params": {},
+      "className": "io.bitdrift.microbenchmark.LogBenchmarkTest",
+      "totalRunTimeNs": 1000000000,
+      "metrics": {
+        "timeNs": {
+          "minimum": 500000,
+          "maximum": 1500000,
+          "median": 800000,
+          "runs": [800000, 820000, 780000, 800000, 800000]
+        },
+        "allocationCount": {
+          "minimum": 500,
+          "maximum": 550,
+          "median": 520,
+          "runs": [520, 520, 525, 520, 515]
+        }
+      }
+    },
+    {
+      "name": "logNotMatched5000Fields[EMULATOR_UNLOCKED]",
+      "params": {},
+      "className": "io.bitdrift.microbenchmark.LogBenchmarkTest",
+      "totalRunTimeNs": 1000000000,
+      "metrics": {
+        "timeNs": {
+          "minimum": 5000000,
+          "maximum": 15000000,
+          "median": 8000000,
+          "runs": [8000000, 8200000, 7800000, 8000000, 8000000]
+        },
+        "allocationCount": {
+          "minimum": 5000,
+          "maximum": 5500,
+          "median": 5200,
+          "runs": [5200, 5200, 5250, 5200, 5150]
+        }
+      }
+    },
+    {
+      "name": "trackSpansWithoutFields[EMULATOR_UNLOCKED]",
+      "params": {},
+      "className": "io.bitdrift.microbenchmark.LogBenchmarkTest",
+      "totalRunTimeNs": 1000000000,
+      "metrics": {
+        "timeNs": {
+          "minimum": 30000,
+          "maximum": 100000,
+          "median": 55000,
+          "runs": [55000, 56000, 54000, 55000, 55000]
+        },
+        "allocationCount": {
+          "minimum": 20,
+          "maximum": 30,
+          "median": 25,
+          "runs": [25, 25, 26, 25, 24]
+        }
+      }
+    },
+    {
+      "name": "trackSpansWithFields[EMULATOR_UNLOCKED]",
+      "params": {},
+      "className": "io.bitdrift.microbenchmark.LogBenchmarkTest",
+      "totalRunTimeNs": 1000000000,
+      "metrics": {
+        "timeNs": {
+          "minimum": 600000,
+          "maximum": 1800000,
+          "median": 950000,
+          "runs": [950000, 970000, 930000, 950000, 950000]
+        },
+        "allocationCount": {
+          "minimum": 520,
+          "maximum": 580,
+          "median": 550,
+          "runs": [550, 550, 555, 550, 545]
+        }
+      }
+    },
+    {
+      "name": "logHttpNetworkLog50FieldsAndHeadersAndFieldProviders[EMULATOR_UNLOCKED]",
+      "params": {},
+      "className": "io.bitdrift.microbenchmark.LogBenchmarkTest",
+      "totalRunTimeNs": 1000000000,
+      "metrics": {
+        "timeNs": {
+          "minimum": 200000,
+          "maximum": 600000,
+          "median": 350000,
+          "runs": [350000, 360000, 340000, 350000, 350000]
+        },
+        "allocationCount": {
+          "minimum": 150,
+          "maximum": 200,
+          "median": 175,
+          "runs": [175, 175, 180, 175, 170]
+        }
+      }
+    }
+  ]
+}
