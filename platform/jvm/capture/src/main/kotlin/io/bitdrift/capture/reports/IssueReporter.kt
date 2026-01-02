@@ -37,7 +37,7 @@ import kotlin.time.DurationUnit
 import kotlin.time.TimeSource
 
 /**
- * Reports different Issue Types (JVM crash, ANR, native, StrictMode, etc)
+ * Reports different Issue Types (JVM crash, ANR, native, StrictMode, etc).
  *
  * @param backgroundThreadHandler Handler for background thread operations
  * @param latestAppExitInfoProvider Provider for retrieving latest app exit information
