@@ -19,11 +19,6 @@
             <url>https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture/{pom_version}/LICENSE.txt</url>
             <distribution>repo</distribution>
         </license>
-        <license>
-            <name>NOTICE</name>
-            <url>https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture/{pom_version}/NOTICE.txt</url>
-            <distribution>repo</distribution>
-        </license>
     </licenses>
     <developers>
         <developer>
