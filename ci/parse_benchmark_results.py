@@ -64,6 +64,35 @@ def clean_test_name(name):
     return cleaned.strip()
 
 
+def extract_device_info(data):
+    """Extract device information from the benchmark JSON context."""
+    context = data.get("context", {})
+    build = context.get("build", {})
+    
+    device_info = {
+        "model": build.get("model", "Unknown"),
+        "device": build.get("device", "Unknown"),
+        "manufacturer": build.get("manufacturer", "Unknown"),
+        "api_level": build.get("version", {}).get("sdk", "Unknown"),
+        "fingerprint": build.get("fingerprint", ""),
+    }
+    
+    # Detect if running on emulator based on common emulator fingerprints
+    fingerprint = device_info["fingerprint"].lower()
+    device_info["is_emulator"] = any(x in fingerprint for x in ["sdk_gphone", "emulator", "generic"])
+    
+    return device_info
+
+
+def format_device_info(device_info):
+    """Format device info into a readable string."""
+    device_type = "Emulator" if device_info.get("is_emulator") else "Physical Device"
+    model = device_info.get("model", "Unknown")
+    api_level = device_info.get("api_level", "Unknown")
+    
+    return f"{device_type} - {model} (API {api_level})"
+
+
 def parse_benchmark_json(json_path):
     """Parse the benchmark JSON file and extract metrics."""
     with open(json_path, "r") as f:
@@ -89,18 +118,32 @@ def parse_benchmark_json(json_path):
             "alloc_median": alloc_median,
         }
 
-    return results
+    # Extract device info from the JSON
+    device_info = extract_device_info(data)
+
+    return results, device_info
 
 
-def generate_markdown_report(results, baseline=None):
+def generate_markdown_report(results, baseline=None, device_info=None, baseline_device_info=None):
     """Generate markdown tables from benchmark results."""
     if not results:
         return "No benchmark results found."
 
     lines = []
 
-    # Add note about emulator variance
-    lines.append("> **Note:** Benchmarks run on emulator. Results may vary between runs and may differ from physical devices.")
+    # Add device information header
+    if device_info:
+        device_str = format_device_info(device_info)
+        if baseline_device_info:
+            baseline_device_str = format_device_info(baseline_device_info)
+            lines.append(f"> **Device:** PR: {device_str} | main: {baseline_device_str}")
+        else:
+            lines.append(f"> **Device:** {device_str}")
+    
+        # Add note about emulator variance if running on emulator
+        if device_info.get("is_emulator"):
+            lines.append(">")
+            lines.append("> **Note:** Benchmarks run on emulator. Results may vary between runs and may differ from physical devices.")
     lines.append("")
 
     # Allocations table
@@ -167,9 +210,12 @@ def main():
     baseline_path = sys.argv[2] if len(sys.argv) > 2 else None
 
     try:
-        results = parse_benchmark_json(json_path)
-        baseline = parse_benchmark_json(baseline_path) if baseline_path else None
-        report = generate_markdown_report(results, baseline)
+        results, device_info = parse_benchmark_json(json_path)
+        baseline = None
+        baseline_device_info = None
+        if baseline_path:
+            baseline, baseline_device_info = parse_benchmark_json(baseline_path)
+        report = generate_markdown_report(results, baseline, device_info, baseline_device_info)
         print(report)
     except FileNotFoundError as e:
         print(f"Error: File not found: {e.filename}", file=sys.stderr)
