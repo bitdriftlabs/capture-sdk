@@ -131,7 +131,6 @@ public final class Logger {
         let networkAttributes = NetworkAttributes()
         let ootbFieldProviders: [FieldProvider] = [
             appStateAttributes,
-            clientAttributes,
             deviceAttributes,
             networkAttributes,
         ]
@@ -148,7 +147,7 @@ public final class Logger {
         self.remoteErrorReporter = remoteErrorReporter
             ?? RemoteErrorReportingClient(
                 client: client,
-                fieldProviders: [appStateAttributes, clientAttributes]
+                fieldProviders: [appStateAttributes]
             )
 
         guard let directoryURL = configuration.rootFileURL ?? Logger.captureSDKDirectory() else {
@@ -186,6 +185,9 @@ public final class Logger {
             eventsListenerTarget: self.eventsListenerTarget,
             appID: clientAttributes.appID,
             releaseVersion: clientAttributes.appVersion,
+            buildNumber: clientAttributes.buildNumber,
+            osVersion: clientAttributes.osVersion,
+            osBrand: "Apple",
             model: deviceAttributes.hardwareVersion,
             network: network,
             errorReporting: self.remoteErrorReporter,

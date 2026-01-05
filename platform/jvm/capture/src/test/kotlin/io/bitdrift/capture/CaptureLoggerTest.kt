@@ -56,7 +56,7 @@ import kotlin.time.Duration
 private const val TEST_DATE_TIMESTAMP: Long = 1657047358123
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [24])
+@Config(sdk = [24], qualifiers = "+ar")
 class CaptureLoggerTest {
     private val systemDateProvider =
         DateProvider {
@@ -258,6 +258,10 @@ class CaptureLoggerTest {
                         "device_id" to deviceId,
                         "platform" to "android",
                         "model" to "robolectric",
+                        "_app_version_code" to "0",
+                        "_os_api_level" to "24",
+                        "os_version" to "7.0",
+                        "_architecture" to "armeabi-v7a",
                     ),
                     listOf("sdk_version", "config_version"),
                 ),
@@ -511,7 +515,17 @@ class CaptureLoggerTest {
             ContextHolder.APP_CONTEXT,
             ProcessLifecycleOwner.get(),
         ).invoke().toFieldValueMap() +
-            NetworkAttributes(ContextHolder.APP_CONTEXT).invoke().toFieldValueMap()
+            NetworkAttributes(ContextHolder.APP_CONTEXT).invoke().toFieldValueMap() +
+            mapOf(
+                "_app_version_code" to "0".toFieldValue(),
+                "_architecture" to "armeabi-v7a".toFieldValue(),
+                "_locale" to "ar".toFieldValue(),
+                "_os_api_level" to "24".toFieldValue(),
+                "app_id" to "io.bitdrift.capture".toFieldValue(),
+                "app_version" to "?.?.?".toFieldValue(),
+                "model" to "robolectric".toFieldValue(),
+                "os_version" to "7.0".toFieldValue(),
+            )
 
     private fun Map<String, String>.toFieldValueMap(): Map<String, FieldValue> = mapValues { (_, v) -> v.toFieldValue() }
 }

@@ -15,11 +15,11 @@ pub static SDK_VERSION: LazyLock<String> =
 // A collection of typed metadata that is used to identify the client when communicating with
 // loop-api.
 pub struct Mobile {
-  /// The app id of the client, if one is provided.
-  pub app_id: Option<String>,
+  /// The app id of the client.
+  pub app_id: String,
 
-  /// The app version of the client, if one is provided.
-  pub app_version: Option<String>,
+  /// The app version of the client.
+  pub app_version: String,
 
   pub platform: Platform,
 
@@ -51,13 +51,9 @@ impl bd_api::Metadata for Mobile {
   fn collect_inner(&self) -> HashMap<String, String> {
     let mut metadata_map = HashMap::new();
 
-    if let Some(app_id) = self.app_id.as_ref() {
-      metadata_map.insert("app_id".to_string(), app_id.to_string());
-    }
+    metadata_map.insert("app_id".to_string(), self.app_id.clone());
 
-    if let Some(app_version) = self.app_version.as_ref() {
-      metadata_map.insert("app_version".to_string(), app_version.to_string());
-    }
+    metadata_map.insert("app_version".to_string(), self.app_version.clone());
 
     metadata_map.insert("model".to_string(), self.model.clone());
 

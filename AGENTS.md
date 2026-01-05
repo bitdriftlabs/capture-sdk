@@ -46,15 +46,20 @@ cargo nextest run --package swift_bridge
 
 **Android:**
 ```bash
-# Kotlin unit tests (from platform/jvm/)
-./gradlew capture:testDebugUnitTest --info
-./gradlew capture-timber:testDebugUnitTest --info
+# Kotlin unit tests
+# Note: Run gradle commands from the root directory using -p platform/jvm
+./platform/jvm/gradlew -p platform/jvm capture:testDebugUnitTest --info
+./platform/jvm/gradlew -p platform/jvm capture-timber:testDebugUnitTest --info
+
+# Or from platform/jvm/ directory:
+# ./gradlew capture:testDebugUnitTest --info
+# ./gradlew capture-timber:testDebugUnitTest --info
 
 # Build microbenchmarks
-./gradlew microbenchmark:assembleAndroidTest
+./platform/jvm/gradlew -p platform/jvm microbenchmark:assembleAndroidTest
 
 # Instrumentation tests (requires emulator)
-./gradlew gradle-test-app:connectedCheck
+./platform/jvm/gradlew -p platform/jvm gradle-test-app:connectedCheck
 ```
 
 **Rust/Linux:**

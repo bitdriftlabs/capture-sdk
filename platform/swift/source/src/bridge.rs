@@ -59,6 +59,110 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
 
+pub struct StaticMetadata {
+  pub mobile: Mobile,
+  pub build_number: String,
+  pub os_version: String,
+  pub os_brand: String,
+
+  pub provided_fields: LogFields,
+}
+
+impl bd_api::Metadata for StaticMetadata {
+  fn sdk_version(&self) -> &'static str {
+    self.mobile.sdk_version()
+  }
+
+  fn platform(&self) -> &bd_api::Platform {
+    self.mobile.platform()
+  }
+
+  fn os(&self) -> String {
+    self.mobile.os()
+  }
+
+  fn device_id(&self) -> String {
+    self.mobile.device_id()
+  }
+
+  fn collect_inner(&self) -> HashMap<String, String> {
+    let map: HashMap<String, String> = self
+      .mobile
+      .collect_inner()
+      .into_iter()
+      .chain([
+        ("_build_number".to_string(), self.build_number.clone()),
+        ("os_version".to_string(), self.os_version.clone()),
+        ("os".to_string(), "iOS".to_string()),
+        ("platform".to_string(), "ios".to_string()),
+      ])
+      .collect();
+    map
+  }
+}
+
+impl StaticMetadata {
+  #[must_use]
+  pub fn new(mobile: Mobile, build_number: String, os_version: String, os_brand: String) -> Self {
+    let mut log_fields = LogFields::new();
+    log_fields.insert(
+      Cow::Borrowed("app_id"),
+      bd_logger::StringOrBytes::SharedString(mobile.app_id.clone().into()),
+    );
+    log_fields.insert(
+      Cow::Borrowed("os"),
+      bd_logger::StringOrBytes::from_static_str("iOS"),
+    );
+    log_fields.insert(
+      Cow::Borrowed("os_version"),
+      bd_logger::StringOrBytes::SharedString(os_version.clone().into()),
+    );
+    log_fields.insert(
+      Cow::Borrowed("model"),
+      bd_logger::StringOrBytes::SharedString(mobile.model.clone().into()),
+    );
+    log_fields.insert(
+      Cow::Borrowed("app_version"),
+      bd_logger::StringOrBytes::SharedString(mobile.app_version.clone().into()),
+    );
+    log_fields.insert(
+      Cow::Borrowed("_build_number"),
+      bd_logger::StringOrBytes::SharedString(build_number.clone().into()),
+    );
+
+    Self {
+      mobile,
+      build_number,
+      os_version,
+      os_brand,
+      provided_fields: log_fields,
+    }
+  }
+
+  pub(crate) fn to_device_metadata(&self) -> DeviceMetadata {
+    DeviceMetadata {
+      // Manufacturer is always "Apple" for iOS. os_brand is passed from Swift layer to maintain
+      // consistency with Android's Build.BRAND pattern and support potential future platforms.
+      manufacturer: Some("Apple".to_string()),
+      model: Some(self.mobile.model.clone()),
+      os_version: Some(self.os_version.clone()),
+      os_brand: Some(self.os_brand.clone()),
+      architecture: None,
+      cpu_abis: None,
+    }
+  }
+
+  pub(crate) fn to_app_metadata(&self) -> AppMetadata {
+    AppMetadata {
+      app_id: Some(self.mobile.app_id.clone()),
+      app_version: Some(self.mobile.app_version.clone()),
+      version_code: self.build_number.parse::<i64>().ok(),
+    }
+  }
+}
+
+type IosLoggerId<'a> = LoggerId<'a, StaticMetadata>;
+
 static LOGGING_INIT: Once = Once::new();
 
 fn initialize_logging() {
@@ -383,6 +487,29 @@ unsafe impl Sync for LogMetadataProvider {}
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for LogMetadataProvider {}
 
+struct WrappedMetadataProvider {
+  provider: LogMetadataProvider,
+  metadata: Arc<StaticMetadata>,
+}
+
+impl MetadataProvider for WrappedMetadataProvider {
+  fn timestamp(&self) -> anyhow::Result<time::OffsetDateTime> {
+    self.provider.timestamp()
+  }
+
+  fn fields(&self) -> anyhow::Result<(LogFields, LogFields)> {
+    let static_ootb_fields = self.metadata.provided_fields.clone();
+
+    let (custom_fields, mut ootb_fields) = self.provider.fields()?;
+
+    static_ootb_fields.into_iter().for_each(|(k, v)| {
+      ootb_fields.insert(k, v);
+    });
+
+    Ok((custom_fields, ootb_fields))
+  }
+}
+
 impl MetadataProvider for LogMetadataProvider {
   #[allow(clippy::cast_possible_truncation)]
   fn timestamp(&self) -> anyhow::Result<time::OffsetDateTime> {
@@ -441,17 +568,20 @@ extern "C" fn capture_create_logger(
   events_listener_target: *mut Object,
   app_id: *const c_char,
   app_version: *const c_char,
+  build_number: *const c_char,
+  os_version: *const c_char,
+  os_brand: *const c_char,
   model: *const c_char,
   bd_network_nsobject: *mut Object,
   error_reporter_ns_object: *mut Object,
   start_in_sleep_mode: bool,
-) -> LoggerId<'static> {
+) -> IosLoggerId<'static> {
   initialize_logging();
 
   // Safety: Guaranteed to be a valid Id per the Objective-C signature.
-  let metadata_provider = Arc::new(LogMetadataProvider {
+  let metadata_provider = LogMetadataProvider {
     ptr: (unsafe { objc::rc::StrongPtr::retain(provider) }),
-  });
+  };
 
   with_handle_unexpected_or(
     || {
@@ -464,19 +594,26 @@ extern "C" fn capture_create_logger(
 
       let device: Arc<bd_device::Device> = Arc::new(bd_device::Device::new(store.clone()));
 
-      let static_metadata = Arc::new(Mobile {
-        // String conversion can fail if the provided string is not UTF-8.
-        app_id: Some(unsafe { CStr::from_ptr(app_id) }.to_str()?.to_string()),
-        app_version: Some(unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string()),
-        platform: Platform::Apple,
-        // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
-        // Further, "os" as sent as a log tag is hard coded as "iOS" so we have a casing
-        // mismatch. We need to untangle all of this but we can do that when we send all fixed
-        // fields as metadata and only use the fixed fields on logs for matching.
-        os: "ios".to_string(),
-        device: device.clone(),
-        model: unsafe { CStr::from_ptr(model) }.to_str()?.to_string(),
-      });
+      let static_metadata = Arc::new(StaticMetadata::new(
+        Mobile {
+          // String conversion can fail if the provided string is not UTF-8.
+          app_id: unsafe { CStr::from_ptr(app_id) }.to_str()?.to_string(),
+          app_version: unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string(),
+          platform: Platform::Apple,
+          // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
+          // Further, "os" as sent as a log tag is hard coded as "iOS" so we have a casing
+          // mismatch. We need to untangle all of this but we can do that when we send all fixed
+          // fields as metadata and only use the fixed fields on logs for matching.
+          os: "ios".to_string(),
+          device: device.clone(),
+          model: unsafe { CStr::from_ptr(model) }.to_str()?.to_string(),
+        },
+        unsafe { CStr::from_ptr(build_number) }
+          .to_str()?
+          .to_string(),
+        unsafe { CStr::from_ptr(os_version) }.to_str()?.to_string(),
+        unsafe { CStr::from_ptr(os_brand) }.to_str()?.to_string(),
+      ));
 
       let error_reporter = MetadataErrorReporter::new(
         Arc::new(unsafe { SwiftErrorReporter::new(error_reporter_ns_object) }),
@@ -506,7 +643,10 @@ extern "C" fn capture_create_logger(
         sdk_directory: path.into(),
         api_key: unsafe { CStr::from_ptr(api_key) }.to_str()?.to_string(),
         session_strategy,
-        metadata_provider,
+        metadata_provider: Arc::new(WrappedMetadataProvider {
+          provider: metadata_provider,
+          metadata: static_metadata.clone(),
+        }),
         resource_utilization_target: Box::new(resource_utilization::Target::new(
           resource_utilization_target,
         )),
@@ -515,12 +655,14 @@ extern "C" fn capture_create_logger(
         network: network_manager,
         store,
         device,
-        static_metadata,
+        static_metadata: static_metadata.clone(),
         start_in_sleep_mode,
       })
       .with_internal_logger(true)
       .build()
-      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future, previous_run_global_state))?;
+      .map(|(logger, _, future, _)| {
+        LoggerHolder::new(logger, future, previous_run_global_state, static_metadata)
+      })?;
 
       Ok(logger.into_raw())
     },
@@ -530,7 +672,7 @@ extern "C" fn capture_create_logger(
 }
 
 #[no_mangle]
-extern "C" fn capture_start_logger(logger_id: LoggerId<'_>) {
+extern "C" fn capture_start_logger(logger_id: IosLoggerId<'_>) {
   with_handle_unexpected_or(
     move || {
       logger_id.start();
@@ -542,13 +684,13 @@ extern "C" fn capture_start_logger(logger_id: LoggerId<'_>) {
 }
 
 #[no_mangle]
-extern "C" fn capture_shutdown_logger(logger_id: LoggerId<'_>, blocking: bool) {
+extern "C" fn capture_shutdown_logger(logger_id: IosLoggerId<'_>, blocking: bool) {
   logger_id.shutdown(blocking);
 }
 
 #[no_mangle]
 extern "C" fn capture_process_issue_reports(
-  mut logger_id: LoggerId<'_>,
+  mut logger_id: IosLoggerId<'_>,
   report_processing_session_value: i32,
 ) {
   with_handle_unexpected(
@@ -573,7 +715,7 @@ extern "C" fn capture_process_issue_reports(
 
 #[no_mangle]
 extern "C" fn capture_runtime_bool_variable_value(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   variable_name: *const c_char,
   default_value: bool,
 ) -> bool {
@@ -593,7 +735,7 @@ extern "C" fn capture_runtime_bool_variable_value(
 
 #[no_mangle]
 extern "C" fn capture_runtime_uint32_variable_value(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   variable_name: *const c_char,
   default_value: u32,
 ) -> u32 {
@@ -613,7 +755,7 @@ extern "C" fn capture_runtime_uint32_variable_value(
 
 #[no_mangle]
 extern "C" fn capture_write_log(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   log_level: LogLevel,
   log_type: u32,
   log: *const c_char,
@@ -663,7 +805,7 @@ extern "C" fn capture_write_log(
 
 #[no_mangle]
 extern "C" fn capture_write_session_replay_screen_log(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   fields: *const Object,
   duration_s: f64,
 ) {
@@ -680,7 +822,7 @@ extern "C" fn capture_write_session_replay_screen_log(
 
 #[no_mangle]
 extern "C" fn capture_write_session_replay_screenshot_log(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   fields: *const Object,
   duration_s: f64,
 ) {
@@ -697,7 +839,7 @@ extern "C" fn capture_write_session_replay_screenshot_log(
 
 #[no_mangle]
 extern "C" fn capture_write_resource_utilization_log(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   fields: *const Object,
   duration_s: f64,
 ) {
@@ -714,7 +856,7 @@ extern "C" fn capture_write_resource_utilization_log(
 
 #[no_mangle]
 extern "C" fn capture_write_sdk_start_log(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   fields: *const Object,
   duration_s: f64,
 ) {
@@ -731,7 +873,7 @@ extern "C" fn capture_write_sdk_start_log(
 
 #[no_mangle]
 extern "C" fn capture_should_write_app_update_log(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   app_version: *const Object,
   build_number: *const Object,
 ) -> bool {
@@ -752,7 +894,7 @@ extern "C" fn capture_should_write_app_update_log(
 
 #[no_mangle]
 extern "C" fn capture_write_app_update_log(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   app_version: *const Object,
   build_number: *const Object,
   app_install_size_bytes: u64,
@@ -777,7 +919,7 @@ extern "C" fn capture_write_app_update_log(
 }
 
 #[no_mangle]
-extern "C" fn capture_write_app_launch_tti_log(logger_id: LoggerId<'_>, duration_s: f64) {
+extern "C" fn capture_write_app_launch_tti_log(logger_id: IosLoggerId<'_>, duration_s: f64) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
       logger_id.log_app_launch_tti(Duration::seconds_f64(duration_s));
@@ -788,7 +930,10 @@ extern "C" fn capture_write_app_launch_tti_log(logger_id: LoggerId<'_>, duration
 }
 
 #[no_mangle]
-extern "C" fn capture_write_screen_view_log(logger_id: LoggerId<'_>, screen_name: *const Object) {
+extern "C" fn capture_write_screen_view_log(
+  logger_id: IosLoggerId<'_>,
+  screen_name: *const Object,
+) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
       let screen_name = unsafe { nsstring_into_string(screen_name) }?;
@@ -800,19 +945,19 @@ extern "C" fn capture_write_screen_view_log(logger_id: LoggerId<'_>, screen_name
 }
 
 #[no_mangle]
-extern "C" fn capture_start_new_session(logger_id: LoggerId<'_>) {
+extern "C" fn capture_start_new_session(logger_id: IosLoggerId<'_>) {
   logger_id.start_new_session();
 }
 
 #[no_mangle]
-extern "C" fn capture_get_session_id(logger_id: LoggerId<'_>) -> *const Object {
+extern "C" fn capture_get_session_id(logger_id: IosLoggerId<'_>) -> *const Object {
   make_nsstring(&logger_id.session_id())
     .unwrap_or_else(|_| make_empty_nsstring())
     .autorelease()
 }
 
 #[no_mangle]
-extern "C" fn capture_get_device_id(logger_id: LoggerId<'_>) -> *const Object {
+extern "C" fn capture_get_device_id(logger_id: IosLoggerId<'_>) -> *const Object {
   make_nsstring(&logger_id.device_id())
     .unwrap_or_else(|_| make_empty_nsstring())
     .autorelease()
@@ -827,7 +972,7 @@ extern "C" fn capture_get_sdk_version() -> *const Object {
 
 #[no_mangle]
 extern "C" fn capture_add_log_field(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   key: *const c_char,
   value: *const c_char,
 ) {
@@ -845,7 +990,7 @@ extern "C" fn capture_add_log_field(
 }
 
 #[no_mangle]
-extern "C" fn capture_remove_log_field(logger_id: LoggerId<'_>, key: *const c_char) {
+extern "C" fn capture_remove_log_field(logger_id: IosLoggerId<'_>, key: *const c_char) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
       let key = unsafe { CStr::from_ptr(key) }.to_str()?.to_string();
@@ -858,7 +1003,7 @@ extern "C" fn capture_remove_log_field(logger_id: LoggerId<'_>, key: *const c_ch
 }
 
 #[no_mangle]
-extern "C" fn capture_flush(logger_id: LoggerId<'_>, blocking: bool) {
+extern "C" fn capture_flush(logger_id: IosLoggerId<'_>, blocking: bool) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
       let blocking = if blocking {
@@ -876,7 +1021,7 @@ extern "C" fn capture_flush(logger_id: LoggerId<'_>, blocking: bool) {
 
 #[no_mangle]
 extern "C" fn capture_set_feature_flag_exposure(
-  logger_id: LoggerId<'_>,
+  logger_id: IosLoggerId<'_>,
   flag: *const c_char,
   variant: *const c_char,
 ) {
@@ -902,7 +1047,7 @@ extern "C" fn capture_set_feature_flag_exposure(
 
 
 #[no_mangle]
-extern "C" fn capture_set_sleep_mode(logger_id: LoggerId<'_>, enabled: bool) {
+extern "C" fn capture_set_sleep_mode(logger_id: IosLoggerId<'_>, enabled: bool) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
       logger_id.transition_sleep_mode(enabled);
@@ -924,13 +1069,7 @@ extern "C" fn capture_persist_javascript_error_report(
   timestamp_seconds: u64,
   timestamp_nanos: u32,
   destination_path: *const c_char,
-  manufacturer: *const c_char,
-  model: *const c_char,
-  os_version: *const c_char,
-  os_brand: *const c_char,
-  app_id: *const c_char,
-  app_version: *const c_char,
-  version_code: *const c_char,
+  logger_id: IosLoggerId<'_>,
   sdk_version: *const c_char,
 ) {
   with_handle_unexpected(
@@ -950,33 +1089,10 @@ extern "C" fn capture_persist_javascript_error_report(
         }
       };
 
-      let manufacturer = unsafe { CStr::from_ptr(manufacturer) }
-        .to_str()?
-        .to_string();
-      let model = unsafe { CStr::from_ptr(model) }.to_str()?.to_string();
-      let os_version = unsafe { CStr::from_ptr(os_version) }.to_str()?.to_string();
-      let os_brand = unsafe { CStr::from_ptr(os_brand) }.to_str()?.to_string();
-      let app_id = unsafe { CStr::from_ptr(app_id) }.to_str()?.to_string();
-      let app_version = unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string();
-      let version_code = unsafe { CStr::from_ptr(version_code) }
-        .to_str()?
-        .to_string();
       let sdk_version = unsafe { CStr::from_ptr(sdk_version) }.to_str()?;
 
-      let device_metadata = DeviceMetadata {
-        manufacturer: Some(manufacturer),
-        model: Some(model),
-        os_version: Some(os_version),
-        os_brand: Some(os_brand),
-        architecture: None,
-        cpu_abis: None,
-      };
-
-      let app_metadata = AppMetadata {
-        app_id: Some(app_id),
-        app_version: Some(app_version),
-        version_code: version_code.parse::<i64>().ok(),
-      };
+      let device_metadata = logger_id.metadata.to_device_metadata();
+      let app_metadata = logger_id.metadata.to_app_metadata();
 
       persist_javascript_error_report(
         error_name,
