@@ -99,6 +99,10 @@ def generate_markdown_report(results, baseline=None):
 
     lines = []
 
+    # Add note about emulator variance
+    lines.append("> **Note:** Benchmarks run on emulator. Results may vary between runs and may differ from physical devices.")
+    lines.append("")
+
     # Allocations table
     lines.append("### Allocations")
     lines.append("")
