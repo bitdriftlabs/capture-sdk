@@ -8,51 +8,51 @@
 package io.bitdrift.capture.reports
 
 /**
- * Represents all different states for [io.bitdrift.capture.reports.FatalIssueReporter.processPriorReportFiles]
+ * Represents all different states for [io.bitdrift.capture.reports.IssueReporter.processPriorReportFiles]
  */
-sealed class FatalIssueReporterState(
+sealed class IssueReporterState(
     /**
      * The readable type that won't be obfuscated for logs
      */
     open val readableType: String,
 ) {
     /**
-     * State indicating that crash reporting has not been initialized
+     * State indicating that issue reporting has not been initialized
      */
-    data object NotInitialized : FatalIssueReporterState("NOT_INITIALIZED")
+    data object NotInitialized : IssueReporterState("NOT_INITIALIZED")
 
     /**
      * Initialization is currently in progress
      */
-    data object Initializing : FatalIssueReporterState("INITIALIZING")
+    data object Initializing : IssueReporterState("INITIALIZING")
 
     /**
      * Represents a successful initialized state
      */
-    data object Initialized : FatalIssueReporterState("INITIALIZED")
+    data object Initialized : IssueReporterState("INITIALIZED")
 
     /**
      * Represents a failed initialization attempt state
      */
-    data object InitializationFailed : FatalIssueReporterState("FAILED_TO_INITIALIZE")
+    data object InitializationFailed : IssueReporterState("FAILED_TO_INITIALIZE")
 
     /**
      * Reporting not enabled because client-side configuration is disabled
      */
-    data object ClientDisabled : FatalIssueReporterState("CLIENT_CONFIG_DISABLED")
+    data object ClientDisabled : IssueReporterState("CLIENT_CONFIG_DISABLED")
 
     /**
      * Reporting not enabled because server-side configuration is disabled
      */
-    data object RuntimeDisabled : FatalIssueReporterState("RUNTIME_CONFIG_DISABLED")
+    data object RuntimeDisabled : IssueReporterState("RUNTIME_CONFIG_DISABLED")
 
     /**
      * Reporting not enabled because server-side configuration is unset
      */
-    data object RuntimeUnset : FatalIssueReporterState("RUNTIME_CONFIG_UNSET")
+    data object RuntimeUnset : IssueReporterState("RUNTIME_CONFIG_UNSET")
 
     /**
      * Reporting not enabled because server-side configuration is corrupted
      */
-    data object RuntimeInvalid : FatalIssueReporterState("RUNTIME_CONFIG_INVALID")
+    data object RuntimeInvalid : IssueReporterState("RUNTIME_CONFIG_INVALID")
 }

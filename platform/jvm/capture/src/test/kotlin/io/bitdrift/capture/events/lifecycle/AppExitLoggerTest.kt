@@ -25,7 +25,7 @@ import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.fakes.FakeFatalIssueReporter
+import io.bitdrift.capture.fakes.FakeIssueReporter
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
@@ -34,7 +34,7 @@ import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEM
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
-import io.bitdrift.capture.reports.FatalIssueReporterState
+import io.bitdrift.capture.reports.IssueReporterState
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
@@ -207,7 +207,7 @@ class AppExitLoggerTest {
 
     @Test
     fun onJvmCrash_whenBuiltInFatalIssueMechanism_shouldNotSendAppExitCrashLog() {
-        val appExitLogger = buildAppExitLogger(FatalIssueReporterState.Initialized)
+        val appExitLogger = buildAppExitLogger(IssueReporterState.Initialized)
         whenever(runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_CRASH)).thenReturn(true)
 
         appExitLogger.onJvmCrash(Thread.currentThread(), IllegalStateException("Simulated Crash"))
@@ -297,7 +297,7 @@ class AppExitLoggerTest {
         causeField.set(target, cause)
     }
 
-    private fun buildAppExitLogger(fatalReporterInitState: FatalIssueReporterState = FatalIssueReporterState.NotInitialized) =
+    private fun buildAppExitLogger(fatalReporterInitState: IssueReporterState = IssueReporterState.NotInitialized) =
         AppExitLogger(
             logger,
             activityManager,
@@ -307,7 +307,7 @@ class AppExitLoggerTest {
             memoryMetricsProvider,
             lastExitInfo,
             captureUncaughtExceptionHandler,
-            FakeFatalIssueReporter(fatalReporterInitState),
+            FakeIssueReporter(fatalReporterInitState),
         )
 
     private fun fieldsMatchExpectedAnr(arrayFields: ArrayFields): Boolean {

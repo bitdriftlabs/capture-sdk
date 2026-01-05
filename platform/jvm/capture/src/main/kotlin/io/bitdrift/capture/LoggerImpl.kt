@@ -47,8 +47,8 @@ import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
-import io.bitdrift.capture.reports.FatalIssueReporter
-import io.bitdrift.capture.reports.IFatalIssueReporter
+import io.bitdrift.capture.reports.IIssueReporter
+import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.reports.processor.IssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
@@ -86,9 +86,9 @@ internal class LoggerImpl(
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    private val fatalIssueReporter: IFatalIssueReporter? =
+    private val issueReporter: IIssueReporter? =
         if (configuration.enableFatalIssueReporting) {
-            FatalIssueReporter(dateProvider = dateProvider)
+            IssueReporter(dateProvider = dateProvider)
         } else {
             null
         },
@@ -258,7 +258,7 @@ internal class LoggerImpl(
                 runtime,
                 errorHandler,
                 memoryMetricsProvider = memoryMetricsProvider,
-                fatalIssueReporter = fatalIssueReporter,
+                issueReporter = issueReporter,
             )
 
         // Install the app exit logger before the Capture logger is started to ensure
@@ -268,8 +268,8 @@ internal class LoggerImpl(
 
         CaptureJniLibrary.startLogger(this.loggerId)
 
-        // fatal issue reporter needs to be initialized after appExitLogger and the jniLogger
-        fatalIssueReporter?.init(
+        // issue reporter needs to be initialized after appExitLogger and the jniLogger
+        issueReporter?.init(
             activityManager = activityManager,
             sdkDirectory = sdkDirectory,
             clientAttributes = clientAttributes,
@@ -592,8 +592,8 @@ internal class LoggerImpl(
                 )
             val fatalIssueFields =
                 (
-                    fatalIssueReporter?.getLogStatusFieldsMap()
-                        ?: FatalIssueReporter.getDisabledStatusFieldsMap()
+                    issueReporter?.getLogStatusFieldsMap()
+                        ?: IssueReporter.getDisabledStatusFieldsMap()
                 ).toFields()
             val sdkStartFields = combineFields(baseFields, fatalIssueFields)
 
@@ -605,7 +605,7 @@ internal class LoggerImpl(
         }
     }
 
-    internal fun getIssueProcessor(): IssueReporterProcessor? = (fatalIssueReporter as? FatalIssueReporter)?.getIssueReporterProcessor()
+    internal fun getIssueProcessor(): IssueReporterProcessor? = (issueReporter as? IssueReporter)?.getIssueReporterProcessor()
 
     private fun startDebugOperationsAsNeeded(context: Context) {
         if (!BuildTypeChecker.isDebuggable(context)) {

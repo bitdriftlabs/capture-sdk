@@ -32,8 +32,8 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
-import io.bitdrift.capture.reports.FatalIssueReporter
-import io.bitdrift.capture.reports.IFatalIssueReporter
+import io.bitdrift.capture.reports.IIssueReporter
+import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.toStringMap
 import okhttp3.HttpUrl
@@ -64,7 +64,7 @@ class CaptureLoggerTest {
         }
 
     private var testServerPort: Int? = null
-    private val fatalIssueReporter: IFatalIssueReporter = FatalIssueReporter(dateProvider = FakeDateProvider)
+    private val issueReporter: IIssueReporter = IssueReporter(dateProvider = FakeDateProvider)
 
     @Before
     fun setUp() {
@@ -490,7 +490,7 @@ class CaptureLoggerTest {
                 context = ContextHolder.APP_CONTEXT,
                 dateProvider = dateProvider,
                 configuration = Configuration(),
-                fatalIssueReporter = fatalIssueReporter,
+                issueReporter = issueReporter,
             )
         val sdkConfiguredDuration =
             LoggerImpl.SdkConfiguredDuration(

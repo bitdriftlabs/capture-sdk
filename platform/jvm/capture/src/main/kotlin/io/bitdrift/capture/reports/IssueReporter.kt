@@ -16,7 +16,7 @@ import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.providers.DateProvider
-import io.bitdrift.capture.reports.FatalIssueReporterState.NotInitialized
+import io.bitdrift.capture.reports.IssueReporterState.NotInitialized
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.mapToFatalIssueType
@@ -37,27 +37,28 @@ import kotlin.time.DurationUnit
 import kotlin.time.TimeSource
 
 /**
- * Note: This is a temporary flag that may be removed in the future.
+ * Reports different Issue Types (JVM crash, ANR, native, StrictMode, etc)
+ *
  * @param backgroundThreadHandler Handler for background thread operations
  * @param latestAppExitInfoProvider Provider for retrieving latest app exit information
  * @param captureUncaughtExceptionHandler Handler for uncaught exceptions
  */
-internal class FatalIssueReporter(
+internal class IssueReporter(
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
     private val dateProvider: DateProvider,
-) : IFatalIssueReporter,
+) : IIssueReporter,
     IJvmCrashListener {
     @VisibleForTesting
-    internal var fatalIssueReporterState: FatalIssueReporterState = NotInitialized
+    internal var issueReporterState: IssueReporterState = NotInitialized
         private set
     private var initializationDuration: Duration? = null
 
     private var issueReporterProcessor: IssueReporterProcessor? = null
 
     /**
-     * Initializes the FatalIssueReporter handler once we have the required dependencies available
+     * Initializes the IssueReporter handler once we have the required dependencies available
      */
     override fun init(
         activityManager: ActivityManager,
@@ -65,27 +66,27 @@ internal class FatalIssueReporter(
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
     ) {
-        if (fatalIssueReporterState != NotInitialized) {
-            Log.e(LOG_TAG, "Fatal issue reporting already being initialized")
+        if (issueReporterState != NotInitialized) {
+            Log.e(LOG_TAG, "Issue reporting already being initialized")
             return
         }
         // setting immediate value to avoid re-initializing if the first state check takes time
-        fatalIssueReporterState = FatalIssueReporterState.Initializing
+        issueReporterState = IssueReporterState.Initializing
 
         val duration = TimeSource.Monotonic.markNow()
         runCatching {
             runCatching {
                 if (!isFatalIssueReportingRuntimeEnabled(sdkDirectory)) {
-                    fatalIssueReporterState = FatalIssueReporterState.RuntimeDisabled
+                    issueReporterState = IssueReporterState.RuntimeDisabled
                     initializationDuration = duration.elapsedNow()
                     return
                 }
             }.onFailure {
-                fatalIssueReporterState =
+                issueReporterState =
                     if (it is FileNotFoundException) {
-                        FatalIssueReporterState.RuntimeUnset
+                        IssueReporterState.RuntimeUnset
                     } else {
-                        FatalIssueReporterState.RuntimeInvalid
+                        IssueReporterState.RuntimeInvalid
                     }
                 initializationDuration = duration.elapsedNow()
                 return
@@ -105,18 +106,18 @@ internal class FatalIssueReporter(
                     persistLastExitReasonIfNeeded(activityManager)
                     completedReportsProcessor.processIssueReports(ReportProcessingSession.PreviousRun)
                 }.onSuccess {
-                    fatalIssueReporterState =
-                        FatalIssueReporterState.Initialized
+                    issueReporterState =
+                        IssueReporterState.Initialized
                 }.onFailure {
                     logError(completedReportsProcessor, it)
-                    fatalIssueReporterState =
-                        FatalIssueReporterState.InitializationFailed
+                    issueReporterState =
+                        IssueReporterState.InitializationFailed
                 }
             }
         }.getOrElse {
             logError(completedReportsProcessor, it)
-            fatalIssueReporterState =
-                FatalIssueReporterState.InitializationFailed
+            issueReporterState =
+                IssueReporterState.InitializationFailed
         }
         initializationDuration = duration.elapsedNow()
     }
@@ -129,7 +130,7 @@ internal class FatalIssueReporter(
     /**
      * Returns the current init state
      */
-    override fun initializationState(): FatalIssueReporterState = fatalIssueReporterState
+    override fun initializationState(): IssueReporterState = issueReporterState
 
     /**
      * Persists any JVM crash
@@ -152,7 +153,7 @@ internal class FatalIssueReporter(
 
     override fun getLogStatusFieldsMap(): Map<String, String> =
         buildMap {
-            put(FATAL_ISSUE_REPORTING_STATE_KEY, fatalIssueReporterState.readableType)
+            put(FATAL_ISSUE_REPORTING_STATE_KEY, issueReporterState.readableType)
             initializationDuration?.let {
                 put(FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY, it.toDouble(DurationUnit.MILLISECONDS).toString())
             }
@@ -200,7 +201,7 @@ internal class FatalIssueReporter(
 
         fun getDisabledStatusFieldsMap(): Map<String, String> =
             buildMap {
-                put(FATAL_ISSUE_REPORTING_STATE_KEY, FatalIssueReporterState.ClientDisabled.readableType)
+                put(FATAL_ISSUE_REPORTING_STATE_KEY, IssueReporterState.ClientDisabled.readableType)
             }
     }
 }

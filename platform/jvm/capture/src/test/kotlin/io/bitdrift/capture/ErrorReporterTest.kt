@@ -17,8 +17,8 @@ import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueReporter
-import io.bitdrift.capture.reports.IFatalIssueReporter
+import io.bitdrift.capture.reports.IIssueReporter
+import io.bitdrift.capture.reports.IssueReporter
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockWebServer
@@ -37,8 +37,8 @@ import java.util.concurrent.TimeUnit
 class ErrorReporterTest {
     private lateinit var server: MockWebServer
     private lateinit var reporter: ErrorReporterService
-    private val fatalIssueReporter: IFatalIssueReporter =
-        FatalIssueReporter(
+    private val issueReporter: IIssueReporter =
+        IssueReporter(
             dateProvider = FakeDateProvider,
         )
 
@@ -115,7 +115,7 @@ class ErrorReporterTest {
                 sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
                 configuration = Configuration(),
                 errorReporter = reporter,
-                fatalIssueReporter = fatalIssueReporter,
+                issueReporter = issueReporter,
             )
 
         val errorHandler = ErrorHandler()

@@ -12,11 +12,11 @@ import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 
 /**
- * Handles internal reporting of Fatal Issues
+ * Handles internal reporting of Issues (JVM crash, ANR, native, StrictMode, etc)
  */
-interface IFatalIssueReporter {
+interface IIssueReporter {
     /**
-     * Initializes the FatalIssueReporter
+     * Initializes the IssueReporter
      */
     fun init(
         activityManager: ActivityManager,
@@ -28,11 +28,11 @@ interface IFatalIssueReporter {
     /**
      * Returns the current initialization state
      */
-    fun initializationState(): FatalIssueReporterState
+    fun initializationState(): IssueReporterState
 
     /**
      * Generates the fields to be reported upon Capture.Logger.start with
-     * details of FatalIssueReporter state
+     * details of IssueReporterState
      */
     fun getLogStatusFieldsMap(): Map<String, String>
 }
