@@ -58,7 +58,7 @@ internal class IssueReporter(
     private var issueReporterProcessor: IssueReporterProcessor? = null
 
     /**
-     * Initializes the FatalIssueReporter handler once we have the required dependencies available
+     * Initializes the IssueReporter handler once we have the required dependencies available
      */
     override fun init(
         activityManager: ActivityManager,
@@ -67,7 +67,7 @@ internal class IssueReporter(
         completedReportsProcessor: ICompletedReportsProcessor,
     ) {
         if (issueReporterState != NotInitialized) {
-            Log.e(LOG_TAG, "Fatal issue reporting already being initialized")
+            Log.e(LOG_TAG, "Issue reporting already being initialized")
             return
         }
         // setting immediate value to avoid re-initializing if the first state check takes time

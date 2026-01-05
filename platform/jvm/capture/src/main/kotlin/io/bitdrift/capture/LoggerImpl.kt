@@ -258,7 +258,7 @@ internal class LoggerImpl(
                 runtime,
                 errorHandler,
                 memoryMetricsProvider = memoryMetricsProvider,
-                fatalIssueReporter = issueReporter,
+                issueReporter = issueReporter,
             )
 
         // Install the app exit logger before the Capture logger is started to ensure
@@ -268,7 +268,7 @@ internal class LoggerImpl(
 
         CaptureJniLibrary.startLogger(this.loggerId)
 
-        // fatal issue reporter needs to be initialized after appExitLogger and the jniLogger
+        // issue reporter needs to be initialized after appExitLogger and the jniLogger
         issueReporter?.init(
             activityManager = activityManager,
             sdkDirectory = sdkDirectory,

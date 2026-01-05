@@ -25,7 +25,7 @@ import kotlin.io.path.createTempDirectory
 import kotlin.io.path.deleteRecursively
 import kotlin.io.path.pathString
 
-class FatalIssueReporterStorageTest {
+class IssueReporterStorageTest {
     private lateinit var storage: IssueReporterStorage
     private lateinit var dir: Path
 
@@ -74,7 +74,7 @@ class FatalIssueReporterStorageTest {
     }
 
     @Test
-    fun persistFatalIssue_whenNonFatalJsError_shouldAddTypeToFileName() {
+    fun persistNonFatalIssue_whenNonFatalJsError_shouldAddTypeToFileName() {
         assertFileWithExpectedType(
             reportType = ReportType.JavaScriptNonFatalError,
             "java_script_non_fatal_error",
@@ -82,7 +82,7 @@ class FatalIssueReporterStorageTest {
     }
 
     @Test
-    fun persistFatalIssue_whenStrictMode_shouldAddTypeToFileName() {
+    fun persistNonFatalIssue_whenStrictMode_shouldAddTypeToFileName() {
         assertFileWithExpectedType(
             reportType = ReportType.StrictModeViolation,
             "strict_mode_violation",

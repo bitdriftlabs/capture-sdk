@@ -44,7 +44,7 @@ internal class AppExitLogger(
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
-    private val fatalIssueReporter: IIssueReporter?,
+    private val issueReporter: IIssueReporter?,
 ) : IJvmCrashListener {
     companion object {
         private const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -105,9 +105,9 @@ internal class AppExitLogger(
         thread: Thread,
         throwable: Throwable,
     ) {
-        // When FatalIssueReporterState is Initialized will rely on shared-core to emit the related JVM crash log
+        // When IssueReporterState is Initialized will rely on shared-core to emit the related JVM crash log
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) ||
-            IssueReporterState.Initialized == fatalIssueReporter?.initializationState()
+            IssueReporterState.Initialized == issueReporter?.initializationState()
         ) {
             return
         }
