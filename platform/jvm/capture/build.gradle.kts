@@ -54,6 +54,7 @@ android {
         minSdk = 23
         ndkVersion = "27"
         consumerProguardFiles("consumer-rules.pro")
+        testApplicationId = "io.bitdrift.capture"
     }
 
     ndkVersion = "27.2.12479018"
@@ -70,6 +71,12 @@ android {
             languageVersion = KotlinVersion.KOTLIN_1_9
             allWarningsAsErrors = true
             freeCompilerArgs.addAll(listOf("-Xdont-warn-on-error-suppression")) // needed for suppressing INVISIBLE_REFERENCE etc
+        }
+    }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
         }
     }
 

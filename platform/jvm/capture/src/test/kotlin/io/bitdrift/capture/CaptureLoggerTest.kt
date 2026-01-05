@@ -56,7 +56,7 @@ import kotlin.time.Duration
 private const val TEST_DATE_TIMESTAMP: Long = 1657047358123
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [24])
+@Config(sdk = [24], qualifiers = "+ar")
 class CaptureLoggerTest {
     private val systemDateProvider =
         DateProvider {
