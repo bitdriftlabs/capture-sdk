@@ -20,7 +20,7 @@ import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.FatalIssueReporter
+import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
@@ -49,8 +49,8 @@ class CaptureLoggerSessionOverrideTest {
 
     private lateinit var logger: LoggerImpl
     private var testServerPort: Int? = null
-    private val fatalIssueReporter =
-        FatalIssueReporter(
+    private val issueReporter =
+        IssueReporter(
             dateProvider = FakeDateProvider,
         )
 
@@ -89,7 +89,7 @@ class CaptureLoggerSessionOverrideTest {
                 configuration = Configuration(),
                 context = ContextHolder.APP_CONTEXT,
                 preferences = preferences,
-                fatalIssueReporter = fatalIssueReporter,
+                issueReporter = issueReporter,
             )
 
         // Let the first logger process come up and send it the configuration to aggressively upload
@@ -127,7 +127,7 @@ class CaptureLoggerSessionOverrideTest {
                 context = ContextHolder.APP_CONTEXT,
                 preferences = preferences,
                 activityManager = activityManager,
-                fatalIssueReporter = fatalIssueReporter,
+                issueReporter = issueReporter,
             )
 
         val secondApiStreamId = CaptureTestJniLibrary.awaitNextApiStream()

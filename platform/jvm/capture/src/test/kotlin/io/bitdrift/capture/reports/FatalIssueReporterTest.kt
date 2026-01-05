@@ -40,7 +40,7 @@ import java.io.File
 @Config(sdk = [30]) // needs API 30 to use ApplicationExitInfo
 class FatalIssueReporterTest {
     private lateinit var activityManager: ActivityManager
-    private lateinit var fatalIssueReporter: FatalIssueReporter
+    private lateinit var issueReporter: IssueReporter
     private lateinit var reportsDir: File
     private lateinit var configFile: File
 
@@ -65,7 +65,7 @@ class FatalIssueReporterTest {
         configFile = File(reportsDir, "config.csv")
         configFile.writeText("crash_reporting.enabled,true")
         sdkDirectory = SdkDirectory.getPath(APP_CONTEXT)
-        fatalIssueReporter = buildReporter()
+        issueReporter = buildReporter()
     }
 
     @After
@@ -76,55 +76,55 @@ class FatalIssueReporterTest {
     @Test
     fun initialize_whenDisabledViaConfig_shouldNotInit() {
         configFile.writeText("crash_reporting.enabled,false")
-        fatalIssueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
+        issueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
 
-        fatalIssueReporter.fatalIssueReporterState.assert(
-            FatalIssueReporterState.RuntimeDisabled::class.java,
+        issueReporter.issueReporterState.assert(
+            IssueReporterState.RuntimeDisabled::class.java,
         )
         assertThat(
-            fatalIssueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
+            issueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
         ).isNotNull
     }
 
     @Test
     fun initialize_whenConfigCorrupt_shouldNotInit() {
         configFile.writeText("crash_reporting.enabled")
-        fatalIssueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
+        issueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
 
-        fatalIssueReporter.fatalIssueReporterState.assert(
-            FatalIssueReporterState.RuntimeInvalid::class.java,
+        issueReporter.issueReporterState.assert(
+            IssueReporterState.RuntimeInvalid::class.java,
         )
         assertThat(
-            fatalIssueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
+            issueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
         ).isNotNull
     }
 
     @Test
     fun initialize_whenConfigNotPresent_shouldNotInit() {
         configFile.delete()
-        fatalIssueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
+        issueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
 
-        fatalIssueReporter.fatalIssueReporterState.assert(
-            FatalIssueReporterState.RuntimeUnset::class.java,
+        issueReporter.issueReporterState.assert(
+            IssueReporterState.RuntimeUnset::class.java,
         )
         assertThat(
-            fatalIssueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
+            issueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
         ).isNotNull
     }
 
     @Test
     fun initialize_whenEnabled_shouldInitCrashHandlerAndFetchAppExitReason() {
-        fatalIssueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
+        issueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
 
-        verify(captureUncaughtExceptionHandler).install(eq(fatalIssueReporter))
+        verify(captureUncaughtExceptionHandler).install(eq(issueReporter))
         verify(latestAppExitInfoProvider).get(any())
-        fatalIssueReporter.fatalIssueReporterState.assert(
-            FatalIssueReporterState.Initialized::class.java,
+        issueReporter.issueReporterState.assert(
+            IssueReporterState.Initialized::class.java,
         )
         verify(completedReportsProcessor).processIssueReports(ReportProcessingSession.PreviousRun)
     }
 
-    private fun FatalIssueReporterState.assert(
+    private fun IssueReporterState.assert(
         expectedType: Class<*>,
         crashFileExist: Boolean = false,
     ) {
@@ -138,7 +138,7 @@ class FatalIssueReporterTest {
         whenever(latestAppExitInfoProvider.get(any()))
             .thenThrow(exception)
 
-        fatalIssueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
+        issueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
 
         verify(completedReportsProcessor).onReportProcessingError(
             any(),
@@ -148,16 +148,16 @@ class FatalIssueReporterTest {
 
     @Test
     fun getIssueReporterProcessor_whenNotInitialized_shouldReturnNull() {
-        val processor = fatalIssueReporter.getIssueReporterProcessor()
+        val processor = issueReporter.getIssueReporterProcessor()
 
         assertThat(processor).isNull()
     }
 
     @Test
     fun getIssueReporterProcessor_whenInitialized_shouldReturnValidProcessor() {
-        fatalIssueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
+        issueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
 
-        val processor = fatalIssueReporter.getIssueReporterProcessor()
+        val processor = issueReporter.getIssueReporterProcessor()
 
         assertThat(processor).isInstanceOf(IssueReporterProcessor::class.java)
     }
@@ -165,9 +165,9 @@ class FatalIssueReporterTest {
     @Test
     fun getIssueReporterProcessor_whenInitCalledButDisabled_shouldReturnNull() {
         configFile.writeText("crash_reporting.enabled,false")
-        fatalIssueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
+        issueReporter.init(activityManager, sdkDirectory, clientAttributes, completedReportsProcessor)
 
-        val processor = fatalIssueReporter.getIssueReporterProcessor()
+        val processor = issueReporter.getIssueReporterProcessor()
 
         assertThat(processor).isNull()
     }
@@ -177,8 +177,8 @@ class FatalIssueReporterTest {
         assertThat(crashFile.exists()).isEqualTo(crashFileExist)
     }
 
-    private fun buildReporter(): FatalIssueReporter =
-        FatalIssueReporter(
+    private fun buildReporter(): IssueReporter =
+        IssueReporter(
             FakeBackgroundThreadHandler(),
             latestAppExitInfoProvider,
             captureUncaughtExceptionHandler,
