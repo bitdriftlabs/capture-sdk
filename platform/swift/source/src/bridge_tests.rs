@@ -10,7 +10,6 @@ use bd_api::PlatformNetworkStream;
 use bd_runtime::runtime::FeatureFlag;
 use bd_test_helpers::runtime::ValueKind;
 use bd_test_helpers::RecordingErrorReporter;
-use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -53,6 +52,7 @@ struct Setup {
   timeout: Arc<AtomicBool>,
   stream_state_tx: tokio::sync::watch::Sender<State>,
   runtime: Arc<bd_runtime::runtime::ConfigLoader>,
+  _temp_dir: tempfile::TempDir,
 }
 
 impl Setup {
@@ -62,7 +62,8 @@ impl Setup {
     let timeout = Arc::new(AtomicBool::new(false));
 
     let (stream_state_tx, _) = tokio::sync::watch::channel(State::Open);
-    let runtime = bd_runtime::runtime::ConfigLoader::new(&PathBuf::from("."));
+    let temp_dir = tempfile::TempDir::new().unwrap();
+    let runtime = bd_runtime::runtime::ConfigLoader::new(temp_dir.path());
 
     Self {
       capacity,
@@ -70,6 +71,7 @@ impl Setup {
       timeout,
       stream_state_tx,
       runtime,
+      _temp_dir: temp_dir,
     }
   }
 
