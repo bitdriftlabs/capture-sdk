@@ -32,8 +32,8 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
-import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.reports.IIssueReporter
+import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.toStringMap
 import okhttp3.HttpUrl

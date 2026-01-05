@@ -47,8 +47,8 @@ import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
-import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.reports.IIssueReporter
+import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.reports.processor.IssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession

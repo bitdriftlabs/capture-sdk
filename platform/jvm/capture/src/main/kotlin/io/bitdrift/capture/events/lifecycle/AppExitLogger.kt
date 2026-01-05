@@ -25,8 +25,8 @@ import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
-import io.bitdrift.capture.reports.IssueReporterState
 import io.bitdrift.capture.reports.IIssueReporter
+import io.bitdrift.capture.reports.IssueReporterState
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult

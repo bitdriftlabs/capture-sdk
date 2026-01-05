@@ -14,8 +14,8 @@ import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.fakes.FakeDateProvider
-import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.reports.IIssueReporter
+import io.bitdrift.capture.reports.IssueReporter
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before

@@ -9,8 +9,8 @@ package io.bitdrift.capture.fakes
 
 import android.app.ActivityManager
 import io.bitdrift.capture.attributes.IClientAttributes
-import io.bitdrift.capture.reports.IssueReporterState
 import io.bitdrift.capture.reports.IIssueReporter
+import io.bitdrift.capture.reports.IssueReporterState
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 
 class FakeIssueReporter(

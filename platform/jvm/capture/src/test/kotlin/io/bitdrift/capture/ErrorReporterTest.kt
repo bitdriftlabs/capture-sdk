@@ -17,8 +17,8 @@ import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.reports.IIssueReporter
+import io.bitdrift.capture.reports.IssueReporter
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockWebServer
