@@ -38,7 +38,7 @@ import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [30]) // needs API 30 to use ApplicationExitInfo
-class FatalIssueReporterTest {
+class IssueReporterTest {
     private lateinit var activityManager: ActivityManager
     private lateinit var issueReporter: IssueReporter
     private lateinit var reportsDir: File
