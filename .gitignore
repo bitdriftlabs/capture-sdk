@@ -7,6 +7,9 @@
 /bazel-*
 **/Bazel Generated/
 
+# Claude code
+.claude/settings.local.json
+
 compile_commands.json
 .DS_Store
 /dist
