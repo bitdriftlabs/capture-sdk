@@ -1,5 +1,5 @@
 {
-  "checksum": "92cb55bbf15c3b08b25aa728ff8b259043560f3cbaa41ab94fe849499c83a9db",
+  "checksum": "d2cb329e5397c5fd139a3cbc7e97ee201ea03f60d109419437e90b229dac07bb",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -323,7 +323,7 @@
         "deps": {
           "common": [
             {
-              "id": "cc 1.2.49",
+              "id": "cc 1.2.51",
               "target": "cc"
             }
           ],
@@ -934,7 +934,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -1084,14 +1084,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "axum 0.8.7": {
+    "axum 0.8.8": {
       "name": "axum",
-      "version": "0.8.7",
+      "version": "0.8.8",
       "package_url": "https://github.com/tokio-rs/axum",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/axum/0.8.7/download",
-          "sha256": "5b098575ebe77cb6d14fc7f32749631a6e44edbef6b796f89b020e99ba20d425"
+          "url": "https://static.crates.io/crates/axum/0.8.8/download",
+          "sha256": "8b52af3cb4058c895d37317bb27508dccc8e5f2d39454016b297bf4a400597b8"
         }
       },
       "targets": [
@@ -1149,7 +1149,7 @@
               "target": "futures_util"
             },
             {
-              "id": "http 1.3.1",
+              "id": "http 1.4.0",
               "target": "http"
             },
             {
@@ -1165,7 +1165,7 @@
               "target": "hyper"
             },
             {
-              "id": "hyper-util 0.1.18",
+              "id": "hyper-util 0.1.19",
               "target": "hyper_util"
             },
             {
@@ -1197,7 +1197,7 @@
               "target": "serde_core"
             },
             {
-              "id": "serde_json 1.0.146",
+              "id": "serde_json 1.0.148",
               "target": "serde_json"
             },
             {
@@ -1213,7 +1213,7 @@
               "target": "sync_wrapper"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -1245,7 +1245,7 @@
           ],
           "selects": {}
         },
-        "version": "0.8.7"
+        "version": "0.8.8"
       },
       "license": "MIT",
       "license_ids": [
@@ -1299,7 +1299,7 @@
               "target": "futures_core"
             },
             {
-              "id": "http 1.3.1",
+              "id": "http 1.4.0",
               "target": "http"
             },
             {
@@ -1600,14 +1600,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "base64ct 1.8.0": {
+    "base64ct 1.8.2": {
       "name": "base64ct",
-      "version": "1.8.0",
+      "version": "1.8.2",
       "package_url": "https://github.com/RustCrypto/formats",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/base64ct/1.8.0/download",
-          "sha256": "55248b47b0caf0546f7988906588779981c43bb1bc9d0c44087278f80cdb44ba"
+          "url": "https://static.crates.io/crates/base64ct/1.8.2/download",
+          "sha256": "7d809780667f4410e7c41b07f52439b94d2bdf8528eeedc287fa38d3b7f95d82"
         }
       },
       "targets": [
@@ -1637,7 +1637,7 @@
           "selects": {}
         },
         "edition": "2024",
-        "version": "1.8.0"
+        "version": "1.8.2"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
@@ -1654,7 +1654,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-api"
         }
@@ -1773,7 +1773,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -1811,7 +1811,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-artifact-upload"
         }
@@ -1890,7 +1890,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "flatbuffers 25.12.19",
+              "id": "flatbuffers 25.9.23",
               "target": "flatbuffers"
             },
             {
@@ -1898,7 +1898,7 @@
               "target": "log"
             },
             {
-              "id": "mockall 0.13.1",
+              "id": "mockall 0.14.0",
               "target": "mockall"
             },
             {
@@ -1910,7 +1910,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -1944,7 +1944,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-bonjson"
         }
@@ -2008,7 +2008,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-bonjson-ffi"
         }
@@ -2114,7 +2114,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-bounded-buffer"
         }
@@ -2169,7 +2169,7 @@
               "target": "thiserror"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -2190,7 +2190,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-buffer"
         }
@@ -2297,7 +2297,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -2331,7 +2331,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-client-common"
         }
@@ -2386,7 +2386,7 @@
               "target": "crc32fast"
             },
             {
-              "id": "flatbuffers 25.12.19",
+              "id": "flatbuffers 25.9.23",
               "target": "flatbuffers"
             },
             {
@@ -2402,7 +2402,7 @@
               "target": "log"
             },
             {
-              "id": "mockall 0.13.1",
+              "id": "mockall 0.14.0",
               "target": "mockall"
             },
             {
@@ -2414,7 +2414,7 @@
               "target": "protobuf"
             },
             {
-              "id": "tempfile 3.23.0",
+              "id": "tempfile 3.24.0",
               "target": "tempfile"
             },
             {
@@ -2426,7 +2426,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -2460,7 +2460,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-client-stats"
         }
@@ -2539,6 +2539,14 @@
               "target": "bd_workspace_hack"
             },
             {
+              "id": "futures 0.3.31",
+              "target": "futures"
+            },
+            {
+              "id": "futures-util 0.3.31",
+              "target": "futures_util"
+            },
+            {
               "id": "itertools 0.14.0",
               "target": "itertools"
             },
@@ -2559,7 +2567,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -2589,7 +2597,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-client-stats-store"
         }
@@ -2652,7 +2660,7 @@
               "target": "thiserror"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -2682,7 +2690,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-completion"
         }
@@ -2725,7 +2733,7 @@
               "target": "thiserror"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -2746,7 +2754,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-crash-handler"
         }
@@ -2841,7 +2849,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "flatbuffers 25.12.19",
+              "id": "flatbuffers 25.9.23",
               "target": "flatbuffers"
             },
             {
@@ -2857,7 +2865,7 @@
               "target": "memmap2"
             },
             {
-              "id": "mockall 0.13.1",
+              "id": "mockall 0.14.0",
               "target": "mockall"
             },
             {
@@ -2881,7 +2889,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -2915,7 +2923,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-device"
         }
@@ -2991,7 +2999,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-error-reporter"
         }
@@ -3046,7 +3054,7 @@
               "target": "parking_lot"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -3071,7 +3079,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-events"
         }
@@ -3118,7 +3126,7 @@
               "target": "log"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -3139,7 +3147,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-grpc"
         }
@@ -3186,11 +3194,11 @@
               "target": "assert_matches"
             },
             {
-              "id": "axum 0.8.7",
+              "id": "axum 0.8.8",
               "target": "axum"
             },
             {
-              "id": "base64ct 1.8.0",
+              "id": "base64ct 1.8.2",
               "target": "base64ct"
             },
             {
@@ -3238,7 +3246,7 @@
               "target": "futures"
             },
             {
-              "id": "http 1.3.1",
+              "id": "http 1.4.0",
               "target": "http"
             },
             {
@@ -3254,7 +3262,7 @@
               "target": "hyper"
             },
             {
-              "id": "hyper-util 0.1.18",
+              "id": "hyper-util 0.1.19",
               "target": "hyper_util"
             },
             {
@@ -3274,7 +3282,7 @@
               "target": "serde"
             },
             {
-              "id": "serde_json 1.0.146",
+              "id": "serde_json 1.0.148",
               "target": "serde_json"
             },
             {
@@ -3290,7 +3298,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -3302,11 +3310,11 @@
               "target": "tower"
             },
             {
-              "id": "tower-http 0.6.6",
+              "id": "tower-http 0.6.8",
               "target": "tower_http"
             },
             {
-              "id": "unwrap-infallible 0.1.5",
+              "id": "unwrap-infallible 1.0.0",
               "target": "unwrap_infallible"
             },
             {
@@ -3366,7 +3374,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-grpc-codec"
         }
@@ -3445,7 +3453,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-hyper-network"
         }
@@ -3500,7 +3508,7 @@
               "target": "bytes"
             },
             {
-              "id": "http 1.3.1",
+              "id": "http 1.4.0",
               "target": "http"
             },
             {
@@ -3520,7 +3528,7 @@
               "target": "hyper_rustls"
             },
             {
-              "id": "hyper-util 0.1.18",
+              "id": "hyper-util 0.1.19",
               "target": "hyper_util"
             },
             {
@@ -3532,11 +3540,11 @@
               "target": "serde"
             },
             {
-              "id": "serde_json 1.0.146",
+              "id": "serde_json 1.0.148",
               "target": "serde_json"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -3570,7 +3578,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-internal-logging"
         }
@@ -3609,7 +3617,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -3630,7 +3638,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-key-value"
         }
@@ -3681,16 +3689,16 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "bincode 2.0.1",
-              "target": "bincode"
-            },
-            {
               "id": "log 0.4.29",
               "target": "log"
             },
             {
               "id": "parking_lot 0.12.5",
               "target": "parking_lot"
+            },
+            {
+              "id": "protobuf 4.0.0-alpha.0",
+              "target": "protobuf"
             },
             {
               "id": "serde 1.0.228",
@@ -3701,7 +3709,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -3722,7 +3730,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-log"
         }
@@ -3769,7 +3777,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -3806,7 +3814,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-log-filter"
         }
@@ -3894,7 +3902,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-log-matcher"
         }
@@ -3953,7 +3961,7 @@
               "target": "regex"
             },
             {
-              "id": "tempfile 3.23.0",
+              "id": "tempfile 3.24.0",
               "target": "tempfile"
             }
           ],
@@ -3974,7 +3982,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-log-metadata"
         }
@@ -4034,7 +4042,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-log-primitives"
         }
@@ -4073,12 +4081,24 @@
               "target": "bd_proto"
             },
             {
+              "id": "bd-proto-util 1.0.0",
+              "target": "bd_proto_util"
+            },
+            {
+              "id": "bd-time 1.0.0",
+              "target": "bd_time"
+            },
+            {
               "id": "bd-workspace-hack 0.1.0",
               "target": "bd_workspace_hack"
             },
             {
               "id": "flate2 1.1.5",
               "target": "flate2"
+            },
+            {
+              "id": "ordered-float 5.1.0",
+              "target": "ordered_float"
             },
             {
               "id": "protobuf 4.0.0-alpha.0",
@@ -4110,7 +4130,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-logger"
         }
@@ -4277,7 +4297,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "flatbuffers 25.12.19",
+              "id": "flatbuffers 25.9.23",
               "target": "flatbuffers"
             },
             {
@@ -4321,7 +4341,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -4333,7 +4353,7 @@
               "target": "tracing"
             },
             {
-              "id": "unwrap-infallible 0.1.5",
+              "id": "unwrap-infallible 1.0.0",
               "target": "unwrap_infallible"
             }
           ],
@@ -4355,6 +4375,66 @@
       "license_ids": [],
       "license_file": "../LICENSE"
     },
+    "bd-macros 1.0.0": {
+      "name": "bd-macros",
+      "version": "1.0.0",
+      "package_url": null,
+      "repository": {
+        "Git": {
+          "remote": "https://github.com/bitdriftlabs/shared-core.git",
+          "commitish": {
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
+          },
+          "strip_prefix": "bd-macros"
+        }
+      },
+      "targets": [
+        {
+          "ProcMacro": {
+            "crate_name": "bd_macros",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "bd_macros",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "bd-workspace-hack 0.1.0",
+              "target": "bd_workspace_hack"
+            },
+            {
+              "id": "proc-macro2 1.0.103",
+              "target": "proc_macro2"
+            },
+            {
+              "id": "quote 1.0.42",
+              "target": "quote"
+            },
+            {
+              "id": "syn 2.0.111",
+              "target": "syn"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2024",
+        "version": "1.0.0"
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": "../LICENSE"
+    },
     "bd-metadata 1.0.0": {
       "name": "bd-metadata",
       "version": "1.0.0",
@@ -4363,7 +4443,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-metadata"
         }
@@ -4411,7 +4491,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-network-quality"
         }
@@ -4459,7 +4539,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-noop-network"
         }
@@ -4528,7 +4608,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-panic"
         }
@@ -4588,7 +4668,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-pgv"
         }
@@ -4690,7 +4770,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-proto"
         }
@@ -4745,7 +4825,7 @@
               "target": "bytes"
             },
             {
-              "id": "flatbuffers 25.12.19",
+              "id": "flatbuffers 25.9.23",
               "target": "flatbuffers"
             },
             {
@@ -4800,7 +4880,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-proto-util"
         }
@@ -4839,11 +4919,15 @@
         "deps": {
           "common": [
             {
+              "id": "ahash 0.8.12",
+              "target": "ahash"
+            },
+            {
               "id": "anyhow 1.0.100",
               "target": "anyhow"
             },
             {
-              "id": "base64ct 1.8.0",
+              "id": "base64ct 1.8.2",
               "target": "base64ct"
             },
             {
@@ -4855,16 +4939,28 @@
               "target": "build_script_build"
             },
             {
+              "id": "bd-time 1.0.0",
+              "target": "bd_time"
+            },
+            {
               "id": "bd-workspace-hack 0.1.0",
               "target": "bd_workspace_hack"
             },
             {
-              "id": "flatbuffers 25.12.19",
+              "id": "flatbuffers 25.9.23",
               "target": "flatbuffers"
             },
             {
               "id": "itertools 0.14.0",
               "target": "itertools"
+            },
+            {
+              "id": "num-traits 0.2.19",
+              "target": "num_traits"
+            },
+            {
+              "id": "ordered-float 5.1.0",
+              "target": "ordered_float"
             },
             {
               "id": "protobuf 4.0.0-alpha.0",
@@ -4897,7 +4993,7 @@
         "deps": {
           "common": [
             {
-              "id": "cc 1.2.49",
+              "id": "cc 1.2.51",
               "target": "cc"
             }
           ],
@@ -4916,7 +5012,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-report-parsers"
         }
@@ -4955,7 +5051,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "flatbuffers 25.12.19",
+              "id": "flatbuffers 25.9.23",
               "target": "flatbuffers"
             },
             {
@@ -4988,7 +5084,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-report-writer"
         }
@@ -5039,7 +5135,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "flatbuffers 25.12.19",
+              "id": "flatbuffers 25.9.23",
               "target": "flatbuffers"
             }
           ],
@@ -5086,7 +5182,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-resilient-kv"
         }
@@ -5185,7 +5281,7 @@
               "target": "thiserror"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -5206,7 +5302,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-resource-utilization"
         }
@@ -5269,7 +5365,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -5290,7 +5386,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-runtime"
         }
@@ -5345,7 +5441,7 @@
               "target": "protobuf"
             },
             {
-              "id": "tempfile 3.23.0",
+              "id": "tempfile 3.24.0",
               "target": "tempfile"
             },
             {
@@ -5353,7 +5449,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -5383,7 +5479,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-server-stats"
         }
@@ -5458,7 +5554,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -5479,7 +5575,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-session"
         }
@@ -5518,6 +5614,10 @@
               "target": "bd_log"
             },
             {
+              "id": "bd-proto 1.0.0",
+              "target": "bd_proto"
+            },
+            {
               "id": "bd-time 1.0.0",
               "target": "bd_time"
             },
@@ -5546,7 +5646,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -5571,7 +5671,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-session-replay"
         }
@@ -5654,7 +5754,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -5675,7 +5775,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-shutdown"
         }
@@ -5710,7 +5810,7 @@
               "target": "log"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -5731,7 +5831,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-state"
         }
@@ -5802,7 +5902,7 @@
               "target": "log"
             },
             {
-              "id": "tempfile 3.23.0",
+              "id": "tempfile 3.24.0",
               "target": "tempfile"
             },
             {
@@ -5810,7 +5910,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -5840,7 +5940,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-stats-common"
         }
@@ -5900,7 +6000,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-test-helpers"
         }
@@ -5935,7 +6035,7 @@
               "target": "assert_matches"
             },
             {
-              "id": "axum 0.8.7",
+              "id": "axum 0.8.8",
               "target": "axum"
             },
             {
@@ -6023,12 +6123,16 @@
               "target": "hyper"
             },
             {
-              "id": "hyper-util 0.1.18",
+              "id": "hyper-util 0.1.19",
               "target": "hyper_util"
             },
             {
               "id": "log 0.4.29",
               "target": "log"
+            },
+            {
+              "id": "ordered-float 5.1.0",
+              "target": "ordered_float"
             },
             {
               "id": "parking_lot 0.12.5",
@@ -6051,7 +6155,7 @@
               "target": "serde"
             },
             {
-              "id": "tempfile 3.23.0",
+              "id": "tempfile 3.24.0",
               "target": "tempfile"
             },
             {
@@ -6059,7 +6163,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -6105,7 +6209,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-time"
         }
@@ -6152,7 +6256,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -6182,7 +6286,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "b4eefdd7545a117124a93b9658db8c21db75eb8f"
+            "Rev": "53e42f362ad6aeebca7d0cf4f1dc24bb52f477f2"
           },
           "strip_prefix": "bd-workflows"
         }
@@ -6249,6 +6353,10 @@
               "target": "bd_proto"
             },
             {
+              "id": "bd-proto-util 1.0.0",
+              "target": "bd_proto_util"
+            },
+            {
               "id": "bd-runtime 1.0.0",
               "target": "bd_runtime"
             },
@@ -6313,7 +6421,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -6329,6 +6437,10 @@
             {
               "id": "async-trait 0.1.89",
               "target": "async_trait"
+            },
+            {
+              "id": "bd-macros 1.0.0",
+              "target": "bd_macros"
             }
           ],
           "selects": {}
@@ -6892,7 +7004,7 @@
               "target": "bd_time"
             },
             {
-              "id": "flatbuffers 25.12.19",
+              "id": "flatbuffers 25.9.23",
               "target": "flatbuffers"
             },
             {
@@ -6916,7 +7028,7 @@
               "target": "protobuf"
             },
             {
-              "id": "tempfile 3.23.0",
+              "id": "tempfile 3.24.0",
               "target": "tempfile"
             },
             {
@@ -7072,7 +7184,7 @@
               "target": "serde"
             },
             {
-              "id": "serde_json 1.0.146",
+              "id": "serde_json 1.0.148",
               "target": "serde_json"
             },
             {
@@ -7080,7 +7192,7 @@
               "target": "syn"
             },
             {
-              "id": "tempfile 3.23.0",
+              "id": "tempfile 3.24.0",
               "target": "tempfile"
             },
             {
@@ -7110,14 +7222,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "cc 1.2.49": {
+    "cc 1.2.51": {
       "name": "cc",
-      "version": "1.2.49",
+      "version": "1.2.51",
       "package_url": "https://github.com/rust-lang/cc-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/cc/1.2.49/download",
-          "sha256": "90583009037521a116abf44494efecd645ba48b6622457080f080b85544e2215"
+          "url": "https://static.crates.io/crates/cc/1.2.51/download",
+          "sha256": "7a0aeaff4ff1a90589618835a598e545176939b97874f7abc7851caa0618f203"
         }
       },
       "targets": [
@@ -7142,7 +7254,7 @@
         "deps": {
           "common": [
             {
-              "id": "find-msvc-tools 0.1.5",
+              "id": "find-msvc-tools 0.1.6",
               "target": "find_msvc_tools"
             },
             {
@@ -7153,7 +7265,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "1.2.49"
+        "version": "1.2.51"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -8142,7 +8254,7 @@
               "target": "serde"
             },
             {
-              "id": "serde_json 1.0.146",
+              "id": "serde_json 1.0.148",
               "target": "serde_json"
             },
             {
@@ -9283,14 +9395,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "find-msvc-tools 0.1.5": {
+    "find-msvc-tools 0.1.6": {
       "name": "find-msvc-tools",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "package_url": "https://github.com/rust-lang/cc-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/find-msvc-tools/0.1.5/download",
-          "sha256": "3a3076410a55c90011c298b04d0cfa770b00fa04e1e3c97d3f6c9de105a03844"
+          "url": "https://static.crates.io/crates/find-msvc-tools/0.1.6/download",
+          "sha256": "645cbb3a84e60b7531617d5ae4e57f7e27308f6445f5abf653209ea76dec8dff"
         }
       },
       "targets": [
@@ -9313,7 +9425,7 @@
           "**"
         ],
         "edition": "2018",
-        "version": "0.1.5"
+        "version": "0.1.6"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -9322,14 +9434,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "flatbuffers 25.12.19": {
+    "flatbuffers 25.9.23": {
       "name": "flatbuffers",
-      "version": "25.12.19",
+      "version": "25.9.23",
       "package_url": "https://github.com/google/flatbuffers",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/flatbuffers/25.12.19/download",
-          "sha256": "35f6839d7b3b98adde531effaf34f0c2badc6f4735d26fe74709d8e513a96ef3"
+          "url": "https://static.crates.io/crates/flatbuffers/25.9.23/download",
+          "sha256": "09b6620799e7340ebd9968d2e0708eb82cf1971e9a16821e2091b6d6e475eed5"
         }
       },
       "targets": [
@@ -9377,14 +9489,14 @@
               "target": "bitflags"
             },
             {
-              "id": "flatbuffers 25.12.19",
+              "id": "flatbuffers 25.9.23",
               "target": "build_script_build"
             }
           ],
           "selects": {}
         },
         "edition": "2018",
-        "version": "25.12.19"
+        "version": "25.9.23"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -10723,7 +10835,7 @@
               "target": "futures_sink"
             },
             {
-              "id": "http 1.3.1",
+              "id": "http 1.4.0",
               "target": "http"
             },
             {
@@ -10735,7 +10847,7 @@
               "target": "slab"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -10990,14 +11102,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "http 1.3.1": {
+    "http 1.4.0": {
       "name": "http",
-      "version": "1.3.1",
+      "version": "1.4.0",
       "package_url": "https://github.com/hyperium/http",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/http/1.3.1/download",
-          "sha256": "f4a85d31aea989eead29a3aaf9e1115a180df8282431156e533de47660892565"
+          "url": "https://static.crates.io/crates/http/1.4.0/download",
+          "sha256": "e3ba2a386d7f85a81f119ad7498ebe444d2e22c2af0b86b069416ace48b3311a"
         }
       },
       "targets": [
@@ -11033,18 +11145,14 @@
               "target": "bytes"
             },
             {
-              "id": "fnv 1.0.7",
-              "target": "fnv"
-            },
-            {
               "id": "itoa 1.0.15",
               "target": "itoa"
             }
           ],
           "selects": {}
         },
-        "edition": "2018",
-        "version": "1.3.1"
+        "edition": "2021",
+        "version": "1.4.0"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -11089,7 +11197,7 @@
               "target": "bytes"
             },
             {
-              "id": "http 1.3.1",
+              "id": "http 1.4.0",
               "target": "http"
             }
           ],
@@ -11150,7 +11258,7 @@
               "target": "futures_core"
             },
             {
-              "id": "http 1.3.1",
+              "id": "http 1.4.0",
               "target": "http"
             },
             {
@@ -11352,7 +11460,7 @@
               "target": "h2"
             },
             {
-              "id": "http 1.3.1",
+              "id": "http 1.4.0",
               "target": "http"
             },
             {
@@ -11384,7 +11492,7 @@
               "target": "smallvec"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -11444,7 +11552,7 @@
         "deps": {
           "common": [
             {
-              "id": "http 1.3.1",
+              "id": "http 1.4.0",
               "target": "http"
             },
             {
@@ -11452,7 +11560,7 @@
               "target": "hyper"
             },
             {
-              "id": "hyper-util 0.1.18",
+              "id": "hyper-util 0.1.19",
               "target": "hyper_util"
             },
             {
@@ -11465,7 +11573,7 @@
               "alias": "pki_types"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -11494,14 +11602,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "hyper-util 0.1.18": {
+    "hyper-util 0.1.19": {
       "name": "hyper-util",
-      "version": "0.1.18",
+      "version": "0.1.19",
       "package_url": "https://github.com/hyperium/hyper-util",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/hyper-util/0.1.18/download",
-          "sha256": "52e9a2a24dc5c6821e71a7030e1e14b7b632acac55c40e9d2e082c621261bb56"
+          "url": "https://static.crates.io/crates/hyper-util/0.1.19/download",
+          "sha256": "727805d60e7938b76b826a6ef209eb70eaa1812794f9424d4a4e2d740662df5f"
         }
       },
       "targets": [
@@ -11555,7 +11663,7 @@
               "target": "futures_util"
             },
             {
-              "id": "http 1.3.1",
+              "id": "http 1.4.0",
               "target": "http"
             },
             {
@@ -11579,7 +11687,7 @@
               "target": "socket2"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -11594,7 +11702,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.1.18"
+        "version": "0.1.19"
       },
       "license": "MIT",
       "license_ids": [
@@ -12522,7 +12630,7 @@
         "deps": {
           "common": [
             {
-              "id": "cc 1.2.49",
+              "id": "cc 1.2.51",
               "target": "cc"
             },
             {
@@ -12626,15 +12734,18 @@
         ],
         "crate_features": {
           "common": [
-            "auxvec",
-            "elf",
             "errno",
             "general",
             "ioctl",
             "no_std",
             "std"
           ],
-          "selects": {}
+          "selects": {
+            "x86_64-unknown-linux-gnu": [
+              "auxvec",
+              "elf"
+            ]
+          }
         },
         "edition": "2021",
         "version": "0.11.0"
@@ -12814,7 +12925,7 @@
               "target": "protobuf"
             },
             {
-              "id": "tempfile 3.23.0",
+              "id": "tempfile 3.24.0",
               "target": "tempfile"
             },
             {
@@ -13412,14 +13523,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "mockall 0.13.1": {
+    "mockall 0.14.0": {
       "name": "mockall",
-      "version": "0.13.1",
+      "version": "0.14.0",
       "package_url": "https://github.com/asomers/mockall",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/mockall/0.13.1/download",
-          "sha256": "39a6bfcc6c8c7eed5ee98b9c3e33adc726054389233e201c95dab2d41a3839d2"
+          "url": "https://static.crates.io/crates/mockall/0.14.0/download",
+          "sha256": "f58d964098a5f9c6b63d0798e5372fd04708193510a7af313c22e9f29b7b620b"
         }
       },
       "targets": [
@@ -13427,6 +13538,18 @@
           "Library": {
             "crate_name": "mockall",
             "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
             "srcs": {
               "allow_empty": true,
               "include": [
@@ -13456,6 +13579,10 @@
               "target": "fragile"
             },
             {
+              "id": "mockall 0.14.0",
+              "target": "build_script_build"
+            },
+            {
               "id": "predicates 3.1.3",
               "target": "predicates"
             },
@@ -13470,13 +13597,24 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "mockall_derive 0.13.1",
+              "id": "mockall_derive 0.14.0",
               "target": "mockall_derive"
             }
           ],
           "selects": {}
         },
-        "version": "0.13.1"
+        "version": "0.14.0"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ]
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -13485,14 +13623,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "mockall_derive 0.13.1": {
+    "mockall_derive 0.14.0": {
       "name": "mockall_derive",
-      "version": "0.13.1",
+      "version": "0.14.0",
       "package_url": "https://github.com/asomers/mockall",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/mockall_derive/0.13.1/download",
-          "sha256": "25ca3004c2efe9011bd4e461bd8256445052b9615405b4f7ea43fc8ca5c20898"
+          "url": "https://static.crates.io/crates/mockall_derive/0.14.0/download",
+          "sha256": "ca41ce716dda6a9be188b385aa78ee5260fc25cd3802cb2a8afdc6afbe6b6dbf"
         }
       },
       "targets": [
@@ -13533,7 +13671,7 @@
               "target": "cfg_if"
             },
             {
-              "id": "mockall_derive 0.13.1",
+              "id": "mockall_derive 0.14.0",
               "target": "build_script_build"
             },
             {
@@ -13552,7 +13690,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.13.1"
+        "version": "0.14.0"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -14317,6 +14455,65 @@
       ],
       "license_file": "LICENSE-MIT"
     },
+    "ordered-float 5.1.0": {
+      "name": "ordered-float",
+      "version": "5.1.0",
+      "package_url": "https://github.com/reem/rust-ordered-float",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/ordered-float/5.1.0/download",
+          "sha256": "7f4779c6901a562440c3786d08192c6fbda7c1c2060edd10006b05ee35d10f2d"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "ordered_float",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "ordered_float",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "default",
+            "serde",
+            "std"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "num-traits 0.2.19",
+              "target": "num_traits"
+            },
+            {
+              "id": "serde 1.0.228",
+              "target": "serde"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "5.1.0"
+      },
+      "license": "MIT",
+      "license_ids": [
+        "MIT"
+      ],
+      "license_file": "LICENSE-MIT"
+    },
     "page_size 0.6.0": {
       "name": "page_size",
       "version": "0.6.0",
@@ -14804,7 +15001,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -15614,7 +15811,7 @@
               "target": "serde"
             },
             {
-              "id": "serde_json 1.0.146",
+              "id": "serde_json 1.0.148",
               "target": "serde_json"
             }
           ],
@@ -15867,7 +16064,7 @@
               "target": "regex"
             },
             {
-              "id": "tempfile 3.23.0",
+              "id": "tempfile 3.24.0",
               "target": "tempfile"
             },
             {
@@ -15941,7 +16138,7 @@
               "target": "protobuf_support"
             },
             {
-              "id": "tempfile 3.23.0",
+              "id": "tempfile 3.24.0",
               "target": "tempfile"
             },
             {
@@ -17047,7 +17244,7 @@
         "deps": {
           "common": [
             {
-              "id": "cc 1.2.49",
+              "id": "cc 1.2.51",
               "target": "cc"
             }
           ],
@@ -17279,14 +17476,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "rustix 1.1.2": {
+    "rustix 1.1.3": {
       "name": "rustix",
-      "version": "1.1.2",
+      "version": "1.1.3",
       "package_url": "https://github.com/bytecodealliance/rustix",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/rustix/1.1.2/download",
-          "sha256": "cd15f8a2c5551a84d56efdc1cd049089e409ac19a3072d5037a17fd70719ff3e"
+          "url": "https://static.crates.io/crates/rustix/1.1.3/download",
+          "sha256": "146c9e247ccc180c1f61615433868c99f3de3ae256a30a43b49f67c2d9171f34"
         }
       },
       "targets": [
@@ -17336,7 +17533,7 @@
               "target": "bitflags"
             },
             {
-              "id": "rustix 1.1.2",
+              "id": "rustix 1.1.3",
               "target": "build_script_build"
             }
           ],
@@ -17396,7 +17593,7 @@
                 "target": "libc"
               }
             ],
-            "cfg(all(any(target_os = \"linux\"), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))": [
+            "cfg(all(any(target_os = \"linux\", target_os = \"android\"), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))": [
               {
                 "id": "linux-raw-sys 0.11.0",
                 "target": "linux_raw_sys"
@@ -17466,7 +17663,7 @@
           }
         },
         "edition": "2021",
-        "version": "1.1.2"
+        "version": "1.1.3"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -18270,14 +18467,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "serde_json 1.0.146": {
+    "serde_json 1.0.148": {
       "name": "serde_json",
-      "version": "1.0.146",
+      "version": "1.0.148",
       "package_url": "https://github.com/serde-rs/json",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/serde_json/1.0.146/download",
-          "sha256": "217ca874ae0207aac254aa02c957ded05585a90892cc8d87f9e5fa49669dadd8"
+          "url": "https://static.crates.io/crates/serde_json/1.0.148/download",
+          "sha256": "3084b546a1dd6289475996f182a22aba973866ea8e8b02c51d9f46b1336a22da"
         }
       },
       "targets": [
@@ -18330,16 +18527,16 @@
               "target": "memchr"
             },
             {
-              "id": "ryu 1.0.20",
-              "target": "ryu"
-            },
-            {
               "id": "serde_core 1.0.228",
               "target": "serde_core"
             },
             {
-              "id": "serde_json 1.0.146",
+              "id": "serde_json 1.0.148",
               "target": "build_script_build"
+            },
+            {
+              "id": "zmij 1.0.11",
+              "target": "zmij"
             }
           ],
           "selects": {
@@ -18352,7 +18549,7 @@
           }
         },
         "edition": "2021",
-        "version": "1.0.146"
+        "version": "1.0.148"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -19453,7 +19650,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -19478,7 +19675,7 @@
               "target": "pretty_assertions"
             },
             {
-              "id": "tempfile 3.23.0",
+              "id": "tempfile 3.24.0",
               "target": "tempfile"
             }
           ],
@@ -19610,14 +19807,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "tempfile 3.23.0": {
+    "tempfile 3.24.0": {
       "name": "tempfile",
-      "version": "3.23.0",
+      "version": "3.24.0",
       "package_url": "https://github.com/Stebalien/tempfile",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/tempfile/3.23.0/download",
-          "sha256": "2d31c77bdf42a745371d260a26ca7163f1e0924b64afa0b688e61b5a9fa02f16"
+          "url": "https://static.crates.io/crates/tempfile/3.24.0/download",
+          "sha256": "655da9c7eb6305c55742045d5a8d2037996d61d8de95806335c7c86ce0f82e9c"
         }
       },
       "targets": [
@@ -19664,7 +19861,7 @@
           "selects": {
             "cfg(any(unix, target_os = \"wasi\"))": [
               {
-                "id": "rustix 1.1.2",
+                "id": "rustix 1.1.3",
                 "target": "rustix"
               }
             ],
@@ -19677,7 +19874,7 @@
           }
         },
         "edition": "2021",
-        "version": "3.23.0"
+        "version": "3.24.0"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -20481,7 +20678,7 @@
               "target": "serde"
             },
             {
-              "id": "serde_json 1.0.146",
+              "id": "serde_json 1.0.148",
               "target": "serde_json"
             }
           ],
@@ -20497,14 +20694,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "tokio 1.48.0": {
+    "tokio 1.49.0": {
       "name": "tokio",
-      "version": "1.48.0",
+      "version": "1.49.0",
       "package_url": "https://github.com/tokio-rs/tokio",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/tokio/1.48.0/download",
-          "sha256": "ff360e02eab121e0bc37a2d3b4d4dc622e6eda3a8e5253d5435ecf5bd4c68408"
+          "url": "https://static.crates.io/crates/tokio/1.49.0/download",
+          "sha256": "72a2903cd7736441aac9df9d7688bd0ce48edccaadf181c3b90be801e81d3d86"
         }
       },
       "targets": [
@@ -20595,7 +20792,7 @@
           ],
           "selects": {}
         },
-        "version": "1.48.0"
+        "version": "1.49.0"
       },
       "license": "MIT",
       "license_ids": [
@@ -20700,7 +20897,7 @@
               "target": "rustls"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -20763,7 +20960,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -20834,7 +21031,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             }
           ],
@@ -21135,7 +21332,7 @@
               "target": "sync_wrapper"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -21162,14 +21359,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "tower-http 0.6.6": {
+    "tower-http 0.6.8": {
       "name": "tower-http",
-      "version": "0.6.6",
+      "version": "0.6.8",
       "package_url": "https://github.com/tower-rs/tower-http",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/tower-http/0.6.6/download",
-          "sha256": "adc82fd73de2a9722ac5da747f12383d2bfdb93591ee6c58486e0097890f05f2"
+          "url": "https://static.crates.io/crates/tower-http/0.6.8/download",
+          "sha256": "d4e6559d53cc268e5031cd8429d05415bc4cb4aefc4aa5d6cc35fbf5b924a1f8"
         }
       },
       "targets": [
@@ -21221,7 +21418,7 @@
               "target": "futures_core"
             },
             {
-              "id": "http 1.3.1",
+              "id": "http 1.4.0",
               "target": "http"
             },
             {
@@ -21233,7 +21430,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "tokio 1.48.0",
+              "id": "tokio 1.49.0",
               "target": "tokio"
             },
             {
@@ -21252,7 +21449,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.6.6"
+        "version": "0.6.8"
       },
       "license": "MIT",
       "license_ids": [
@@ -21970,14 +22167,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "unwrap-infallible 0.1.5": {
+    "unwrap-infallible 1.0.0": {
       "name": "unwrap-infallible",
-      "version": "0.1.5",
+      "version": "1.0.0",
       "package_url": "https://github.com/mzabaluev/unwrap-infallible",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/unwrap-infallible/0.1.5/download",
-          "sha256": "151ac09978d3c2862c4e39b557f4eceee2cc72150bc4cb4f16abf061b6e381fb"
+          "url": "https://static.crates.io/crates/unwrap-infallible/1.0.0/download",
+          "sha256": "e497bb1f828cc9fb236722c2eaa100dcf201563f38f4da6252357a59037adf31"
         }
       },
       "targets": [
@@ -22005,8 +22202,8 @@
           ],
           "selects": {}
         },
-        "edition": "2018",
-        "version": "0.1.5"
+        "edition": "2024",
+        "version": "1.0.0"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -25840,6 +26037,76 @@
         "MIT"
       ],
       "license_file": "LICENSE-APACHE"
+    },
+    "zmij 1.0.11": {
+      "name": "zmij",
+      "version": "1.0.11",
+      "package_url": "https://github.com/dtolnay/zmij",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/zmij/1.0.11/download",
+          "sha256": "dcb2c125bd7365735bebeb420ccb880265ed2d2bddcbcd49f597fdfe6bd5e577"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "zmij",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "zmij",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "zmij 1.0.11",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "1.0.11"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT",
+      "license_ids": [
+        "MIT"
+      ],
+      "license_file": "LICENSE-MIT"
     }
   },
   "binary_crates": [],
@@ -25891,7 +26158,12 @@
       "i686-linux-android",
       "x86_64-linux-android"
     ],
-    "cfg(all(any(target_os = \"linux\"), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))": [],
+    "cfg(all(any(target_os = \"linux\", target_os = \"android\"), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))": [
+      "aarch64-linux-android",
+      "armv7-linux-androideabi",
+      "i686-linux-android",
+      "x86_64-linux-android"
+    ],
     "cfg(all(any(target_os = \"linux\", target_os = \"android\"), not(any(all(target_os = \"linux\", target_env = \"\"), getrandom_backend = \"custom\", getrandom_backend = \"linux_raw\", getrandom_backend = \"rdrand\", getrandom_backend = \"rndr\"))))": [
       "aarch64-linux-android",
       "armv7-linux-androideabi",
@@ -26107,7 +26379,7 @@
     "bd-time 1.0.0",
     "criterion 0.8.1",
     "ctor 0.6.3",
-    "flatbuffers 25.12.19",
+    "flatbuffers 25.9.23",
     "futures-util 0.3.31",
     "jni 0.21.1",
     "log 0.4.29",
@@ -26118,11 +26390,11 @@
     "protobuf 4.0.0-alpha.0",
     "regex 1.12.2",
     "serde 1.0.228",
-    "serde_json 1.0.146",
+    "serde_json 1.0.148",
     "simple-xml 0.1.10",
-    "tempfile 3.23.0",
+    "tempfile 3.24.0",
     "time 0.3.44",
-    "tokio 1.48.0",
+    "tokio 1.49.0",
     "tracing-subscriber 0.3.22",
     "uuid 1.19.0"
   ],

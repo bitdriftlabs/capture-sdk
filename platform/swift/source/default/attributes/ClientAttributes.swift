@@ -17,8 +17,8 @@ final class ClientAttributes {
     /// The build number identifier.
     private(set) var buildNumber: String =
         Bundle.main.infoDictionary?[kCFBundleVersionKey as String] as? String ?? "?"
-
-    private let osVersion = UIDevice.current.systemVersion
+    /// The operating system version (e.g. 15.0).
+    private(set) var osVersion = UIDevice.current.systemVersion
 }
 
 extension ClientAttributes: FieldProvider {
