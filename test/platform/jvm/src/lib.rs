@@ -156,11 +156,10 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
     let log_request = h.blocking_next_log_upload().expect("expected log upload");
     let log = &log_request.logs()[0];
 
-    let message: JObject<'_> = match log.typed_message() {
-      StringOrBytes::String(s) => env.new_string(&s).unwrap().into(),
-      StringOrBytes::SharedString(s) => env.new_string(&*s).unwrap().into(),
-      StringOrBytes::Bytes(_) => JObject::null(),
-    };
+    let message: JObject<'_> = log
+      .typed_message()
+      .as_str()
+      .map_or_else(|| JObject::null(), |s| env.new_string(s).unwrap().into());
 
     // TODO(Augustyniak): Extract the logic below into a helper function.
     let fields = env.new_object("java/util/HashMap", "()V", &[]).unwrap();
@@ -170,46 +169,6 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
         let key = env.new_string(key).unwrap();
 
         let value = match value {
-          StringOrBytes::String(s) => {
-            let value = env.new_string(s).unwrap();
-
-            let class = env
-              .find_class("io/bitdrift/capture/providers/FieldValue$StringField")
-              .unwrap();
-
-            let constructor_id = env
-              .get_method_id(&class, "<init>", "(Ljava/lang/String;)V")
-              .unwrap();
-
-            unsafe {
-              env.new_object_unchecked(
-                class,
-                constructor_id,
-                &[JValueWrapper::Object(value.into()).into()],
-              )
-            }
-            .unwrap()
-          },
-          StringOrBytes::SharedString(s) => {
-            let value = env.new_string(&**s).unwrap();
-
-            let class = env
-              .find_class("io/bitdrift/capture/providers/FieldValue$StringField")
-              .unwrap();
-
-            let constructor_id = env
-              .get_method_id(&class, "<init>", "(Ljava/lang/String;)V")
-              .unwrap();
-
-            unsafe {
-              env.new_object_unchecked(
-                class,
-                constructor_id,
-                &[JValueWrapper::Object(value.into()).into()],
-              )
-            }
-            .unwrap()
-          },
           StringOrBytes::Bytes(b) => {
             let value = env.byte_array_from_slice(b).unwrap();
 
@@ -219,6 +178,26 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
 
             let constructor_id = env
               .get_method_id(&class, "<init>", "(Ljava/lang/Object;)V")
+              .unwrap();
+
+            unsafe {
+              env.new_object_unchecked(
+                class,
+                constructor_id,
+                &[JValueWrapper::Object(value.into()).into()],
+              )
+            }
+            .unwrap()
+          },
+          v => {
+            let value = env.new_string(v.to_string()).unwrap();
+
+            let class = env
+              .find_class("io/bitdrift/capture/providers/FieldValue$StringField")
+              .unwrap();
+
+            let constructor_id = env
+              .get_method_id(&class, "<init>", "(Ljava/lang/String;)V")
               .unwrap();
 
             unsafe {

@@ -72,3 +72,7 @@ xcframework:
 	echo "NOTE: Make sure you brew install llvm, and follow its instructions to add it to your PATH."
 	./bazelw build //:ios_dist
 	echo "XCFramework is archived at bazel-bin/Capture.ios.zip"
+
+.PHONY: test-gradle
+test-gradle:
+	platform/jvm/gradlew :capture:testDebugUnitTest -p platform/jvm
