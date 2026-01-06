@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# must tell R8 that it's safe to ignore the missing Retrofit classes used by io.bitdrift.capture.network.retrofit.RetrofitUrlPathProvider
+# since com.squareup.retrofit2:retrofit is an optional dependency of io.bitdrift:capture
+-dontwarn retrofit2.Invocation
+-dontwarn retrofit2.http.**
