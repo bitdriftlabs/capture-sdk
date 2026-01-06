@@ -25,12 +25,25 @@ android {
             minifyEnabled false // Set to true if you want to test minification in debug builds
             debuggable true // Note: Most logs will be stripped when this is false!
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE" // Using this instead of "FULL" to reduce output .so size
+            }
         }
         release {
             minifyEnabled true
             debuggable false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.debug
+            release {
+                ndk {
+                    debugSymbolLevel = "FULL"
+                }
+                packaging {
+                    jniLibs {
+                        keepDebugSymbols += "**/*.so"
+                    }
+                }
+            }
         }
     }
     signingConfigs {
