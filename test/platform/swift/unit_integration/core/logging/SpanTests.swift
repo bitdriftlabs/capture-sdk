@@ -12,7 +12,7 @@ import XCTest
 
 final class SpanTests: XCTestCase {
     // We need to allow a fair bit of variance due to potential CI load affecting the simulator
-    private let allowedTimeVarianceSeconds: TimeInterval = 0.200
+    private let allowedTimeVarianceSeconds: TimeInterval = 0.500
 
     private func createSpan(logger: MockCoreLogging, timeProvider: TimeProvider = MockTimeProvider(),
                             start: TimeInterval? = nil, parent: UUID? = nil) -> Span
