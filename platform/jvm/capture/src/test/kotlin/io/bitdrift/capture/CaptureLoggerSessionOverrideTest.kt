@@ -198,16 +198,13 @@ class CaptureLoggerSessionOverrideTest {
 
         logger.log(LogLevel.INFO, null, null) { "test log" }
 
-        var nextLogFound = false
-        while (!nextLogFound) {
-            val log = CaptureTestJniLibrary.nextUploadedLog()
-            if (log.message == "test log") {
-                assertThat(log.sessionId).isEqualTo("bar")
-                assertThat(log.fields["app_version"]).isEqualTo(FieldValue.StringField(newAppVersion))
-                assertThat(log.fields["_app_version_code"]).isEqualTo(FieldValue.StringField(newAppVersionCode.toString()))
-                nextLogFound = true
-            }
-        }
+        val testLog = generateSequence { CaptureTestJniLibrary.nextUploadedLog() }
+            .take(10)
+            .first { it.message == "test log" }
+
+        assertThat(testLog.sessionId).isEqualTo("bar")
+        assertThat(testLog.fields["app_version"]).isEqualTo(FieldValue.StringField(newAppVersion))
+        assertThat(testLog.fields["_app_version_code"]).isEqualTo(FieldValue.StringField(newAppVersionCode.toString()))
     }
 
     private fun testServerUrl(): HttpUrl =
