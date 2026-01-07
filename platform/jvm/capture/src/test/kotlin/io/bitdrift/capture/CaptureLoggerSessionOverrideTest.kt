@@ -198,9 +198,10 @@ class CaptureLoggerSessionOverrideTest {
 
         logger.log(LogLevel.INFO, null, null) { "test log" }
 
-        val testLog = generateSequence { CaptureTestJniLibrary.nextUploadedLog() }
-            .take(10)
-            .first { it.message == "test log" }
+        val testLog =
+            generateSequence { CaptureTestJniLibrary.nextUploadedLog() }
+                .take(10)
+                .first { it.message == "test log" }
 
         assertThat(testLog.sessionId).isEqualTo("bar")
         assertThat(testLog.fields["app_version"]).isEqualTo(FieldValue.StringField(newAppVersion))
