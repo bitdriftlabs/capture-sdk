@@ -17,7 +17,6 @@
 #import "ReportWriter.h"
 #import "ReportContext.h"
 
-#import <UIKit/UIKit.h>
 #import <stdatomic.h>
 #import <string.h>
 #import <sys/sysctl.h>
