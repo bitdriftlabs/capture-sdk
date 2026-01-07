@@ -28,7 +28,6 @@ pushd "$(mktemp -d)"
   mv "$sdk_repo/bazel-bin/capture-javadoc.jar" "capture-$version-javadoc.jar"
   mv "$sdk_repo/bazel-bin/symbols.tar" "capture-$version-symbols.tar"
   cp "$sdk_repo/ci/LICENSE.txt" "LICENSE.txt"
-  cp "$sdk_repo/ci/NOTICE.txt" "NOTICE.txt"
 
   zip -j -r "$sdk_repo/dist/Capture.android.zip" ./*
 popd

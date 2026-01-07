@@ -43,11 +43,6 @@ mavenPublishing {
                 url.set("https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture-plugin/${findProperty("VERSION_NAME")}/LICENSE.txt")
                 distribution.set("repo")
             }
-            license {
-                name.set("NOTICE")
-                url.set("https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture-plugin/${findProperty("VERSION_NAME")}/NOTICE.txt")
-                distribution.set("repo")
-            }
         }
         developers {
             developer {

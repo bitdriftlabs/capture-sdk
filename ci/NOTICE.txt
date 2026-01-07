@@ -1,4 +1,0 @@
-Capture
-Copyright BITDRIFT, INC.
-
-Licensed under BITDRIFT SOFTWARE DEVELOPMENT KIT LICENSE AGREEMENT. See LICENSE.txt for terms.

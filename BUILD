@@ -80,7 +80,6 @@ filegroup(
     name = "license",
     srcs = [
         "ci/LICENSE.txt",
-        "ci/NOTICE.txt",
     ],
 )
 

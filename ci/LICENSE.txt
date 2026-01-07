@@ -1,25 +1,164 @@
-                                      BITDRIFT SOFTWARE DEVELOPMENT KIT LICENSE AGREEMENT
+# PolyForm Shield License 1.0.0
 
-PLEASE READ THESE TERMS AND CONDITIONS CAREFULLY BEFORE USING THE SOFTWARE OFFERED BY BITDRIFT, INC. (“BITDRIFT” OR “COMPANY”). BY DOWNLOADING, INSTALLING AND/OR USING THE SOFTWARE YOU AGREE TO THE TERMS AND CONDITIONS OF THIS SOFTWARE DEVELOPMENT KIT LICENSE AGREEMENT (THE “AGREEMENT”), AND YOU (“YOU” OR “CUSTOMER”) AGREE THAT YOU ARE BOUND BY THESE TERMS AND ARE A PARTY TO THIS AGREEMENT.  YOUR USE OF THE SOFTWARE IS EXPRESSLY CONDITIONED ON YOUR ACCEPTANCE OF THE TERMS AND CONDITIONS OF THIS AGREEMENT.  IF YOU DO NOT AGREE TO ALL OF THE FOLLOWING, YOU MAY NOT USE OR ACCESS THE SOFTWARE IN ANY MANNER.  IF THE TERMS OF THIS AGREEMENT ARE CONSIDERED AN OFFER, ACCEPTANCE IS EXPRESSLY LIMITED TO SUCH TERMS.
+<https://polyformproject.org/licenses/shield/1.0.0>
 
-1. Scope of This Agreement.  This Agreement applies to the Software and Documentation made available by bitdrift hereunder to you.  “Software” means the bitdrift software development kit software made available in connection with this Agreement, and any copies made by or on your behalf, and any updates, upgrades or other new features, functionality or enhancements to the Software made available to you by bitdrift.  "Documentation" means any on-line read me, help files, or other related explanatory materials with respect to the Software.
+## Acceptance
 
-2. License.  Subject to the terms and conditions of this Agreement, bitdrift hereby grants to Customer, and Customer hereby accepts from bitdrift, a limited, non-exclusive, non-transferable, non-assignable and non-sublicenseable license to: (a) run the Software solely to  interact or communicate with the Service; and (b) distribute the Software solely as incorporated in, or as embedded (and not on a stand-alone basis) in the Company’s products or services, provided the Software is used solely to  interact or communicate with the Service.  “Service” means the bitdrift services made available by bitdrift as more fully described at the following URL: https://bitdrift.io.
+In order to get any license under these terms, you must agree
+to them as both strict obligations and conditions to all
+your licenses.
 
-3. License Restrictions.   Except with bitdrift’s prior written consent, Customer may not: (a) exceed the scope of the licenses granted in Section 2; (b) use the Software or any component thereof to run, or in connection with any system or service other than the Service; (c) reverse engineer, decompile, disassemble or otherwise attempt to learn the source code, structure or algorithms underlying the Software, except to the extent required to be permitted under applicable law; (d) modify, translate or create derivative works of the Software; (e) remove any copyright, trademark, patent or other proprietary notice that appears on the Software or copies thereof; or (f) combine or distribute any of the Software with any third party software that is licensed under terms that seek to require that any of the Software (or any associated intellectual property rights) be provided in source code form (e.g., as “open source”), or distributed without charge.
+## Copyright License
 
-4. Proprietary Rights.  The Software is licensed and not sold to you.  bitdrift and its licensors own and retain all right, title and interest in the Software, any design changes, improvements, enhancements, derivative works, and any related and associated intellectual property rights.  You may provide suggestions and input regarding the Software or Documentation, including but not limited to improvements, modifications, and enhancements regarding the same (“Feedback”).  You hereby grant to bitdrift a right to use, modify and distribute the Feedback in connection with bitdrift’s product and services.
+The licensor grants you a copyright license for the
+software to do everything you might do with the software
+that would otherwise infringe the licensor's copyright
+in it for any permitted purpose.  However, you may
+only distribute the software according to [Distribution
+License](#distribution-license) and make changes or new works
+based on the software according to [Changes and New Works
+License](#changes-and-new-works-license).
 
-5. Term and Termination.  This Agreement and your right to use the Software may be terminated by you or by bitdrift at any time upon written notice.  Upon any expiration or termination of this Agreement, the license granted in Section 2 shall terminate immediately, and you shall (i) immediately cease use of all Software and Documentation, and (ii) return to bitdrift all Software and related Documentation and other materials and information provided by bitdrift and any copies thereof made by you.
+## Distribution License
 
-6. NO WARRANTY.  CUSTOMER ACKNOWLEDGES AND AGREES THAT, THE SOFTWARE AND DOCUMENTATION ARE PROVIDED “AS IS”, AND THAT BITDRIFT MAKES NO EXPRESS OR IMPLIED REPRESENTATIONS OR WARRANTIES OF ANY KIND WITH RESPECT TO THE SOFTWARE OR DOCUMENTATION, OR THEIR CONDITION.  BITDRIFT HEREBY EXPRESSLY EXCLUDES, ANY AND ALL OTHER EXPRESS OR IMPLIED REPRESENTATIONS OR WARRANTIES, WHETHER UNDER COMMON LAW, STATUTE OR OTHERWISE, INCLUDING WITHOUT LIMITATION ANY AND ALL WARRANTIES AS TO MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, SATISFACTORY QUALITY OR NON-INFRINGEMENT OF THIRD-PARTY RIGHTS. bitdrift does not represent or warrant that the operation of the Software (or any portion thereof) will be uninterrupted or error free, or that the Software (or any portion thereof) will operate in combination with other hardware, software, systems or data not provided by bitdrift.
+The licensor grants you an additional copyright license
+to distribute copies of the software.  Your license
+to distribute covers distributing the software with
+changes and new works permitted by [Changes and New Works
+License](#changes-and-new-works-license).
 
-7. LIMITATION OF LIABILITY.  IN NO EVENT SHALL BITDRIFT BE LIABLE IN AN ACTION UNDER TORT, CONTRACT, WARRANTY OR OTHERWISE FOR ANY: SPECIAL, INDIRECT, CONSEQUENTIAL, INCIDENTAL OR PUNITIVE DAMAGES  NOTWITHSTANDING ANYTHING TO THE CONTRARY IN THIS AGREEMENT, IN NO EVENT SHALL BITDRIFT’S TOTAL LIABILITY FOR DAMAGES, LOSSES OR LIABILITY OF ANY KIND EXCEED, EITHER CUMULATIVELY OR IN THE AGGREGATE, ONE THOUSAND US DOLLARS ($1,000).
+## Notices
 
-8. Injunctive Relief. You acknowledge and agree that your breach or threatened breach of this Agreement shall cause bitdrift irreparable damage for which recovery of money damages would be inadequate and that bitdrift therefore may obtain timely injunctive relief to protect its rights under this Agreement in addition to any and all other remedies available at law or in equity.
+You must ensure that anyone who gets a copy of any part of
+the software from you also gets a copy of these terms or the
+URL for them above, as well as copies of any plain-text lines
+beginning with `Required Notice:` that the licensor provided
+with the software.  For example:
 
-9. Export Controls.  The Software and Documentation and the underlying information and technology may not be downloaded or otherwise exported or re-exported (i) into (or to a national or resident of) any country to which the U.S. has embargoed goods; or (ii) to anyone on the U.S. Treasury Department’s list of Specially Designated Nationals or the U.S. Commerce Department’s Table of Deny Orders.  By downloading or using the Software and/or Documentation, you are agreeing to the foregoing and you represent and warrant that you are not located in, under the control of, or a national or resident of any such country or on any such list and you agree to comply with all export laws and other applicable laws.
+> Required Notice: Copyright Yoyodyne, Inc. (http://example.com)
 
-10. U.S. Government End Users.  The Software and Documentation each were developed by private financing and constitute “Commercial Items,” as that term is defined at 48 C.F.R. §2.101.  The Software consists of “Commercial Computer Software” and “Commercial Computer Software Documentation,” as such terms are used in 48 C.F.R. §12.212. Consistent with 48 C.F.R. §12.212 and 48 C.F.R. §227.7202-1 through 227.7202-4, all U.S. Government End Users acquire only those rights in the Software and the Documentation that are specifically provided by this Agreement.  Consistent with 48 C.F.R. §12.211, all U.S. Government End Users acquire only technical data and the rights in that data customarily as specifically provided in this Agreement.
+## Changes and New Works License
 
-11. Miscellaneous.  Except to the extent applicable law, if any, provides otherwise, this Agreement shall be governed by the laws of California, U.S.A., excluding its conflict of law provisions. You expressly agree that jurisdiction for any claim or dispute arising from the use of the bitdrift Software resides in the federal and state courts situated in the Santa Clara County, California, U.S.A., and you consent to the personal jurisdiction thereof. This Agreement shall not be governed by the United Nations Convention on Contracts for the International Sale of Goods. If any part of this Agreement is held invalid or unenforceable, that part shall be construed to reflect the parties' original intent, and the remaining portions remain in full force and effect, or bitdrift may at its option terminate this Agreement. A waiver by either party of any term or condition of this Agreement or any breach thereof, in any one instance, shall not waive such term or condition or any subsequent breach thereof. You may not assign or otherwise transfer by operation of law or otherwise this Agreement or any rights or obligations herein. bitdrift may assign this Agreement to any person or entity at its sole discretion. This Agreement shall be binding upon and shall inure to the benefit of the parties, their successors and permitted assigns.
+The licensor grants you an additional copyright license to
+make changes and new works based on the software for any
+permitted purpose.
+
+## Patent License
+
+The licensor grants you a patent license for the software that
+covers patent claims the licensor can license, or becomes able
+to license, that you would infringe by using the software.
+
+## Noncompete
+
+Any purpose is a permitted purpose, except for providing any
+product that competes with the software or any product the
+licensor or any of its affiliates provides using the software.
+
+## Competition
+
+Goods and services compete even when they provide functionality
+through different kinds of interfaces or for different technical
+platforms.  Applications can compete with services, libraries
+with plugins, frameworks with development tools, and so on,
+even if they're written in different programming languages
+or for different computer architectures.  Goods and services
+compete even when provided free of charge.  If you market a
+product as a practical substitute for the software or another
+product, it definitely competes.
+
+## New Products
+
+If you are using the software to provide a product that does
+not compete, but the licensor or any of its affiliates brings
+your product into competition by providing a new version of
+the software or another product using the software, you may
+continue using versions of the software available under these
+terms beforehand to provide your competing product, but not
+any later versions.
+
+## Discontinued Products
+
+You may begin using the software to compete with a product
+or service that the licensor or any of its affiliates has
+stopped providing, unless the licensor includes a plain-text
+line beginning with `Licensor Line of Business:` with the
+software that mentions that line of business.  For example:
+
+> Licensor Line of Business: YoyodyneCMS Content Management
+System (http://example.com/cms)
+
+## Sales of Business
+
+If the licensor or any of its affiliates sells a line of
+business developing the software or using the software
+to provide a product, the buyer can also enforce
+[Noncompete](#noncompete) for that product.
+
+## Fair Use
+
+You may have "fair use" rights for the software under the
+law. These terms do not limit them.
+
+## No Other Rights
+
+These terms do not allow you to sublicense or transfer any of
+your licenses to anyone else, or prevent the licensor from
+granting licenses to anyone else.  These terms do not imply
+any other licenses.
+
+## Patent Defense
+
+If you make any written claim that the software infringes or
+contributes to infringement of any patent, your patent license
+for the software granted under these terms ends immediately. If
+your company makes such a claim, your patent license ends
+immediately for work on behalf of your company.
+
+## Violations
+
+The first time you are notified in writing that you have
+violated any of these terms, or done anything with the software
+not covered by your licenses, your licenses can nonetheless
+continue if you come into full compliance with these terms,
+and take practical steps to correct past violations, within
+32 days of receiving notice.  Otherwise, all your licenses
+end immediately.
+
+## No Liability
+
+***As far as the law allows, the software comes as is, without
+any warranty or condition, and the licensor will not be liable
+to you for any damages arising out of these terms or the use
+or nature of the software, under any kind of legal claim.***
+
+## Definitions
+
+The **licensor** is the individual or entity offering these
+terms, and the **software** is the software the licensor makes
+available under these terms.
+
+A **product** can be a good or service, or a combination
+of them.
+
+**You** refers to the individual or entity agreeing to these
+terms.
+
+**Your company** is any legal entity, sole proprietorship,
+or other kind of organization that you work for, plus all
+its affiliates.
+
+**Affiliates** means the other organizations than an
+organization has control over, is under the control of, or is
+under common control with.
+
+**Control** means ownership of substantially all the assets of
+an entity, or the power to direct its management and policies
+by vote, contract, or otherwise.  Control can be direct or
+indirect.
+
+**Your licenses** are all the licenses granted to you for the
+software under these terms.
+
+**Use** means anything you do with the software requiring one
+of your licenses.
