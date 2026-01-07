@@ -92,7 +92,7 @@ jobs:
           echo "/opt/homebrew/opt/protobuf/bin" >> "$GITHUB_PATH"
           echo "/opt/homebrew/opt/flatbuffers/bin" >> "$GITHUB_PATH"
       - name: Rust tests
-        run: cargo test --package swift_bridge
+        run: SKIP_PROTO_GEN=1 cargo test --package swift_bridge
 
   tests:
     runs-on: macos-14
