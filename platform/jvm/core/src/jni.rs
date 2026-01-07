@@ -50,7 +50,7 @@ use jni::signature::{Primitive, ReturnType};
 use jni::sys::{jboolean, jbyteArray, jdouble, jint, jlong, jobject, jvalue, JNI_ERR, JNI_TRUE};
 use jni::{JNIEnv, JavaVM};
 use platform_shared::metadata::Mobile;
-use platform_shared::{read_global_state_snapshot, LoggerHolder, LoggerId};
+use platform_shared::{LoggerHolder, LoggerId};
 use protobuf::Enum as _;
 use std::borrow::{Borrow, Cow};
 use std::collections::HashMap;
@@ -636,7 +636,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
 
       let preferences = new_global!(PreferencesHandle, &mut env, preferences)?;
       let store = Arc::new(bd_key_value::Store::new(Box::new(preferences)));
-      let previous_run_global_state = read_global_state_snapshot(store.clone());
 
       let session_strategy = Arc::new(new_global!(
         SessionStrategyConfigurationHandle,
@@ -724,7 +723,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
             future.await
           }
           .boxed(),
-          previous_run_global_state,
         )
       })?;
 
@@ -941,20 +939,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
       };
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      let global_state_fields = logger
-        .previous_run_global_state
-        .iter()
-        .map(|(key, value)| {
-          (
-            key.clone(),
-            bd_logger::AnnotatedLogField::new_ootb(value.clone()),
-          )
-        })
-        .collect();
-      let fields = [global_state_fields, fields]
-        .into_iter()
-        .flatten()
-        .collect();
       logger.log(
         log_level as u32,
         LogType::from_i32(log_type).unwrap_or(LogType::NORMAL),

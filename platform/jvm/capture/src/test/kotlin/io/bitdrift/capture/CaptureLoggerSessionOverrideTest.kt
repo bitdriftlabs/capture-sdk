@@ -10,15 +10,23 @@ package io.bitdrift.capture
 import android.annotation.TargetApi
 import android.app.ActivityManager
 import android.app.ApplicationExitInfo
+import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.os.Build
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
+import com.nhaarman.mockitokotlin2.doReturn
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.providers.DateProvider
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
@@ -41,6 +49,8 @@ private const val TEST_DATE_TIMESTAMP: Long = 1657047358123
 @TargetApi(Build.VERSION_CODES.R)
 class CaptureLoggerSessionOverrideTest {
     private val activityManager: ActivityManager = mock()
+    private val preferences = MockPreferences()
+    private val lifecycleOwner = mock<LifecycleOwner>()
 
     private val systemDateProvider =
         DateProvider {
@@ -62,6 +72,11 @@ class CaptureLoggerSessionOverrideTest {
         CaptureDispatchers.setTestExecutorService(MoreExecutors.newDirectExecutorService())
         CaptureJniLibrary.load()
         testServerPort = CaptureTestJniLibrary.startTestApiServer(-1)
+
+        val lifecycleRegistry = LifecycleRegistry(lifecycleOwner)
+
+        lifecycleRegistry.currentState = Lifecycle.State.STARTED
+        doReturn(lifecycleRegistry).whenever(lifecycleOwner).lifecycle
     }
 
     @After
@@ -69,15 +84,40 @@ class CaptureLoggerSessionOverrideTest {
         CaptureTestJniLibrary.stopTestApiServer()
     }
 
-    /**
-     *  Verify that upon the launch of the SDK it's possible to emit logs with session Id
-     *  equal to the last active session ID from the previous run of the SDK.
-     */
+    private fun contextWithAppVersion(
+        version: String,
+        appVersionCode: Int,
+    ): android.content.Context {
+        val packageName = ContextHolder.APP_CONTEXT.packageName
+
+        // Mock package manager to return old version
+        val packageManager = mock<PackageManager>()
+        val packageInfo =
+            PackageInfo().apply {
+                versionName = version
+                @Suppress("DEPRECATION")
+                versionCode = appVersionCode
+            }
+        whenever(packageManager.getPackageInfo(packageName, 0)).thenReturn(packageInfo)
+
+        // Use a spy to avoid mocking every system service (Battery, Window, etc.)
+        val context = com.nhaarman.mockitokotlin2.spy(ApplicationProvider.getApplicationContext<android.content.Context>())
+        whenever(context.packageManager).thenReturn(packageManager)
+        // We still need to mock ActivityManager to control getHistoricalProcessExitReasons
+        whenever(context.getSystemService(android.content.Context.ACTIVITY_SERVICE)).thenReturn(activityManager)
+
+        return context
+    }
+
     @Test
     fun testSessionIdOverride() {
-        // Start the logger and process one log with it just so that
-        // it generates a session Id that's stored in passed `Preferences` instance.
-        val preferences = MockPreferences()
+        val oldAppVersion = "1.2.3"
+        val oldAppVersionCode = 123
+        val newAppVersion = "1.2.4"
+        val newAppVersionCode = 124
+
+        val context = contextWithAppVersion(oldAppVersion, oldAppVersionCode)
+        val clientAttributes = ClientAttributes(context, lifecycleOwner)
 
         logger =
             LoggerImpl(
@@ -86,10 +126,12 @@ class CaptureLoggerSessionOverrideTest {
                 fieldProviders = listOf(),
                 dateProvider = systemDateProvider,
                 sessionStrategy = SessionStrategy.Fixed { "foo" },
-                configuration = Configuration(),
-                context = ContextHolder.APP_CONTEXT,
+                configuration = Configuration(sessionReplayConfiguration = null),
+                context = context,
                 preferences = preferences,
+                activityManager = activityManager,
                 issueReporter = issueReporter,
+                clientAttributes = clientAttributes,
             )
 
         // Let the first logger process come up and send it the configuration to aggressively upload
@@ -98,7 +140,10 @@ class CaptureLoggerSessionOverrideTest {
         assertThat(firstApiStreamId).isNotEqualTo(-1)
         CaptureTestJniLibrary.configureAggressiveContinuousUploads(firstApiStreamId)
 
-        val timestamp = 123L
+        // Ensure session data is persisted
+        logger.flush(true)
+
+        val timestamp = TEST_DATE_TIMESTAMP + 100L
         val mockExitInfo = mock<ApplicationExitInfo>(defaultAnswer = Mockito.RETURNS_DEEP_STUBS)
         whenever(mockExitInfo.timestamp).thenReturn(timestamp)
         whenever(mockExitInfo.processName).thenReturn(ContextHolder.APP_CONTEXT.packageName)
@@ -114,6 +159,9 @@ class CaptureLoggerSessionOverrideTest {
         // on the ring buffer.
         CaptureJniLibrary.shutdown(logger.loggerId)
 
+        val newContext = contextWithAppVersion(newAppVersion, newAppVersionCode)
+        val newClientAttributes = ClientAttributes(newContext, lifecycleOwner)
+
         // Start another logger instance. Notice how its session strategy specifies "bar"
         // session Id.
         logger =
@@ -123,11 +171,12 @@ class CaptureLoggerSessionOverrideTest {
                 fieldProviders = listOf(),
                 dateProvider = systemDateProvider,
                 sessionStrategy = SessionStrategy.Fixed { "bar" },
-                configuration = Configuration(),
-                context = ContextHolder.APP_CONTEXT,
+                configuration = Configuration(sessionReplayConfiguration = null),
+                context = context,
                 preferences = preferences,
                 activityManager = activityManager,
                 issueReporter = issueReporter,
+                clientAttributes = newClientAttributes,
             )
 
         val secondApiStreamId = CaptureTestJniLibrary.awaitNextApiStream()
@@ -140,10 +189,23 @@ class CaptureLoggerSessionOverrideTest {
             if (log.message == "AppExit") {
                 assertThat(log.level).isEqualTo(LogLevel.ERROR.value)
                 assertThat(log.sessionId).isEqualTo("foo")
-                assertThat(log.rfc3339Timestamp).isEqualTo("1970-01-01T00:00:00.123Z")
+                assertThat(log.rfc3339Timestamp).isEqualTo("2022-07-05T18:55:58.223Z")
+                assertThat(log.fields["app_version"]).isEqualTo(FieldValue.StringField(oldAppVersion))
+                assertThat(log.fields["_app_version_code"]).isEqualTo(FieldValue.StringField(oldAppVersionCode.toString()))
                 appExitLogFound = true
             }
         }
+
+        logger.log(LogLevel.INFO, null, null) { "test log" }
+
+        val testLog =
+            generateSequence { CaptureTestJniLibrary.nextUploadedLog() }
+                .take(10)
+                .first { it.message == "test log" }
+
+        assertThat(testLog.sessionId).isEqualTo("bar")
+        assertThat(testLog.fields["app_version"]).isEqualTo(FieldValue.StringField(newAppVersion))
+        assertThat(testLog.fields["_app_version_code"]).isEqualTo(FieldValue.StringField(newAppVersionCode.toString()))
     }
 
     private fun testServerUrl(): HttpUrl =
