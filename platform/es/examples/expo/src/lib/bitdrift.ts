@@ -10,11 +10,10 @@ import {
 } from '@bitdrift/react-native';
 
 const BITDRIFT_API_KEY = process.env.EXPO_PUBLIC_BITDRIFT_API_KEY;
-const BITDRIFT_API_URL = process.env.EXPO_PUBLIC_BITDRIFT_API_URL;
 
-if (BITDRIFT_API_KEY && BITDRIFT_API_URL) {
+if (BITDRIFT_API_KEY) {
   init(BITDRIFT_API_KEY, SessionStrategy.Fixed, {
-    url: BITDRIFT_API_URL,
+    url: process.env.EXPO_PUBLIC_BITDRIFT_API_URL ?? 'https://api.bitdrift.io',
     enableNetworkInstrumentation: true,
     crashReporting: {
       enableNativeFatalIssues: true,

@@ -38,10 +38,7 @@ const LOG_LEVELS = new Map([
   ['warn', warn],
 ]);
 
-const hasAPIKeyConfigured = Boolean(
-  process.env.EXPO_PUBLIC_BITDRIFT_API_KEY &&
-    process.env.EXPO_PUBLIC_BITDRIFT_API_URL,
-);
+const hasAPIKeyConfigured = Boolean(process.env.EXPO_PUBLIC_BITDRIFT_API_KEY);
 
 const sendRandomRequest = async () => {
   const endpoints = [
