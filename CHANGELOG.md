@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.21.2...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.0...HEAD
 
 ### Both
 
@@ -25,7 +25,7 @@
 
 **Changed**
 
-- Optimized internal field handling to reduce object allocations and GC pressure.
+- Nothing yet!
 
 **Fixed**
 
@@ -44,6 +44,16 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.22.0]
+
+[0.22.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.0
+
+### Android
+
+**Changed**
+
+- Optimized internal field handling to reduce object allocations and GC pressure.
 
 ## [0.21.2]
 [0.21.2]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.2
