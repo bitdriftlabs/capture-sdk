@@ -88,6 +88,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Android cmd line tools + NDK
+        uses: ./.github/actions/common-android-setup
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build
+
       - name: Setup Bazel
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
