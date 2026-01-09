@@ -83,6 +83,16 @@ const triggerGlobalJsError = (errorType: ErrorType = 'TypeError') => {
   }
 };
 
+const triggerLogErrorExample = () => {
+  try {
+    const data = JSON.parse('{ invalid json }');
+    console.log(data);
+  } catch (err) {
+    error('JSON parsing failed in example', err);
+    showToast('Error logged with error API');
+  }
+};
+
 
 const LOG_LEVEL_ARRAY = Array.from(LOG_LEVELS.keys());
 
@@ -331,10 +341,27 @@ const HomeScreen = () => {
       </View>
       <View style={styles.buttonRow}>
         <Pressable
-          style={({ pressed }) => [styles.button, pressed && styles.buttonActive]}
+          style={({ pressed }) => [
+            styles.button,
+            styles.errorButton,
+            pressed && styles.buttonActive,
+          ]}
           onPress={() => triggerGlobalJsError(selectedErrorType)}
         >
           <Text style={styles.buttonText}>Trigger {selectedErrorType}</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.buttonRow}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            styles.logErrorButton,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={triggerLogErrorExample}
+        >
+          <Text style={styles.buttonText}>Test logError API</Text>
         </Pressable>
       </View>
 
@@ -386,6 +413,12 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     marginVertical: 10,
+  },
+  errorButton: {
+    backgroundColor: '#e74c3c',
+  },
+  logErrorButton: {
+    backgroundColor: '#007ACC',
   },
   buttonActive: {
     backgroundColor: '#007867',
