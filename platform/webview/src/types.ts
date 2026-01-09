@@ -238,6 +238,8 @@ export interface UserInteractionMessage extends BridgeMessage {
     clickCount?: number;
     /** Time window for rage clicks in ms */
     timeWindowMs?: number;
+    /** Actual duration of the rage click time window in ms */
+    duration?: number;
 }
 
 /**
