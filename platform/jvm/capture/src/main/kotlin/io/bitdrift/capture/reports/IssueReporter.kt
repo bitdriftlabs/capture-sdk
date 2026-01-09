@@ -58,7 +58,7 @@ internal class IssueReporter(
     private var issueReporterProcessor: IssueReporterProcessor? = null
 
     /**
-     * Initializes the IssueReporter handler once we have the required dependencies available
+     * Initializes the IssueReporter handler once we have the required dependencies available.
      */
     override fun init(
         activityManager: ActivityManager,
