@@ -71,8 +71,18 @@ export function warn(message: string, fields?: SerializableLogFields): void {
   return logInternal('warn', message, fields);
 }
 
-export function error(message: string, fields?: SerializableLogFields): void {
-  return logInternal('error', message, fields);
+export function error(
+  message: string,
+  error?: Error | null,
+  fields?: SerializableLogFields,
+): void {
+  const combinedFields = error ? {
+    ...fields,
+    _error: error.name || 'Error',
+    ...(error.message && { _error_details: error.message }),
+  } : fields;
+  
+  return logInternal('error', message, combinedFields);
 }
 
 export function log(

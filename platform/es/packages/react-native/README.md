@@ -109,6 +109,15 @@ warn('Hello, World!');
 
 error('Hello, World!');
 
+// Optionally pass an Error object to automatically capture error details
+try {
+  // some code that might throw
+} catch (err) {
+  error('Failed to process request', err);
+  // Or with additional fields
+  error('Failed to process request', err, { userId: '123' });
+}
+
 ```
 
 ### Network Integration
