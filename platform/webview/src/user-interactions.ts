@@ -18,6 +18,7 @@ const CLICKABLE_INPUT_TYPES = new Set(['button', 'submit', 'reset', 'checkbox', 
 const RAGE_CLICK_THRESHOLD = 3; // Number of clicks to trigger rage click
 const RAGE_CLICK_TIME_WINDOW_MS = 1000; // Time window for rage clicks
 const RAGE_CLICK_DISTANCE_PX = 100; // Max distance between clicks to count as rage
+const RAGE_CLICK_DEBOUNCE_MS = 500; // Wait time after last click before logging
 
 /** Track clicks for rage detection */
 interface ClickRecord {
@@ -28,6 +29,38 @@ interface ClickRecord {
 }
 
 let recentClicks: ClickRecord[] = [];
+let rageClickDebounceTimer: number | null = null;
+let pendingRageClick: {
+    element: Element;
+    clicks: ClickRecord[];
+} | null = null;
+
+/**
+ * Flush any pending rage click immediately, logging it and clearing state.
+ */
+function flushPendingRageClick(): void {
+    if (rageClickDebounceTimer !== null) {
+        clearTimeout(rageClickDebounceTimer);
+        rageClickDebounceTimer = null;
+    }
+
+    if (pendingRageClick) {
+        const timeSpan =
+            pendingRageClick.clicks[pendingRageClick.clicks.length - 1].timestamp -
+            pendingRageClick.clicks[0].timestamp;
+
+        logUserInteraction(
+            pendingRageClick.element,
+            'rageClick',
+            false,
+            pendingRageClick.clicks.length,
+            timeSpan,
+        );
+
+        pendingRageClick = null;
+        recentClicks = [];
+    }
+}
 
 /**
  * Initialize user interaction monitoring.
@@ -117,10 +150,33 @@ function handlePointerDown(event: PointerEvent): void {
         });
 
         if (nearbyClicks.length >= RAGE_CLICK_THRESHOLD) {
-            // Log rage click
-            logUserInteraction(target, 'rageClick', false, nearbyClicks.length);
-            // Clear recent clicks to avoid duplicate rage click events
-            recentClicks = [];
+            // We've detected a rage click - start/update the debounce timer
+            // This allows us to capture the full rage sequence
+            if (pendingRageClick && pendingRageClick.element === target) {
+                // Update existing rage click with new clicks
+                pendingRageClick.clicks = nearbyClicks;
+            } else {
+                // New rage click sequence on a different element
+                // Flush the pending rage click first if one exists
+                if (pendingRageClick) {
+                    flushPendingRageClick();
+                }
+
+                pendingRageClick = {
+                    element: target,
+                    clicks: nearbyClicks,
+                };
+            }
+
+            // Clear existing timer and set a new one
+            if (rageClickDebounceTimer !== null) {
+                clearTimeout(rageClickDebounceTimer);
+            }
+
+            // Log the rage click after the debounce period
+            rageClickDebounceTimer = setTimeout(() => {
+                flushPendingRageClick();
+            }, RAGE_CLICK_DEBOUNCE_MS) as unknown as number;
         }
     }
 }
@@ -133,6 +189,7 @@ function logUserInteraction(
     interactionType: 'click' | 'rageClick',
     isClickable: boolean,
     clickCount?: number,
+    actualTimeWindowMs?: number,
 ): void {
     const tagName = element.tagName.toLowerCase();
     const elementId = element.id || undefined;
@@ -159,6 +216,7 @@ function logUserInteraction(
         isClickable,
         clickCount: interactionType === 'rageClick' ? clickCount : undefined,
         timeWindowMs: interactionType === 'rageClick' ? RAGE_CLICK_TIME_WINDOW_MS : undefined,
+        duration: interactionType === 'rageClick' ? actualTimeWindowMs : undefined,
     });
     log(message);
 }
