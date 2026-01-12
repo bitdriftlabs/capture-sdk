@@ -55,6 +55,27 @@ abstract class CLIUploadSymbolsTask : CLITask() {
     }
 }
 
+abstract class CLIUploadSourceMapTask : CLITask() {
+    @TaskAction
+    fun action() {
+        // e.g. build/generated/sourcemaps/react/release/index.android.bundle.map
+        val sourceMapFile = buildDir.asFile.mostRecentSubfileNamed("index.android.bundle.map")
+        // e.g. build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle
+        val bundleFile = buildDir.asFile.mostRecentSubfileNamed("index.android.bundle")
+
+        runBDCLI(
+            listOf(
+                "debug-files",
+                "upload-source-map",
+                "--source-map",
+                sourceMapFile.absolutePath,
+                "--bundle",
+                bundleFile.absolutePath,
+            ),
+        )
+    }
+}
+
 abstract class CLITask : DefaultTask() {
     @Internal
     val buildDir: Directory = project.layout.buildDirectory.get()
