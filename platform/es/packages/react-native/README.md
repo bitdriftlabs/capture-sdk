@@ -120,6 +120,22 @@ try {
 
 ```
 
+### Feature Flag Tracking
+
+Track feature flag exposures to understand which variants users are seeing:
+
+```js
+import { setFeatureFlagExposure } from '@bitdrift/react-native';
+
+// Track string variant
+setFeatureFlagExposure('dark_mode', 'enabled');
+setFeatureFlagExposure('new_ui', 'variant_b');
+
+// Track boolean variant
+setFeatureFlagExposure('experimental_feature', true);
+setFeatureFlagExposure('beta_mode', false);
+```
+
 ### Network Integration
 
 The automatic capture of network requests can be achieved in a few different ways depending on the platform and the networking library being used.

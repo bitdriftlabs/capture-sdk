@@ -160,4 +160,14 @@ import Foundation
             sdkVersion: reactNativeVersion
         )
     }
+
+    @objc
+    public static func setFeatureFlagExposureString(name: String, variant: String) {
+        Capture.Logger.setFeatureFlagExposure(withName: name, variant: variant)
+    }
+
+    @objc
+    public static func setFeatureFlagExposureBool(name: String, variant: Bool) {
+        Capture.Logger.setFeatureFlagExposure(withName: name, variant: variant)
+    }
 }
