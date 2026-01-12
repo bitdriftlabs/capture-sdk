@@ -55,6 +55,32 @@ abstract class CLIUploadSymbolsTask : CLITask() {
     }
 }
 
+abstract class CLIUploadSourceMapTask : CLITask() {
+    @TaskAction
+    fun action() {
+        // e.g. build/generated/sourcemaps/react/release/index.android.bundle.map
+        val sourceMapFile = buildDir.asFile.mostRecentSubfileNamedOrNull("index.android.bundle.map")
+        // e.g. build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle
+        val bundleFile = buildDir.asFile.mostRecentSubfileNamedOrNull("index.android.bundle")
+
+        if (sourceMapFile == null || bundleFile == null) {
+            println("No React Native sourcemaps found, skipping upload")
+            return
+        }
+
+        runBDCLI(
+            listOf(
+                "debug-files",
+                "upload-source-map",
+                "--source-map",
+                sourceMapFile.absolutePath,
+                "--bundle",
+                bundleFile.absolutePath,
+            ),
+        )
+    }
+}
+
 abstract class CLITask : DefaultTask() {
     @Internal
     val buildDir: Directory = project.layout.buildDirectory.get()
@@ -93,7 +119,7 @@ abstract class CLITask : DefaultTask() {
 class BDCLIDownloader(
     val executableFilePath: File,
 ) {
-    val bdcliVersion = "0.1.33-rc.1"
+    val bdcliVersion = "0.1.36"
     val bdcliDownloadLoc: URI = URI.create("https://dl.bitdrift.io/bd-cli/$bdcliVersion/${downloadFilename()}/bd")
 
     private enum class OSType {
@@ -160,6 +186,10 @@ fun File.mostRecentSubfileNamed(name: String): File {
     }
 }
 
+fun File.mostRecentSubfileNamedOrNull(name: String): File? {
+    return this.subfilesNamed(name).mostRecentOrNull()
+}
+
 fun File.subfilesNamed(name: String): Sequence<File> = this.walkTopDown().filter { it.name == name }
 
 fun File.mostRecentSubfileMatching(regex: Regex): File {
@@ -173,3 +203,5 @@ fun File.mostRecentSubfileMatching(regex: Regex): File {
 fun File.subfilesMatching(regex: Regex): Sequence<File> = this.walkTopDown().filter { regex.matches(it.name) }
 
 fun Sequence<File>.mostRecent(): File = this.sortedBy { it.lastModified() }.last()
+
+fun Sequence<File>.mostRecentOrNull(): File? = this.sortedBy { it.lastModified() }.lastOrNull()
