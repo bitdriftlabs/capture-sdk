@@ -343,7 +343,7 @@ pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
     logger_id.log(
       log_level::DEBUG,
       LogType::NORMAL,
-      LogMessage::Bytes(vec![0; 100_000]),
+      LogMessage::Bytes(vec![0; 100_000].into()),
       [].into(),
       [].into(),
       None,
