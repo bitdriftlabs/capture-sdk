@@ -2613,6 +2613,7 @@ dependencies = [
  "bd-report-parsers",
  "bd-runtime",
  "bd-session",
+ "hyper-rustls",
  "log",
  "parking_lot",
  "pretty_assertions",

@@ -13,6 +13,7 @@ bd-client-stats-store.workspace = true
 bd-crash-handler.workspace      = true
 bd-error-reporter.workspace     = true
 bd-key-value.workspace          = true
+hyper-rustls.workspace          = true
 bd-log-primitives.workspace     = true
 bd-logger.workspace             = true
 bd-proto.workspace              = true

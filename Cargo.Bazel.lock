@@ -1,5 +1,5 @@
 {
-  "checksum": "27bab9a46208a51443f8b59614b4a4af3fe231a4c44c9dafe1ad7c4b3be7bb76",
+  "checksum": "5e7d95a9f691a78fc0ff861de97162565c54608dc5a3a348fad8c1187208ecf3",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -11992,6 +11992,7 @@
             "aws-lc-rs",
             "default",
             "http1",
+            "http2",
             "log",
             "logging",
             "native-tokio",
@@ -15529,6 +15530,10 @@
             {
               "id": "bd-session 1.0.0",
               "target": "bd_session"
+            },
+            {
+              "id": "hyper-rustls 0.27.7",
+              "target": "hyper_rustls"
             },
             {
               "id": "log 0.4.29",
@@ -27148,6 +27153,7 @@
     "ctor 0.6.3",
     "flatbuffers 25.9.23",
     "futures-util 0.3.31",
+    "hyper-rustls 0.27.7",
     "jni 0.21.1",
     "log 0.4.29",
     "memmap2 0.9.9",
