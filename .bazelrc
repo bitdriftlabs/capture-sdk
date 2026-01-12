@@ -10,8 +10,8 @@ build --action_env=CC --host_action_env=CC
 build --action_env=CXX --host_action_env=CXX
 build --action_env=LLVM_CONFIG --host_action_env=LLVM_CONFIG
 build --action_env=PATH --host_action_env=PATH
-# cmake path for aws-lc-sys builds
-build --action_env=CMAKE=/usr/bin/cmake --host_action_env=CMAKE=/usr/bin/cmake
+# Allow cargo build scripts to access system cmake (needed for aws-lc-sys)
+build --strategy=CargoBuildScriptRun=local
 
 build --features=debug_prefix_map_pwd_is_dot
 build --features=oso_prefix_is_pwd

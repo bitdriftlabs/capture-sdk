@@ -399,11 +399,4 @@ crate.annotation(
     ],
 )
 
-# aws-lc-sys needs cmake for Android builds; NDK path passed via --action_env in .bazelrc
-crate.annotation(
-    build_script_env = {
-        "AWS_LC_SYS_CMAKE_BUILDER": "1",
-    },
-    crate = "aws-lc-sys",
-)
 use_repo(crate, "crates")

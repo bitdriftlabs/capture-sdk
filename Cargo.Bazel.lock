@@ -1,5 +1,5 @@
 {
-  "checksum": "dfecd7411ad5200966aa3e2ae575715abbf91ccc35de6f63d35a7c37e2b07e83",
+  "checksum": "a23999a973dbd7438de7a20761d073d2adb33803945a9ce012ae8aaaa06fa17e",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -1264,12 +1264,6 @@
               "target": "fs_extra"
             }
           ],
-          "selects": {}
-        },
-        "build_script_env": {
-          "common": {
-            "AWS_LC_SYS_CMAKE_BUILDER": "1"
-          },
           "selects": {}
         },
         "links": "aws_lc_0_35_0"

@@ -32,6 +32,8 @@ jobs:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}
           repository-cache: true
+      - name: Install cmake
+        run: sudo apt-get update && sudo apt-get install -y cmake
       - name: Attempt to free up runner disk space
         run: |
           echo "Disk space BEFORE cleanup:"
