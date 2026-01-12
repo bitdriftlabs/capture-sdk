@@ -72,7 +72,7 @@ jobs:
       - name: Setup Android cmd line tools + NDK
         uses: ./.github/actions/common-android-setup
       - name: Install build tools
-        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build clang make
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build clang
       - name: Build AAR + artifacts
         run: ./tools/android_release.sh "$VERSION"
         env:

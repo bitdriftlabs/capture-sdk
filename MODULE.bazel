@@ -400,11 +400,10 @@ crate.annotation(
 )
 
 # aws-lc-sys needs the Android NDK path for cmake-based Android builds
-# In CI, ANDROID_NDK_HOME/ROOT are passed via --action_env
-# For local builds, Bazel's NDK will be used if these aren't set
 crate.annotation(
     build_script_env = {
-        "CMAKE_GENERATOR": "Ninja",
+        "ANDROID_NDK": "$$EXE_ROOT_DIR$$/external/rules_android_ndk~~android_ndk_repository_extension~androidndk",
+        "ANDROID_NDK_ROOT": "$$EXE_ROOT_DIR$$/external/rules_android_ndk~~android_ndk_repository_extension~androidndk",
     },
     crate = "aws-lc-sys",
 )
