@@ -138,9 +138,6 @@ jobs:
 
       - name: Build Bazel APK and AAR
         timeout-minutes: 30
-        env:
-          ANDROID_NDK_HOME: ${{ github.workspace }}/android-sdk/ndk/27.2.12479018
-          ANDROID_NDK_ROOT: ${{ github.workspace }}/android-sdk/ndk/27.2.12479018
         run: |
           # Build APK for x86_64 (this also builds the AAR dependency)
           ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
