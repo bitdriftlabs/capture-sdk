@@ -140,14 +140,9 @@ jobs:
         timeout-minutes: 30
         run: |
           # Build APK for x86_64 (this also builds the AAR dependency)
-          ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 \
-            --action_env=ANDROID_NDK_HOME="${ANDROID_NDK_HOME}" \
-            --action_env=ANDROID_NDK="${ANDROID_NDK_HOME}" \
-            //examples/android:android_app
+          ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
           # Build AAR for x86_64 to match the APK architecture and reuse build artifacts
-          ./bazelw build :capture_aar --config ci --config release-android --android_platforms=@rules_android//:x86_64 \
-            --action_env=ANDROID_NDK_HOME="${ANDROID_NDK_HOME}" \
-            --action_env=ANDROID_NDK="${ANDROID_NDK_HOME}"
+          ./bazelw build :capture_aar --config ci --config release-android --android_platforms=@rules_android//:x86_64
 
       - name: Upload PR APK
         uses: actions/upload-artifact@v4

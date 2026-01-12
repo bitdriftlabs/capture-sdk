@@ -16,8 +16,6 @@ fi
   --config=ci \
   --config=release-android \
   --define=pom_version="$version" \
-  --action_env=ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-}" \
-  --action_env=ANDROID_NDK="${ANDROID_NDK_HOME:-}" \
   //:capture_aar_with_artifacts //:capture_symbols
 
 mkdir -p dist/

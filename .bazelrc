@@ -24,6 +24,8 @@ build --features=swift.use_global_module_cache
 
 # Gate the references to androidndk behind a flag to support building on arm linux.
 build:android --android_crosstool_top=@androidndk//:toolchain
+# Pass Android NDK path for aws-lc-sys cmake builds
+build:android --action_env=ANDROID_NDK_HOME
 
 # TODO(snowp): Remove this once the below issues are resolved.
 # https://github.com/bazelbuild/rules_rust/issues/3564
