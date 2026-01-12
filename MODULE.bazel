@@ -404,7 +404,7 @@ crate.annotation(
     build_script_env = {
         "ANDROID_NDK": "$$EXE_ROOT_DIR$$/external/rules_android_ndk~~android_ndk_repository_extension~androidndk",
         "ANDROID_NDK_ROOT": "$$EXE_ROOT_DIR$$/external/rules_android_ndk~~android_ndk_repository_extension~androidndk",
-        "CMAKE_GENERATOR": "Ninja",
+        "CMAKE_GENERATOR": "Unix Makefiles",
     },
     crate = "aws-lc-sys",
 )

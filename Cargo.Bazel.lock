@@ -1,5 +1,5 @@
 {
-  "checksum": "1a9c2a91fcdd18b6067f0fdcf68661279c51fcdafe5e966900193b695c7552e2",
+  "checksum": "33e186f47bc1ef403b704e4fbc5db41b99a24a5956ebdeba721bf2f1d12baf5d",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -1270,7 +1270,7 @@
           "common": {
             "ANDROID_NDK": "$$EXE_ROOT_DIR$$/external/rules_android_ndk~~android_ndk_repository_extension~androidndk",
             "ANDROID_NDK_ROOT": "$$EXE_ROOT_DIR$$/external/rules_android_ndk~~android_ndk_repository_extension~androidndk",
-            "CMAKE_GENERATOR": "Ninja"
+            "CMAKE_GENERATOR": "Unix Makefiles"
           },
           "selects": {}
         },

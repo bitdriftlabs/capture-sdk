@@ -92,7 +92,7 @@ jobs:
         uses: ./.github/actions/common-android-setup
 
       - name: Install build tools
-        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build
+        run: sudo apt-get update && sudo apt-get install -y cmake make
 
       - name: Setup Bazel
         uses: bazel-contrib/setup-bazel@0.15.0
