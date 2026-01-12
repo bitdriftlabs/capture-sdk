@@ -10,6 +10,8 @@ build --action_env=CC --host_action_env=CC
 build --action_env=CXX --host_action_env=CXX
 build --action_env=LLVM_CONFIG --host_action_env=LLVM_CONFIG
 build --action_env=PATH --host_action_env=PATH
+# cmake path for aws-lc-sys builds
+build --action_env=CMAKE=/usr/bin/cmake --host_action_env=CMAKE=/usr/bin/cmake
 
 build --features=debug_prefix_map_pwd_is_dot
 build --features=oso_prefix_is_pwd
@@ -24,7 +26,7 @@ build --features=swift.use_global_module_cache
 
 # Gate the references to androidndk behind a flag to support building on arm linux.
 build:android --android_crosstool_top=@androidndk//:toolchain
-# Pass Android NDK path for aws-lc-sys cmake builds
+# Pass Android NDK path for aws-lc-sys builds
 build:android --action_env=ANDROID_NDK_HOME
 
 # TODO(snowp): Remove this once the below issues are resolved.
