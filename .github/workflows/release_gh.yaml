@@ -71,6 +71,8 @@ jobs:
         run: echo -n "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: Setup Android cmd line tools + NDK
         uses: ./.github/actions/common-android-setup
+      - name: Install cmake
+        run: sudo apt-get update && sudo apt-get install -y cmake
       - name: Build AAR + artifacts
         run: ./tools/android_release.sh "$VERSION"
         env:

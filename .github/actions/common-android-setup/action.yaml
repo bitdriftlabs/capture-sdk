@@ -80,6 +80,10 @@ runs:
         export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
         echo "y" | sdkmanager --sdk_root=$ANDROID_HOME "ndk;${{ inputs.ndk-version }}"
 
+    - name: Set ANDROID_NDK_HOME
+      shell: bash
+      run: echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${{ inputs.ndk-version }}" >> $GITHUB_ENV
+
     - name: Accept Android SDK licenses
       if: inputs.setup-emulator == 'true'
       shell: bash

@@ -399,11 +399,8 @@ crate.annotation(
     ],
 )
 
-# aws-lc-sys: disable cmake builder to use the Rust-based builder instead
+# aws-lc-sys needs cmake for Android builds; NDK path passed via --action_env in CI
 crate.annotation(
-    build_script_env = {
-        "AWS_LC_SYS_CMAKE_BUILDER": "0",
-    },
     crate = "aws-lc-sys",
 )
 use_repo(crate, "crates")
