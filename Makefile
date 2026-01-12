@@ -73,6 +73,18 @@ xcframework:
 	./bazelw build //:ios_dist
 	echo "XCFramework is archived at bazel-bin/Capture.ios.zip"
 
+.PHONY: run-ios-app-direct
+run-ios-app-direct:
+	./bazelw run //examples/swift/hello_world:hello_world_app --config=ios
+
+.PHONY: run-ios-app-xcframework
+run-ios-app-xcframework:
+	./bazelw build --config ci --config release-ios //examples/swift/hello_world:ios_app
+
+.PHONY: run-ios-app-dynamic
+run-ios-app-dynamic:
+	./bazelw build --config ci --config release-ios //examples/swift/hello_world:ios_app_dynamic
+
 .PHONY: test-gradle
 test-gradle:
 	platform/jvm/gradlew :capture:testDebugUnitTest -p platform/jvm
