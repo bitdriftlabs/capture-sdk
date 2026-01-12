@@ -83,6 +83,22 @@ jobs:
     if: needs.pre_check.outputs.should_run == 'true'
     needs: pre_check
     steps:
+      - name: Free up disk space
+        run: |
+          echo "Disk space BEFORE cleanup:"
+          df -h /
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /opt/hostedtoolcache
+          sudo rm -rf /usr/local/share/powershell
+          sudo rm -rf /usr/local/share/chromium
+          sudo rm -rf /usr/local/lib/node_modules
+          sudo rm -rf /opt/ghc
+          sudo docker system prune -af || true
+          sudo apt-get autoremove -y || true
+          echo "Disk space AFTER cleanup:"
+          df -h /
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
