@@ -1,5 +1,5 @@
 {
-  "checksum": "8b0c5021cd463cfc5fd21a27a84cc17531369cdbff488cc68eb3201ba7b825f9",
+  "checksum": "27bab9a46208a51443f8b59614b4a4af3fe231a4c44c9dafe1ad7c4b3be7bb76",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -879,14 +879,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "async-compression 0.4.36": {
+    "async-compression 0.4.37": {
       "name": "async-compression",
-      "version": "0.4.36",
+      "version": "0.4.37",
       "package_url": "https://github.com/Nullus157/async-compression",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/async-compression/0.4.36/download",
-          "sha256": "98ec5f6c2f8bc326c994cb9e241cc257ddaba9afa8555a43cffbb5dd86efaa37"
+          "url": "https://static.crates.io/crates/async-compression/0.4.37/download",
+          "sha256": "d10e4f991a553474232bc0a31799f6d24b034a84c0971d80d2e2f78b2e576e40"
         }
       },
       "targets": [
@@ -918,16 +918,12 @@
         "deps": {
           "common": [
             {
-              "id": "compression-codecs 0.4.35",
+              "id": "compression-codecs 0.4.36",
               "target": "compression_codecs"
             },
             {
               "id": "compression-core 0.4.31",
               "target": "compression_core"
-            },
-            {
-              "id": "futures-core 0.3.31",
-              "target": "futures_core"
             },
             {
               "id": "pin-project-lite 0.2.16",
@@ -941,7 +937,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.4.36"
+        "version": "0.4.37"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -1648,7 +1644,7 @@
         "deps": {
           "common": [
             {
-              "id": "getrandom 0.2.16",
+              "id": "getrandom 0.2.17",
               "target": "getrandom"
             },
             {
@@ -1803,14 +1799,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "base64ct 1.8.2": {
+    "base64ct 1.8.3": {
       "name": "base64ct",
-      "version": "1.8.2",
+      "version": "1.8.3",
       "package_url": "https://github.com/RustCrypto/formats",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/base64ct/1.8.2/download",
-          "sha256": "7d809780667f4410e7c41b07f52439b94d2bdf8528eeedc287fa38d3b7f95d82"
+          "url": "https://static.crates.io/crates/base64ct/1.8.3/download",
+          "sha256": "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
         }
       },
       "targets": [
@@ -1840,7 +1836,7 @@
           "selects": {}
         },
         "edition": "2024",
-        "version": "1.8.2"
+        "version": "1.8.3"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
@@ -3389,7 +3385,7 @@
               "target": "axum"
             },
             {
-              "id": "base64ct 1.8.2",
+              "id": "base64ct 1.8.3",
               "target": "base64ct"
             },
             {
@@ -5119,7 +5115,7 @@
               "target": "anyhow"
             },
             {
-              "id": "base64ct 1.8.2",
+              "id": "base64ct 1.8.3",
               "target": "base64ct"
             },
             {
@@ -7401,7 +7397,7 @@
               "target": "tempfile"
             },
             {
-              "id": "toml 0.9.10+spec-1.1.0",
+              "id": "toml 0.9.11+spec-1.1.0",
               "target": "toml"
             }
           ],
@@ -8137,14 +8133,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "compression-codecs 0.4.35": {
+    "compression-codecs 0.4.36": {
       "name": "compression-codecs",
-      "version": "0.4.35",
+      "version": "0.4.36",
       "package_url": "https://github.com/Nullus157/async-compression",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/compression-codecs/0.4.35/download",
-          "sha256": "b0f7ac3e5b97fdce45e8922fb05cae2c37f7bbd63d30dd94821dacfd8f3f2bf2"
+          "url": "https://static.crates.io/crates/compression-codecs/0.4.36/download",
+          "sha256": "00828ba6fd27b45a448e57dbfe84f1029d4c9f26b368157e9a448a5f49a2ec2a"
         }
       },
       "targets": [
@@ -8187,7 +8183,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.4.35"
+        "version": "0.4.36"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -10979,14 +10975,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "getrandom 0.2.16": {
+    "getrandom 0.2.17": {
       "name": "getrandom",
-      "version": "0.2.16",
+      "version": "0.2.17",
       "package_url": "https://github.com/rust-random/getrandom",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/getrandom/0.2.16/download",
-          "sha256": "335ff9f135e4384c8150d6f27c6daed433577f86b4750418338c01a1a2528592"
+          "url": "https://static.crates.io/crates/getrandom/0.2.17/download",
+          "sha256": "ff2abc00be7fca6ebc474524697ae276ad847ad0a6b3faa4bcb027e9a4614ad0"
         }
       },
       "targets": [
@@ -11037,7 +11033,7 @@
           }
         },
         "edition": "2018",
-        "version": "0.2.16"
+        "version": "0.2.17"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -17222,7 +17218,7 @@
         "deps": {
           "common": [
             {
-              "id": "getrandom 0.2.16",
+              "id": "getrandom 0.2.17",
               "target": "getrandom"
             }
           ],
@@ -17741,7 +17737,7 @@
               "target": "cfg_if"
             },
             {
-              "id": "getrandom 0.2.16",
+              "id": "getrandom 0.2.17",
               "target": "getrandom"
             },
             {
@@ -19337,7 +19333,7 @@
               "target": "build_script_build"
             },
             {
-              "id": "zmij 1.0.12",
+              "id": "zmij 1.0.13",
               "target": "zmij"
             }
           ],
@@ -21855,14 +21851,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "toml 0.9.10+spec-1.1.0": {
+    "toml 0.9.11+spec-1.1.0": {
       "name": "toml",
-      "version": "0.9.10+spec-1.1.0",
+      "version": "0.9.11+spec-1.1.0",
       "package_url": "https://github.com/toml-rs/toml",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/toml/0.9.10+spec-1.1.0/download",
-          "sha256": "0825052159284a1a8b4d6c0c86cbc801f2da5afd2b225fa548c72f2e74002f48"
+          "url": "https://static.crates.io/crates/toml/0.9.11+spec-1.1.0/download",
+          "sha256": "f3afc9a848309fe1aaffaed6e1546a7a14de1f935dc9d89d32afd9a44bab7c46"
         }
       },
       "targets": [
@@ -21918,7 +21914,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.9.10+spec-1.1.0"
+        "version": "0.9.11+spec-1.1.0"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -22211,7 +22207,7 @@
         "deps": {
           "common": [
             {
-              "id": "async-compression 0.4.36",
+              "id": "async-compression 0.4.37",
               "target": "async_compression"
             },
             {
@@ -26799,14 +26795,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "zmij 1.0.12": {
+    "zmij 1.0.13": {
       "name": "zmij",
-      "version": "1.0.12",
+      "version": "1.0.13",
       "package_url": "https://github.com/dtolnay/zmij",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/zmij/1.0.12/download",
-          "sha256": "2fc5a66a20078bf1251bde995aa2fdcc4b800c70b5d92dd2c62abc5c60f679f8"
+          "url": "https://static.crates.io/crates/zmij/1.0.13/download",
+          "sha256": "ac93432f5b761b22864c774aac244fa5c0fd877678a4c37ebf6cf42208f9c9ec"
         }
       },
       "targets": [
@@ -26843,14 +26839,14 @@
         "deps": {
           "common": [
             {
-              "id": "zmij 1.0.12",
+              "id": "zmij 1.0.13",
               "target": "build_script_build"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "1.0.12"
+        "version": "1.0.13"
       },
       "build_script_attrs": {
         "compile_data_glob": [

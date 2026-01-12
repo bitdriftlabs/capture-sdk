@@ -49,6 +49,7 @@ ctor = "0.6.3"
 env_logger = { version = "0.11.8", default-features = false }
 flatbuffers = "25.9.23"
 futures-util = "0.3.31"
+hyper-rustls = { version = "0.27.7", features = ["http2"] }
 jni = "0.21.1"
 log = { version = "0.4.29", features = ["max_level_trace", "release_max_level_info"] }
 memmap2 = "0.9.9"
