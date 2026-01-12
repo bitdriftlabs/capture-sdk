@@ -24,6 +24,10 @@ runs:
         echo "ANDROID_HOME=${{ github.workspace }}/android-sdk" >> $GITHUB_ENV
         echo "ANDROID_SDK_ROOT=${{ github.workspace }}/android-sdk" >> $GITHUB_ENV
 
+    - name: Install cmake
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y cmake
+
     - name: Enable KVM group perms
       if: inputs.setup-emulator == 'true'
       shell: bash
