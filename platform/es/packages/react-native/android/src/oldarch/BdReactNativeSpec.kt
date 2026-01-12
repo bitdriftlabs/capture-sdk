@@ -41,4 +41,8 @@ abstract class BdReactNativeSpec internal constructor(context: ReactApplicationC
     engine: String,
     libraryVersion: String,
   )
+
+  abstract fun setFeatureFlagExposureString(name: String, variant: String)
+
+  abstract fun setFeatureFlagExposureBool(name: String, variant: Boolean)
 }

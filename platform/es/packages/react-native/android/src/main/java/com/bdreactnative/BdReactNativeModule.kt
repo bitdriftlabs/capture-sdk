@@ -135,6 +135,16 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
     )
   }
 
+  @ReactMethod
+  override fun setFeatureFlagExposureString(name: String, variant: String) {
+    Capture.Logger.setFeatureFlagExposure(name, variant)
+  }
+
+  @ReactMethod
+  override fun setFeatureFlagExposureBool(name: String, variant: Boolean) {
+    Capture.Logger.setFeatureFlagExposure(name, variant)
+  }
+
 
   companion object {
     const val NAME = "BdReactNative"

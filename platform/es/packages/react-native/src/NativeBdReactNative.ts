@@ -57,6 +57,10 @@ export interface Spec extends TurboModule {
     engine: string,
     libraryVersion: string,
   ): void;
+
+  setFeatureFlagExposureString(name: string, variant: string): void;
+
+  setFeatureFlagExposureBool(name: string, variant: boolean): void;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('BdReactNative');

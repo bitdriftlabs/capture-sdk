@@ -24,6 +24,7 @@ import {
   warn,
   logScreenView,
   logAppLaunchTTI,
+  setFeatureFlagExposure,
 } from '@bitdrift/react-native';
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
@@ -141,6 +142,16 @@ const HomeScreen = () => {
     } else {
       Alert.alert('Error', 'Session URL not available');
     }
+  };
+
+  const handleSetFeatureFlagString = () => {
+    setFeatureFlagExposure('dark_mode', 'enabled');
+    showToast('Feature flag set: dark_mode = enabled');
+  };
+
+  const handleSetFeatureFlagBoolean = () => {
+    setFeatureFlagExposure('experimental_feature', true);
+    showToast('Feature flag set: experimental_feature = true');
   };
 
   return (
@@ -362,6 +373,27 @@ const HomeScreen = () => {
           onPress={triggerLogErrorExample}
         >
           <Text style={styles.buttonText}>Test logError API</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.buttonRow}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={handleSetFeatureFlagString}
+        >
+          <Text style={styles.buttonText}>Set Flag (String)</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={handleSetFeatureFlagBoolean}
+        >
+          <Text style={styles.buttonText}>Set Flag (Boolean)</Text>
         </Pressable>
       </View>
 

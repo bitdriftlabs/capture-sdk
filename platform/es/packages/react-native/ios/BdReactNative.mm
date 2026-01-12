@@ -55,6 +55,18 @@ RCT_EXPORT_METHOD(reportJsError:(NSString*)errorName
     [CAPRNLogger reportJsErrorWithErrorName:errorName message:message stack:stack isFatal:isFatal engine:engine reactNativeVersion:libraryVersion];
 }
 
+RCT_EXPORT_METHOD(setFeatureFlagExposureString:(NSString*)name
+      variant:(NSString*)variant)
+{
+    [CAPRNLogger setFeatureFlagExposureStringWithName:name variant:variant];
+}
+
+RCT_EXPORT_METHOD(setFeatureFlagExposureBool:(NSString*)name
+      variant:(BOOL)variant)
+{
+    [CAPRNLogger setFeatureFlagExposureBoolWithName:name variant:variant];
+}
+
 #ifndef RCT_NEW_ARCH_ENABLED
 
 RCT_EXPORT_METHOD(init:(NSString*)apiKey
