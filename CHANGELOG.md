@@ -53,7 +53,7 @@
 
 **Changed**
 
-- Optimized internal field handling to reduce object allocations and GC pressure.
+- Optimized internal field handling to reduce JVM object allocations.
 
 ## [0.21.2]
 [0.21.2]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.2
