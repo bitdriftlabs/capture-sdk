@@ -14,7 +14,7 @@ import type { WebVitalMessage } from './types';
  * Initialize Core Web Vitals monitoring using the web-vitals library.
  * Reports: LCP, CLS, INP, FCP, TTFB
  */
-export function initWebVitals(): void {
+export const initWebVitals = (): void => {
     const reportMetric = (metric: MetricType): void => {
         const parentSpanId = getCurrentPageSpanId();
         const message = createMessage<WebVitalMessage>({
