@@ -26,18 +26,18 @@ try {
 }
 
 // Escape for Kotlin raw string (triple quotes)
-function escapeForKotlin(content: string): string {
+const escapeForKotlin = (content: string): string => {
     // In Kotlin raw strings, we need to escape $ as ${'$'}
     // In JS replace(), $$ represents a literal $, so we use $${'$$'} to produce ${'$'}
     return content.replace(/\$/g, "$${'$$'}");
-}
+};
 
 // Escape for Swift raw string
-function escapeForSwift(content: string): string {
+const escapeForSwift = (content: string): string => {
     // In Swift multi-line strings with #, we need to escape \# and interpolation
     // Using extended delimiters (#"..."#) so standard escapes don't apply
     return content.replace(/#/g, '\\#');
-}
+};
 
 // Generate Kotlin file
 const kotlinContent = `// AUTO-GENERATED FILE - DO NOT EDIT

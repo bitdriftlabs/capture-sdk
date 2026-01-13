@@ -10,9 +10,9 @@ import type { NetworkRequestMessage } from './types';
 
 let requestCounter = 0;
 
-function generateRequestId(): string {
+const generateRequestId = (): string => {
     return `req_${Date.now()}_${++requestCounter}`;
-}
+};
 
 /**
  * Track JS-initiated requests to avoid double-logging when PerformanceObserver fires.
@@ -30,7 +30,7 @@ const DEDUP_WINDOW_MS = 5000;
  * Mark a URL as having been captured via JS interception.
  * This prevents the PerformanceObserver from double-logging it.
  */
-function markAsJsInitiated(url: string): void {
+const markAsJsInitiated = (url: string): void => {
     jsInitiatedRequests.set(url, Date.now());
 
     // Periodic cleanup of old entries to prevent memory growth
@@ -42,13 +42,13 @@ function markAsJsInitiated(url: string): void {
             }
         }
     }
-}
+};
 
 /**
  * Check if a URL was recently captured via JS interception.
  * Returns true and removes the entry if found (allowing future requests to same URL).
  */
-function wasJsInitiated(url: string, entryEndTime: number): boolean {
+const wasJsInitiated = (url: string, entryEndTime: number): boolean => {
     const timestamp = jsInitiatedRequests.get(url);
     if (timestamp === undefined) {
         return false;
@@ -66,12 +66,12 @@ function wasJsInitiated(url: string, entryEndTime: number): boolean {
     }
 
     return false;
-}
+};
 
 /**
  * Try to get resource timing data for a URL
  */
-function getResourceTiming(url: string): PerformanceResourceTiming | undefined {
+const getResourceTiming = (url: string): PerformanceResourceTiming | undefined => {
     if (typeof performance === 'undefined' || !performance.getEntriesByType) {
         return undefined;
     }
@@ -81,12 +81,12 @@ function getResourceTiming(url: string): PerformanceResourceTiming | undefined {
     const entry = entries.filter((e) => e.name === url).pop();
 
     return entry;
-}
+};
 
 /**
  * Intercept fetch requests
  */
-function interceptFetch(): void {
+const interceptFetch = (): void => {
     const originalFetch = window.fetch;
 
     if (!originalFetch) {
@@ -158,7 +158,7 @@ function interceptFetch(): void {
 /**
  * Intercept XMLHttpRequest
  */
-function interceptXHR(): void {
+const interceptXHR = (): void => {
     const originalOpen = XMLHttpRequest.prototype.open;
     const originalSend = XMLHttpRequest.prototype.send;
 
@@ -251,7 +251,7 @@ function interceptXHR(): void {
  * Initialize PerformanceObserver to capture browser-initiated resource loads
  * (images, CSS, scripts, etc.) that weren't made via JS fetch/XHR.
  */
-function initResourceObserver(): void {
+const initResourceObserver = (): void => {
     if (typeof PerformanceObserver === 'undefined') {
         return;
     }
@@ -303,8 +303,8 @@ function initResourceObserver(): void {
  * Initialize network interception for both fetch and XHR,
  * plus PerformanceObserver for browser-initiated resources.
  */
-export function initNetworkInterceptor(): void {
+export const initNetworkInterceptor = (): void => {
     interceptFetch();
     interceptXHR();
     initResourceObserver();
-}
+};

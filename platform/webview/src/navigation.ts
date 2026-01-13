@@ -14,7 +14,7 @@ let currentUrl = '';
 /**
  * Initialize SPA navigation tracking via History API
  */
-export function initNavigationTracking(): void {
+export const initNavigationTracking = (): void => {
     currentUrl = window.location.href;
 
     // Intercept pushState
@@ -61,7 +61,7 @@ export function initNavigationTracking(): void {
     });
 }
 
-function logNavigation(fromUrl: string, toUrl: string, method: 'pushState' | 'replaceState' | 'popstate'): void {
+const logNavigation = (fromUrl: string, toUrl: string, method: 'pushState' | 'replaceState' | 'popstate'): void => {
     const message = createMessage<NavigationMessage>({
         type: 'navigation',
         fromUrl,
@@ -69,4 +69,4 @@ function logNavigation(fromUrl: string, toUrl: string, method: 'pushState' | 're
         method,
     });
     log(message);
-}
+};

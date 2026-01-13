@@ -26,7 +26,7 @@ const buildOptions: esbuild.BuildOptions = {
     },
 };
 
-async function build(): Promise<void> {
+const build = async (): Promise<void> => {
     try {
         if (isWatch) {
             const ctx = await esbuild.context(buildOptions);
@@ -46,6 +46,6 @@ async function build(): Promise<void> {
         console.error('Build failed:', error);
         process.exit(1);
     }
-}
+};
 
 build();
