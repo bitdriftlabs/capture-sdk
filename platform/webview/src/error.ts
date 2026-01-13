@@ -12,7 +12,7 @@ import type { ErrorMessage, PromiseRejectionMessage } from './types';
  * Initialize unhandled error monitoring.
  * Captures uncaught JavaScript errors that bubble to the window.
  */
-export function initErrorMonitoring(): void {
+export const initErrorMonitoring = (): void => {
     window.addEventListener('error', (event: ErrorEvent) => {
         // Skip if this is a resource error (handled by resource-errors.ts)
         // Resource errors have event.target as an Element
@@ -43,7 +43,7 @@ export function initErrorMonitoring(): void {
 /**
  * Initialize unhandled promise rejection monitoring.
  */
-export function initPromiseRejectionMonitoring(): void {
+export const initPromiseRejectionMonitoring = (): void => {
     window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
         let reason = 'Unknown rejection reason';
         let stack: string | undefined;

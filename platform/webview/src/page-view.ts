@@ -17,7 +17,7 @@ let pageViewStartTimeMs: number = 0;
 /**
  * Generate a unique span ID
  */
-function generateSpanId(): string {
+const generateSpanId = (): string => {
     // Use crypto.randomUUID if available, otherwise fallback
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
         return crypto.randomUUID();
@@ -28,15 +28,15 @@ function generateSpanId(): string {
         const v = c === 'x' ? r : (r & 0x3) | 0x8;
         return v.toString(16);
     });
-}
+};
 
 /**
  * Get the current page view span ID.
  * Can be used by other modules to nest their spans/logs under the current page view.
  */
-export function getCurrentPageSpanId(): string | null {
+export const getCurrentPageSpanId = (): string | null => {
     return currentPageSpanId;
-}
+};
 
 /**
  * Start a new page view span.
@@ -46,7 +46,7 @@ export function getCurrentPageSpanId(): string | null {
  * so that web vitals (which are measured from navigation start) fall within
  * the page view span.
  */
-export function startPageView(url: string, reason: 'initial' | 'navigation' = 'navigation'): void {
+export const startPageView = (url: string, reason: 'initial' | 'navigation' = 'navigation'): void => {
     // End previous page view if exists
     if (currentPageSpanId) {
         endPageView('navigation');
@@ -79,7 +79,7 @@ export function startPageView(url: string, reason: 'initial' | 'navigation' = 'n
 /**
  * End the current page view span.
  */
-export function endPageView(reason: 'navigation' | 'unload' | 'hidden'): void {
+export const endPageView = (reason: 'navigation' | 'unload' | 'hidden'): void => {
     if (!currentPageSpanId) {
         return;
     }
@@ -107,10 +107,10 @@ export function endPageView(reason: 'navigation' | 'unload' | 'hidden'): void {
 /**
  * Log a lifecycle event within the current page view.
  */
-function logLifecycleEvent(
+const logLifecycleEvent = (
     event: 'DOMContentLoaded' | 'load' | 'visibilitychange',
     details?: Record<string, string>,
-): void {
+): void => {
     const message = createMessage<LifecycleMessage>({
         type: 'lifecycle',
         event,
@@ -118,13 +118,13 @@ function logLifecycleEvent(
         ...details,
     });
     log(message);
-}
+};
 
 /**
  * Initialize page view tracking.
  * This sets up the initial page view and lifecycle event listeners.
  */
-export function initPageViewTracking(): void {
+export const initPageViewTracking = (): void => {
     // Start initial page view
     startPageView(window.location.href, 'initial');
 

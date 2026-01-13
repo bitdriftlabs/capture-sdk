@@ -49,7 +49,7 @@ declare global {
 
 type Platform = 'ios' | 'android' | 'unknown';
 
-function detectPlatform(): Platform {
+const detectPlatform = (): Platform => {
     if (window.webkit?.messageHandlers?.BitdriftLogger) {
         return 'ios';
     }
@@ -57,9 +57,9 @@ function detectPlatform(): Platform {
         return 'android';
     }
     return 'unknown';
-}
+};
 
-function sendToNative(message: AnyBridgeMessage): void {
+const sendToNative = (message: AnyBridgeMessage): void => {
     const platform = detectPlatform();
     const serialized = JSON.stringify(message);
 
@@ -77,12 +77,12 @@ function sendToNative(message: AnyBridgeMessage): void {
             }
             break;
     }
-}
+};
 
 /**
  * Initialize the global bitdrift object
  */
-export function initBridge(): void {
+export const initBridge = (): void => {
     // Avoid re-initialization
     if (window.bitdrift) {
         return;
@@ -91,31 +91,31 @@ export function initBridge(): void {
     window.bitdrift = {
         log: sendToNative,
     };
-}
+};
 
 /**
  * Send a message through the bridge
  */
-export function log(message: AnyBridgeMessage): void {
+export const log = (message: AnyBridgeMessage): void => {
     if (window.bitdrift) {
         pristine.console.log('[Bitdrift WebView] Logging message via bridge', message);
         window.bitdrift.log(message);
     } else {
         sendToNative(message);
     }
-}
+};
 
 /**
  * Helper to create a timestamped message
  */
-export function createMessage<T extends AnyBridgeMessage>(partial: Omit<T, 'v' | 'timestamp' | 'tag'>): T {
+export const createMessage = <T extends AnyBridgeMessage>(partial: Omit<T, 'v' | 'timestamp' | 'tag'>): T => {
     return {
         tag: 'bitdrift-webview-sdk',
         v: 1,
         timestamp: Date.now(),
         ...partial,
     } as T;
-}
+};
 
 export const isAnyBridgeMessage = (obj: unknown): obj is AnyBridgeMessage => {
     return (

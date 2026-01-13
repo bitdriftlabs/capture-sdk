@@ -38,7 +38,7 @@ let pendingRageClick: {
 /**
  * Flush any pending rage click immediately, logging it and clearing state.
  */
-function flushPendingRageClick(): void {
+const flushPendingRageClick = (): void => {
     if (rageClickDebounceTimer !== null) {
         clearTimeout(rageClickDebounceTimer);
         rageClickDebounceTimer = null;
@@ -54,23 +54,23 @@ function flushPendingRageClick(): void {
         pendingRageClick = null;
         recentClicks = [];
     }
-}
+};
 
 /**
  * Initialize user interaction monitoring.
  * Tracks taps/clicks on clickable elements and rage clicks on non-clickable elements.
  * Uses pointerdown for reliable capture on both mobile and desktop.
  */
-export function initUserInteractionMonitoring(): void {
+export const initUserInteractionMonitoring = (): void => {
     // Use pointerdown for reliable mobile/desktop support
     // pointerdown fires immediately on touch/click without delay
     document.addEventListener('pointerdown', handlePointerDown, true);
-}
+};
 
 /**
  * Check if an element or its ancestors are clickable
  */
-function isClickable(element: Element): boolean {
+const isClickable = (element: Element): boolean => {
     let current: Element | null = element;
 
     while (current) {
@@ -112,7 +112,7 @@ function isClickable(element: Element): boolean {
 /**
  * Handle pointer down events (touch/mouse)
  */
-function handlePointerDown(event: PointerEvent): void {
+const handlePointerDown = (event: PointerEvent): void => {
     const target = event.target as Element | null;
     if (!target) {
         return;
@@ -178,13 +178,13 @@ function handlePointerDown(event: PointerEvent): void {
 /**
  * Log a user interaction event
  */
-function logUserInteraction(
+const logUserInteraction = (
     element: Element,
     interactionType: 'click' | 'rageClick',
     isClickable: boolean,
     clickCount?: number,
     actualTimeWindowMs?: number,
-): void {
+): void => {
     const tagName = element.tagName.toLowerCase();
     const elementId = element.id || undefined;
     const className = element.className
