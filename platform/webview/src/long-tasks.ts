@@ -12,7 +12,7 @@ import type { LongTaskMessage } from './types';
  * Initialize long task monitoring using PerformanceObserver.
  * Long tasks are tasks that block the main thread for > 50ms.
  */
-export function initLongTaskMonitoring(): void {
+export const initLongTaskMonitoring = (): void => {
     if (typeof PerformanceObserver === 'undefined') {
         return;
     }

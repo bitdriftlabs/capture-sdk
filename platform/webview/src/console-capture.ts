@@ -14,7 +14,7 @@ const LEVELS = ['log', 'warn', 'error', 'info', 'debug'] as const;
  * Initialize console log capture.
  * Intercepts console.log, warn, error, info, debug and sends to native.
  */
-export function initConsoleCapture(): void {
+export const initConsoleCapture = (): void => {
     for (const level of LEVELS) {
         // Ensure pristine.console is initialized
         pristine.console[level] = pristine.console[level] ?? console[level];
@@ -45,7 +45,7 @@ export function initConsoleCapture(): void {
 /**
  * Convert an argument to a string representation
  */
-function stringifyArg(arg: unknown): string {
+const stringifyArg = (arg: unknown): string => {
     if (arg === null) return 'null';
     if (arg === undefined) return 'undefined';
     if (typeof arg === 'string') return arg;
@@ -57,4 +57,4 @@ function stringifyArg(arg: unknown): string {
     } catch {
         return String(arg);
     }
-}
+};

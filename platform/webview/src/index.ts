@@ -28,7 +28,7 @@ declare global {
  * Main entry point for the Bitdrift WebView SDK.
  * This runs immediately when injected into a WebView.
  */
-function init(): void {
+const init = (): void => {
     // Guard against multiple initializations (e.g., script injected twice)
     if (window.__bitdriftBridgeInitialized) {
         return;

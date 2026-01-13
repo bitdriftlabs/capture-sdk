@@ -12,7 +12,7 @@ import type { ResourceErrorMessage } from './types';
  * Initialize resource error monitoring.
  * Captures failed loads for images, scripts, stylesheets, etc.
  */
-export function initResourceErrorMonitoring(): void {
+export const initResourceErrorMonitoring = (): void => {
     // Use capture phase to catch errors before they bubble
     window.addEventListener(
         'error',
@@ -66,7 +66,7 @@ export function initResourceErrorMonitoring(): void {
 /**
  * Determine the resource type based on tag and attributes
  */
-function getResourceType(tagName: string, element: HTMLElement): string {
+const getResourceType = (tagName: string, element: HTMLElement): string => {
     switch (tagName) {
         case 'img':
             return 'image';
@@ -89,4 +89,4 @@ function getResourceType(tagName: string, element: HTMLElement): string {
         default:
             return tagName;
     }
-}
+};
