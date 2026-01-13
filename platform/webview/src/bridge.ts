@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import type { AnyBridgeMessage } from './types';
+import type { AnyBridgeMessage, BridgeMessage } from './types';
 
 export const pristine = {
     console: {
@@ -122,10 +122,10 @@ export const isAnyBridgeMessage = (obj: unknown): obj is AnyBridgeMessage => {
         typeof obj === 'object' &&
         obj !== null &&
         'type' in obj &&
-        typeof (obj as any).type === 'string' &&
+        typeof (obj as BridgeMessage).type === 'string' &&
         'v' in obj &&
-        typeof (obj as any).v === 'number' &&
+        typeof (obj as BridgeMessage).v === 'number' &&
         'tag' in obj &&
-        (obj as any).tag === 'bitdrift-webview-sdk'
+        (obj as BridgeMessage).tag === 'bitdrift-webview-sdk'
     );
 };
