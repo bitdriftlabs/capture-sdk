@@ -77,7 +77,7 @@ mavenPublishing {
         licenses {
             license {
                 name.set("BITDRIFT SOFTWARE DEVELOPMENT KIT LICENSE AGREEMENT")
-                url.set("https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture-timber/${findProperty("VERSION_NAME")}/LICENSE.txt")
+                url.set("https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture-timber/${findProperty("VERSION_NAME")}/LICENSE")
                 distribution.set("repo")
             }
         }
