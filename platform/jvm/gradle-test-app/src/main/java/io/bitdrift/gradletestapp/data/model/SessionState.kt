@@ -13,6 +13,7 @@ data class SessionState(
     val sessionId: String? = null,
     val sessionUrl: String? = null,
     val deviceCode: String? = null,
+    val deviceId: String? = null,
     val isDeviceCodeValid: Boolean = false,
     val deviceCodeError: String? = null,
 )

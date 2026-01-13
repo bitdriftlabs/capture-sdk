@@ -8,9 +8,21 @@
 package io.bitdrift.gradletestapp.ui.compose.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.bitdrift.gradletestapp.data.model.AppState
@@ -25,6 +37,7 @@ fun SessionManagementCard(
     onStartNewSession: () -> Unit,
     onGenerateDeviceCode: () -> Unit,
     onCopySessionUrl: () -> Unit,
+    onQueryDeviceId: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -74,6 +87,20 @@ fun SessionManagementCard(
             } else {
                 Text(
                     text = "No Code Generated",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = BitdriftColors.TextTertiary,
+                )
+            }
+
+            QueryDeviceIdButton(
+                onClick = onQueryDeviceId,
+            )
+
+            if (uiState.session.deviceId != null) {
+                DeviceIdField(deviceId = uiState.session.deviceId)
+            } else {
+                Text(
+                    text = "No Device ID Queried",
                     style = MaterialTheme.typography.bodySmall,
                     color = BitdriftColors.TextTertiary,
                 )
@@ -186,6 +213,41 @@ private fun DeviceCodeField(deviceCode: String) {
         value = deviceCode,
         onValueChange = {},
         label = { Text("Device Code", color = BitdriftColors.TextSecondary) },
+        modifier = Modifier.fillMaxWidth(),
+        readOnly = true,
+        colors =
+            OutlinedTextFieldDefaults.colors(
+                focusedTextColor = BitdriftColors.TextBright,
+                unfocusedTextColor = BitdriftColors.TextBright,
+                focusedBorderColor = BitdriftColors.Primary,
+                unfocusedBorderColor = BitdriftColors.Border,
+                focusedLabelColor = BitdriftColors.Primary,
+                unfocusedLabelColor = BitdriftColors.TextSecondary,
+                cursorColor = BitdriftColors.TextBright,
+            ),
+    )
+}
+
+@Composable
+private fun QueryDeviceIdButton(onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors =
+            ButtonDefaults.outlinedButtonColors(
+                contentColor = BitdriftColors.TextPrimary,
+            ),
+    ) {
+        Text("Query Device Id")
+    }
+}
+
+@Composable
+private fun DeviceIdField(deviceId: String) {
+    OutlinedTextField(
+        value = deviceId,
+        onValueChange = {},
+        label = { Text("Device ID", color = BitdriftColors.TextSecondary) },
         modifier = Modifier.fillMaxWidth(),
         readOnly = true,
         colors =

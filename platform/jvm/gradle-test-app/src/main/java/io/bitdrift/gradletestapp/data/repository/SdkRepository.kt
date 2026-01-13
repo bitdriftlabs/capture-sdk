@@ -98,6 +98,11 @@ class SdkRepository(
     fun getSessionId(): String? = Logger.sessionId
 
     /**
+     * Get current device ID (reads Shared Preference in-memory value)
+     */
+    fun getDeviceId(): String? = Logger.deviceId
+
+    /**
      * Check if SDK is initialized (combines in-memory state with cached prefs)
      */
     fun isSdkInitialized(): Boolean {
