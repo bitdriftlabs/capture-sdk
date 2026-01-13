@@ -49,13 +49,7 @@ function flushPendingRageClick(): void {
             pendingRageClick.clicks[pendingRageClick.clicks.length - 1].timestamp -
             pendingRageClick.clicks[0].timestamp;
 
-        logUserInteraction(
-            pendingRageClick.element,
-            'rageClick',
-            false,
-            pendingRageClick.clicks.length,
-            timeSpan,
-        );
+        logUserInteraction(pendingRageClick.element, 'rageClick', false, pendingRageClick.clicks.length, timeSpan);
 
         pendingRageClick = null;
         recentClicks = [];
@@ -145,7 +139,7 @@ function handlePointerDown(event: PointerEvent): void {
 
         // Check for rage click pattern
         const nearbyClicks = recentClicks.filter((click) => {
-            const distance = Math.sqrt(Math.pow(click.x - event.clientX, 2) + Math.pow(click.y - event.clientY, 2));
+            const distance = Math.sqrt((click.x - event.clientX) ** 2 + (click.y - event.clientY) ** 2);
             return distance < RAGE_CLICK_DISTANCE_PX;
         });
 
@@ -203,7 +197,7 @@ function logUserInteraction(
     let textContent: string | undefined;
     if (element.textContent) {
         const text = element.textContent.trim().replace(/\s+/g, ' ');
-        textContent = text.length > 50 ? text.slice(0, 50) + '...' : text || undefined;
+        textContent = text.length > 50 ? `${text.slice(0, 50)}...` : text || undefined;
     }
 
     const message = createMessage<UserInteractionMessage>({

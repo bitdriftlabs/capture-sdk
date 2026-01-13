@@ -1,6 +1,6 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,35 +11,32 @@ const bundlePath = path.join(__dirname, '../dist/bitdrift-webview.js');
 
 // Output directly to SDK source directories
 const kotlinOutputPath = path.join(
-  repoRoot,
-  'platform/jvm/capture/src/main/kotlin/io/bitdrift/capture/webview/WebViewBridgeScript.kt'
+    repoRoot,
+    'platform/jvm/capture/src/main/kotlin/io/bitdrift/capture/webview/WebViewBridgeScript.kt',
 );
-const swiftOutputPath = path.join(
-  repoRoot,
-  'platform/swift/source/integrations/webview/WebViewBridgeScript.swift'
-);
+const swiftOutputPath = path.join(repoRoot, 'platform/swift/source/integrations/webview/WebViewBridgeScript.swift');
 
 // Read the bundled JavaScript
 let bundleContent: string;
 try {
-  bundleContent = fs.readFileSync(bundlePath, 'utf8');
-} catch (error) {
-  console.error('Bundle not found. Run "npm run build" first.');
-  process.exit(1);
+    bundleContent = fs.readFileSync(bundlePath, 'utf8');
+} catch (_error) {
+    console.error('Bundle not found. Run "npm run build" first.');
+    process.exit(1);
 }
 
 // Escape for Kotlin raw string (triple quotes)
 function escapeForKotlin(content: string): string {
-  // In Kotlin raw strings, we need to escape $ as ${'$'}
-  // In JS replace(), $$ represents a literal $, so we use $${'$$'} to produce ${'$'}
-  return content.replace(/\$/g, "$${'$$'}");
+    // In Kotlin raw strings, we need to escape $ as ${'$'}
+    // In JS replace(), $$ represents a literal $, so we use $${'$$'} to produce ${'$'}
+    return content.replace(/\$/g, "$${'$$'}");
 }
 
 // Escape for Swift raw string
 function escapeForSwift(content: string): string {
-  // In Swift multi-line strings with #, we need to escape \# and interpolation
-  // Using extended delimiters (#"..."#) so standard escapes don't apply
-  return content.replace(/#/g, '\\#');
+    // In Swift multi-line strings with #, we need to escape \# and interpolation
+    // Using extended delimiters (#"..."#) so standard escapes don't apply
+    return content.replace(/#/g, '\\#');
 }
 
 // Generate Kotlin file

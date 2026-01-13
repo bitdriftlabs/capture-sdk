@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
-import type { NetworkRequestMessage, ResourceTimingData } from './types';
+import type { NetworkRequestMessage } from './types';
 
 let requestCounter = 0;
 
@@ -93,7 +93,7 @@ function interceptFetch(): void {
         return;
     }
 
-    window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
         const requestId = generateRequestId();
         const startTime = performance.now();
 
@@ -180,7 +180,7 @@ function interceptXHR(): void {
             requestId: generateRequestId(),
         };
 
-        return originalOpen.call(this, method, url, async, username, password);
+        originalOpen.call(this, method, url, async, username, password);
     };
 
     XMLHttpRequest.prototype.send = function (body?: Document | XMLHttpRequestBodyInit | null): void {
@@ -190,7 +190,8 @@ function interceptXHR(): void {
         const info = xhr._bitdrift;
 
         if (!info) {
-            return originalSend.call(this, body);
+            originalSend.call(this, body);
+            return;
         }
 
         const startTime = performance.now();
@@ -242,7 +243,7 @@ function interceptXHR(): void {
         xhr.addEventListener('abort', handleError);
         xhr.addEventListener('timeout', handleError);
 
-        return originalSend.call(this, body);
+        originalSend.call(this, body);
     };
 }
 
@@ -293,8 +294,8 @@ function initResourceObserver(): void {
         });
 
         observer.observe({ type: 'resource', buffered: false });
-    } catch (e) {
-        // PerformanceObserver not supported or resource type not available
+    } catch (_error) {
+        // TODO (Jackson): Log internal warning: PerformanceObserver not supported or resource type not available
     }
 }
 
