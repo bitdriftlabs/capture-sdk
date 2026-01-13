@@ -200,7 +200,7 @@ unsafe fn convert_fields_helper<FieldValue>(
       },
       FIELD_TYPE_DATA => {
         let data_value = FromObjcObject::from_objc(field_value)? as &[u8];
-        StringOrBytes::Bytes(data_value.to_vec())
+        StringOrBytes::Bytes(data_value.to_vec().into())
       },
       _ => bail!("unknown field value type: {field_type:?}"),
     };

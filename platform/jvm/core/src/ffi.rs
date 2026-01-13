@@ -115,7 +115,7 @@ fn extract_field(
         .call_method(env, field_obj, ReturnType::Array, &[])?
         .l()?;
       let value = env.convert_byte_array(JPrimitiveArray::from(field_value))?;
-      LogFieldValue::Bytes(value)
+      LogFieldValue::Bytes(value.into())
     },
     FIELD_VALUE_STRING => {
       let field_value = FIELD_STRING
