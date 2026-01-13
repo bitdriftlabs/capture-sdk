@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added support for using `BITDRIFT_API_KEY` as an environment variable when uploading symbols using capture-plugin
 
 **Changed**
 
