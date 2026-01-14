@@ -12,6 +12,7 @@ import com.google.gson.JsonSyntaxException
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpRequestMetrics
@@ -29,13 +30,13 @@ import java.util.UUID
 internal class WebViewMessageHandler(
     private val logger: LoggerImpl?,
 ) {
-    private val gson = Gson()
+    /**
+     * TODO(Fran): Consider switching to kotlinx.serialization
+     */
+    private val gson by lazy { Gson() }
 
-    /** Current page view span ID for nesting child events */
     private var currentPageSpanId: String? = null
-
-    /** Active page view spans, keyed by span ID */
-    private val activePageViewSpans = mutableMapOf<String, io.bitdrift.capture.events.span.Span>()
+    private val activePageViewSpans = mutableMapOf<String, Span>()
 
     fun handleMessage(
         message: String,
@@ -290,11 +291,6 @@ internal class WebViewMessageHandler(
         }
     }
 
-    /**
-     * Log a duration-based web vital as a span with custom start/end times.
-     * The start time is calculated as (timestamp - value) where value is the duration in ms,
-     * and end time is the timestamp when the metric was reported.
-     */
     private fun logDurationSpan(
         spanName: String,
         timestamp: Long,
@@ -303,12 +299,8 @@ internal class WebViewMessageHandler(
         fields: Map<String, String>,
         parentSpanId: String?,
     ) {
-        // Calculate start time: the metric value represents duration from navigation start
-        // timestamp is when the metric was captured (effectively the end time)
         val startTimeMs = timestamp - durationMs.toLong()
-        val endTimeMs = timestamp
 
-        // Determine span result based on rating
         val result =
             when (fields["_rating"]) {
                 "good" -> SpanResult.SUCCESS
@@ -316,17 +308,8 @@ internal class WebViewMessageHandler(
                 else -> SpanResult.UNKNOWN
             }
 
-        // Convert parentSpanId string to UUID
-        val parentUuid =
-            parentSpanId?.let {
-                try {
-                    UUID.fromString(it)
-                } catch (e: IllegalArgumentException) {
-                    null
-                }
-            }
+        val parentUuid = parentSpanId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
 
-        // Start span with custom start time and parent span ID
         val span =
             logger?.startSpan(
                 name = spanName,
@@ -335,13 +318,7 @@ internal class WebViewMessageHandler(
                 startTimeMs = startTimeMs,
                 parentSpanId = parentUuid,
             )
-
-        // End span with custom end time
-        span?.end(
-            result = result,
-            fields = fields,
-            endTimeMs = endTimeMs,
-        )
+        span?.end(result = result, fields = fields, endTimeMs = timestamp)
     }
 
     private fun handleNetworkRequest(
@@ -357,27 +334,18 @@ internal class WebViewMessageHandler(
         val requestType = msg.requestType ?: "unknown"
         val timing = msg.timing
 
-        // Parse URL components
-        val uri =
-            try {
-                URI(url)
-            } catch (e: Exception) {
-                null
-            }
-
+        val uri = runCatching { URI(url) }.getOrNull()
         val host = uri?.host
         val path = uri?.path?.takeIf { it.isNotEmpty() }
         val query = uri?.query
 
-        // Build extra fields for WebView-specific data
         val extraFields =
-            buildMap {
-                put("_source", "webview")
-                put("_request_type", requestType)
-                put("_timestamp", timestamp.toString())
-            }
+            mapOf(
+                "_source" to "webview",
+                "_request_type" to requestType,
+                "_timestamp" to timestamp.toString(),
+            )
 
-        // Create HttpRequestInfo
         val requestInfo =
             HttpRequestInfo(
                 method = method,
@@ -387,7 +355,6 @@ internal class WebViewMessageHandler(
                 extraFields = extraFields,
             )
 
-        // Build metrics from timing data if available
         val metrics =
             timing?.let { t ->
                 HttpRequestMetrics(
@@ -402,7 +369,6 @@ internal class WebViewMessageHandler(
                 )
             }
 
-        // Determine result based on success/error
         val result =
             when {
                 success -> HttpResponse.HttpResult.SUCCESS
@@ -411,10 +377,6 @@ internal class WebViewMessageHandler(
                 else -> HttpResponse.HttpResult.FAILURE
             }
 
-        // Build error if present
-        val error = errorMessage?.let { Exception(it) }
-
-        // Create HttpResponseInfo
         val responseInfo =
             HttpResponseInfo(
                 request = requestInfo,
@@ -422,21 +384,16 @@ internal class WebViewMessageHandler(
                     HttpResponse(
                         result = result,
                         statusCode = statusCode,
-                        error = error,
+                        error = errorMessage?.let(::Exception),
                     ),
                 durationMs = durationMs,
                 metrics = metrics,
             )
 
-        // Log the request and response as a span pair
         logger?.log(requestInfo)
         logger?.log(responseInfo)
     }
 
-    /**
-     * Handle page view span start/end messages.
-     * Page view spans group all events within a single page session.
-     */
     private fun handlePageView(
         msg: WebViewBridgeMessage,
         timestamp: Long,
@@ -459,7 +416,6 @@ internal class WebViewMessageHandler(
                         "_timestamp" to timestamp.toString(),
                     )
 
-                // Start the page view span (include URL in name for visibility)
                 val span =
                     logger?.startSpan(
                         name = "webview.pageView: $url",
@@ -467,11 +423,7 @@ internal class WebViewMessageHandler(
                         fields = fields,
                         startTimeMs = timestamp,
                     )
-
-                // Store the span for later ending
-                if (span != null) {
-                    activePageViewSpans[spanId] = span
-                }
+                span?.let { activePageViewSpans[spanId] = it }
             }
             "end" -> {
                 val durationMs = msg.durationMs
@@ -486,14 +438,12 @@ internal class WebViewMessageHandler(
                         durationMs?.let { put("_duration_ms", it.toString()) }
                     }
 
-                // End the page view span
                 activePageViewSpans.remove(spanId)?.end(
                     result = SpanResult.SUCCESS,
                     fields = fields,
                     endTimeMs = timestamp,
                 )
 
-                // Clear current page span ID if it matches
                 if (currentPageSpanId == spanId) {
                     currentPageSpanId = null
                 }
@@ -501,10 +451,6 @@ internal class WebViewMessageHandler(
         }
     }
 
-    /**
-     * Handle lifecycle events (DOMContentLoaded, load, visibilitychange).
-     * These are markers within the page view span.
-     */
     private fun handleLifecycle(
         msg: WebViewBridgeMessage,
         timestamp: Long,
@@ -520,7 +466,6 @@ internal class WebViewMessageHandler(
                 msg.visibilityState?.let { put("_visibility_state", it) }
             }
 
-        // Log lifecycle event as UX type
         logger?.log(LogType.UX, LogLevel.DEBUG, fields.toFields()) {
             "webview.lifecycle.$event"
         }
@@ -572,14 +517,10 @@ internal class WebViewMessageHandler(
         }
     }
 
-    /**
-     * Handle long task events (main thread blocked > 50ms).
-     */
     private fun handleLongTask(
         msg: WebViewBridgeMessage,
         timestamp: Long,
     ) {
-        // durationMs comes as Double from JSON but we use it as-is
         val durationMsDouble = msg.durationMs?.toDouble() ?: return
 
         val fields =
@@ -588,8 +529,6 @@ internal class WebViewMessageHandler(
                 put("_source", "webview")
                 msg.startTime?.let { put("_start_time", it.toString()) }
                 put("_timestamp", timestamp.toString())
-
-                // Extract attribution data
                 msg.attribution?.let { attr ->
                     attr.name?.let { put("_attribution_name", it) }
                     attr.containerType?.let { put("_container_type", it) }
@@ -599,7 +538,6 @@ internal class WebViewMessageHandler(
                 }
             }
 
-        // Determine log level based on duration
         val level =
             when {
                 durationMsDouble >= 200 -> LogLevel.WARNING
@@ -612,34 +550,24 @@ internal class WebViewMessageHandler(
         }
     }
 
-    /**
-     * Handle resource loading failures (images, scripts, stylesheets, etc.).
-     */
     private fun handleResourceError(
         msg: WebViewBridgeMessage,
         timestamp: Long,
     ) {
-        val resourceType = msg.resourceType ?: "unknown"
-        val url = msg.url ?: ""
-        val tagName = msg.tagName ?: ""
-
         val fields =
-            buildMap {
-                put("_resource_type", resourceType)
-                put("_url", url)
-                put("_tag_name", tagName)
-                put("_source", "webview")
-                put("_timestamp", timestamp.toString())
-            }
+            mapOf(
+                "_resource_type" to (msg.resourceType ?: "unknown"),
+                "_url" to (msg.url ?: ""),
+                "_tag_name" to (msg.tagName ?: ""),
+                "_source" to "webview",
+                "_timestamp" to timestamp.toString(),
+            )
 
         logger?.log(LogLevel.WARNING, fields) {
             "webview.resourceError"
         }
     }
 
-    /**
-     * Handle console messages (log, warn, error, info, debug).
-     */
     private fun handleConsole(
         msg: WebViewBridgeMessage,
         timestamp: Long,
@@ -653,15 +581,11 @@ internal class WebViewMessageHandler(
                 put("_message", consoleMessage)
                 put("_source", "webview")
                 put("_timestamp", timestamp.toString())
-
-                // Extract additional args if present
                 msg.args?.takeIf { it.isNotEmpty() }?.let { args ->
-                    val argsStr = args.take(5).joinToString(", ")
-                    put("_args", argsStr)
+                    put("_args", args.take(5).joinToString(", "))
                 }
             }
 
-        // Map console level to LogLevel
         val logLevel =
             when (level) {
                 "error" -> LogLevel.ERROR
@@ -675,18 +599,13 @@ internal class WebViewMessageHandler(
         }
     }
 
-    /**
-     * Handle unhandled promise rejections.
-     */
     private fun handlePromiseRejection(
         msg: WebViewBridgeMessage,
         timestamp: Long,
     ) {
-        val reason = msg.reason ?: "Unknown rejection"
-
         val fields =
             buildMap {
-                put("_reason", reason)
+                put("_reason", msg.reason ?: "Unknown rejection")
                 put("_source", "webview")
                 msg.stack?.let { put("_stack", it) }
                 put("_timestamp", timestamp.toString())
@@ -697,22 +616,17 @@ internal class WebViewMessageHandler(
         }
     }
 
-    /**
-     * Handle user interaction events (clicks and rage clicks).
-     */
     private fun handleUserInteraction(
         msg: WebViewBridgeMessage,
         timestamp: Long,
     ) {
         val interactionType = msg.interactionType ?: return
-        val tagName = msg.tagName ?: ""
-        val isClickable = msg.isClickable ?: false
 
         val fields =
             buildMap {
                 put("_interaction_type", interactionType)
-                put("_tag_name", tagName)
-                put("_is_clickable", isClickable.toString())
+                put("_tag_name", msg.tagName ?: "")
+                put("_is_clickable", (msg.isClickable ?: false).toString())
                 put("_source", "webview")
                 msg.elementId?.let { put("_element_id", it) }
                 msg.className?.let { put("_class_name", it) }
@@ -722,9 +636,7 @@ internal class WebViewMessageHandler(
                 put("_timestamp", timestamp.toString())
             }
 
-        // Rage clicks are more important
         val level = if (interactionType == "rageClick") LogLevel.WARNING else LogLevel.DEBUG
-
         logger?.log(LogType.UX, level, fields.toFields()) {
             "webview.userInteraction.$interactionType"
         }
