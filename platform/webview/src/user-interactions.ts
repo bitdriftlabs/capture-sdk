@@ -107,7 +107,7 @@ const isClickable = (element: Element): boolean => {
     }
 
     return false;
-}
+};
 
 /**
  * Handle pointer down events (touch/mouse)
@@ -173,7 +173,7 @@ const handlePointerDown = (event: PointerEvent): void => {
             }, RAGE_CLICK_DEBOUNCE_MS) as unknown as number;
         }
     }
-}
+};
 
 /**
  * Log a user interaction event
@@ -213,4 +213,4 @@ const logUserInteraction = (
         duration: interactionType === 'rageClick' ? actualTimeWindowMs : undefined,
     });
     log(message);
-}
+};

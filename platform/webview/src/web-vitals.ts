@@ -32,4 +32,4 @@ export const initWebVitals = (): void => {
     onINP(reportMetric);
     onFCP(reportMetric);
     onTTFB(reportMetric);
-}
+};

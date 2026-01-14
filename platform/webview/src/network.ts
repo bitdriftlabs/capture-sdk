@@ -123,10 +123,10 @@ export const wasResourceObserved = (url: string): boolean => {
  * Called by resource-errors to correlate with PerformanceObserver.
  */
 export const markResourceFailed = (url: string, resourceType: string, tagName: string): void => {
-    failedResources.set(url, { 
-        timestamp: Date.now(), 
-        resourceType, 
-        tagName 
+    failedResources.set(url, {
+        timestamp: Date.now(),
+        resourceType,
+        tagName,
     });
 
     // Periodic cleanup of old entries
@@ -238,7 +238,7 @@ const interceptFetch = (): void => {
             throw error;
         }
     };
-}
+};
 
 /**
  * Intercept XMLHttpRequest
@@ -330,7 +330,7 @@ const interceptXHR = (): void => {
 
         originalSend.call(this, body);
     };
-}
+};
 
 /**
  * Initialize PerformanceObserver to capture browser-initiated resource loads
@@ -344,7 +344,7 @@ const initResourceObserver = (): void => {
     try {
         const observer = new PerformanceObserver((list) => {
             const entries = list.getEntries() as PerformanceResourceTiming[];
-            
+
             // Defer processing to allow any pending DOM error events to fire first.
             // DOM error events are synchronous, but we can't guarantee they've been
             // dispatched before PerformanceObserver fires across all browsers.
@@ -362,7 +362,7 @@ const initResourceObserver = (): void => {
                     }
 
                     const durationMs = Math.round(resourceEntry.responseEnd - resourceEntry.startTime);
-                    
+
                     // responseStatus is not supported in Safari (as of 2025)
                     const statusCode = resourceEntry.responseStatus ?? 0;
 
@@ -374,9 +374,7 @@ const initResourceObserver = (): void => {
                     //     handlers have had a chance to call markResourceFailed().
                     //   - If not found in failed set, assume success since no error was reported.
                     const failureInfo = statusCode === 0 ? checkResourceFailed(resourceEntry.name) : { failed: false };
-                    const success = statusCode > 0
-                        ? (statusCode >= 200 && statusCode < 400)
-                        : !failureInfo.failed;
+                    const success = statusCode > 0 ? statusCode >= 200 && statusCode < 400 : !failureInfo.failed;
 
                     const message = createMessage<NetworkRequestMessage>({
                         type: 'networkRequest',
@@ -402,7 +400,7 @@ const initResourceObserver = (): void => {
     } catch (_error) {
         // TODO (Jackson): Log internal warning: PerformanceObserver not supported or resource type not available
     }
-}
+};
 
 /**
  * Initialize network interception for both fetch and XHR,

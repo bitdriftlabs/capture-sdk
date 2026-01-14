@@ -59,7 +59,7 @@ export const initNavigationTracking = (): void => {
             startPageView(toUrl, 'navigation');
         }
     });
-}
+};
 
 const logNavigation = (fromUrl: string, toUrl: string, method: 'pushState' | 'replaceState' | 'popstate'): void => {
     const message = createMessage<NavigationMessage>({

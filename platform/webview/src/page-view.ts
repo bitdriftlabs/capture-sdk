@@ -74,7 +74,7 @@ export const startPageView = (url: string, reason: 'initial' | 'navigation' = 'n
         timestamp: pageViewStartTimeMs,
     };
     log(message);
-}
+};
 
 /**
  * End the current page view span.
@@ -102,7 +102,7 @@ export const endPageView = (reason: 'navigation' | 'unload' | 'hidden'): void =>
 
     currentPageSpanId = null;
     pageViewStartTimeMs = 0;
-}
+};
 
 /**
  * Log a lifecycle event within the current page view.
@@ -173,4 +173,4 @@ export const initPageViewTracking = (): void => {
     window.addEventListener('beforeunload', () => {
         endPageView('unload');
     });
-}
+};
