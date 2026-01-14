@@ -141,10 +141,13 @@
             `)}
 
             ${card('🧭', 'Navigation', 'Trigger SPA-style navigation events.', html`
-                <div class="grid grid-cols-3 gap-2">
+                <div class="grid grid-cols-2 gap-2">
                     ${btn('teal', 'pushState', actions.pushState)}
                     ${btn('teal', 'replaceState', actions.replaceState, 'bg-teal-600 hover:bg-teal-700')}
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-2">
                     ${btn('teal', 'Back', actions.back, 'bg-teal-700 hover:bg-teal-800')}
+                    <a href="secondary.html" class="bg-cyan-500 hover:bg-cyan-600 text-white py-2 px-3 rounded text-sm text-center transition">Navigate →</a>
                 </div>
                 <p class="mt-3 text-sm text-gray-500">Current path: ${state.currentPath}</p>
             `)}
