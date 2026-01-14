@@ -21,6 +21,18 @@ const generateRequestId = (): string => {
 const jsInitiatedRequests = new Map<string, number>();
 
 /**
+ * Track URLs logged by the PerformanceObserver to prevent resource-errors from double-logging.
+ * Maps URL to the timestamp when it was logged.
+ */
+const observedResources = new Map<string, number>();
+
+/**
+ * Track URLs that failed via DOM error events.
+ * Maps URL to error metadata for correlation with PerformanceObserver.
+ */
+const failedResources = new Map<string, { timestamp: number; resourceType: string; tagName: string }>();
+
+/**
  * How long to keep a URL in the deduplication set (ms).
  * PerformanceObserver entries typically arrive within a few hundred ms of completion.
  */
@@ -66,6 +78,79 @@ const wasJsInitiated = (url: string, entryEndTime: number): boolean => {
     }
 
     return false;
+};
+
+/**
+ * Mark a URL as having been observed by the PerformanceObserver.
+ * This allows resource-errors to skip URLs already logged by the network observer.
+ */
+const markAsObserved = (url: string): void => {
+    observedResources.set(url, Date.now());
+
+    // Periodic cleanup of old entries
+    if (observedResources.size > 100) {
+        const now = Date.now();
+        for (const [key, timestamp] of observedResources.entries()) {
+            if (now - timestamp > DEDUP_WINDOW_MS) {
+                observedResources.delete(key);
+            }
+        }
+    }
+};
+
+/**
+ * Check if a URL was recently logged by the network observer.
+ * Used by resource-errors to avoid double-logging.
+ */
+export const wasResourceObserved = (url: string): boolean => {
+    const timestamp = observedResources.get(url);
+    if (timestamp === undefined) {
+        return false;
+    }
+
+    const timeDiff = Date.now() - timestamp;
+    if (timeDiff < DEDUP_WINDOW_MS) {
+        return true;
+    }
+
+    // Clean up expired entry
+    observedResources.delete(url);
+    return false;
+};
+
+/**
+ * Record a resource failure from DOM error events.
+ * Called by resource-errors to correlate with PerformanceObserver.
+ */
+export const markResourceFailed = (url: string, resourceType: string, tagName: string): void => {
+    failedResources.set(url, { 
+        timestamp: Date.now(), 
+        resourceType, 
+        tagName 
+    });
+
+    // Periodic cleanup of old entries
+    if (failedResources.size > 100) {
+        const now = Date.now();
+        for (const [key, entry] of failedResources.entries()) {
+            if (now - entry.timestamp > DEDUP_WINDOW_MS) {
+                failedResources.delete(key);
+            }
+        }
+    }
+};
+
+/**
+ * Check if a resource was reported as failed via DOM error events.
+ * Consumes the entry if found (one-time check).
+ */
+const checkResourceFailed = (url: string): { failed: boolean; resourceType?: string; tagName?: string } => {
+    const entry = failedResources.get(url);
+    if (entry && Date.now() - entry.timestamp < DEDUP_WINDOW_MS) {
+        failedResources.delete(url);
+        return { failed: true, resourceType: entry.resourceType, tagName: entry.tagName };
+    }
+    return { failed: false };
 };
 
 /**
@@ -258,39 +343,59 @@ const initResourceObserver = (): void => {
 
     try {
         const observer = new PerformanceObserver((list) => {
-            for (const entry of list.getEntries()) {
-                const resourceEntry = entry as PerformanceResourceTiming;
+            const entries = list.getEntries() as PerformanceResourceTiming[];
+            
+            // Defer processing to allow any pending DOM error events to fire first.
+            // DOM error events are synchronous, but we can't guarantee they've been
+            // dispatched before PerformanceObserver fires across all browsers.
+            // queueMicrotask ensures we run after the current task completes.
+            queueMicrotask(() => {
+                for (const resourceEntry of entries) {
+                    // Skip if this was already captured via fetch/XHR interception
+                    if (wasJsInitiated(resourceEntry.name, resourceEntry.responseEnd)) {
+                        continue;
+                    }
 
-                // Skip if this was already captured via fetch/XHR interception
-                if (wasJsInitiated(resourceEntry.name, resourceEntry.responseEnd)) {
-                    continue;
+                    // Skip data URLs and blob URLs (usually internal/generated)
+                    if (resourceEntry.name.startsWith('data:') || resourceEntry.name.startsWith('blob:')) {
+                        continue;
+                    }
+
+                    const durationMs = Math.round(resourceEntry.responseEnd - resourceEntry.startTime);
+                    
+                    // responseStatus is not supported in Safari (as of 2025)
+                    const statusCode = resourceEntry.responseStatus ?? 0;
+
+                    // Determine success based on HTTP status code when available.
+                    // If statusCode > 0, use it directly (200-399 = success).
+                    // If statusCode = 0 (unsupported browser like Safari):
+                    //   - Check if the DOM error handler reported this URL as failed.
+                    //   - By deferring with queueMicrotask, we ensure synchronous error
+                    //     handlers have had a chance to call markResourceFailed().
+                    //   - If not found in failed set, assume success since no error was reported.
+                    const failureInfo = statusCode === 0 ? checkResourceFailed(resourceEntry.name) : { failed: false };
+                    const success = statusCode > 0
+                        ? (statusCode >= 200 && statusCode < 400)
+                        : !failureInfo.failed;
+
+                    const message = createMessage<NetworkRequestMessage>({
+                        type: 'networkRequest',
+                        requestId: generateRequestId(),
+                        method: 'GET', // Browser resource loads are typically GET
+                        url: resourceEntry.name,
+                        statusCode,
+                        durationMs,
+                        success,
+                        requestType: resourceEntry.initiatorType,
+                        timing: resourceEntry,
+                    });
+
+                    // Mark as observed so resource-errors doesn't double-log
+                    markAsObserved(resourceEntry.name);
+
+                    log(message);
                 }
-
-                // Skip data URLs and blob URLs (usually internal/generated)
-                if (resourceEntry.name.startsWith('data:') || resourceEntry.name.startsWith('blob:')) {
-                    continue;
-                }
-
-                const durationMs = Math.round(resourceEntry.responseEnd - resourceEntry.startTime);
-
-                // Determine success - if we got timing data and transfer happened, likely successful
-                // Note: transferSize can be 0 for cached responses, which is still success
-                const hasTimingData = resourceEntry.responseEnd > 0;
-
-                const message = createMessage<NetworkRequestMessage>({
-                    type: 'networkRequest',
-                    requestId: generateRequestId(),
-                    method: 'GET', // Browser resource loads are typically GET
-                    url: resourceEntry.name,
-                    statusCode: resourceEntry.responseStatus,
-                    durationMs,
-                    success: hasTimingData,
-                    requestType: resourceEntry.initiatorType,
-                    timing: resourceEntry,
-                });
-
-                log(message);
-            }
+            });
         });
 
         observer.observe({ type: 'resource', buffered: false });
