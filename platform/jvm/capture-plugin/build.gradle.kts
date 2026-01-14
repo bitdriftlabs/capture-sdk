@@ -40,12 +40,7 @@ mavenPublishing {
         licenses {
             license {
                 name.set("BITDRIFT SOFTWARE DEVELOPMENT KIT LICENSE AGREEMENT")
-                url.set("https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture-plugin/${findProperty("VERSION_NAME")}/LICENSE.txt")
-                distribution.set("repo")
-            }
-            license {
-                name.set("NOTICE")
-                url.set("https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture-plugin/${findProperty("VERSION_NAME")}/NOTICE.txt")
+                url.set("https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture-plugin/${findProperty("VERSION_NAME")}/LICENSE")
                 distribution.set("repo")
             }
         }

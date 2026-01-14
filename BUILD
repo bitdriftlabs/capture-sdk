@@ -79,8 +79,7 @@ framework_imports_extractor(
 filegroup(
     name = "license",
     srcs = [
-        "ci/LICENSE.txt",
-        "ci/NOTICE.txt",
+        "ci/LICENSE",
     ],
 )
 
