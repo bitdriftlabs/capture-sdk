@@ -45,6 +45,7 @@ class WebViewFragment : Fragment() {
          * Pair of (display name, URL)
          */
         val WEBVIEW_URLS = listOf(
+            "SDK Test Page" to "file:///android_asset/test-page/index.html",
             "bitdrift.io" to "https://bitdrift.io/",
             "bitdrift.io/hello (404)" to "https://bitdrift.io/hello",
             "bitdrift.ai (timeout)" to "https://bitdrift.ai/",
