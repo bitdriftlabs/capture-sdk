@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitdrift SDK Test Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* For rage click visual feedback */
+        .rage-flash {
+            animation: flash 0.1s ease-in-out;
+        }
+        @keyframes flash {
+            0%, 100% { background-color: #fecaca; }
+            50% { background-color: #ef4444; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+    <div class="max-w-lg mx-auto space-y-4">
+        <!-- Header -->
+        <header class="bg-indigo-600 text-white rounded-lg p-4 shadow-md">
+            <h1 class="text-xl font-bold">Bitdrift SDK Test Page</h1>
+            <p class="text-indigo-200 text-sm mt-1">Trigger instrumentation events and observe in logcat</p>
+        </header>
+
+        <!-- Web Vitals -->
+        <section class="bg-white rounded-lg p-4 shadow-md">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">🎯 Web Vitals</h2>
+            <p class="text-sm text-gray-600 mb-3">LCP, CLS, INP, FCP, TTFB are automatically captured on page load.</p>
+            <div class="space-y-2">
+                <button id="btn-cls" class="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 px-4 rounded transition">
+                    Cause Layout Shift (CLS)
+                </button>
+                <button id="btn-inp" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition">
+                    Click for INP Measurement
+                </button>
+            </div>
+            <div id="cls-container" class="mt-3"></div>
+            <!-- Large image for LCP measurement -->
+            <img src="https://picsum.photos/400/200" alt="LCP test image" class="w-full h-auto mt-3 rounded" />
+        </section>
+
+        <!-- Network -->
+        <section class="bg-white rounded-lg p-4 shadow-md">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">🌐 Network</h2>
+            <p class="text-sm text-gray-600 mb-3">Trigger fetch/XHR requests to test network interception.</p>
+            <div class="grid grid-cols-2 gap-2">
+                <button id="btn-fetch-success" class="bg-green-500 hover:bg-green-600 text-white py-2 px-3 rounded text-sm transition">
+                    Fetch Success
+                </button>
+                <button id="btn-fetch-error" class="bg-red-500 hover:bg-red-600 text-white py-2 px-3 rounded text-sm transition">
+                    Fetch 500 Error
+                </button>
+                <button id="btn-fetch-network-fail" class="bg-red-700 hover:bg-red-800 text-white py-2 px-3 rounded text-sm transition">
+                    Fetch Network Fail
+                </button>
+                <button id="btn-xhr" class="bg-purple-500 hover:bg-purple-600 text-white py-2 px-3 rounded text-sm transition">
+                    XHR Request
+                </button>
+            </div>
+            <div id="network-status" class="mt-3 text-sm text-gray-600"></div>
+        </section>
+
+        <!-- Navigation -->
+        <section class="bg-white rounded-lg p-4 shadow-md">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">🧭 Navigation</h2>
+            <p class="text-sm text-gray-600 mb-3">Trigger SPA-style navigation events.</p>
+            <div class="grid grid-cols-3 gap-2">
+                <button id="btn-push-state" class="bg-teal-500 hover:bg-teal-600 text-white py-2 px-3 rounded text-sm transition">
+                    pushState
+                </button>
+                <button id="btn-replace-state" class="bg-teal-600 hover:bg-teal-700 text-white py-2 px-3 rounded text-sm transition">
+                    replaceState
+                </button>
+                <button id="btn-back" class="bg-teal-700 hover:bg-teal-800 text-white py-2 px-3 rounded text-sm transition">
+                    Back
+                </button>
+            </div>
+            <p id="nav-status" class="mt-3 text-sm text-gray-500">Current path: <span id="current-path"></span></p>
+        </section>
+
+        <!-- Long Tasks -->
+        <section class="bg-white rounded-lg p-4 shadow-md">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">⏱️ Long Tasks</h2>
+            <p class="text-sm text-gray-600 mb-3">Block the main thread for &gt;50ms to trigger long task detection.</p>
+            <button id="btn-long-task" class="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded transition">
+                Block Main Thread (150ms)
+            </button>
+        </section>
+
+        <!-- Resource Errors -->
+        <section class="bg-white rounded-lg p-4 shadow-md">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">💔 Resource Errors</h2>
+            <p class="text-sm text-gray-600 mb-3">Inject broken resources to trigger error capture.</p>
+            <div class="grid grid-cols-3 gap-2">
+                <button id="btn-broken-img" class="bg-rose-500 hover:bg-rose-600 text-white py-2 px-3 rounded text-sm transition">
+                    Broken Image
+                </button>
+                <button id="btn-broken-script" class="bg-rose-600 hover:bg-rose-700 text-white py-2 px-3 rounded text-sm transition">
+                    Broken Script
+                </button>
+                <button id="btn-broken-css" class="bg-rose-700 hover:bg-rose-800 text-white py-2 px-3 rounded text-sm transition">
+                    Broken CSS
+                </button>
+            </div>
+            <div id="resource-error-container" class="mt-3"></div>
+        </section>
+
+        <!-- Console Capture -->
+        <section class="bg-white rounded-lg p-4 shadow-md">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">📝 Console Capture</h2>
+            <p class="text-sm text-gray-600 mb-3">Trigger various console methods.</p>
+            <div class="grid grid-cols-5 gap-2">
+                <button id="btn-console-log" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-2 rounded text-xs transition">
+                    log
+                </button>
+                <button id="btn-console-warn" class="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-2 rounded text-xs transition">
+                    warn
+                </button>
+                <button id="btn-console-error" class="bg-red-500 hover:bg-red-600 text-white py-2 px-2 rounded text-xs transition">
+                    error
+                </button>
+                <button id="btn-console-info" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-2 rounded text-xs transition">
+                    info
+                </button>
+                <button id="btn-console-debug" class="bg-purple-500 hover:bg-purple-600 text-white py-2 px-2 rounded text-xs transition">
+                    debug
+                </button>
+            </div>
+        </section>
+
+        <!-- User Interactions -->
+        <section class="bg-white rounded-lg p-4 shadow-md">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">👆 User Interactions</h2>
+            <p class="text-sm text-gray-600 mb-3">Click various elements to test interaction tracking.</p>
+            <div class="space-y-2">
+                <button id="btn-interaction" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded transition">
+                    Regular Button Click
+                </button>
+                <a href="#link-test" id="link-interaction" class="block text-center bg-indigo-400 hover:bg-indigo-500 text-white py-2 px-4 rounded transition">
+                    Link Click
+                </a>
+                <label class="flex items-center space-x-2 p-2 bg-gray-100 rounded cursor-pointer">
+                    <input type="checkbox" id="checkbox-interaction" class="w-5 h-5" />
+                    <span class="text-gray-700">Checkbox Interaction</span>
+                </label>
+                <div role="button" tabindex="0" id="role-button" class="text-center bg-indigo-300 hover:bg-indigo-400 text-indigo-900 py-2 px-4 rounded cursor-pointer transition">
+                    Div with role="button"
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="text-sm text-gray-600 mb-2">Rage Click Target (click rapidly 3+ times):</p>
+                <div id="rage-click-target" class="bg-red-100 border-2 border-dashed border-red-300 rounded p-8 text-center text-red-600 select-none">
+                    Click here rapidly!
+                </div>
+            </div>
+        </section>
+
+        <!-- Errors -->
+        <section class="bg-white rounded-lg p-4 shadow-md">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">💥 Errors &amp; Promise Rejections</h2>
+            <p class="text-sm text-gray-600 mb-3">Trigger uncaught errors and unhandled rejections.</p>
+            <div class="grid grid-cols-3 gap-2">
+                <button id="btn-throw-error" class="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded text-sm transition">
+                    Throw Error
+                </button>
+                <button id="btn-reference-error" class="bg-red-700 hover:bg-red-800 text-white py-2 px-3 rounded text-sm transition">
+                    ReferenceError
+                </button>
+                <button id="btn-promise-reject" class="bg-red-800 hover:bg-red-900 text-white py-2 px-3 rounded text-sm transition">
+                    Promise.reject
+                </button>
+            </div>
+        </section>
+
+        <!-- Page View -->
+        <section class="bg-white rounded-lg p-4 shadow-md">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">📄 Page View</h2>
+            <p class="text-sm text-gray-600 mb-3">Page view is tracked automatically. Use navigation buttons to trigger new page views.</p>
+            <p class="text-sm text-gray-500">Page loaded at: <span id="page-load-time"></span></p>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-500 text-sm py-4">
+            Bitdrift Capture SDK Test Page
+        </footer>
+    </div>
+
+    <script>
+        // Update current path display
+        function updatePathDisplay() {
+            document.getElementById('current-path').textContent = window.location.pathname + window.location.hash;
+        }
+        updatePathDisplay();
+        window.addEventListener('popstate', updatePathDisplay);
+
+        // Set page load time
+        document.getElementById('page-load-time').textContent = new Date().toLocaleTimeString();
+
+        // ===== Web Vitals =====
+        document.getElementById('btn-cls').addEventListener('click', function() {
+            const container = document.getElementById('cls-container');
+            const div = document.createElement('div');
+            div.className = 'bg-amber-100 border border-amber-400 text-amber-700 p-4 rounded mb-2';
+            div.textContent = 'This content was inserted to cause a layout shift! (CLS triggered)';
+            container.insertBefore(div, container.firstChild);
+        });
+
+        document.getElementById('btn-inp').addEventListener('click', function() {
+            // Do a small amount of synchronous work to make the interaction measurable
+            const start = Date.now();
+            while (Date.now() - start < 20) { /* small delay */ }
+            this.textContent = 'Clicked! (INP recorded)';
+            setTimeout(() => { this.textContent = 'Click for INP Measurement'; }, 1000);
+        });
+
+        // ===== Network =====
+        document.getElementById('btn-fetch-success').addEventListener('click', async function() {
+            const status = document.getElementById('network-status');
+            status.textContent = 'Fetching...';
+            try {
+                const response = await fetch('https://httpbin.org/get');
+                status.textContent = `✅ Fetch success: ${response.status}`;
+            } catch (e) {
+                status.textContent = `❌ Fetch failed: ${e.message}`;
+            }
+        });
+
+        document.getElementById('btn-fetch-error').addEventListener('click', async function() {
+            const status = document.getElementById('network-status');
+            status.textContent = 'Fetching...';
+            try {
+                const response = await fetch('https://httpbin.org/status/500');
+                status.textContent = `⚠️ Fetch returned: ${response.status}`;
+            } catch (e) {
+                status.textContent = `❌ Fetch failed: ${e.message}`;
+            }
+        });
+
+        document.getElementById('btn-fetch-network-fail').addEventListener('click', async function() {
+            const status = document.getElementById('network-status');
+            status.textContent = 'Fetching...';
+            try {
+                const response = await fetch('https://invalid-domain-that-does-not-exist-xyz.com/test');
+                status.textContent = `Unexpected success: ${response.status}`;
+            } catch (e) {
+                status.textContent = `❌ Network error: ${e.message}`;
+            }
+        });
+
+        document.getElementById('btn-xhr').addEventListener('click', function() {
+            const status = document.getElementById('network-status');
+            status.textContent = 'XHR requesting...';
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', 'https://httpbin.org/json');
+            xhr.onload = function() {
+                status.textContent = `✅ XHR success: ${xhr.status}`;
+            };
+            xhr.onerror = function() {
+                status.textContent = `❌ XHR failed`;
+            };
+            xhr.send();
+        });
+
+        // ===== Navigation =====
+        let navCounter = 0;
+        document.getElementById('btn-push-state').addEventListener('click', function() {
+            navCounter++;
+            history.pushState({ page: navCounter }, '', `/page-${navCounter}`);
+            updatePathDisplay();
+        });
+
+        document.getElementById('btn-replace-state').addEventListener('click', function() {
+            history.replaceState({ replaced: true }, '', `/replaced-${Date.now()}`);
+            updatePathDisplay();
+        });
+
+        document.getElementById('btn-back').addEventListener('click', function() {
+            history.back();
+        });
+
+        // ===== Long Tasks =====
+        document.getElementById('btn-long-task').addEventListener('click', function() {
+            this.textContent = 'Blocking...';
+            // Use setTimeout to ensure the button text updates before blocking
+            setTimeout(() => {
+                const start = Date.now();
+                while (Date.now() - start < 150) {
+                    // Busy loop to block main thread
+                }
+                this.textContent = 'Done! (150ms blocked)';
+                setTimeout(() => { this.textContent = 'Block Main Thread (150ms)'; }, 1500);
+            }, 10);
+        });
+
+        // ===== Resource Errors =====
+        document.getElementById('btn-broken-img').addEventListener('click', function() {
+            const container = document.getElementById('resource-error-container');
+            const img = document.createElement('img');
+            img.src = 'https://example.com/nonexistent-image-' + Date.now() + '.jpg';
+            img.alt = 'Broken image';
+            img.className = 'w-16 h-16 bg-gray-200 inline-block m-1';
+            container.appendChild(img);
+        });
+
+        document.getElementById('btn-broken-script').addEventListener('click', function() {
+            const script = document.createElement('script');
+            script.src = 'https://example.com/nonexistent-script-' + Date.now() + '.js';
+            document.head.appendChild(script);
+            const container = document.getElementById('resource-error-container');
+            container.innerHTML += '<span class="text-xs text-red-500 block">Broken script injected</span>';
+        });
+
+        document.getElementById('btn-broken-css').addEventListener('click', function() {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://example.com/nonexistent-style-' + Date.now() + '.css';
+            document.head.appendChild(link);
+            const container = document.getElementById('resource-error-container');
+            container.innerHTML += '<span class="text-xs text-red-500 block">Broken CSS injected</span>';
+        });
+
+        // ===== Console Capture =====
+        document.getElementById('btn-console-log').addEventListener('click', function() {
+            console.log('Test log message', { key: 'value', number: 42 });
+        });
+
+        document.getElementById('btn-console-warn').addEventListener('click', function() {
+            console.warn('Test warning message');
+        });
+
+        document.getElementById('btn-console-error').addEventListener('click', function() {
+            console.error('Test error message', new Error('Sample error object'));
+        });
+
+        document.getElementById('btn-console-info').addEventListener('click', function() {
+            console.info('Test info message');
+        });
+
+        document.getElementById('btn-console-debug').addEventListener('click', function() {
+            console.debug('Test debug message');
+        });
+
+        // ===== User Interactions =====
+        document.getElementById('btn-interaction').addEventListener('click', function() {
+            // Just a regular click - the SDK should capture it
+        });
+
+        document.getElementById('role-button').addEventListener('click', function() {
+            // Role button click
+        });
+
+        // Rage click detection (visual feedback only - SDK handles actual detection)
+        const rageTarget = document.getElementById('rage-click-target');
+        rageTarget.addEventListener('click', function() {
+            this.classList.add('rage-flash');
+            setTimeout(() => this.classList.remove('rage-flash'), 100);
+        });
+
+        // ===== Errors =====
+        document.getElementById('btn-throw-error').addEventListener('click', function() {
+            setTimeout(function() {
+                throw new Error('Test uncaught error from button click');
+            }, 0);
+        });
+
+        document.getElementById('btn-reference-error').addEventListener('click', function() {
+            setTimeout(function() {
+                // This will cause a ReferenceError
+                undefinedVariableThatDoesNotExist.doSomething();
+            }, 0);
+        });
+
+        document.getElementById('btn-promise-reject').addEventListener('click', function() {
+            Promise.reject(new Error('Test unhandled promise rejection'));
+        });
+    </script>
+</body>
+</html>
