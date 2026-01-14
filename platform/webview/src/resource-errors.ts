@@ -6,11 +6,16 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
+import { wasResourceObserved } from './network';
 import type { ResourceErrorMessage } from './types';
 
 /**
  * Initialize resource error monitoring.
  * Captures failed loads for images, scripts, stylesheets, etc.
+ * 
+ * This serves as a fallback for cases where PerformanceObserver might miss
+ * resource errors (e.g., CSP-blocked requests, mixed content blocks).
+ * Uses deduplication to avoid double-logging with the network observer.
  */
 export const initResourceErrorMonitoring = (): void => {
     // Use capture phase to catch errors before they bubble
@@ -48,6 +53,13 @@ export const initResourceErrorMonitoring = (): void => {
                 '';
 
             if (!url) {
+                return;
+            }
+
+            // Skip if this URL was already logged by the PerformanceObserver
+            // This prevents double-logging while still catching edge cases
+            // like CSP-blocked or mixed content requests
+            if (wasResourceObserved(url)) {
                 return;
             }
 

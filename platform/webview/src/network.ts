@@ -21,6 +21,12 @@ const generateRequestId = (): string => {
 const jsInitiatedRequests = new Map<string, number>();
 
 /**
+ * Track URLs logged by the PerformanceObserver to prevent resource-errors from double-logging.
+ * Maps URL to the timestamp when it was logged.
+ */
+const observedResources = new Map<string, number>();
+
+/**
  * How long to keep a URL in the deduplication set (ms).
  * PerformanceObserver entries typically arrive within a few hundred ms of completion.
  */
@@ -65,6 +71,44 @@ const wasJsInitiated = (url: string, entryEndTime: number): boolean => {
         return true;
     }
 
+    return false;
+};
+
+/**
+ * Mark a URL as having been observed by the PerformanceObserver.
+ * This allows resource-errors to skip URLs already logged by the network observer.
+ */
+const markAsObserved = (url: string): void => {
+    observedResources.set(url, Date.now());
+
+    // Periodic cleanup of old entries
+    if (observedResources.size > 100) {
+        const now = Date.now();
+        for (const [key, timestamp] of observedResources.entries()) {
+            if (now - timestamp > DEDUP_WINDOW_MS) {
+                observedResources.delete(key);
+            }
+        }
+    }
+};
+
+/**
+ * Check if a URL was recently logged by the network observer.
+ * Used by resource-errors to avoid double-logging.
+ */
+export const wasResourceObserved = (url: string): boolean => {
+    const timestamp = observedResources.get(url);
+    if (timestamp === undefined) {
+        return false;
+    }
+
+    const timeDiff = Date.now() - timestamp;
+    if (timeDiff < DEDUP_WINDOW_MS) {
+        return true;
+    }
+
+    // Clean up expired entry
+    observedResources.delete(url);
     return false;
 };
 
@@ -300,6 +344,9 @@ const initResourceObserver = (): void => {
                     requestType: resourceEntry.initiatorType,
                     timing: resourceEntry,
                 });
+
+                // Mark as observed so resource-errors doesn't double-log
+                markAsObserved(resourceEntry.name);
 
                 log(message);
             }
