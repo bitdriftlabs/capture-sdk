@@ -272,19 +272,31 @@ const initResourceObserver = (): void => {
                 }
 
                 const durationMs = Math.round(resourceEntry.responseEnd - resourceEntry.startTime);
+                
+                // responseStatus is not supported in Safari (as of 2025)
+                // When undefined, fall back to timing and size-based heuristics
+                const statusCode = resourceEntry.responseStatus ?? 0;
 
-                // Determine success - if we got timing data and transfer happened, likely successful
-                // Note: transferSize can be 0 for cached responses, which is still success
+                // Determine success based on HTTP status code when available
+                // If statusCode > 0, use it (200-399 = success)
+                // If statusCode = 0 (unsupported, CORS-restricted, or network error),
+                // fall back to checking timing data and content size.
+                // Note: This fallback may incorrectly mark CORS-opaque or empty cached
+                // resources as failures, but catches true network failures.
                 const hasTimingData = resourceEntry.responseEnd > 0;
+                const hasContent = resourceEntry.decodedBodySize > 0 || resourceEntry.transferSize > 0;
+                const success = statusCode > 0
+                    ? (statusCode >= 200 && statusCode < 400)
+                    : (hasTimingData && hasContent);
 
                 const message = createMessage<NetworkRequestMessage>({
                     type: 'networkRequest',
                     requestId: generateRequestId(),
                     method: 'GET', // Browser resource loads are typically GET
                     url: resourceEntry.name,
-                    statusCode: resourceEntry.responseStatus,
+                    statusCode,
                     durationMs,
-                    success: hasTimingData,
+                    success,
                     requestType: resourceEntry.initiatorType,
                     timing: resourceEntry,
                 });
