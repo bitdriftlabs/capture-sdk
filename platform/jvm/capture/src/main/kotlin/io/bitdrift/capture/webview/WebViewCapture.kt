@@ -41,8 +41,6 @@ class WebViewCapture(
     private var bridgeReady = false
     private var scriptInjected = false
 
-    private fun getLogger(): ILogger? = logger ?: Capture.logger()
-
     /**
      * Marks the bridge as ready. Called from the JavaScript bridge handler.
      */
@@ -98,8 +96,9 @@ class WebViewCapture(
      * Companion object for WebViewCapture.
      */
     companion object {
-        private const val TAG = "WebViewCapture"
         private const val BRIDGE_NAME = "BitdriftLogger"
+
+        private fun isWebkitAvailable(): Boolean = runCatching { Class.forName("androidx.webkit.WebViewFeature") }.isSuccess
 
         /**
          * Instruments a WebView to capture Core Web Vitals and network requests.
@@ -120,6 +119,14 @@ class WebViewCapture(
             logger: ILogger? = null,
         ) {
             val effectiveLogger = logger ?: Capture.logger()
+
+            if (!isWebkitAvailable()) {
+                effectiveLogger?.log(LogLevel.WARNING, emptyMap()) {
+                    "androidx.webkit not available, WebView instrumentation disabled"
+                }
+                return
+            }
+
             val loggerImpl = effectiveLogger as? LoggerImpl
 
             // Check if we need fallback injection (older WebViews)

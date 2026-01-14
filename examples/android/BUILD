@@ -28,6 +28,7 @@ _maven_deps = [
     artifact("org.jetbrains:annotations"),
     artifact("androidx.metrics:metrics-performance"),
     artifact("com.squareup.retrofit2:retrofit"),
+    artifact("androidx.webkit:webkit"),
 ]
 
 aar_import(
