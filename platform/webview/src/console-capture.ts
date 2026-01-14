@@ -40,7 +40,7 @@ export const initConsoleCapture = (): void => {
             log(message);
         };
     }
-}
+};
 
 /**
  * Convert an argument to a string representation

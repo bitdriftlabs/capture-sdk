@@ -85,3 +85,13 @@ init-local-bazelrc:
 	else \
 		echo ".bazelrc.local already exists. Skipping creation."; \
 	fi
+
+.PHONY: fix-ts
+fix-ts:
+	npm --prefix ./platform/webview run lint:fix
+	npm --prefix ./platform/webview run format
+
+.PHONY: build-ts
+build-ts:
+	npm --prefix ./platform/webview run build
+	npm --prefix ./platform/webview run generate
