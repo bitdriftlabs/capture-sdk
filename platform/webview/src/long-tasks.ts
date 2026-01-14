@@ -46,4 +46,4 @@ export const initLongTaskMonitoring = (): void => {
     } catch {
         // Long task observer not supported
     }
-}
+};
