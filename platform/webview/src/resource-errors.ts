@@ -6,16 +6,24 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
-import { wasResourceObserved } from './network';
+import { wasResourceObserved, markResourceFailed } from './network';
 import type { ResourceErrorMessage } from './types';
 
 /**
+ * Delay before logging a fallback resource error.
+ * This gives the PerformanceObserver time to pick up the resource and log it.
+ * If PerformanceObserver logs it first, we skip the fallback.
+ */
+const FALLBACK_DELAY_MS = 500;
+
+/**
  * Initialize resource error monitoring.
- * Captures failed loads for images, scripts, stylesheets, etc.
  * 
- * This serves as a fallback for cases where PerformanceObserver might miss
- * resource errors (e.g., CSP-blocked requests, mixed content blocks).
- * Uses deduplication to avoid double-logging with the network observer.
+ * This module works in coordination with the PerformanceObserver in network.ts:
+ * 1. When a DOM error event fires, we record the failure via markResourceFailed()
+ * 2. PerformanceObserver checks this when statusCode is unavailable (Safari)
+ * 3. After a delay, we log any errors not picked up by PerformanceObserver
+ *    (edge cases like CSP-blocked requests that don't create timing entries)
  */
 export const initResourceErrorMonitoring = (): void => {
     // Use capture phase to catch errors before they bubble
@@ -56,20 +64,28 @@ export const initResourceErrorMonitoring = (): void => {
                 return;
             }
 
-            // Skip if this URL was already logged by the PerformanceObserver
-            // This prevents double-logging while still catching edge cases
-            // like CSP-blocked or mixed content requests
-            if (wasResourceObserved(url)) {
-                return;
-            }
+            const resourceType = getResourceType(tagName, target);
 
-            const message = createMessage<ResourceErrorMessage>({
-                type: 'resourceError',
-                resourceType: getResourceType(tagName, target),
-                url,
-                tagName,
-            });
-            log(message);
+            // Record the failure for PerformanceObserver to consume
+            markResourceFailed(url, resourceType, tagName);
+
+            // After a delay, log if PerformanceObserver didn't pick it up
+            // This handles edge cases like CSP-blocked requests that don't
+            // create Resource Timing entries
+            setTimeout(() => {
+                // If PerformanceObserver already logged this URL, skip
+                if (wasResourceObserved(url)) {
+                    return;
+                }
+
+                const message = createMessage<ResourceErrorMessage>({
+                    type: 'resourceError',
+                    resourceType,
+                    url,
+                    tagName,
+                });
+                log(message);
+            }, FALLBACK_DELAY_MS);
         },
         true, // Use capture phase
     );
