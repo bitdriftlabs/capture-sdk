@@ -18,7 +18,7 @@ const FALLBACK_DELAY_MS = 500;
 
 /**
  * Initialize resource error monitoring.
- * 
+ *
  * This module works in coordination with the PerformanceObserver in network.ts:
  * 1. When a DOM error event fires, we record the failure via markResourceFailed()
  * 2. PerformanceObserver checks this when statusCode is unavailable (Safari)
@@ -89,7 +89,7 @@ export const initResourceErrorMonitoring = (): void => {
         },
         true, // Use capture phase
     );
-}
+};
 
 /**
  * Determine the resource type based on tag and attributes

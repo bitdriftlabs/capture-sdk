@@ -38,7 +38,7 @@ export const initErrorMonitoring = (): void => {
         });
         log(message);
     });
-}
+};
 
 /**
  * Initialize unhandled promise rejection monitoring.
@@ -68,4 +68,4 @@ export const initPromiseRejectionMonitoring = (): void => {
         });
         log(message);
     });
-}
+};

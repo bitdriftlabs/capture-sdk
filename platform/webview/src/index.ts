@@ -58,7 +58,7 @@ const init = (): void => {
     initPromiseRejectionMonitoring();
     initUserInteractionMonitoring();
     initErrorMonitoring();
-}
+};
 
 // Run immediately
 init();
