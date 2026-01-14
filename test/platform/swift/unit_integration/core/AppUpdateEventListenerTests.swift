@@ -27,6 +27,9 @@ final class AppUpdateEventListenerTests: XCTestCase {
         listener.start()
 
         XCTAssertEqual(.completed, XCTWaiter().wait(for: [noLogExpectation], timeout: 0.5))
+        // Drain the queue used by AppUpdateEventListener to ensure the first start() completes
+        // before we change shouldLogAppUpdateEvent.
+        DispatchQueue.heavy.sync {}
         XCTAssertEqual(0, logger.logAppUpdateCount)
 
         let logExpectation = self.expectation(description: "log app update is called")
