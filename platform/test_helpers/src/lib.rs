@@ -56,6 +56,509 @@ where
   f(&mut *l.as_mut().expect("test server not started"))
 }
 
+
+#[no_mangle]
+pub extern "C" fn create_test_api_server_instance(tls: bool, ping_interval: i32) -> *mut ServerHandle
+{
+  let ping = if ping_interval < 0 {
+    None
+  } else {
+    Some(Duration::milliseconds(ping_interval.into()))
+  };
+  let server = start_server(tls, ping);
+  Box::into_raw(server)
+}
+
+/// # Safety
+/// Handle must be valid pointer from `create_test_api_server_instance`.
+#[no_mangle]
+pub unsafe extern "C" fn server_instance_port(handle: *mut ServerHandle) -> i32 {
+  let handle = unsafe { &*handle };
+  handle.port.into()
+}
+
+/// # Safety
+/// Handle must be valid and not used after this call.
+#[no_mangle]
+pub unsafe extern "C" fn destroy_test_api_server_instance(handle: *mut ServerHandle) {
+  if !handle.is_null() {
+    drop(unsafe { Box::from_raw(handle) });
+  }
+}
+
+/// # Safety
+/// Handle must be valid.
+#[no_mangle]
+pub unsafe extern "C" fn server_instance_await_next_stream(handle: *mut ServerHandle) -> i32 {
+  let handle = unsafe { &*handle };
+  handle.blocking_next_stream().map_or(-1, |s| s.id())
+}
+
+/// # Safety
+/// Handle must be valid.
+#[no_mangle]
+pub unsafe extern "C" fn server_instance_wait_for_handshake(
+  handle: *mut ServerHandle,
+  stream_id: i32,
+) {
+  let handle = unsafe { &*handle };
+  assert!(
+    StreamHandle::from_stream_id(stream_id, handle).await_event_with_timeout(
+      ExpectedStreamEvent::Created(Some("test!".to_string())),
+      Duration::seconds(5)
+    )
+  );
+}
+
+/// # Safety
+/// Handle must be valid.
+#[no_mangle]
+pub unsafe extern "C" fn server_instance_await_handshake(
+  handle: *mut ServerHandle,
+  stream_id: i32,
+) {
+  let handle = unsafe { &*handle };
+  assert!(
+    StreamHandle::from_stream_id(stream_id, handle).await_event_with_timeout(
+      ExpectedStreamEvent::Handshake {
+        matcher: None,
+        sleep_mode: false,
+      },
+      Duration::seconds(15)
+    )
+  );
+}
+
+/// # Safety
+/// Handle must be valid.
+#[no_mangle]
+pub unsafe extern "C" fn server_instance_await_stream_closed(
+  handle: *mut ServerHandle,
+  stream_id: i32,
+  wait_time_ms: i64,
+) -> bool {
+  let handle = unsafe { &*handle };
+  StreamHandle::from_stream_id(stream_id, handle).await_event_with_timeout(
+    ExpectedStreamEvent::Closed,
+    Duration::milliseconds(wait_time_ms),
+  )
+}
+
+/// # Safety
+/// Handle must be valid.
+#[no_mangle]
+pub unsafe extern "C" fn server_instance_send_configuration(
+  handle: *mut ServerHandle,
+  stream_id: i32,
+) {
+  let handle = unsafe { &*handle };
+  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(
+    StreamAction::SendConfiguration(default_configuration_update()),
+  );
+}
+
+/// # Safety
+/// Handle must be valid.
+#[no_mangle]
+pub unsafe extern "C" fn server_instance_await_configuration_ack(
+  handle: *mut ServerHandle,
+  stream_id: i32,
+) {
+  let handle = unsafe { &mut *handle };
+  let (updated_stream_id, _) = handle.blocking_next_configuration_ack();
+  assert_eq!(stream_id, updated_stream_id);
+}
+
+/// # Safety
+/// Handle must be valid.
+#[no_mangle]
+pub unsafe extern "C" fn server_instance_configure_aggressive_uploads(
+  handle: *mut ServerHandle,
+  stream_id: i32,
+) {
+  let handle = unsafe { &mut *handle };
+  let stream = StreamHandle::from_stream_id(stream_id, handle);
+
+  assert!(stream.await_event_with_timeout(
+    ExpectedStreamEvent::Handshake {
+      matcher: None,
+      sleep_mode: false,
+    },
+    Duration::milliseconds(2000),
+  ));
+
+  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(StreamAction::SendRuntime(
+    make_update(
+      vec![
+        (
+          bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
+          ValueKind::Bool(true),
+        ),
+        (
+          bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
+          ValueKind::Int(1),
+        ),
+        (
+          bd_runtime::runtime::log_upload::RetryBackoffMaxFlag::path(),
+          ValueKind::Int(1),
+        ),
+        (
+          bd_runtime::runtime::log_upload::RetryBackoffInitialFlag::path(),
+          ValueKind::Int(1),
+        ),
+        (
+          bd_runtime::runtime::api::MaxBackoffInterval::path(),
+          ValueKind::Int(10),
+        ),
+        (
+          bd_runtime::runtime::debugging::InternalLoggingFlag::path(),
+          ValueKind::Bool(true),
+        ),
+        (
+          bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
+          ValueKind::Bool(true),
+        ),
+        (
+          bd_runtime::runtime::session_replay::PeriodicScreensEnabledFlag::path(),
+          ValueKind::Bool(true),
+        ),
+        (
+          bd_runtime::runtime::crash_reporting::Enabled::path(),
+          ValueKind::Bool(true),
+        ),
+        (
+          bd_runtime::runtime::state::UsePersistentStorage::path(),
+          ValueKind::Bool(true),
+        ),
+      ],
+      "base".to_string(),
+    ),
+  ));
+
+  handle.blocking_next_runtime_ack();
+
+  let configuration_update = make_configuration_update_with_workflow_flushing_buffer(
+    "default",
+    Type::CONTINUOUS,
+    make_buffer_matcher_matching_everything_except_internal_logs(),
+    make_workflow_matcher_matching_everything_except_internal_logs(),
+  );
+
+  StreamHandle::from_stream_id(stream_id, handle)
+    .blocking_stream_action(StreamAction::SendConfiguration(configuration_update));
+
+  handle.blocking_next_configuration_ack();
+}
+
+/// # Safety
+/// Handle must be valid.
+#[no_mangle]
+pub unsafe extern "C" fn server_instance_run_aggressive_upload_test(
+  handle: *mut ServerHandle,
+  logger_id: LoggerId<'_>,
+) {
+  let handle = unsafe { &mut *handle };
+  let stream_id = handle.blocking_next_stream().map_or(-1, |s| s.id());
+  assert_ne!(stream_id, -1);
+
+  let stream = StreamHandle::from_stream_id(stream_id, handle);
+
+  assert!(stream.await_event_with_timeout(
+    ExpectedStreamEvent::Handshake {
+      matcher: None,
+      sleep_mode: false,
+    },
+    Duration::milliseconds(2000),
+  ));
+
+  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(StreamAction::SendRuntime(
+    make_update(
+      vec![
+        (
+          bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
+          ValueKind::Bool(true),
+        ),
+        (
+          bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
+          ValueKind::Int(1),
+        ),
+        (
+          bd_runtime::runtime::log_upload::RetryBackoffMaxFlag::path(),
+          ValueKind::Int(1),
+        ),
+        (
+          bd_runtime::runtime::log_upload::RetryBackoffInitialFlag::path(),
+          ValueKind::Int(1),
+        ),
+        (
+          bd_runtime::runtime::api::MaxBackoffInterval::path(),
+          ValueKind::Int(10),
+        ),
+        (
+          bd_runtime::runtime::debugging::InternalLoggingFlag::path(),
+          ValueKind::Bool(true),
+        ),
+        (
+          bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
+          ValueKind::Bool(true),
+        ),
+        (
+          bd_runtime::runtime::session_replay::PeriodicScreensEnabledFlag::path(),
+          ValueKind::Bool(true),
+        ),
+        (
+          bd_runtime::runtime::crash_reporting::Enabled::path(),
+          ValueKind::Bool(true),
+        ),
+        (
+          bd_runtime::runtime::state::UsePersistentStorage::path(),
+          ValueKind::Bool(true),
+        ),
+      ],
+      "base".to_string(),
+    ),
+  ));
+
+  handle.blocking_next_runtime_ack();
+
+  let configuration_update = make_configuration_update_with_workflow_flushing_buffer(
+    "default",
+    Type::CONTINUOUS,
+    make_buffer_matcher_matching_everything_except_internal_logs(),
+    make_workflow_matcher_matching_everything_except_internal_logs(),
+  );
+
+  StreamHandle::from_stream_id(stream_id, handle)
+    .blocking_stream_action(StreamAction::SendConfiguration(configuration_update));
+
+  handle.blocking_next_configuration_ack();
+
+  for _ in 0 .. 100 {
+    logger_id.log(
+      log_level::DEBUG,
+      LogType::NORMAL,
+      "hello".into(),
+      [].into(),
+      [].into(),
+      None,
+      bd_logger::Block::No,
+      &CaptureSession::default(),
+    );
+  }
+
+  for _ in 0 .. 10 {
+    let upload = handle
+      .blocking_next_log_upload()
+      .expect("logs should be uploaded");
+
+    assert_eq!(upload.logs().len(), 1);
+  }
+}
+
+/// # Safety
+/// Handle must be valid.
+#[no_mangle]
+pub unsafe extern "C" fn server_instance_run_large_upload_test(
+  handle: *mut ServerHandle,
+  logger_id: LoggerId<'_>,
+) -> bool {
+  let handle = unsafe { &mut *handle };
+  let stream_id = handle.blocking_next_stream().map_or(-1, |s| s.id());
+  if stream_id == -1 {
+    return false;
+  }
+
+  if !StreamHandle::from_stream_id(stream_id, handle).await_event_with_timeout(
+    ExpectedStreamEvent::Handshake {
+      matcher: None,
+      sleep_mode: false,
+    },
+    Duration::milliseconds(800),
+  ) {
+    return false;
+  }
+
+  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(StreamAction::SendRuntime(
+    make_update(
+      vec![(
+        bd_runtime::runtime::log_upload::BatchSizeBytesFlag::path(),
+        ValueKind::Int(1024 * 1024 * 2),
+      )],
+      "base".to_string(),
+    ),
+  ));
+
+  handle.blocking_next_runtime_ack();
+
+  let extra_large_buffer_uploading_everything = configuration_update(
+    "version",
+    StateOfTheWorld {
+      buffer_config_list: Some(BufferConfigList {
+        buffer_config: vec![BufferConfigBuilder {
+          name: "big buffer",
+          buffer_type: Type::CONTINUOUS,
+          filter: make_buffer_matcher_matching_everything().into(),
+          non_volatile_size: 10_100_000,
+          volatile_size: 10_000_000,
+        }
+        .build()],
+        ..Default::default()
+      })
+      .into(),
+      ..Default::default()
+    },
+  );
+
+  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(
+    StreamAction::SendConfiguration(extra_large_buffer_uploading_everything),
+  );
+
+  handle.blocking_next_configuration_ack();
+
+  for _ in 0 .. 22 {
+    logger_id.log(
+      log_level::DEBUG,
+      LogType::NORMAL,
+      LogMessage::Bytes(vec![0; 100_000].into()),
+      [].into(),
+      [].into(),
+      None,
+      Block::Yes(std::time::Duration::from_secs(1)),
+      &CaptureSession::default(),
+    );
+  }
+
+  assert_matches!(handle.blocking_next_log_upload(), Some(log_upload) => {
+      assert_eq!(log_upload.logs().len(), 21);
+  });
+
+  true
+}
+
+/// # Safety
+/// Handle must be valid.
+#[no_mangle]
+pub unsafe extern "C" fn server_instance_run_aggressive_upload_with_stream_drops(
+  handle: *mut ServerHandle,
+  logger_id: LoggerId<'_>,
+) -> bool {
+  let handle = unsafe { &mut *handle };
+  let stream_id = handle.blocking_next_stream().map_or(-1, |s| s.id());
+  if stream_id == -1 {
+    return false;
+  }
+
+  let stream = StreamHandle::from_stream_id(stream_id, handle);
+
+  if !stream.await_event_with_timeout(
+    ExpectedStreamEvent::Handshake {
+      matcher: None,
+      sleep_mode: false,
+    },
+    Duration::milliseconds(2000),
+  ) {
+    return false;
+  }
+
+  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(StreamAction::SendRuntime(
+    make_update(
+      vec![
+        (
+          bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
+          ValueKind::Bool(true),
+        ),
+        (
+          bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
+          ValueKind::Int(1),
+        ),
+        (
+          bd_runtime::runtime::log_upload::RetryBackoffMaxFlag::path(),
+          ValueKind::Int(1),
+        ),
+        (
+          bd_runtime::runtime::log_upload::RetryBackoffInitialFlag::path(),
+          ValueKind::Int(1),
+        ),
+        (
+          bd_runtime::runtime::api::MaxBackoffInterval::path(),
+          ValueKind::Int(10),
+        ),
+        (
+          bd_runtime::runtime::debugging::InternalLoggingFlag::path(),
+          ValueKind::Bool(true),
+        ),
+        (
+          bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
+          ValueKind::Bool(true),
+        ),
+        (
+          bd_runtime::runtime::session_replay::PeriodicScreensEnabledFlag::path(),
+          ValueKind::Bool(true),
+        ),
+        (
+          bd_runtime::runtime::crash_reporting::Enabled::path(),
+          ValueKind::Bool(true),
+        ),
+        (
+          bd_runtime::runtime::state::UsePersistentStorage::path(),
+          ValueKind::Bool(true),
+        ),
+      ],
+      "base".to_string(),
+    ),
+  ));
+
+  handle.blocking_next_runtime_ack();
+
+  let configuration_update = make_configuration_update_with_workflow_flushing_buffer(
+    "default",
+    Type::CONTINUOUS,
+    make_buffer_matcher_matching_everything_except_internal_logs(),
+    make_workflow_matcher_matching_everything_except_internal_logs(),
+  );
+
+  StreamHandle::from_stream_id(stream_id, handle)
+    .blocking_stream_action(StreamAction::SendConfiguration(configuration_update));
+
+  handle.blocking_next_configuration_ack();
+
+  let mut stream = StreamHandle::from_stream_id(stream_id, handle);
+
+  for _ in 0 .. 5 {
+    for _ in 0 .. 10 {
+      logger_id.log(
+        log_level::TRACE,
+        LogType::NORMAL,
+        "hello".into(),
+        [].into(),
+        [].into(),
+        None,
+        bd_logger::Block::No,
+        &CaptureSession::default(),
+      );
+    }
+
+    stream.blocking_stream_action(StreamAction::CloseStream);
+
+    let Some(new_stream) = handle.blocking_next_stream() else {
+      return false;
+    };
+    stream = new_stream;
+
+    if !stream.await_event_with_timeout(
+      ExpectedStreamEvent::Handshake {
+        matcher: None,
+        sleep_mode: false,
+      },
+      Duration::seconds(10),
+    ) {
+      return false;
+    }
+  }
+
+  handle.blocking_next_log_upload().is_some()
+}
+
 #[no_mangle]
 pub extern "C" fn start_test_api_server(tls: bool, ping_interval: i32) -> i32 {
   let ping = if ping_interval < 0 {
