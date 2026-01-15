@@ -26,7 +26,6 @@ import io.bitdrift.capture.providers.toFieldsOrEmpty
 import io.bitdrift.capture.replay.IReplayLogger
 import io.bitdrift.capture.replay.IScreenshotLogger
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
-import io.bitdrift.capture.replay.IReplayViewListener
 import io.bitdrift.capture.replay.ScreenshotCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
@@ -61,10 +60,6 @@ internal class SessionReplayTarget(
             CaptureDispatchers.SessionReplay.executorService,
             windowManager,
         )
-
-    fun setViewListener(listener: IReplayViewListener?) {
-        sessionReplayController.setViewListener(listener)
-    }
 
     override fun captureScreen() {
         val skipReplayComposeViews =

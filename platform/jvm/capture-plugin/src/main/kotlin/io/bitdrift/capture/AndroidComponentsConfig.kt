@@ -54,7 +54,10 @@ fun AndroidComponentsExtension<*, *, *>.configure(
     tmpDir.mkdirs()
 
     onVariants { variant ->
-        if (extension.instrumentation.automaticOkHttpInstrumentation.get()) {
+        val enableOkHttp = extension.instrumentation.automaticOkHttpInstrumentation.get()
+        val enableWebView = extension.instrumentation.automaticWebViewInstrumentation.get()
+
+        if (enableOkHttp || enableWebView) {
             variant.configureInstrumentation(
                 SpanAddingClassVisitorFactory::class.java,
                 InstrumentationScope.ALL,
@@ -63,6 +66,8 @@ fun AndroidComponentsExtension<*, *, *>.configure(
                 params.tmpDir.set(tmpDir)
                 params.debug.set(extension.instrumentation.debug)
                 params.okHttpInstrumentationType.set(extension.instrumentation.okHttpInstrumentationType)
+                params.enableOkHttpInstrumentation.set(enableOkHttp)
+                params.enableWebViewInstrumentation.set(enableWebView)
             }
         }
     }

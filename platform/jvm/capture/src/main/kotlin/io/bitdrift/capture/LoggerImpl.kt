@@ -55,7 +55,6 @@ import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
-import io.bitdrift.capture.webview.WebViewInstrumentationListenerI
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import java.util.UUID
@@ -215,8 +214,6 @@ internal class LoggerImpl(
         runtime = JniRuntime(this.loggerId)
         if (sessionReplayTarget is SessionReplayTarget) {
             sessionReplayTarget.runtime = runtime
-
-            setAutoWebViewInstrumentationIfNeeded(configuration, sessionReplayTarget)
         }
         diskUsageMonitor.runtime = runtime
         memoryMetricsProvider.runtime = runtime
@@ -641,13 +638,6 @@ internal class LoggerImpl(
             }
         } else {
             errorHandler.handleError("Couldn't start JankStatsMonitor. Invalid application provided")
-        }
-    }
-
-    private fun setAutoWebViewInstrumentationIfNeeded(configuration: Configuration, sessionReplayTarget: SessionReplayTarget){
-        if (configuration.enableWebViewInstrumentation) {
-            val listener = WebViewInstrumentationListenerI(this)
-            sessionReplayTarget.setViewListener(listener)
         }
     }
 }

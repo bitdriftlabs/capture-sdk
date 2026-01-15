@@ -23,6 +23,11 @@ open class InstrumentationExtension
                 .property(Boolean::class.java)
                 .convention(false)
 
+        val automaticWebViewInstrumentation: Property<Boolean> =
+            objects
+                .property(Boolean::class.java)
+                .convention(false)
+
         val debug: Property<Boolean> =
             objects.property(Boolean::class.java).convention(
                 false,

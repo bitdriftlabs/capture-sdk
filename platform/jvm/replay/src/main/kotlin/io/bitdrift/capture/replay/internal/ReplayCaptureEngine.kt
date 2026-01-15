@@ -14,7 +14,6 @@ import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.IReplayLogger
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
-import io.bitdrift.capture.replay.IReplayViewListener
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
 import java.util.concurrent.ExecutorService
@@ -35,9 +34,6 @@ internal class ReplayCaptureEngine(
     private val replayEncoder: ReplayEncoder = ReplayEncoder(),
     private val clock: IClock = DefaultClock.getInstance(),
 ) {
-    fun setViewListener(listener: IReplayViewListener?) {
-        captureParser.setViewListener(listener)
-    }
 
     fun captureScreen(skipReplayComposeViews: Boolean) {
         mainThreadHandler.run {

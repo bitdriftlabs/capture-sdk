@@ -18,6 +18,8 @@ import io.bitdrift.capture.Capture
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LoggerImpl
+import java.util.Collections
+import java.util.WeakHashMap
 
 /**
  * WebView instrumentation for capturing page load events, performance metrics,
@@ -38,6 +40,7 @@ class WebViewCapture(
     private val logger: ILogger? = Capture.logger(),
     private val needsFallbackInjection: Boolean = false,
 ) : WebViewClient() {
+
     private var bridgeReady = false
     private var scriptInjected = false
 
@@ -98,10 +101,16 @@ class WebViewCapture(
     companion object {
         private const val BRIDGE_NAME = "BitdriftLogger"
 
+        private val instrumentedWebViews: MutableSet<WebView> =
+            Collections.newSetFromMap(WeakHashMap())
+
         private fun isWebkitAvailable(): Boolean = runCatching { Class.forName("androidx.webkit.WebViewFeature") }.isSuccess
 
         /**
          * Instruments a WebView to capture Core Web Vitals and network requests.
+         *
+         * This method is idempotent - calling it multiple times on the same WebView
+         * will only instrument it once.
          *
          * This method:
          * - Enables JavaScript execution
@@ -118,6 +127,10 @@ class WebViewCapture(
             webview: WebView,
             logger: ILogger? = null,
         ) {
+            if (instrumentedWebViews.contains(webview)) {
+                return
+            }
+
             val effectiveLogger = logger ?: Capture.logger()
 
             if (!isWebkitAvailable()) {
@@ -152,6 +165,8 @@ class WebViewCapture(
 
             // Inject JavaScript at document start for early initialization
             injectScript(webview, effectiveLogger)
+
+            instrumentedWebViews.add(webview)
         }
 
         @SuppressLint("RequiresFeature")
