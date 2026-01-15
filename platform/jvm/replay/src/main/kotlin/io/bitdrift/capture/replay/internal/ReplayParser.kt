@@ -10,6 +10,7 @@ package io.bitdrift.capture.replay.internal
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
+import io.bitdrift.capture.replay.ReplayViewListener
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.internal.mappers.ViewMapper
@@ -22,6 +23,10 @@ internal class ReplayParser(
     private val windowManager: IWindowManager,
     private val viewMapper: ViewMapper = ViewMapper(sessionReplayConfiguration),
 ) {
+    fun setViewListener(listener: ReplayViewListener?) {
+        viewMapper.setViewListener(listener)
+    }
+
     /**
      * Parses a ScannableView tree hierarchy into a list of ReplayRect
      */

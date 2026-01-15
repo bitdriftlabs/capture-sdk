@@ -70,6 +70,14 @@ class SessionReplayController(
     }
 
     /**
+     * Sets a listener to be notified when specific view types are encountered during
+     * view traversal. This is called on the main thread during screen capture.
+     */
+    fun setViewListener(listener: ReplayViewListener?) {
+        replayCaptureEngine.setViewListener(listener)
+    }
+
+    /**
      * Captures a screenshot of the current screen and emits a screenshot log using a logger instance passed
      * at initialization time.
      */

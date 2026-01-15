@@ -55,6 +55,7 @@ import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
+import io.bitdrift.capture.webview.WebViewInstrumentationListener
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import java.util.UUID
@@ -102,6 +103,7 @@ internal class LoggerImpl(
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
     private var jankStatsMonitor: JankStatsMonitor? = null
+    private var webViewInstrumentationListener: WebViewInstrumentationListener? = null
 
     // we can assume a properly formatted api url is being used, so we can follow the same pattern
     // making sure we only replace the first occurrence
@@ -307,6 +309,28 @@ internal class LoggerImpl(
 
     override fun startNewSession() {
         CaptureJniLibrary.startNewSession(this.loggerId)
+    }
+
+    /**
+     * Enables automatic WebView instrumentation via session replay view traversal.
+     * WebViews will be instrumented when discovered during screen capture.
+     * Requires session replay to be configured.
+     */
+    fun enableWebViewInstrumentation() {
+        val target = sessionReplayTarget as? SessionReplayTarget ?: return
+        if (webViewInstrumentationListener != null) return
+
+        webViewInstrumentationListener = WebViewInstrumentationListener(this)
+        target.setViewListener(webViewInstrumentationListener)
+    }
+
+    /**
+     * Disables automatic WebView instrumentation.
+     */
+    fun disableWebViewInstrumentation() {
+        val target = sessionReplayTarget as? SessionReplayTarget ?: return
+        webViewInstrumentationListener = null
+        target.setViewListener(null)
     }
 
     override fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {

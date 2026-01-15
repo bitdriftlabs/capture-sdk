@@ -28,10 +28,6 @@ class WebViewFragment : Fragment() {
     ): View {
         val view = inflater.inflate(R.layout.fragment_web_view, container, false)
         val webView = view.findViewById<WebView>(R.id.webView)
-
-        // Instrument the WebView with bitdrift capture
-        WebViewCapture.instrument(webView)
-
         val url = arguments?.getString(ARG_URL) ?: WEBVIEW_URLS.first().second
         webView.loadUrl(url)
         return view

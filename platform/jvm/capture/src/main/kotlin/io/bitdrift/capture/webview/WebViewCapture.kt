@@ -180,6 +180,7 @@ class WebViewCapture(
                 }
             }
         }
+
     }
 }
 

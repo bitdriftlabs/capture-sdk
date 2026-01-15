@@ -235,6 +235,26 @@ object Capture {
         }
 
         /**
+         * Enables automatic WebView instrumentation
+         * Requires session replay to be configured and Capture SDK to be started first.
+         * If no logger is started or session replay is not configured, this is a no-op.
+         */
+        @JvmStatic
+        fun enableWebViewInstrumentation() {
+            (logger() as? LoggerImpl)?.enableWebViewInstrumentation()
+            // TODO(Fran) Notify customer somehow that webview instrumentation is not started...
+        }
+
+        /**
+         * Disables automatic WebView instrumentation.
+         * If no logger is started, this is a no-op.
+         */
+        @JvmStatic
+        fun disableWebViewInstrumentation() {
+            (logger() as? LoggerImpl)?.disableWebViewInstrumentation()
+        }
+
+        /**
          * Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a
          * given device in real-time fashion. The creation of the device code requires communication with
          * the bitdrift remote service.
