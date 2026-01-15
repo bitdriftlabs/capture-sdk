@@ -193,6 +193,7 @@ maven.install(
 
         # Compile-only via wrapper target; not on runtime classpath
         "com.squareup.retrofit2:retrofit:3.0.0",
+        "androidx.webkit:webkit:1.12.1",
     ],
     repositories = [
         "https://maven.google.com",

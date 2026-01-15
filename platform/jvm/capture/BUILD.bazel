@@ -23,6 +23,14 @@ java_library(
     exports = [artifact("com.squareup.retrofit2:retrofit")],
 )
 
+# WebKit compile-only wrapper: exposes API at compile time, excluded from runtime via neverlink.
+java_library(
+    name = "webkit_compile_only",
+    neverlink = True,
+    visibility = ["//visibility:public"],
+    exports = [artifact("androidx.webkit:webkit")],
+)
+
 # export proguard library rules
 exports_files(["consumer-rules.pro"])
 
@@ -71,6 +79,7 @@ bitdrift_kt_android_library(
         artifact("androidx.metrics:metrics-performance"),
         # Compile-only dependency (neverlink wrapper). Not packaged nor appearing in POM.
         ":retrofit_compile_only",
+        ":webkit_compile_only",
     ],
 )
 
