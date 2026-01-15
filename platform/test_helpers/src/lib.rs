@@ -56,7 +56,14 @@ where
   f(&mut *l.as_mut().expect("test server not started"))
 }
 
+//
+// Per-instance server handle functions for test isolation.
+// These functions allow each test to have its own isolated server instance,
+// avoiding race conditions when tests run in parallel.
+//
 
+/// Creates a new test API server instance and returns an opaque handle.
+/// The caller is responsible for calling `destroy_test_api_server_instance` to clean up.
 #[no_mangle]
 pub extern "C" fn create_test_api_server_instance(tls: bool, ping_interval: i32) -> *mut ServerHandle
 {
@@ -69,16 +76,21 @@ pub extern "C" fn create_test_api_server_instance(tls: bool, ping_interval: i32)
   Box::into_raw(server)
 }
 
+/// Returns the port number for a server instance.
+///
 /// # Safety
-/// Handle must be valid pointer from `create_test_api_server_instance`.
+/// The handle must be a valid pointer returned by `create_test_api_server_instance`.
 #[no_mangle]
 pub unsafe extern "C" fn server_instance_port(handle: *mut ServerHandle) -> i32 {
   let handle = unsafe { &*handle };
   handle.port.into()
 }
 
+/// Destroys a test API server instance.
+///
 /// # Safety
-/// Handle must be valid and not used after this call.
+/// The handle must be a valid pointer returned by `create_test_api_server_instance`
+/// and must not be used after this call.
 #[no_mangle]
 pub unsafe extern "C" fn destroy_test_api_server_instance(handle: *mut ServerHandle) {
   if !handle.is_null() {
@@ -86,16 +98,21 @@ pub unsafe extern "C" fn destroy_test_api_server_instance(handle: *mut ServerHan
   }
 }
 
+/// Waits for the next API stream on a specific server instance.
+/// Returns the stream ID or -1 on timeout.
+///
 /// # Safety
-/// Handle must be valid.
+/// The handle must be a valid pointer returned by `create_test_api_server_instance`.
 #[no_mangle]
 pub unsafe extern "C" fn server_instance_await_next_stream(handle: *mut ServerHandle) -> i32 {
   let handle = unsafe { &*handle };
   handle.blocking_next_stream().map_or(-1, |s| s.id())
 }
 
+/// Waits for a handshake with the test API key on a specific server instance.
+///
 /// # Safety
-/// Handle must be valid.
+/// The handle must be a valid pointer returned by `create_test_api_server_instance`.
 #[no_mangle]
 pub unsafe extern "C" fn server_instance_wait_for_handshake(
   handle: *mut ServerHandle,
@@ -110,8 +127,10 @@ pub unsafe extern "C" fn server_instance_wait_for_handshake(
   );
 }
 
+/// Waits for the server to receive a handshake on a specific stream.
+///
 /// # Safety
-/// Handle must be valid.
+/// The handle must be a valid pointer returned by `create_test_api_server_instance`.
 #[no_mangle]
 pub unsafe extern "C" fn server_instance_await_handshake(
   handle: *mut ServerHandle,
@@ -129,8 +148,11 @@ pub unsafe extern "C" fn server_instance_await_handshake(
   );
 }
 
+/// Waits for a stream to close on a specific server instance.
+/// Returns true if the stream closed within the timeout, false otherwise.
+///
 /// # Safety
-/// Handle must be valid.
+/// The handle must be a valid pointer returned by `create_test_api_server_instance`.
 #[no_mangle]
 pub unsafe extern "C" fn server_instance_await_stream_closed(
   handle: *mut ServerHandle,

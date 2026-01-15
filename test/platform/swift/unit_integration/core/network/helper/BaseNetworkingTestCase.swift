@@ -18,6 +18,7 @@ open class BaseNetworkingTestCase: XCTestCase {
     private(set) var loggerBridge: LoggerBridge?
     private(set) var sdkDirectory: URL?
     private(set) var testServer: TestApiServer?
+    private var usesGlobalServer = false
 
     private final class MockMetadataProvider: CaptureLoggerBridge.MetadataProvider {
         func timestamp() -> TimeInterval {
@@ -60,6 +61,15 @@ open class BaseNetworkingTestCase: XCTestCase {
         return sdkDirectory
     }
 
+    /// Sets up a test server using the global handle (for tests using global helper functions).
+    /// Returns the API base URL.
+    // swiftlint:disable:next test_case_accessibility
+    func setUpTestServer(pingIntervalMs: Int32 = -1) -> URL {
+        let port = start_test_api_server(true, pingIntervalMs)
+        self.usesGlobalServer = true
+        return URL(string: "https://localhost:\(port)")!
+    }
+
     // swiftlint:disable:next test_case_accessibility
     func setUp(networkIdleTimeout: TimeInterval, pingIntervalMs: Int32 = -1) throws -> Int64 {
         let server = TestApiServer(tls: true, pingIntervalMs: pingIntervalMs)
@@ -100,5 +110,9 @@ open class BaseNetworkingTestCase: XCTestCase {
 
         self.loggerBridge = nil
         self.testServer = nil
+        if self.usesGlobalServer {
+            stop_test_api_server()
+            self.usesGlobalServer = false
+        }
     }
 }
