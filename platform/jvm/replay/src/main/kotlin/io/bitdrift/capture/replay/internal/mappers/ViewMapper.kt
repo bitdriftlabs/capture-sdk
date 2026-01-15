@@ -12,7 +12,7 @@ import android.view.View
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.isVisible
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
-import io.bitdrift.capture.replay.ReplayViewListener
+import io.bitdrift.capture.replay.IReplayViewListener
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.internal.ReplayRect
@@ -25,9 +25,9 @@ internal class ViewMapper(
     private val buttonMapper: ButtonMapper = ButtonMapper(),
     private val textMapper: TextMapper = TextMapper(),
     private val backgroundMapper: BackgroundMapper = BackgroundMapper(),
-    private var viewListener: ReplayViewListener? = null,
+    private var viewListener: IReplayViewListener? = null,
 ) {
-    fun setViewListener(listener: ReplayViewListener?) {
+    fun setViewListener(listener: IReplayViewListener?) {
         viewListener = listener
     }
 

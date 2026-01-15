@@ -13,7 +13,7 @@ import android.view.View
  * Listener interface for receiving callbacks when views are encountered
  * during session replay view traversal.
  */
-interface ReplayViewListener {
+interface IReplayViewListener {
     /**
      * Called when a view is encountered during view traversal.
      * This is called on the main thread.
