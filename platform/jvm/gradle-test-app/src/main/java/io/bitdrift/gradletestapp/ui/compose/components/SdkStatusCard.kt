@@ -19,9 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.bitdrift.gradletestapp.R
-import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.AppState
-import io.bitdrift.gradletestapp.data.model.NavigationAction
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
 /**
@@ -31,7 +29,7 @@ import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 fun SdkStatusCard(
     uiState: AppState,
     onInitializeSdk: () -> Unit,
-    onAction: (AppAction) -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -96,15 +94,11 @@ fun SdkStatusCard(
             }
 
             OutlinedButton(
-                onClick = { onAction(NavigationAction.NavigateToConfig) },
+                onClick = onOpenSettings,
                 modifier = Modifier.fillMaxWidth(),
                 colors =
                     ButtonDefaults.outlinedButtonColors(
                         contentColor = BitdriftColors.TextPrimary,
-                    ),
-                border =
-                    ButtonDefaults.outlinedButtonBorder.copy(
-                        width = 1.dp,
                     ),
             ) {
                 Text("Settings")
