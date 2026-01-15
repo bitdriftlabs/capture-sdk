@@ -13,6 +13,7 @@ import android.util.Log
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.Configuration
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.replay.SessionReplayConfiguration
@@ -108,6 +109,10 @@ object BitdriftInit {
             Configuration(
                 sessionReplayConfiguration = if (sessionReplayEnabled) SessionReplayConfiguration() else null,
                 enableFatalIssueReporting = fatalIssueReporterEnabled,
+                /**
+                 * This feature is highly experimental. Testing internally for now
+                 */
+                enableWebViewInstrumentation = true,
             )
 
         val userID = UUID.randomUUID().toString()

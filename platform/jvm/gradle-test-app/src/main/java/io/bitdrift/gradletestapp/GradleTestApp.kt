@@ -33,7 +33,6 @@ class GradleTestApp : Application() {
             Timber.i("Deferred start enabled - SDK initialization skipped")
         } else {
             BitdriftInit.init(this, sharedPreferences)
-            Capture.Logger.enableWebViewInstrumentation()
         }
 
         attachAdditionalMonitoringTools()

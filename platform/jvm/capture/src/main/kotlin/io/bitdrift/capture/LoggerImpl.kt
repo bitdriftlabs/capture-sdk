@@ -103,7 +103,6 @@ internal class LoggerImpl(
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
     private var jankStatsMonitor: JankStatsMonitor? = null
-    private var webViewInstrumentationListener: WebViewInstrumentationListener? = null
 
     // we can assume a properly formatted api url is being used, so we can follow the same pattern
     // making sure we only replace the first occurrence
@@ -216,6 +215,8 @@ internal class LoggerImpl(
         runtime = JniRuntime(this.loggerId)
         if (sessionReplayTarget is SessionReplayTarget) {
             sessionReplayTarget.runtime = runtime
+
+            setAutoWebViewInstrumentationIfNeeded(configuration, sessionReplayTarget)
         }
         diskUsageMonitor.runtime = runtime
         memoryMetricsProvider.runtime = runtime
@@ -309,28 +310,6 @@ internal class LoggerImpl(
 
     override fun startNewSession() {
         CaptureJniLibrary.startNewSession(this.loggerId)
-    }
-
-    /**
-     * Enables automatic WebView instrumentation via session replay view traversal.
-     * WebViews will be instrumented when discovered during screen capture.
-     * Requires session replay to be configured.
-     */
-    fun enableWebViewInstrumentation() {
-        val target = sessionReplayTarget as? SessionReplayTarget ?: return
-        if (webViewInstrumentationListener != null) return
-
-        webViewInstrumentationListener = WebViewInstrumentationListener(this)
-        target.setViewListener(webViewInstrumentationListener)
-    }
-
-    /**
-     * Disables automatic WebView instrumentation.
-     */
-    fun disableWebViewInstrumentation() {
-        val target = sessionReplayTarget as? SessionReplayTarget ?: return
-        webViewInstrumentationListener = null
-        target.setViewListener(null)
     }
 
     override fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {
@@ -662,6 +641,13 @@ internal class LoggerImpl(
             }
         } else {
             errorHandler.handleError("Couldn't start JankStatsMonitor. Invalid application provided")
+        }
+    }
+
+    private fun setAutoWebViewInstrumentationIfNeeded(configuration: Configuration, sessionReplayTarget: SessionReplayTarget){
+        if (configuration.enableWebViewInstrumentation) {
+            val listener = WebViewInstrumentationListener(this)
+            sessionReplayTarget.setViewListener(listener)
         }
     }
 }

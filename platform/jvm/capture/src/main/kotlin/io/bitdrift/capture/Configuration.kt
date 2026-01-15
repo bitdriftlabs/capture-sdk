@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture
 
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 
 /**
@@ -15,6 +16,8 @@ import io.bitdrift.capture.replay.SessionReplayConfiguration
  * @param enableFatalIssueReporting When set to true wil capture Fatal Issues automatically [JVM crash, ANR, etc] and without requiring
  * any external 3rd party library integration
  * @param sleepMode SleepMode.ENABLED if Capture should initialize in minimal activity mode
+ * @param enableWebViewInstrumentation NOTE: This API is highly experimental.When set to true, WebViews will be automatically instrumented
+ * to capture Core Web Vitals and network requests. Requires sessionReplayConfiguration to be set.
  */
 data class Configuration
     @JvmOverloads
@@ -22,4 +25,5 @@ data class Configuration
         val sessionReplayConfiguration: SessionReplayConfiguration? = SessionReplayConfiguration(),
         val enableFatalIssueReporting: Boolean = true,
         val sleepMode: SleepMode = SleepMode.DISABLED,
+        val enableWebViewInstrumentation: Boolean = false,
     )
