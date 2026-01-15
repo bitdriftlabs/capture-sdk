@@ -13,13 +13,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.JankType
@@ -32,27 +29,22 @@ fun StressTestScreen(
     onAction: (AppAction) -> Unit,
     onNavigateBack: () -> Unit,
 ) {
-    Scaffold(
-        containerColor = BitdriftColors.Background,
-    ) { paddingValues ->
-        LazyColumn(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 16.dp),
-        ) {
-            item {
-                MemoryPressureCard(onAction = onAction)
-            }
-            item {
-                JankyFramesCard(onAction = onAction)
-            }
-            item {
-                StrictModeCard(onAction = onAction)
-            }
+    LazyColumn(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(vertical = 8.dp),
+    ) {
+        item {
+            MemoryPressureCard(onAction = onAction)
+        }
+        item {
+            JankyFramesCard(onAction = onAction)
+        }
+        item {
+            StrictModeCard(onAction = onAction)
         }
     }
 }
