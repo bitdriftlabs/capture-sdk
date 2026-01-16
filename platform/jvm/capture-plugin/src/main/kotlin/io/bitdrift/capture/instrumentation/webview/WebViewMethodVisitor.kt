@@ -28,11 +28,9 @@ import org.objectweb.asm.Opcodes
  *   WebViewCapture.instrument(webView)
  *   webView.loadUrl(url)
  */
-class WebViewCallSiteMethodVisitor(
+class WebViewMethodVisitor(
     apiVersion: Int,
     methodVisitor: MethodVisitor,
-    private val className: String,
-    private val methodName: String,
 ) : MethodVisitor(apiVersion, methodVisitor) {
 
     companion object {

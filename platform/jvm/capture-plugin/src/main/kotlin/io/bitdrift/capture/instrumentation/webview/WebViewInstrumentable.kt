@@ -9,8 +9,6 @@ package io.bitdrift.capture.instrumentation.webview
 
 import com.android.build.api.instrumentation.ClassContext
 import io.bitdrift.capture.instrumentation.ClassInstrumentable
-import io.bitdrift.capture.instrumentation.MethodContext
-import io.bitdrift.capture.instrumentation.MethodInstrumentable
 import io.bitdrift.capture.instrumentation.SpanAddingClassVisitorFactory
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.MethodVisitor
@@ -37,7 +35,6 @@ class WebViewLoadUrlInstrumentable : ClassInstrumentable {
             apiVersion = apiVersion,
             classVisitor = originalVisitor,
             className = instrumentableContext.currentClassData.className,
-            parameters = parameters,
         )
 }
 
@@ -48,7 +45,6 @@ class WebViewClassVisitor(
     apiVersion: Int,
     classVisitor: ClassVisitor,
     private val className: String,
-    private val parameters: SpanAddingClassVisitorFactory.SpanAddingParameters,
 ) : ClassVisitor(apiVersion, classVisitor) {
 
     override fun visitMethod(
@@ -58,7 +54,7 @@ class WebViewClassVisitor(
         signature: String?,
         exceptions: Array<out String>?,
     ): MethodVisitor {
-        val mv = super.visitMethod(access, name, descriptor, signature, exceptions)
-        return WebViewCallSiteMethodVisitor(api, mv, className, name ?: "unknown")
+        val methodVisitor = super.visitMethod(access, name, descriptor, signature, exceptions)
+        return WebViewMethodVisitor(api, methodVisitor)
     }
 }

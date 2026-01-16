@@ -95,7 +95,6 @@ internal class LoggerImpl(
         },
 ) : ILogger,
     ICompletedReportsProcessor {
-
     internal val webViewConfigurationOptions: WebViewConfigurationOptions? = configuration.webViewConfigurationOptions
 
     private val metadataProvider: MetadataProvider

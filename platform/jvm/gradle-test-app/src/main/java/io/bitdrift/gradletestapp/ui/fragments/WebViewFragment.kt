@@ -13,7 +13,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.fragment.app.Fragment
-import io.bitdrift.capture.webview.WebViewCapture
 import io.bitdrift.gradletestapp.R
 
 /**

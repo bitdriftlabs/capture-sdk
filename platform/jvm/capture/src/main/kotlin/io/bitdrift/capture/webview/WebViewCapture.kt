@@ -30,7 +30,6 @@ import java.util.WeakHashMap
  *
  * Usage:
  * ```kotlin
- * val webView = findViewById<WebView>(R.id.webView)
  * WebViewCapture.instrument(webView)
  * webView.loadUrl("https://example.com")
  * ```
@@ -40,7 +39,6 @@ class WebViewCapture(
     private val logger: ILogger? = Capture.logger(),
     private val needsFallbackInjection: Boolean = false,
 ) : WebViewClient() {
-
     private var bridgeReady = false
     private var scriptInjected = false
 
@@ -150,7 +148,8 @@ class WebViewCapture(
             }
 
             // Check if we need fallback injection (older WebViews)
-            val needsFallback = !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
+            val needsFallback =
+                !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
 
             // Wrap existing WebViewClient
             val capture =
@@ -189,27 +188,26 @@ class WebViewCapture(
                 return
             }
 
-            try {
+            runCatching {
                 val script = WebViewBridgeScript.SCRIPT
                 WebViewCompat.addDocumentStartJavaScript(
                     webview,
                     script,
                     setOf("*"), // Apply to all frames
                 )
-            } catch (e: Exception) {
-                logger?.log(LogLevel.WARNING, mapOf("_error" to (e.message ?: ""))) {
+            }.getOrElse { error ->
+                logger?.log(LogLevel.WARNING, mapOf("_error" to (error.message ?: ""))) {
                     "Failed to inject WebView bridge script"
                 }
             }
         }
-
     }
 }
 
 /**
  * JavaScript interface that receives messages from the injected bridge script.
  */
-internal class WebViewBridgeHandler(
+private class WebViewBridgeHandler(
     loggerImpl: LoggerImpl?,
     private val logger: ILogger?,
     private val capture: WebViewCapture,
