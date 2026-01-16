@@ -13,7 +13,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-4">
+<body class="bg-gray-900 min-h-screen p-4">
     <div id="app" class="max-w-lg mx-auto space-y-4"></div>
 
     <script type="module">
@@ -39,9 +39,9 @@
             html`<button @click=${onClick} class="bg-${color}-500 hover:bg-${color}-600 text-white py-2 px-3 rounded text-sm transition ${cls}">${label}</button>`;
 
         const card = (icon, title, desc, content) => html`
-            <section class="bg-white rounded-lg p-4 shadow-md">
-                <h2 class="text-lg font-semibold text-gray-800 mb-3">${icon} ${title}</h2>
-                <p class="text-sm text-gray-600 mb-3">${desc}</p>
+            <section class="bg-gray-800 rounded-lg p-4 shadow-md">
+                <h2 class="text-lg font-semibold text-gray-100 mb-3">${icon} ${title}</h2>
+                <p class="text-sm text-gray-400 mb-3">${desc}</p>
                 ${content}
             </section>`;
 
@@ -125,7 +125,7 @@
                     ${btn('blue', state.inpBtn, actions.inp, 'w-full')}
                 </div>
                 <div class="mt-3">
-                    ${state.clsItems.map(() => html`<div class="bg-amber-100 border border-amber-400 text-amber-700 p-4 rounded mb-2">Layout shift triggered!</div>`)}
+                    ${state.clsItems.map(() => html`<div class="bg-amber-900 border border-amber-600 text-amber-200 p-4 rounded mb-2">Layout shift triggered!</div>`)}
                 </div>
                 <img src="https://picsum.photos/400/200" alt="LCP test" class="w-full h-auto mt-3 rounded" />
             `)}
@@ -137,7 +137,7 @@
                     ${btn('red', 'Network Fail', () => actions.fetch('https://invalid-xyz.test/', 'Network'), 'bg-red-700 hover:bg-red-800')}
                     ${btn('purple', 'XHR Request', actions.xhr)}
                 </div>
-                <p class="mt-3 text-sm text-gray-600">${state.networkStatus}</p>
+                <p class="mt-3 text-sm text-gray-300">${state.networkStatus}</p>
             `)}
 
             ${card('🧭', 'Navigation', 'Trigger SPA-style navigation events.', html`
@@ -149,7 +149,7 @@
                     ${btn('teal', 'Back', actions.back, 'bg-teal-700 hover:bg-teal-800')}
                     <a href="secondary.html" class="bg-cyan-500 hover:bg-cyan-600 text-white py-2 px-3 rounded text-sm text-center transition">Navigate →</a>
                 </div>
-                <p class="mt-3 text-sm text-gray-500">Current path: ${state.currentPath}</p>
+                <p class="mt-3 text-sm text-gray-400">Current path: ${state.currentPath}</p>
             `)}
 
             ${card('⏱️', 'Long Tasks', 'Block the main thread for >50ms to trigger long task detection.', html`
@@ -162,7 +162,7 @@
                     ${btn('rose', 'Broken Script', () => actions.brokenResource('script'), 'bg-rose-600 hover:bg-rose-700')}
                     ${btn('rose', 'Broken CSS', () => actions.brokenResource('css'), 'bg-rose-700 hover:bg-rose-800')}
                 </div>
-                <div class="mt-3 text-xs text-red-500">${state.resourceErrors.map(e => html`<div>${e}</div>`)}</div>
+                <div class="mt-3 text-xs text-red-400">${state.resourceErrors.map(e => html`<div>${e}</div>`)}</div>
             `)}
 
             ${card('📝', 'Console Capture', 'Trigger various console methods.', html`
@@ -179,14 +179,14 @@
                 <div class="space-y-2">
                     <button class="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded transition">Regular Button</button>
                     <a href="#link-test" class="block text-center bg-indigo-400 hover:bg-indigo-500 text-white py-2 px-4 rounded transition">Link Click</a>
-                    <label class="flex items-center space-x-2 p-2 bg-gray-100 rounded cursor-pointer">
-                        <input type="checkbox" class="w-5 h-5" /><span class="text-gray-700">Checkbox</span>
+                    <label class="flex items-center space-x-2 p-2 bg-gray-700 rounded cursor-pointer">
+                        <input type="checkbox" class="w-5 h-5" /><span class="text-gray-200">Checkbox</span>
                     </label>
-                    <div role="button" tabindex="0" class="text-center bg-indigo-300 hover:bg-indigo-400 text-indigo-900 py-2 px-4 rounded cursor-pointer transition">role="button"</div>
+                    <div role="button" tabindex="0" class="text-center bg-indigo-600 hover:bg-indigo-500 text-indigo-100 py-2 px-4 rounded cursor-pointer transition">role="button"</div>
                 </div>
                 <div class="mt-4">
-                    <p class="text-sm text-gray-600 mb-2">Rage Click Target (click rapidly 3+ times):</p>
-                    <div @click=${actions.rageFlash} class="bg-red-100 border-2 border-dashed border-red-300 rounded p-8 text-center text-red-600 select-none cursor-pointer">Click here rapidly!</div>
+                    <p class="text-sm text-gray-400 mb-2">Rage Click Target (click rapidly 3+ times):</p>
+                    <div @click=${actions.rageFlash} class="bg-red-900 border-2 border-dashed border-red-600 rounded p-8 text-center text-red-300 select-none cursor-pointer">Click here rapidly!</div>
                 </div>
             `)}
 
@@ -199,7 +199,7 @@
             `)}
 
             ${card('📄', 'Page View', 'Page view is tracked automatically. Use navigation buttons to trigger new page views.', html`
-                <p class="text-sm text-gray-500">Page loaded at: ${state.pageLoadTime}</p>
+                <p class="text-sm text-gray-400">Page loaded at: ${state.pageLoadTime}</p>
             `)}
 
             <footer class="text-center text-gray-500 text-sm py-4">Bitdrift Capture SDK Test Page</footer>
