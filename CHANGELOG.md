@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.0...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.1...HEAD
 
 ### Both
 
@@ -40,6 +40,16 @@
 **Changed**
 
 - Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.22.1]
+
+[0.22.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.1
+
+### iOS
 
 **Fixed**
 
