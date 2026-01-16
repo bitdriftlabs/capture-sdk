@@ -151,3 +151,4 @@ build:asan --features=address
 build:asan --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=address
 
 try-import %workspace%/tmp/ci-bazelrc
+try-import %workspace%/.bazelrc.local
