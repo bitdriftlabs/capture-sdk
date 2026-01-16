@@ -111,6 +111,7 @@ public struct HTTPRequestInfo {
     /// Returns fields that are supposed to be shared between request and response logs.
     ///
     /// - parameter spanType: The span type to include (.start or .end).
+    ///
     /// - returns: Fields to share with response logs.
     func toCommonFields(spanType: HTTPSpanType) -> Fields {
         var fields: [String: Encodable] = [
