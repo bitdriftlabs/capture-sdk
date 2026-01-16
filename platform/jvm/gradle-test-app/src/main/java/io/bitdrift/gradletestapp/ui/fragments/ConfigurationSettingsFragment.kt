@@ -20,6 +20,7 @@ import androidx.preference.PreferenceManager
 import androidx.preference.SwitchPreference
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.ui.compose.components.SettingsApiKeysDialogFragment
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog
 import kotlin.system.exitProcess
 
 class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
@@ -29,13 +30,28 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     ) {
         val context = preferenceManager.context
         val screen = preferenceManager.createPreferenceScreen(context)
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
 
         val backendCategory = PreferenceCategory(context)
         backendCategory.key = "control_plane_category"
-
         screen.addPreference(backendCategory)
 
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        val restartPreference = Preference(context)
+        restartPreference.key = "restart"
+        restartPreference.title = context.getString(R.string.restart_warning_title)
+        restartPreference.summary = context.getString(R.string.restart_warning_summary)
+        restartPreference.icon = context.getDrawable(android.R.drawable.ic_dialog_alert)
+        restartPreference.setOnPreferenceClickListener {
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            val restartIntent = Intent.makeRestartActivityTask(launchIntent!!.component)
+            // Required for API 34 and later
+            // Ref: https://developer.android.com/about/versions/14/behavior-changes-14#safer-intents
+            restartIntent.setPackage(context.packageName)
+            context.startActivity(restartIntent)
+            exitProcess(0)
+        }
+        backendCategory.addPreference(restartPreference)
+
         val defaultApiUrl = "https://api.bitdrift.io"
 
         // Set default value if not already set
@@ -82,28 +98,11 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
             true
         }
         backendCategory.addPreference(apiKeysPreference)
-
-        val restartPreference = Preference(context)
-        restartPreference.key = "restart"
-        restartPreference.title = context.getString(R.string.restart_warning_title)
-        restartPreference.summary = context.getString(R.string.restart_warning_summary)
-        restartPreference.icon = context.getDrawable(android.R.drawable.ic_dialog_alert)
-        restartPreference.setOnPreferenceClickListener {
-            val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-            val restartIntent = Intent.makeRestartActivityTask(launchIntent!!.component)
-            // Required for API 34 and later
-            // Ref: https://developer.android.com/about/versions/14/behavior-changes-14#safer-intents
-            restartIntent.setPackage(context.packageName)
-            context.startActivity(restartIntent)
-            exitProcess(0)
-        }
-
         backendCategory.addPreference(buildSessionStrategyList(context))
         backendCategory.addPreference(buildSwitchPreference(context))
         backendCategory.addPreference(buildSessionReplaySwitch(context))
         backendCategory.addPreference(buildDeferredStartSwitch(context))
-
-        screen.addPreference(restartPreference)
+        backendCategory.addPreference(buildWebViewMonitoringPreference(context))
 
         preferenceScreen = screen
     }
@@ -150,6 +149,28 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         SettingsApiKeysDialogFragment(sharedPreferences).show(parentFragmentManager, "")
     }
 
+    private fun buildWebViewMonitoringPreference(context: Context): Preference {
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        val preference = Preference(context)
+        preference.key = WEBVIEW_MONITORING_PREFS_KEY
+        preference.title = WEBVIEW_MONITORING_TITLE
+        val isEnabled = sharedPreferences.getBoolean(
+            WebViewSettingsDialog.WEBVIEW_MONITORING_ENABLED_KEY,
+            false,
+        )
+        preference.summary = if (isEnabled) "Enabled" else "Disabled"
+        preference.setOnPreferenceClickListener {
+            showWebViewSettingsDialog(context)
+            true
+        }
+        return preference
+    }
+
+    private fun showWebViewSettingsDialog(context: Context) {
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        WebViewSettingsDialog(sharedPreferences).show(parentFragmentManager, "webview_settings")
+    }
+
     enum class SessionStrategyPreferences(
         val displayName: String,
     ) {
@@ -164,6 +185,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         const val FATAL_ISSUE_ENABLED_PREFS_KEY = "fatalIssueEnabled"
         const val DEFERRED_START_PREFS_KEY = "deferredStart"
         const val SESSION_REPLAY_ENABLED_PREFS_KEY = "sessionReplayEnabled"
+        const val WEBVIEW_MONITORING_PREFS_KEY = "webviewMonitoring"
 
         const val PREFS_SLEEP_MODE_ENABLED = "sleep_mode_enabled"
 
@@ -171,6 +193,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         private const val FATAL_ISSUE_TITLE = "Fatal Issue Reporter"
         private const val DEFERRED_START_TITLE = "Deferred SDK Start"
         private const val SESSION_REPLAY_TITLE = "Session Replay"
+        private const val WEBVIEW_MONITORING_TITLE = "WebView Monitoring"
 
         private val SESSION_STRATEGY_ENTRIES =
             arrayOf(

@@ -8,6 +8,7 @@
 package io.bitdrift.capture
 
 import io.bitdrift.capture.replay.SessionReplayConfiguration
+import io.bitdrift.capture.webview.WebViewConfigurationOptions
 
 /**
  * A configuration object representing the feature set enabled for Capture.
@@ -15,11 +16,14 @@ import io.bitdrift.capture.replay.SessionReplayConfiguration
  * @param enableFatalIssueReporting When set to true wil capture Fatal Issues automatically [JVM crash, ANR, etc] and without requiring
  * any external 3rd party library integration
  * @param sleepMode SleepMode.ENABLED if Capture should initialize in minimal activity mode
- */
+ * @param webViewConfigurationOptions The WebView instrumentation configuration. Passing `null` disables WebView monitoring.
+ *                                    If the Gradle plugin injected bytecode but this is null, instrumentation will be short-circuited.
+*/
 data class Configuration
     @JvmOverloads
     constructor(
         val sessionReplayConfiguration: SessionReplayConfiguration? = SessionReplayConfiguration(),
         val enableFatalIssueReporting: Boolean = true,
         val sleepMode: SleepMode = SleepMode.DISABLED,
+        val webViewConfigurationOptions: WebViewConfigurationOptions? = null,
     )
