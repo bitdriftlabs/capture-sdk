@@ -10,6 +10,8 @@
 # Claude code
 .claude/settings.local.json
 
+.bazelrc.local
+
 compile_commands.json
 .DS_Store
 /dist

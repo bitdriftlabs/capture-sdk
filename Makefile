@@ -76,3 +76,12 @@ xcframework:
 .PHONY: test-gradle
 test-gradle:
 	platform/jvm/gradlew :capture:testDebugUnitTest -p platform/jvm
+
+.PHONY: init-local-bazelrc
+init-local-bazelrc:
+	@if [ ! -f .bazelrc.local ]; then \
+		cp .bazelrc.local.example .bazelrc.local; \
+		echo "Created .bazelrc.local from .bazelrc.local.example. Please edit it to suit your environment."; \
+	else \
+		echo ".bazelrc.local already exists. Skipping creation."; \
+	fi
