@@ -55,6 +55,7 @@ import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
+import io.bitdrift.capture.webview.WebViewConfigurationOptions
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import java.util.UUID
@@ -94,6 +95,9 @@ internal class LoggerImpl(
         },
 ) : ILogger,
     ICompletedReportsProcessor {
+
+    internal val webViewConfigurationOptions: WebViewConfigurationOptions? = configuration.webViewConfigurationOptions
+
     private val metadataProvider: MetadataProvider
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
@@ -580,6 +584,7 @@ internal class LoggerImpl(
                 clientAttributes
                     .getInstallationSource(appContext, errorHandler)
             val isSessionReplayEnabled = sessionReplayTarget is SessionReplayTarget
+            val isWebViewMonitoringEnabled = webViewConfigurationOptions != null
             val baseFields =
                 fieldsOf(
                     "_app_installation_source" to installationSource,
@@ -589,6 +594,7 @@ internal class LoggerImpl(
                     "_logger_build_duration_ms" to
                         sdkConfiguredDuration.loggerImplBuildDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
                     "_session_replay_enabled" to isSessionReplayEnabled.toString(),
+                    "_webview_monitoring_enabled" to isWebViewMonitoringEnabled.toString(),
                 )
             val fatalIssueFields =
                 (

@@ -117,6 +117,10 @@ class WebViewCapture(
          * - Injects the Bitdrift JavaScript bridge at document start
          * - Registers a native interface for receiving bridge messages
          *
+         * Note: This method will short-circuit (no-op) if WebView monitoring is not enabled
+         * in the Capture configuration. To enable WebView monitoring, provide a
+         * [WebViewConfigurationOptions] instance when starting Capture.
+         *
          * @param webview The WebView to instrument
          * @param logger Optional logger instance. If null, uses Capture.logger()
          */
@@ -132,15 +136,18 @@ class WebViewCapture(
             }
 
             val effectiveLogger = logger ?: Capture.logger()
+            val loggerImpl = effectiveLogger as? LoggerImpl ?: return
+
+            if (loggerImpl.webViewConfigurationOptions == null) {
+                return
+            }
 
             if (!isWebkitAvailable()) {
-                effectiveLogger?.log(LogLevel.WARNING, emptyMap()) {
+                effectiveLogger.log(LogLevel.WARNING, emptyMap()) {
                     "androidx.webkit not available, WebView instrumentation disabled"
                 }
                 return
             }
-
-            val loggerImpl = effectiveLogger as? LoggerImpl
 
             // Check if we need fallback injection (older WebViews)
             val needsFallback = !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
