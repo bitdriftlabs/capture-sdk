@@ -63,7 +63,7 @@ public struct HTTPResponseInfo {
     /// - returns: A fields map.
     func toFields() -> Fields {
         // swiftlint:disable:previous cyclomatic_complexity
-        var fields = self.requestInfo.toCommonFields()
+        var fields = self.requestInfo.toCommonFields(spanType: .end)
         fields["_duration_ms"] = String(self.duration.toMilliseconds())
 
         // Extract url information (host, path, query) from response's URL if available. Otherwise, use

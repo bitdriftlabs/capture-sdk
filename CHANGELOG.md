@@ -43,7 +43,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed `Span Success` for network request/responses.
 
 ## [0.22.0]
 

@@ -30,6 +30,7 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_method": "GET",
                 "_duration_ms": "123",
                 "_result": "success",
+                "_span_type": "end",
             ],
             fields
         )
@@ -37,7 +38,7 @@ final class HTTPResponseInfoTests: XCTestCase {
         var matchingFields = try XCTUnwrap(responseInfo.toMatchingFields() as? [String: String])
         XCTAssertNotNil(matchingFields.removeValue(forKey: "_request._span_id"))
 
-        XCTAssertEqual(["_request._method": "GET"], matchingFields)
+        XCTAssertEqual(["_request._method": "GET", "_request._span_type": "start"], matchingFields)
     }
 
     func testHTTPResponseSuccess() throws {
@@ -61,6 +62,7 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_path": "/path/12345",
                 "_query": "query",
                 "_span_id": "span_id",
+                "_span_type": "end",
                 "key2": "value2",
                 "_status_code": "200",
                 "_duration_ms": "123",
@@ -77,6 +79,7 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_request._method": "method",
                 "_request._path": "/path/12345",
                 "_request._span_id": "span_id",
+                "_request._span_type": "start",
                 "_request.key": "value",
                 "_headers.header_1": "value_1",
                 "_request._headers.request_header": "request_value",
@@ -117,6 +120,7 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_path_template": "/testing/<id>",
                 "_query": "query",
                 "_span_id": "foo",
+                "_span_type": "end",
                 "_duration_ms": "135",
                 "_result": "success",
             ],
@@ -143,6 +147,7 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_path": "/path/12345",
                 "_query": "query",
                 "_span_id": "span_id",
+                "_span_type": "end",
                 "_duration_ms": "135",
                 "_result": "success",
                 "key": "value",
@@ -173,6 +178,7 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_path_template": "/foo_path/{explicit_id}",
                 "_query": "foo_query",
                 "_span_id": "span_id",
+                "_span_type": "end",
                 "_duration_ms": "135",
                 "_result": "success",
                 "key": "value",
@@ -206,6 +212,7 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_path": "/path/12345",
                 "_query": "query",
                 "_span_id": "span_id",
+                "_span_type": "end",
                 "_duration_ms": "456",
                 "_result": "canceled",
                 "key": "value",
@@ -220,6 +227,7 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_request._method": "method",
                 "_request._path": "/path/12345",
                 "_request._span_id": "span_id",
+                "_request._span_type": "start",
                 "_request.key": "value",
                 "_request._headers.request_header": "request_value",
             ],
@@ -250,6 +258,7 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_path": "/path/12345",
                 "_query": "query",
                 "_span_id": "span_id",
+                "_span_type": "end",
                 "_status_code": "400",
                 "_duration_ms": "789",
                 "_result": "failure",
@@ -265,6 +274,7 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_request._method": "method",
                 "_request._path": "/path/12345",
                 "_request._span_id": "span_id",
+                "_request._span_type": "start",
                 "_request.key": "value",
                 "_request._headers.request_header": "request_value",
             ],
@@ -302,6 +312,7 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_path": "/path/12345",
                 "_query": "query",
                 "_span_id": "span_id",
+                "_span_type": "end",
                 "_duration_ms": "135",
                 "_result": "failure",
                 "_error_code": "100",
@@ -318,6 +329,7 @@ final class HTTPResponseInfoTests: XCTestCase {
                 "_request._method": "method",
                 "_request._path": "/path/12345",
                 "_request._span_id": "span_id",
+                "_request._span_type": "start",
                 "_request.key": "value",
                 "_request._headers.request_header": "request_value",
             ],

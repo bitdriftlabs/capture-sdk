@@ -20,6 +20,11 @@ enum HTTPFieldKey: String {
     case graphQLOperationID = "_operation_id"
 }
 
+enum HTTPSpanType: String {
+    case start
+    case end
+}
+
 /// An object representing an HTTP request.
 public struct HTTPRequestInfo {
     let method: String
@@ -74,7 +79,7 @@ public struct HTTPRequestInfo {
     ///
     /// - returns: A fields map.
     func toFields() -> Fields {
-        var fields = self.toCommonFields()
+        var fields = self.toCommonFields(spanType: .start)
 
         if let bytesExpectedToSendCount = self.bytesExpectedToSendCount, bytesExpectedToSendCount > 0 {
             // Do not put body bytes count as a common field since response log has a more accurate
@@ -105,11 +110,14 @@ public struct HTTPRequestInfo {
 
     /// Returns fields that are supposed to be shared between request and response logs.
     ///
+    /// - parameter spanType: The span type to include (.start or .end).
+    ///
     /// - returns: Fields to share with response logs.
-    func toCommonFields() -> Fields {
+    func toCommonFields(spanType: HTTPSpanType) -> Fields {
         var fields: [String: Encodable] = [
             "_method": self.method,
             "_span_id": self.spanID,
+            "_span_type": spanType.rawValue,
         ]
 
         if let host = self.host {
