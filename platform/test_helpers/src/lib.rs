@@ -231,6 +231,10 @@ pub unsafe extern "C" fn server_instance_configure_aggressive_uploads(
           ValueKind::Int(1),
         ),
         (
+          bd_runtime::runtime::api::InitialBackoffInterval::path(),
+          ValueKind::Int(1),
+        ),
+        (
           bd_runtime::runtime::api::MaxBackoffInterval::path(),
           ValueKind::Int(10),
         ),
@@ -504,8 +508,12 @@ pub unsafe extern "C" fn server_instance_run_aggressive_upload_with_stream_drops
           ValueKind::Int(1),
         ),
         (
+          bd_runtime::runtime::api::InitialBackoffInterval::path(),
+          ValueKind::Int(1),
+        ),
+        (
           bd_runtime::runtime::api::MaxBackoffInterval::path(),
-          ValueKind::Int(10),
+          ValueKind::Int(1),
         ),
         (
           bd_runtime::runtime::debugging::InternalLoggingFlag::path(),

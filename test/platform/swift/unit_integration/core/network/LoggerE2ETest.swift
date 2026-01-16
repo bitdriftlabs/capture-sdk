@@ -90,6 +90,7 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         _ = try self.setUpLogger()
 
         let streamID = await self.server.awaitNextStreamAsync()
+        XCTAssertNotEqual(streamID, -1, "Timed out waiting for API stream")
         await self.server.configureAggressiveUploadsAsync(streamId: streamID)
 
         let log1 = await self.server.nextUploadedLogAsync()
@@ -146,6 +147,7 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         logger.addField(withKey: "_dar", value: "value_dar")
 
         let streamID = await self.server.awaitNextStreamAsync()
+        XCTAssertNotEqual(streamID, -1, "Timed out waiting for API stream")
         await self.server.configureAggressiveUploadsAsync(streamId: streamID)
 
         // The first 3 logs are sdk configuration, session replay, and resource utilization logs but
