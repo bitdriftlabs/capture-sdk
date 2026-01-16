@@ -253,6 +253,7 @@ final class LoggerTests: XCTestCase {
             "_method": "POST",
             "_path": "/ping/12345",
             "_span_id": requestInfo.spanID,
+            "_span_type": "start",
             "_query": "bar",
             "foo": "bar",
         ], logFields)
@@ -308,6 +309,7 @@ final class LoggerTests: XCTestCase {
             "_path": "/ping/12345",
             "_result": "success",
             "_span_id": requestInfo.spanID,
+            "_span_type": "end",
             "_status_code": "200",
             "_query": "bar",
             "foo": "bar",
@@ -318,6 +320,7 @@ final class LoggerTests: XCTestCase {
             "_request._method": "POST",
             "_request._path": "/ping/12345",
             "_request._span_id": requestInfo.spanID,
+            "_request._span_type": "start",
             "_request._query": "bar",
         ], try log.matchingFields?.toDictionary())
     }
