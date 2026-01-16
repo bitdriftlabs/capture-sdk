@@ -65,8 +65,10 @@ where
 /// Creates a new test API server instance and returns an opaque handle.
 /// The caller is responsible for calling `destroy_test_api_server_instance` to clean up.
 #[no_mangle]
-pub extern "C" fn create_test_api_server_instance(tls: bool, ping_interval: i32) -> *mut ServerHandle
-{
+pub extern "C" fn create_test_api_server_instance(
+  tls: bool,
+  ping_interval: i32,
+) -> *mut ServerHandle {
   let ping = if ping_interval < 0 {
     None
   } else {
@@ -209,8 +211,8 @@ pub unsafe extern "C" fn server_instance_configure_aggressive_uploads(
     Duration::milliseconds(2000),
   ));
 
-  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(StreamAction::SendRuntime(
-    make_update(
+  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(
+    StreamAction::SendRuntime(make_update(
       vec![
         (
           bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
@@ -254,8 +256,8 @@ pub unsafe extern "C" fn server_instance_configure_aggressive_uploads(
         ),
       ],
       "base".to_string(),
-    ),
-  ));
+    )),
+  );
 
   handle.blocking_next_runtime_ack();
 
@@ -293,8 +295,8 @@ pub unsafe extern "C" fn server_instance_run_aggressive_upload_test(
     Duration::milliseconds(2000),
   ));
 
-  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(StreamAction::SendRuntime(
-    make_update(
+  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(
+    StreamAction::SendRuntime(make_update(
       vec![
         (
           bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
@@ -338,8 +340,8 @@ pub unsafe extern "C" fn server_instance_run_aggressive_upload_test(
         ),
       ],
       "base".to_string(),
-    ),
-  ));
+    )),
+  );
 
   handle.blocking_next_runtime_ack();
 
@@ -400,15 +402,15 @@ pub unsafe extern "C" fn server_instance_run_large_upload_test(
     return false;
   }
 
-  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(StreamAction::SendRuntime(
-    make_update(
+  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(
+    StreamAction::SendRuntime(make_update(
       vec![(
         bd_runtime::runtime::log_upload::BatchSizeBytesFlag::path(),
         ValueKind::Int(1024 * 1024 * 2),
       )],
       "base".to_string(),
-    ),
-  ));
+    )),
+  );
 
   handle.blocking_next_runtime_ack();
 
@@ -482,8 +484,8 @@ pub unsafe extern "C" fn server_instance_run_aggressive_upload_with_stream_drops
     return false;
   }
 
-  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(StreamAction::SendRuntime(
-    make_update(
+  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(
+    StreamAction::SendRuntime(make_update(
       vec![
         (
           bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
@@ -527,8 +529,8 @@ pub unsafe extern "C" fn server_instance_run_aggressive_upload_with_stream_drops
         ),
       ],
       "base".to_string(),
-    ),
-  ));
+    )),
+  );
 
   handle.blocking_next_runtime_ack();
 
@@ -603,55 +605,29 @@ pub extern "C" fn stop_test_api_server() {
 
 #[no_mangle]
 pub extern "C" fn await_next_api_stream() -> i32 {
-  with_expected_server(|h| h.blocking_next_stream().map_or(-1, |s| s.id()))
+  with_expected_server(|h| unsafe { server_instance_await_next_stream(h) })
 }
 
 #[no_mangle]
 pub extern "C" fn wait_for_stream_with_test_api_key(stream_id: i32) {
-  with_expected_server(|h| {
-    // TODO(snowp): Support passing the expected API key for test vs testing for a specific test
-    // one.
-    assert!(
-      StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
-        ExpectedStreamEvent::Created(Some("test!".to_string())),
-        Duration::seconds(5)
-      )
-    );
-  });
+  with_expected_server(|h| unsafe { server_instance_wait_for_handshake(h, stream_id) });
 }
 
 #[no_mangle]
 pub extern "C" fn await_api_server_received_handshake(stream_id: i32) {
-  with_expected_server(|h| {
-    assert!(
-      StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
-        ExpectedStreamEvent::Handshake {
-          matcher: None,
-          sleep_mode: false,
-        },
-        Duration::seconds(15)
-      )
-    );
-  });
+  with_expected_server(|h| unsafe { server_instance_await_handshake(h, stream_id) });
 }
 
 #[no_mangle]
 pub extern "C" fn await_api_server_stream_closed(stream_id: i32, wait_time_ms: i64) -> bool {
-  with_expected_server(|h| {
-    StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
-      ExpectedStreamEvent::Closed,
-      Duration::milliseconds(wait_time_ms),
-    )
+  with_expected_server(|h| unsafe {
+    server_instance_await_stream_closed(h, stream_id, wait_time_ms)
   })
 }
 
 #[no_mangle]
 pub extern "C" fn send_configuration_update(stream_id: i32) {
-  with_expected_server(|h| {
-    StreamHandle::from_stream_id(stream_id, h).blocking_stream_action(
-      StreamAction::SendConfiguration(default_configuration_update()),
-    );
-  });
+  with_expected_server(|h| unsafe { server_instance_send_configuration(h, stream_id) });
 }
 
 #[no_mangle]
@@ -710,229 +686,24 @@ fn perform_benchmarking_runtime_update(stream: &StreamHandle) {
 
 #[no_mangle]
 pub extern "C" fn await_configuration_ack(stream_id: i32) {
-  with_expected_server(|h| {
-    let (updated_stream_id, _) = h.blocking_next_configuration_ack();
-    assert_eq!(stream_id, updated_stream_id);
-  });
+  with_expected_server(|h| unsafe { server_instance_await_configuration_ack(h, stream_id) });
 }
 
 #[no_mangle]
 pub extern "C" fn configure_aggressive_continuous_uploads(stream_id: i32) {
-  with_expected_server(|h| {
-    let stream = StreamHandle::from_stream_id(stream_id, h);
-    // Ensure that we've received the handshake.
-    assert!(stream.await_event_with_timeout(
-      ExpectedStreamEvent::Handshake {
-        matcher: None,
-        sleep_mode: false,
-      },
-      Duration::milliseconds(2000),
-    ));
-
-    // Configure very aggressive runtime values: attempt to read the buffer every 1ms and attempt to
-    // upload logs in batches of one. This should ensure a steady state of uploads being sent.
-    StreamHandle::from_stream_id(stream_id, h).blocking_stream_action(StreamAction::SendRuntime(
-      make_update(
-        vec![
-          // Enabled platform events listener.
-          (
-            bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
-            ValueKind::Bool(true),
-          ),
-          // Log upload.
-          (
-            bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
-            ValueKind::Int(1),
-          ),
-          (
-            bd_runtime::runtime::log_upload::RetryBackoffMaxFlag::path(),
-            ValueKind::Int(1),
-          ),
-          (
-            bd_runtime::runtime::log_upload::RetryBackoffInitialFlag::path(),
-            ValueKind::Int(1),
-          ),
-          // For integration test purposes we don't want reconnects to take long, as it just slows
-          // down the tests.
-          (
-            bd_runtime::runtime::api::MaxBackoffInterval::path(),
-            ValueKind::Int(10),
-          ),
-          // By enabling internal logs here we get basic test coverage on both platforms.
-          (
-            bd_runtime::runtime::debugging::InternalLoggingFlag::path(),
-            ValueKind::Bool(true),
-          ),
-          // Enable resource utilization logs.
-          (
-            bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
-            ValueKind::Bool(true),
-          ),
-          // Enable session replay periodic screen collection.
-          (
-            bd_runtime::runtime::session_replay::PeriodicScreensEnabledFlag::path(),
-            ValueKind::Bool(true),
-          ),
-          // Enable crash reporting.
-          (
-            bd_runtime::runtime::crash_reporting::Enabled::path(),
-            ValueKind::Bool(true),
-          ),
-          // Enable persistent storage.
-          (
-            bd_runtime::runtime::state::UsePersistentStorage::path(),
-            ValueKind::Bool(true),
-          ),
-        ],
-        "base".to_string(),
-      ),
-    ));
-
-    h.blocking_next_runtime_ack();
-
-    let configuration_update = make_configuration_update_with_workflow_flushing_buffer(
-      "default",
-      Type::CONTINUOUS,
-      make_buffer_matcher_matching_everything_except_internal_logs(),
-      make_workflow_matcher_matching_everything_except_internal_logs(),
-    );
-
-    StreamHandle::from_stream_id(stream_id, h)
-      .blocking_stream_action(StreamAction::SendConfiguration(configuration_update));
-
-    h.blocking_next_configuration_ack();
-  });
+  with_expected_server(|h| unsafe { server_instance_configure_aggressive_uploads(h, stream_id) });
 }
 
 #[no_mangle]
 pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
-  let stream_id = await_next_api_stream();
-
-  let is_succes = with_expected_server(|h| {
-    if !StreamHandle::from_stream_id(stream_id, h).await_event_with_timeout(
-      ExpectedStreamEvent::Handshake {
-        matcher: None,
-        sleep_mode: false,
-      },
-      Duration::milliseconds(800),
-    ) {
-      return false;
-    }
-
-    StreamHandle::from_stream_id(stream_id, h).blocking_stream_action(StreamAction::SendRuntime(
-      make_update(
-        vec![(
-          bd_runtime::runtime::log_upload::BatchSizeBytesFlag::path(),
-          ValueKind::Int(1024 * 1024 * 2), // 2 MiB, 2x the request buffer.
-        )],
-        "base".to_string(),
-      ),
-    ));
-
-    h.blocking_next_runtime_ack();
-
-    let extra_large_buffer_uploading_everything = configuration_update(
-      "version",
-      StateOfTheWorld {
-        buffer_config_list: Some(BufferConfigList {
-          buffer_config: vec![BufferConfigBuilder {
-            name: "big buffer",
-            buffer_type: Type::CONTINUOUS,
-            filter: make_buffer_matcher_matching_everything().into(),
-            non_volatile_size: 10_100_000,
-            volatile_size: 10_000_000,
-          }
-          .build()],
-          ..Default::default()
-        })
-        .into(),
-        ..Default::default()
-      },
-    );
-
-    StreamHandle::from_stream_id(stream_id, h).blocking_stream_action(
-      StreamAction::SendConfiguration(extra_large_buffer_uploading_everything),
-    );
-
-    h.blocking_next_configuration_ack();
-
-    true
-  });
-
-  if !is_succes {
-    return false;
-  }
-
-  // This gets us to the batch size limit of ~2 MiB.
-  for _ in 0 .. 22 {
-    logger_id.log(
-      log_level::DEBUG,
-      LogType::NORMAL,
-      LogMessage::Bytes(vec![0; 100_000].into()),
-      [].into(),
-      [].into(),
-      None,
-      Block::Yes(std::time::Duration::from_secs(1)),
-      &CaptureSession::default(),
-    );
-  }
-
-  with_expected_server(|s| {
-    assert_matches!(s.blocking_next_log_upload(), Some(log_upload) => {
-        assert_eq!(log_upload.logs().len(), 21);
-    });
-  });
-
-  true
+  with_expected_server(|h| unsafe { server_instance_run_large_upload_test(h, logger_id) })
 }
 
 #[no_mangle]
 pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: LoggerId<'_>) -> bool {
-  let stream_id = await_next_api_stream();
-  if stream_id == -1 {
-    return false;
-  }
-
-  configure_aggressive_continuous_uploads(stream_id);
-
-  with_expected_server(|h| {
-    let mut stream = StreamHandle::from_stream_id(stream_id, h);
-
-    // Write logs and turn around the API stream several times. This should tickle the cases
-    // where the stream is being torn down while uploads are happening.
-    for _ in 0 .. 5 {
-      for _ in 0 .. 10 {
-        logger_id.log(
-          log_level::TRACE,
-          LogType::NORMAL,
-          "hello".into(),
-          [].into(),
-          [].into(),
-          None,
-          bd_logger::Block::No,
-          &CaptureSession::default(),
-        );
-      }
-
-      stream.blocking_stream_action(StreamAction::CloseStream);
-
-      stream = h.blocking_next_stream()?;
-
-      assert!(stream.await_event_with_timeout(
-        ExpectedStreamEvent::Handshake {
-          matcher: None,
-          sleep_mode: false,
-        },
-        Duration::seconds(10),
-      ));
-    }
-
-    // Verify at least one upload to make sure that things are working as expected.
-    h.blocking_next_log_upload().unwrap();
-
-    Some(())
+  with_expected_server(|h| unsafe {
+    server_instance_run_aggressive_upload_with_stream_drops(h, logger_id)
   })
-  .is_some()
 }
 
 // Runs a test scenario where we configure very aggressive upload parameters via runtime, then issue
@@ -940,36 +711,7 @@ pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: Logger
 // coverage to the case where the network is shut down while the logger is still processing uploads.
 #[no_mangle]
 pub extern "C" fn run_aggressive_upload_test(logger_id: LoggerId<'_>) {
-  let stream_id = await_next_api_stream();
-  assert_ne!(stream_id, -1);
-
-  configure_aggressive_continuous_uploads(stream_id);
-
-  // Write a bunch of logs, all of which should get uploaded to the server.
-  for _ in 0 .. 100 {
-    logger_id.log(
-      log_level::TRACE,
-      LogType::NORMAL,
-      "hello".into(),
-      [].into(),
-      [].into(),
-      None,
-      bd_logger::Block::No,
-      &CaptureSession::default(),
-    );
-  }
-
-  // Verify that the first ten logs are uploaded successfully. We leave a few in the queue in
-  // order to test what happens when the test ends while there is still logs being uploaded.
-  with_expected_server(|h| {
-    for _ in 0 .. 10 {
-      let upload = h
-        .blocking_next_log_upload()
-        .expect("logs should be uploaded");
-
-      assert_eq!(upload.logs().len(), 1);
-    }
-  });
+  with_expected_server(|h| unsafe { server_instance_run_aggressive_upload_test(h, logger_id) });
 }
 
 #[must_use]

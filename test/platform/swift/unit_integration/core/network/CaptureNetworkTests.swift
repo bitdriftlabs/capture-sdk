@@ -51,7 +51,9 @@ final class CaptureNetworkTests: BaseNetworkingTestCase {
     }
 
     func testAggressiveNetworkTrafficWithStreamDrops() throws {
-        let loggerID = try setUp(networkIdleTimeout: 10)
+        // Use a shorter timeout so the client detects stream closure faster and reconnects
+        // within the server's 5-second blocking_next_stream timeout.
+        let loggerID = try setUp(networkIdleTimeout: 2)
 
         let server = try XCTUnwrap(self.testServer)
         XCTAssertTrue(server.runAggressiveUploadWithStreamDrops(loggerId: loggerID))

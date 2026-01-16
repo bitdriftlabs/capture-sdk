@@ -36,11 +36,9 @@ final class ANRReporterTests: XCTestCase {
         let reporter = ANRReporter(logger: logger, appStateAttributes: AppStateAttributes())
         reporter.start()
 
-        // Trigger ANR: busy-wait blocks main thread without yielding to run loop, then spin
-        // run loop to let observer fire `.beforeWaiting` which signals ANREnd.
-        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
-        let blockUntil = Date(timeIntervalSinceNow: 0.7)
-        while Date() < blockUntil { }
+        // Block the main thread to trigger ANR detection (threshold is 500ms).
+        Thread.sleep(forTimeInterval: 0.7)
+        // Pump the run loop to fire the `.beforeWaiting` observer which logs ANREnd.
         RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.1))
 
         XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 2))

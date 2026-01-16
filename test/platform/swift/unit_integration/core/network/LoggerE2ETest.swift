@@ -13,21 +13,6 @@ import Foundation
 import XCTest
 
 extension UploadedLog {
-    /// Captures the next log received by the test API server. This returns immediately
-    /// if the test server has logs pending, or blocks for up to 5s while while waiting
-    /// for a log to be uploaded.
-    ///
-    /// - returns: The captured log.
-    static func captureNextLog() -> UploadedLog? {
-        let log = UploadedLog()
-
-        guard next_uploaded_log(log) else {
-            return nil
-        }
-
-        return log
-    }
-
     func assertFieldsEqual(_ fields: [String: any Encodable]) {
         let fields = fields.map(UploadedField.fromKeyValue).sorted(by: {
             $0.key < $1.key
@@ -61,16 +46,24 @@ private struct MockEncodable: Encodable {
 final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
     var logger: Logger!
     var storage: StorageProvider!
+    private var server: TestApiServer!
+
+    override func tearDown() {
+        self.server = nil
+        super.tearDown()
+    }
 
     private func setUpLogger() throws -> Logger {
         self.storage = MockStorageProvider()
 
-        let apiURL = self.setUpTestServer()
+        // Use instance-based server for test isolation
+        self.server = TestApiServer()
+
         let logger = try XCTUnwrap(
             Logger(
                 withAPIKey: "test!",
                 remoteErrorReporter: MockRemoteErrorReporter(),
-                configuration: .init(apiURL: apiURL, rootFileURL: self.setUpSDKDirectory()),
+                configuration: .init(apiURL: self.server.baseURL, rootFileURL: self.setUpSDKDirectory()),
                 sessionStrategy: SessionStrategy.fixed(sessionIDGenerator: { "mock-group-id" }),
                 dateProvider: MockDateProvider(),
                 fieldProviders: [
@@ -96,13 +89,16 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
     func testSessionReplay() async throws {
         _ = try self.setUpLogger()
 
-        let streamID = try await nextApiStream()
-        configure_aggressive_continuous_uploads(streamID)
+        let streamID = await self.server.awaitNextStreamAsync()
+        await self.server.configureAggressiveUploadsAsync(streamId: streamID)
 
+        let log1 = await self.server.nextUploadedLogAsync()
+        let log2 = await self.server.nextUploadedLogAsync()
+        let log3 = await self.server.nextUploadedLogAsync()
         let logs = [
-            try XCTUnwrap(UploadedLog.captureNextLog()),
-            try XCTUnwrap(UploadedLog.captureNextLog()),
-            try XCTUnwrap(UploadedLog.captureNextLog()),
+            try XCTUnwrap(log1),
+            try XCTUnwrap(log2),
+            try XCTUnwrap(log3),
         ]
 
         // The first 3 logs are sdk configuration, session replay, and resource utilization logs but
@@ -149,15 +145,18 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         // Add a field prefixed with "_", it should be dropped and not present.
         logger.addField(withKey: "_dar", value: "value_dar")
 
-        let streamID = try await nextApiStream()
-        configure_aggressive_continuous_uploads(streamID)
+        let streamID = await self.server.awaitNextStreamAsync()
+        await self.server.configureAggressiveUploadsAsync(streamId: streamID)
 
         // The first 3 logs are sdk configuration, session replay, and resource utilization logs but
         // their order is non-deterministic.
+        let log1 = await self.server.nextUploadedLogAsync()
+        let log2 = await self.server.nextUploadedLogAsync()
+        let log3 = await self.server.nextUploadedLogAsync()
         let logs: [UploadedLog] = [
-            try XCTUnwrap(.captureNextLog()),
-            try XCTUnwrap(.captureNextLog()),
-            try XCTUnwrap(.captureNextLog()),
+            try XCTUnwrap(log1),
+            try XCTUnwrap(log2),
+            try XCTUnwrap(log3),
         ]
 
         XCTAssertTrue(logs.contains { log in
@@ -181,7 +180,8 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         logger.log(level: .debug, message: "hello world", fields: ["invalid_utf": invalidUTF8String],
                    error: nil)
 
-        let helloWorldLog: UploadedLog = try XCTUnwrap(.captureNextLog())
+        let helloWorldLogOpt = await self.server.nextUploadedLogAsync()
+        let helloWorldLog: UploadedLog = try XCTUnwrap(helloWorldLogOpt)
 
         XCTAssertEqual(helloWorldLog.logLevel, UInt32(LogLevel.debug.rawValue))
         XCTAssertEqual(helloWorldLog.logType, Capture.Logger.LogType.normal.rawValue)
@@ -215,7 +215,8 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         ]
         logger.log(level: .debug, message: "second log", fields: fields)
 
-        let secondLog: UploadedLog = try XCTUnwrap(.captureNextLog())
+        let secondLogOpt = await self.server.nextUploadedLogAsync()
+        let secondLog: UploadedLog = try XCTUnwrap(secondLogOpt)
 
         let expectedFields: [String: Encodable] = [
             "bar": "value_bar",
@@ -245,7 +246,8 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
             blocking: false
         )
 
-        let thirdLog: UploadedLog = try XCTUnwrap(.captureNextLog())
+        let thirdLogOpt = await self.server.nextUploadedLogAsync()
+        let thirdLog: UploadedLog = try XCTUnwrap(thirdLogOpt)
 
         XCTAssertEqual(thirdLog.logType, Capture.Logger.LogType.device.rawValue)
         XCTAssertEqual(thirdLog.logLevel, UInt32(LogLevel.debug.rawValue))

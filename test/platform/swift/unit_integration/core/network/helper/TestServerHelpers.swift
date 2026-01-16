@@ -8,7 +8,7 @@
 import CaptureTestBridge
 import Foundation
 
-public final class TestApiServer {
+public final class TestApiServer: @unchecked Sendable {
     private let handle: UnsafeMutableRawPointer
     public let port: Int32
 
@@ -64,22 +64,53 @@ public final class TestApiServer {
     public func runAggressiveUploadWithStreamDrops(loggerId: Int64) -> Bool {
         return server_instance_run_aggressive_upload_with_stream_drops(self.handle, loggerId)
     }
-}
 
-public func nextApiStream() async throws -> Int32 {
-    return try await withCheckedThrowingContinuation { continuation in
-        next_test_api_stream(ContinuationWrapper(continuation: continuation))
+    /// Waits for up to 5 seconds to receive a log upload, returning the log details.
+    ///
+    /// - returns: The log details, or nil on timeout.
+    public func nextUploadedLog() -> UploadedLog? {
+        let log = UploadedLog()
+        guard server_instance_next_uploaded_log(self.handle, log) else {
+            return nil
+        }
+        return log
     }
-}
 
-public func serverReceivedHandshake(_ streamId: Int32) async throws {
-    _ = try await withCheckedThrowingContinuation { continuation in
-        test_stream_received_handshake(streamId, ContinuationWrapper(continuation: continuation))
+    // MARK: - Async wrappers for use in async test contexts
+
+    /// Async wrapper for awaitNextStream that runs the blocking operation on a background thread.
+    ///
+    /// - returns: The stream ID, or -1 on timeout.
+    public func awaitNextStreamAsync() async -> Int32 {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global().async {
+                let streamId = self.awaitNextStream()
+                continuation.resume(returning: streamId)
+            }
+        }
     }
-}
 
-public func serverStreamClosed(_ streamId: Int32, _ waitTime: UInt64) async throws {
-    _ = try await withCheckedThrowingContinuation { continuation in
-        test_stream_closed(streamId, waitTime, ContinuationWrapper(continuation: continuation))
+    /// Async wrapper for configureAggressiveUploads that runs on a background thread.
+    ///
+    /// - parameter streamId: The stream ID to configure.
+    public func configureAggressiveUploadsAsync(streamId: Int32) async {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global().async {
+                self.configureAggressiveUploads(streamId: streamId)
+                continuation.resume()
+            }
+        }
+    }
+
+    /// Async wrapper for nextUploadedLog that runs on a background thread.
+    ///
+    /// - returns: The uploaded log, or nil on timeout.
+    public func nextUploadedLogAsync() async -> UploadedLog? {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global().async {
+                let log = self.nextUploadedLog()
+                continuation.resume(returning: log)
+            }
+        }
     }
 }
