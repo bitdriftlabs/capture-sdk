@@ -25,92 +25,158 @@ public final class TestApiServer: @unchecked Sendable {
         URL(string: "https://localhost:\(port)")!
     }
 
-    public func awaitNextStream() -> Int32 {
-        return server_instance_await_next_stream(self.handle)
-    }
+    // MARK: - Public async API
 
-    public func waitForHandshake(streamId: Int32) {
-        server_instance_wait_for_handshake(self.handle, streamId)
-    }
-
-    public func awaitHandshake(streamId: Int32) {
-        server_instance_await_handshake(self.handle, streamId)
-    }
-
-    public func awaitStreamClosed(streamId: Int32, waitTimeMs: Int64) -> Bool {
-        return server_instance_await_stream_closed(self.handle, streamId, waitTimeMs)
-    }
-
-    public func sendConfiguration(streamId: Int32) {
-        server_instance_send_configuration(self.handle, streamId)
-    }
-
-    public func awaitConfigurationAck(streamId: Int32) {
-        server_instance_await_configuration_ack(self.handle, streamId)
-    }
-
-    public func configureAggressiveUploads(streamId: Int32) {
-        server_instance_configure_aggressive_uploads(self.handle, streamId)
-    }
-
-    public func runAggressiveUploadTest(loggerId: Int64) {
-        server_instance_run_aggressive_upload_test(self.handle, loggerId)
-    }
-
-    public func runLargeUploadTest(loggerId: Int64) -> Bool {
-        return server_instance_run_large_upload_test(self.handle, loggerId)
-    }
-
-    public func runAggressiveUploadWithStreamDrops(loggerId: Int64) -> Bool {
-        return server_instance_run_aggressive_upload_with_stream_drops(self.handle, loggerId)
-    }
-
-    /// Waits for up to 5 seconds to receive a log upload, returning the log details.
-    ///
-    /// - returns: The log details, or nil on timeout.
-    public func nextUploadedLog() -> UploadedLog? {
-        let log = UploadedLog()
-        guard server_instance_next_uploaded_log(self.handle, log) else {
-            return nil
-        }
-        return log
-    }
-
-    // MARK: - Async wrappers for use in async test contexts
-
-    /// Async wrapper for awaitNextStream that runs the blocking operation on a background thread.
+    /// Waits for the next API stream connection.
     ///
     /// - returns: The stream ID, or -1 on timeout.
-    public func awaitNextStreamAsync() async -> Int32 {
+    public func nextStream() async -> Int32 {
         await withCheckedContinuation { continuation in
             DispatchQueue.global().async {
-                let streamId = self.awaitNextStream()
-                continuation.resume(returning: streamId)
+                continuation.resume(returning: server_instance_await_next_stream(self.handle))
             }
         }
     }
 
-    /// Async wrapper for configureAggressiveUploads that runs on a background thread.
+    /// Waits for handshake completion on the given stream.
     ///
-    /// - parameter streamId: The stream ID to configure.
-    public func configureAggressiveUploadsAsync(streamId: Int32) async {
+    /// - parameter streamId: The stream ID.
+    public func handshake(streamId: Int32) async {
         await withCheckedContinuation { continuation in
             DispatchQueue.global().async {
-                self.configureAggressiveUploads(streamId: streamId)
+                server_instance_await_handshake(self.handle, streamId)
                 continuation.resume()
             }
         }
     }
 
-    /// Async wrapper for nextUploadedLog that runs on a background thread.
+    /// Waits for stream to close.
     ///
-    /// - returns: The uploaded log, or nil on timeout.
-    public func nextUploadedLogAsync() async -> UploadedLog? {
+    /// - parameter streamId:   The stream ID.
+    /// - parameter waitTimeMs: The timeout in milliseconds.
+    ///
+    /// - returns: True if stream closed within the timeout.
+    public func streamClosed(streamId: Int32, waitTimeMs: Int64) async -> Bool {
         await withCheckedContinuation { continuation in
             DispatchQueue.global().async {
-                let log = self.nextUploadedLog()
+                continuation.resume(returning: server_instance_await_stream_closed(self.handle, streamId, waitTimeMs))
+            }
+        }
+    }
+
+    /// Configures aggressive uploads on the given stream.
+    ///
+    /// - parameter streamId: The stream ID.
+    public func configureAggressiveUploads(streamId: Int32) async {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global().async {
+                server_instance_configure_aggressive_uploads(self.handle, streamId)
+                continuation.resume()
+            }
+        }
+    }
+
+    /// Runs the aggressive upload test.
+    ///
+    /// - parameter loggerId: The logger ID.
+    public func runAggressiveUploadTest(loggerId: Int64) async {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global().async {
+                server_instance_run_aggressive_upload_test(self.handle, loggerId)
+                continuation.resume()
+            }
+        }
+    }
+
+    /// Runs the large upload test.
+    ///
+    /// - parameter loggerId: The logger ID.
+    ///
+    /// - returns: True if the test passed.
+    public func runLargeUploadTest(loggerId: Int64) async -> Bool {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global().async {
+                continuation.resume(returning: server_instance_run_large_upload_test(self.handle, loggerId))
+            }
+        }
+    }
+
+    /// Runs the aggressive upload with stream drops test.
+    ///
+    /// - parameter loggerId: The logger ID.
+    ///
+    /// - returns: True if the test passed.
+    public func runAggressiveUploadWithStreamDrops(loggerId: Int64) async -> Bool {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global().async {
+                continuation.resume(returning: server_instance_run_aggressive_upload_with_stream_drops(self.handle, loggerId))
+            }
+        }
+    }
+
+    /// Waits for up to 5 seconds to receive a log upload.
+    ///
+    /// - returns: The uploaded log, or nil on timeout.
+    public func nextUploadedLog() async -> UploadedLog? {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global().async {
+                let log = UploadedLog()
+                guard server_instance_next_uploaded_log(self.handle, log) else {
+                    continuation.resume(returning: nil)
+                    return
+                }
                 continuation.resume(returning: log)
             }
         }
+    }
+
+    /// Drains logs until finding one matching the predicate, or returns nil after max attempts.
+    ///
+    /// - parameter maxAttempts: Maximum number of logs to check before giving up.
+    /// - parameter predicate:   A closure that returns true for the desired log.
+    ///
+    /// - returns: The first log matching the predicate, or nil if not found.
+    public func nextUploadedLogMatching(
+        maxAttempts: Int = 20,
+        _ predicate: @escaping (UploadedLog) -> Bool
+    ) async -> UploadedLog? {
+        for _ in 0..<maxAttempts {
+            guard let log = await nextUploadedLog() else {
+                return nil
+            }
+            if predicate(log) {
+                return log
+            }
+        }
+        return nil
+    }
+
+    /// Drains logs until all predicates have been satisfied at least once.
+    ///
+    /// - parameter maxAttempts: Maximum number of logs to check before giving up.
+    /// - parameter predicates:  Closures that return true for the desired logs.
+    ///
+    /// - returns: The logs that matched each predicate, in the order predicates were satisfied.
+    public func collectLogsMatching(
+        maxAttempts: Int = 20,
+        _ predicates: [(UploadedLog) -> Bool]
+    ) async -> [UploadedLog] {
+        var satisfied = Array(repeating: false, count: predicates.count)
+        var matchedLogs: [UploadedLog] = []
+
+        for _ in 0..<maxAttempts {
+            guard let log = await nextUploadedLog() else { break }
+
+            for (i, predicate) in predicates.enumerated() where !satisfied[i] {
+                if predicate(log) {
+                    satisfied[i] = true
+                    matchedLogs.append(log)
+                    break
+                }
+            }
+
+            if satisfied.allSatisfy({ $0 }) { break }
+        }
+        return matchedLogs
     }
 }

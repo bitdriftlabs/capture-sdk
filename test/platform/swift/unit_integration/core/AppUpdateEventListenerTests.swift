@@ -14,31 +14,30 @@ final class AppUpdateEventListenerTests: XCTestCase {
         let logger = MockCoreLogging()
         let timeProvider = MockTimeProvider()
 
-        let noLogExpectation = self.expectation(description: "log app update is not called")
-        noLogExpectation.isInverted = true
-        logger.logAppUpdateExpectation = noLogExpectation
-        logger.shouldLogAppUpdateEvent = false
-
         let listener = AppUpdateEventListener(
             logger: logger,
             clientAttributes: ClientAttributes(),
             timeProvider: timeProvider
         )
-        listener.start()
 
-        XCTAssertEqual(.completed, XCTWaiter().wait(for: [noLogExpectation], timeout: 0.5))
-        // Drain the queue used by AppUpdateEventListener to ensure the first start() completes
-        // before we change shouldLogAppUpdateEvent.
-        DispatchQueue.heavy.sync {}
+        // When shouldLogAppUpdateEvent is false, no log should be emitted
+        logger.shouldLogAppUpdateEvent = false
+
+        let noLogExpectation = self.expectation(description: "first call completes")
+        listener.maybeLogAppUpdateEvent(version: "1.0", buildNumber: "1") {
+            noLogExpectation.fulfill()
+        }
+        wait(for: [noLogExpectation], timeout: 5.0)
         XCTAssertEqual(0, logger.logAppUpdateCount)
 
-        let logExpectation = self.expectation(description: "log app update is called")
-        logger.logAppUpdateExpectation = logExpectation
+        // When shouldLogAppUpdateEvent is true, log should be emitted
         logger.shouldLogAppUpdateEvent = true
 
-        listener.start()
-
-        XCTAssertEqual(.completed, XCTWaiter().wait(for: [logExpectation], timeout: 0.5))
+        let logExpectation = self.expectation(description: "second call completes")
+        listener.maybeLogAppUpdateEvent(version: "1.0", buildNumber: "1") {
+            logExpectation.fulfill()
+        }
+        wait(for: [logExpectation], timeout: 5.0)
         XCTAssertEqual(1, logger.logAppUpdateCount)
     }
 }

@@ -89,34 +89,25 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
     func testSessionReplay() async throws {
         _ = try self.setUpLogger()
 
-        let streamID = await self.server.awaitNextStreamAsync()
+        let streamID = await self.server.nextStream()
         XCTAssertNotEqual(streamID, -1, "Timed out waiting for API stream")
-        await self.server.configureAggressiveUploadsAsync(streamId: streamID)
+        await self.server.configureAggressiveUploads(streamId: streamID)
 
-        let log1 = await self.server.nextUploadedLogAsync()
-        let log2 = await self.server.nextUploadedLogAsync()
-        let log3 = await self.server.nextUploadedLogAsync()
-        let logs = [
-            try XCTUnwrap(log1),
-            try XCTUnwrap(log2),
-            try XCTUnwrap(log3),
-        ]
+        // Collect logs until we've seen all expected initial logs.
+        // The SDK generates SDKConfigured, resource utilization, and screen capture logs
+        // but the exact count may vary.
+        let logs = await self.server.collectLogsMatching([
+            { $0.message == "SDKConfigured" && $0.sessionID == "mock-group-id" },
+            { $0.message.isEmpty && $0.sessionID == "mock-group-id" },
+            {
+                $0.message == "Screen captured"
+                    && $0.logType == Capture.Logger.LogType.replay.rawValue
+                    && $0.logLevel == UInt32(LogLevel.info.rawValue)
+                    && $0.field(withKey: "screen")?.type == .data
+            },
+        ])
 
-        // The first 3 logs are sdk configuration, session replay, and resource utilization logs but
-        // their order is non-deterministic.
-        XCTAssertTrue(logs.contains { log in
-            log.message == "SDKConfigured" && log.sessionID == "mock-group-id"
-        })
-        XCTAssertTrue(logs.contains { log in
-            log.message.isEmpty && log.sessionID == "mock-group-id"
-        })
-        XCTAssertTrue(logs.contains { log in
-            log.message == "Screen captured"
-                && log.logType == Capture.Logger.LogType.replay.rawValue
-                && log.logLevel == UInt32(LogLevel.info.rawValue)
-                // Screen capture is included in a binary field.
-                && log.field(withKey: "screen")?.type == .data
-        })
+        XCTAssertEqual(logs.count, 3, "Did not find all expected initial logs")
     }
 
     // swiftlint:disable:next function_body_length
@@ -146,34 +137,9 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         // Add a field prefixed with "_", it should be dropped and not present.
         logger.addField(withKey: "_dar", value: "value_dar")
 
-        let streamID = await self.server.awaitNextStreamAsync()
+        let streamID = await self.server.nextStream()
         XCTAssertNotEqual(streamID, -1, "Timed out waiting for API stream")
-        await self.server.configureAggressiveUploadsAsync(streamId: streamID)
-
-        // The first 3 logs are sdk configuration, session replay, and resource utilization logs but
-        // their order is non-deterministic.
-        let log1 = await self.server.nextUploadedLogAsync()
-        let log2 = await self.server.nextUploadedLogAsync()
-        let log3 = await self.server.nextUploadedLogAsync()
-        let logs: [UploadedLog] = [
-            try XCTUnwrap(log1),
-            try XCTUnwrap(log2),
-            try XCTUnwrap(log3),
-        ]
-
-        XCTAssertTrue(logs.contains { log in
-            log.message == "SDKConfigured" && log.sessionID == "mock-group-id"
-        })
-        XCTAssertTrue(logs.contains { log in
-            return log.logLevel == UInt32(LogLevel.debug.rawValue)
-                && log.message.isEmpty
-                && log.sessionID == "mock-group-id"
-        })
-        XCTAssertTrue(logs.contains { log in
-            return log.logLevel == UInt32(LogLevel.info.rawValue)
-                && log.message == "Screen captured"
-                && log.sessionID == "mock-group-id"
-        })
+        await self.server.configureAggressiveUploads(streamId: streamID)
 
         // TODO(Augustyniak): Do `replayScreenshotLog.hasFields` in here after figuring out how to figure out
         // what the expected value for "screen" key should be (depends on the simulator type).
@@ -182,8 +148,10 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         logger.log(level: .debug, message: "hello world", fields: ["invalid_utf": invalidUTF8String],
                    error: nil)
 
-        let helloWorldLogOpt = await self.server.nextUploadedLogAsync()
-        let helloWorldLog: UploadedLog = try XCTUnwrap(helloWorldLogOpt)
+        // Drain logs until we find the "hello world" log. The SDK generates several initial logs
+        // (SDKConfigured, resource utilization, screen captures) whose count can vary.
+        let helloWorldLogOpt = await self.server.nextUploadedLogMatching { $0.message == "hello world" }
+        let helloWorldLog: UploadedLog = try XCTUnwrap(helloWorldLogOpt, "Did not receive 'hello world' log")
 
         XCTAssertEqual(helloWorldLog.logLevel, UInt32(LogLevel.debug.rawValue))
         XCTAssertEqual(helloWorldLog.logType, Capture.Logger.LogType.normal.rawValue)
@@ -217,8 +185,9 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         ]
         logger.log(level: .debug, message: "second log", fields: fields)
 
-        let secondLogOpt = await self.server.nextUploadedLogAsync()
-        let secondLog: UploadedLog = try XCTUnwrap(secondLogOpt)
+        // Find "second log" - there may be other logs interleaved
+        let secondLogOpt = await self.server.nextUploadedLogMatching { $0.message == "second log" }
+        let secondLog: UploadedLog = try XCTUnwrap(secondLogOpt, "Did not receive 'second log'")
 
         let expectedFields: [String: Encodable] = [
             "bar": "value_bar",
@@ -248,8 +217,9 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
             blocking: false
         )
 
-        let thirdLogOpt = await self.server.nextUploadedLogAsync()
-        let thirdLog: UploadedLog = try XCTUnwrap(thirdLogOpt)
+        // Find "alternate type log" - there may be other logs interleaved
+        let thirdLogOpt = await self.server.nextUploadedLogMatching { $0.message == "alternate type log" }
+        let thirdLog: UploadedLog = try XCTUnwrap(thirdLogOpt, "Did not receive 'alternate type log'")
 
         XCTAssertEqual(thirdLog.logType, Capture.Logger.LogType.device.rawValue)
         XCTAssertEqual(thirdLog.logLevel, UInt32(LogLevel.debug.rawValue))

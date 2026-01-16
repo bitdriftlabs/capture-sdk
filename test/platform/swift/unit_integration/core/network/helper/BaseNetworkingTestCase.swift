@@ -12,6 +12,7 @@ import CaptureTestBridge
 import Foundation
 import XCTest
 
+// Base class for tests that want to initialize a test server.
 open class BaseNetworkingTestCase: XCTestCase {
     // swiftlint:disable test_case_accessibility
     private(set) var network: Network?
@@ -21,6 +22,7 @@ open class BaseNetworkingTestCase: XCTestCase {
 
     private final class MockMetadataProvider: CaptureLoggerBridge.MetadataProvider {
         func timestamp() -> TimeInterval {
+            // Matches "2022-10-26T17:56:41.520058155Z" when formatted.
             return Date(timeIntervalSince1970: 1_666_807_001.52005815).timeIntervalSince1970
         }
 
@@ -60,11 +62,17 @@ open class BaseNetworkingTestCase: XCTestCase {
         return sdkDirectory
     }
 
+    // Configures the logger for test, specifying the timeout used for URLSessionNetworkClient and
+    // the ping interval to configure the logger with.
     // swiftlint:disable:next test_case_accessibility
     func setUp(networkIdleTimeout: TimeInterval, pingIntervalMs: Int32 = -1) throws -> Int64 {
+        // The logger receives the ping interval to use in its handshake when it connects to the
+        // server, so we pass the ping interval to the test server.
         let server = TestApiServer(tls: true, pingIntervalMs: pingIntervalMs)
         self.testServer = server
 
+        // For each test we create a unique SDK directory to avoid different tests affecting each
+        // other.
         let sdkDirectory = self.setUpSDKDirectory()
         let network = URLSessionNetworkClient(apiBaseURL: server.baseURL, timeout: networkIdleTimeout)
 
@@ -99,6 +107,7 @@ open class BaseNetworkingTestCase: XCTestCase {
         super.tearDown()
 
         self.loggerBridge = nil
+        // Shut down the server after the logger to avoid streams being torn down.
         self.testServer = nil
     }
 }
