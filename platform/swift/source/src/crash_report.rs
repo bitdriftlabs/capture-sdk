@@ -368,7 +368,6 @@ fn extract_call_stack_from_metrickit_thread(
   }
 }
 
-
 /// Recursively extracts addresses from a `MetricKit` frame and its subFrames
 fn extract_call_stack_from_metrickit_frame(
   metrickit_frame: &AHashMap<String, Value>,

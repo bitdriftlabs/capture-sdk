@@ -52,11 +52,11 @@ impl bd_api::Metadata for Mobile {
     let mut metadata_map = HashMap::new();
 
     if let Some(app_id) = self.app_id.as_ref() {
-      metadata_map.insert("app_id".to_string(), app_id.to_string());
+      metadata_map.insert("app_id".to_string(), app_id.clone());
     }
 
     if let Some(app_version) = self.app_version.as_ref() {
-      metadata_map.insert("app_version".to_string(), app_version.to_string());
+      metadata_map.insert("app_version".to_string(), app_version.clone());
     }
 
     metadata_map.insert("model".to_string(), self.model.clone());

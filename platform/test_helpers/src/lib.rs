@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use assert_matches::assert_matches;
+use anyhow::bail;
 use bd_key_value::Storage;
 use bd_logger::{log_level, Block, CaptureSession, LogMessage};
 use bd_proto::flatbuffers::buffer_log::bitdrift_public::fbs::logging::v_1::Log;
@@ -28,6 +28,7 @@ use config_helper::{
   BufferConfigBuilder,
 };
 use platform_shared::LoggerId;
+use std::ffi::{c_char, CString};
 use std::sync::{LazyLock, Mutex, MutexGuard};
 use test_api_server::{
   default_configuration_update,
@@ -38,6 +39,30 @@ use test_api_server::{
 };
 pub use test_api_server::{EventCallback, StreamEvent};
 use time::Duration;
+
+/// Helper to convert an `anyhow::Result` to a C string for FFI error reporting.
+/// Returns null on success, or an error string on failure.
+/// The returned pointer must be freed with `test_helpers_free_string`.
+fn result_to_c_error(result: anyhow::Result<()>) -> *const c_char {
+  match result {
+    Ok(()) => std::ptr::null(),
+    Err(e) => CString::new(e.to_string())
+      .expect("error message should not contain null bytes")
+      .into_raw(),
+  }
+}
+
+/// Frees a string allocated by test helper functions.
+///
+/// # Safety
+/// The pointer must be a valid pointer returned by one of the test helper functions,
+/// or null (in which case this is a no-op).
+#[no_mangle]
+pub unsafe extern "C" fn test_helpers_free_string(ptr: *mut c_char) {
+  if !ptr.is_null() {
+    drop(unsafe { CString::from_raw(ptr) });
+  }
+}
 
 // A global handle for managing the test server. Alternatively we could return a
 // handle from start_test_api_server, but this seems a bit simpler for basic testing.
@@ -111,7 +136,21 @@ pub unsafe extern "C" fn server_instance_await_next_stream(handle: *mut ServerHa
   handle.blocking_next_stream().map_or(-1, |s| s.id())
 }
 
+fn server_instance_wait_for_handshake_impl(
+  handle: &ServerHandle,
+  stream_id: i32,
+) -> anyhow::Result<()> {
+  if !StreamHandle::from_stream_id(stream_id, handle).await_event_with_timeout(
+    ExpectedStreamEvent::Created(Some("test!".to_string())),
+    Duration::seconds(5),
+  ) {
+    bail!("Handshake with test API key timed out after 5s (stream_id={stream_id})",);
+  }
+  Ok(())
+}
+
 /// Waits for a handshake with the test API key on a specific server instance.
+/// Returns null on success, or an error string on failure.
 ///
 /// # Safety
 /// The handle must be a valid pointer returned by `create_test_api_server_instance`.
@@ -119,17 +158,29 @@ pub unsafe extern "C" fn server_instance_await_next_stream(handle: *mut ServerHa
 pub unsafe extern "C" fn server_instance_wait_for_handshake(
   handle: *mut ServerHandle,
   stream_id: i32,
-) {
+) -> *const c_char {
   let handle = unsafe { &*handle };
-  assert!(
-    StreamHandle::from_stream_id(stream_id, handle).await_event_with_timeout(
-      ExpectedStreamEvent::Created(Some("test!".to_string())),
-      Duration::seconds(5)
-    )
-  );
+  result_to_c_error(server_instance_wait_for_handshake_impl(handle, stream_id))
+}
+
+fn server_instance_await_handshake_impl(
+  handle: &ServerHandle,
+  stream_id: i32,
+) -> anyhow::Result<()> {
+  if !StreamHandle::from_stream_id(stream_id, handle).await_event_with_timeout(
+    ExpectedStreamEvent::Handshake {
+      matcher: None,
+      sleep_mode: false,
+    },
+    Duration::seconds(15),
+  ) {
+    bail!("Handshake timed out after 15s (stream_id={stream_id})");
+  }
+  Ok(())
 }
 
 /// Waits for the server to receive a handshake on a specific stream.
+/// Returns null on success, or an error string on failure.
 ///
 /// # Safety
 /// The handle must be a valid pointer returned by `create_test_api_server_instance`.
@@ -137,17 +188,9 @@ pub unsafe extern "C" fn server_instance_wait_for_handshake(
 pub unsafe extern "C" fn server_instance_await_handshake(
   handle: *mut ServerHandle,
   stream_id: i32,
-) {
+) -> *const c_char {
   let handle = unsafe { &*handle };
-  assert!(
-    StreamHandle::from_stream_id(stream_id, handle).await_event_with_timeout(
-      ExpectedStreamEvent::Handshake {
-        matcher: None,
-        sleep_mode: false,
-      },
-      Duration::seconds(15)
-    )
-  );
+  result_to_c_error(server_instance_await_handshake_impl(handle, stream_id))
 }
 
 /// Waits for a stream to close on a specific server instance.
@@ -181,171 +224,194 @@ pub unsafe extern "C" fn server_instance_send_configuration(
   );
 }
 
+fn server_instance_await_configuration_ack_impl(
+  handle: &mut ServerHandle,
+  stream_id: i32,
+) -> anyhow::Result<()> {
+  let (updated_stream_id, _) = handle.blocking_next_configuration_ack();
+  if stream_id != updated_stream_id {
+    bail!("Configuration ack stream_id mismatch: expected {stream_id}, got {updated_stream_id}",);
+  }
+  Ok(())
+}
+
+/// Returns null on success, or an error string on failure.
+///
 /// # Safety
 /// Handle must be valid.
 #[no_mangle]
 pub unsafe extern "C" fn server_instance_await_configuration_ack(
   handle: *mut ServerHandle,
   stream_id: i32,
-) {
+) -> *const c_char {
   let handle = unsafe { &mut *handle };
-  let (updated_stream_id, _) = handle.blocking_next_configuration_ack();
-  assert_eq!(stream_id, updated_stream_id);
+  result_to_c_error(server_instance_await_configuration_ack_impl(
+    handle, stream_id,
+  ))
 }
 
+pub fn server_instance_configure_aggressive_uploads_impl(
+  handle: &mut ServerHandle,
+  stream_id: i32,
+) -> anyhow::Result<()> {
+  let stream = StreamHandle::from_stream_id(stream_id, handle);
+
+  if !stream.await_event_with_timeout(
+    ExpectedStreamEvent::Handshake {
+      matcher: None,
+      sleep_mode: false,
+    },
+    Duration::milliseconds(2000),
+  ) {
+    bail!("Handshake timed out after 2s (stream_id={stream_id})");
+  }
+
+  stream.blocking_stream_action(StreamAction::SendRuntime(make_update(
+    vec![
+      (
+        bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
+        ValueKind::Bool(true),
+      ),
+      (
+        bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
+        ValueKind::Int(1),
+      ),
+      (
+        bd_runtime::runtime::log_upload::RetryBackoffMaxFlag::path(),
+        ValueKind::Int(1),
+      ),
+      (
+        bd_runtime::runtime::log_upload::RetryBackoffInitialFlag::path(),
+        ValueKind::Int(1),
+      ),
+      (
+        bd_runtime::runtime::api::InitialBackoffInterval::path(),
+        ValueKind::Int(1),
+      ),
+      (
+        bd_runtime::runtime::api::MaxBackoffInterval::path(),
+        ValueKind::Int(10),
+      ),
+      (
+        bd_runtime::runtime::debugging::InternalLoggingFlag::path(),
+        ValueKind::Bool(true),
+      ),
+      (
+        bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
+        ValueKind::Bool(true),
+      ),
+      (
+        bd_runtime::runtime::session_replay::PeriodicScreensEnabledFlag::path(),
+        ValueKind::Bool(true),
+      ),
+      (
+        bd_runtime::runtime::crash_reporting::Enabled::path(),
+        ValueKind::Bool(true),
+      ),
+      (
+        bd_runtime::runtime::state::UsePersistentStorage::path(),
+        ValueKind::Bool(true),
+      ),
+    ],
+    "base".to_string(),
+  )));
+
+  handle.blocking_next_runtime_ack();
+
+  let configuration_update = make_configuration_update_with_workflow_flushing_buffer(
+    "default",
+    Type::CONTINUOUS,
+    make_buffer_matcher_matching_everything_except_internal_logs(),
+    make_workflow_matcher_matching_everything_except_internal_logs(),
+  );
+
+  stream.blocking_stream_action(StreamAction::SendConfiguration(configuration_update));
+
+  handle.blocking_next_configuration_ack();
+  Ok(())
+}
+
+/// Returns null on success, or an error string on failure.
+///
 /// # Safety
 /// Handle must be valid.
 #[no_mangle]
 pub unsafe extern "C" fn server_instance_configure_aggressive_uploads(
   handle: *mut ServerHandle,
   stream_id: i32,
-) {
+) -> *const c_char {
   let handle = unsafe { &mut *handle };
-  let stream = StreamHandle::from_stream_id(stream_id, handle);
-
-  assert!(stream.await_event_with_timeout(
-    ExpectedStreamEvent::Handshake {
-      matcher: None,
-      sleep_mode: false,
-    },
-    Duration::milliseconds(2000),
-  ));
-
-  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(
-    StreamAction::SendRuntime(make_update(
-      vec![
-        (
-          bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
-          ValueKind::Int(1),
-        ),
-        (
-          bd_runtime::runtime::log_upload::RetryBackoffMaxFlag::path(),
-          ValueKind::Int(1),
-        ),
-        (
-          bd_runtime::runtime::log_upload::RetryBackoffInitialFlag::path(),
-          ValueKind::Int(1),
-        ),
-        (
-          bd_runtime::runtime::api::InitialBackoffInterval::path(),
-          ValueKind::Int(1),
-        ),
-        (
-          bd_runtime::runtime::api::MaxBackoffInterval::path(),
-          ValueKind::Int(10),
-        ),
-        (
-          bd_runtime::runtime::debugging::InternalLoggingFlag::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::session_replay::PeriodicScreensEnabledFlag::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::crash_reporting::Enabled::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::state::UsePersistentStorage::path(),
-          ValueKind::Bool(true),
-        ),
-      ],
-      "base".to_string(),
-    )),
-  );
-
-  handle.blocking_next_runtime_ack();
-
-  let configuration_update = make_configuration_update_with_workflow_flushing_buffer(
-    "default",
-    Type::CONTINUOUS,
-    make_buffer_matcher_matching_everything_except_internal_logs(),
-    make_workflow_matcher_matching_everything_except_internal_logs(),
-  );
-
-  StreamHandle::from_stream_id(stream_id, handle)
-    .blocking_stream_action(StreamAction::SendConfiguration(configuration_update));
-
-  handle.blocking_next_configuration_ack();
+  result_to_c_error(server_instance_configure_aggressive_uploads_impl(
+    handle, stream_id,
+  ))
 }
 
-/// # Safety
-/// Handle must be valid.
-#[no_mangle]
-pub unsafe extern "C" fn server_instance_run_aggressive_upload_test(
-  handle: *mut ServerHandle,
+pub fn run_aggressive_upload_test_impl(
+  handle: &mut ServerHandle,
   logger_id: LoggerId<'_>,
-) {
-  let handle = unsafe { &mut *handle };
-  let stream_id = handle.blocking_next_stream().map_or(-1, |s| s.id());
-  assert_ne!(stream_id, -1);
+) -> anyhow::Result<()> {
+  let Some(stream) = handle.blocking_next_stream() else {
+    bail!("Failed to get initial stream - client never connected");
+  };
 
-  let stream = StreamHandle::from_stream_id(stream_id, handle);
-
-  assert!(stream.await_event_with_timeout(
+  if !stream.await_event_with_timeout(
     ExpectedStreamEvent::Handshake {
       matcher: None,
       sleep_mode: false,
     },
     Duration::milliseconds(2000),
-  ));
+  ) {
+    bail!(
+      "Initial handshake timed out after 2s (stream_id={})",
+      stream.id()
+    );
+  }
 
-  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(
-    StreamAction::SendRuntime(make_update(
-      vec![
-        (
-          bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
-          ValueKind::Int(1),
-        ),
-        (
-          bd_runtime::runtime::log_upload::RetryBackoffMaxFlag::path(),
-          ValueKind::Int(1),
-        ),
-        (
-          bd_runtime::runtime::log_upload::RetryBackoffInitialFlag::path(),
-          ValueKind::Int(1),
-        ),
-        (
-          bd_runtime::runtime::api::MaxBackoffInterval::path(),
-          ValueKind::Int(10),
-        ),
-        (
-          bd_runtime::runtime::debugging::InternalLoggingFlag::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::session_replay::PeriodicScreensEnabledFlag::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::crash_reporting::Enabled::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::state::UsePersistentStorage::path(),
-          ValueKind::Bool(true),
-        ),
-      ],
-      "base".to_string(),
-    )),
-  );
+  stream.blocking_stream_action(StreamAction::SendRuntime(make_update(
+    vec![
+      (
+        bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
+        ValueKind::Bool(true),
+      ),
+      (
+        bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
+        ValueKind::Int(1),
+      ),
+      (
+        bd_runtime::runtime::log_upload::RetryBackoffMaxFlag::path(),
+        ValueKind::Int(1),
+      ),
+      (
+        bd_runtime::runtime::log_upload::RetryBackoffInitialFlag::path(),
+        ValueKind::Int(1),
+      ),
+      (
+        bd_runtime::runtime::api::MaxBackoffInterval::path(),
+        ValueKind::Int(10),
+      ),
+      (
+        bd_runtime::runtime::debugging::InternalLoggingFlag::path(),
+        ValueKind::Bool(true),
+      ),
+      (
+        bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
+        ValueKind::Bool(true),
+      ),
+      (
+        bd_runtime::runtime::session_replay::PeriodicScreensEnabledFlag::path(),
+        ValueKind::Bool(true),
+      ),
+      (
+        bd_runtime::runtime::crash_reporting::Enabled::path(),
+        ValueKind::Bool(true),
+      ),
+      (
+        bd_runtime::runtime::state::UsePersistentStorage::path(),
+        ValueKind::Bool(true),
+      ),
+    ],
+    "base".to_string(),
+  )));
 
   handle.blocking_next_runtime_ack();
 
@@ -356,8 +422,7 @@ pub unsafe extern "C" fn server_instance_run_aggressive_upload_test(
     make_workflow_matcher_matching_everything_except_internal_logs(),
   );
 
-  StreamHandle::from_stream_id(stream_id, handle)
-    .blocking_stream_action(StreamAction::SendConfiguration(configuration_update));
+  stream.blocking_stream_action(StreamAction::SendConfiguration(configuration_update));
 
   handle.blocking_next_configuration_ack();
 
@@ -374,47 +439,67 @@ pub unsafe extern "C" fn server_instance_run_aggressive_upload_test(
     );
   }
 
-  for _ in 0 .. 10 {
-    let upload = handle
-      .blocking_next_log_upload()
-      .expect("logs should be uploaded");
+  for i in 0 .. 10 {
+    let Some(upload) = handle.blocking_next_log_upload() else {
+      bail!(
+        "Failed to receive log upload {}/10 - logs not being uploaded",
+        i + 1
+      );
+    };
 
-    assert_eq!(upload.logs().len(), 1);
+    if upload.logs().len() != 1 {
+      bail!(
+        "Expected 1 log in upload {}/10, got {}",
+        i + 1,
+        upload.logs().len()
+      );
+    }
   }
+
+  Ok(())
 }
 
+/// Returns null on success, or an error string on failure.
+///
 /// # Safety
 /// Handle must be valid.
 #[no_mangle]
-pub unsafe extern "C" fn server_instance_run_large_upload_test(
+pub unsafe extern "C" fn server_instance_run_aggressive_upload_test(
   handle: *mut ServerHandle,
   logger_id: LoggerId<'_>,
-) -> bool {
+) -> *const c_char {
   let handle = unsafe { &mut *handle };
-  let stream_id = handle.blocking_next_stream().map_or(-1, |s| s.id());
-  if stream_id == -1 {
-    return false;
-  }
+  result_to_c_error(run_aggressive_upload_test_impl(handle, logger_id))
+}
 
-  if !StreamHandle::from_stream_id(stream_id, handle).await_event_with_timeout(
+pub fn run_large_upload_test_impl(
+  handle: &mut ServerHandle,
+  logger_id: LoggerId<'_>,
+) -> anyhow::Result<()> {
+  let Some(stream) = handle.blocking_next_stream() else {
+    bail!("Failed to get initial stream - client never connected");
+  };
+
+  if !stream.await_event_with_timeout(
     ExpectedStreamEvent::Handshake {
       matcher: None,
       sleep_mode: false,
     },
     Duration::milliseconds(800),
   ) {
-    return false;
+    bail!(
+      "Initial handshake timed out after 800ms (stream_id={})",
+      stream.id()
+    );
   }
 
-  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(
-    StreamAction::SendRuntime(make_update(
-      vec![(
-        bd_runtime::runtime::log_upload::BatchSizeBytesFlag::path(),
-        ValueKind::Int(1024 * 1024 * 2),
-      )],
-      "base".to_string(),
-    )),
-  );
+  stream.blocking_stream_action(StreamAction::SendRuntime(make_update(
+    vec![(
+      bd_runtime::runtime::log_upload::BatchSizeBytesFlag::path(),
+      ValueKind::Int(1024 * 1024 * 2),
+    )],
+    "base".to_string(),
+  )));
 
   handle.blocking_next_runtime_ack();
 
@@ -437,9 +522,9 @@ pub unsafe extern "C" fn server_instance_run_large_upload_test(
     },
   );
 
-  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(
-    StreamAction::SendConfiguration(extra_large_buffer_uploading_everything),
-  );
+  stream.blocking_stream_action(StreamAction::SendConfiguration(
+    extra_large_buffer_uploading_everything,
+  ));
 
   handle.blocking_next_configuration_ack();
 
@@ -456,139 +541,29 @@ pub unsafe extern "C" fn server_instance_run_large_upload_test(
     );
   }
 
-  assert_matches!(handle.blocking_next_log_upload(), Some(log_upload) => {
-      assert_eq!(log_upload.logs().len(), 21);
-  });
+  let Some(log_upload) = handle.blocking_next_log_upload() else {
+    bail!("Failed to receive log upload - no upload received after logging 22 large messages");
+  };
 
-  true
+  let log_count = log_upload.logs().len();
+  if log_count != 21 {
+    bail!("Expected 21 logs in upload, got {log_count}");
+  }
+
+  Ok(())
 }
 
+/// Returns null on success, or an error string on failure.
+///
 /// # Safety
 /// Handle must be valid.
 #[no_mangle]
-pub unsafe extern "C" fn server_instance_run_aggressive_upload_with_stream_drops(
+pub unsafe extern "C" fn server_instance_run_large_upload_test(
   handle: *mut ServerHandle,
   logger_id: LoggerId<'_>,
-) -> bool {
+) -> *const c_char {
   let handle = unsafe { &mut *handle };
-  let stream_id = handle.blocking_next_stream().map_or(-1, |s| s.id());
-  if stream_id == -1 {
-    return false;
-  }
-
-  let stream = StreamHandle::from_stream_id(stream_id, handle);
-
-  if !stream.await_event_with_timeout(
-    ExpectedStreamEvent::Handshake {
-      matcher: None,
-      sleep_mode: false,
-    },
-    Duration::milliseconds(2000),
-  ) {
-    return false;
-  }
-
-  StreamHandle::from_stream_id(stream_id, handle).blocking_stream_action(
-    StreamAction::SendRuntime(make_update(
-      vec![
-        (
-          bd_runtime::runtime::platform_events::ListenerEnabledFlag::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::log_upload::BatchSizeFlag::path(),
-          ValueKind::Int(1),
-        ),
-        (
-          bd_runtime::runtime::log_upload::RetryBackoffMaxFlag::path(),
-          ValueKind::Int(1),
-        ),
-        (
-          bd_runtime::runtime::log_upload::RetryBackoffInitialFlag::path(),
-          ValueKind::Int(1),
-        ),
-        (
-          bd_runtime::runtime::api::InitialBackoffInterval::path(),
-          ValueKind::Int(1),
-        ),
-        (
-          bd_runtime::runtime::api::MaxBackoffInterval::path(),
-          ValueKind::Int(1),
-        ),
-        (
-          bd_runtime::runtime::debugging::InternalLoggingFlag::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::resource_utilization::ResourceUtilizationEnabledFlag::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::session_replay::PeriodicScreensEnabledFlag::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::crash_reporting::Enabled::path(),
-          ValueKind::Bool(true),
-        ),
-        (
-          bd_runtime::runtime::state::UsePersistentStorage::path(),
-          ValueKind::Bool(true),
-        ),
-      ],
-      "base".to_string(),
-    )),
-  );
-
-  handle.blocking_next_runtime_ack();
-
-  let configuration_update = make_configuration_update_with_workflow_flushing_buffer(
-    "default",
-    Type::CONTINUOUS,
-    make_buffer_matcher_matching_everything_except_internal_logs(),
-    make_workflow_matcher_matching_everything_except_internal_logs(),
-  );
-
-  StreamHandle::from_stream_id(stream_id, handle)
-    .blocking_stream_action(StreamAction::SendConfiguration(configuration_update));
-
-  handle.blocking_next_configuration_ack();
-
-  let mut stream = StreamHandle::from_stream_id(stream_id, handle);
-
-  for _ in 0 .. 5 {
-    for _ in 0 .. 10 {
-      logger_id.log(
-        log_level::TRACE,
-        LogType::NORMAL,
-        "hello".into(),
-        [].into(),
-        [].into(),
-        None,
-        bd_logger::Block::No,
-        &CaptureSession::default(),
-      );
-    }
-
-    stream.blocking_stream_action(StreamAction::CloseStream);
-
-    let Some(new_stream) = handle.blocking_next_stream() else {
-      return false;
-    };
-    stream = new_stream;
-
-    if !stream.await_event_with_timeout(
-      ExpectedStreamEvent::Handshake {
-        matcher: None,
-        sleep_mode: false,
-      },
-      Duration::seconds(10),
-    ) {
-      return false;
-    }
-  }
-
-  handle.blocking_next_log_upload().is_some()
+  result_to_c_error(run_large_upload_test_impl(handle, logger_id))
 }
 
 #[no_mangle]
@@ -692,34 +667,16 @@ fn perform_benchmarking_runtime_update(stream: &StreamHandle) {
   )));
 }
 
-#[no_mangle]
-pub extern "C" fn await_configuration_ack(stream_id: i32) {
-  with_expected_server(|h| unsafe { server_instance_await_configuration_ack(h, stream_id) });
+pub fn await_configuration_ack(stream_id: i32) -> anyhow::Result<()> {
+  with_expected_server(|h| server_instance_await_configuration_ack_impl(h, stream_id))
 }
 
-#[no_mangle]
-pub extern "C" fn configure_aggressive_continuous_uploads(stream_id: i32) {
-  with_expected_server(|h| unsafe { server_instance_configure_aggressive_uploads(h, stream_id) });
+pub fn configure_aggressive_continuous_uploads(stream_id: i32) -> anyhow::Result<()> {
+  with_expected_server(|h| server_instance_configure_aggressive_uploads_impl(h, stream_id))
 }
 
-#[no_mangle]
-pub extern "C" fn run_large_upload_test(logger_id: LoggerId<'_>) -> bool {
-  with_expected_server(|h| unsafe { server_instance_run_large_upload_test(h, logger_id) })
-}
-
-#[no_mangle]
-pub extern "C" fn run_aggressive_upload_test_with_stream_drops(logger_id: LoggerId<'_>) -> bool {
-  with_expected_server(|h| unsafe {
-    server_instance_run_aggressive_upload_with_stream_drops(h, logger_id)
-  })
-}
-
-// Runs a test scenario where we configure very aggressive upload parameters via runtime, then issue
-// a number of logs which we then see uploaded. Some logs are left in the upload buffer to give test
-// coverage to the case where the network is shut down while the logger is still processing uploads.
-#[no_mangle]
-pub extern "C" fn run_aggressive_upload_test(logger_id: LoggerId<'_>) {
-  with_expected_server(|h| unsafe { server_instance_run_aggressive_upload_test(h, logger_id) });
+pub fn run_large_upload_test(logger_id: LoggerId<'_>) -> anyhow::Result<()> {
+  with_expected_server(|h| run_large_upload_test_impl(h, logger_id))
 }
 
 #[must_use]

@@ -34,7 +34,6 @@ use std::ops::{Deref, DerefMut};
 use std::pin::Pin;
 use std::sync::Arc;
 
-
 /// This is the logger ID that is passed to the platform code. It is a typed wrapper around an i64
 /// that encodes the pointer to the `LoggerHolder` object.
 ///
@@ -61,6 +60,7 @@ use std::sync::Arc;
 /// unsafe, this seems no worse than passing i64 and doing an unsafe call at the start of the
 /// function.
 #[repr(transparent)]
+#[derive(Clone, Copy)]
 pub struct LoggerId<'a> {
   value: i64,
   // A fake lifetime to allow us to link a non-static lifetime to the type, which allows us to

@@ -898,8 +898,6 @@ extern "C" fn capture_set_feature_flag_exposure(
   );
 }
 
-
-
 #[no_mangle]
 extern "C" fn capture_set_sleep_mode(logger_id: LoggerId<'_>, enabled: bool) {
   with_handle_unexpected(

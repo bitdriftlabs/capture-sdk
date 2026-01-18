@@ -44,11 +44,15 @@ private struct MockEncodable: Encodable {
 }
 
 final class CaptureE2ENetworkTests: XCTestCase {
-    var logger: Logger!
-    var storage: StorageProvider!
+    private var logger: Logger!
+    private var storage: StorageProvider!
     private var server: TestApiServer!
 
     override func tearDown() {
+        // Ensure logger fully shuts down before releasing to avoid test interference
+        self.logger?.enableBlockingShutdown()
+        self.logger = nil
+        self.storage = nil
         self.server = nil
     }
 
@@ -62,7 +66,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
             Logger(
                 withAPIKey: "test!",
                 remoteErrorReporter: MockRemoteErrorReporter(),
-                configuration: .init(apiURL: self.server.baseURL, rootFileURL: LoggerTestFixture.makeSDKDirectory()),
+                configuration: .init(apiURL: self.server.baseURL, rootFileURL: NetworkTestEnvironment.makeSDKDirectory()),
                 sessionStrategy: SessionStrategy.fixed(sessionIDGenerator: { "mock-group-id" }),
                 dateProvider: MockDateProvider(),
                 fieldProviders: fieldProviders ?? [
@@ -89,7 +93,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
 
         let streamID = await self.server.nextStream()
         XCTAssertNotEqual(streamID, -1, "Timed out waiting for API stream")
-        await self.server.configureAggressiveUploads(streamId: streamID)
+        try await self.server.configureAggressiveUploads(streamId: streamID)
 
         // Collect logs until we've seen all expected initial logs.
         // The SDK generates SDKConfigured, resource utilization, and screen capture logs
@@ -137,7 +141,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
 
         let streamID = await self.server.nextStream()
         XCTAssertNotEqual(streamID, -1, "Timed out waiting for API stream")
-        await self.server.configureAggressiveUploads(streamId: streamID)
+        try await self.server.configureAggressiveUploads(streamId: streamID)
 
         // TODO(Augustyniak): Do `replayScreenshotLog.hasFields` in here after figuring out how to figure out
         // what the expected value for "screen" key should be (depends on the simulator type).
@@ -244,7 +248,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
 
         let streamID = await self.server.nextStream()
         XCTAssertNotEqual(streamID, -1, "Timed out waiting for API stream")
-        await self.server.configureAggressiveUploads(streamId: streamID)
+        try await self.server.configureAggressiveUploads(streamId: streamID)
 
         self.logger.log(level: .debug, message: "test field provider failure")
 

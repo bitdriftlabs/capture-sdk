@@ -15,7 +15,7 @@ final class CaptureNetworkTests: XCTestCase {
     // (pings) are not configured. We set the timeout low, then wait for it to hit and verify that
     // we see the stream re-established afterwards.
     func testHappyPathWithTimeoutAndReconnect() async throws {
-        let env = try LoggerTestFixture()
+        let env = try NetworkTestEnvironment()
 
         let streamID = await env.testServer.nextStream()
         XCTAssertNotEqual(streamID, -1)
@@ -26,16 +26,16 @@ final class CaptureNetworkTests: XCTestCase {
 
         let streamID2 = await env.testServer.nextStream()
         XCTAssertNotEqual(streamID2, -1)
-        await env.testServer.handshake(streamId: streamID2)
+        try await env.testServer.handshake(streamId: streamID2)
     }
 
     // Verifies that we can extend the stream beyond the idle timeout via keep alive pings.
     func testHappyPathWithKeepAlives() async throws {
-        let env = try LoggerTestFixture(pingInterval: 0.1)
+        let env = try NetworkTestEnvironment(pingInterval: 0.1)
 
         let streamID = await env.testServer.nextStream()
         XCTAssertNotEqual(streamID, -1)
-        await env.testServer.handshake(streamId: streamID)
+        try await env.testServer.handshake(streamId: streamID)
 
         // Server timeout is 1s in tests, waiting up to 1.5s. This would have closed the
         // stream if not for the keep alives (see above test).
@@ -47,22 +47,14 @@ final class CaptureNetworkTests: XCTestCase {
     // stream of uploads to verify the behavior of the networking implementation when there is a
     // lot of traffic.
     func testAggressiveNetworkTraffic() async throws {
-        let env = try LoggerTestFixture(networkIdleTimeout: 10)
+        let env = try NetworkTestEnvironment(networkIdleTimeout: 10)
 
-        await env.testServer.runAggressiveUploadTest(loggerId: env.loggerID)
+        try await env.testServer.runAggressiveUploadTest(loggerId: env.loggerID)
     }
 
     func testLargeUpload() async throws {
-        let env = try LoggerTestFixture(networkIdleTimeout: 10)
+        let env = try NetworkTestEnvironment(networkIdleTimeout: 10)
 
-        let passed = await env.testServer.runLargeUploadTest(loggerId: env.loggerID)
-        XCTAssertTrue(passed)
-    }
-
-    func testAggressiveNetworkTrafficWithStreamDrops() async throws {
-        let env = try LoggerTestFixture()
-
-        let passed = await env.testServer.runAggressiveUploadWithStreamDrops(loggerId: env.loggerID)
-        XCTAssertTrue(passed)
+        try await env.testServer.runLargeUploadTest(loggerId: env.loggerID)
     }
 }

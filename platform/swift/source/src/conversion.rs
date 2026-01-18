@@ -63,7 +63,6 @@ enum RustToObjcWorkItem {
   },
 }
 
-
 unsafe extern "C" {
   fn NSStringFromClass(cls: *const Object) -> *const Object;
 }

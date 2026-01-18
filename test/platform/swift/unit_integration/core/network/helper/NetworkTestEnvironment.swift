@@ -12,9 +12,9 @@ import CaptureTestBridge
 import Foundation
 import XCTest
 
-/// Provides isolated test infrastructure for integration tests requiring a logger and test server.
-/// Each instance creates its own test server, network client, and logger.
-final class LoggerTestFixture {
+/// Provides an isolated test environment for integration tests requiring a logger bridge and test server.
+/// Each instance creates its own test server, network client, and logger bridge.
+final class NetworkTestEnvironment {
     let testServer: TestApiServer
     let network: Network
     let loggerBridge: LoggerBridge
@@ -22,11 +22,10 @@ final class LoggerTestFixture {
 
     var loggerID: Int64 { loggerBridge.loggerID }
 
-    /// Creates a new test fixture with isolated infrastructure.
+    /// Creates a new test environment with isolated infrastructure.
     ///
-    /// - Parameters:
-    ///   - networkIdleTimeout: The timeout used for URLSessionNetworkClient. Defaults to 1 second.
-    ///   - pingInterval: The ping interval to configure the logger with. Defaults to `nil` (disabled).
+    /// - parameter networkIdleTimeout: The timeout used for URLSessionNetworkClient. Defaults to 1 second.
+    /// - parameter pingInterval:       The ping interval to configure the logger with. Defaults to `nil` (disabled).
     init(networkIdleTimeout: TimeInterval = 1, pingInterval: TimeInterval? = nil) throws {
         // The logger receives the ping interval to use in its handshake when it connects to the
         // server, so we pass the ping interval to the test server.
@@ -64,11 +63,13 @@ final class LoggerTestFixture {
     }
 
     deinit {
-        // Resources are released when the instance goes out of scope.
-        // The test server shuts down after the logger bridge is released.
+        // Ensure logger fully shuts down before releasing to avoid test interference
+        loggerBridge.enableBlockingShutdown()
     }
 
     /// Creates a unique SDK directory for test isolation.
+    ///
+    /// - returns: The URL of the created directory.
     static func makeSDKDirectory() -> URL {
         let testUUID = UUID().uuidString
         let sdkDirectory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
