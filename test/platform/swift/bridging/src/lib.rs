@@ -11,10 +11,7 @@ extern crate objc;
 use bd_error_reporter::reporter::Reporter;
 use bd_logger::StringOrBytes;
 use bd_test_helpers::config_helper::make_benchmarking_configuration_with_workflows_update;
-use bd_test_helpers::test_api_server::{Event, ExpectedStreamEvent};
 use objc::runtime::Object;
-use objc_foundation::{INSString, NSString};
-use platform_test_helpers::EventCallback;
 use protobuf::Message;
 use std::collections::HashMap;
 use std::ffi::CStr;
@@ -22,7 +19,6 @@ use std::os::raw::c_char;
 use swift_bridge::bridge::SwiftErrorReporter;
 use swift_bridge::ffi::make_nsstring;
 use swift_bridge::key_value_storage::UserDefaultsStorage;
-use time::Duration;
 
 #[path = "./conversion_tests.rs"]
 mod conversion_tests;
@@ -51,102 +47,6 @@ extern "C" fn create_benchmarking_configuration(dir_path: *const c_char) {
   std::fs::write(str_path.to_owned() + "/config.pb", encoded_config).unwrap();
 }
 
-/// Wrapper around `ContinuationWrapper`.
-struct Continuation {
-  object: objc::rc::StrongPtr,
-}
-
-impl Continuation {
-  // Safety: The caller must ensure that the pointer is a valid pointer to a `ContinationWrapper`
-  // Objective-C object.
-  unsafe fn new(object: *mut Object) -> Self {
-    Self {
-      object: objc::rc::StrongPtr::retain(object),
-    }
-  }
-}
-
-impl std::fmt::Debug for Continuation {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("Continuation").finish()
-  }
-}
-
-unsafe impl Sync for Continuation {}
-#[allow(clippy::non_send_fields_in_send_ty)]
-unsafe impl Send for Continuation {}
-
-impl EventCallback<i32> for Continuation {
-  fn triggered(&mut self, value: i32) {
-    unsafe { msg_send![*self.object, resumeWithValue: value] }
-  }
-
-  fn timeout(&mut self) {
-    let message = NSString::from_str("timeout");
-
-    unsafe { msg_send![*self.object, failWithValue: message] }
-  }
-}
-
-// TODO(snowp): Unclear how we'd model a void continuation so just pretend like everything is a i32
-// continuation until we need more types.
-impl EventCallback<()> for Continuation {
-  fn triggered(&mut self, _value: ()) {
-    unsafe { msg_send![*self.object, resumeWithValue: 0] }
-  }
-
-  fn timeout(&mut self) {
-    let message = NSString::from_str("timeout");
-
-    unsafe { msg_send![*self.object, failWithValue: message] }
-  }
-}
-
-#[no_mangle]
-unsafe extern "C" fn next_test_api_stream(continuation: *mut Object) {
-  platform_test_helpers::with_expected_server(|h| {
-    h.enqueue_expected_event(
-      Event::StreamCreation(Box::new(Continuation::new(continuation))),
-      Duration::seconds(5),
-    );
-  });
-}
-
-#[no_mangle]
-unsafe extern "C" fn test_stream_received_handshake(stream_id: i32, continuation: *mut Object) {
-  platform_test_helpers::with_expected_server(|h| {
-    h.enqueue_expected_event(
-      Event::StreamEvent(
-        stream_id,
-        ExpectedStreamEvent::Handshake {
-          matcher: None,
-          sleep_mode: false,
-        },
-        Box::new(Continuation::new(continuation)),
-      ),
-      Duration::seconds(5),
-    );
-  });
-}
-
-#[no_mangle]
-unsafe extern "C" fn test_stream_closed(
-  stream_id: i32,
-  wait_time_ms: u64,
-  continuation: *mut Object,
-) {
-  platform_test_helpers::with_expected_server(|h| {
-    h.enqueue_expected_event(
-      Event::StreamEvent(
-        stream_id,
-        ExpectedStreamEvent::Closed,
-        Box::new(Continuation::new(continuation)),
-      ),
-      Duration::milliseconds(wait_time_ms.try_into().unwrap()),
-    );
-  });
-}
-
 /// Helper for validating the expected output from the end to end test in LoggerTest.swift.
 macro_rules! set_string {
   ($log:ident, $msg:ident, $rust_str:expr) => {
@@ -160,83 +60,97 @@ unsafe fn make_nsdata(s: &[u8]) -> *mut Object {
   msg_send![data_cls, dataWithBytes:s.as_ptr() length:s.len()]
 }
 
-/// Waits for up to 5 seconds for the active test server to receive a log upload, populating the
-/// provided `UploadedLog` object with the log details.
-#[no_mangle]
+/// Helper function to populate an UploadedLog object from a server handle.
+/// Returns true if a log was received and populated, false on timeout.
 #[allow(clippy::cast_possible_wrap)]
-unsafe extern "C" fn next_uploaded_log(uploaded_log: *mut Object) -> bool {
-  platform_test_helpers::with_expected_server(|h| {
-    // If we don't get a log within 5s, return false and end immediately.
-    let Some(log_request) = h.blocking_next_log_upload() else {
-      return false;
-    };
+unsafe fn populate_uploaded_log_from_server(
+  handle: &mut bd_test_helpers::test_api_server::ServerHandle,
+  uploaded_log: *mut Object,
+) -> bool {
+  // If we don't get a log within 5s, return false and end immediately.
+  let Some(log_request) = handle.blocking_next_log_upload() else {
+    return false;
+  };
 
-    // If we use this function without configuring a batch size of 1 we might end up missing log,
-    // so fail here.
-    assert_eq!(
-      log_request.logs().len(),
-      1,
-      "batch size must be configured to 1"
-    );
+  // If we use this function without configuring a batch size of 1 we might end up missing log,
+  // so fail here.
+  assert_eq!(
+    log_request.logs().len(),
+    1,
+    "batch size must be configured to 1"
+  );
 
-    let received_log = &log_request.logs()[0];
+  let received_log = &log_request.logs()[0];
 
-    let () = msg_send![uploaded_log, setLogLevel:(received_log.log_level())];
-    let () = msg_send![uploaded_log, setLogType:(received_log.log_type())];
+  let () = msg_send![uploaded_log, setLogLevel:(received_log.log_level())];
+  let () = msg_send![uploaded_log, setLogType:(received_log.log_type())];
 
-    set_string!(uploaded_log, setMessage, received_log.message());
+  set_string!(uploaded_log, setMessage, received_log.message());
 
-    set_string!(uploaded_log, setSessionID, received_log.session_id());
+  set_string!(uploaded_log, setSessionID, received_log.session_id());
 
-    for (key, value) in received_log.typed_fields() {
-      let key = make_nsstring(&key).unwrap();
+  for (key, value) in received_log.typed_fields() {
+    let key = make_nsstring(&key).unwrap();
 
-      match value {
-        StringOrBytes::String(s) => {
-          let value = make_nsstring(&s).unwrap();
+    match value {
+      StringOrBytes::String(s) => {
+        let value = make_nsstring(&s).unwrap();
 
-          let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
-        },
-        StringOrBytes::SharedString(s) => {
-          let value = make_nsstring(&s).unwrap();
+        let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
+      },
+      StringOrBytes::SharedString(s) => {
+        let value = make_nsstring(&s).unwrap();
 
-          let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
-        },
-        StringOrBytes::StaticString(s) => {
-          let value = make_nsstring(s).unwrap();
+        let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
+      },
+      StringOrBytes::StaticString(s) => {
+        let value = make_nsstring(s).unwrap();
 
-          let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
-        },
-        StringOrBytes::Bytes(s) => {
-          let value = make_nsdata(&s);
+        let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
+      },
+      StringOrBytes::Bytes(s) => {
+        let value = make_nsdata(&s);
 
-          let () = msg_send![uploaded_log, addBinaryFieldWithKey:key value:value];
-        },
-        StringOrBytes::Boolean(b) => {
-          let value = make_nsstring(&b.to_string()).unwrap();
+        let () = msg_send![uploaded_log, addBinaryFieldWithKey:key value:value];
+      },
+      StringOrBytes::Boolean(b) => {
+        let value = make_nsstring(&b.to_string()).unwrap();
 
-          let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
-        },
-        StringOrBytes::U64(n) => {
-          let value = make_nsstring(&n.to_string()).unwrap();
+        let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
+      },
+      StringOrBytes::U64(n) => {
+        let value = make_nsstring(&n.to_string()).unwrap();
 
-          let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
-        },
-        StringOrBytes::I64(n) => {
-          let value = make_nsstring(&n.to_string()).unwrap();
+        let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
+      },
+      StringOrBytes::I64(n) => {
+        let value = make_nsstring(&n.to_string()).unwrap();
 
-          let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
-        },
-        StringOrBytes::Double(n) => {
-          let value = make_nsstring(&n.to_string()).unwrap();
+        let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
+      },
+      StringOrBytes::Double(n) => {
+        let value = make_nsstring(&n.to_string()).unwrap();
 
-          let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
-        },
-      }
+        let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
+      },
     }
+  }
 
-    true
-  })
+  true
+}
+
+/// Waits for up to 5 seconds for the specified server instance to receive
+/// a log upload, populating the provided `UploadedLog` object with the log details.
+///
+/// # Safety
+/// The handle must be a valid pointer returned by `create_test_api_server_instance`.
+#[no_mangle]
+unsafe extern "C" fn server_instance_next_uploaded_log(
+  handle: *mut bd_test_helpers::test_api_server::ServerHandle,
+  uploaded_log: *mut Object,
+) -> bool {
+  let handle = unsafe { &mut *handle };
+  populate_uploaded_log_from_server(handle, uploaded_log)
 }
 
 #[no_mangle]

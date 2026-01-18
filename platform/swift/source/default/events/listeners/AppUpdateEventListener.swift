@@ -25,18 +25,21 @@ final class AppUpdateEventListener {
     ///
     /// - parameter version:     The app version.
     /// - parameter buildNumber: The build number.
-    func maybeLogAppUpdateEvent(version: String, buildNumber: String) {
+    /// - parameter completion:  Optional completion handler called when the operation finishes.
+    func maybeLogAppUpdateEvent(version: String, buildNumber: String, completion: (() -> Void)? = nil) {
         self.queue.async { [weak self] in
             guard let start = self?.timeProvider.uptime() else {
+                completion?()
                 return
             }
 
             guard self?.logger.runtimeValue(.applicationUpdatesReporting) == true else {
+                completion?()
                 return
             }
 
-            guard self?.logger.shouldLogAppUpdate(appVersion: version, buildNumber: buildNumber) == true else
-            {
+            guard self?.logger.shouldLogAppUpdate(appVersion: version, buildNumber: buildNumber) == true else {
+                completion?()
                 return
             }
 
@@ -53,6 +56,7 @@ final class AppUpdateEventListener {
             } catch let error {
                 self?.logger.handleError(context: "AppUpdateLogger", error: error)
             }
+            completion?()
         }
     }
 }

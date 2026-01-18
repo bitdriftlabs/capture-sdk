@@ -17,55 +17,59 @@ final class CaptureNetworkTests: BaseNetworkingTestCase {
     func testHappyPathWithTimeoutAndReconnect() async throws {
         _ = try setUp(networkIdleTimeout: 1)
 
-        let streamID = try await nextApiStream()
+        let server = try XCTUnwrap(self.testServer)
+        let streamID = await server.nextStream()
+        XCTAssertNotEqual(streamID, -1)
 
         // Server timeout is 1s in tests, waiting up to 3s for the stream to be closed.
-        try await serverStreamClosed(streamID, 3000)
+        let streamClosed = await server.streamClosed(streamId: streamID, waitTimeMs: 3000)
+        XCTAssertTrue(streamClosed)
 
-        let streamID2 = try await nextApiStream()
-        try await serverReceivedHandshake(streamID2)
+        let streamID2 = await server.nextStream()
+        XCTAssertNotEqual(streamID2, -1)
+        await server.handshake(streamId: streamID2)
     }
 
     // Verifies that we can extend the stream beyond the idle timeout via keep alive pings.
     func testHappyPathWithKeepAlives() async throws {
         _ = try setUp(networkIdleTimeout: 1, pingIntervalMs: 100)
 
-        let streamID = try await nextApiStream()
-        try await serverReceivedHandshake(streamID)
+        let server = try XCTUnwrap(self.testServer)
+        let streamID = await server.nextStream()
+        XCTAssertNotEqual(streamID, -1)
+        await server.handshake(streamId: streamID)
 
         // Server timeout is 1s in tests, waiting up to 1.5s. This would have closed the
         // stream if not for the keep alives (see above test).
-        // XCTAssertThrowsError doesn't work with async, so do this manual assertion that the call to wait
-        // for a stream close times out.
-        do {
-            try await serverStreamClosed(streamID, 1500)
-
-            // If we didn't catch the exception we saw a close before the timeout, which means something is
-            // wrong.
-            XCTFail("stream closed unexpectedly")
-        } catch {}
+        let streamClosed = await server.streamClosed(streamId: streamID, waitTimeMs: 1500)
+        XCTAssertFalse(streamClosed)
     }
 
     // A wrapper around the test scenario described by the Rust test helper: we configure a constant
-    // stream of keep alives and a constant stream of uploads to verify the behavior of the
-    // networking implementation when there is a lot of traffic.
-    func testAggressiveNetworkTraffic() throws {
-        // First off we configure the test server with a ping interval at 0, i.e. constantly.
+    // stream of uploads to verify the behavior of the networking implementation when there is a
+    // lot of traffic.
+    func testAggressiveNetworkTraffic() async throws {
         let loggerID = try setUp(networkIdleTimeout: 10)
-        // Secondly, invoke a test scenario in which we upload logs constantly.
-        run_aggressive_upload_test(loggerID)
+
+        let server = try XCTUnwrap(self.testServer)
+        await server.runAggressiveUploadTest(loggerId: loggerID)
     }
 
-    func testLargeUpload() throws {
+    func testLargeUpload() async throws {
         let loggerID = try setUp(networkIdleTimeout: 10)
 
-        run_large_upload_test(loggerID)
+        let server = try XCTUnwrap(self.testServer)
+        let passed = await server.runLargeUploadTest(loggerId: loggerID)
+        XCTAssertTrue(passed)
     }
 
-    func testAggressiveNetworkTrafficWithStreamDrops() throws {
-        // First off we configure the test server with a ping interval at 0, i.e. constantly.
-        let loggerID = try setUp(networkIdleTimeout: 10)
-        // Secondly, invoke a test scenario in which we upload logs constantly.
-        run_aggressive_upload_test_with_stream_drops(loggerID)
+    func testAggressiveNetworkTrafficWithStreamDrops() async throws {
+        // Use a shorter timeout so the client detects stream closure faster and reconnects
+        // within the server's 5-second blocking_next_stream timeout.
+        let loggerID = try setUp(networkIdleTimeout: 2)
+
+        let server = try XCTUnwrap(self.testServer)
+        let passed = await server.runAggressiveUploadWithStreamDrops(loggerId: loggerID)
+        XCTAssertTrue(passed)
     }
 }
