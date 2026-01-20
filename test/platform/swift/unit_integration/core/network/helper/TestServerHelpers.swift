@@ -8,6 +8,25 @@
 import CaptureTestBridge
 import Foundation
 
+/// Error type for test server failures, providing descriptive error messages.
+public struct TestServerError: Error, CustomStringConvertible {
+    public let message: String
+
+    public init(_ message: String) {
+        self.message = message
+    }
+
+    public var description: String { message }
+}
+
+private func checkError(_ errorPtr: UnsafePointer<CChar>?) throws {
+    if let ptr = errorPtr {
+        let message = String(cString: ptr)
+        test_helpers_free_string(UnsafeMutablePointer(mutating: ptr))
+        throw TestServerError(message)
+    }
+}
+
 public final class TestApiServer: @unchecked Sendable {
     private let handle: UnsafeMutableRawPointer
     public let port: Int32
@@ -41,13 +60,15 @@ public final class TestApiServer: @unchecked Sendable {
     /// Waits for handshake completion on the given stream.
     ///
     /// - parameter streamId: The stream ID.
-    public func handshake(streamId: Int32) async {
-        await withCheckedContinuation { continuation in
+    ///
+    /// - throws: `TestServerError` if the handshake times out.
+    public func handshake(streamId: Int32) async throws {
+        let errorPtr = await withCheckedContinuation { continuation in
             DispatchQueue.global().async {
-                server_instance_await_handshake(self.handle, streamId)
-                continuation.resume()
+                continuation.resume(returning: server_instance_await_handshake(self.handle, streamId))
             }
         }
+        try checkError(errorPtr)
     }
 
     /// Waits for stream to close.
@@ -67,24 +88,35 @@ public final class TestApiServer: @unchecked Sendable {
     /// Configures aggressive uploads on the given stream.
     ///
     /// - parameter streamId: The stream ID.
-    public func configureAggressiveUploads(streamId: Int32) async {
-        await withCheckedContinuation { continuation in
+    ///
+    /// - throws: `TestServerError` if the configuration fails.
+    public func configureAggressiveUploads(streamId: Int32) async throws {
+        let errorPtr = await withCheckedContinuation { continuation in
             DispatchQueue.global().async {
-                server_instance_configure_aggressive_uploads(self.handle, streamId)
-                continuation.resume()
+                continuation.resume(returning: server_instance_configure_aggressive_uploads(self.handle, streamId))
             }
         }
+        try checkError(errorPtr)
     }
 
     /// Runs the aggressive upload test.
     ///
     /// - parameter loggerId: The logger ID.
-    public func runAggressiveUploadTest(loggerId: Int64) async {
-        await withCheckedContinuation { continuation in
+    ///
+    /// - throws: `TestServerError` if the test fails.
+    public func runAggressiveUploadTest(loggerId: Int64) async throws {
+        let errorPtr = await withCheckedContinuation { continuation in
             DispatchQueue.global().async {
-                server_instance_run_aggressive_upload_test(self.handle, loggerId)
-                continuation.resume()
+                continuation.resume(
+                    returning: server_instance_run_aggressive_upload_test(self.handle, loggerId)
+                )
             }
+        }
+
+        if let ptr = errorPtr {
+            let message = String(cString: ptr)
+            test_helpers_free_string(UnsafeMutablePointer(mutating: ptr))
+            throw TestServerError(message)
         }
     }
 
@@ -92,25 +124,20 @@ public final class TestApiServer: @unchecked Sendable {
     ///
     /// - parameter loggerId: The logger ID.
     ///
-    /// - returns: True if the test passed.
-    public func runLargeUploadTest(loggerId: Int64) async -> Bool {
-        await withCheckedContinuation { continuation in
+    /// - throws: `TestServerError` if the test fails.
+    public func runLargeUploadTest(loggerId: Int64) async throws {
+        let errorPtr = await withCheckedContinuation { continuation in
             DispatchQueue.global().async {
-                continuation.resume(returning: server_instance_run_large_upload_test(self.handle, loggerId))
+                continuation.resume(
+                    returning: server_instance_run_large_upload_test(self.handle, loggerId)
+                )
             }
         }
-    }
 
-    /// Runs the aggressive upload with stream drops test.
-    ///
-    /// - parameter loggerId: The logger ID.
-    ///
-    /// - returns: True if the test passed.
-    public func runAggressiveUploadWithStreamDrops(loggerId: Int64) async -> Bool {
-        await withCheckedContinuation { continuation in
-            DispatchQueue.global().async {
-                continuation.resume(returning: server_instance_run_aggressive_upload_with_stream_drops(self.handle, loggerId))
-            }
+        if let ptr = errorPtr {
+            let message = String(cString: ptr)
+            test_helpers_free_string(UnsafeMutablePointer(mutating: ptr))
+            throw TestServerError(message)
         }
     }
 

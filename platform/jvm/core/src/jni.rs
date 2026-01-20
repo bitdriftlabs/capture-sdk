@@ -886,8 +886,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlag
   );
 }
 
-
-
 #[no_mangle]
 // Java types are always signed, but log level/type are both unsigned.
 #[allow(clippy::cast_sign_loss)]

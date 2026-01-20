@@ -139,11 +139,16 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_awaitApiServerS
 #[no_mangle]
 #[rustfmt::skip]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_configureAggressiveContinuousUploads(
-  _env: JNIEnv<'_>,
+  mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   stream_id: jint,
 ) {
-  configure_aggressive_continuous_uploads(stream_id);
+  let result = configure_aggressive_continuous_uploads(stream_id);
+  if let Err(e) = result {
+    env
+      .throw_new("java/lang/AssertionError", e.to_string())
+      .expect("failed to throw AssertionError");
+  }
 }
 
 #[allow(clippy::cast_possible_wrap)]
@@ -388,11 +393,16 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_sendConfigurati
 
 #[no_mangle]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_awaitConfigurationAck(
-  _env: JNIEnv<'_>,
+  mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   stream_id: jint,
 ) {
-  await_configuration_ack(stream_id);
+  let result = await_configuration_ack(stream_id);
+  if let Err(e) = result {
+    env
+      .throw_new("java/lang/AssertionError", e.to_string())
+      .expect("failed to throw AssertionError");
+  }
 }
 
 #[no_mangle]
@@ -427,11 +437,16 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runExceptionHan
 
 #[no_mangle]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runLargeUploadTest(
-  _env: JNIEnv<'_>,
+  mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger: jlong,
 ) {
-  platform_test_helpers::run_large_upload_test(unsafe { LoggerId::from_raw(logger) });
+  let result = platform_test_helpers::run_large_upload_test(unsafe { LoggerId::from_raw(logger) });
+  if let Err(e) = result {
+    env
+      .throw_new("java/lang/AssertionError", e.to_string())
+      .expect("failed to throw AssertionError");
+  }
 }
 
 #[no_mangle]

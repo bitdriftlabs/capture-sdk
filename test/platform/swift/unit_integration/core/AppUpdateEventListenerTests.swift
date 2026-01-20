@@ -30,14 +30,14 @@ final class AppUpdateEventListenerTests: XCTestCase {
         wait(for: [noLogExpectation], timeout: 5.0)
         XCTAssertEqual(0, logger.logAppUpdateCount)
 
-        // When shouldLogAppUpdateEvent is true, log should be emitted
+        // When shouldLogAppUpdateEvent is true, log should be emitted.
+        // We wait on logAppUpdateExpectation (not just completion) because the completion
+        // callback is called even if the directory size calculation fails.
         logger.shouldLogAppUpdateEvent = true
+        logger.logAppUpdateExpectation = self.expectation(description: "logAppUpdate called")
 
-        let logExpectation = self.expectation(description: "second call completes")
-        listener.maybeLogAppUpdateEvent(version: "1.0", buildNumber: "1") {
-            logExpectation.fulfill()
-        }
-        wait(for: [logExpectation], timeout: 5.0)
+        listener.maybeLogAppUpdateEvent(version: "1.0", buildNumber: "1")
+        wait(for: [logger.logAppUpdateExpectation!], timeout: 5.0)
         XCTAssertEqual(1, logger.logAppUpdateCount)
     }
 }

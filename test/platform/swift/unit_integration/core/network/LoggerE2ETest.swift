@@ -43,17 +43,20 @@ private struct MockEncodable: Encodable {
     }
 }
 
-final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
-    var logger: Logger!
-    var storage: StorageProvider!
+final class CaptureE2ENetworkTests: XCTestCase {
+    private var logger: Logger!
+    private var storage: StorageProvider!
     private var server: TestApiServer!
 
     override func tearDown() {
+        // Ensure logger fully shuts down before releasing to avoid test interference
+        self.logger?.enableBlockingShutdown()
+        self.logger = nil
+        self.storage = nil
         self.server = nil
-        super.tearDown()
     }
 
-    private func setUpLogger() throws -> Logger {
+    private func setUpLogger(fieldProviders: [FieldProvider]? = nil) throws -> Logger {
         self.storage = MockStorageProvider()
 
         // Use instance-based server for test isolation
@@ -63,15 +66,14 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
             Logger(
                 withAPIKey: "test!",
                 remoteErrorReporter: MockRemoteErrorReporter(),
-                configuration: .init(apiURL: self.server.baseURL, rootFileURL: self.setUpSDKDirectory()),
+                configuration: .init(apiURL: self.server.baseURL, rootFileURL: NetworkTestEnvironment.makeSDKDirectory()),
                 sessionStrategy: SessionStrategy.fixed(sessionIDGenerator: { "mock-group-id" }),
                 dateProvider: MockDateProvider(),
-                fieldProviders: [
+                fieldProviders: fieldProviders ?? [
                     MockFieldProvider(
                         getFieldsClosure: {
                             [
                                 "field_provider": "mock_field_provider",
-                                "failing_to_convert_and_should_be_skipped_field": MockEncodable(),
                             ]
                         }
                     ),
@@ -91,7 +93,7 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
 
         let streamID = await self.server.nextStream()
         XCTAssertNotEqual(streamID, -1, "Timed out waiting for API stream")
-        await self.server.configureAggressiveUploads(streamId: streamID)
+        try await self.server.configureAggressiveUploads(streamId: streamID)
 
         // Collect logs until we've seen all expected initial logs.
         // The SDK generates SDKConfigured, resource utilization, and screen capture logs
@@ -139,7 +141,7 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
 
         let streamID = await self.server.nextStream()
         XCTAssertNotEqual(streamID, -1, "Timed out waiting for API stream")
-        await self.server.configureAggressiveUploads(streamId: streamID)
+        try await self.server.configureAggressiveUploads(streamId: streamID)
 
         // TODO(Augustyniak): Do `replayScreenshotLog.hasFields` in here after figuring out how to figure out
         // what the expected value for "screen" key should be (depends on the simulator type).
@@ -227,6 +229,38 @@ final class CaptureE2ENetworkTests: BaseNetworkingTestCase {
         XCTAssertEqual(thirdLog.sessionID, "mock-group-id")
 
         thirdLog.assertFieldsEqual(expectedFields)
+    }
+
+    func testFieldProviderEncodingFailureIsHandledGracefully() async throws {
+        // Set up logger with a field provider that includes a failing encodable
+        let fieldProviders: [FieldProvider] = [
+            MockFieldProvider(
+                getFieldsClosure: {
+                    [
+                        "valid_field": "valid_value",
+                        "failing_field": MockEncodable(),
+                    ]
+                }
+            ),
+        ]
+
+        _ = try self.setUpLogger(fieldProviders: fieldProviders)
+
+        let streamID = await self.server.nextStream()
+        XCTAssertNotEqual(streamID, -1, "Timed out waiting for API stream")
+        try await self.server.configureAggressiveUploads(streamId: streamID)
+
+        self.logger.log(level: .debug, message: "test field provider failure")
+
+        let log = await self.server.nextUploadedLogMatching { $0.message == "test field provider failure" }
+        let uploadedLog = try XCTUnwrap(log, "Did not receive test log")
+
+        // Verify valid field from provider is included
+        XCTAssertNotNil(uploadedLog.field(withKey: "valid_field"))
+        XCTAssertEqual(uploadedLog.field(withKey: "valid_field")?.value as? String, "valid_value")
+
+        // Verify failing field is excluded (not present, not null)
+        XCTAssertNil(uploadedLog.field(withKey: "failing_field"))
     }
 }
 
