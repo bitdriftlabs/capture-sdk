@@ -26,4 +26,11 @@
 
     <include layout="@layout/content_main" />
 
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/pip_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
