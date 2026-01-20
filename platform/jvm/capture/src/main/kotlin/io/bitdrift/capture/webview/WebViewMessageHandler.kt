@@ -86,8 +86,10 @@ internal class WebViewMessageHandler(
         capture.onBridgeReady()
 
         val url = msg.url ?: ""
-        logger?.log(LogLevel.DEBUG, mapOf("_url" to url)) {
-            "WebView bridge ready"
+        val fields = mutableMapOf("_url" to url)
+        fields["_source"] = "webview"
+        logger?.log(LogLevel.DEBUG, fields) {
+            "webview.initialized"
         }
     }
 
@@ -136,7 +138,7 @@ internal class WebViewMessageHandler(
             else -> {
                 // Unknown metric type - log as regular log with UX type
                 logger?.log(LogType.UX, level, commonFields.toFields()) {
-                    "webview.webVital.$name"
+                    "webview.webVital"
                 }
             }
         }
@@ -156,6 +158,7 @@ internal class WebViewMessageHandler(
         parentSpanId: String?,
     ) {
         val fields = commonFields.toMutableMap()
+        fields["_metric"] = "LCP"
 
         // Extract LCP-specific entry data if available
         metric.entries?.firstOrNull()?.let { entry ->
@@ -166,7 +169,7 @@ internal class WebViewMessageHandler(
             entry.loadTime?.let { fields["_load_time"] = it.toString() }
         }
 
-        logDurationSpan("webview.LCP", timestamp, value, level, fields, parentSpanId)
+        logDurationSpan("webview.webVital", timestamp, value, level, fields, parentSpanId)
     }
 
     /**
@@ -183,6 +186,7 @@ internal class WebViewMessageHandler(
         parentSpanId: String?,
     ) {
         val fields = commonFields.toMutableMap()
+        fields["_metric"] = "FCP"
 
         // Extract FCP-specific entry data if available (PerformancePaintTiming)
         metric.entries?.firstOrNull()?.let { entry ->
@@ -191,7 +195,7 @@ internal class WebViewMessageHandler(
             entry.entryType?.let { fields["_entry_type"] = it }
         }
 
-        logDurationSpan("webview.FCP", timestamp, value, level, fields, parentSpanId)
+        logDurationSpan("webview.webVital", timestamp, value, level, fields, parentSpanId)
     }
 
     /**
@@ -208,6 +212,7 @@ internal class WebViewMessageHandler(
         parentSpanId: String?,
     ) {
         val fields = commonFields.toMutableMap()
+        fields["_metric"] = "TTFB"
 
         // Extract TTFB-specific entry data if available (PerformanceNavigationTiming)
         metric.entries?.firstOrNull()?.let { entry ->
@@ -220,7 +225,7 @@ internal class WebViewMessageHandler(
             entry.responseStart?.let { fields["_response_start"] = it.toString() }
         }
 
-        logDurationSpan("webview.TTFB", timestamp, value, level, fields, parentSpanId)
+        logDurationSpan("webview.webVital", timestamp, value, level, fields, parentSpanId)
     }
 
     /**
@@ -237,6 +242,7 @@ internal class WebViewMessageHandler(
         parentSpanId: String?,
     ) {
         val fields = commonFields.toMutableMap()
+        fields["_metric"] = "INP"
 
         // Extract INP-specific entry data if available
         metric.entries?.firstOrNull()?.let { entry ->
@@ -248,7 +254,7 @@ internal class WebViewMessageHandler(
             entry.interactionId?.let { fields["_interaction_id"] = it.toString() }
         }
 
-        logDurationSpan("webview.INP", timestamp, value, level, fields, parentSpanId)
+        logDurationSpan("webview.webVital", timestamp, value, level, fields, parentSpanId)
     }
 
     /**
@@ -262,6 +268,7 @@ internal class WebViewMessageHandler(
         commonFields: Map<String, String>,
     ) {
         val fields = commonFields.toMutableMap()
+        fields["_metric"] = "CLS"
 
         // Extract CLS-specific data from entries
         val entries = metric.entries
@@ -287,7 +294,7 @@ internal class WebViewMessageHandler(
         }
 
         logger?.log(LogType.UX, level, fields.toFields()) {
-            "webview.CLS"
+            "webview.webVital"
         }
     }
 
@@ -418,7 +425,7 @@ internal class WebViewMessageHandler(
 
                 val span =
                     logger?.startSpan(
-                        name = "webview.pageView: $url",
+                        name = "webview.pageView",
                         level = LogLevel.DEBUG,
                         fields = fields,
                         startTimeMs = timestamp,
@@ -467,7 +474,7 @@ internal class WebViewMessageHandler(
             }
 
         logger?.log(LogType.UX, LogLevel.DEBUG, fields.toFields()) {
-            "webview.lifecycle.$event"
+            "webview.lifecycle"
         }
     }
 
@@ -595,7 +602,7 @@ internal class WebViewMessageHandler(
             }
 
         logger?.log(logLevel, fields) {
-            "webview.console.$level"
+            "webview.console"
         }
     }
 
@@ -638,7 +645,7 @@ internal class WebViewMessageHandler(
 
         val level = if (interactionType == "rageClick") LogLevel.WARNING else LogLevel.DEBUG
         logger?.log(LogType.UX, level, fields.toFields()) {
-            "webview.userInteraction.$interactionType"
+            "webview.userInteraction"
         }
     }
 }
