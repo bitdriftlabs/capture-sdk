@@ -25,7 +25,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Downgraded protobuf from 4.31.1 to 3.25.5 to avoid duplicate class conflicts with Firebase's `protolite-well-known-types`.
 
 **Fixed**
 
