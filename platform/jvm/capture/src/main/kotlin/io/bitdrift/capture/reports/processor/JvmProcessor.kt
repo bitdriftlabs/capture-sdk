@@ -16,11 +16,11 @@ import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Report
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ThreadDetails
 
 /**
- * Process JVM-related issues (crashes, violations) into a binary flatbuffer Report
+ * Process JVM-related issues (crashes, violations) into a binary flatbuffer Report.
  */
 internal object JvmProcessor {
     /**
-     * @return byte offset for the Report instance in the builder buffer
+     * @return byte offset for the Report instance in the builder buffer.
      */
     fun getJvmReport(
         builder: FlatBufferBuilder,
