@@ -17,23 +17,17 @@ import { initUserInteractionMonitoring } from './user-interactions';
 import { initErrorMonitoring, initPromiseRejectionMonitoring } from './error';
 import type { BridgeReadyMessage } from './types';
 
-// Extend Window interface for our guard flag
-declare global {
-    interface Window {
-        __bitdriftBridgeInitialized?: boolean;
-    }
-}
-
 /**
  * Main entry point for the Bitdrift WebView SDK.
  * This runs immediately when injected into a WebView.
  */
-const init = (): void => {
+const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']): void => {
     // Guard against multiple initializations (e.g., script injected twice)
-    if (window.__bitdriftBridgeInitialized) {
-        return;
-    }
+    if (window.__bitdriftBridgeInitialized) return;
     window.__bitdriftBridgeInitialized = true;
+
+    window.bitdrift = window.bitdrift || {};
+    window.bitdrift.config = config;
 
     // Initialize the bridge first
     initBridge();
@@ -61,4 +55,4 @@ const init = (): void => {
 };
 
 // Run immediately
-init();
+init(/* @magic __BITDRIFT_WEBVIEW_CONFIG_PLACEHOLDER__ */);

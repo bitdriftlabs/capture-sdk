@@ -18,19 +18,6 @@ type Serializable =
     | { [key: string]: Serializable };
 type SerializableLogFields = { [key: string]: Serializable };
 
-export type WebViewInstrumentationConfig = {
-    captureConsole?: boolean;
-    captureErrors?: boolean;
-    capturePromiseRejections?: boolean;
-    captureNetworkRequests?: boolean;
-    captureNavigationEvents?: boolean;
-    capturePageViews?: boolean;
-    captureWebVitals?: boolean;
-    captureLongTasks?: boolean;
-    captureResourceErrors?: boolean;
-    captureUserInteractions?: boolean;
-};
-
 /**
  * Message types sent from JS to native bridge
  */

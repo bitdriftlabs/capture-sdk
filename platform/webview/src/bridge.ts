@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import type { AnyBridgeMessage, BridgeMessage, CustomLogMessage, WebViewInstrumentationConfig } from './types';
+import type { AnyBridgeMessage, BridgeMessage, CustomLogMessage } from './types';
 
 export const pristine = {
     console: {
@@ -16,37 +16,6 @@ export const pristine = {
         debug: console.debug,
     },
 };
-
-/**
- * Platform-agnostic bridge for communicating with native code.
- * Detects iOS (WKWebView) vs Android (WebView) and routes messages accordingly.
- */
-
-interface AndroidBridge {
-    log(message: string): void;
-}
-
-interface IOSBridge {
-    postMessage(message: unknown): void;
-}
-
-declare global {
-    interface Window {
-        // Android bridge
-        BitdriftLogger?: AndroidBridge;
-        // iOS bridge
-        webkit?: {
-            messageHandlers?: {
-                BitdriftLogger?: IOSBridge;
-            };
-        };
-        // Our global namespace
-        bitdrift?: {
-            config?: Partial<WebViewInstrumentationConfig>;
-            log: (message: AnyBridgeMessage) => void;
-        };
-    }
-}
 
 type Platform = 'ios' | 'android' | 'unknown';
 
@@ -121,7 +90,7 @@ export const initBridge = (): void => {
  */
 export const log = (message: AnyBridgeMessage): void => {
     if (window.bitdrift) {
-        window.bitdrift.log(message);
+        window.bitdrift.log?.(message);
     } else {
         sendToNative(message);
     }
