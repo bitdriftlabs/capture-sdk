@@ -12,7 +12,12 @@ package io.bitdrift.capture.experimental
     message = "This API is in experimental phase and may change in the future.",
 )
 @Retention(AnnotationRetention.BINARY)
-@Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY)
+@Target(
+    AnnotationTarget.CLASS,
+    AnnotationTarget.FUNCTION,
+    AnnotationTarget.PROPERTY,
+    AnnotationTarget.VALUE_PARAMETER,
+)
 /**
  * Use it for APIs that are still under experimental phase
  */
