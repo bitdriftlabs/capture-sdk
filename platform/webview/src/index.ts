@@ -9,7 +9,6 @@ import { initBridge, log, createMessage } from './bridge';
 import { initWebVitals } from './web-vitals';
 import { initNetworkInterceptor } from './network';
 import { initNavigationTracking } from './navigation';
-<<<<<<< HEAD
 import { initPageViewTracking } from './page-view';
 import { initLongTaskMonitoring } from './long-tasks';
 import { initResourceErrorMonitoring } from './resource-errors';
@@ -25,15 +24,10 @@ declare global {
     }
 }
 
-=======
-import type { BridgeReadyMessage } from './types';
-
->>>>>>> a7d8e8b7 (first pass on setting up JS bridge with some performance tracking)
 /**
  * Main entry point for the Bitdrift WebView SDK.
  * This runs immediately when injected into a WebView.
  */
-<<<<<<< HEAD
 const init = (): void => {
     // Guard against multiple initializations (e.g., script injected twice)
     if (window.__bitdriftBridgeInitialized) {
@@ -65,24 +59,6 @@ const init = (): void => {
     initUserInteractionMonitoring();
     initErrorMonitoring();
 };
-=======
-function init(): void {
-  // Initialize the bridge first
-  initBridge();
-
-  // Send bridge ready signal immediately
-  const readyMessage = createMessage<BridgeReadyMessage>({
-    type: 'bridgeReady',
-    url: window.location.href,
-  });
-  log(readyMessage);
-
-  // Initialize all monitoring modules
-  initNetworkInterceptor();
-  initNavigationTracking();
-  initWebVitals();
-}
->>>>>>> a7d8e8b7 (first pass on setting up JS bridge with some performance tracking)
 
 // Run immediately
 init();
