@@ -23,6 +23,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Setup Javascript
         uses: ./.github/actions/javascript-setup
+      - name: Get Capture SDK version
+        id: capture-sdk
+        run: |
+          CAPTURE_SDK_VERSION=$(node -p "require('./packages/react-native/package.json').captureSdkVersion")
+          echo "version=$CAPTURE_SDK_VERSION" >> $GITHUB_OUTPUT
       - name: Prepare release
         run: |
           npm version --workspace @bitdrift/react-native $VERSION
@@ -32,14 +37,15 @@ jobs:
       - name: Create a PR with the updated version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CAPTURE_SDK_VERSION: ${{ steps.capture-sdk.outputs.version }}
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
 
           git checkout -b release-rn-$VERSION
           git add packages/react-native/package.json package-lock.json
-          git commit -m "chore: release react-native $VERSION"
+          git commit -m "chore: release react-native $VERSION (capture-sdk $CAPTURE_SDK_VERSION)"
           git push --set-upstream origin release-rn-$VERSION
 
-          gh pr create --title "chore: release react-native $VERSION" --body "v$VERSION" --base main --head release-rn-$VERSION
+          gh pr create --title "chore: release react-native $VERSION" --body "v$VERSION (capture-sdk v$CAPTURE_SDK_VERSION)" --base main --head release-rn-$VERSION
           gh pr merge --auto -r

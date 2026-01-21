@@ -16,3 +16,22 @@ This document explains the process of releasing new versions within capture-es r
 8. Update [release docs](https://docs.bitdrift.io/sdk/releases-react-native) to include latest version. 
 
 ![](images/react_native_github_action.png)
+
+## Version Tracking
+
+The React Native package includes a `captureSdkVersion` field in `package.json` that tracks which Capture SDK version is bundled. This is automatically updated by `scripts/update_rn_capture_version.sh` when bumping the Capture SDK.
+
+Release commits include the Capture SDK version in the commit message:
+```
+chore: release react-native 0.10.2 (capture-sdk 0.21.2)
+```
+
+To find which React Native version includes a specific Capture SDK version:
+```bash
+git log --oneline | grep "release react-native.*capture-sdk"
+```
+
+Or check the `captureSdkVersion` field directly:
+```bash
+node -p "require('./packages/react-native/package.json').captureSdkVersion"
+```
