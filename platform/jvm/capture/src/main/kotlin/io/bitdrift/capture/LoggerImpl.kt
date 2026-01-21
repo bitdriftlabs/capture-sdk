@@ -33,6 +33,7 @@ import io.bitdrift.capture.events.performance.JankStatsMonitor
 import io.bitdrift.capture.events.performance.MemoryMetricsProvider
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
 import io.bitdrift.capture.events.span.Span
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
@@ -55,6 +56,7 @@ import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
+import io.bitdrift.capture.webview.WebViewConfiguration
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import java.util.UUID
@@ -94,6 +96,9 @@ internal class LoggerImpl(
         },
 ) : ILogger,
     ICompletedReportsProcessor {
+    @OptIn(ExperimentalBitdriftApi::class)
+    internal val webViewConfiguration: WebViewConfiguration? = configuration.webViewConfiguration
+
     private val metadataProvider: MetadataProvider
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
@@ -570,6 +575,7 @@ internal class LoggerImpl(
     /**
      * Emits the SDKConfigured event with details about its duration, caller thread, etc
      */
+    @OptIn(ExperimentalBitdriftApi::class)
     internal fun writeSdkStartLog(
         appContext: Context,
         sdkConfiguredDuration: SdkConfiguredDuration,
@@ -580,6 +586,7 @@ internal class LoggerImpl(
                 clientAttributes
                     .getInstallationSource(appContext, errorHandler)
             val isSessionReplayEnabled = sessionReplayTarget is SessionReplayTarget
+            val isWebViewMonitoringEnabled = webViewConfiguration != null
             val baseFields =
                 fieldsOf(
                     "_app_installation_source" to installationSource,
@@ -589,6 +596,7 @@ internal class LoggerImpl(
                     "_logger_build_duration_ms" to
                         sdkConfiguredDuration.loggerImplBuildDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
                     "_session_replay_enabled" to isSessionReplayEnabled.toString(),
+                    "_webview_monitoring_enabled" to isWebViewMonitoringEnabled.toString(),
                 )
             val fatalIssueFields =
                 (

@@ -5,6 +5,9 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+// TODO(Fran): BIT-7218. To remove below once the capture-plugin release that contains automactic webview instrumentation is publicly enabled
+@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+
 package io.bitdrift.gradletestapp.ui.fragments
 
 import android.os.Bundle
@@ -29,7 +32,7 @@ class WebViewFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_web_view, container, false)
         val webView = view.findViewById<WebView>(R.id.webView)
 
-        // Instrument the WebView with bitdrift capture
+        // TODO(Fran): BIT-7218. To remove below once the capture-plugin release that contains automactic webview instrumentation is publicly enabled
         WebViewCapture.instrument(webView)
 
         val url = arguments?.getString(ARG_URL) ?: WEBVIEW_URLS.first().second

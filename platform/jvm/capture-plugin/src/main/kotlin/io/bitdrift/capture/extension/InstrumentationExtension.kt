@@ -23,6 +23,21 @@ open class InstrumentationExtension
                 .property(Boolean::class.java)
                 .convention(false)
 
+        /**
+         * Enables automatic WebView instrumentation via bytecode transformation.
+         *
+         * When enabled, the plugin injects calls to [io.bitdrift.capture.webview.WebViewCapture]
+         * at WebView load sites. For instrumentation to be active at runtime, a valid
+         * [io.bitdrift.capture.webview.WebViewConfiguration] must be provided when calling
+         * `Capture.Logger.start()`. If `null` is passed, the injected calls will be no-op.
+         *
+         * **Experimental:** This API may change in future releases.
+         */
+        val automaticWebViewInstrumentation: Property<Boolean> =
+            objects
+                .property(Boolean::class.java)
+                .convention(false)
+
         val debug: Property<Boolean> =
             objects.property(Boolean::class.java).convention(
                 false,
