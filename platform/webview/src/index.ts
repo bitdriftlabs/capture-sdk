@@ -40,18 +40,34 @@ const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']
     log(readyMessage);
 
     // Initialize page view tracking first to establish parent span
-    initPageViewTracking();
+    if (window.bitdrift.config?.capturePageViews) {
+        initPageViewTracking();
+    }
 
     // Initialize all monitoring modules
-    initNetworkInterceptor();
-    initNavigationTracking();
-    initWebVitals();
-    initLongTaskMonitoring();
-    initResourceErrorMonitoring();
-    initConsoleCapture();
-    initPromiseRejectionMonitoring();
-    initUserInteractionMonitoring();
-    initErrorMonitoring();
+    if (window.bitdrift.config?.captureNetworkRequests) {
+        initNetworkInterceptor();
+    }
+    if (window.bitdrift.config?.captureNavigationEvents) {
+        initNavigationTracking();
+    }
+    if (window.bitdrift.config?.captureWebVitals) {
+        initWebVitals();
+    }
+    if (window.bitdrift.config?.captureLongTasks) {
+        initLongTaskMonitoring();
+    }
+    if (window.bitdrift.config?.captureConsole) {
+        initConsoleCapture();
+    }
+    if (window.bitdrift.config?.captureUserInteractions) {
+        initUserInteractionMonitoring();
+    }
+    if (window.bitdrift.config?.captureErrors) {
+        initResourceErrorMonitoring();
+        initPromiseRejectionMonitoring();
+        initErrorMonitoring();
+    }
 };
 
 // Run immediately
