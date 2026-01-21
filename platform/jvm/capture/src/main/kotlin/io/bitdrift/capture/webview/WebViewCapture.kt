@@ -42,6 +42,7 @@ import io.bitdrift.capture.providers.fieldsOf
 internal object WebViewCapture {
     private const val BRIDGE_NAME = "BitdriftLogger"
     private const val TAG_KEY_INSTRUMENTED = 0x62697464 // "bitd" in hex, unique key for setTag
+    private val webViewConfiguration: WebViewConfiguration = WebViewConfiguration(),
 
     /**
      * Instruments a WebView to capture Core Web Vitals and network requests.
@@ -104,7 +105,7 @@ internal object WebViewCapture {
         val bridgeHandler = WebViewBridgeHandler(loggerImpl, effectiveLogger)
         webview.addJavascriptInterface(bridgeHandler, BRIDGE_NAME)
 
-        injectScript(webview, effectiveLogger)
+        injectScript(webview, effectiveLogger, webViewConfig)
 
         webview.markAsInstrumented()
     }
@@ -142,9 +143,10 @@ internal object WebViewCapture {
     private fun injectScript(
         webview: WebView,
         logger: ILogger?,
+        config: WebViewConfiguration,
     ) {
         runCatching {
-            val script = WebViewBridgeScript.SCRIPT
+            val script = WebViewBridgeScript.getScript(config)
             WebViewCompat.addDocumentStartJavaScript(
                 webview,
                 script,
