@@ -17,10 +17,9 @@ import io.bitdrift.capture.webview.WebViewConfiguration
  * @param enableFatalIssueReporting When set to true wil capture Fatal Issues automatically [JVM crash, ANR, etc] and without requiring
  * any external 3rd party library integration
  * @param sleepMode SleepMode.ENABLED if Capture should initialize in minimal activity mode
- * @param webViewConfiguration The WebView instrumentation configuration. Requires the Gradle plugin
- *                             with `automaticWebViewInstrumentation = true` for instrumentation to work.
- *                             Passing `null` disables WebView monitoring. If the Gradle plugin injected
- *                             bytecode but this is `null`, instrumentation calls will be short-circuited (no-op).
+ * @param webViewConfiguration The WebView instrumentation configuration. Requires the `io.bitdrift.capture-plugin`
+ *                             Gradle plugin with `automaticWebViewInstrumentation = true` enabled.
+ *                             Passing `null` disables WebView monitoring.
 */
 data class Configuration
     @JvmOverloads

@@ -17,9 +17,8 @@ import org.objectweb.asm.MethodVisitor
  * Instrumentable that scans all classes for calls to WebView.loadUrl() and injects
  * WebViewCapture.instrument(webView) before each call.
  *
- * Unlike OkHttp instrumentation which modifies the OkHttpClient class itself,
- * WebView is an Android framework class that cannot be instrumented directly.
- * Instead, we instrument the call sites where WebView.loadUrl() is invoked.
+ * We use bytecode manipulation to automatically capture each WebView instance
+ * at the point where loadUrl() is called, avoiding the need for manual instrumentation.
  */
 class WebViewLoadUrlInstrumentable : ClassInstrumentable {
     override fun isInstrumentable(data: ClassContext): Boolean = true
