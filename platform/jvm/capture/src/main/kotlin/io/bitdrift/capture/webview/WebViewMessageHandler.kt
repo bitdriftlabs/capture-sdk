@@ -61,6 +61,7 @@ internal class WebViewMessageHandler(
         val timestamp = bridgeMessage.timestamp ?: System.currentTimeMillis()
 
         when (type) {
+            "customLog" -> handleCustomLog(bridgeMessage, timestamp)
             "bridgeReady" -> handleBridgeReady(bridgeMessage)
             "webVital" -> handleWebVital(bridgeMessage, timestamp)
             "networkRequest" -> handleNetworkRequest(bridgeMessage, timestamp)
@@ -73,6 +74,36 @@ internal class WebViewMessageHandler(
             "console" -> handleConsole(bridgeMessage, timestamp)
             "promiseRejection" -> handlePromiseRejection(bridgeMessage, timestamp)
             "userInteraction" -> handleUserInteraction(bridgeMessage, timestamp)
+        }
+    }
+
+    private fun handleCustomLog(
+        msg: WebViewBridgeMessage,
+        timestamp: Long,
+    ) {
+        val levelStr = msg.level ?: "debug"
+        val message = msg.message ?: ""
+
+        val fields =
+            buildMap {
+                put("_source", "webview")
+                put("_timestamp", timestamp.toString())
+                msg.extraFields?.forEach { (key, value) ->
+                    put(key, value.toString())
+                }
+            }
+
+        val level =
+            when (levelStr.lowercase()) {
+                "info" -> LogLevel.INFO
+                "warn" -> LogLevel.WARNING
+                "error" -> LogLevel.ERROR
+                "trace" -> LogLevel.TRACE
+                else -> LogLevel.DEBUG
+            }
+
+        logger?.log(level, fields) {
+            message
         }
     }
 

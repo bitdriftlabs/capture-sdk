@@ -7,10 +7,35 @@
 
 import type { MetricType } from 'web-vitals';
 
+type Serializable =
+    | string
+    | number
+    | boolean
+    | bigint
+    | null
+    | undefined
+    | Serializable[]
+    | { [key: string]: Serializable };
+type SerializableLogFields = { [key: string]: Serializable };
+
+export type WebViewInstrumentationConfig = {
+    captureConsole?: boolean;
+    captureErrors?: boolean;
+    capturePromiseRejections?: boolean;
+    captureNetworkRequests?: boolean;
+    captureNavigationEvents?: boolean;
+    capturePageViews?: boolean;
+    captureWebVitals?: boolean;
+    captureLongTasks?: boolean;
+    captureResourceErrors?: boolean;
+    captureUserInteractions?: boolean;
+};
+
 /**
  * Message types sent from JS to native bridge
  */
 export type MessageType =
+    | 'customLog'
     | 'bridgeReady'
     | 'webVital'
     | 'networkRequest'
@@ -24,6 +49,8 @@ export type MessageType =
     | 'promiseRejection'
     | 'userInteraction';
 
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'trace';
+
 /**
  * Base interface for all bridge messages
  */
@@ -35,6 +62,13 @@ export interface BridgeMessage {
     type: MessageType;
     /** Timestamp when the event occurred (ms since epoch) */
     timestamp: number;
+}
+
+export interface CustomLogMessage extends BridgeMessage {
+    type: 'customLog';
+    level: LogLevel;
+    message: string;
+    fields?: SerializableLogFields;
 }
 
 /**
@@ -246,6 +280,7 @@ export interface UserInteractionMessage extends BridgeMessage {
  * Union type of all possible messages
  */
 export type AnyBridgeMessage =
+    | CustomLogMessage
     | BridgeReadyMessage
     | WebVitalMessage
     | NetworkRequestMessage

@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import type { AnyBridgeMessage, BridgeMessage } from './types';
+import type { AnyBridgeMessage, BridgeMessage, CustomLogMessage, WebViewInstrumentationConfig } from './types';
 
 export const pristine = {
     console: {
@@ -42,6 +42,7 @@ declare global {
         };
         // Our global namespace
         bitdrift?: {
+            config?: Partial<WebViewInstrumentationConfig>;
             log: (message: AnyBridgeMessage) => void;
         };
     }
@@ -89,7 +90,29 @@ export const initBridge = (): void => {
     }
 
     window.bitdrift = {
-        log: sendToNative,
+        log: (
+            ...args:
+                | [AnyBridgeMessage]
+                | [CustomLogMessage['level'], CustomLogMessage['message'], CustomLogMessage['fields']]
+        ): void => {
+            if (args.length !== 1 && args.length !== 3) {
+                throw new Error('Invalid arguments to bitdrift.log. Expected 1 or 3 arguments.');
+            }
+
+            let message: AnyBridgeMessage;
+            if (args.length === 1) {
+                message = args[0];
+            } else {
+                const [level, msg, fields] = args;
+                message = createMessage<CustomLogMessage>({
+                    type: 'customLog',
+                    level,
+                    message: msg,
+                    fields,
+                });
+            }
+            sendToNative(message);
+        },
     };
 };
 
@@ -98,7 +121,6 @@ export const initBridge = (): void => {
  */
 export const log = (message: AnyBridgeMessage): void => {
     if (window.bitdrift) {
-        pristine.console.log('[Bitdrift WebView] Logging message via bridge', message);
         window.bitdrift.log(message);
     } else {
         sendToNative(message);
