@@ -8,17 +8,19 @@
 package io.bitdrift.capture.webview
 
 import android.annotation.SuppressLint
-import android.graphics.Bitmap
+import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import io.bitdrift.capture.Capture
+import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import io.bitdrift.capture.providers.ArrayFields
+import io.bitdrift.capture.providers.fieldsOf
 
 /**
  * WebView instrumentation for capturing page load events, performance metrics,
@@ -27,178 +29,135 @@ import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
  * This class injects a JavaScript bridge to capture Core Web Vitals and network requests
  * made from within the web content.
  *
+ *
  * Usage:
  * ```kotlin
  * WebViewCapture.instrument(webView)
  * webView.loadUrl("https://example.com")
  * ```
+ *
+ * **Note:** WebViewCapture.instrument(webView) will be called automatically only if the `io.bitdrift.capture-plugin`
+ *  Gradle plugin must be applied to your project with `automaticWebViewInstrumentation` set to `true`.
  */
-internal class WebViewCapture(
-    private val original: WebViewClient,
-    private val logger: ILogger? = Capture.logger(),
-    private val needsFallbackInjection: Boolean = false,
-) : WebViewClient() {
-    private var bridgeReady = false
-    private var scriptInjected = false
+internal object WebViewCapture {
+    private const val BRIDGE_NAME = "BitdriftLogger"
+    private const val TAG_KEY_INSTRUMENTED = 0x62697464 // "bitd" in hex, unique key for setTag
 
     /**
-     * Marks the bridge as ready. Called from the JavaScript bridge handler.
+     * Instruments a WebView to capture Core Web Vitals and network requests.
+     *
+     * This method is idempotent - calling it multiple times on the same WebView
+     * will only instrument it once.
+     *
+     * This method:
+     * - Enables JavaScript execution
+     * - Injects the Bitdrift JavaScript bridge at document start
+     * - Registers a native interface for receiving bridge messages
+     *
+     * Requirements:
+     * - The Bitdrift SDK must be initialized before calling this method
+     * - WebView monitoring must be enabled in the Capture configuration
+     * - androidx.webkit library must be available
+     * - WebViewFeature.DOCUMENT_START_SCRIPT must be supported
+     *
+     * @param webview The WebView to instrument
+     * @param logger Optional logger instance. If null, uses Capture.logger()
      */
-    internal fun onBridgeReady() {
-        bridgeReady = true
-    }
-
-    override fun onPageStarted(
-        view: WebView?,
-        url: String?,
-        favicon: Bitmap?,
+    @SuppressLint("SetJavaScriptEnabled", "RequiresFeature")
+    @JvmStatic
+    @JvmOverloads
+    fun instrument(
+        webview: WebView,
+        logger: ILogger? = null,
     ) {
-        // Reset injection state for new page loads
-        if (needsFallbackInjection) {
-            scriptInjected = false
+        val effectiveLogger = logger ?: Capture.logger()
+
+        val loggerImpl = effectiveLogger as? LoggerImpl
+        if (loggerImpl == null) {
+            Log.w(
+                LOG_TAG,
+                "WebView instrumentation skipped: SDK still not initialized. " +
+                    "Call Capture.Logger.start() before instrumenting WebViews.",
+            )
+            return
         }
-        original.onPageStarted(view, url, favicon)
+
+        @OptIn(ExperimentalBitdriftApi::class)
+        val webViewConfig = loggerImpl.webViewConfiguration
+        if (webViewConfig == null) {
+            effectiveLogger.log(LogLevel.DEBUG, ArrayFields.EMPTY) {
+                "WebView instrumentation skipped: WebViewConfiguration not provided"
+            }
+            return
+        }
+
+        if (webview.isAlreadyInstrumented()) {
+            return
+        }
+
+        val notSupportedReason = getNotSupportedReason()
+        if (notSupportedReason != null) {
+            effectiveLogger.logInstrumentationNotAvailable(notSupportedReason)
+            return
+        }
+
+        webview.settings.javaScriptEnabled = true
+
+        val bridgeHandler = WebViewBridgeHandler(loggerImpl, effectiveLogger)
+        webview.addJavascriptInterface(bridgeHandler, BRIDGE_NAME)
+
+        injectScript(webview, effectiveLogger)
+
+        webview.markAsInstrumented()
     }
 
-    override fun onPageFinished(
-        view: WebView?,
-        url: String?,
+    private fun isWebkitAvailable(): Boolean =
+        runCatching {
+            Class.forName("androidx.webkit.WebViewFeature")
+        }.isSuccess
+
+    private fun WebView.isAlreadyInstrumented(): Boolean = getTag(TAG_KEY_INSTRUMENTED) == true
+
+    private fun WebView.markAsInstrumented() = setTag(TAG_KEY_INSTRUMENTED, true)
+
+    private fun ILogger.logInstrumentationNotAvailable(message: String) {
+        log(
+            LogLevel.WARNING,
+            fieldsOf("reason" to message),
+        ) {
+            "WebView instrumentation unavailable"
+        }
+    }
+
+    private fun getNotSupportedReason(): String? =
+        if (!isWebkitAvailable()) {
+            "androidx.webkit not available"
+        } else if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            "WebViewFeature.DOCUMENT_START_SCRIPT not supported"
+        } else if (!WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_CLIENT)) {
+            "WebViewFeature.GET_WEB_VIEW_CLIENT not supported"
+        } else {
+            null
+        }
+
+    @SuppressLint("RequiresFeature")
+    private fun injectScript(
+        webview: WebView,
+        logger: ILogger?,
     ) {
-        // Inject script after page load for older WebViews
-        if (needsFallbackInjection && !scriptInjected && view != null) {
-            injectScriptFallback(view)
-            scriptInjected = true
-        }
-        original.onPageFinished(view, url)
-    }
-
-    /**
-     * Injects the bridge script using evaluateJavascript for older WebViews.
-     * This is a fallback for devices that don't support DOCUMENT_START_SCRIPT.
-     * Note: Some early metrics (FCP, TTFB) may be missed with this approach.
-     */
-    private fun injectScriptFallback(webview: WebView) {
-        try {
+        runCatching {
             val script = WebViewBridgeScript.SCRIPT
-            // Wrap in IIFE to avoid polluting global scope and handle re-injection
-            val wrappedScript =
-                "(function() { if (window.__bitdriftBridgeInjected) return; " +
-                    "$script window.__bitdriftBridgeInjected = true; })();"
-            webview.evaluateJavascript(wrappedScript, null)
-        } catch (e: Exception) {
-            logger?.log(LogLevel.WARNING, mapOf("_error" to (e.message ?: ""))) {
-                "Failed to inject WebView bridge script via fallback"
+            WebViewCompat.addDocumentStartJavaScript(
+                webview,
+                script,
+                setOf("*"), // Apply to all frames
+            )
+            logger?.log(LogLevel.DEBUG, ArrayFields.EMPTY) {
+                "WebView bridge script injected successfully"
             }
-        }
-    }
-
-    /**
-     * Companion object for WebViewCapture.
-     */
-    internal companion object {
-        private const val BRIDGE_NAME = "BitdriftLogger"
-        private const val TAG_KEY_INSTRUMENTED = 0x62697464 // "bitd" in hex, unique key for setTag
-
-        private fun isWebkitAvailable(): Boolean = runCatching { Class.forName("androidx.webkit.WebViewFeature") }.isSuccess
-
-        private fun WebView.isAlreadyInstrumented(): Boolean = this.getTag(TAG_KEY_INSTRUMENTED) == true
-
-        private fun WebView.markAsInstrumented() {
-            this.setTag(TAG_KEY_INSTRUMENTED, true)
-        }
-
-        /**
-         * Instruments a WebView to capture Core Web Vitals and network requests.
-         *
-         * This method is idempotent - calling it multiple times on the same WebView
-         * will only instrument it once.
-         *
-         * This method:
-         * - Enables JavaScript execution
-         * - Injects the Bitdrift JavaScript bridge at document start
-         * - Registers a native interface for receiving bridge messages
-         *
-         * Note: This method will short-circuit (no-op) if WebView monitoring is not enabled
-         * in the Capture configuration. To enable WebView monitoring, provide a
-         * [WebViewConfiguration] instance when starting Capture.
-         *
-         * @param webview The WebView to instrument
-         * @param logger Optional logger instance. If null, uses Capture.logger()
-         */
-        @SuppressLint("SetJavaScriptEnabled", "RequiresFeature")
-        @JvmStatic
-        @JvmOverloads
-        fun instrument(
-            webview: WebView,
-            logger: ILogger? = null,
-        ) {
-            val effectiveLogger = logger ?: Capture.logger()
-            val loggerImpl = effectiveLogger as? LoggerImpl ?: return
-
-            @OptIn(ExperimentalBitdriftApi::class)
-            if (loggerImpl.webViewConfiguration == null || webview.isAlreadyInstrumented()) {
-                return
-            }
-
-            if (!isWebkitAvailable()) {
-                effectiveLogger.log(LogLevel.WARNING, emptyMap()) {
-                    "androidx.webkit not available, WebView instrumentation disabled"
-                }
-                return
-            }
-
-            // Check if we need fallback injection (older WebViews)
-            val needsFallback =
-                !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
-
-            // Wrap existing WebViewClient
-            val capture =
-                if (WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_CLIENT)) {
-                    val original = WebViewCompat.getWebViewClient(webview)
-                    WebViewCapture(original, effectiveLogger, needsFallback)
-                } else {
-                    WebViewCapture(WebViewClient(), effectiveLogger, needsFallback)
-                }
-
-            webview.webViewClient = capture
-
-            // Enable JavaScript (required for bridge)
-            webview.settings.javaScriptEnabled = true
-
-            // Register JavaScript interface for receiving bridge messages
-            val bridgeHandler = WebViewBridgeHandler(loggerImpl, effectiveLogger, capture)
-            webview.addJavascriptInterface(bridgeHandler, BRIDGE_NAME)
-
-            // Inject JavaScript at document start for early initialization
-            injectScript(webview, effectiveLogger)
-
-            webview.markAsInstrumented()
-        }
-
-        @SuppressLint("RequiresFeature")
-        private fun injectScript(
-            webview: WebView,
-            logger: ILogger?,
-        ) {
-            if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
-                // Fallback injection will be handled in onPageFinished
-                logger?.log(LogLevel.DEBUG, emptyMap()) {
-                    "WebView DOCUMENT_START_SCRIPT not supported, using onPageFinished fallback"
-                }
-                return
-            }
-
-            runCatching {
-                val script = WebViewBridgeScript.SCRIPT
-                WebViewCompat.addDocumentStartJavaScript(
-                    webview,
-                    script,
-                    setOf("*"), // Apply to all frames
-                )
-            }.getOrElse { error ->
-                logger?.log(LogLevel.WARNING, mapOf("_error" to (error.message ?: ""))) {
-                    "Failed to inject WebView bridge script"
-                }
+        }.getOrElse { error ->
+            logger?.log(LogLevel.WARNING, fieldsOf("_error" to (error.message ?: ""))) {
+                "Failed to inject WebView bridge script"
             }
         }
     }
@@ -210,16 +169,15 @@ internal class WebViewCapture(
 private class WebViewBridgeHandler(
     loggerImpl: LoggerImpl?,
     private val logger: ILogger?,
-    private val capture: WebViewCapture,
 ) {
     private val messageHandler = WebViewMessageHandler(loggerImpl)
 
     @JavascriptInterface
     fun log(message: String) {
         try {
-            messageHandler.handleMessage(message, capture)
+            messageHandler.handleMessage(message)
         } catch (e: Exception) {
-            logger?.log(LogLevel.WARNING, mapOf("_error" to (e.message ?: ""))) {
+            logger?.log(LogLevel.WARNING, fieldsOf("_error" to (e.message ?: ""))) {
                 "Failed to handle WebView bridge message"
             }
         }

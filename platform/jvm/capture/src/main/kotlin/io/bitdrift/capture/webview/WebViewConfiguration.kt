@@ -11,8 +11,8 @@ package io.bitdrift.capture.webview
  * Configuration for WebView instrumentation.
  *
  * **Note:** In order for this configuration to take effect, the `io.bitdrift.capture-plugin`
- * Gradle plugin must be applied to your project and have `automaticWebViewInstrumentation = true`
- * enabled. Without the plugin, this configuration has no effect.
+ * Gradle plugin must be applied to your project with `automaticWebViewInstrumentation` set to `true`.
+ * Without the plugin, this configuration has no effect.
  *
  * When provided to [io.bitdrift.capture.Configuration], enables automatic WebView monitoring including
  * Core Web Vitals, page load events, and network activity capture.
