@@ -89,9 +89,6 @@ internal class WebViewMessageHandler(
                 put("_event", event)
                 put("_source", "webview")
                 put("_timestamp", timestamp.toString())
-                msg.details?.forEach { (key, value) ->
-                    put(key, value.toString())
-                }
             }
 
         logger?.log(LogType.INTERNALSDK, LogLevel.DEBUG, fields.toFields()) {
