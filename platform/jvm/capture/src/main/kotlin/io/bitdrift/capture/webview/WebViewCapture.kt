@@ -85,9 +85,7 @@ internal object WebViewCapture {
         @OptIn(ExperimentalBitdriftApi::class)
         val webViewConfig = loggerImpl.webViewConfiguration
         if (webViewConfig == null) {
-            effectiveLogger.log(LogLevel.DEBUG, ArrayFields.EMPTY) {
-                "WebView instrumentation skipped: WebViewConfiguration not provided"
-            }
+            effectiveLogger.logInstrumentationNotInitialized("WebViewConfiguration not provided")
             return
         }
 
@@ -97,7 +95,7 @@ internal object WebViewCapture {
 
         val notSupportedReason = getNotSupportedReason()
         if (notSupportedReason != null) {
-            effectiveLogger.logInstrumentationNotAvailable(notSupportedReason)
+            effectiveLogger.logInstrumentationNotInitialized(notSupportedReason)
             return
         }
 
@@ -120,12 +118,12 @@ internal object WebViewCapture {
 
     private fun WebView.markAsInstrumented() = setTag(TAG_KEY_INSTRUMENTED, true)
 
-    private fun ILogger.logInstrumentationNotAvailable(message: String) {
+    private fun ILogger.logInstrumentationNotInitialized(reason: String) {
         log(
             LogLevel.WARNING,
-            fieldsOf("reason" to message),
+            fieldsOf("reason" to reason),
         ) {
-            "WebView instrumentation unavailable"
+            "webview.notInitialized"
         }
     }
 
