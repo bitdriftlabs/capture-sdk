@@ -70,42 +70,42 @@ class WebViewSettingsDialog(
         var monitoringEnabled by remember {
             mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_MONITORING_ENABLED_KEY, false))
         }
-        var enableConsoleLogs by remember {
+        var captureConsoleLogs by remember {
             mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_CONSOLE_LOGS_KEY, false))
         }
-        var enableErrors by remember {
+        var captureErrors by remember {
             mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_ERRORS_KEY, false))
         }
-        var enableNetworkRequests by remember {
+        var captureNetworkRequests by remember {
             mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY, false))
         }
-        var enableNavigationEvents by remember {
+        var captureNavigationEvents by remember {
             mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY, false))
         }
-        var enablePageViews by remember {
+        var capturePageViews by remember {
             mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_PAGE_VIEWS_KEY, false))
         }
-        var enableWebVitals by remember {
+        var captureWebVitals by remember {
             mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_WEB_VITALS_KEY, false))
         }
-        var enableLongTasks by remember {
+        var captureLongTasks by remember {
             mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_LONG_TASKS_KEY, false))
         }
-        var enableUserInteractions by remember {
+        var captureUserInteractions by remember {
             mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_USER_INTERACTIONS_KEY, false))
         }
 
         fun persistSettingsAndDismiss() {
             with(sharedPreferences.edit()) {
                 putBoolean(WEBVIEW_MONITORING_ENABLED_KEY, monitoringEnabled)
-                putBoolean(WEBVIEW_ENABLE_CONSOLE_LOGS_KEY, enableConsoleLogs)
-                putBoolean(WEBVIEW_ENABLE_ERRORS_KEY, enableErrors)
-                putBoolean(WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY, enableNetworkRequests)
-                putBoolean(WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY, enableNavigationEvents)
-                putBoolean(WEBVIEW_ENABLE_PAGE_VIEWS_KEY, enablePageViews)
-                putBoolean(WEBVIEW_ENABLE_WEB_VITALS_KEY, enableWebVitals)
-                putBoolean(WEBVIEW_ENABLE_LONG_TASKS_KEY, enableLongTasks)
-                putBoolean(WEBVIEW_ENABLE_USER_INTERACTIONS_KEY, enableUserInteractions)
+                putBoolean(WEBVIEW_ENABLE_CONSOLE_LOGS_KEY, captureConsoleLogs)
+                putBoolean(WEBVIEW_ENABLE_ERRORS_KEY, captureErrors)
+                putBoolean(WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY, captureNetworkRequests)
+                putBoolean(WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY, captureNavigationEvents)
+                putBoolean(WEBVIEW_ENABLE_PAGE_VIEWS_KEY, capturePageViews)
+                putBoolean(WEBVIEW_ENABLE_WEB_VITALS_KEY, captureWebVitals)
+                putBoolean(WEBVIEW_ENABLE_LONG_TASKS_KEY, captureLongTasks)
+                putBoolean(WEBVIEW_ENABLE_USER_INTERACTIONS_KEY, captureUserInteractions)
                 apply()
             }
             onDismiss()
@@ -150,57 +150,57 @@ class WebViewSettingsDialog(
                         SettingsSwitchRow(
                             label = "Console Logs",
                             description = "Capture console.log/warn/error",
-                            checked = enableConsoleLogs,
-                            onCheckedChange = { enableConsoleLogs = it },
+                            checked = captureConsoleLogs,
+                            onCheckedChange = { captureConsoleLogs = it },
                         )
 
                         SettingsSwitchRow(
                             label = "Errors",
                             description = "Capture JS errors and resource failures",
-                            checked = enableErrors,
-                            onCheckedChange = { enableErrors = it },
+                            checked = captureErrors,
+                            onCheckedChange = { captureErrors = it },
                         )
 
                         SettingsSwitchRow(
                             label = "Network Requests",
                             description = "Capture fetch/XHR requests",
-                            checked = enableNetworkRequests,
-                            onCheckedChange = { enableNetworkRequests = it },
+                            checked = captureNetworkRequests,
+                            onCheckedChange = { captureNetworkRequests = it },
                         )
 
                         SettingsSwitchRow(
                             label = "Navigation Events",
                             description = "Capture navigation timing",
-                            checked = enableNavigationEvents,
-                            onCheckedChange = { enableNavigationEvents = it },
+                            checked = captureNavigationEvents,
+                            onCheckedChange = { captureNavigationEvents = it },
                         )
 
                         SettingsSwitchRow(
                             label = "Page Views",
                             description = "Capture page view spans",
-                            checked = enablePageViews,
-                            onCheckedChange = { enablePageViews = it },
+                            checked = capturePageViews,
+                            onCheckedChange = { capturePageViews = it },
                         )
 
                         SettingsSwitchRow(
                             label = "Web Vitals",
                             description = "Capture CLS, FCP, LCP, etc.",
-                            checked = enableWebVitals,
-                            onCheckedChange = { enableWebVitals = it },
+                            checked = captureWebVitals,
+                            onCheckedChange = { captureWebVitals = it },
                         )
 
                         SettingsSwitchRow(
                             label = "Long Tasks",
                             description = "Capture tasks >50ms",
-                            checked = enableLongTasks,
-                            onCheckedChange = { enableLongTasks = it },
+                            checked = captureLongTasks,
+                            onCheckedChange = { captureLongTasks = it },
                         )
 
                         SettingsSwitchRow(
                             label = "User Interactions",
                             description = "Capture clicks and taps",
-                            checked = enableUserInteractions,
-                            onCheckedChange = { enableUserInteractions = it },
+                            checked = captureUserInteractions,
+                            onCheckedChange = { captureUserInteractions = it },
                         )
                     }
                 }
@@ -272,13 +272,13 @@ class WebViewSettingsDialog(
 
     companion object {
         const val WEBVIEW_MONITORING_ENABLED_KEY = "webview_monitoring_enabled"
-        const val WEBVIEW_ENABLE_CONSOLE_LOGS_KEY = "webview_enable_console_logs"
-        const val WEBVIEW_ENABLE_ERRORS_KEY = "webview_enable_errors"
-        const val WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY = "webview_enable_network_requests"
-        const val WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY = "webview_enable_navigation_events"
-        const val WEBVIEW_ENABLE_PAGE_VIEWS_KEY = "webview_enable_page_views"
-        const val WEBVIEW_ENABLE_WEB_VITALS_KEY = "webview_enable_web_vitals"
-        const val WEBVIEW_ENABLE_LONG_TASKS_KEY = "webview_enable_long_tasks"
-        const val WEBVIEW_ENABLE_USER_INTERACTIONS_KEY = "webview_enable_user_interactions"
+        const val WEBVIEW_ENABLE_CONSOLE_LOGS_KEY = "webview_capture_console_logs"
+        const val WEBVIEW_ENABLE_ERRORS_KEY = "webview_capture_errors"
+        const val WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY = "webview_capture_network_requests"
+        const val WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY = "webview_capture_navigation_events"
+        const val WEBVIEW_ENABLE_PAGE_VIEWS_KEY = "webview_capture_page_views"
+        const val WEBVIEW_ENABLE_WEB_VITALS_KEY = "webview_capture_web_vitals"
+        const val WEBVIEW_ENABLE_LONG_TASKS_KEY = "webview_capture_long_tasks"
+        const val WEBVIEW_ENABLE_USER_INTERACTIONS_KEY = "webview_capture_user_interactions"
     }
 }
