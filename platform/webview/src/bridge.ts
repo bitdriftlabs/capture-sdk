@@ -54,11 +54,12 @@ const sendToNative = (message: AnyBridgeMessage): void => {
  */
 export const initBridge = (): void => {
     // Avoid re-initialization
-    if (window.bitdrift) {
+    if (window.bitdrift?.log) {
         return;
     }
 
     window.bitdrift = {
+        config: window.bitdrift?.config,
         log: (
             ...args:
                 | [AnyBridgeMessage]
