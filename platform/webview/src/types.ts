@@ -73,6 +73,7 @@ export interface BridgeReadyMessage extends BridgeMessage {
     type: 'bridgeReady';
     /** URL of the page being loaded */
     url: string;
+    instrumentationConfig: WebViewInstrumentationConfig | undefined;
 }
 
 /**

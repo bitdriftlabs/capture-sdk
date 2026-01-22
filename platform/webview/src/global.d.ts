@@ -14,7 +14,7 @@ interface IOSBridge {
 }
 
 type WebViewInstrumentationConfig = {
-    captureConsole?: boolean;
+    captureConsoleLogs?: boolean;
     captureErrors?: boolean;
     captureNetworkRequests?: boolean;
     captureNavigationEvents?: boolean;

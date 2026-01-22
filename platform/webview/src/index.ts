@@ -37,6 +37,7 @@ const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']
         createMessage<BridgeReadyMessage>({
             type: 'bridgeReady',
             url: window.location.href,
+            instrumentationConfig: window.bitdrift.config,
         }),
     );
 
@@ -88,12 +89,12 @@ const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']
             }),
         );
     }
-    if (window.bitdrift.config?.captureConsole) {
+    if (window.bitdrift.config?.captureConsoleLogs) {
         initConsoleCapture();
         log(
             createMessage<InternalAutoInstrumentationMessage>({
                 type: 'internalAutoInstrumentation',
-                event: 'captureConsole',
+                event: 'captureConsoleLogs',
             }),
         );
     }

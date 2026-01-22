@@ -126,10 +126,18 @@ internal class WebViewMessageHandler(
         }
     }
 
-    private fun handleBridgeReady(msg: WebViewBridgeMessage) {
-        val url = msg.url ?: ""
-        val fields = mutableMapOf("_url" to url)
-        fields["_source"] = "webview"
+    private fun handleBridgeReady(
+        msg: WebViewBridgeMessage,
+        capture: WebViewCapture,
+    ) {
+        capture.onBridgeReady()
+
+        val fields =
+            buildMap {
+                put("_source", "webview")
+                put("_url", msg.url ?: "")
+                put("_config", msg.instrumentationConfig?.toString() ?: "")
+            }
         logger?.log(LogLevel.DEBUG, fields) {
             "webview.initialized"
         }

@@ -20,6 +20,7 @@ internal data class WebViewBridgeMessage(
     @SerializedName("timestamp") val timestamp: Long? = null,
     // bridgeReady
     @SerializedName("url") val url: String? = null,
+    @SerializedName("instrumentationConfig") val instrumentationConfig: Map<String, Any>? = null,
     // webVital
     @SerializedName("metric") val metric: WebVitalMetric? = null,
     @SerializedName("parentSpanId") val parentSpanId: String? = null,

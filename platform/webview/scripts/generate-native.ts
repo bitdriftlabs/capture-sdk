@@ -86,7 +86,7 @@ ${escapeForKotlin(beforePlaceholder)}"""
     fun getScript(config: WebViewConfiguration): String {
         val configJson =
             JSONObject().apply {
-                put("captureConsole", config.captureConsoleLogs)
+                put("captureConsoleLogs", config.captureConsoleLogs)
                 put("captureErrors", config.captureErrors)
                 put("captureNetworkRequests", config.captureNetworkRequests)
                 put("captureNavigationEvents", config.captureNavigationEvents)
