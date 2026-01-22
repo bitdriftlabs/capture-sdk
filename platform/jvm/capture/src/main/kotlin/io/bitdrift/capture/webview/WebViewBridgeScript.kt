@@ -37,14 +37,14 @@ internal object WebViewBridgeScript {
     fun getScript(config: WebViewConfiguration): String {
         val configJson =
             JSONObject().apply {
-                put("captureConsole", config.captureConsoleLog)
-                put("captureErrors", true)
-                put("captureNetworkRequests", true)
-                put("captureNavigationEvents", true)
-                put("capturePageViews", true)
-                put("captureWebVitals", true)
-                put("captureLongTasks", true)
-                put("captureUserInteractions", true)
+                put("captureConsole", config.captureConsoleLogs)
+                put("captureErrors", config.captureErrors)
+                put("captureNetworkRequests", config.captureNetworkRequests)
+                put("captureNavigationEvents", config.captureNavigationEvents)
+                put("capturePageViews", config.capturePageViews)
+                put("captureWebVitals", config.captureWebVitals)
+                put("captureLongTasks", config.captureLongTasks)
+                put("captureUserInteractions", config.captureUserInteractions)
             }
         return SCRIPT_PREFIX + configJson.toString() + SCRIPT_SUFFIX
     }
