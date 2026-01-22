@@ -7,6 +7,9 @@
 
 package io.bitdrift.capture.webview
 
+import io.bitdrift.capture.providers.ArrayFields
+import io.bitdrift.capture.providers.fieldsOf
+
 /**
  * Configuration for WebView instrumentation.
  *
@@ -41,4 +44,16 @@ data class WebViewConfiguration
         val captureConsoleLogs: Boolean = false,
         val captureUserInteractions: Boolean = false,
         val captureErrors: Boolean = false,
+    )
+
+internal fun WebViewConfiguration.toLogFields(): ArrayFields =
+    fieldsOf(
+        "_webview_capture_page_views" to capturePageViews.toString(),
+        "_webview_capture_network_requests" to captureNetworkRequests.toString(),
+        "_webview_capture_navigation_events" to captureNavigationEvents.toString(),
+        "_webview_capture_web_vitals" to captureWebVitals.toString(),
+        "_webview_capture_long_tasks" to captureLongTasks.toString(),
+        "_webview_capture_console_logs" to captureConsoleLogs.toString(),
+        "_webview_capture_user_interactions" to captureUserInteractions.toString(),
+        "_webview_capture_errors" to captureErrors.toString(),
     )

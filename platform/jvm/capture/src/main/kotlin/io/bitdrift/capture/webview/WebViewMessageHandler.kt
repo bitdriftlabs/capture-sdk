@@ -19,6 +19,9 @@ import io.bitdrift.capture.network.HttpRequestMetrics
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
+import io.bitdrift.capture.providers.combineFields
+import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.providers.fieldsOfOptional
 import io.bitdrift.capture.providers.toFields
 import org.json.JSONObject
 import java.net.URI
@@ -127,19 +130,15 @@ internal class WebViewMessageHandler(
         }
     }
 
-    private fun handleBridgeReady(
-        msg: WebViewBridgeMessage,
-        capture: WebViewCapture,
-    ) {
-        capture.onBridgeReady()
+    private fun handleBridgeReady(msg: WebViewBridgeMessage) {
+        val baseFields = fieldsOf("_source" to "webview")
+        val optionalFields =
+            fieldsOfOptional(
+                "_url" to msg.url,
+                "_config" to msg.instrumentationConfig?.let { JSONObject(it).toString() },
+            )
 
-        val fields =
-            buildMap {
-                put("_source", "webview")
-                put("_url", msg.url ?: "")
-                put("_config", msg.instrumentationConfig?.let { JSONObject(it).toString() } ?: "null")
-            }
-        logger?.log(LogLevel.DEBUG, fields) {
+        logger?.log(LogLevel.DEBUG, combineFields(baseFields, optionalFields)) {
             "webview.initialized"
         }
     }
