@@ -36,18 +36,5 @@ internal object WebViewBridgeScript {
      * @param config The WebView instrumentation configuration
      * @return The complete JavaScript bundle with config injected
      */
-    fun getScript(config: WebViewConfiguration): String {
-        val configJson =
-            JSONObject().apply {
-                put("captureConsoleLogs", config.captureConsoleLogs)
-                put("captureErrors", config.captureErrors)
-                put("captureNetworkRequests", config.captureNetworkRequests)
-                put("captureNavigationEvents", config.captureNavigationEvents)
-                put("capturePageViews", config.capturePageViews)
-                put("captureWebVitals", config.captureWebVitals)
-                put("captureLongTasks", config.captureLongTasks)
-                put("captureUserInteractions", config.captureUserInteractions)
-            }
-        return SCRIPT_PREFIX + configJson.toString() + SCRIPT_SUFFIX
-    }
+    fun getScript(config: WebViewConfiguration): String = SCRIPT_PREFIX + config.toJson() + SCRIPT_SUFFIX
 }
