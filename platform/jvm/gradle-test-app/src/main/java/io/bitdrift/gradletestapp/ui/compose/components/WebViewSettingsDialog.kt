@@ -7,6 +7,7 @@
 
 package io.bitdrift.gradletestapp.ui.compose.components
 
+import android.annotation.SuppressLint
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -29,6 +30,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,38 +64,24 @@ class WebViewSettingsDialog(
             }
         }
 
+    private fun SharedPreferences.getStateOf(keyName: String): MutableState<Boolean> =
+        mutableStateOf(getBoolean(keyName, false))
+
+    @SuppressLint("NotConstructor")
     @Composable
     fun WebViewSettingsDialog(
         onDismiss: () -> Unit,
         sharedPreferences: SharedPreferences,
     ) {
-        var monitoringEnabled by remember {
-            mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_MONITORING_ENABLED_KEY, false))
-        }
-        var captureConsoleLogs by remember {
-            mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_CONSOLE_LOGS_KEY, false))
-        }
-        var captureErrors by remember {
-            mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_ERRORS_KEY, false))
-        }
-        var captureNetworkRequests by remember {
-            mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY, false))
-        }
-        var captureNavigationEvents by remember {
-            mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY, false))
-        }
-        var capturePageViews by remember {
-            mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_PAGE_VIEWS_KEY, false))
-        }
-        var captureWebVitals by remember {
-            mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_WEB_VITALS_KEY, false))
-        }
-        var captureLongTasks by remember {
-            mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_LONG_TASKS_KEY, false))
-        }
-        var captureUserInteractions by remember {
-            mutableStateOf(sharedPreferences.getBoolean(WEBVIEW_ENABLE_USER_INTERACTIONS_KEY, false))
-        }
+        var monitoringEnabled by remember { sharedPreferences.getStateOf( WEBVIEW_MONITORING_ENABLED_KEY) }
+        var captureConsoleLogs by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_CONSOLE_LOGS_KEY) }
+        var captureErrors by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_ERRORS_KEY) }
+        var captureNetworkRequests by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY) }
+        var captureNavigationEvents by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY) }
+        var capturePageViews by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_PAGE_VIEWS_KEY) }
+        var captureWebVitals by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_WEB_VITALS_KEY) }
+        var captureLongTasks by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_LONG_TASKS_KEY) }
+        var captureUserInteractions by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_USER_INTERACTIONS_KEY) }
 
         fun persistSettingsAndDismiss() {
             with(sharedPreferences.edit()) {

@@ -21,6 +21,15 @@ import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.capture.webview.WebViewConfiguration
 import io.bitdrift.gradletestapp.BuildConfig
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_CONSOLE_LOGS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_ERRORS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_LONG_TASKS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_PAGE_VIEWS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_USER_INTERACTIONS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_WEB_VITALS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_MONITORING_ENABLED_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
 import okhttp3.HttpUrl
@@ -131,6 +140,10 @@ object BitdriftInit {
         return SdkConfigResult.Success(captureSdkInitSettings)
     }
 
+    private fun SharedPreferences.getPersistedFlag(keyName: String): Boolean = getBoolean(
+        keyName,
+        false)
+    
     private fun getSessionStrategy(sharedPreferences: SharedPreferences): SessionStrategy =
         if (sharedPreferences.getString(
                 ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY,
@@ -147,47 +160,27 @@ object BitdriftInit {
             )
         }
 
-    private fun getWebViewConfiguration(sharedPreferences: SharedPreferences): WebViewConfiguration? {
-        val isEnabled = sharedPreferences.getBoolean(
-            WebViewSettingsDialog.WEBVIEW_MONITORING_ENABLED_KEY,
-            false,
-        )
-        if (!isEnabled) {
+    private fun getWebViewConfiguration(sharedPrefs: SharedPreferences): WebViewConfiguration? {
+        if (!sharedPrefs.getBoolean(WEBVIEW_MONITORING_ENABLED_KEY, false)
+        ) {
             return null
         }
+
         @OptIn(ExperimentalBitdriftApi::class)
         return WebViewConfiguration(
-            enableConsoleLogs = sharedPreferences.getBoolean(
-                WebViewSettingsDialog.WEBVIEW_ENABLE_CONSOLE_LOGS_KEY,
-                false,
+            captureConsoleLogs = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_CONSOLE_LOGS_KEY),
+            captureErrors = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_ERRORS_KEY),
+            captureNetworkRequests = sharedPrefs.getPersistedFlag(
+                WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY
             ),
-            enableErrors = sharedPreferences.getBoolean(
-                WebViewSettingsDialog.WEBVIEW_ENABLE_ERRORS_KEY,
-                false,
+            captureNavigationEvents = sharedPrefs.getPersistedFlag(
+                WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY
             ),
-            enableNetworkRequests = sharedPreferences.getBoolean(
-                WebViewSettingsDialog.WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY,
-                false,
-            ),
-            enableNavigationEvents = sharedPreferences.getBoolean(
-                WebViewSettingsDialog.WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY,
-                false,
-            ),
-            enablePageViews = sharedPreferences.getBoolean(
-                WebViewSettingsDialog.WEBVIEW_ENABLE_PAGE_VIEWS_KEY,
-                false,
-            ),
-            enableWebVitals = sharedPreferences.getBoolean(
-                WebViewSettingsDialog.WEBVIEW_ENABLE_WEB_VITALS_KEY,
-                false,
-            ),
-            enableLongTasks = sharedPreferences.getBoolean(
-                WebViewSettingsDialog.WEBVIEW_ENABLE_LONG_TASKS_KEY,
-                false,
-            ),
-            enableUserInteractions = sharedPreferences.getBoolean(
-                WebViewSettingsDialog.WEBVIEW_ENABLE_USER_INTERACTIONS_KEY,
-                false,
+            capturePageViews = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_PAGE_VIEWS_KEY),
+            captureWebVitals = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_WEB_VITALS_KEY),
+            captureLongTasks = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_LONG_TASKS_KEY),
+            captureUserInteractions = sharedPrefs.getPersistedFlag(
+                WEBVIEW_ENABLE_USER_INTERACTIONS_KEY
             ),
         )
     }
