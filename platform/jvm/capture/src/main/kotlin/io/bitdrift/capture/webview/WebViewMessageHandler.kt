@@ -110,7 +110,7 @@ internal class WebViewMessageHandler(
             buildMap {
                 put("_source", "webview")
                 put("_timestamp", timestamp.toString())
-                msg.extraFields?.forEach { (key, value) ->
+                msg.fields?.forEach { (key, value) ->
                     put(key, value.toString())
                 }
             }
