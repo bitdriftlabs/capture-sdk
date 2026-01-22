@@ -104,7 +104,7 @@ internal object WebViewCapture {
         val bridgeHandler = WebViewBridgeHandler(loggerImpl, effectiveLogger)
         webview.addJavascriptInterface(bridgeHandler, BRIDGE_NAME)
 
-        injectScript(webview, effectiveLogger)
+        injectScript(webview, effectiveLogger, webViewConfig)
 
         webview.markAsInstrumented()
     }
@@ -142,9 +142,10 @@ internal object WebViewCapture {
     private fun injectScript(
         webview: WebView,
         logger: ILogger?,
+        config: WebViewConfiguration,
     ) {
         runCatching {
-            val script = WebViewBridgeScript.SCRIPT
+            val script = WebViewBridgeScript.getScript(config)
             WebViewCompat.addDocumentStartJavaScript(
                 webview,
                 script,
