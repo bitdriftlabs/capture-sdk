@@ -47,17 +47,17 @@ data class WebViewConfiguration
         val captureErrors: Boolean = false,
     )
 
-internal fun WebViewConfiguration.toLogFields(): ArrayFields =
-    fieldsOf("_webview_monitoring_enabled" to this.toJson())
-internal fun WebViewConfiguration.toJson(): String =
-    JSONObject().apply {
-        put("captureConsoleLogs", captureConsoleLogs)
-        put("captureErrors", captureErrors)
-        put("captureNetworkRequests", captureNetworkRequests)
-        put("captureNavigationEvents", captureNavigationEvents)
-        put("capturePageViews", capturePageViews)
-        put("captureWebVitals", captureWebVitals)
-        put("captureLongTasks", captureLongTasks)
-        put("captureUserInteractions", captureUserInteractions)
-    }.toString()
+internal fun WebViewConfiguration.toLogFields(): ArrayFields = fieldsOf("_webview_monitoring_enabled" to this.toJson())
 
+internal fun WebViewConfiguration.toJson(): String =
+    JSONObject()
+        .apply {
+            put("captureConsoleLogs", captureConsoleLogs)
+            put("captureErrors", captureErrors)
+            put("captureNetworkRequests", captureNetworkRequests)
+            put("captureNavigationEvents", captureNavigationEvents)
+            put("capturePageViews", capturePageViews)
+            put("captureWebVitals", captureWebVitals)
+            put("captureLongTasks", captureLongTasks)
+            put("captureUserInteractions", captureUserInteractions)
+        }.toString()
