@@ -45,6 +45,7 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.providers.fieldsOfOptional
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
@@ -598,18 +599,22 @@ internal class LoggerImpl(
                     "_session_replay_enabled" to isSessionReplayEnabled.toString(),
                     "_webview_monitoring_enabled" to isWebViewMonitoringEnabled.toString(),
                 )
-            val webViewConfigurationFields =
-                if (isWebViewMonitoringEnabled) {
-                    fieldsOf("_webview_configuration" to webViewConfiguration.toString())
-                } else {
-                    emptyArray()
-                }
+            val webViewConfigurationFields = fieldsOfOptional(
+                "_webview_capture_page_views" to webViewConfiguration?.capturePageViews.toString()
+                "_webview_capture_network_requests" to webViewConfiguration?.captureNetworkRequests.toString()
+                "_webview_capture_navigation_events" to webViewConfiguration?.captureNavigationEvents.toString()
+                "_webview_capture_web_vitals" to webViewConfiguration?.captureWebVitals.toString()
+                "_webview_capture_long_tasks" to webViewConfiguration?.captureLongTasks.toString()
+                "_webview_capture_console_logs" to webViewConfiguration?.captureConsoleLogs.toString()
+                "_webview_capture_user_interactions" to webViewConfiguration?.captureUserInteractions.toString()
+                "_webview_capture_errors" to webViewConfiguration?.captureErrors.toString()
+            )
             val fatalIssueFields =
                 (
                     issueReporter?.getLogStatusFieldsMap()
                         ?: IssueReporter.getDisabledStatusFieldsMap()
                 ).toFields()
-            val sdkStartFields = combineFields(baseFields, combineFields(webViewConfigurationFields, fatalIssueFields))
+            val sdkStartFields = combineFields(baseFields, webViewConfigurationFields, fatalIssueFields)
 
             CaptureJniLibrary.writeSDKStartLog(
                 this.loggerId,
