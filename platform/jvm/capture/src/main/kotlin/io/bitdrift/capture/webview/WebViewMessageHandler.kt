@@ -38,10 +38,7 @@ internal class WebViewMessageHandler(
     private var currentPageSpanId: String? = null
     private val activePageViewSpans = mutableMapOf<String, Span>()
 
-    fun handleMessage(
-        message: String,
-        capture: WebViewCapture,
-    ) {
+    fun handleMessage(message: String) {
         val bridgeMessage =
             try {
                 gson.fromJson(message, WebViewBridgeMessage::class.java)
@@ -64,7 +61,7 @@ internal class WebViewMessageHandler(
         val timestamp = bridgeMessage.timestamp ?: System.currentTimeMillis()
 
         when (type) {
-            "bridgeReady" -> handleBridgeReady(bridgeMessage, capture)
+            "bridgeReady" -> handleBridgeReady(bridgeMessage)
             "webVital" -> handleWebVital(bridgeMessage, timestamp)
             "networkRequest" -> handleNetworkRequest(bridgeMessage, timestamp)
             "navigation" -> handleNavigation(bridgeMessage, timestamp)
@@ -79,12 +76,7 @@ internal class WebViewMessageHandler(
         }
     }
 
-    private fun handleBridgeReady(
-        msg: WebViewBridgeMessage,
-        capture: WebViewCapture,
-    ) {
-        capture.onBridgeReady()
-
+    private fun handleBridgeReady(msg: WebViewBridgeMessage) {
         val url = msg.url ?: ""
         val fields = mutableMapOf("_url" to url)
         fields["_source"] = "webview"
