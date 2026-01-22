@@ -597,6 +597,8 @@ internal class LoggerImpl(
                         sdkConfiguredDuration.loggerImplBuildDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
                     "_session_replay_enabled" to isSessionReplayEnabled.toString(),
                     "_webview_monitoring_enabled" to isWebViewMonitoringEnabled.toString(),
+                    "_webview_configuration" to
+                        (webViewConfiguration?.toString() ?: "null"),
                 )
             val fatalIssueFields =
                 (
