@@ -18,6 +18,8 @@ type Serializable =
     | { [key: string]: Serializable };
 type SerializableLogFields = { [key: string]: Serializable };
 
+type WebViewInstrumentationConfig = Exclude<Exclude<typeof window.bitdrift, undefined>['config'], undefined>;
+
 /**
  * Message types sent from JS to native bridge
  */
@@ -34,7 +36,8 @@ export type MessageType =
     | 'resourceError'
     | 'console'
     | 'promiseRejection'
-    | 'userInteraction';
+    | 'userInteraction'
+    | 'internalAutoInstrumentation';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'trace';
 
@@ -49,6 +52,11 @@ export interface BridgeMessage {
     type: MessageType;
     /** Timestamp when the event occurred (ms since epoch) */
     timestamp: number;
+}
+
+export interface InternalAutoInstrumentationMessage extends BridgeMessage {
+    type: 'internalAutoInstrumentation';
+    event: keyof WebViewInstrumentationConfig;
 }
 
 export interface CustomLogMessage extends BridgeMessage {
@@ -279,4 +287,5 @@ export type AnyBridgeMessage =
     | ResourceErrorMessage
     | ConsoleMessage
     | PromiseRejectionMessage
-    | UserInteractionMessage;
+    | UserInteractionMessage
+    | InternalAutoInstrumentationMessage;

@@ -74,6 +74,28 @@ internal class WebViewMessageHandler(
             "console" -> handleConsole(bridgeMessage, timestamp)
             "promiseRejection" -> handlePromiseRejection(bridgeMessage, timestamp)
             "userInteraction" -> handleUserInteraction(bridgeMessage, timestamp)
+            "internalAutoInstrumentation" -> handleInternalAutoInstrumentation(bridgeMessage, timestamp)
+        }
+    }
+
+    private fun handleInternalAutoInstrumentation(
+        msg: WebViewBridgeMessage,
+        timestamp: Long,
+    ) {
+        val event = msg.event ?: return
+
+        val fields =
+            buildMap {
+                put("_event", event)
+                put("_source", "webview")
+                put("_timestamp", timestamp.toString())
+                msg.details?.forEach { (key, value) ->
+                    put(key, value.toString())
+                }
+            }
+
+        logger?.log(LogType.INTERNALSDK, LogLevel.DEBUG, fields.toFields()) {
+            "[WebView] instrumented $event"
         }
     }
 
