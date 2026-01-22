@@ -599,16 +599,17 @@ internal class LoggerImpl(
                     "_session_replay_enabled" to isSessionReplayEnabled.toString(),
                     "_webview_monitoring_enabled" to isWebViewMonitoringEnabled.toString(),
                 )
-            val webViewConfigurationFields = fieldsOfOptional(
-                "_webview_capture_page_views" to webViewConfiguration?.capturePageViews.toString()
-                "_webview_capture_network_requests" to webViewConfiguration?.captureNetworkRequests.toString()
-                "_webview_capture_navigation_events" to webViewConfiguration?.captureNavigationEvents.toString()
-                "_webview_capture_web_vitals" to webViewConfiguration?.captureWebVitals.toString()
-                "_webview_capture_long_tasks" to webViewConfiguration?.captureLongTasks.toString()
-                "_webview_capture_console_logs" to webViewConfiguration?.captureConsoleLogs.toString()
-                "_webview_capture_user_interactions" to webViewConfiguration?.captureUserInteractions.toString()
-                "_webview_capture_errors" to webViewConfiguration?.captureErrors.toString()
-            )
+            val webViewConfigurationFields =
+                fieldsOfOptional(
+                    "_webview_capture_page_views" to webViewConfiguration?.capturePageViews.toString(),
+                    "_webview_capture_network_requests" to webViewConfiguration?.captureNetworkRequests.toString(),
+                    "_webview_capture_navigation_events" to webViewConfiguration?.captureNavigationEvents.toString(),
+                    "_webview_capture_web_vitals" to webViewConfiguration?.captureWebVitals.toString(),
+                    "_webview_capture_long_tasks" to webViewConfiguration?.captureLongTasks.toString(),
+                    "_webview_capture_console_logs" to webViewConfiguration?.captureConsoleLogs.toString(),
+                    "_webview_capture_user_interactions" to webViewConfiguration?.captureUserInteractions.toString(),
+                    "_webview_capture_errors" to webViewConfiguration?.captureErrors.toString(),
+                )
             val fatalIssueFields =
                 (
                     issueReporter?.getLogStatusFieldsMap()
