@@ -605,8 +605,8 @@ internal class LoggerImpl(
                         ?: IssueReporter.getDisabledStatusFieldsMap()
                 ).toFields()
             val webViewConfigurationFields = webViewConfiguration?.toLogFields() ?: ArrayFields.EMPTY
-            val sdkStartFields = combineFields(baseFields, fatalIssueFields, webViewConfigurationFields)
 
+            val sdkStartFields = combineFields(baseFields, fatalIssueFields, webViewConfigurationFields)
             CaptureJniLibrary.writeSDKStartLog(
                 this.loggerId,
                 sdkStartFields.toLegacyJniFields(),
