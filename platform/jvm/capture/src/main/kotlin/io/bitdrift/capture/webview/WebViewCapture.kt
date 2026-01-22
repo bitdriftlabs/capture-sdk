@@ -42,7 +42,6 @@ import io.bitdrift.capture.providers.fieldsOf
 internal object WebViewCapture {
     private const val BRIDGE_NAME = "BitdriftLogger"
     private const val TAG_KEY_INSTRUMENTED = 0x62697464 // "bitd" in hex, unique key for setTag
-    private val webViewConfiguration: WebViewConfiguration = WebViewConfiguration(),
 
     /**
      * Instruments a WebView to capture Core Web Vitals and network requests.
