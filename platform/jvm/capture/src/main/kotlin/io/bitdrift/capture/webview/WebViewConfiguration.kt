@@ -21,14 +21,24 @@ package io.bitdrift.capture.webview
  * is disabled and any bytecode instrumentation injected by the Gradle plugin will be
  * short-circuited (no-op).
  *
- * @param captureConsoleLog Whether to capture JavaScript console.log/warn/error messages.
- *                          Defaults to true.
+ * @param enablePageViews Whether to capture page view tracking events. Defaults to false.
+ * @param enableNetworkRequests Whether to capture network requests made from the WebView. Defaults to false.
+ * @param enableNavigationEvents Whether to capture navigation events. Defaults to false.
+ * @param enableWebVitals Whether to capture Core Web Vitals (LCP, FCP, CLS, INP, TTFB). Defaults to false.
+ * @param enableLongTasks Whether to capture long tasks that block the main thread. Defaults to false.
+ * @param enableConsoleLogs Whether to capture JavaScript console.log/warn/error messages. Defaults to false.
+ * @param enableUserInteractions Whether to capture user interactions (clicks, rage clicks, etc.). Defaults to false.
+ * @param enableErrors Whether to capture JavaScript errors, promise rejections, and resource errors. Defaults to false.
  */
 data class WebViewConfiguration
     @JvmOverloads
     constructor(
-        /**
-         * TODO: BIT-7217. Implement captureConsoleLog and ignore urls patterns
-         */
-        val captureConsoleLog: Boolean = true,
+        val enablePageViews: Boolean = false,
+        val enableNetworkRequests: Boolean = false,
+        val enableNavigationEvents: Boolean = false,
+        val enableWebVitals: Boolean = false,
+        val enableLongTasks: Boolean = false,
+        val enableConsoleLogs: Boolean = false,
+        val enableUserInteractions: Boolean = false,
+        val enableErrors: Boolean = false,
     )

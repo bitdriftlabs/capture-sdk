@@ -155,13 +155,40 @@ object BitdriftInit {
         if (!isEnabled) {
             return null
         }
-        val captureConsoleLog = sharedPreferences.getBoolean(
-            WebViewSettingsDialog.WEBVIEW_CAPTURE_CONSOLE_LOG_KEY,
-            true,
-        )
         @OptIn(ExperimentalBitdriftApi::class)
         return WebViewConfiguration(
-            captureConsoleLog = captureConsoleLog,
+            enableConsoleLogs = sharedPreferences.getBoolean(
+                WebViewSettingsDialog.WEBVIEW_ENABLE_CONSOLE_LOGS_KEY,
+                false,
+            ),
+            enableErrors = sharedPreferences.getBoolean(
+                WebViewSettingsDialog.WEBVIEW_ENABLE_ERRORS_KEY,
+                false,
+            ),
+            enableNetworkRequests = sharedPreferences.getBoolean(
+                WebViewSettingsDialog.WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY,
+                false,
+            ),
+            enableNavigationEvents = sharedPreferences.getBoolean(
+                WebViewSettingsDialog.WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY,
+                false,
+            ),
+            enablePageViews = sharedPreferences.getBoolean(
+                WebViewSettingsDialog.WEBVIEW_ENABLE_PAGE_VIEWS_KEY,
+                false,
+            ),
+            enableWebVitals = sharedPreferences.getBoolean(
+                WebViewSettingsDialog.WEBVIEW_ENABLE_WEB_VITALS_KEY,
+                false,
+            ),
+            enableLongTasks = sharedPreferences.getBoolean(
+                WebViewSettingsDialog.WEBVIEW_ENABLE_LONG_TASKS_KEY,
+                false,
+            ),
+            enableUserInteractions = sharedPreferences.getBoolean(
+                WebViewSettingsDialog.WEBVIEW_ENABLE_USER_INTERACTIONS_KEY,
+                false,
+            ),
         )
     }
 
