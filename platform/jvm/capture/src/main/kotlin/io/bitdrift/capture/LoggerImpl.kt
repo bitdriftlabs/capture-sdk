@@ -597,15 +597,19 @@ internal class LoggerImpl(
                         sdkConfiguredDuration.loggerImplBuildDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
                     "_session_replay_enabled" to isSessionReplayEnabled.toString(),
                     "_webview_monitoring_enabled" to isWebViewMonitoringEnabled.toString(),
-                    "_webview_configuration" to
-                        (webViewConfiguration?.toString() ?: "null"),
                 )
+            val webViewConfigurationFields =
+                if (isWebViewMonitoringEnabled) {
+                    fieldsOf("_webview_configuration" to webViewConfiguration.toString())
+                } else {
+                    emptyArray()
+                }
             val fatalIssueFields =
                 (
                     issueReporter?.getLogStatusFieldsMap()
                         ?: IssueReporter.getDisabledStatusFieldsMap()
                 ).toFields()
-            val sdkStartFields = combineFields(baseFields, fatalIssueFields)
+            val sdkStartFields = combineFields(baseFields, combineFields(webViewConfigurationFields, fatalIssueFields))
 
             CaptureJniLibrary.writeSDKStartLog(
                 this.loggerId,
