@@ -19,6 +19,7 @@ import io.bitdrift.capture.network.HttpRequestMetrics
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
+import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.toFields
 import org.json.JSONObject
 import java.net.URI
@@ -127,12 +128,7 @@ internal class WebViewMessageHandler(
         }
     }
 
-    private fun handleBridgeReady(
-        msg: WebViewBridgeMessage,
-        capture: WebViewCapture,
-    ) {
-        capture.onBridgeReady()
-
+    private fun handleBridgeReady(msg: WebViewBridgeMessage) {
         val fields =
             buildMap {
                 put("_source", "webview")
