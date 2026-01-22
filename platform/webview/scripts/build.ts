@@ -8,10 +8,55 @@ const __dirname = path.dirname(__filename);
 
 const isWatch = process.argv.includes('--watch');
 
+const preserveWebviewConfigPlugin = {
+    name: 'preserve-webview-config',
+    setup(build: esbuild.PluginBuild) {
+        const MAGIC_REGEX = /\/\* @magic (.*?) \*\//g;
+        const HIDDEN_PREFIX = '__PROTECTED_MAGIC_COMMENT_';
+        const HIDDEN_SUFFIX = '__';
+
+        // Store mappings from hidden strings to original content
+        const magicComments = new Map<string, string>();
+
+        // 1. Transform comment into a string literal so esbuild doesn't strip it
+        build.onLoad({ filter: /\.[jt]sx?$/ }, async (args) => {
+            let contents = await fs.promises.readFile(args.path, 'utf8');
+
+            // Replace all /* @magic ... */ with hidden string literals
+            contents = contents.replace(MAGIC_REGEX, (_match, content) => {
+                const encoded = Buffer.from(content).toString('base64');
+                const hiddenString = `${HIDDEN_PREFIX}${encoded}${HIDDEN_SUFFIX}`;
+                magicComments.set(hiddenString, content);
+                return `"${hiddenString}"`;
+            });
+
+            return { contents, loader: args.path.endsWith('ts') ? 'ts' : 'js' };
+        });
+
+        // 2. After bundling, swap the string literal back into the magic comment
+        build.onEnd(async () => {
+            const { outfile } = build.initialOptions;
+            if (!outfile || !fs.existsSync(outfile)) return;
+
+            let bundle = await fs.promises.readFile(outfile, 'utf8');
+
+            // Replace all hidden strings back into their original comment format
+            const hiddenRegex = new RegExp(`["']${HIDDEN_PREFIX}([A-Za-z0-9+/=]+)${HIDDEN_SUFFIX}["']`, 'g');
+            bundle = bundle.replace(hiddenRegex, (_match, encoded) => {
+                const content = Buffer.from(encoded, 'base64').toString('utf8');
+                return `/* @magic ${content} */`;
+            });
+
+            await fs.promises.writeFile(outfile, bundle);
+        });
+    },
+};
+
 const buildOptions: esbuild.BuildOptions = {
     entryPoints: [path.join(__dirname, '../src/index.ts')],
     bundle: true,
     minify: true,
+    legalComments: 'inline',
     format: 'iife',
     globalName: 'BitdriftWebView',
     target: ['es2020'],
@@ -24,6 +69,7 @@ const buildOptions: esbuild.BuildOptions = {
     footer: {
         js: '})();',
     },
+    plugins: [preserveWebviewConfigPlugin],
 };
 
 const build = async (): Promise<void> => {

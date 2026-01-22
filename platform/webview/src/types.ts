@@ -7,10 +7,24 @@
 
 import type { MetricType } from 'web-vitals';
 
+type Serializable =
+    | string
+    | number
+    | boolean
+    | bigint
+    | null
+    | undefined
+    | Serializable[]
+    | { [key: string]: Serializable };
+type SerializableLogFields = { [key: string]: Serializable };
+
+type WebViewInstrumentationConfig = Exclude<Exclude<typeof window.bitdrift, undefined>['config'], undefined>;
+
 /**
  * Message types sent from JS to native bridge
  */
 export type MessageType =
+    | 'customLog'
     | 'bridgeReady'
     | 'webVital'
     | 'networkRequest'
@@ -22,7 +36,10 @@ export type MessageType =
     | 'resourceError'
     | 'console'
     | 'promiseRejection'
-    | 'userInteraction';
+    | 'userInteraction'
+    | 'internalAutoInstrumentation';
+
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'trace';
 
 /**
  * Base interface for all bridge messages
@@ -37,6 +54,18 @@ export interface BridgeMessage {
     timestamp: number;
 }
 
+export interface InternalAutoInstrumentationMessage extends BridgeMessage {
+    type: 'internalAutoInstrumentation';
+    event: keyof WebViewInstrumentationConfig;
+}
+
+export interface CustomLogMessage extends BridgeMessage {
+    type: 'customLog';
+    level: LogLevel;
+    message: string;
+    fields?: SerializableLogFields;
+}
+
 /**
  * Sent immediately when the bridge is initialized
  */
@@ -44,6 +73,7 @@ export interface BridgeReadyMessage extends BridgeMessage {
     type: 'bridgeReady';
     /** URL of the page being loaded */
     url: string;
+    instrumentationConfig: WebViewInstrumentationConfig | undefined;
 }
 
 /**
@@ -246,6 +276,7 @@ export interface UserInteractionMessage extends BridgeMessage {
  * Union type of all possible messages
  */
 export type AnyBridgeMessage =
+    | CustomLogMessage
     | BridgeReadyMessage
     | WebVitalMessage
     | NetworkRequestMessage
@@ -257,4 +288,5 @@ export type AnyBridgeMessage =
     | ResourceErrorMessage
     | ConsoleMessage
     | PromiseRejectionMessage
-    | UserInteractionMessage;
+    | UserInteractionMessage
+    | InternalAutoInstrumentationMessage;

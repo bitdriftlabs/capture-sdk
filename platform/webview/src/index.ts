@@ -15,50 +15,110 @@ import { initResourceErrorMonitoring } from './resource-errors';
 import { initConsoleCapture } from './console-capture';
 import { initUserInteractionMonitoring } from './user-interactions';
 import { initErrorMonitoring, initPromiseRejectionMonitoring } from './error';
-import type { BridgeReadyMessage } from './types';
-
-// Extend Window interface for our guard flag
-declare global {
-    interface Window {
-        __bitdriftBridgeInitialized?: boolean;
-    }
-}
+import type { InternalAutoInstrumentationMessage, BridgeReadyMessage } from './types';
 
 /**
  * Main entry point for the Bitdrift WebView SDK.
  * This runs immediately when injected into a WebView.
  */
-const init = (): void => {
+const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']): void => {
     // Guard against multiple initializations (e.g., script injected twice)
-    if (window.__bitdriftBridgeInitialized) {
-        return;
-    }
+    if (window.__bitdriftBridgeInitialized) return;
     window.__bitdriftBridgeInitialized = true;
+
+    window.bitdrift = window.bitdrift || {};
+    window.bitdrift.config = config;
 
     // Initialize the bridge first
     initBridge();
 
     // Send bridge ready signal immediately
-    const readyMessage = createMessage<BridgeReadyMessage>({
-        type: 'bridgeReady',
-        url: window.location.href,
-    });
-    log(readyMessage);
+    log(
+        createMessage<BridgeReadyMessage>({
+            type: 'bridgeReady',
+            url: window.location.href,
+            instrumentationConfig: window.bitdrift.config,
+        }),
+    );
 
     // Initialize page view tracking first to establish parent span
-    initPageViewTracking();
+    if (window.bitdrift.config?.capturePageViews) {
+        initPageViewTracking();
+        log(
+            createMessage<InternalAutoInstrumentationMessage>({
+                type: 'internalAutoInstrumentation',
+                event: 'capturePageViews',
+            }),
+        );
+    }
 
     // Initialize all monitoring modules
-    initNetworkInterceptor();
-    initNavigationTracking();
-    initWebVitals();
-    initLongTaskMonitoring();
-    initResourceErrorMonitoring();
-    initConsoleCapture();
-    initPromiseRejectionMonitoring();
-    initUserInteractionMonitoring();
-    initErrorMonitoring();
+    if (window.bitdrift.config?.captureNetworkRequests) {
+        initNetworkInterceptor();
+        log(
+            createMessage<InternalAutoInstrumentationMessage>({
+                type: 'internalAutoInstrumentation',
+                event: 'captureNetworkRequests',
+            }),
+        );
+    }
+    if (window.bitdrift.config?.captureNavigationEvents) {
+        initNavigationTracking();
+        log(
+            createMessage<InternalAutoInstrumentationMessage>({
+                type: 'internalAutoInstrumentation',
+                event: 'captureNavigationEvents',
+            }),
+        );
+    }
+    if (window.bitdrift.config?.captureWebVitals) {
+        initWebVitals();
+        log(
+            createMessage<InternalAutoInstrumentationMessage>({
+                type: 'internalAutoInstrumentation',
+                event: 'captureWebVitals',
+            }),
+        );
+    }
+    if (window.bitdrift.config?.captureLongTasks) {
+        initLongTaskMonitoring();
+        log(
+            createMessage<InternalAutoInstrumentationMessage>({
+                type: 'internalAutoInstrumentation',
+                event: 'captureLongTasks',
+            }),
+        );
+    }
+    if (window.bitdrift.config?.captureConsoleLogs) {
+        initConsoleCapture();
+        log(
+            createMessage<InternalAutoInstrumentationMessage>({
+                type: 'internalAutoInstrumentation',
+                event: 'captureConsoleLogs',
+            }),
+        );
+    }
+    if (window.bitdrift.config?.captureUserInteractions) {
+        initUserInteractionMonitoring();
+        log(
+            createMessage<InternalAutoInstrumentationMessage>({
+                type: 'internalAutoInstrumentation',
+                event: 'captureUserInteractions',
+            }),
+        );
+    }
+    if (window.bitdrift.config?.captureErrors) {
+        initResourceErrorMonitoring();
+        initPromiseRejectionMonitoring();
+        initErrorMonitoring();
+        log(
+            createMessage<InternalAutoInstrumentationMessage>({
+                type: 'internalAutoInstrumentation',
+                event: 'captureErrors',
+            }),
+        );
+    }
 };
 
 // Run immediately
-init();
+init(/* @magic __BITDRIFT_WEBVIEW_CONFIG_PLACEHOLDER__ */);

@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import type { AnyBridgeMessage, BridgeMessage } from './types';
+import type { AnyBridgeMessage, BridgeMessage, CustomLogMessage } from './types';
 
 export const pristine = {
     console: {
@@ -16,36 +16,6 @@ export const pristine = {
         debug: console.debug,
     },
 };
-
-/**
- * Platform-agnostic bridge for communicating with native code.
- * Detects iOS (WKWebView) vs Android (WebView) and routes messages accordingly.
- */
-
-interface AndroidBridge {
-    log(message: string): void;
-}
-
-interface IOSBridge {
-    postMessage(message: unknown): void;
-}
-
-declare global {
-    interface Window {
-        // Android bridge
-        BitdriftLogger?: AndroidBridge;
-        // iOS bridge
-        webkit?: {
-            messageHandlers?: {
-                BitdriftLogger?: IOSBridge;
-            };
-        };
-        // Our global namespace
-        bitdrift?: {
-            log: (message: AnyBridgeMessage) => void;
-        };
-    }
-}
 
 type Platform = 'ios' | 'android' | 'unknown';
 
@@ -84,12 +54,35 @@ const sendToNative = (message: AnyBridgeMessage): void => {
  */
 export const initBridge = (): void => {
     // Avoid re-initialization
-    if (window.bitdrift) {
+    if (window.bitdrift?.log) {
         return;
     }
 
     window.bitdrift = {
-        log: sendToNative,
+        config: window.bitdrift?.config,
+        log: (
+            ...args:
+                | [AnyBridgeMessage]
+                | [CustomLogMessage['level'], CustomLogMessage['message'], CustomLogMessage['fields']]
+        ): void => {
+            if (args.length !== 1 && args.length !== 3) {
+                throw new Error('Invalid arguments to bitdrift.log. Expected 1 or 3 arguments.');
+            }
+
+            let message: AnyBridgeMessage;
+            if (args.length === 1) {
+                message = args[0];
+            } else {
+                const [level, msg, fields] = args;
+                message = createMessage<CustomLogMessage>({
+                    type: 'customLog',
+                    level,
+                    message: msg,
+                    fields,
+                });
+            }
+            sendToNative(message);
+        },
     };
 };
 
@@ -98,8 +91,7 @@ export const initBridge = (): void => {
  */
 export const log = (message: AnyBridgeMessage): void => {
     if (window.bitdrift) {
-        pristine.console.log('[Bitdrift WebView] Logging message via bridge', message);
-        window.bitdrift.log(message);
+        window.bitdrift.log?.(message);
     } else {
         sendToNative(message);
     }

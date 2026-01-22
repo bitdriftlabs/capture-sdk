@@ -19,7 +19,11 @@ import io.bitdrift.capture.network.HttpRequestMetrics
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
+import io.bitdrift.capture.providers.combineFields
+import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.providers.fieldsOfOptional
 import io.bitdrift.capture.providers.toFields
+import org.json.JSONObject
 import java.net.URI
 import java.util.UUID
 
@@ -61,6 +65,7 @@ internal class WebViewMessageHandler(
         val timestamp = bridgeMessage.timestamp ?: System.currentTimeMillis()
 
         when (type) {
+            "customLog" -> handleCustomLog(bridgeMessage, timestamp)
             "bridgeReady" -> handleBridgeReady(bridgeMessage)
             "webVital" -> handleWebVital(bridgeMessage, timestamp)
             "networkRequest" -> handleNetworkRequest(bridgeMessage, timestamp)
@@ -73,14 +78,67 @@ internal class WebViewMessageHandler(
             "console" -> handleConsole(bridgeMessage, timestamp)
             "promiseRejection" -> handlePromiseRejection(bridgeMessage, timestamp)
             "userInteraction" -> handleUserInteraction(bridgeMessage, timestamp)
+            "internalAutoInstrumentation" -> handleInternalAutoInstrumentation(bridgeMessage, timestamp)
+        }
+    }
+
+    private fun handleInternalAutoInstrumentation(
+        msg: WebViewBridgeMessage,
+        timestamp: Long,
+    ) {
+        val event = msg.event ?: return
+
+        val fields =
+            fieldsOf(
+                "_event" to event,
+                "_source" to "webview",
+                "_timestamp" to timestamp.toString(),
+            )
+
+        logger?.log(LogType.INTERNALSDK, LogLevel.DEBUG, fields) {
+            "[WebView] instrumented $event"
+        }
+    }
+
+    private fun handleCustomLog(
+        msg: WebViewBridgeMessage,
+        timestamp: Long,
+    ) {
+        val levelStr = msg.level ?: "debug"
+        val message = msg.message ?: ""
+
+        val fields =
+            buildMap {
+                put("_source", "webview")
+                put("_timestamp", timestamp.toString())
+                msg.fields?.forEach { (key, value) ->
+                    put(key, value.toString())
+                }
+            }
+
+        val level =
+            when (levelStr.lowercase()) {
+                "info" -> LogLevel.INFO
+                "warn" -> LogLevel.WARNING
+                "error" -> LogLevel.ERROR
+                "trace" -> LogLevel.TRACE
+                else -> LogLevel.DEBUG
+            }
+
+        logger?.log(level, fields) {
+            message
         }
     }
 
     private fun handleBridgeReady(msg: WebViewBridgeMessage) {
-        val url = msg.url ?: ""
-        val fields = mutableMapOf("_url" to url)
-        fields["_source"] = "webview"
-        logger?.log(LogLevel.DEBUG, fields) {
+        val baseFields = fieldsOf("_source" to "webview")
+        val optionalFields =
+            fieldsOfOptional(
+                "_url" to msg.url,
+                "_config" to msg.instrumentationConfig?.let { JSONObject(it).toString() },
+            )
+
+        logger?.log(LogLevel.DEBUG, combineFields(baseFields, optionalFields)) {
             "webview.initialized"
         }
     }
