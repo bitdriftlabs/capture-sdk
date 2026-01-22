@@ -9,7 +9,6 @@ package io.bitdrift.capture.webview
 
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
-import org.json.JSONObject
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
@@ -21,6 +20,7 @@ import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.providers.toFields
+import org.json.JSONObject
 import java.net.URI
 import java.util.UUID
 
@@ -86,13 +86,13 @@ internal class WebViewMessageHandler(
         val event = msg.event ?: return
 
         val fields =
-            buildMap {
-                put("_event", event)
-                put("_source", "webview")
-                put("_timestamp", timestamp.toString())
-            }
+            fieldsOf(
+                "_event" to event,
+                "_source" to "webview",
+                "_timestamp" to timestamp.toString(),
+            )
 
-        logger?.log(LogType.INTERNALSDK, LogLevel.DEBUG, fields.toFields()) {
+        logger?.log(LogType.INTERNALSDK, LogLevel.DEBUG, fields) {
             "[WebView] instrumented $event"
         }
     }

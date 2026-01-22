@@ -94,7 +94,7 @@ ${escapeForKotlin(beforePlaceholder)}"""
                 put("captureWebVitals", config.captureWebVitals)
                 put("captureLongTasks", config.captureLongTasks)
                 put("captureUserInteractions", config.captureUserInteractions)
-        }
+            }
         return SCRIPT_PREFIX + configJson.toString() + SCRIPT_SUFFIX
     }
 }
