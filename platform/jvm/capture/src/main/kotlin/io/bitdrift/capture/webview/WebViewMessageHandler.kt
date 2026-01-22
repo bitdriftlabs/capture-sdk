@@ -9,6 +9,7 @@ package io.bitdrift.capture.webview
 
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
+import org.json.JSONObject
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
@@ -136,7 +137,7 @@ internal class WebViewMessageHandler(
             buildMap {
                 put("_source", "webview")
                 put("_url", msg.url ?: "")
-                put("_config", msg.instrumentationConfig?.toString() ?: "")
+                put("_config", msg.instrumentationConfig?.let { JSONObject(it).toString() } ?: "null")
             }
         logger?.log(LogLevel.DEBUG, fields) {
             "webview.initialized"
