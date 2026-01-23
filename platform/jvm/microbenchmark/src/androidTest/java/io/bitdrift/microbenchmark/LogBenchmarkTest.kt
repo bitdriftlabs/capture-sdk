@@ -15,6 +15,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureJniLibrary
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.HttpRequestInfo
@@ -24,6 +25,7 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.webview.WebViewBridgeMessageHandler
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.Rule
 import org.junit.Test
@@ -169,6 +171,51 @@ class LogBenchmarkTest {
             )
             Capture.Logger.log(responseInfo)
         }
+    }
+
+    @Test
+    fun webViewBridgeInvalidJson() {
+        val handler = WebViewBridgeMessageHandler(getInternalLogger())
+        val invalidJson = "invalid json {"
+
+        benchmarkRule.measureRepeated {
+            handler.log(invalidJson)
+        }
+    }
+
+    @Test
+    fun webViewBridgeBridgeReady() {
+        val handler = WebViewBridgeMessageHandler(getInternalLogger())
+        val message = """{"v":1,"type":"bridgeReady","url":"https://example.com","instrumentationConfig":{"capturePageViews":true,"captureErrors":false}}"""
+
+        benchmarkRule.measureRepeated {
+            handler.log(message)
+        }
+    }
+
+    @Test
+    fun webViewBridgeWebVitalCLS() {
+        val handler = WebViewBridgeMessageHandler(getInternalLogger())
+        val message = """{"v":1,"type":"webVital","timestamp":1234567890,"metric":{"name":"CLS","value":0.15,"rating":"needs-improvement","delta":0.05,"id":"v3-1234567890","navigationType":"navigate","entries":[{"value":0.1,"startTime":1000.0},{"value":0.05,"startTime":2000.0}]}}"""
+
+        benchmarkRule.measureRepeated {
+            handler.log(message)
+        }
+    }
+
+    @Test
+    fun webViewBridgeCustomLog() {
+        val handler = WebViewBridgeMessageHandler(getInternalLogger())
+        val message = """{"v":1,"type":"customLog","timestamp":1234567890,"level":"info","message":"User logged in","fields":{"userId":"12345","userName":"john.doe","sessionId":"abc-123"}}"""
+
+        benchmarkRule.measureRepeated {
+            handler.log(message)
+        }
+    }
+
+    private fun getInternalLogger(): IInternalLogger {
+        startLogger()
+        return Capture.logger() as IInternalLogger
     }
 
     private fun buildFieldsMap(size: Int, keyIdentifier: String = "key_"): Map<String, String> =
