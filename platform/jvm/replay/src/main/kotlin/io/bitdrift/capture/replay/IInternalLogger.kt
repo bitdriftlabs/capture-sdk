@@ -9,6 +9,8 @@ package io.bitdrift.capture.replay
 
 /**
  * Forwards messages as type Internal to the bitdrift Logger
+ *
+ * TODO(Fran): BIT-7251 Remove and use existing [io.bitdrift.capture.IInternalLogger]
  */
 interface IInternalLogger {
     /**
