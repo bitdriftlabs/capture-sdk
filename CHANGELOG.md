@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Provide experimental support for WebView instrumentation.
 
 **Changed**
 

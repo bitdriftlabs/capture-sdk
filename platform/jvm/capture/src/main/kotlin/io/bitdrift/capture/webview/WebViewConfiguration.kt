@@ -47,7 +47,10 @@ data class WebViewConfiguration
         val captureErrors: Boolean = false,
     )
 
-internal fun WebViewConfiguration.toLogFields(): ArrayFields = fieldsOf("_webview_monitoring_configuration" to this.toJson())
+internal fun WebViewConfiguration?.toFields(): ArrayFields =
+    this?.let {
+        fieldsOf("_webview_monitoring_configuration" to it.toJson())
+    } ?: ArrayFields.EMPTY
 
 internal fun WebViewConfiguration.toJson(): String =
     JSONObject()
