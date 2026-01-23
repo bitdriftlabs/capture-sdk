@@ -57,7 +57,7 @@ import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
 import io.bitdrift.capture.webview.WebViewConfiguration
-import io.bitdrift.capture.webview.toLogFields
+import io.bitdrift.capture.webview.toFields
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import java.util.UUID
@@ -604,9 +604,8 @@ internal class LoggerImpl(
                     issueReporter?.getLogStatusFieldsMap()
                         ?: IssueReporter.getDisabledStatusFieldsMap()
                 ).toFields()
-            val webViewConfigurationFields = webViewConfiguration?.toLogFields() ?: ArrayFields.EMPTY
 
-            val sdkStartFields = combineFields(baseFields, fatalIssueFields, webViewConfigurationFields)
+            val sdkStartFields = combineFields(baseFields, fatalIssueFields, webViewConfiguration.toFields())
             CaptureJniLibrary.writeSDKStartLog(
                 this.loggerId,
                 sdkStartFields.toLegacyJniFields(),
