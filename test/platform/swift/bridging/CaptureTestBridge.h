@@ -25,10 +25,6 @@ const char *server_instance_configure_aggressive_uploads(test_server_handle hand
                                                          stream_id stream_id);
 /// Returns null on success, or an error string on failure.
 /// The caller must free the returned string using test_helpers_free_string.
-const char *server_instance_run_aggressive_upload_test(test_server_handle handle,
-                                                       logger_id logger_id);
-/// Returns null on success, or an error string on failure.
-/// The caller must free the returned string using test_helpers_free_string.
 const char *server_instance_run_large_upload_test(test_server_handle handle, logger_id logger_id);
 bool server_instance_next_uploaded_log(test_server_handle handle, UploadedLog *uploaded_log);
 
