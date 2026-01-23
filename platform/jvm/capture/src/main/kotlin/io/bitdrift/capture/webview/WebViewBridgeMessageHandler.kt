@@ -236,7 +236,7 @@ internal class WebViewBridgeMessageHandler(
             entry.loadTime?.let { fields["_load_time"] = it.toString() }
         }
 
-        logDurationSpan("webview.webVital", timestamp, value, level, fields, parentSpanId)
+        logWebVitalDurationSpan(timestamp, value, level, fields, parentSpanId)
     }
 
     /**
@@ -262,7 +262,7 @@ internal class WebViewBridgeMessageHandler(
             entry.entryType?.let { fields["_entry_type"] = it }
         }
 
-        logDurationSpan("webview.webVital", timestamp, value, level, fields, parentSpanId)
+        logWebVitalDurationSpan(timestamp, value, level, fields, parentSpanId)
     }
 
     /**
@@ -292,7 +292,7 @@ internal class WebViewBridgeMessageHandler(
             entry.responseStart?.let { fields["_response_start"] = it.toString() }
         }
 
-        logDurationSpan("webview.webVital", timestamp, value, level, fields, parentSpanId)
+        logWebVitalDurationSpan(timestamp, value, level, fields, parentSpanId)
     }
 
     /**
@@ -321,7 +321,7 @@ internal class WebViewBridgeMessageHandler(
             entry.interactionId?.let { fields["_interaction_id"] = it.toString() }
         }
 
-        logDurationSpan("webview.webVital", timestamp, value, level, fields, parentSpanId)
+        logWebVitalDurationSpan(timestamp, value, level, fields, parentSpanId)
     }
 
     /**
@@ -365,8 +365,7 @@ internal class WebViewBridgeMessageHandler(
         }
     }
 
-    private fun logDurationSpan(
-        spanName: String,
+    private fun logWebVitalDurationSpan(
         timestamp: Long,
         durationMs: Double,
         level: LogLevel,
@@ -386,7 +385,7 @@ internal class WebViewBridgeMessageHandler(
 
         val span =
             logger.startSpan(
-                name = spanName,
+                name = "webview.webVital",
                 level = level,
                 fields = fields,
                 startTimeMs = startTimeMs,
@@ -532,15 +531,14 @@ internal class WebViewBridgeMessageHandler(
         val event = msg.event ?: return
 
         val fields =
-            buildMap {
-                put("_event", event)
-                put("_source", "webview")
-                put("_timestamp", timestamp.toString())
-                msg.performanceTime?.let { put("_performance_time", it.toString()) }
-                msg.visibilityState?.let { put("_visibility_state", it) }
-            }
-
-        logger.log(LogType.UX, LogLevel.DEBUG, fields.toFields()) {
+            fieldsOfOptional(
+                "_event" to event,
+                "_source" to "webview",
+                "_timestamp" to timestamp.toString(),
+                "_performance_time" to msg.performanceTime?.toString(),
+                "_visibility_state" to msg.visibilityState,
+            )
+        logger.log(LogType.UX, LogLevel.DEBUG, fields) {
             "webview.lifecycle"
         }
     }
@@ -554,7 +552,7 @@ internal class WebViewBridgeMessageHandler(
         val method = msg.method ?: ""
 
         val fields =
-            mapOf(
+            fieldsOf(
                 "_fromUrl" to fromUrl,
                 "_toUrl" to toUrl,
                 "_method" to method,
@@ -575,17 +573,16 @@ internal class WebViewBridgeMessageHandler(
         val errorMessage = msg.message ?: "Unknown error"
 
         val fields =
-            buildMap {
-                put("_name", name)
-                put("_message", errorMessage)
-                put("_source", "webview")
-                msg.stack?.let { put("_stack", it) }
-                msg.filename?.let { put("_filename", it) }
-                msg.lineno?.let { put("_lineno", it.toString()) }
-                msg.colno?.let { put("_colno", it.toString()) }
-                put("_timestamp", timestamp.toString())
-            }
-
+            fieldsOfOptional(
+                "_name" to name,
+                "_message" to errorMessage,
+                "_source" to "webview",
+                "_timestamp" to timestamp.toString(),
+                "_stack" to msg.stack,
+                "_filename" to msg.filename,
+                "_lineno" to msg.lineno?.toString(),
+                "_colno" to msg.colno?.toString(),
+            )
         logger.log(LogLevel.ERROR, fields) {
             "webview.error"
         }
@@ -598,19 +595,17 @@ internal class WebViewBridgeMessageHandler(
         val durationMsDouble = msg.durationMs?.toDouble() ?: return
 
         val fields =
-            buildMap {
-                put("_duration_ms", durationMsDouble.toString())
-                put("_source", "webview")
-                msg.startTime?.let { put("_start_time", it.toString()) }
-                put("_timestamp", timestamp.toString())
-                msg.attribution?.let { attr ->
-                    attr.name?.let { put("_attribution_name", it) }
-                    attr.containerType?.let { put("_container_type", it) }
-                    attr.containerSrc?.let { put("_container_src", it) }
-                    attr.containerId?.let { put("_container_id", it) }
-                    attr.containerName?.let { put("_container_name", it) }
-                }
-            }
+            fieldsOfOptional(
+                "_duration_ms" to durationMsDouble.toString(),
+                "_source" to "webview",
+                "_timestamp" to timestamp.toString(),
+                "_start_time" to msg.startTime?.toString(),
+                "_attribution_name" to msg.attribution?.name,
+                "_container_type" to msg.attribution?.containerType,
+                "_container_src" to msg.attribution?.containerSrc,
+                "_container_id" to msg.attribution?.containerId,
+                "_container_name" to msg.attribution?.containerName,
+            )
 
         val level =
             when {
@@ -619,7 +614,7 @@ internal class WebViewBridgeMessageHandler(
                 else -> LogLevel.DEBUG
             }
 
-        logger.log(LogType.UX, level, fields.toFields()) {
+        logger.log(LogType.UX, level, fields) {
             "webview.longTask"
         }
     }
@@ -629,7 +624,7 @@ internal class WebViewBridgeMessageHandler(
         timestamp: Long,
     ) {
         val fields =
-            mapOf(
+            fieldsOf(
                 "_resource_type" to (msg.resourceType ?: "unknown"),
                 "_url" to (msg.url ?: ""),
                 "_tag_name" to (msg.tagName ?: ""),
@@ -650,15 +645,17 @@ internal class WebViewBridgeMessageHandler(
         val consoleMessage = msg.message ?: ""
 
         val fields =
-            buildMap {
-                put("_level", level)
-                put("_message", consoleMessage)
-                put("_source", "webview")
-                put("_timestamp", timestamp.toString())
-                msg.args?.takeIf { it.isNotEmpty() }?.let { args ->
-                    put("_args", args.take(5).joinToString(", "))
-                }
-            }
+            fieldsOfOptional(
+                "_level" to level,
+                "_message" to consoleMessage,
+                "_source" to "webview",
+                "_timestamp" to timestamp.toString(),
+                "_args" to
+                    msg.args
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.take(5)
+                        ?.joinToString(", "),
+            )
 
         val logLevel =
             when (level) {
@@ -677,13 +674,14 @@ internal class WebViewBridgeMessageHandler(
         msg: WebViewBridgeMessage,
         timestamp: Long,
     ) {
+        val reason = msg.reason ?: "Unknown rejection"
         val fields =
-            buildMap {
-                put("_reason", msg.reason ?: "Unknown rejection")
-                put("_source", "webview")
-                msg.stack?.let { put("_stack", it) }
-                put("_timestamp", timestamp.toString())
-            }
+            fieldsOfOptional(
+                "_reason" to reason,
+                "_source" to "webview",
+                "_stack" to msg.stack,
+                "_timestamp" to timestamp.toString(),
+            )
 
         logger.log(LogLevel.ERROR, fields) {
             "webview.promiseRejection"
@@ -697,21 +695,20 @@ internal class WebViewBridgeMessageHandler(
         val interactionType = msg.interactionType ?: return
 
         val fields =
-            buildMap {
-                put("_interaction_type", interactionType)
-                put("_tag_name", msg.tagName ?: "")
-                put("_is_clickable", (msg.isClickable ?: false).toString())
-                put("_source", "webview")
-                msg.elementId?.let { put("_element_id", it) }
-                msg.className?.let { put("_class_name", it) }
-                msg.textContent?.let { put("_text_content", it) }
-                msg.clickCount?.let { put("_click_count", it.toString()) }
-                msg.timeWindowMs?.let { put("_time_window_ms", it.toString()) }
-                put("_timestamp", timestamp.toString())
-            }
-
+            fieldsOfOptional(
+                "_interaction_type" to interactionType,
+                "_tag_name" to (msg.tagName ?: ""),
+                "_is_clickable" to (msg.isClickable ?: false).toString(),
+                "_source" to "webview",
+                "_timestamp" to timestamp.toString(),
+                "_element_id" to msg.elementId,
+                "_class_name" to msg.className,
+                "_text_content" to msg.textContent,
+                "_click_count" to msg.clickCount?.toString(),
+                "_time_window_ms" to msg.timeWindowMs?.toString(),
+            )
         val level = if (interactionType == "rageClick") LogLevel.WARNING else LogLevel.DEBUG
-        logger.log(LogType.UX, level, fields.toFields()) {
+        logger.log(LogType.UX, level, fields) {
             "webview.userInteraction"
         }
     }
