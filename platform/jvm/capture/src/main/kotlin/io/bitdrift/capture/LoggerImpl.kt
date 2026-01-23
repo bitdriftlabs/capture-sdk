@@ -95,7 +95,7 @@ internal class LoggerImpl(
         } else {
             null
         },
-) : ILogger,
+) : IInternalLogger,
     ICompletedReportsProcessor {
     @OptIn(ExperimentalBitdriftApi::class)
     internal val webViewConfiguration: WebViewConfiguration? = configuration.webViewConfiguration
@@ -427,15 +427,17 @@ internal class LoggerImpl(
         CaptureJniLibrary.setSleepModeEnabled(this.loggerId, sleepMode == SleepMode.ENABLED)
     }
 
-    @JvmName("logFields")
+    /**
+     * TODO(Fran): BIT-7251 Rename to logInternal
+     */
     @Suppress("TooGenericExceptionCaught")
-    internal fun log(
+    override fun log(
         type: LogType,
         level: LogLevel,
-        arrayFields: ArrayFields = ArrayFields.EMPTY,
-        matchingArrayFields: ArrayFields = ArrayFields.EMPTY,
-        attributesOverrides: LogAttributesOverrides? = null,
-        blocking: Boolean = false,
+        arrayFields: ArrayFields,
+        matchingArrayFields: ArrayFields,
+        attributesOverrides: LogAttributesOverrides?,
+        blocking: Boolean,
         message: () -> String,
     ) {
         if (type == LogType.INTERNALSDK && !runtime.isEnabled(RuntimeFeature.INTERNAL_LOGS)) {
