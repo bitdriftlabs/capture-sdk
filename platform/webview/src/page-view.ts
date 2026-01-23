@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
-import type { PageViewMessage, LifecycleMessage } from './types';
+import { safeCall, makeSafe } from './safe-call';
 
 /** Current page view span ID */
 let currentPageSpanId: string | null = null;
@@ -47,61 +47,61 @@ export const getCurrentPageSpanId = (): string | null => {
  * the page view span.
  */
 export const startPageView = (url: string, reason: 'initial' | 'navigation' = 'navigation'): void => {
-    // End previous page view if exists
-    if (currentPageSpanId) {
-        endPageView('navigation');
-    }
+    safeCall(() => {
+        // End previous page view if exists
+        if (currentPageSpanId) {
+            endPageView('navigation');
+        }
 
-    currentPageSpanId = generateSpanId();
+        currentPageSpanId = generateSpanId();
 
-    // For initial page view, use navigation start time (performance.timeOrigin)
-    // For SPA navigations, use current time
-    if (reason === 'initial') {
-        pageViewStartTimeMs = Math.round(performance.timeOrigin);
-    } else {
-        pageViewStartTimeMs = Date.now();
-    }
+        // For initial page view, use navigation start time (performance.timeOrigin)
+        // For SPA navigations, use current time
+        if (reason === 'initial') {
+            pageViewStartTimeMs = Math.round(performance.timeOrigin);
+        } else {
+            pageViewStartTimeMs = Date.now();
+        }
 
-    const message: PageViewMessage = {
-        tag: 'bitdrift-webview-sdk',
-        v: 1,
-        type: 'pageView',
-        action: 'start',
-        spanId: currentPageSpanId,
-        url,
-        reason,
-        // Use our calculated start time, not Date.now()
-        timestamp: pageViewStartTimeMs,
-    };
-    log(message);
+        const message = createMessage({
+            type: 'pageView',
+            action: 'start',
+            spanId: currentPageSpanId,
+            url,
+            reason,
+            // Use our calculated start time, not Date.now()
+            timestamp: pageViewStartTimeMs,
+        });
+        log(message);
+    });
 };
 
 /**
  * End the current page view span.
  */
 export const endPageView = (reason: 'navigation' | 'unload' | 'hidden'): void => {
-    if (!currentPageSpanId) {
-        return;
-    }
+    safeCall(() => {
+        if (!currentPageSpanId) {
+            return;
+        }
 
-    const now = Date.now();
-    const durationMs = now - pageViewStartTimeMs;
+        const now = Date.now();
+        const durationMs = now - pageViewStartTimeMs;
 
-    const message: PageViewMessage = {
-        tag: 'bitdrift-webview-sdk',
-        v: 1,
-        timestamp: now,
-        type: 'pageView',
-        action: 'end',
-        spanId: currentPageSpanId,
-        url: window.location.href,
-        reason,
-        durationMs,
-    };
-    log(message);
+        const message = createMessage({
+            type: 'pageView',
+            action: 'end',
+            spanId: currentPageSpanId,
+            url: window.location.href,
+            reason,
+            durationMs,
+            timestamp: now,
+        });
+        log(message);
 
-    currentPageSpanId = null;
-    pageViewStartTimeMs = 0;
+        currentPageSpanId = null;
+        pageViewStartTimeMs = 0;
+    });
 };
 
 /**
@@ -111,13 +111,15 @@ const logLifecycleEvent = (
     event: 'DOMContentLoaded' | 'load' | 'visibilitychange',
     details?: Record<string, string>,
 ): void => {
-    const message = createMessage<LifecycleMessage>({
-        type: 'lifecycle',
-        event,
-        performanceTime: performance.now(),
-        ...details,
+    safeCall(() => {
+        const message = createMessage({
+            type: 'lifecycle',
+            event,
+            performanceTime: performance.now(),
+            ...details,
+        });
+        log(message);
     });
-    log(message);
 };
 
 /**
@@ -125,52 +127,69 @@ const logLifecycleEvent = (
  * This sets up the initial page view and lifecycle event listeners.
  */
 export const initPageViewTracking = (): void => {
-    // Start initial page view
-    startPageView(window.location.href, 'initial');
+    safeCall(() => {
+        // Start initial page view
+        startPageView(window.location.href, 'initial');
 
-    // Track DOMContentLoaded
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
+        // Track DOMContentLoaded
+        if (document.readyState === 'loading') {
+            document.addEventListener(
+                'DOMContentLoaded',
+                makeSafe(() => {
+                    logLifecycleEvent('DOMContentLoaded');
+                }),
+            );
+        } else {
+            // Already loaded, log immediately with note
             logLifecycleEvent('DOMContentLoaded');
-        });
-    } else {
-        // Already loaded, log immediately with note
-        logLifecycleEvent('DOMContentLoaded');
-    }
-
-    // Track window load
-    if (document.readyState !== 'complete') {
-        window.addEventListener('load', () => {
-            logLifecycleEvent('load');
-        });
-    } else {
-        // Already loaded
-        logLifecycleEvent('load');
-    }
-
-    // Track visibility changes
-    document.addEventListener('visibilitychange', () => {
-        logLifecycleEvent('visibilitychange', {
-            visibilityState: document.visibilityState,
-        });
-
-        // End page view when hidden (user switched tabs/apps)
-        // This ensures CLS/INP are captured before the page is hidden
-        if (document.visibilityState === 'hidden') {
-            endPageView('hidden');
-        } else if (document.visibilityState === 'visible' && !currentPageSpanId) {
-            // Resume page view when becoming visible again
-            startPageView(window.location.href, 'navigation');
         }
-    });
 
-    // Track page unload
-    window.addEventListener('pagehide', () => {
-        endPageView('unload');
-    });
+        // Track window load
+        if (document.readyState !== 'complete') {
+            window.addEventListener(
+                'load',
+                makeSafe(() => {
+                    logLifecycleEvent('load');
+                }),
+            );
+        } else {
+            // Already loaded
+            logLifecycleEvent('load');
+        }
 
-    // Fallback for browsers that don't support pagehide
-    window.addEventListener('beforeunload', () => {
-        endPageView('unload');
+        // Track visibility changes
+        document.addEventListener(
+            'visibilitychange',
+            makeSafe(() => {
+                logLifecycleEvent('visibilitychange', {
+                    visibilityState: document.visibilityState,
+                });
+
+                // End page view when hidden (user switched tabs/apps)
+                // This ensures CLS/INP are captured before the page is hidden
+                if (document.visibilityState === 'hidden') {
+                    endPageView('hidden');
+                } else if (document.visibilityState === 'visible' && !currentPageSpanId) {
+                    // Resume page view when becoming visible again
+                    startPageView(window.location.href, 'navigation');
+                }
+            }),
+        );
+
+        // Track page unload
+        window.addEventListener(
+            'pagehide',
+            makeSafe(() => {
+                endPageView('unload');
+            }),
+        );
+
+        // Fallback for browsers that don't support pagehide
+        window.addEventListener(
+            'beforeunload',
+            makeSafe(() => {
+                endPageView('unload');
+            }),
+        );
     });
 };

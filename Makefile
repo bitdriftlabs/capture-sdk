@@ -95,3 +95,7 @@ fix-ts:
 build-ts:
 	npm --prefix ./platform/webview run build
 	npm --prefix ./platform/webview run generate
+
+.PHONY: test-ts
+test-ts:
+	npm --prefix ./platform/webview run test

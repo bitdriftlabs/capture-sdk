@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
-import type { LongTaskMessage } from './types';
+import { makeSafe, safeCall } from './safe-call';
 
 /**
  * Initialize long task monitoring using PerformanceObserver.
@@ -18,29 +18,33 @@ export const initLongTaskMonitoring = (): void => {
     }
 
     try {
-        const observer = new PerformanceObserver((list) => {
-            for (const entry of list.getEntries()) {
-                const taskEntry = entry as PerformanceEntry & {
-                    attribution?: {
-                        name?: string;
-                        containerType?: string;
-                        containerSrc?: string;
-                        containerId?: string;
-                        containerName?: string;
-                    }[];
-                };
+        const observer = new PerformanceObserver(
+            makeSafe((list) => {
+                for (const entry of list.getEntries()) {
+                    safeCall(() => {
+                        const taskEntry = entry as PerformanceEntry & {
+                            attribution?: {
+                                name?: string;
+                                containerType?: string;
+                                containerSrc?: string;
+                                containerId?: string;
+                                containerName?: string;
+                            }[];
+                        };
 
-                const attribution = taskEntry.attribution?.[0];
+                        const attribution = taskEntry.attribution?.[0];
 
-                const message = createMessage<LongTaskMessage>({
-                    type: 'longTask',
-                    durationMs: entry.duration,
-                    startTime: entry.startTime,
-                    attribution: attribution,
-                });
-                log(message);
-            }
-        });
+                        const message = createMessage({
+                            type: 'longTask',
+                            durationMs: entry.duration,
+                            startTime: entry.startTime,
+                            attribution: attribution,
+                        });
+                        log(message);
+                    });
+                }
+            }),
+        );
 
         observer.observe({ type: 'longtask', buffered: true });
     } catch {

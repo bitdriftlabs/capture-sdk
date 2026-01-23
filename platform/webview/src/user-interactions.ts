@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
-import type { UserInteractionMessage } from './types';
+import { safeCall, makeSafe } from './safe-call';
 
 /** Clickable element tags */
 const CLICKABLE_TAGS = new Set(['a', 'button', 'input', 'select', 'textarea', 'label', 'summary']);
@@ -64,49 +64,55 @@ const flushPendingRageClick = (): void => {
 export const initUserInteractionMonitoring = (): void => {
     // Use pointerdown for reliable mobile/desktop support
     // pointerdown fires immediately on touch/click without delay
-    document.addEventListener('pointerdown', handlePointerDown, true);
+    safeCall(() => {
+        document.addEventListener('pointerdown', makeSafe(handlePointerDown), true);
+    });
 };
 
 /**
  * Check if an element or its ancestors are clickable
  */
 const isClickable = (element: Element): boolean => {
-    let current: Element | null = element;
+    return (
+        safeCall(() => {
+            let current: Element | null = element;
 
-    while (current) {
-        const tagName = current.tagName.toLowerCase();
+            while (current) {
+                const tagName = current.tagName.toLowerCase();
 
-        // Check tag name
-        if (CLICKABLE_TAGS.has(tagName)) {
-            // For inputs, check the type
-            if (tagName === 'input') {
-                const type = (current as HTMLInputElement).type.toLowerCase();
-                return CLICKABLE_INPUT_TYPES.has(type);
+                // Check tag name
+                if (CLICKABLE_TAGS.has(tagName)) {
+                    // For inputs, check the type
+                    if (tagName === 'input') {
+                        const type = (current as HTMLInputElement).type.toLowerCase();
+                        return CLICKABLE_INPUT_TYPES.has(type);
+                    }
+                    return true;
+                }
+
+                // Check for role attribute
+                const role = current.getAttribute('role');
+                if (role === 'button' || role === 'link' || role === 'menuitem') {
+                    return true;
+                }
+
+                // Check for onclick handler or tabindex
+                if (current.hasAttribute('onclick') || current.hasAttribute('tabindex')) {
+                    return true;
+                }
+
+                // Check for cursor pointer style
+                const style = window.getComputedStyle(current);
+                if (style.cursor === 'pointer') {
+                    return true;
+                }
+
+                current = current.parentElement;
             }
-            return true;
-        }
 
-        // Check for role attribute
-        const role = current.getAttribute('role');
-        if (role === 'button' || role === 'link' || role === 'menuitem') {
-            return true;
-        }
-
-        // Check for onclick handler or tabindex
-        if (current.hasAttribute('onclick') || current.hasAttribute('tabindex')) {
-            return true;
-        }
-
-        // Check for cursor pointer style
-        const style = window.getComputedStyle(current);
-        if (style.cursor === 'pointer') {
-            return true;
-        }
-
-        current = current.parentElement;
-    }
-
-    return false;
+            return false;
+        }) ?? false
+    );
 };
 
 /**
@@ -185,32 +191,34 @@ const logUserInteraction = (
     clickCount?: number,
     actualTimeWindowMs?: number,
 ): void => {
-    const tagName = element.tagName.toLowerCase();
-    const elementId = element.id || undefined;
-    const className = element.className
-        ? typeof element.className === 'string'
-            ? element.className
-            : (element.className as DOMTokenList).toString()
-        : undefined;
+    safeCall(() => {
+        const tagName = element.tagName.toLowerCase();
+        const elementId = element.id || undefined;
+        const className = element.className
+            ? typeof element.className === 'string'
+                ? element.className
+                : (element.className as DOMTokenList).toString()
+            : undefined;
 
-    // Get text content, truncated
-    let textContent: string | undefined;
-    if (element.textContent) {
-        const text = element.textContent.trim().replace(/\s+/g, ' ');
-        textContent = text.length > 50 ? `${text.slice(0, 50)}...` : text || undefined;
-    }
+        // Get text content, truncated
+        let textContent: string | undefined;
+        if (element.textContent) {
+            const text = element.textContent.trim().replace(/\s+/g, ' ');
+            textContent = text.length > 50 ? `${text.slice(0, 50)}...` : text || undefined;
+        }
 
-    const message = createMessage<UserInteractionMessage>({
-        type: 'userInteraction',
-        interactionType,
-        tagName,
-        elementId,
-        className: className?.slice(0, 100),
-        textContent,
-        isClickable,
-        clickCount: interactionType === 'rageClick' ? clickCount : undefined,
-        timeWindowMs: interactionType === 'rageClick' ? RAGE_CLICK_TIME_WINDOW_MS : undefined,
-        duration: interactionType === 'rageClick' ? actualTimeWindowMs : undefined,
+        const message = createMessage({
+            type: 'userInteraction',
+            interactionType,
+            tagName,
+            elementId,
+            className: className?.slice(0, 100),
+            textContent,
+            isClickable,
+            clickCount: interactionType === 'rageClick' ? clickCount : undefined,
+            timeWindowMs: interactionType === 'rageClick' ? RAGE_CLICK_TIME_WINDOW_MS : undefined,
+            duration: interactionType === 'rageClick' ? actualTimeWindowMs : undefined,
+        });
+        log(message);
     });
-    log(message);
 };
