@@ -71,6 +71,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-${{ github.job }}
+          repository-cache: true
+
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
       - run: ./bazelw build --config ci --config release-ios //examples/swift/hello_world:ios_app
@@ -102,6 +109,13 @@ jobs:
       # Checkout repo to Github Actions runner
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-${{ github.job }}
+          repository-cache: true
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh

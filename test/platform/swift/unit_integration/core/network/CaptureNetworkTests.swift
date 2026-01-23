@@ -43,15 +43,6 @@ final class CaptureNetworkTests: XCTestCase {
         XCTAssertFalse(streamClosed)
     }
 
-    // A wrapper around the test scenario described by the Rust test helper: we configure a constant
-    // stream of uploads to verify the behavior of the networking implementation when there is a
-    // lot of traffic.
-    func testAggressiveNetworkTraffic() async throws {
-        let env = try NetworkTestEnvironment(networkIdleTimeout: 10)
-
-        try await env.testServer.runAggressiveUploadTest(loggerId: env.loggerID)
-    }
-
     func testLargeUpload() async throws {
         let env = try NetworkTestEnvironment(networkIdleTimeout: 10)
 

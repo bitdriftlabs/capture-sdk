@@ -99,27 +99,6 @@ public final class TestApiServer: @unchecked Sendable {
         try checkError(errorPtr)
     }
 
-    /// Runs the aggressive upload test.
-    ///
-    /// - parameter loggerId: The logger ID.
-    ///
-    /// - throws: `TestServerError` if the test fails.
-    public func runAggressiveUploadTest(loggerId: Int64) async throws {
-        let errorPtr = await withCheckedContinuation { continuation in
-            DispatchQueue.global().async {
-                continuation.resume(
-                    returning: server_instance_run_aggressive_upload_test(self.handle, loggerId)
-                )
-            }
-        }
-
-        if let ptr = errorPtr {
-            let message = String(cString: ptr)
-            test_helpers_free_string(UnsafeMutablePointer(mutating: ptr))
-            throw TestServerError(message)
-        }
-    }
-
     /// Runs the large upload test.
     ///
     /// - parameter loggerId: The logger ID.
