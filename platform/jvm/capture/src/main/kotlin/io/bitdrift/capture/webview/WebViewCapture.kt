@@ -9,7 +9,6 @@ package io.bitdrift.capture.webview
 
 import android.annotation.SuppressLint
 import android.util.Log
-import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
@@ -101,7 +100,7 @@ internal object WebViewCapture {
 
         webview.settings.javaScriptEnabled = true
 
-        val bridgeHandler = WebViewBridgeHandler(loggerImpl, effectiveLogger)
+        val bridgeHandler = WebViewBridgeMessageHandler(loggerImpl)
         webview.addJavascriptInterface(bridgeHandler, BRIDGE_NAME)
 
         injectScript(webview, effectiveLogger, webViewConfig)
@@ -157,27 +156,6 @@ internal object WebViewCapture {
         }.getOrElse { error ->
             logger?.log(LogLevel.WARNING, fieldsOf("_error" to (error.message ?: ""))) {
                 "Failed to inject WebView bridge script"
-            }
-        }
-    }
-}
-
-/**
- * JavaScript interface that receives messages from the injected bridge script.
- */
-private class WebViewBridgeHandler(
-    loggerImpl: LoggerImpl?,
-    private val logger: ILogger?,
-) {
-    private val messageHandler = WebViewMessageHandler(loggerImpl)
-
-    @JavascriptInterface
-    fun log(message: String) {
-        try {
-            messageHandler.handleMessage(message)
-        } catch (e: Exception) {
-            logger?.log(LogLevel.WARNING, fieldsOf("_error" to (e.message ?: ""))) {
-                "Failed to handle WebView bridge message"
             }
         }
     }
