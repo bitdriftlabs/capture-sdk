@@ -23,4 +23,9 @@ internal interface IInternalLogger : ILogger {
         blocking: Boolean = false,
         message: () -> String,
     )
+
+    fun reportInternalError(
+        detail: String,
+        throwable: Throwable? = null,
+    )
 }
