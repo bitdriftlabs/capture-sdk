@@ -119,7 +119,7 @@ class MainViewModel(
                 networkTestingRepository.performRetrofitRequest()
             }
 
-            is FeatureFlagsTestAction.AddOneFeatureFlag -> addOneFeatureFlag()
+            is FeatureFlagsTestAction.AddVariantFlag -> addVariantFlag(action.value)
             is FeatureFlagsTestAction.AddManyFeatureFlags -> addManyFeatureFlags()
 
             is StressTestAction.IncreaseMemoryPressure -> stressTestRepository.increaseMemoryPressure(action.targetPercent)
@@ -259,6 +259,13 @@ class MainViewModel(
         for (i in 1..10000) {
             Logger.setFeatureFlagExposure("flag_$i", "variant_$i")
         }
+    }
+
+    @OptIn(ExperimentalBitdriftApi::class)
+    private fun addVariantFlag(value: Boolean) {
+        val variant = if (value) "true" else "false"
+        Timber.i("Adding variant_flag feature flag with variant: $variant")
+        Logger.setFeatureFlagExposure("variant_flag", variant)
     }
 
     private fun logMessage() {

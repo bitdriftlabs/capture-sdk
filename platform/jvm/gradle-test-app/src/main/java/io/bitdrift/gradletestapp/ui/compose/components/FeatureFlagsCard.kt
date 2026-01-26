@@ -11,6 +11,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
@@ -20,10 +21,11 @@ import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
  */
 @Composable
 fun FeatureFlagsTestingCard(
-    onAddOneFeatureFlag: () -> Unit,
+    onAddVariantFlag: (Boolean) -> Unit,
     onAddManyFeatureFlags: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var variantFlagValue by remember { mutableStateOf(true) }
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -51,27 +53,74 @@ fun FeatureFlagsTestingCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                OutlinedButton(
-                    onClick = onAddOneFeatureFlag,
+                Text(
+                    text = "variant_flag",
+                    modifier = Modifier
+                        .weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = BitdriftColors.TextPrimary,
+                )
+
+                Row(
                     modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = BitdriftColors.TextPrimary,
-                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start,
                 ) {
-                    Text("One")
+                    Checkbox(
+                        checked = variantFlagValue,
+                        onCheckedChange = { variantFlagValue = it },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = BitdriftColors.TextPrimary,
+                            uncheckedColor = BitdriftColors.Border,
+                        ),
+                    )
+                    Text(
+                        text = "Enabled",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = BitdriftColors.TextPrimary,
+                    )
                 }
 
-                OutlinedButton(
+                Button(
+                    onClick = { onAddVariantFlag(variantFlagValue) },
+                    modifier = Modifier.weight(1f),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = BitdriftColors.TextPrimary,
+                            contentColor = BitdriftColors.BackgroundPaper,
+                        ),
+                ) {
+                    Text("Record")
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Multiple flags",
+                    modifier = Modifier
+                        .weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = BitdriftColors.TextPrimary,
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Button(
                     onClick = onAddManyFeatureFlags,
                     modifier = Modifier.weight(1f),
                     colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = BitdriftColors.TextPrimary,
+                        ButtonDefaults.buttonColors(
+                            containerColor = BitdriftColors.TextPrimary,
+                            contentColor = BitdriftColors.BackgroundPaper,
                         ),
                 ) {
-                    Text("Many")
+                    Text("Record")
                 }
             }
         }
