@@ -43,6 +43,7 @@ import io.bitdrift.capture.instrumentation.okhttp.OkHttpEventListener
 import io.bitdrift.capture.instrumentation.util.findClassReader
 import io.bitdrift.capture.instrumentation.util.findClassWriter
 import io.bitdrift.capture.instrumentation.util.isMinifiedClass
+import io.bitdrift.capture.instrumentation.webview.WebViewLoadUrlInstrumentable
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
@@ -56,6 +57,12 @@ abstract class SpanAddingClassVisitorFactory : AsmClassVisitorFactory<SpanAdding
 
         @get:Input
         val okHttpInstrumentationType: Property<OkHttpInstrumentationType>
+
+        @get:Input
+        val enableOkHttpInstrumentation: Property<Boolean>
+
+        @get:Input
+        val enableWebViewInstrumentation: Property<Boolean>
 
         @get:Internal
         val tmpDir: Property<File>
@@ -71,12 +78,12 @@ abstract class SpanAddingClassVisitorFactory : AsmClassVisitorFactory<SpanAdding
                 return memoized
             }
 
-            val instrumentable =
-                ChainedInstrumentable(
-                    listOfNotNull(
-                        OkHttpEventListener(),
-                    ),
-                )
+            val instrumentable = ChainedInstrumentable(
+                listOfNotNull(
+                    OkHttpEventListener().takeIf { parameters.get().enableOkHttpInstrumentation.get() },
+                    WebViewLoadUrlInstrumentable().takeIf { parameters.get().enableWebViewInstrumentation.get() },
+                ),
+            )
             CapturePlugin.logger.info(
                 "Instrumentable: $instrumentable",
             )

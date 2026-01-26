@@ -21,7 +21,7 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 
-class WebViewCapture(
+class SampleAppWebViewCapture(
     private val original: WebViewClient,
     private val logger: ILogger? = Capture.logger(),
 ) : WebViewClient() {
@@ -139,7 +139,7 @@ class WebViewCapture(
         fun instrument(webview: WebView) {
             if (WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_CLIENT)) {
                 val original = WebViewCompat.getWebViewClient(webview)
-                webview.webViewClient = WebViewCapture(original)
+                webview.webViewClient = SampleAppWebViewCapture(original)
             }
         }
     }

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.NavigationAction
+import io.bitdrift.gradletestapp.ui.fragments.WebViewFragment
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -49,11 +50,6 @@ fun NavigationCard(onAction: (AppAction) -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 OutlinedButton(
-                    onClick = { onAction(NavigationAction.NavigateToWebView) },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
-                ) { Text(stringResource(id = R.string.navigate_to_web_view), maxLines = 1, softWrap = false) }
-
-                OutlinedButton(
                     onClick = { onAction(NavigationAction.NavigateToCompose) },
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
                 ) { Text(stringResource(id = R.string.navigate_second), maxLines = 1, softWrap = false) }
@@ -72,6 +68,15 @@ fun NavigationCard(onAction: (AppAction) -> Unit) {
                     onClick = { onAction(NavigationAction.InvokeService) },
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
                 ) { Text("Invoke Service", maxLines = 1, softWrap = false) }
+
+                WebViewFragment.WEBVIEW_URLS.forEach { (name, url) ->
+                    OutlinedButton(
+                        onClick = { onAction(NavigationAction.NavigateToWebView(url)) },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
+                    ) {
+                        Text(name, maxLines = 1, softWrap = false)
+                    }
+                }
             }
         }
     }

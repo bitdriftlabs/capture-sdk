@@ -54,6 +54,11 @@
         android:label="@string/web_view_fragment_label"
         tools:layout="@layout/fragment_web_view">
 
+        <argument
+            android:name="url"
+            app:argType="string"
+            android:defaultValue="https://bitdrift.io/" />
+
         <action
             android:id="@+id/action_FirstFragment_to_WebViewFragment"
             app:destination="@id/WebViewFragment" />

@@ -34,6 +34,7 @@ dependencies {
     implementation(libs.protobuf.kotlinlite)
 
     compileOnly(libs.retrofit)
+    compileOnly(libs.androidx.webkit)
 
     testImplementation(libs.junit)
     testImplementation(libs.assertj.core)

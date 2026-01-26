@@ -13,11 +13,23 @@ import android.util.Log
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.Configuration
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.timber.CaptureTree
+import io.bitdrift.capture.webview.WebViewConfiguration
 import io.bitdrift.gradletestapp.BuildConfig
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_CONSOLE_LOGS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_ERRORS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_LONG_TASKS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_PAGE_VIEWS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_USER_INTERACTIONS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_WEB_VITALS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_MONITORING_ENABLED_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
 import okhttp3.HttpUrl
@@ -104,10 +116,12 @@ object BitdriftInit {
             )
 
         val sessionStrategy = getSessionStrategy(sharedPreferences)
+        val webViewConfig = getWebViewConfiguration(sharedPreferences)
         val configuration =
             Configuration(
                 sessionReplayConfiguration = if (sessionReplayEnabled) SessionReplayConfiguration() else null,
                 enableFatalIssueReporting = fatalIssueReporterEnabled,
+                webViewConfiguration = webViewConfig,
             )
 
         val userID = UUID.randomUUID().toString()
@@ -126,6 +140,10 @@ object BitdriftInit {
         return SdkConfigResult.Success(captureSdkInitSettings)
     }
 
+    private fun SharedPreferences.getPersistedFlag(keyName: String): Boolean = getBoolean(
+        keyName,
+        false)
+    
     private fun getSessionStrategy(sharedPreferences: SharedPreferences): SessionStrategy =
         if (sharedPreferences.getString(
                 ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY,
@@ -141,6 +159,31 @@ object BitdriftInit {
                 },
             )
         }
+
+    private fun getWebViewConfiguration(sharedPrefs: SharedPreferences): WebViewConfiguration? {
+        if (!sharedPrefs.getBoolean(WEBVIEW_MONITORING_ENABLED_KEY, false)
+        ) {
+            return null
+        }
+
+        @OptIn(ExperimentalBitdriftApi::class)
+        return WebViewConfiguration(
+            captureConsoleLogs = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_CONSOLE_LOGS_KEY),
+            captureErrors = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_ERRORS_KEY),
+            captureNetworkRequests = sharedPrefs.getPersistedFlag(
+                WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY
+            ),
+            captureNavigationEvents = sharedPrefs.getPersistedFlag(
+                WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY
+            ),
+            capturePageViews = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_PAGE_VIEWS_KEY),
+            captureWebVitals = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_WEB_VITALS_KEY),
+            captureLongTasks = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_LONG_TASKS_KEY),
+            captureUserInteractions = sharedPrefs.getPersistedFlag(
+                WEBVIEW_ENABLE_USER_INTERACTIONS_KEY
+            ),
+        )
+    }
 
     private sealed class SdkConfigResult {
         data class Failed(

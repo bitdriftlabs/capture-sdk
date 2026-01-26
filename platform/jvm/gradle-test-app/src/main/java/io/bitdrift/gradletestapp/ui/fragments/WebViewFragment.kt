@@ -5,6 +5,9 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+// TODO(Fran): BIT-7218. To remove below once the capture-plugin release that contains automactic webview instrumentation is publicly enabled
+@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+
 package io.bitdrift.gradletestapp.ui.fragments
 
 import android.os.Bundle
@@ -13,8 +16,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.fragment.app.Fragment
+import io.bitdrift.capture.webview.WebViewCapture
 import io.bitdrift.gradletestapp.R
-import io.bitdrift.gradletestapp.diagnostics.webview.WebViewCapture
 
 /**
  * A basic WebView that can be used to test multi process.
@@ -29,19 +32,27 @@ class WebViewFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_web_view, container, false)
         val webView = view.findViewById<WebView>(R.id.webView)
 
-        // Instrument the WebView with bitdrift capture
+        // TODO(Fran): BIT-7218. To remove below once the capture-plugin release that contains automactic webview instrumentation is publicly enabled
         WebViewCapture.instrument(webView)
 
-        webView.loadUrl(urls.random())
+        val url = arguments?.getString(ARG_URL) ?: WEBVIEW_URLS.first().second
+        webView.loadUrl(url)
         return view
     }
 
     companion object {
-        private val urls = listOf(
-            "https://bitdrift.io/",
-            "https://bitdrift.io/hello", // 404
-            "https://bitdrift.ai/", // timeout
-            "https://www.wikipedia.org/",
+        const val ARG_URL = "url"
+
+        /**
+         * List of URLs available for WebView testing.
+         * Pair of (display name, URL)
+         */
+        val WEBVIEW_URLS = listOf(
+            "SDK Test Page" to "file:///android_asset/test-page/index.html",
+            "bitdrift.io" to "https://bitdrift.io/",
+            "bitdrift.io/hello (404)" to "https://bitdrift.io/hello",
+            "bitdrift.ai (timeout)" to "https://bitdrift.ai/",
+            "Wikipedia" to "https://www.wikipedia.org/",
         )
     }
 }
