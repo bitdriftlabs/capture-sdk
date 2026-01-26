@@ -39,9 +39,9 @@ import kotlin.time.TimeSource
 /**
  * Reports different Issue Types (JVM crash, ANR, native, StrictMode, etc).
  *
- * @param backgroundThreadHandler Handler for background thread operations
- * @param latestAppExitInfoProvider Provider for retrieving latest app exit information
- * @param captureUncaughtExceptionHandler Handler for uncaught exceptions
+ * @param backgroundThreadHandler Handler for background thread operations.
+ * @param latestAppExitInfoProvider Provider for retrieving latest app exit information.
+ * @param captureUncaughtExceptionHandler Handler for uncaught exceptions.
  */
 internal class IssueReporter(
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
