@@ -120,7 +120,10 @@ internal object WebViewCapture {
     private fun ILogger.logInstrumentationNotInitialized(reason: String) {
         log(
             LogLevel.WARNING,
-            fieldsOf("reason" to reason),
+            fieldsOf(
+                "reason" to reason,
+                "_source" to "webview",
+            ),
         ) {
             "webview.notInitialized"
         }
