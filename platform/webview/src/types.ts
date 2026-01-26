@@ -7,7 +7,7 @@
 
 import type { MetricType } from 'web-vitals';
 
-type Serializable =
+export type Serializable =
     | string
     | number
     | boolean
@@ -16,7 +16,7 @@ type Serializable =
     | undefined
     | Serializable[]
     | { [key: string]: Serializable };
-type SerializableLogFields = { [key: string]: Serializable };
+export type SerializableLogFields = { [key: string]: Serializable };
 
 type WebViewInstrumentationConfig = Exclude<Exclude<typeof window.bitdrift, undefined>['config'], undefined>;
 
@@ -290,3 +290,7 @@ export type AnyBridgeMessage =
     | PromiseRejectionMessage
     | UserInteractionMessage
     | InternalAutoInstrumentationMessage;
+
+export type AnyBridgeMessageMap = {
+    [K in AnyBridgeMessage as K['type']]: K;
+};

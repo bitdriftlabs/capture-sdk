@@ -7,29 +7,31 @@
 
 import { onLCP, onCLS, onINP, onFCP, onTTFB, type MetricType } from 'web-vitals';
 import { log, createMessage } from './bridge';
+import { safeCall, makeSafe } from './safe-call';
 import { getCurrentPageSpanId } from './page-view';
-import type { WebVitalMessage } from './types';
 
 /**
  * Initialize Core Web Vitals monitoring using the web-vitals library.
  * Reports: LCP, CLS, INP, FCP, TTFB
  */
 export const initWebVitals = (): void => {
-    const reportMetric = (metric: MetricType): void => {
-        const parentSpanId = getCurrentPageSpanId();
-        const message = createMessage<WebVitalMessage>({
-            type: 'webVital',
-            metric,
-            ...(parentSpanId && { parentSpanId }),
+    safeCall(() => {
+        const reportMetric = makeSafe((metric: MetricType): void => {
+            const parentSpanId = getCurrentPageSpanId();
+            const message = createMessage({
+                type: 'webVital',
+                metric,
+                ...(parentSpanId && { parentSpanId }),
+            });
+            log(message);
         });
-        log(message);
-    };
 
-    // Report all Core Web Vitals
-    // Using reportAllChanges: false (default) to get final values
-    onLCP(reportMetric);
-    onCLS(reportMetric);
-    onINP(reportMetric);
-    onFCP(reportMetric);
-    onTTFB(reportMetric);
+        // Report all Core Web Vitals
+        // Using reportAllChanges: false (default) to get final values
+        onLCP(reportMetric);
+        onCLS(reportMetric);
+        onINP(reportMetric);
+        onFCP(reportMetric);
+        onTTFB(reportMetric);
+    });
 };

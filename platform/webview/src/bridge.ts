@@ -5,7 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import type { AnyBridgeMessage, BridgeMessage, CustomLogMessage } from './types';
+import { safeCall } from './safe-call';
+import type { AnyBridgeMessage, AnyBridgeMessageMap, BridgeMessage, CustomLogMessage } from './types';
 
 export const pristine = {
     console: {
@@ -20,33 +21,39 @@ export const pristine = {
 type Platform = 'ios' | 'android' | 'unknown';
 
 const detectPlatform = (): Platform => {
-    if (window.webkit?.messageHandlers?.BitdriftLogger) {
-        return 'ios';
-    }
-    if (window.BitdriftLogger) {
-        return 'android';
-    }
-    return 'unknown';
+    return (
+        safeCall(() => {
+            if (window.webkit?.messageHandlers?.BitdriftLogger) {
+                return 'ios';
+            }
+            if (window.BitdriftLogger) {
+                return 'android';
+            }
+            return 'unknown';
+        }) ?? 'unknown'
+    );
 };
 
 const sendToNative = (message: AnyBridgeMessage): void => {
-    const platform = detectPlatform();
-    const serialized = JSON.stringify(message);
+    safeCall(() => {
+        const platform = detectPlatform();
+        const serialized = JSON.stringify(message);
 
-    switch (platform) {
-        case 'ios':
-            window.webkit?.messageHandlers?.BitdriftLogger?.postMessage(message);
-            break;
-        case 'android':
-            window.BitdriftLogger?.log(serialized);
-            break;
-        case 'unknown':
-            // In development/testing, log to console
-            if (typeof console !== 'undefined') {
-                console.debug('[Bitdrift WebView]', message);
-            }
-            break;
-    }
+        switch (platform) {
+            case 'ios':
+                window.webkit?.messageHandlers?.BitdriftLogger?.postMessage(message);
+                break;
+            case 'android':
+                window.BitdriftLogger?.log(serialized);
+                break;
+            case 'unknown':
+                // In development/testing, log to console
+                if (typeof console !== 'undefined') {
+                    console.debug('[Bitdrift WebView]', message);
+                }
+                break;
+        }
+    });
 };
 
 /**
@@ -74,7 +81,7 @@ export const initBridge = (): void => {
                 message = args[0];
             } else {
                 const [level, msg, fields] = args;
-                message = createMessage<CustomLogMessage>({
+                message = createMessage({
                     type: 'customLog',
                     level,
                     message: msg,
@@ -100,13 +107,21 @@ export const log = (message: AnyBridgeMessage): void => {
 /**
  * Helper to create a timestamped message
  */
-export const createMessage = <T extends AnyBridgeMessage>(partial: Omit<T, 'v' | 'timestamp' | 'tag'>): T => {
+export const createMessage = <T extends keyof AnyBridgeMessageMap>({
+    type,
+    timestamp,
+    ...partial
+}: { type: T; timestamp?: number } & Omit<
+    AnyBridgeMessageMap[T],
+    'v' | 'timestamp' | 'tag' | 'type'
+>): AnyBridgeMessageMap[T] => {
     return {
         tag: 'bitdrift-webview-sdk',
         v: 1,
-        timestamp: Date.now(),
+        timestamp: timestamp ?? Date.now(),
+        type,
         ...partial,
-    } as T;
+    } as unknown as AnyBridgeMessageMap[T];
 };
 
 export const isAnyBridgeMessage = (obj: unknown): obj is AnyBridgeMessage => {

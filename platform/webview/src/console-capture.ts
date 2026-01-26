@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage, pristine, isAnyBridgeMessage } from './bridge';
-import type { ConsoleMessage } from './types';
+import { safeCall } from './safe-call';
 
 const LEVELS = ['log', 'warn', 'error', 'info', 'debug'] as const;
 
@@ -15,31 +15,36 @@ const LEVELS = ['log', 'warn', 'error', 'info', 'debug'] as const;
  * Intercepts console.log, warn, error, info, debug and sends to native.
  */
 export const initConsoleCapture = (): void => {
-    for (const level of LEVELS) {
-        // Ensure pristine.console is initialized
-        pristine.console[level] = pristine.console[level] ?? console[level];
+    safeCall(() => {
+        for (const level of LEVELS) {
+            // Ensure pristine.console is initialized
+            pristine.console[level] = pristine.console[level] ?? console[level];
 
-        console[level] = (...args: unknown[]) => {
-            // Call original console method first
-            pristine.console[level]?.apply(console, args);
+            console[level] = (...args: unknown[]) => {
+                // Call original console method first - this must succeed even if our logging fails
+                safeCall(() => pristine.console[level]?.apply(console, args));
 
-            // Avoid capturing our own bridge messages
-            if (isAnyBridgeMessage(args[0])) return;
+                // Wrap our telemetry in safeCall to never crash the client
+                safeCall(() => {
+                    // Avoid capturing our own bridge messages
+                    if (isAnyBridgeMessage(args[0])) return;
 
-            // Convert args to strings
-            const messageStr = stringifyArg(args[0]);
-            const additionalArgs =
-                args.length > 1 ? (args.slice(1).map(stringifyArg).filter(Boolean) as string[]) : undefined;
+                    // Convert args to strings
+                    const messageStr = stringifyArg(args[0]);
+                    const additionalArgs =
+                        args.length > 1 ? (args.slice(1).map(stringifyArg).filter(Boolean) as string[]) : undefined;
 
-            const message = createMessage<ConsoleMessage>({
-                type: 'console',
-                level,
-                message: messageStr,
-                args: additionalArgs,
-            });
-            log(message);
-        };
-    }
+                    const message = createMessage({
+                        type: 'console',
+                        level,
+                        message: messageStr,
+                        args: additionalArgs,
+                    });
+                    log(message);
+                });
+            };
+        }
+    });
 };
 
 /**

@@ -6,37 +6,42 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
-import type { ErrorMessage, PromiseRejectionMessage } from './types';
+import { safeCall, makeSafe } from './safe-call';
 
 /**
  * Initialize unhandled error monitoring.
  * Captures uncaught JavaScript errors that bubble to the window.
  */
 export const initErrorMonitoring = (): void => {
-    window.addEventListener('error', (event: ErrorEvent) => {
-        // Skip if this is a resource error (handled by resource-errors.ts)
-        // Resource errors have event.target as an Element
-        if (event.target && event.target !== window) {
-            return;
-        }
+    safeCall(() => {
+        window.addEventListener(
+            'error',
+            makeSafe((event: ErrorEvent) => {
+                // Skip if this is a resource error (handled by resource-errors.ts)
+                // Resource errors have event.target as an Element
+                if (event.target && event.target !== window) {
+                    return;
+                }
 
-        const error = event.error;
-        let stack: string | undefined;
+                const error = event.error;
+                let stack: string | undefined;
 
-        if (error instanceof Error) {
-            stack = error.stack;
-        }
+                if (error instanceof Error) {
+                    stack = error.stack;
+                }
 
-        const message = createMessage<ErrorMessage>({
-            type: 'error',
-            name: error?.name ?? 'Error',
-            message: event.message || 'Unknown error',
-            stack,
-            filename: event.filename || undefined,
-            lineno: event.lineno || undefined,
-            colno: event.colno || undefined,
-        });
-        log(message);
+                const message = createMessage({
+                    type: 'error',
+                    name: error?.name ?? 'Error',
+                    message: event.message || 'Unknown error',
+                    stack,
+                    filename: event.filename || undefined,
+                    lineno: event.lineno || undefined,
+                    colno: event.colno || undefined,
+                });
+                log(message);
+            }),
+        );
     });
 };
 
@@ -44,28 +49,33 @@ export const initErrorMonitoring = (): void => {
  * Initialize unhandled promise rejection monitoring.
  */
 export const initPromiseRejectionMonitoring = (): void => {
-    window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
-        let reason = 'Unknown rejection reason';
-        let stack: string | undefined;
+    safeCall(() => {
+        window.addEventListener(
+            'unhandledrejection',
+            makeSafe((event: PromiseRejectionEvent) => {
+                let reason = 'Unknown rejection reason';
+                let stack: string | undefined;
 
-        if (event.reason instanceof Error) {
-            reason = event.reason.message;
-            stack = event.reason.stack;
-        } else if (typeof event.reason === 'string') {
-            reason = event.reason;
-        } else if (event.reason !== null && event.reason !== undefined) {
-            try {
-                reason = JSON.stringify(event.reason);
-            } catch {
-                reason = String(event.reason);
-            }
-        }
+                if (event.reason instanceof Error) {
+                    reason = event.reason.message;
+                    stack = event.reason.stack;
+                } else if (typeof event.reason === 'string') {
+                    reason = event.reason;
+                } else if (event.reason !== null && event.reason !== undefined) {
+                    try {
+                        reason = JSON.stringify(event.reason);
+                    } catch {
+                        reason = String(event.reason);
+                    }
+                }
 
-        const message = createMessage<PromiseRejectionMessage>({
-            type: 'promiseRejection',
-            reason,
-            stack: stack,
-        });
-        log(message);
+                const message = createMessage({
+                    type: 'promiseRejection',
+                    reason,
+                    stack: stack,
+                });
+                log(message);
+            }),
+        );
     });
 };

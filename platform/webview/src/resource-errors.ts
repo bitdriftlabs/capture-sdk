@@ -6,8 +6,8 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
+import { safeCall, makeSafe } from './safe-call';
 import { wasResourceObserved, markResourceFailed } from './network';
-import type { ResourceErrorMessage } from './types';
 
 /**
  * Delay before logging a fallback resource error.
@@ -26,69 +26,74 @@ const FALLBACK_DELAY_MS = 500;
  *    (edge cases like CSP-blocked requests that don't create timing entries)
  */
 export const initResourceErrorMonitoring = (): void => {
-    // Use capture phase to catch errors before they bubble
-    window.addEventListener(
-        'error',
-        (event: ErrorEvent | Event) => {
-            // Only handle resource errors, not script errors
-            // Script errors have a message property, resource errors don't
-            if (event instanceof ErrorEvent) {
-                // This is a script error, not a resource error
-                return;
-            }
-
-            const target = event.target as HTMLElement | null;
-            if (!target) {
-                return;
-            }
-
-            // Check if it's a resource element
-            const tagName = target.tagName?.toLowerCase();
-            if (!tagName) {
-                return;
-            }
-
-            // Only track resource loading elements
-            const resourceElements = ['img', 'script', 'link', 'video', 'audio', 'source', 'iframe'];
-            if (!resourceElements.includes(tagName)) {
-                return;
-            }
-
-            // Get the URL of the failed resource
-            const url =
-                (target as HTMLImageElement | HTMLScriptElement | HTMLIFrameElement).src ||
-                (target as HTMLLinkElement).href ||
-                '';
-
-            if (!url) {
-                return;
-            }
-
-            const resourceType = getResourceType(tagName, target);
-
-            // Record the failure for PerformanceObserver to consume
-            markResourceFailed(url, resourceType, tagName);
-
-            // After a delay, log if PerformanceObserver didn't pick it up
-            // This handles edge cases like CSP-blocked requests that don't
-            // create Resource Timing entries
-            setTimeout(() => {
-                // If PerformanceObserver already logged this URL, skip
-                if (wasResourceObserved(url)) {
+    safeCall(() => {
+        // Use capture phase to catch errors before they bubble
+        window.addEventListener(
+            'error',
+            makeSafe((event: ErrorEvent | Event) => {
+                // Only handle resource errors, not script errors
+                // Script errors have a message property, resource errors don't
+                if (event instanceof ErrorEvent) {
+                    // This is a script error, not a resource error
                     return;
                 }
 
-                const message = createMessage<ResourceErrorMessage>({
-                    type: 'resourceError',
-                    resourceType,
-                    url,
-                    tagName,
-                });
-                log(message);
-            }, FALLBACK_DELAY_MS);
-        },
-        true, // Use capture phase
-    );
+                const target = event.target as HTMLElement | null;
+                if (!target) {
+                    return;
+                }
+
+                // Check if it's a resource element
+                const tagName = target.tagName?.toLowerCase();
+                if (!tagName) {
+                    return;
+                }
+
+                // Only track resource loading elements
+                const resourceElements = ['img', 'script', 'link', 'video', 'audio', 'source', 'iframe'];
+                if (!resourceElements.includes(tagName)) {
+                    return;
+                }
+
+                // Get the URL of the failed resource
+                const url =
+                    (target as HTMLImageElement | HTMLScriptElement | HTMLIFrameElement).src ||
+                    (target as HTMLLinkElement).href ||
+                    '';
+
+                if (!url) {
+                    return;
+                }
+
+                const resourceType = getResourceType(tagName, target);
+
+                // Record the failure for PerformanceObserver to consume
+                markResourceFailed(url, resourceType, tagName);
+
+                // After a delay, log if PerformanceObserver didn't pick it up
+                // This handles edge cases like CSP-blocked requests that don't
+                // create Resource Timing entries
+                setTimeout(
+                    makeSafe(() => {
+                        // If PerformanceObserver already logged this URL, skip
+                        if (wasResourceObserved(url)) {
+                            return;
+                        }
+
+                        const message = createMessage({
+                            type: 'resourceError',
+                            resourceType,
+                            url,
+                            tagName,
+                        });
+                        log(message);
+                    }),
+                    FALLBACK_DELAY_MS,
+                );
+            }),
+            true, // Use capture phase
+        );
+    });
 };
 
 /**

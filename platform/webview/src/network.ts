@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
-import type { NetworkRequestMessage } from './types';
+import { safeCall, makeSafe } from './safe-call';
 
 let requestCounter = 0;
 
@@ -157,179 +157,198 @@ const checkResourceFailed = (url: string): { failed: boolean; resourceType?: str
  * Try to get resource timing data for a URL
  */
 const getResourceTiming = (url: string): PerformanceResourceTiming | undefined => {
-    if (typeof performance === 'undefined' || !performance.getEntriesByType) {
-        return undefined;
-    }
+    return safeCall(() => {
+        if (typeof performance === 'undefined' || !performance.getEntriesByType) {
+            return undefined;
+        }
 
-    const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
-    // Find the most recent entry for this URL
-    const entry = entries.filter((e) => e.name === url).pop();
+        const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
+        // Find the most recent entry for this URL
+        const entry = entries.filter((e) => e.name === url).pop();
 
-    return entry;
+        return entry;
+    });
 };
 
 /**
  * Intercept fetch requests
  */
 const interceptFetch = (): void => {
-    const originalFetch = window.fetch;
+    safeCall(() => {
+        const originalFetch = window.fetch;
 
-    if (!originalFetch) {
-        return;
-    }
-
-    window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-        const requestId = generateRequestId();
-        const startTime = performance.now();
-
-        // Extract URL and method
-        let url: string;
-        let method: string;
-
-        if (input instanceof Request) {
-            url = input.url;
-            method = input.method;
-        } else {
-            url = input.toString();
-            method = init?.method ?? 'GET';
+        if (!originalFetch) {
+            return;
         }
 
-        try {
-            const response = await originalFetch.call(window, input, init);
-            const endTime = performance.now();
+        window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+            const requestId = generateRequestId();
+            const startTime = performance.now();
 
-            // Mark as JS-initiated before logging to prevent PerformanceObserver duplicate
-            markAsJsInitiated(url);
+            // Extract URL and method safely
+            const { url, method } = safeCall(() => {
+                let u: string;
+                let m: string;
+                if (input instanceof Request) {
+                    u = input.url;
+                    m = input.method;
+                } else {
+                    u = input.toString();
+                    m = init?.method ?? 'GET';
+                }
+                return { url: u, method: m };
+            }) ?? { url: '', method: 'GET' };
 
-            const message = createMessage<NetworkRequestMessage>({
-                type: 'networkRequest',
-                requestId,
-                method: method.toUpperCase(),
-                url,
-                statusCode: response.status,
-                durationMs: Math.round(endTime - startTime),
-                success: response.ok,
-                requestType: 'fetch',
-                timing: getResourceTiming(url),
-            });
+            try {
+                const response = await originalFetch.call(window, input, init);
 
-            log(message);
-            return response;
-        } catch (error) {
-            const endTime = performance.now();
+                // Log in a safe wrapper - don't let logging errors affect the response
+                safeCall(() => {
+                    const endTime = performance.now();
 
-            // Mark as JS-initiated before logging to prevent PerformanceObserver duplicate
-            markAsJsInitiated(url);
+                    // Mark as JS-initiated before logging to prevent PerformanceObserver duplicate
+                    markAsJsInitiated(url);
 
-            const message = createMessage<NetworkRequestMessage>({
-                type: 'networkRequest',
-                requestId,
-                method: method.toUpperCase(),
-                url,
-                statusCode: 0,
-                durationMs: Math.round(endTime - startTime),
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-                requestType: 'fetch',
-                timing: getResourceTiming(url),
-            });
+                    const message = createMessage({
+                        type: 'networkRequest',
+                        requestId,
+                        method: method.toUpperCase(),
+                        url,
+                        statusCode: response.status,
+                        durationMs: Math.round(endTime - startTime),
+                        success: response.ok,
+                        requestType: 'fetch',
+                        timing: getResourceTiming(url),
+                    });
 
-            log(message);
-            throw error;
-        }
-    };
+                    log(message);
+                });
+
+                return response;
+            } catch (error) {
+                // Log in a safe wrapper - don't let logging errors affect error propagation
+                safeCall(() => {
+                    const endTime = performance.now();
+
+                    // Mark as JS-initiated before logging to prevent PerformanceObserver duplicate
+                    markAsJsInitiated(url);
+
+                    const message = createMessage({
+                        type: 'networkRequest',
+                        requestId,
+                        method: method.toUpperCase(),
+                        url,
+                        statusCode: 0,
+                        durationMs: Math.round(endTime - startTime),
+                        success: false,
+                        error: error instanceof Error ? error.message : String(error),
+                        requestType: 'fetch',
+                        timing: getResourceTiming(url),
+                    });
+
+                    log(message);
+                });
+
+                throw error;
+            }
+        };
+    });
 };
 
 /**
  * Intercept XMLHttpRequest
  */
 const interceptXHR = (): void => {
-    const originalOpen = XMLHttpRequest.prototype.open;
-    const originalSend = XMLHttpRequest.prototype.send;
+    safeCall(() => {
+        const originalOpen = XMLHttpRequest.prototype.open;
+        const originalSend = XMLHttpRequest.prototype.send;
 
-    XMLHttpRequest.prototype.open = function (
-        method: string,
-        url: string | URL,
-        async: boolean = true,
-        username?: string | null,
-        password?: string | null,
-    ): void {
-        // Store request info on the XHR instance
-        (
-            this as XMLHttpRequest & {
+        XMLHttpRequest.prototype.open = function (
+            method: string,
+            url: string | URL,
+            async: boolean = true,
+            username?: string | null,
+            password?: string | null,
+        ): void {
+            // Store request info on the XHR instance safely
+            safeCall(() => {
+                (
+                    this as XMLHttpRequest & {
+                        _bitdrift?: { method: string; url: string; requestId: string };
+                    }
+                )._bitdrift = {
+                    method: method.toUpperCase(),
+                    url: url.toString(),
+                    requestId: generateRequestId(),
+                };
+            });
+
+            originalOpen.call(this, method, url, async, username, password);
+        };
+
+        XMLHttpRequest.prototype.send = function (body?: Document | XMLHttpRequestBodyInit | null): void {
+            const xhr = this as XMLHttpRequest & {
                 _bitdrift?: { method: string; url: string; requestId: string };
+            };
+            const info = xhr._bitdrift;
+
+            if (!info) {
+                originalSend.call(this, body);
+                return;
             }
-        )._bitdrift = {
-            method: method.toUpperCase(),
-            url: url.toString(),
-            requestId: generateRequestId(),
-        };
 
-        originalOpen.call(this, method, url, async, username, password);
-    };
+            const startTime = performance.now();
 
-    XMLHttpRequest.prototype.send = function (body?: Document | XMLHttpRequestBodyInit | null): void {
-        const xhr = this as XMLHttpRequest & {
-            _bitdrift?: { method: string; url: string; requestId: string };
-        };
-        const info = xhr._bitdrift;
+            const handleComplete = makeSafe((): void => {
+                const endTime = performance.now();
 
-        if (!info) {
+                // Mark as JS-initiated before logging to prevent PerformanceObserver duplicate
+                markAsJsInitiated(info.url);
+
+                const message = createMessage({
+                    type: 'networkRequest',
+                    requestId: info.requestId,
+                    method: info.method,
+                    url: info.url,
+                    statusCode: xhr.status,
+                    durationMs: Math.round(endTime - startTime),
+                    success: xhr.status >= 200 && xhr.status < 400,
+                    requestType: 'xmlhttprequest',
+                    timing: getResourceTiming(info.url),
+                });
+
+                log(message);
+            });
+
+            const handleError = makeSafe((): void => {
+                const endTime = performance.now();
+
+                // Mark as JS-initiated before logging to prevent PerformanceObserver duplicate
+                markAsJsInitiated(info.url);
+
+                const message = createMessage({
+                    type: 'networkRequest',
+                    requestId: info.requestId,
+                    method: info.method,
+                    url: info.url,
+                    statusCode: 0,
+                    durationMs: Math.round(endTime - startTime),
+                    success: false,
+                    error: 'Network error',
+                    requestType: 'xmlhttprequest',
+                });
+
+                log(message);
+            });
+
+            xhr.addEventListener('load', handleComplete);
+            xhr.addEventListener('error', handleError);
+            xhr.addEventListener('abort', handleError);
+            xhr.addEventListener('timeout', handleError);
+
             originalSend.call(this, body);
-            return;
-        }
-
-        const startTime = performance.now();
-
-        const handleComplete = (): void => {
-            const endTime = performance.now();
-
-            // Mark as JS-initiated before logging to prevent PerformanceObserver duplicate
-            markAsJsInitiated(info.url);
-
-            const message = createMessage<NetworkRequestMessage>({
-                type: 'networkRequest',
-                requestId: info.requestId,
-                method: info.method,
-                url: info.url,
-                statusCode: xhr.status,
-                durationMs: Math.round(endTime - startTime),
-                success: xhr.status >= 200 && xhr.status < 400,
-                requestType: 'xmlhttprequest',
-                timing: getResourceTiming(info.url),
-            });
-
-            log(message);
         };
-
-        const handleError = (): void => {
-            const endTime = performance.now();
-
-            // Mark as JS-initiated before logging to prevent PerformanceObserver duplicate
-            markAsJsInitiated(info.url);
-
-            const message = createMessage<NetworkRequestMessage>({
-                type: 'networkRequest',
-                requestId: info.requestId,
-                method: info.method,
-                url: info.url,
-                statusCode: 0,
-                durationMs: Math.round(endTime - startTime),
-                success: false,
-                error: 'Network error',
-                requestType: 'xmlhttprequest',
-            });
-
-            log(message);
-        };
-
-        xhr.addEventListener('load', handleComplete);
-        xhr.addEventListener('error', handleError);
-        xhr.addEventListener('abort', handleError);
-        xhr.addEventListener('timeout', handleError);
-
-        originalSend.call(this, body);
-    };
+    });
 };
 
 /**
@@ -342,59 +361,67 @@ const initResourceObserver = (): void => {
     }
 
     try {
-        const observer = new PerformanceObserver((list) => {
-            const entries = list.getEntries() as PerformanceResourceTiming[];
+        const observer = new PerformanceObserver(
+            makeSafe((list) => {
+                const entries = list.getEntries() as PerformanceResourceTiming[];
 
-            // Defer processing to allow any pending DOM error events to fire first.
-            // DOM error events are synchronous, but we can't guarantee they've been
-            // dispatched before PerformanceObserver fires across all browsers.
-            // queueMicrotask ensures we run after the current task completes.
-            queueMicrotask(() => {
-                for (const resourceEntry of entries) {
-                    // Skip if this was already captured via fetch/XHR interception
-                    if (wasJsInitiated(resourceEntry.name, resourceEntry.responseEnd)) {
-                        continue;
-                    }
+                // Defer processing to allow any pending DOM error events to fire first.
+                // DOM error events are synchronous, but we can't guarantee they've been
+                // dispatched before PerformanceObserver fires across all browsers.
+                // queueMicrotask ensures we run after the current task completes.
+                queueMicrotask(
+                    makeSafe(() => {
+                        for (const resourceEntry of entries) {
+                            safeCall(() => {
+                                // Skip if this was already captured via fetch/XHR interception
+                                if (wasJsInitiated(resourceEntry.name, resourceEntry.responseEnd)) {
+                                    return;
+                                }
 
-                    // Skip data URLs and blob URLs (usually internal/generated)
-                    if (resourceEntry.name.startsWith('data:') || resourceEntry.name.startsWith('blob:')) {
-                        continue;
-                    }
+                                // Skip data URLs and blob URLs (usually internal/generated)
+                                if (resourceEntry.name.startsWith('data:') || resourceEntry.name.startsWith('blob:')) {
+                                    return;
+                                }
 
-                    const durationMs = Math.round(resourceEntry.responseEnd - resourceEntry.startTime);
+                                const durationMs = Math.round(resourceEntry.responseEnd - resourceEntry.startTime);
 
-                    // responseStatus is not supported in Safari (as of 2025)
-                    const statusCode = resourceEntry.responseStatus ?? 0;
+                                // responseStatus is not supported in Safari (as of 2025)
+                                const statusCode = resourceEntry.responseStatus ?? 0;
 
-                    // Determine success based on HTTP status code when available.
-                    // If statusCode > 0, use it directly (200-399 = success).
-                    // If statusCode = 0 (unsupported browser like Safari):
-                    //   - Check if the DOM error handler reported this URL as failed.
-                    //   - By deferring with queueMicrotask, we ensure synchronous error
-                    //     handlers have had a chance to call markResourceFailed().
-                    //   - If not found in failed set, assume success since no error was reported.
-                    const failureInfo = statusCode === 0 ? checkResourceFailed(resourceEntry.name) : { failed: false };
-                    const success = statusCode > 0 ? statusCode >= 200 && statusCode < 400 : !failureInfo.failed;
+                                // Determine success based on HTTP status code when available.
+                                // If statusCode > 0, use it directly (200-399 = success).
+                                // If statusCode = 0 (unsupported browser like Safari):
+                                //   - Check if the DOM error handler reported this URL as failed.
+                                //   - By deferring with queueMicrotask, we ensure synchronous error
+                                //     handlers have had a chance to call markResourceFailed().
+                                //   - If not found in failed set, assume success since no error was reported.
+                                const failureInfo =
+                                    statusCode === 0 ? checkResourceFailed(resourceEntry.name) : { failed: false };
+                                const success =
+                                    statusCode > 0 ? statusCode >= 200 && statusCode < 400 : !failureInfo.failed;
 
-                    const message = createMessage<NetworkRequestMessage>({
-                        type: 'networkRequest',
-                        requestId: generateRequestId(),
-                        method: 'GET', // Browser resource loads are typically GET
-                        url: resourceEntry.name,
-                        statusCode,
-                        durationMs,
-                        success,
-                        requestType: resourceEntry.initiatorType,
-                        timing: resourceEntry,
-                    });
+                                const message = createMessage({
+                                    type: 'networkRequest',
+                                    requestId: generateRequestId(),
+                                    method: 'GET', // Browser resource loads are typically GET
+                                    url: resourceEntry.name,
+                                    statusCode,
+                                    durationMs,
+                                    success,
+                                    requestType: resourceEntry.initiatorType,
+                                    timing: resourceEntry,
+                                });
 
-                    // Mark as observed so resource-errors doesn't double-log
-                    markAsObserved(resourceEntry.name);
+                                // Mark as observed so resource-errors doesn't double-log
+                                markAsObserved(resourceEntry.name);
 
-                    log(message);
-                }
-            });
-        });
+                                log(message);
+                            });
+                        }
+                    }),
+                );
+            }),
+        );
 
         observer.observe({ type: 'resource', buffered: false });
     } catch (_error) {
