@@ -25,6 +25,8 @@ class WebViewBridgeMessageHandlerTest {
     private lateinit var handler: WebViewBridgeMessageHandler
     private val arrayFieldsCaptor = argumentCaptor<ArrayFields>()
     private val logMessageCaptor = argumentCaptor<() -> String>()
+    private val throwableCaptor = argumentCaptor<Throwable>()
+    private val errorHandlerMessageCaptor = argumentCaptor<String>()
 
     @Before
     fun setUp() {
@@ -33,23 +35,46 @@ class WebViewBridgeMessageHandlerTest {
     }
 
     @Test
-    fun log_whenInvalidJson_shouldLogWarning() {
-        val throwableCaptor = argumentCaptor<Throwable>()
-        handler.log("invalid json {")
+    fun log_whenInvalidJson_shouldReportInternalError() {
+        val message = "invalid json {"
 
-        verify(logger).log(
-            eq(LogLevel.WARNING),
-            arrayFieldsCaptor.capture(),
+        handler.log(message)
+
+        verify(logger).reportInternalError(
+            errorHandlerMessageCaptor.capture(),
             throwableCaptor.capture(),
-            logMessageCaptor.capture(),
         )
-        val fields = arrayFieldsCaptor.firstValue.toStringMap()
-        assertThat(fields["_raw"]).isEqualTo("invalid json {")
-        assertThat(
-            throwableCaptor.firstValue.message,
-        ).contains("Expected BEGIN_OBJECT")
-        assertThat(logMessageCaptor.firstValue())
-            .isEqualTo("Critical error while extracting WebViewBridgeMessage")
+        assertThat(throwableCaptor.firstValue.message).contains("Expected BEGIN_OBJECT")
+        assertThat(errorHandlerMessageCaptor.firstValue)
+            .isEqualTo("Failed to extract WebView bridge message. $message")
+    }
+
+    @Test
+    fun log_whenEmptyMessage_shouldReportInternalError() {
+        handler.log("")
+
+        verify(logger).reportInternalError(
+            errorHandlerMessageCaptor.capture(),
+            throwableCaptor.capture(),
+        )
+        assertThat(errorHandlerMessageCaptor.firstValue)
+            .isEqualTo("WebView bridge message is null after parsing")
+        assertThat(throwableCaptor.firstValue).isNull()
+    }
+
+    @Test
+    fun log_withUnexpectedMessageType_shouldReportInternalError() {
+        val message = """{"v":1,"type":"n/a","timestamp":1234567890}"""
+
+        handler.log(message)
+
+        verify(logger).reportInternalError(
+            errorHandlerMessageCaptor.capture(),
+            throwableCaptor.capture(),
+        )
+        assertThat(errorHandlerMessageCaptor.firstValue)
+            .isEqualTo("Unknown WebView bridge message. $message")
+        assertThat(throwableCaptor.firstValue).isNull()
     }
 
     @Test

@@ -50,17 +50,15 @@ internal class WebViewBridgeMessageHandler(
             runCatching {
                 gson.fromJson(message, WebViewBridgeMessage::class.java)
             }.getOrElse { throwable ->
-                logger.log(
-                    level = LogLevel.WARNING,
-                    arrayFields = fieldsOf("_raw" to message),
-                    throwable = throwable,
-                ) {
-                    "Critical error while extracting WebViewBridgeMessage"
-                }
+                logger.reportInternalError("Failed to extract WebView bridge message. $message", throwable)
                 return
             }
 
-        // Check protocol version
+        if (bridgeMessage == null) {
+            logger.reportInternalError("WebView bridge message is null after parsing", null)
+            return
+        }
+
         if (bridgeMessage.version != 1) {
             logger.log(LogLevel.WARNING, fieldsOf("_version" to bridgeMessage.version.toString())) {
                 "Unsupported WebView bridge protocol version"
@@ -87,15 +85,12 @@ internal class WebViewBridgeMessageHandler(
                 "promiseRejection" -> handlePromiseRejection(bridgeMessage, timestamp)
                 "userInteraction" -> handleUserInteraction(bridgeMessage, timestamp)
                 "internalAutoInstrumentation" -> handleInternalAutoInstrumentation(bridgeMessage, timestamp)
+                else -> {
+                    logger.reportInternalError("Unknown WebView bridge message. $message")
+                }
             }
         }.getOrElse { throwable ->
-            logger.log(
-                level = LogLevel.WARNING,
-                arrayFields = fieldsOf("_raw" to message),
-                throwable = throwable,
-            ) {
-                "Failed to handle WebView bridge message"
-            }
+            logger.reportInternalError("Failed to handle WebView bridge message. $message", throwable)
         }
     }
 

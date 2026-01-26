@@ -28,13 +28,13 @@ dependencies {
     implementation(project(":common"))
     implementation(libs.androidx.core)
     implementation(libs.androidx.startup.runtime)
-    implementation(libs.androidx.webkit)
     implementation(libs.jsr305)
     implementation(libs.gson)
     implementation(libs.performance)
     implementation(libs.protobuf.kotlinlite)
 
     compileOnly(libs.retrofit)
+    compileOnly(libs.androidx.webkit)
 
     testImplementation(libs.junit)
     testImplementation(libs.assertj.core)

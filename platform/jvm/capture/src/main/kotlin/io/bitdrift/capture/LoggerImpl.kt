@@ -475,6 +475,13 @@ internal class LoggerImpl(
         }
     }
 
+    override fun reportInternalError(
+        detail: String,
+        throwable: Throwable?,
+    ) {
+        errorHandler.handleError(detail, throwable)
+    }
+
     internal fun logSessionReplayScreen(
         fields: Array<Field>,
         duration: Duration,
