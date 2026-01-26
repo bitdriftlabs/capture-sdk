@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import com.android.build.api.variant.AndroidComponentsExtension
 import io.bitdrift.capture.extension.BitdriftPluginExtension
 import io.bitdrift.capture.task.CLIUploadMappingTask
+import io.bitdrift.capture.task.CLIUploadSourceMapTask
 import io.bitdrift.capture.task.CLIUploadSymbolsTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -43,10 +44,15 @@ abstract class CapturePlugin
                 task.group = "Upload"
             }
 
+            target.tasks.register("bdUploadSourceMap", CLIUploadSourceMapTask::class.java) { task ->
+                task.description = "Upload source map to Bitdrift"
+                task.group = "Upload"
+            }
+
             target.tasks.register("bdUpload") { task ->
                 task.description = "Upload all symbol and mapping files to Bitdrift"
                 task.group = "Upload"
-                task.dependsOn("bdUploadMapping", "bdUploadSymbols")
+                task.dependsOn("bdUploadMapping", "bdUploadSymbols", "bdUploadSourceMap")
             }
         }
 

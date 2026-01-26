@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Update `./gradlew bdUpload` from `io.bitdrift.capture-plugin` to handle automatically upload of sourcemap files
 
 **Changed**
 
