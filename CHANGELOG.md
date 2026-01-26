@@ -21,8 +21,7 @@
 
 **Added**
 
-- Update `./gradlew bdUpload` from `io.bitdrift.capture-plugin` to handle automatically upload of sourcemap files
-- Provide experimental support for WebView instrumentation.
+- Nothing yet!
 
 **Changed**
 
@@ -54,7 +53,7 @@
 
 **Changed**
 
-- Update `./gradlew bdUpload` from `io.bitdrift.capture-plugin` to handle automatically upload of sourcemap files
+- Update `./gradlew bdUpload` from `io.bitdrift.capture-plugin` to handle automatically upload of sourcemap files.
 - Provide experimental support for WebView instrumentation.
 
 ## [0.22.1]
