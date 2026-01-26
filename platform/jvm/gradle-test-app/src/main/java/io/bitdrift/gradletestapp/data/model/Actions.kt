@@ -59,7 +59,7 @@ sealed class NetworkTestAction : AppAction {
 }
 
 sealed class FeatureFlagsTestAction : AppAction {
-    object AddOneFeatureFlag : FeatureFlagsTestAction()
+    data class AddVariantFlag(val value: Boolean) : FeatureFlagsTestAction()
 
     object AddManyFeatureFlags : FeatureFlagsTestAction()
 }

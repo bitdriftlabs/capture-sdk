@@ -302,7 +302,7 @@ private fun SdkApisTabContent(
         }
         item {
             FeatureFlagsTestingCard(
-                onAddOneFeatureFlag = { onAction(FeatureFlagsTestAction.AddOneFeatureFlag) },
+                onAddVariantFlag = { value -> onAction(FeatureFlagsTestAction.AddVariantFlag(value)) },
                 onAddManyFeatureFlags = { onAction(FeatureFlagsTestAction.AddManyFeatureFlags) },
             )
         }
