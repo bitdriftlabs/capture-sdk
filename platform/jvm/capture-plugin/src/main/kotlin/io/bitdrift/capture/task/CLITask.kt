@@ -30,10 +30,18 @@ abstract class CLIUploadMappingTask : CLITask() {
         val versionCode = manifest.getAttribute("android:versionCode")
         val versionName = manifest.getAttribute("android:versionName")
 
+        // retrieve key using preferred or legacy fallback env var if set
+        val apiKey = System.getenv("BITDRIFT_API_KEY") ?: System.getenv("API_KEY")
+        if (apiKey == null) {
+            throw IllegalStateException("Environment variable BITDRIFT_API_KEY must be set to your Bitdrift API key before running this task")
+        }
+
         runBDCLI(
             listOf(
                 "debug-files",
                 "upload-proguard",
+                "--api-key",
+                apiKey,
                 "--app-id",
                 appId,
                 "--app-version",
@@ -92,7 +100,6 @@ abstract class CLITask : DefaultTask() {
     val downloader = BDCLIDownloader(bdcliFile)
 
     fun runBDCLI(args: List<String>) {
-        checkEnvironment()
         downloader.downloadIfNeeded()
         runCommand(listOf(bdcliFile.absolutePath) + args)
     }
@@ -105,13 +112,6 @@ abstract class CLITask : DefaultTask() {
         process.inputStream.transferTo(System.out)
         if (process.waitFor() != 0) {
             throw RuntimeException("Command $command failed")
-        }
-    }
-
-    private fun checkEnvironment() {
-        val apiKeyEnvName = "API_KEY"
-        if (System.getenv(apiKeyEnvName) == null) {
-            throw IllegalStateException("Environment variable $apiKeyEnvName must be set to your Bitdrift API key before running this task")
         }
     }
 }
