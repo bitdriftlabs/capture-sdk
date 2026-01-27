@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.2...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.3...HEAD
 
 ### Both
 
@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Exclude `androidx.webkit:webkit` dependency from the generated pom.
+- Nothing yet!
 
 ### iOS
 
@@ -44,6 +44,16 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.22.3]
+
+[0.22.3]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.3
+
+### Android
+
+**Fixed**
+
+- Exclude `androidx.webkit:webkit` dependency from the generated pom.
 
 ## [0.22.2]
 
