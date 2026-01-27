@@ -15,5 +15,11 @@ open class BitdriftPluginExtension
     constructor(
         project: Project,
     ) {
+        private val objects = project.objects
+
+        val baseDomain =
+            objects
+                .property(String::class.java)
+                .convention("")
         val instrumentation = project.extensions.create("instrumentation", InstrumentationExtension::class.java, project)
     }

@@ -94,7 +94,22 @@ abstract class CLITask : DefaultTask() {
     fun runBDCLI(args: List<String>) {
         checkEnvironment()
         downloader.downloadIfNeeded()
-        runCommand(listOf(bdcliFile.absolutePath) + args)
+        runCommand(listOf(bdcliFile.absolutePath) + withBaseDomain(args))
+    }
+
+    private fun withBaseDomain(args: List<String>): List<String> {
+        val baseDomain =
+            project.extensions
+                .findByType(io.bitdrift.capture.extension.BitdriftPluginExtension::class.java)
+                ?.baseDomain
+                ?.orNull
+                ?.trim()
+                .orEmpty()
+        return if (baseDomain.isNotEmpty()) {
+            listOf("--base-domain", baseDomain) + args
+        } else {
+            args
+        }
     }
 
     fun runCommand(command: List<String>) {
@@ -186,9 +201,7 @@ fun File.mostRecentSubfileNamed(name: String): File {
     }
 }
 
-fun File.mostRecentSubfileNamedOrNull(name: String): File? {
-    return this.subfilesNamed(name).mostRecentOrNull()
-}
+fun File.mostRecentSubfileNamedOrNull(name: String): File? = this.subfilesNamed(name).mostRecentOrNull()
 
 fun File.subfilesNamed(name: String): Sequence<File> = this.walkTopDown().filter { it.name == name }
 
