@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.1...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.2...HEAD
 
 ### Both
 
@@ -21,8 +21,7 @@
 
 **Added**
 
-- Update `./gradlew bdUpload` from `io.bitdrift.capture-plugin` to handle automatically upload of sourcemap files
-- Provide experimental support for WebView instrumentation.
+- Nothing yet!
 
 **Changed**
 
@@ -45,6 +44,20 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.22.2]
+
+[0.22.2]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.2
+
+### Android
+
+**Added**
+
+- Provide experimental support for WebView instrumentation.
+
+**Changed**
+
+- Update `./gradlew bdUpload` from `io.bitdrift.capture-plugin` to handle automatically upload of sourcemap files.
 
 ## [0.22.1]
 
