@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.apollo.graphql)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
-    id("io.bitdrift.capture-plugin") version "0.22.1"
+    id("io.bitdrift.capture-plugin") version "0.22.2"
 }
 
 dependencies {
@@ -171,7 +171,6 @@ apollo {
 bitdrift {
     instrumentation {
         automaticOkHttpInstrumentation = true
-        // TODO(Fran): BIT-7218. To uncomment below once the capture-plugin release that contains automactic webview instrumentation is publicly enabled
-        //  automaticWebViewInstrumentation = true
+        automaticWebViewInstrumentation = true
     }
 }
