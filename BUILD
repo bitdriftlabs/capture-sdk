@@ -90,6 +90,7 @@ android_artifacts(
     excluded_artifacts = [
         "com.google.code.findbugs:jsr305",
         "com.squareup.retrofit2:retrofit",
+        "androidx.webkit:webkit",
     ],
     manifest = "//platform/jvm:AndroidManifest.xml",
     native_deps = select({
