@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Exclude `androidx.webkit:webkit` dependency from the generated pom.
 
 ### iOS
 
