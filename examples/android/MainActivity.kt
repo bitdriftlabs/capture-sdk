@@ -69,15 +69,15 @@ class MainActivity : ComponentActivity() {
                     Log.i("HelloWorldApp", "Replay onScreenCaptured: encodedScreen=${Base64.encodeToString(encodedScreen, 0)}")
                 }
 
-                override fun logVerboseInternal(message: String, fields: Map<String, String>?) {
+                override fun logVerboseInternal(message: String) {
                     Log.v("HelloWorldApp", message)
                 }
 
-                override fun logDebugInternal(message: String, fields: Map<String, String>?) {
+                override fun logDebugInternal(message: String) {
                     Log.d("HelloWorldApp", message)
                 }
 
-                override fun logErrorInternal(message: String, e: Throwable?, fields: Map<String, String>?) {
+                override fun logErrorInternal(message: String, e: Throwable?) {
                     Log.e("HelloWorldApp", message, e)
                 }
             },
