@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.network.okhttp
 
+import android.net.TrafficStats
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.network.HttpField
@@ -185,6 +186,8 @@ internal class CaptureOkHttpEventListener internal constructor(
         proxy: Proxy,
     ) {
         runCatching { targetEventListener?.connectStart(call, inetSocketAddress, proxy) }
+
+        runCatching { TrafficStats.setThreadStatsTag(TRAFFIC_STATS_TAG) }
 
         connectStartTimeMs = clock.elapsedRealtime()
     }
@@ -469,5 +472,12 @@ internal class CaptureOkHttpEventListener internal constructor(
             return null
         }
         return this
+    }
+
+    private companion object {
+        /**
+         * Traffic stats tag used by the Capture SDK for OkHttp network requests.
+         */
+        const val TRAFFIC_STATS_TAG = 0xB17D21F7.toInt()
     }
 }
