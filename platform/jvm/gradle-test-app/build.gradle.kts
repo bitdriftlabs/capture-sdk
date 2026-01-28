@@ -10,6 +10,7 @@ dependencies {
     implementation(project(":capture"))
     implementation(project(":capture-apollo"))
     implementation(project(":capture-timber"))
+    implementation(libs.androidx.datastore.core)
 
     // bom <> versions mappings here https://developer.android.com/develop/ui/compose/bom/bom-mapping
     val composeBom = platform("androidx.compose:compose-bom:2025.12.00") // 1.10.0
@@ -37,6 +38,7 @@ dependencies {
     implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
     implementation("androidx.preference:preference-ktx:1.2.1")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("com.apollographql.apollo:apollo-runtime:4.1.0")
     implementation("com.jakewharton.timber:timber:5.0.1")
     implementation("com.google.android.material:material:1.8.0")

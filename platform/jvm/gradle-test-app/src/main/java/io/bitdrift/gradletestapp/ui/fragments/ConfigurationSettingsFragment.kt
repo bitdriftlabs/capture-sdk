@@ -10,27 +10,35 @@ package io.bitdrift.gradletestapp.ui.fragments
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import androidx.core.content.edit
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
-import androidx.preference.PreferenceManager
+import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreference
 import io.bitdrift.gradletestapp.R
+import io.bitdrift.gradletestapp.data.preferences.SettingsDataStore
 import io.bitdrift.gradletestapp.ui.compose.components.SettingsApiKeysDialogFragment
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog
 import kotlin.system.exitProcess
 
 class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
+    private lateinit var settingsDataStore: SettingsDataStore
+
     override fun onCreatePreferences(
         savedInstanceState: Bundle?,
         rootKey: String?,
     ) {
         val context = preferenceManager.context
+        settingsDataStore = SettingsDataStore(context)
+
+        preferenceManager.preferenceDataStore = settingsDataStore
+        preferenceScreen = buildPreferenceScreen(context)
+    }
+
+    private fun buildPreferenceScreen(context: Context): PreferenceScreen {
         val screen = preferenceManager.createPreferenceScreen(context)
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
 
         val backendCategory = PreferenceCategory(context)
         backendCategory.key = "control_plane_category"
@@ -55,14 +63,14 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         val defaultApiUrl = "https://api.bitdrift.io"
 
         // Set default value if not already set
-        if (!sharedPreferences.contains("apiUrl")) {
-            sharedPreferences.edit { putString("apiUrl", defaultApiUrl) }
+        if (settingsDataStore.getString(BITDRIFT_URL_KEY, null) == null) {
+            settingsDataStore.putString(BITDRIFT_URL_KEY, defaultApiUrl)
         }
 
         val apiUrlPref = EditTextPreference(context)
         apiUrlPref.key = BITDRIFT_URL_KEY
         apiUrlPref.title = "API URL"
-        val currentUrl = sharedPreferences.getString(BITDRIFT_URL_KEY, "") ?: ""
+        val currentUrl = settingsDataStore.getString(BITDRIFT_URL_KEY, "") ?: ""
         apiUrlPref.summary = currentUrl.ifBlank { "Enter API URL" }
         apiUrlPref.setOnBindEditTextListener { edit ->
             edit.hint = defaultApiUrl
@@ -79,7 +87,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         val apiKeyPref = EditTextPreference(context)
         apiKeyPref.key = "api_key"
         apiKeyPref.title = "bitdrift's API Key"
-        val currentKey = sharedPreferences.getString(BITDRIFT_API_KEY, "") ?: ""
+        val currentKey = settingsDataStore.getString(BITDRIFT_API_KEY, "") ?: ""
         apiKeyPref.summary = if (currentKey.isBlank()) "Enter your bitdrift API key" else "API key set"
         apiKeyPref.setOnPreferenceChangeListener { _, newValue ->
             val apiKey = newValue as? String ?: ""
@@ -104,7 +112,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         backendCategory.addPreference(buildDeferredStartSwitch(context))
         backendCategory.addPreference(buildWebViewMonitoringPreference(context))
 
-        preferenceScreen = screen
+        return screen
     }
 
     private fun buildSessionStrategyList(context: Context): ListPreference {
@@ -145,16 +153,14 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         buildSwitchPreference(context, SESSION_REPLAY_ENABLED_PREFS_KEY, SESSION_REPLAY_TITLE, true)
 
     private fun showApiKeysDialog(context: Context) {
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-        SettingsApiKeysDialogFragment(sharedPreferences).show(parentFragmentManager, "")
+        SettingsApiKeysDialogFragment(settingsDataStore).show(parentFragmentManager, "")
     }
 
     private fun buildWebViewMonitoringPreference(context: Context): Preference {
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
         val preference = Preference(context)
         preference.key = WEBVIEW_MONITORING_PREFS_KEY
         preference.title = WEBVIEW_MONITORING_TITLE
-        val isEnabled = sharedPreferences.getBoolean(
+        val isEnabled = settingsDataStore.getBoolean(
             WebViewSettingsDialog.WEBVIEW_MONITORING_ENABLED_KEY,
             false,
         )
@@ -167,8 +173,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     }
 
     private fun showWebViewSettingsDialog(context: Context) {
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-        WebViewSettingsDialog(sharedPreferences).show(parentFragmentManager, "webview_settings")
+        WebViewSettingsDialog(settingsDataStore).show(parentFragmentManager, "webview_settings")
     }
 
     enum class SessionStrategyPreferences(

@@ -8,7 +8,6 @@
 package io.bitdrift.gradletestapp.ui.compose.components
 
 import android.annotation.SuppressLint
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -42,11 +41,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.DialogFragment
+import androidx.preference.PreferenceDataStore
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 import io.bitdrift.gradletestapp.ui.theme.BitdriftTheme
 
 class WebViewSettingsDialog(
-    private val sharedPreferences: SharedPreferences,
+    private val preferenceDataStore: PreferenceDataStore,
 ) : DialogFragment() {
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -58,44 +58,41 @@ class WebViewSettingsDialog(
                 BitdriftTheme {
                     WebViewSettingsDialog(
                         onDismiss = { dismiss() },
-                        sharedPreferences = sharedPreferences,
+                        preferenceDataStore = preferenceDataStore,
                     )
                 }
             }
         }
 
-    private fun SharedPreferences.getStateOf(keyName: String): MutableState<Boolean> =
+    private fun PreferenceDataStore.getStateOf(keyName: String): MutableState<Boolean> =
         mutableStateOf(getBoolean(keyName, false))
 
     @SuppressLint("NotConstructor")
     @Composable
     fun WebViewSettingsDialog(
         onDismiss: () -> Unit,
-        sharedPreferences: SharedPreferences,
+        preferenceDataStore: PreferenceDataStore,
     ) {
-        var monitoringEnabled by remember { sharedPreferences.getStateOf( WEBVIEW_MONITORING_ENABLED_KEY) }
-        var captureConsoleLogs by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_CONSOLE_LOGS_KEY) }
-        var captureErrors by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_ERRORS_KEY) }
-        var captureNetworkRequests by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY) }
-        var captureNavigationEvents by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY) }
-        var capturePageViews by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_PAGE_VIEWS_KEY) }
-        var captureWebVitals by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_WEB_VITALS_KEY) }
-        var captureLongTasks by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_LONG_TASKS_KEY) }
-        var captureUserInteractions by remember { sharedPreferences.getStateOf(WEBVIEW_ENABLE_USER_INTERACTIONS_KEY) }
+        var monitoringEnabled by remember { preferenceDataStore.getStateOf( WEBVIEW_MONITORING_ENABLED_KEY) }
+        var captureConsoleLogs by remember { preferenceDataStore.getStateOf(WEBVIEW_ENABLE_CONSOLE_LOGS_KEY) }
+        var captureErrors by remember { preferenceDataStore.getStateOf(WEBVIEW_ENABLE_ERRORS_KEY) }
+        var captureNetworkRequests by remember { preferenceDataStore.getStateOf(WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY) }
+        var captureNavigationEvents by remember { preferenceDataStore.getStateOf(WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY) }
+        var capturePageViews by remember { preferenceDataStore.getStateOf(WEBVIEW_ENABLE_PAGE_VIEWS_KEY) }
+        var captureWebVitals by remember { preferenceDataStore.getStateOf(WEBVIEW_ENABLE_WEB_VITALS_KEY) }
+        var captureLongTasks by remember { preferenceDataStore.getStateOf(WEBVIEW_ENABLE_LONG_TASKS_KEY) }
+        var captureUserInteractions by remember { preferenceDataStore.getStateOf(WEBVIEW_ENABLE_USER_INTERACTIONS_KEY) }
 
         fun persistSettingsAndDismiss() {
-            with(sharedPreferences.edit()) {
-                putBoolean(WEBVIEW_MONITORING_ENABLED_KEY, monitoringEnabled)
-                putBoolean(WEBVIEW_ENABLE_CONSOLE_LOGS_KEY, captureConsoleLogs)
-                putBoolean(WEBVIEW_ENABLE_ERRORS_KEY, captureErrors)
-                putBoolean(WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY, captureNetworkRequests)
-                putBoolean(WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY, captureNavigationEvents)
-                putBoolean(WEBVIEW_ENABLE_PAGE_VIEWS_KEY, capturePageViews)
-                putBoolean(WEBVIEW_ENABLE_WEB_VITALS_KEY, captureWebVitals)
-                putBoolean(WEBVIEW_ENABLE_LONG_TASKS_KEY, captureLongTasks)
-                putBoolean(WEBVIEW_ENABLE_USER_INTERACTIONS_KEY, captureUserInteractions)
-                apply()
-            }
+            preferenceDataStore.putBoolean(WEBVIEW_MONITORING_ENABLED_KEY, monitoringEnabled)
+            preferenceDataStore.putBoolean(WEBVIEW_ENABLE_CONSOLE_LOGS_KEY, captureConsoleLogs)
+            preferenceDataStore.putBoolean(WEBVIEW_ENABLE_ERRORS_KEY, captureErrors)
+            preferenceDataStore.putBoolean(WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY, captureNetworkRequests)
+            preferenceDataStore.putBoolean(WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY, captureNavigationEvents)
+            preferenceDataStore.putBoolean(WEBVIEW_ENABLE_PAGE_VIEWS_KEY, capturePageViews)
+            preferenceDataStore.putBoolean(WEBVIEW_ENABLE_WEB_VITALS_KEY, captureWebVitals)
+            preferenceDataStore.putBoolean(WEBVIEW_ENABLE_LONG_TASKS_KEY, captureLongTasks)
+            preferenceDataStore.putBoolean(WEBVIEW_ENABLE_USER_INTERACTIONS_KEY, captureUserInteractions)
             onDismiss()
         }
 

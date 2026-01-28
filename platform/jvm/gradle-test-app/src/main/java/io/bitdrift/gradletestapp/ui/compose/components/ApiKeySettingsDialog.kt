@@ -7,7 +7,6 @@
 
 package io.bitdrift.gradletestapp.ui.compose.components
 
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -47,10 +46,11 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.DialogFragment
+import androidx.preference.PreferenceDataStore
 import io.bitdrift.gradletestapp.R
 
 class SettingsApiKeysDialogFragment(
-    private val sharedPreferences: SharedPreferences,
+    private val preferenceDataStore: PreferenceDataStore,
 ) : DialogFragment() {
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -61,7 +61,7 @@ class SettingsApiKeysDialogFragment(
             setContent {
                 ApiKeysDialog(
                     onDismiss = { dismiss() },
-                    sharedPreferences = sharedPreferences,
+                    preferenceDataStore = preferenceDataStore,
                 )
             }
         }
@@ -69,9 +69,9 @@ class SettingsApiKeysDialogFragment(
     @Composable
     fun ApiKeysDialog(
         onDismiss: () -> Unit,
-        sharedPreferences: SharedPreferences,
+        preferenceDataStore: PreferenceDataStore,
     ) {
-        fun getCurrentApiKeyValue(key: String) = mutableStateOf(TextFieldValue(sharedPreferences.getString(key, "") ?: ""))
+        fun getCurrentApiKeyValue(key: String) = mutableStateOf(TextFieldValue(preferenceDataStore.getString(key, "") ?: ""))
 
         var bugSnagSdkApiKey by remember { getCurrentApiKeyValue(BUG_SNAG_SDK_API_KEY) }
         var sentrySdkDsnKey by remember { getCurrentApiKeyValue(SENTRY_SDK_DSN_KEY) }
@@ -80,11 +80,8 @@ class SettingsApiKeysDialogFragment(
         fun persistApiKeysAndDismiss() {
             val bugSnagSdkApiKeyTrimmed = bugSnagSdkApiKey.text.trim()
             val sentrySdkApiKeyTrimmed = sentrySdkDsnKey.text.trim()
-            with(sharedPreferences.edit()) {
-                putString(BUG_SNAG_SDK_API_KEY, bugSnagSdkApiKeyTrimmed)
-                putString(SENTRY_SDK_DSN_KEY, sentrySdkApiKeyTrimmed)
-                apply()
-            }
+            preferenceDataStore.putString(BUG_SNAG_SDK_API_KEY, bugSnagSdkApiKeyTrimmed)
+            preferenceDataStore.putString(SENTRY_SDK_DSN_KEY, sentrySdkApiKeyTrimmed)
             localSoftwareKeyboardController?.hide()
             onDismiss()
         }

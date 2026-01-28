@@ -30,6 +30,7 @@ startupRuntime          = "1.2.0"
 timber                  = "5.0.1"
 truth                   = "1.1.4"
 ui                      = "1.7.6"
+datastoreCore = "1.2.0"
 
 [libraries]
 androidx-appcompat         = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
@@ -59,6 +60,7 @@ retrofit                   = { module = "com.squareup.retrofit2:retrofit", versi
 robolectric                = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 timber                     = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 truth                      = { module = "com.google.truth:truth", version.ref = "truth" }
+androidx-datastore-core = { group = "androidx.datastore", name = "datastore-core", version.ref = "datastoreCore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
