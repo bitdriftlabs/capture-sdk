@@ -7,10 +7,10 @@
 
 package io.bitdrift.capture.events.span
 
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
-import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.providers.ArrayFields
@@ -40,7 +40,7 @@ internal object SpanField {
  * for each span: one when the span is started and another when the `Span.end()` method is called.
  */
 class Span internal constructor(
-    private var logger: LoggerImpl?,
+    private var logger: IInternalLogger?,
     /**
      * The human readable name of the span. This doesn't need to be unique.
      */
@@ -67,7 +67,7 @@ class Span internal constructor(
     private val startArrayFields: ArrayFields = buildStartFields(arrayFields)
 
     init {
-        logger?.log(
+        logger?.logInternal(
             LogType.SPAN,
             level,
             startArrayFields,
@@ -116,7 +116,7 @@ class Span internal constructor(
                     combineFields(startArrayFields, endCoreFields)
                 }
 
-            this.log(
+            this.logInternal(
                 LogType.SPAN,
                 level,
                 endFields,

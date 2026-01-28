@@ -23,8 +23,8 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.ErrorHandler
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogType
-import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.Mocks
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.Runtime
@@ -46,7 +46,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
 class JankStatsMonitorTest {
-    private val logger: LoggerImpl = mock()
+    private val logger: IInternalLogger = mock()
     private val runtime: Runtime = mock()
     private val lifecycle: Lifecycle = mock()
     private val processLifecycleOwner: LifecycleOwner = mock()
@@ -303,7 +303,7 @@ class JankStatsMonitorTest {
             states = listOf(StateInfo("_screen_name", screenName)),
         )
 
-        verify(logger).log(
+        verify(logger).logInternal(
             any(),
             any(),
             argThat<ArrayFields> { fields ->
@@ -337,7 +337,7 @@ class JankStatsMonitorTest {
         jankDurationInMilli: Long,
         expectedFrameType: JankStatsMonitor.JankFrameType,
     ) {
-        verify(logger).log(
+        verify(logger).logInternal(
             eq(LogType.UX),
             eq(expectedFrameType.logLevel),
             argThat<ArrayFields> { fields ->

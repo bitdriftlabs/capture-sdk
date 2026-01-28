@@ -107,7 +107,7 @@ internal class WebViewBridgeMessageHandler(
                 "_timestamp" to timestamp.toString(),
             )
 
-        logger.log(LogType.INTERNALSDK, LogLevel.DEBUG, fields) {
+        logger.logInternal(LogType.INTERNALSDK, LogLevel.DEBUG, fields) {
             "[WebView] instrumented $event"
         }
     }
@@ -199,7 +199,7 @@ internal class WebViewBridgeMessageHandler(
             "CLS" -> handleCLSMetric(metric, level, commonFields)
             else -> {
                 // Unknown metric type - log as regular log with UX type
-                logger.log(LogType.UX, level, commonFields.toFields()) {
+                logger.logInternal(LogType.UX, level, commonFields.toFields()) {
                     "webview.webVital"
                 }
             }
@@ -355,7 +355,7 @@ internal class WebViewBridgeMessageHandler(
             fields["_shift_count"] = entries.size.toString()
         }
 
-        logger.log(LogType.UX, level, fields.toFields()) {
+        logger.logInternal(LogType.UX, level, fields.toFields()) {
             "webview.webVital"
         }
     }
@@ -533,7 +533,7 @@ internal class WebViewBridgeMessageHandler(
                 "_performance_time" to msg.performanceTime?.toString(),
                 "_visibility_state" to msg.visibilityState,
             )
-        logger.log(LogType.UX, LogLevel.DEBUG, fields) {
+        logger.logInternal(LogType.UX, LogLevel.DEBUG, fields) {
             "webview.lifecycle"
         }
     }
@@ -609,7 +609,7 @@ internal class WebViewBridgeMessageHandler(
                 else -> LogLevel.DEBUG
             }
 
-        logger.log(LogType.UX, level, fields) {
+        logger.logInternal(LogType.UX, level, fields) {
             "webview.longTask"
         }
     }
@@ -703,7 +703,7 @@ internal class WebViewBridgeMessageHandler(
                 "_time_window_ms" to msg.timeWindowMs?.toString(),
             )
         val level = if (interactionType == "rageClick") LogLevel.WARNING else LogLevel.DEBUG
-        logger.log(LogType.UX, level, fields) {
+        logger.logInternal(LogType.UX, level, fields) {
             "webview.userInteraction"
         }
     }

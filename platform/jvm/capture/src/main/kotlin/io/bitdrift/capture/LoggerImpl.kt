@@ -346,7 +346,7 @@ internal class LoggerImpl(
     ): Span = Span(this, name, level, fields?.toFields(), startTimeMs, parentSpanId)
 
     override fun log(httpRequestInfo: HttpRequestInfo) {
-        log(
+        logInternal(
             LogType.SPAN,
             LogLevel.DEBUG,
             httpRequestInfo.arrayFields,
@@ -355,7 +355,7 @@ internal class LoggerImpl(
     }
 
     override fun log(httpResponseInfo: HttpResponseInfo) {
-        log(
+        logInternal(
             LogType.SPAN,
             LogLevel.DEBUG,
             httpResponseInfo.arrayFields,
@@ -369,7 +369,7 @@ internal class LoggerImpl(
         throwable: Throwable?,
         message: () -> String,
     ) {
-        log(
+        logInternal(
             LogType.NORMAL,
             level,
             extractFields(fields, throwable),
@@ -386,7 +386,7 @@ internal class LoggerImpl(
         throwable: Throwable?,
         message: () -> String,
     ) {
-        log(
+        logInternal(
             LogType.NORMAL,
             level,
             arrayFields,
@@ -427,11 +427,8 @@ internal class LoggerImpl(
         CaptureJniLibrary.setSleepModeEnabled(this.loggerId, sleepMode == SleepMode.ENABLED)
     }
 
-    /**
-     * TODO(Fran): BIT-7251 Rename to logInternal
-     */
     @Suppress("TooGenericExceptionCaught")
-    override fun log(
+    override fun logInternal(
         type: LogType,
         level: LogLevel,
         arrayFields: ArrayFields,
@@ -475,6 +472,33 @@ internal class LoggerImpl(
         }
     }
 
+    override fun logInternal(
+        type: LogType,
+        level: LogLevel,
+        arrayFields: ArrayFields,
+        throwable: Throwable?,
+        message: () -> String,
+    ) {
+        val throwableFields =
+            if (throwable == null) {
+                ArrayFields.EMPTY
+            } else {
+                ArrayFields(
+                    arrayOf("_error", "_error_details"),
+                    arrayOf(throwable.javaClass.name.orEmpty(), throwable.message.orEmpty()),
+                )
+            }
+        logInternal(
+            type,
+            level,
+            arrayFields = combineFields(arrayFields, throwableFields),
+            matchingArrayFields = ArrayFields.EMPTY,
+            attributesOverrides = null,
+            blocking = false,
+            message,
+        )
+    }
+
     override fun reportInternalError(
         detail: String,
         throwable: Throwable?,
@@ -482,7 +506,7 @@ internal class LoggerImpl(
         errorHandler.handleError(detail, throwable)
     }
 
-    internal fun logSessionReplayScreen(
+    override fun logSessionReplayScreen(
         fields: Array<Field>,
         duration: Duration,
     ) {
@@ -493,7 +517,7 @@ internal class LoggerImpl(
         )
     }
 
-    internal fun logSessionReplayScreenshot(
+    override fun logSessionReplayScreenshot(
         fields: Array<Field>,
         duration: Duration,
     ) {
@@ -504,7 +528,7 @@ internal class LoggerImpl(
         )
     }
 
-    internal fun logResourceUtilization(
+    override fun logResourceUtilization(
         arrayFields: ArrayFields,
         duration: Duration,
     ) {
@@ -513,6 +537,10 @@ internal class LoggerImpl(
             arrayFields.toLegacyJniFields(),
             duration.toDouble(DurationUnit.SECONDS),
         )
+    }
+
+    override fun flush(blocking: Boolean) {
+        CaptureJniLibrary.flush(this.loggerId, blocking)
     }
 
     internal fun shouldLogAppUpdate(
@@ -565,10 +593,6 @@ internal class LoggerImpl(
             keys.toTypedArray(),
             values.toTypedArray(),
         )
-    }
-
-    internal fun flush(blocking: Boolean) {
-        CaptureJniLibrary.flush(this.loggerId, blocking)
     }
 
     @Suppress("UnusedPrivateMember")

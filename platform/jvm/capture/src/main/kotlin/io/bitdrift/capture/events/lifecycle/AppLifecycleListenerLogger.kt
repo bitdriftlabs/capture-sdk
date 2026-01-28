@@ -14,9 +14,9 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
-import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
@@ -26,7 +26,7 @@ import io.bitdrift.capture.utils.BuildVersionChecker
 import java.util.concurrent.ExecutorService
 
 internal class AppLifecycleListenerLogger(
-    private val logger: LoggerImpl,
+    private val logger: IInternalLogger,
     private val processLifecycleOwner: LifecycleOwner,
     private val activityManager: ActivityManager,
     private val runtime: Runtime,
@@ -74,7 +74,7 @@ internal class AppLifecycleListenerLogger(
                     null
                 } ?: emptyMap()
             // refer to lifecycle states https://developer.android.com/topic/libraries/architecture/lifecycle#lc
-            logger.log(
+            logger.logInternal(
                 LogType.LIFECYCLE,
                 LogLevel.INFO,
                 fields.toFields(),

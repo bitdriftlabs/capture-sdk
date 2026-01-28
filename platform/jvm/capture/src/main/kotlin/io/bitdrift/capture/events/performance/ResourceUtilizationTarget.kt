@@ -8,10 +8,10 @@
 package io.bitdrift.capture.events.performance
 
 import io.bitdrift.capture.ErrorHandler
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.IResourceUtilizationTarget
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
-import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.common.PowerMonitor
@@ -28,7 +28,7 @@ internal class ResourceUtilizationTarget(
     private val powerMonitor: PowerMonitor,
     private val diskUsageMonitor: DiskUsageMonitor,
     private val errorHandler: ErrorHandler,
-    private val logger: LoggerImpl,
+    private val logger: IInternalLogger,
     private val executor: ExecutorService,
     private val clock: IClock = DefaultClock.getInstance(),
 ) : IResourceUtilizationTarget {
@@ -64,7 +64,7 @@ internal class ResourceUtilizationTarget(
     }
 
     private fun logMemoryPressure(memAttributes: ArrayFields) {
-        logger.log(
+        logger.logInternal(
             LogType.LIFECYCLE,
             LogLevel.WARNING,
             memAttributes,

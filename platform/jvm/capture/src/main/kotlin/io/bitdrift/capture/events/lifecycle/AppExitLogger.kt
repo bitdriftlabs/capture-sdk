@@ -14,10 +14,10 @@ import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
-import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
@@ -36,7 +36,7 @@ import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
 import io.bitdrift.capture.utils.BuildVersionChecker
 
 internal class AppExitLogger(
-    private val logger: LoggerImpl,
+    private val logger: IInternalLogger,
     private val activityManager: ActivityManager,
     private val runtime: Runtime,
     private val errorHandler: ErrorHandler,
@@ -89,7 +89,7 @@ internal class AppExitLogger(
                 val lastExitInfo = lastExitInfoResult.applicationExitInfo
 
                 val timestampMs = lastExitInfo.timestamp
-                logger.log(
+                logger.logInternal(
                     LogType.LIFECYCLE,
                     lastExitInfo.reason.toLogLevel(),
                     buildAppExitFields(lastExitInfo),
@@ -113,7 +113,7 @@ internal class AppExitLogger(
         }
 
         // explicitly letting it run in the caller thread
-        logger.log(
+        logger.logInternal(
             LogType.LIFECYCLE,
             LogLevel.ERROR,
             buildCrashAndMemoryFieldsMap(thread, throwable),

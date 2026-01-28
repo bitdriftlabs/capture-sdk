@@ -14,10 +14,10 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
-import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.utils.toStringMap
@@ -25,7 +25,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 
 class SpanTest {
-    private val logger: LoggerImpl = mock()
+    private val logger: IInternalLogger = mock()
     private val clock: IClock = mock()
 
     @Test
@@ -35,7 +35,7 @@ class SpanTest {
         val arrayFields = argumentCaptor<ArrayFields>()
         span.end(SpanResult.SUCCESS)
 
-        verify(logger, times(2)).log(
+        verify(logger, times(2)).logInternal(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
             arrayFields.capture(),
@@ -66,7 +66,7 @@ class SpanTest {
         val arrayFields = argumentCaptor<ArrayFields>()
         span.end(SpanResult.SUCCESS, endTimeMs = 1000L)
 
-        verify(logger).log(
+        verify(logger).logInternal(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
             arrayFields.capture(),
@@ -75,7 +75,7 @@ class SpanTest {
             eq(false),
             any(),
         )
-        verify(logger).log(
+        verify(logger).logInternal(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
             arrayFields.capture(),
@@ -104,7 +104,7 @@ class SpanTest {
         whenever(clock.elapsedRealtime()).thenReturn(1337L)
         spanWithNoEnd.end(SpanResult.SUCCESS)
 
-        verify(logger).log(
+        verify(logger).logInternal(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
             arrayFieldsWithNoEnd.capture(),
@@ -114,7 +114,7 @@ class SpanTest {
             any(),
         )
 
-        verify(logger).log(
+        verify(logger).logInternal(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
             arrayFieldsWithNoEnd.capture(),
@@ -137,7 +137,7 @@ class SpanTest {
         whenever(clock.elapsedRealtime()).thenReturn(1338L)
         spanWithNoStart.end(SpanResult.SUCCESS, endTimeMs = 1337)
 
-        verify(logger).log(
+        verify(logger).logInternal(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
             arrayFieldsWithNoStart.capture(),
@@ -147,7 +147,7 @@ class SpanTest {
             any(),
         )
 
-        verify(logger).log(
+        verify(logger).logInternal(
             eq(LogType.SPAN),
             eq(LogLevel.INFO),
             arrayFieldsWithNoStart.capture(),

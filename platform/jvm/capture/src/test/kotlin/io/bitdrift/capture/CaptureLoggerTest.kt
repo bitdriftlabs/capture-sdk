@@ -148,7 +148,7 @@ class CaptureLoggerTest {
                     "_headers.request_header" to "request_value",
                 )
 
-            Mockito.verify(logger).log(
+            Mockito.verify(logger).logInternal(
                 eq(LogType.SPAN),
                 eq(LogLevel.DEBUG),
                 argThat<ArrayFields> { toStringMap() == expectedRequestFields.toStringMap() },
@@ -204,7 +204,7 @@ class CaptureLoggerTest {
                     "_headers.response_header" to "response_value",
                 )
 
-            Mockito.verify(logger).log(
+            Mockito.verify(logger).logInternal(
                 eq(LogType.SPAN),
                 eq(LogLevel.DEBUG),
                 argThat<ArrayFields> { toStringMap() == expectedResponseFields.toStringMap() },
@@ -228,7 +228,7 @@ class CaptureLoggerTest {
                     "_error_details" to "my_error",
                 )
 
-            verify(logger).log(
+            verify(logger).logInternal(
                 eq(LogType.NORMAL),
                 eq(LogLevel.ERROR),
                 argThat<ArrayFields> { toStringMap() == expectedFields.toStringMap() },

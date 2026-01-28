@@ -10,7 +10,7 @@ package io.bitdrift.capture.replay
 /**
  * Screenshots will be received through this interface
  */
-interface IScreenshotLogger : IInternalLogger {
+interface IScreenshotLogger : IReplayInternalLogger {
     /**
      * Called when a screenshot is received
      * @param compressedScreen The compressed screenshot in binary format

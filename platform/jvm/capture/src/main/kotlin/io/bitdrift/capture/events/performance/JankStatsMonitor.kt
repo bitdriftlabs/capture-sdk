@@ -26,9 +26,9 @@ import androidx.metrics.performance.JankStats
 import androidx.metrics.performance.PerformanceMetricsState
 import androidx.metrics.performance.StateInfo
 import io.bitdrift.capture.ErrorHandler
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
-import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
@@ -51,7 +51,7 @@ import java.util.concurrent.TimeUnit
  */
 internal class JankStatsMonitor(
     private val application: Application,
-    private val logger: LoggerImpl,
+    private val logger: IInternalLogger,
     private val processLifecycleOwner: LifecycleOwner,
     private val runtime: Runtime,
     private val windowManager: IWindowManager,
@@ -220,7 +220,7 @@ internal class JankStatsMonitor(
             )
         val jankFrameStateFields = this@sendJankFrameData.states.toInternalFields()
 
-        logger.log(
+        logger.logInternal(
             LogType.UX,
             jankFrameType.logLevel,
             combineFields(coreJankFields, jankFrameStateFields),
