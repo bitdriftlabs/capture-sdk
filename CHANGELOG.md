@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Expose `baseDomain` Gradle plugin configuration for `bd` CLI uploads.
 
 **Changed**
 
