@@ -18,7 +18,6 @@ import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
-import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
@@ -39,7 +38,6 @@ internal class AppExitLogger(
     private val logger: IInternalLogger,
     private val activityManager: ActivityManager,
     private val runtime: Runtime,
-    private val errorHandler: ErrorHandler,
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
@@ -83,7 +81,7 @@ internal class AppExitLogger(
 
         when (val lastExitInfoResult = latestAppExitInfoProvider.get(activityManager)) {
             is LatestAppExitReasonResult.Error ->
-                errorHandler.handleError(lastExitInfoResult.message, lastExitInfoResult.throwable)
+                logger.handleInternalError(lastExitInfoResult.message, lastExitInfoResult.throwable)
 
             is LatestAppExitReasonResult.Valid -> {
                 val lastExitInfo = lastExitInfoResult.applicationExitInfo

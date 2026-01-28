@@ -33,7 +33,7 @@ internal interface IInternalLogger : ILogger {
         message: () -> String,
     )
 
-    fun reportInternalError(
+    fun handleInternalError(
         detail: String,
         throwable: Throwable? = null,
     )

@@ -22,7 +22,6 @@ import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.Mocks
@@ -53,7 +52,6 @@ class JankStatsMonitorTest {
     private val windowManager: IWindowManager = mock()
     private val mainThreadHandler = Mocks.sameThreadHandler
 
-    private val errorHandler: ErrorHandler = mock()
     private val errorMessageCaptor = argumentCaptor<String>()
     private val illegalStateExceptionCaptor = argumentCaptor<IllegalStateException>()
 
@@ -83,7 +81,6 @@ class JankStatsMonitorTest {
                 processLifecycleOwner,
                 runtime,
                 windowManager,
-                errorHandler,
                 mainThreadHandler,
             )
     }
@@ -270,7 +267,7 @@ class JankStatsMonitorTest {
 
         jankStatsMonitor.onActivityResumed(mockedActivity)
 
-        verify(errorHandler).handleError(
+        verify(logger).handleInternalError(
             errorMessageCaptor.capture(),
             illegalStateExceptionCaptor.capture(),
         )
@@ -352,8 +349,16 @@ class JankStatsMonitorTest {
     }
 
     private fun assertWrongDuration(expectedMessage: String) {
-        verifyNoInteractions(logger)
-        verify(errorHandler).handleError(
+        verify(logger, never()).logInternal(
+            any(),
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            any(),
+            any(),
+        )
+        verify(logger).handleInternalError(
             errorMessageCaptor.capture(),
             eq(null),
         )

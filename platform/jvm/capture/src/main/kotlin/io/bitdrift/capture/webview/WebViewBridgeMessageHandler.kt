@@ -50,12 +50,12 @@ internal class WebViewBridgeMessageHandler(
             runCatching {
                 gson.fromJson(message, WebViewBridgeMessage::class.java)
             }.getOrElse { throwable ->
-                logger.reportInternalError("Failed to extract WebView bridge message. $message", throwable)
+                logger.handleInternalError("Failed to extract WebView bridge message. $message", throwable)
                 return
             }
 
         if (bridgeMessage == null) {
-            logger.reportInternalError("WebView bridge message is null after parsing", null)
+            logger.handleInternalError("WebView bridge message is null after parsing", null)
             return
         }
 
@@ -86,11 +86,11 @@ internal class WebViewBridgeMessageHandler(
                 "userInteraction" -> handleUserInteraction(bridgeMessage, timestamp)
                 "internalAutoInstrumentation" -> handleInternalAutoInstrumentation(bridgeMessage, timestamp)
                 else -> {
-                    logger.reportInternalError("Unknown WebView bridge message. $message")
+                    logger.handleInternalError("Unknown WebView bridge message. $message")
                 }
             }
         }.getOrElse { throwable ->
-            logger.reportInternalError("Failed to handle WebView bridge message. $message", throwable)
+            logger.handleInternalError("Failed to handle WebView bridge message. $message", throwable)
         }
     }
 

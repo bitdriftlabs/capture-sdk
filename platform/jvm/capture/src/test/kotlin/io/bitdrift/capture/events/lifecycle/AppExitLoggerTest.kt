@@ -18,7 +18,6 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
@@ -42,15 +41,12 @@ import io.bitdrift.capture.utils.toStringMap
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
-import org.mockito.Mockito.verifyNoMoreInteractions
 import java.io.IOException
 
 class AppExitLoggerTest {
     private val logger: IInternalLogger = mock()
     private val activityManager: ActivityManager = mock()
     private val runtime: Runtime = mock()
-
-    private val errorHandler: ErrorHandler = mock()
     private val versionChecker: BuildVersionChecker = mock()
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
     private val memoryMetricsProvider = FakeMemoryMetricsProvider()
@@ -131,7 +127,7 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        verifyNoMoreInteractions(errorHandler)
+        verify(logger, never()).handleInternalError(any(), any())
         verify(logger, never()).logInternal(
             any(),
             any(),
@@ -154,7 +150,7 @@ class AppExitLoggerTest {
         // ASSERT
         val messageCaptor = argumentCaptor<String>()
         val throwableCaptor = argumentCaptor<Throwable>()
-        verify(errorHandler).handleError(messageCaptor.capture(), throwableCaptor.capture())
+        verify(logger).handleInternalError(messageCaptor.capture(), throwableCaptor.capture())
         assert(messageCaptor.firstValue == EXIT_REASON_EXCEPTION_MESSAGE)
         assert(throwableCaptor.firstValue is Exception)
         assert(throwableCaptor.firstValue.message == FAKE_EXCEPTION.message)
@@ -302,7 +298,6 @@ class AppExitLoggerTest {
             logger,
             activityManager,
             runtime,
-            errorHandler,
             versionChecker,
             memoryMetricsProvider,
             lastExitInfo,

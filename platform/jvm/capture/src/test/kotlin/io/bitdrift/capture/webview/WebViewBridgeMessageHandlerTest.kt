@@ -40,7 +40,7 @@ class WebViewBridgeMessageHandlerTest {
 
         handler.log(message)
 
-        verify(logger).reportInternalError(
+        verify(logger).handleInternalError(
             errorHandlerMessageCaptor.capture(),
             throwableCaptor.capture(),
         )
@@ -53,7 +53,7 @@ class WebViewBridgeMessageHandlerTest {
     fun log_whenEmptyMessage_shouldReportInternalError() {
         handler.log("")
 
-        verify(logger).reportInternalError(
+        verify(logger).handleInternalError(
             errorHandlerMessageCaptor.capture(),
             throwableCaptor.capture(),
         )
@@ -68,7 +68,7 @@ class WebViewBridgeMessageHandlerTest {
 
         handler.log(message)
 
-        verify(logger).reportInternalError(
+        verify(logger).handleInternalError(
             errorHandlerMessageCaptor.capture(),
             throwableCaptor.capture(),
         )

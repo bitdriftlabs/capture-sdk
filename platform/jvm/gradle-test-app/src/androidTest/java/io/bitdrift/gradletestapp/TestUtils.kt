@@ -58,14 +58,12 @@ object TestUtils {
 
                 override fun logVerboseInternal(
                     message: String,
-                    fields: Map<String, String>?,
                 ) {
                     Log.v("Replay Tests", message)
                 }
 
                 override fun logDebugInternal(
                     message: String,
-                    fields: Map<String, String>?,
                 ) {
                     Log.d("Replay Tests", message)
                 }
@@ -73,7 +71,6 @@ object TestUtils {
                 override fun logErrorInternal(
                     message: String,
                     e: Throwable?,
-                    fields: Map<String, String>?,
                 ) {
                     Log.e("Replay Tests", message, e)
                 }

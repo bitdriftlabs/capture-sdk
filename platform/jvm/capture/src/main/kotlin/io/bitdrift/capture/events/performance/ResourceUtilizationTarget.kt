@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.events.performance
 
-import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.IResourceUtilizationTarget
 import io.bitdrift.capture.LogLevel
@@ -27,7 +26,6 @@ internal class ResourceUtilizationTarget(
     private val batteryMonitor: BatteryMonitor,
     private val powerMonitor: PowerMonitor,
     private val diskUsageMonitor: DiskUsageMonitor,
-    private val errorHandler: ErrorHandler,
     private val logger: IInternalLogger,
     private val executor: ExecutorService,
     private val clock: IClock = DefaultClock.getInstance(),
@@ -58,7 +56,7 @@ internal class ResourceUtilizationTarget(
                     logMemoryPressure(memorySnapshot)
                 }
             } catch (e: Throwable) {
-                errorHandler.handleError("resource utilization tick", e)
+                logger.handleInternalError("resource utilization tick", e)
             }
         }
     }

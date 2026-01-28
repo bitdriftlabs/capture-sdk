@@ -25,7 +25,6 @@ import androidx.metrics.performance.FrameDataApi31
 import androidx.metrics.performance.JankStats
 import androidx.metrics.performance.PerformanceMetricsState
 import androidx.metrics.performance.StateInfo
-import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
@@ -55,7 +54,6 @@ internal class JankStatsMonitor(
     private val processLifecycleOwner: LifecycleOwner,
     private val runtime: Runtime,
     private val windowManager: IWindowManager,
-    private val errorHandler: ErrorHandler,
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
 ) : IEventListenerLogger,
@@ -103,7 +101,7 @@ internal class JankStatsMonitor(
             val errorMessage =
                 "Unexpected frame duration. durationInNano: $durationNano." +
                     " durationMillis: $durationMillis"
-            errorHandler.handleError(errorMessage)
+            logger.handleInternalError(errorMessage)
             return
         }
 
@@ -195,7 +193,7 @@ internal class JankStatsMonitor(
             performanceMetricsStateHolder = PerformanceMetricsState.getHolderForHierarchy(window.decorView.rootView)
             jankStats?.jankHeuristicMultiplier = runtime.getConfigValue(RuntimeConfig.JANK_FRAME_HEURISTICS_MULTIPLIER).toFloat()
         } catch (illegalStateException: IllegalStateException) {
-            errorHandler.handleError(
+            logger.handleInternalError(
                 "Couldn't create JankStats instance",
                 illegalStateException,
             )

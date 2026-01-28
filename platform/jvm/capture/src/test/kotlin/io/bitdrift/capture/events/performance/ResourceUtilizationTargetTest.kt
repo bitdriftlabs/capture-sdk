@@ -18,7 +18,6 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.CaptureTestJniLibrary
-import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
@@ -39,7 +38,6 @@ class ResourceUtilizationTargetTest {
     private val batteryMonitor: BatteryMonitor = mock()
     private val powerMonitor: PowerMonitor = mock()
     private val diskUsageMonitor: DiskUsageMonitor = mock()
-    private val errorHandler: ErrorHandler = mock()
     private val logger: IInternalLogger = mock()
     private val executor: ExecutorService = MoreExecutors.newDirectExecutorService()
     private val clock: IClock = mock()
@@ -50,7 +48,6 @@ class ResourceUtilizationTargetTest {
             batteryMonitor = batteryMonitor,
             powerMonitor = powerMonitor,
             diskUsageMonitor = diskUsageMonitor,
-            errorHandler = errorHandler,
             logger = logger,
             executor = executor,
             clock = clock,
@@ -132,7 +129,7 @@ class ResourceUtilizationTargetTest {
         reporter.tick()
 
         executor.awaitTermination(1, TimeUnit.SECONDS)
-        verify(errorHandler).handleError(eq("resource utilization tick"), refEq(exception))
+        verify(logger).handleInternalError(eq("resource utilization tick"), refEq(exception))
     }
 
     @After

@@ -173,7 +173,6 @@ internal class LoggerImpl(
                 batteryMonitor,
                 powerMonitor,
                 diskUsageMonitor,
-                errorHandler,
                 this,
                 eventListenerDispatcher.executorService,
             )
@@ -262,7 +261,6 @@ internal class LoggerImpl(
                 logger = this,
                 activityManager,
                 runtime,
-                errorHandler,
                 memoryMetricsProvider = memoryMetricsProvider,
                 issueReporter = issueReporter,
             )
@@ -499,7 +497,7 @@ internal class LoggerImpl(
         )
     }
 
-    override fun reportInternalError(
+    override fun handleInternalError(
         detail: String,
         throwable: Throwable?,
     ) {
@@ -673,7 +671,6 @@ internal class LoggerImpl(
                     ProcessLifecycleOwner.get(),
                     runtime,
                     windowManager,
-                    errorHandler,
                 )
             jankStatsMonitor?.let {
                 eventsListenerTarget.add(it)
