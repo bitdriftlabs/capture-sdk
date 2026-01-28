@@ -39,6 +39,21 @@ class CLITaskTest {
     private fun writeSettingsFile(projectDir: File) {
         File(projectDir, "settings.gradle.kts").writeText(
             """
+            pluginManagement {
+                repositories {
+                    google()
+                    gradlePluginPortal()
+                    mavenCentral()
+                }
+                resolutionStrategy {
+                    eachPlugin {
+                        if (requested.id.id == "com.android.application" || requested.id.id == "com.android.library") {
+                            useModule("com.android.tools.build:gradle:${'$'}{requested.version}")
+                        }
+                    }
+                }
+            }
+
             rootProject.name = "cli-test"
             """.trimIndent() + "\n",
         )
@@ -48,8 +63,18 @@ class CLITaskTest {
         File(projectDir, "build.gradle.kts").writeText(
             """
             plugins {
-                id("com.android.application") version "7.4.0"
+                id("com.android.application") version "8.12.0"
                 id("io.bitdrift.capture-plugin")
+            }
+
+            buildscript {
+                repositories {
+                    google()
+                    mavenCentral()
+                }
+                dependencies {
+                    classpath("com.android.tools.build:gradle:8.12.0")
+                }
             }
 
             android {
