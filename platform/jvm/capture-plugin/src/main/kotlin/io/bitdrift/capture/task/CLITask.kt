@@ -134,7 +134,7 @@ abstract class CLITask : DefaultTask() {
 class BDCLIDownloader(
     val executableFilePath: File,
 ) {
-    val bdcliVersion = "0.1.36"
+    val bdcliVersion = "0.1.37"
     val bdcliDownloadLoc: URI = URI.create("https://dl.bitdrift.io/bd-cli/$bdcliVersion/${downloadFilename()}/bd")
 
     private enum class OSType {
