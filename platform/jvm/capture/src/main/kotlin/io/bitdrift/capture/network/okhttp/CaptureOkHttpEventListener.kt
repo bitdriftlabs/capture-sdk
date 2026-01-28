@@ -481,7 +481,7 @@ internal class CaptureOkHttpEventListener internal constructor(
         return this
     }
 
-    private fun saveAndSetThreadStatsTag(){
+    private fun saveAndSetThreadStatsTag() {
         runCatching {
             previousThreadStatsTag = TrafficStats.getThreadStatsTag()
             TrafficStats.setThreadStatsTag(TRAFFIC_STATS_TAG)
