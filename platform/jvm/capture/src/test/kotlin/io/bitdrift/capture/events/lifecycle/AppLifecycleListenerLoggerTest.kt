@@ -18,9 +18,9 @@ import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
-import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.Mocks
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
@@ -34,7 +34,7 @@ import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import java.util.concurrent.ExecutorService
 
 class AppLifecycleListenerLoggerTest {
-    private val logger: LoggerImpl = mock()
+    private val logger: IInternalLogger = mock()
     private val processLifecycleOwner: LifecycleOwner = mock()
     private val activityManager: ActivityManager = mock()
     private val runtime: Runtime = mock()
@@ -72,7 +72,7 @@ class AppLifecycleListenerLoggerTest {
         appLifecycleLogger.onStateChanged(processLifecycleOwner, Lifecycle.Event.ON_START)
 
         // ASSERT
-        verify(logger).log(
+        verify(logger).logInternal(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.INFO),
             eq(ArrayFields.EMPTY),
@@ -94,7 +94,7 @@ class AppLifecycleListenerLoggerTest {
         appLifecycleLogger.onStateChanged(processLifecycleOwner, Lifecycle.Event.ON_CREATE)
 
         // ASSERT
-        verify(logger).log(
+        verify(logger).logInternal(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.INFO),
             eq(ArrayFields.EMPTY),
@@ -142,7 +142,7 @@ class AppLifecycleListenerLoggerTest {
         appLifecycleLogger.onStateChanged(processLifecycleOwner, Lifecycle.Event.ON_CREATE)
 
         // ASSERT
-        verify(logger).log(
+        verify(logger).logInternal(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.INFO),
             argThat<ArrayFields> { fields ->

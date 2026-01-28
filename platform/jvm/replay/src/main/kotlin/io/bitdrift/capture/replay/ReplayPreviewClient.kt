@@ -105,26 +105,19 @@ class ReplayPreviewClient(
         logger.onScreenCaptured(encodedScreen, screen, metrics)
     }
 
-    override fun logVerboseInternal(
-        message: String,
-        fields: Map<String, String>?,
-    ) {
-        logger.logVerboseInternal(message, fields)
+    override fun logVerboseInternal(message: String) {
+        logger.logVerboseInternal(message)
     }
 
-    override fun logDebugInternal(
-        message: String,
-        fields: Map<String, String>?,
-    ) {
-        logger.logDebugInternal(message, fields)
+    override fun logDebugInternal(message: String) {
+        logger.logDebugInternal(message)
     }
 
     override fun logErrorInternal(
         message: String,
         e: Throwable?,
-        fields: Map<String, String>?,
     ) {
-        logger.logErrorInternal(message, e, fields)
+        logger.logErrorInternal(message, e)
     }
 
     private object WebSocketLogger : WebSocketListener() {

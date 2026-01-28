@@ -17,9 +17,9 @@ import android.content.res.Configuration
 import android.os.Build
 import android.os.PowerManager
 import androidx.annotation.RequiresApi
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
-import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
@@ -33,7 +33,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicReference
 
 internal class DeviceStateListenerLogger(
-    private val logger: LoggerImpl,
+    private val logger: IInternalLogger,
     private val context: Context,
     private val batteryMonitor: BatteryMonitor,
     private val powerMonitor: PowerMonitor,
@@ -164,6 +164,6 @@ internal class DeviceStateListenerLogger(
         arrayFields: ArrayFields,
         message: String,
     ) {
-        logger.log(LogType.DEVICE, LogLevel.INFO, arrayFields) { message }
+        logger.logInternal(LogType.DEVICE, LogLevel.INFO, arrayFields) { message }
     }
 }

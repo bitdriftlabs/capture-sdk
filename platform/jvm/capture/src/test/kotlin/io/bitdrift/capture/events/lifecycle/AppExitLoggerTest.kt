@@ -18,11 +18,10 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import io.bitdrift.capture.ErrorHandler
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
-import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.fakes.FakeIssueReporter
@@ -42,15 +41,12 @@ import io.bitdrift.capture.utils.toStringMap
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
-import org.mockito.Mockito.verifyNoMoreInteractions
 import java.io.IOException
 
 class AppExitLoggerTest {
-    private val logger: LoggerImpl = mock()
+    private val logger: IInternalLogger = mock()
     private val activityManager: ActivityManager = mock()
     private val runtime: Runtime = mock()
-
-    private val errorHandler: ErrorHandler = mock()
     private val versionChecker: BuildVersionChecker = mock()
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
     private val memoryMetricsProvider = FakeMemoryMetricsProvider()
@@ -111,7 +107,7 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        verify(logger).log(
+        verify(logger).logInternal(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
             argThat<ArrayFields> { fields -> fieldsMatchExpectedAnr(fields) },
@@ -131,8 +127,8 @@ class AppExitLoggerTest {
         appExitLogger.logPreviousExitReasonIfAny()
 
         // ASSERT
-        verifyNoMoreInteractions(errorHandler)
-        verify(logger, never()).log(
+        verify(logger, never()).handleInternalError(any(), any())
+        verify(logger, never()).logInternal(
             any(),
             any(),
             any(),
@@ -154,12 +150,12 @@ class AppExitLoggerTest {
         // ASSERT
         val messageCaptor = argumentCaptor<String>()
         val throwableCaptor = argumentCaptor<Throwable>()
-        verify(errorHandler).handleError(messageCaptor.capture(), throwableCaptor.capture())
+        verify(logger).handleInternalError(messageCaptor.capture(), throwableCaptor.capture())
         assert(messageCaptor.firstValue == EXIT_REASON_EXCEPTION_MESSAGE)
         assert(throwableCaptor.firstValue is Exception)
         assert(throwableCaptor.firstValue.message == FAKE_EXCEPTION.message)
 
-        verify(logger, never()).log(
+        verify(logger, never()).logInternal(
             any(),
             any(),
             any(),
@@ -193,7 +189,7 @@ class AppExitLoggerTest {
                 DEFAULT_MEMORY_ATTRIBUTES,
             )
 
-        verify(logger).log(
+        verify(logger).logInternal(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
             argThat<ArrayFields> { fields -> fieldsMatchExpected(fields, expectedFields) },
@@ -212,7 +208,7 @@ class AppExitLoggerTest {
 
         appExitLogger.onJvmCrash(Thread.currentThread(), IllegalStateException("Simulated Crash"))
 
-        verify(logger, never()).log(
+        verify(logger, never()).logInternal(
             any(),
             any(),
             any(),
@@ -274,7 +270,7 @@ class AppExitLoggerTest {
     }
 
     private fun verifyLoggedException(expected: Throwable) {
-        verify(logger).log(
+        verify(logger).logInternal(
             eq(LogType.LIFECYCLE),
             eq(LogLevel.ERROR),
             argThat<ArrayFields> { fields ->
@@ -302,7 +298,6 @@ class AppExitLoggerTest {
             logger,
             activityManager,
             runtime,
-            errorHandler,
             versionChecker,
             memoryMetricsProvider,
             lastExitInfo,

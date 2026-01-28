@@ -110,7 +110,7 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
             stream.configureAggressiveUploads()
 
             // Write a blocking log to ensure config delivery gets persisted
-            logger.log(
+            logger.logInternal(
                 LogType.NORMAL,
                 LogLevel.INFO,
                 blocking = true,

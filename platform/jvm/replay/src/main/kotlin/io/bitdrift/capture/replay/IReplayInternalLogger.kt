@@ -10,24 +10,17 @@ package io.bitdrift.capture.replay
 /**
  * Forwards messages as type Internal to the bitdrift Logger
  *
- * TODO(Fran): BIT-7251 Remove and use existing [io.bitdrift.capture.IInternalLogger]
  */
-interface IInternalLogger {
+interface IReplayInternalLogger {
     /**
      * Forwards a verbose message internally to the SDK
      */
-    fun logVerboseInternal(
-        message: String,
-        fields: Map<String, String>? = null,
-    )
+    fun logVerboseInternal(message: String)
 
     /**
      * Forwards a debug message internally to the SDK
      */
-    fun logDebugInternal(
-        message: String,
-        fields: Map<String, String>? = null,
-    )
+    fun logDebugInternal(message: String)
 
     /**
      * Forwards an error message internally to the SDK
@@ -35,6 +28,5 @@ interface IInternalLogger {
     fun logErrorInternal(
         message: String,
         e: Throwable? = null,
-        fields: Map<String, String>? = null,
     )
 }

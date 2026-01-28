@@ -40,7 +40,7 @@ class WebViewBridgeMessageHandlerTest {
 
         handler.log(message)
 
-        verify(logger).reportInternalError(
+        verify(logger).handleInternalError(
             errorHandlerMessageCaptor.capture(),
             throwableCaptor.capture(),
         )
@@ -53,7 +53,7 @@ class WebViewBridgeMessageHandlerTest {
     fun log_whenEmptyMessage_shouldReportInternalError() {
         handler.log("")
 
-        verify(logger).reportInternalError(
+        verify(logger).handleInternalError(
             errorHandlerMessageCaptor.capture(),
             throwableCaptor.capture(),
         )
@@ -68,7 +68,7 @@ class WebViewBridgeMessageHandlerTest {
 
         handler.log(message)
 
-        verify(logger).reportInternalError(
+        verify(logger).handleInternalError(
             errorHandlerMessageCaptor.capture(),
             throwableCaptor.capture(),
         )
@@ -140,7 +140,7 @@ class WebViewBridgeMessageHandlerTest {
         val logTypeCaptor = argumentCaptor<LogType>()
         handler.log(message)
 
-        verify(logger).log(
+        verify(logger).logInternal(
             logTypeCaptor.capture(),
             eq(LogLevel.DEBUG),
             arrayFieldsCaptor.capture(),
@@ -174,7 +174,7 @@ class WebViewBridgeMessageHandlerTest {
         val logTypeCaptor = argumentCaptor<LogType>()
         handler.log(message)
 
-        verify(logger).log(
+        verify(logger).logInternal(
             logTypeCaptor.capture(),
             eq(LogLevel.DEBUG),
             arrayFieldsCaptor.capture(),
@@ -343,7 +343,7 @@ class WebViewBridgeMessageHandlerTest {
         val logTypeCaptor = argumentCaptor<LogType>()
         handler.log(message)
 
-        verify(logger).log(
+        verify(logger).logInternal(
             logTypeCaptor.capture(),
             eq(LogLevel.WARNING),
             arrayFieldsCaptor.capture(),
@@ -381,7 +381,7 @@ class WebViewBridgeMessageHandlerTest {
         val logTypeCaptor = argumentCaptor<LogType>()
         handler.log(message)
 
-        verify(logger).log(
+        verify(logger).logInternal(
             logTypeCaptor.capture(),
             eq(LogLevel.INFO),
             arrayFieldsCaptor.capture(),
@@ -411,7 +411,7 @@ class WebViewBridgeMessageHandlerTest {
         val logTypeCaptor = argumentCaptor<LogType>()
         handler.log(message)
 
-        verify(logger).log(
+        verify(logger).logInternal(
             logTypeCaptor.capture(),
             eq(LogLevel.DEBUG),
             arrayFieldsCaptor.capture(),
@@ -723,7 +723,7 @@ class WebViewBridgeMessageHandlerTest {
         val logTypeCaptor = argumentCaptor<LogType>()
         handler.log(message)
 
-        verify(logger).log(
+        verify(logger).logInternal(
             logTypeCaptor.capture(),
             eq(LogLevel.DEBUG),
             arrayFieldsCaptor.capture(),
@@ -764,7 +764,7 @@ class WebViewBridgeMessageHandlerTest {
         val logTypeCaptor = argumentCaptor<LogType>()
         handler.log(message)
 
-        verify(logger).log(
+        verify(logger).logInternal(
             logTypeCaptor.capture(),
             eq(LogLevel.WARNING),
             arrayFieldsCaptor.capture(),
@@ -798,7 +798,7 @@ class WebViewBridgeMessageHandlerTest {
         val logTypeCaptor = argumentCaptor<LogType>()
         handler.log(message)
 
-        verify(logger).log(
+        verify(logger).logInternal(
             logTypeCaptor.capture(),
             eq(LogLevel.DEBUG),
             arrayFieldsCaptor.capture(),
