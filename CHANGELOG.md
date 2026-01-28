@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed `Untagged socket detected` Strict Mode Violation
 
 ### iOS
 

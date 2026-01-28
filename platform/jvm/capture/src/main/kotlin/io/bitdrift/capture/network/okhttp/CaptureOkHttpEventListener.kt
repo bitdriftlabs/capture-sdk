@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.network.okhttp
 
+import android.net.TrafficStats
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.network.HttpField
@@ -92,6 +93,8 @@ internal class CaptureOkHttpEventListener internal constructor(
 
     private var requestInfo: HttpRequestInfo? = null
     private var lastResponse: Response? = null
+
+    private var previousThreadStatsTag: Int? = null
 
     override fun callStart(call: Call) {
         runCatching { targetEventListener?.callStart(call) }
@@ -186,6 +189,8 @@ internal class CaptureOkHttpEventListener internal constructor(
     ) {
         runCatching { targetEventListener?.connectStart(call, inetSocketAddress, proxy) }
 
+        saveAndSetThreadStatsTag()
+
         connectStartTimeMs = clock.elapsedRealtime()
     }
 
@@ -220,6 +225,9 @@ internal class CaptureOkHttpEventListener internal constructor(
         protocol: Protocol?,
     ) {
         runCatching { targetEventListener?.connectEnd(call, inetSocketAddress, proxy, protocol) }
+
+        restorePreviousThreadStatsTag()
+
         val elapsed = clock.elapsedRealtime()
 
         // If this is not an https request (ie there wasn't a handshake), we measure the tcp time as
@@ -239,6 +247,8 @@ internal class CaptureOkHttpEventListener internal constructor(
         ioe: IOException,
     ) {
         runCatching { targetEventListener?.connectFailed(call, inetSocketAddress, proxy, protocol, ioe) }
+
+        restorePreviousThreadStatsTag()
     }
 
     override fun connectionAcquired(
@@ -469,5 +479,25 @@ internal class CaptureOkHttpEventListener internal constructor(
             return null
         }
         return this
+    }
+
+    private fun saveAndSetThreadStatsTag() {
+        runCatching {
+            previousThreadStatsTag = TrafficStats.getThreadStatsTag()
+            TrafficStats.setThreadStatsTag(TRAFFIC_STATS_TAG)
+        }
+    }
+
+    private fun restorePreviousThreadStatsTag() {
+        runCatching {
+            previousThreadStatsTag?.let { tag ->
+                TrafficStats.setThreadStatsTag(tag)
+                previousThreadStatsTag = null
+            }
+        }
+    }
+
+    private companion object {
+        const val TRAFFIC_STATS_TAG = 0x0017D21F7
     }
 }
