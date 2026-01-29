@@ -131,7 +131,7 @@ internal class TextMapper(
     ): String {
         val lineStart = view.layout.getLineStart(line)
         val lineEnd = view.layout.getLineEnd(line)
-        return view.text.substring(lineStart, lineEnd)
+        return view.layout.text.substring(lineStart, lineEnd)
     }
 
     @SuppressLint("SwitchIntDef", "RtlHardcoded")
