@@ -200,9 +200,15 @@ const logUserInteraction = (
                 : (element.className as DOMTokenList).toString()
             : undefined;
 
+        // Check if element has data-redacted attribute
+        const hasDataRedacted = element.hasAttribute('data-redacted');
+
         // Get text content, truncated
         let textContent: string | undefined;
-        if (element.textContent) {
+        if (hasDataRedacted) {
+            // If data-redacted attribute is present, use "<redacted>" instead of actual content
+            textContent = '<redacted>';
+        } else if (element.textContent) {
             const text = element.textContent.trim().replace(/\s+/g, ' ');
             textContent = text.length > 50 ? `${text.slice(0, 50)}...` : text || undefined;
         }
