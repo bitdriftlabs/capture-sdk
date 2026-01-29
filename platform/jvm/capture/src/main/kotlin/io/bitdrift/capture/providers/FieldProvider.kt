@@ -177,12 +177,14 @@ internal fun combineJniFields(
     val totalSize = stringArrayFields.size + binaryFields.size
     if (totalSize == 0) return emptyArray()
 
-    val result = ArrayList<Field>(totalSize)
+    val result = arrayOfNulls<Field>(totalSize)
     for (i in 0 until stringArrayFields.size) {
-        result.add(Field(stringArrayFields.keys[i], FieldValue.StringField(stringArrayFields.values[i])))
+        result[i] = Field(stringArrayFields.keys[i], FieldValue.StringField(stringArrayFields.values[i]))
     }
-    result.addAll(binaryFields)
-    return result.toTypedArray()
+    for (i in binaryFields.indices) {
+        result[stringArrayFields.size + i] = binaryFields[i]
+    }
+    return result.requireNoNulls()
 }
 
 /**

@@ -569,27 +569,36 @@ internal class LoggerImpl(
         val throwableFieldCount = if (hasThrowable) 2 else 0
         val totalSize = fieldsSize + throwableFieldCount
 
-        val keys = ArrayList<String>(totalSize)
-        val values = ArrayList<String>(totalSize)
+        val keys = arrayOfNulls<String>(totalSize)
+        val values = arrayOfNulls<String>(totalSize)
+        var index = 0
 
         fields?.forEach { (key, value) ->
             @Suppress("SENSELESS_COMPARISON")
             if (key != null && value != null) {
-                keys.add(key)
-                values.add(value)
+                keys[index] = key
+                values[index] = value
+                index++
             }
         }
 
-        throwable?.let {
-            keys.add("_error")
-            values.add(it.javaClass.name.orEmpty())
-            keys.add("_error_details")
-            values.add(it.message.orEmpty())
+        if (hasThrowable) {
+            val error = throwable
+            keys[index] = "_error"
+            values[index] = error?.javaClass?.name.orEmpty()
+            index++
+            keys[index] = "_error_details"
+            values[index] = error?.message.orEmpty()
+            index++
+        }
+
+        if (index == totalSize) {
+            return ArrayFields(keys.requireNoNulls(), values.requireNoNulls())
         }
 
         return ArrayFields(
-            keys.toTypedArray(),
-            values.toTypedArray(),
+            keys.copyOf(index).requireNoNulls(),
+            values.copyOf(index).requireNoNulls(),
         )
     }
 
