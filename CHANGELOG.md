@@ -29,6 +29,7 @@
 
 **Fixed**
 
+- Fixed session replay skipping views with stale text layouts
 - Fixed `Untagged socket detected` Strict Mode Violation
 
 ### iOS

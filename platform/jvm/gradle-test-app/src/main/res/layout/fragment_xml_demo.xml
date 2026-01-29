@@ -22,7 +22,15 @@
         android:id="@+id/actionButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Do Action" />
+        android:text="Do Action\nWith\nMultiLineText" />
+
+    <!-- Test button that simulates stale layout scenario -->
+    <!-- This button's layout has indices that exceed its actual text length -->
+    <io.bitdrift.gradletestapp.ui.components.StaleLayoutButton
+        android:id="@+id/staleLayoutButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp" />
 
 </LinearLayout>
 
