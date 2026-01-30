@@ -1,6 +1,8 @@
 name: check_generated_js
 on:
   pull_request:
+    paths:
+      - 'platform/webview/**'
 # Cancel in-progress CI jobs when a new commit is pushed to a PR.
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
