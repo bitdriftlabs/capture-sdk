@@ -14,8 +14,10 @@ import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.LOG_TAG
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.ArrayFields
@@ -143,7 +145,7 @@ internal object WebViewCapture {
     @SuppressLint("RequiresFeature")
     private fun injectScript(
         webview: WebView,
-        logger: ILogger?,
+        logger: IInternalLogger?,
         config: WebViewConfiguration,
     ) {
         runCatching {
@@ -153,7 +155,7 @@ internal object WebViewCapture {
                 script,
                 setOf("*"), // Apply to all frames
             )
-            logger?.log(LogLevel.DEBUG, ArrayFields.EMPTY) {
+            logger?.logInternal(type = LogType.INTERNALSDK, LogLevel.DEBUG, ArrayFields.EMPTY) {
                 "WebView bridge script injected successfully"
             }
         }.getOrElse { error ->
