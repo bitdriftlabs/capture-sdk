@@ -81,8 +81,8 @@ class WebViewCaptureTest {
     }
 
     @Test
-    fun instrument_withValidWebViewConfiguration_shouldEnableJavascriptAndLogSuccess() {
-        startSdk(webViewConfiguration = WebViewConfiguration())
+    fun instrument_withJavaScriptBridge_shouldEnableJavascriptAndLogSuccess() {
+        startSdk(webViewConfiguration = WebViewConfiguration.javaScriptBridge())
         val spyLogger = spyLogger()
 
         WebViewCapture.instrument(webView, spyLogger)
@@ -100,7 +100,87 @@ class WebViewCaptureTest {
         assertThat(messageCaptor.firstValue()).isEqualTo("WebView bridge script injected successfully")
     }
 
-    private fun startSdk(webViewConfiguration: WebViewConfiguration?) {
+    @Test
+    fun instrument_withJavaScriptBridge_shouldEnableJavascript() {
+        val config = WebViewConfiguration.JavaScriptBridge(
+            capturePageViews = true,
+        )
+        startSdk(webViewConfiguration = config)
+
+        WebViewCapture.instrument(webView)
+
+        assertThat(webView.settings.javaScriptEnabled).isTrue()
+    }
+
+    @Test
+    fun instrument_withNativeOnlyMode_shouldNotEnableJavascript() {
+        val config = WebViewConfiguration.nativeOnly()
+        startSdk(webViewConfiguration = config)
+
+        WebViewCapture.instrument(webView)
+
+        assertThat(webView.settings.javaScriptEnabled).isFalse()
+    }
+
+    @Test
+    fun instrument_withNativeOnlyMode_shouldWrapExistingWebViewClient() {
+        val config = WebViewConfiguration.nativeOnly()
+        startSdk(webViewConfiguration = config)
+
+        WebViewCapture.instrument(webView)
+
+        assertThat(webView.settings.javaScriptEnabled).isFalse()
+    }
+
+    @Test
+    fun instrument_calledTwice_shouldOnlyInstrumentOnce() {
+        val config = WebViewConfiguration.javaScriptBridge()
+        startSdk(webViewConfiguration = config)
+
+        WebViewCapture.instrument(webView)
+        val firstJavaScriptState = webView.settings.javaScriptEnabled
+
+        WebViewCapture.instrument(webView)
+        val secondJavaScriptState = webView.settings.javaScriptEnabled
+
+        assertThat(firstJavaScriptState).isTrue()
+        assertThat(secondJavaScriptState).isTrue()
+    }
+
+    @Test
+    fun javaScriptBridge_factoryMethod_shouldHaveCorrectDefaults() {
+        val config = WebViewConfiguration.javaScriptBridge()
+
+        assertThat(config).isInstanceOf(WebViewConfiguration.JavaScriptBridge::class.java)
+        assertThat(config.capturePageViews).isTrue()
+        assertThat(config.captureNetworkRequests).isTrue()
+        assertThat(config.captureNavigationEvents).isTrue()
+        assertThat(config.captureWebVitals).isTrue()
+        assertThat(config.captureLongTasks).isTrue()
+        assertThat(config.captureConsoleLogs).isTrue()
+        assertThat(config.captureUserInteractions).isTrue()
+        assertThat(config.captureErrors).isTrue()
+    }
+
+    @Test
+    fun nativeOnly_factoryMethod_shouldHaveCorrectDefaults() {
+        val config = WebViewConfiguration.nativeOnly()
+
+        assertThat(config).isInstanceOf(WebViewConfiguration.NativeOnly::class.java)
+        assertThat(config.capturePageViews).isTrue()
+        assertThat(config.captureErrors).isTrue()
+        assertThat(config.captureNavigationEvents).isTrue()
+        assertThat(config.captureResourceLoads).isFalse()
+    }
+
+    @Test
+    fun nativeOnly_defaultConstructor_shouldDefaultToNativeOnlyMode() {
+        val config = WebViewConfiguration.NativeOnly()
+
+        assertThat(config).isInstanceOf(WebViewConfiguration.NativeOnly::class.java)
+    }
+
+    private fun startSdk(webViewConfiguration: WebViewConfiguration? = null) {
         Capture.Logger.start(
             apiKey = "test",
             sessionStrategy = SessionStrategy.Fixed(),
