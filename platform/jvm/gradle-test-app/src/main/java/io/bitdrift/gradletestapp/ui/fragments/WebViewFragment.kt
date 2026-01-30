@@ -7,6 +7,7 @@
 
 package io.bitdrift.gradletestapp.ui.fragments
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -20,6 +21,8 @@ import io.bitdrift.gradletestapp.R
  * See AndroidManifest entry with android:name="android.webkit.WebView.Multiprocess"
  */
 class WebViewFragment : Fragment() {
+
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -27,6 +30,7 @@ class WebViewFragment : Fragment() {
     ): View {
         val view = inflater.inflate(R.layout.fragment_web_view, container, false)
         val webView = view.findViewById<WebView>(R.id.webView)
+        webView.settings.javaScriptEnabled = true
         val url = arguments?.getString(ARG_URL) ?: WEBVIEW_URLS.first().second
         webView.loadUrl(url)
         return view
