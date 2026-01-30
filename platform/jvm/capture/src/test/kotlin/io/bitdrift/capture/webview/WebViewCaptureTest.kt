@@ -10,7 +10,6 @@ package io.bitdrift.capture.webview
 import android.content.Context
 import android.webkit.WebView
 import androidx.test.core.app.ApplicationProvider
-import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.spy
