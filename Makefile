@@ -99,3 +99,7 @@ build-ts:
 .PHONY: test-ts
 test-ts:
 	npm --prefix ./platform/webview run test
+
+.PHONY: install-ts-deps
+install-ts-deps:
+	npm --prefix ./platform/webview ci
