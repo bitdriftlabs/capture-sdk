@@ -20,15 +20,16 @@ function App(): JSX.Element {
     throw new Error('Test error from JSC Sample App');
   };
 
-  // @ts-ignore - HermesInternal is not in types but exists at runtime
-  const isHermes = typeof HermesInternal !== 'undefined';
+  const hermesInternal = (globalThis as {HermesInternal?: unknown})
+    .HermesInternal;
+  const isHermes = typeof hermesInternal !== 'undefined';
   const jsEngine = isHermes ? 'Hermes' : 'JavaScriptCore (JSC)';
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>JSC Sample App</Text>
-        
+
         <View style={styles.infoContainer}>
           <InfoRow label="JS Engine" value={jsEngine} />
           <InfoRow label="React Native" value="0.71.19" />
@@ -36,10 +37,8 @@ function App(): JSX.Element {
           <InfoRow label="Platform" value={Platform.OS} />
           <InfoRow label="Release build" value={__DEV__ ? 'No' : 'Yes'} />
         </View>
-        
-        <TouchableOpacity
-          style={styles.button}
-          onPress={throwError}>
+
+        <TouchableOpacity style={styles.button} onPress={throwError}>
           <Text style={styles.buttonText}>Throw Error</Text>
         </TouchableOpacity>
       </View>
