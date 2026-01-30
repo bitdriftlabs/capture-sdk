@@ -453,14 +453,7 @@ final class WebViewBridgeMessageHandler: NSObject, WKScriptMessageHandler {
             )
         }
         
-        let result: HTTPResponse.HTTPResult
-        if success {
-            result = .success
-        } else if errorMessage != nil || (statusCode != nil && statusCode! >= 400) {
-            result = .failure
-        } else {
-            result = .failure
-        }
+        let result: HTTPResponse.HTTPResult = success ? .success : .failure
         
         let error = errorMessage.map { NSError(domain: "WebView", code: 0, userInfo: [NSLocalizedDescriptionKey: $0]) as Error }
         
@@ -568,8 +561,8 @@ final class WebViewBridgeMessageHandler: NSObject, WKScriptMessageHandler {
         let method = msg.method ?? ""
         
         let fields: Fields = [
-            "_fromUrl": fromUrl,
-            "_toUrl": toUrl,
+            "_from_url": fromUrl,
+            "_to_url": toUrl,
             "_method": method,
             "_source": "webview",
             "_timestamp": String(timestamp),
@@ -732,6 +725,9 @@ final class WebViewBridgeMessageHandler: NSObject, WKScriptMessageHandler {
         }
         if let timeWindowMs = msg.timeWindowMs {
             fields["_time_window_ms"] = String(timeWindowMs)
+        }
+        if let duration = msg.duration {
+            fields["_duration"] = String(duration)
         }
         
         let level: LogLevel = interactionType == "rageClick" ? .warning : .debug

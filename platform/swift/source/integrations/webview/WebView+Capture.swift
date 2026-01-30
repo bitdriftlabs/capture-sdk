@@ -12,8 +12,6 @@ import WebKit
 public enum WebViewInstrumentationError: Error {
     /// The WebView has already been instrumented
     case alreadyInstrumented
-    /// Failed to inject the bridge script
-    case scriptInjectionFailed(Error)
 }
 
 extension WKWebView {
@@ -75,8 +73,6 @@ extension WKWebView {
     ///
     /// - throws: `WebViewInstrumentationError.alreadyInstrumented` if this WebView has already
     ///           been instrumented
-    /// - throws: `WebViewInstrumentationError.scriptInjectionFailed` if the JavaScript
-    ///           injection fails
     public func instrument(
         logger: Logging,
         config: WebViewConfiguration

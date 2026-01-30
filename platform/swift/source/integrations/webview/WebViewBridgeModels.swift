@@ -77,6 +77,7 @@ struct WebViewBridgeMessage: Codable {
     let isClickable: Bool?
     let clickCount: Int?
     let timeWindowMs: Int?
+    let duration: Double?
     
     // customLog
     let fields: [String: AnyCodable]?

@@ -94,6 +94,9 @@ extension WebViewConfiguration {
         
         guard let jsonData = try? JSONSerialization.data(withJSONObject: dict, options: []),
               let jsonString = String(data: jsonData, encoding: .utf8) else {
+            // This should never happen since the dictionary only contains Boolean values
+            // which are always JSON-serializable, but handle the error defensively
+            assertionFailure("Failed to serialize WebViewConfiguration to JSON")
             return "{}"
         }
         
