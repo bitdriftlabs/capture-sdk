@@ -11,9 +11,6 @@ import { safeCall, makeSafe } from './safe-call';
 /** Clickable element tags */
 const CLICKABLE_TAGS = new Set(['a', 'button', 'input', 'select', 'textarea', 'label', 'summary']);
 
-/** Input types that are clickable */
-const CLICKABLE_INPUT_TYPES = new Set(['button', 'submit', 'reset', 'checkbox', 'radio', 'file']);
-
 /** Rage click detection settings */
 const RAGE_CLICK_THRESHOLD = 3; // Number of clicks to trigger rage click
 const RAGE_CLICK_TIME_WINDOW_MS = 1000; // Time window for rage clicks
@@ -82,11 +79,6 @@ const isClickable = (element: Element): boolean => {
 
                 // Check tag name
                 if (CLICKABLE_TAGS.has(tagName)) {
-                    // For inputs, check the type
-                    if (tagName === 'input') {
-                        const type = (current as HTMLInputElement).type.toLowerCase();
-                        return CLICKABLE_INPUT_TYPES.has(type);
-                    }
                     return true;
                 }
 
@@ -200,9 +192,15 @@ const logUserInteraction = (
                 : (element.className as DOMTokenList).toString()
             : undefined;
 
+        // Check if element has data-redacted attribute
+        const hasDataRedacted = element.hasAttribute('data-redacted');
+
         // Get text content, truncated
         let textContent: string | undefined;
-        if (element.textContent) {
+        if (hasDataRedacted) {
+            // If data-redacted attribute is present, use "<redacted>" instead of actual content
+            textContent = '<redacted>';
+        } else if (element.textContent) {
             const text = element.textContent.trim().replace(/\s+/g, ' ');
             textContent = text.length > 50 ? `${text.slice(0, 50)}...` : text || undefined;
         }

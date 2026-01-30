@@ -65,8 +65,6 @@ const kotlinContent = `${licenseHeader}// AUTO-GENERATED FILE - DO NOT EDIT
 
 package io.bitdrift.capture.webview
 
-import org.json.JSONObject
-
 /**
  * Contains the bundled JavaScript SDK for WebView instrumentation.
  * This script is injected into WebViews to capture performance metrics,
@@ -85,20 +83,7 @@ ${escapeForKotlin(beforePlaceholder)}"""
      * @param config The WebView instrumentation configuration
      * @return The complete JavaScript bundle with config injected
      */
-    fun getScript(config: WebViewConfiguration): String {
-        val configJson =
-            JSONObject().apply {
-                put("captureConsoleLogs", config.captureConsoleLogs)
-                put("captureErrors", config.captureErrors)
-                put("captureNetworkRequests", config.captureNetworkRequests)
-                put("captureNavigationEvents", config.captureNavigationEvents)
-                put("capturePageViews", config.capturePageViews)
-                put("captureWebVitals", config.captureWebVitals)
-                put("captureLongTasks", config.captureLongTasks)
-                put("captureUserInteractions", config.captureUserInteractions)
-            }
-        return SCRIPT_PREFIX + configJson.toString() + SCRIPT_SUFFIX
-    }
+    fun getScript(config: WebViewConfiguration): String = SCRIPT_PREFIX + config.toJson() + SCRIPT_SUFFIX
 }
 `;
 

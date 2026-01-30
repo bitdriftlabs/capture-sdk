@@ -136,6 +136,90 @@ describe('user interactions', () => {
             expect(lastMsg.tagName).toBe('a');
             expect(lastMsg.isClickable).toBe(true);
         });
+
+        it('should redact textContent when data-redacted attribute is present', async () => {
+            const collector = createMessageCollector();
+            const { initUserInteractionMonitoring } = await import('../user-interactions');
+
+            document.body.innerHTML = '<button id="redacted-btn" data-redacted>Sensitive Information</button>';
+            const button = document.getElementById('redacted-btn');
+
+            expect(button).not.toBeNull();
+
+            initUserInteractionMonitoring();
+            collector.clear();
+
+            simulatePointerEvent(button as HTMLButtonElement, 'pointerdown');
+
+            const messages = collector.getMessagesByType('userInteraction');
+            expect(messages.length).toBeGreaterThanOrEqual(1);
+            const lastMsg = messages[messages.length - 1];
+            expect(lastMsg.textContent).toBe('<redacted>');
+            expect(lastMsg.tagName).toBe('button');
+            expect(lastMsg.elementId).toBe('redacted-btn');
+        });
+
+        it('should not redact textContent when data-redacted attribute is absent', async () => {
+            const collector = createMessageCollector();
+            const { initUserInteractionMonitoring } = await import('../user-interactions');
+
+            document.body.innerHTML = '<button id="normal-btn">Normal Button Text</button>';
+            const button = document.getElementById('normal-btn');
+
+            expect(button).not.toBeNull();
+
+            initUserInteractionMonitoring();
+            collector.clear();
+
+            simulatePointerEvent(button as HTMLButtonElement, 'pointerdown');
+
+            const messages = collector.getMessagesByType('userInteraction');
+            expect(messages.length).toBeGreaterThanOrEqual(1);
+            const lastMsg = messages[messages.length - 1];
+            expect(lastMsg.textContent).toBe('Normal Button Text');
+            expect(lastMsg.tagName).toBe('button');
+        });
+
+        it('should redact textContent for empty data-redacted attribute', async () => {
+            const collector = createMessageCollector();
+            const { initUserInteractionMonitoring } = await import('../user-interactions');
+
+            document.body.innerHTML = '<button id="empty-redacted" data-redacted="">Secret Data</button>';
+            const button = document.getElementById('empty-redacted');
+
+            expect(button).not.toBeNull();
+
+            initUserInteractionMonitoring();
+            collector.clear();
+
+            simulatePointerEvent(button as HTMLButtonElement, 'pointerdown');
+
+            const messages = collector.getMessagesByType('userInteraction');
+            expect(messages.length).toBeGreaterThanOrEqual(1);
+            const lastMsg = messages[messages.length - 1];
+            expect(lastMsg.textContent).toBe('<redacted>');
+        });
+
+        it('should redact textContent for links with data-redacted', async () => {
+            const collector = createMessageCollector();
+            const { initUserInteractionMonitoring } = await import('../user-interactions');
+
+            document.body.innerHTML = '<a href="/test" id="redacted-link" data-redacted>Secret Link Text</a>';
+            const link = document.getElementById('redacted-link');
+
+            expect(link).not.toBeNull();
+
+            initUserInteractionMonitoring();
+            collector.clear();
+
+            simulatePointerEvent(link as HTMLAnchorElement, 'pointerdown');
+
+            const messages = collector.getMessagesByType('userInteraction');
+            expect(messages.length).toBeGreaterThanOrEqual(1);
+            const lastMsg = messages[messages.length - 1];
+            expect(lastMsg.textContent).toBe('<redacted>');
+            expect(lastMsg.tagName).toBe('a');
+        });
     });
 
     describe('rage click detection', () => {
@@ -163,6 +247,36 @@ describe('user interactions', () => {
             const messages = collector.getMessagesByType('userInteraction');
             const rageClick = messages.find((m) => m.interactionType === 'rageClick');
             expect(rageClick).toBeDefined();
+            expect(rageClick?.clickCount).toBeGreaterThanOrEqual(3);
+
+            vi.useRealTimers();
+        });
+
+        it('should redact textContent for rage clicks on elements with data-redacted', async () => {
+            vi.useFakeTimers();
+            const collector = createMessageCollector();
+            const { initUserInteractionMonitoring } = await import('../user-interactions');
+
+            document.body.innerHTML = '<div id="redacted-frustrating" data-redacted>Secret Content</div>';
+            const div = document.getElementById('redacted-frustrating');
+
+            initUserInteractionMonitoring();
+            collector.clear();
+
+            expect(div).not.toBeNull();
+
+            // Simulate 3+ rapid clicks in close proximity
+            for (let i = 0; i < 4; i++) {
+                simulatePointerEvent(div as HTMLDivElement, 'pointerdown', { clientX: 100, clientY: 100 });
+            }
+
+            // Wait for debounce
+            vi.advanceTimersByTime(600);
+
+            const messages = collector.getMessagesByType('userInteraction');
+            const rageClick = messages.find((m) => m.interactionType === 'rageClick');
+            expect(rageClick).toBeDefined();
+            expect(rageClick?.textContent).toBe('<redacted>');
             expect(rageClick?.clickCount).toBeGreaterThanOrEqual(3);
 
             vi.useRealTimers();

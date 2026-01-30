@@ -138,12 +138,23 @@
             },
         };
 
+        // Check for SDK integration
+        const isSdkConfigured = () => window.bitdrift?.config;
+
         // App template
         const App = () => html`
             <header class="bg-indigo-600 text-white rounded-lg p-4 shadow-md">
                 <h1 class="text-xl font-bold">Bitdrift SDK Test Page</h1>
                 <p class="text-indigo-200 text-sm mt-1">Trigger instrumentation events and observe in logcat</p>
             </header>
+
+            ${!isSdkConfigured() ? html`
+                <div class="bg-yellow-900 border border-yellow-600 rounded-lg p-4 shadow-md">
+                    <h2 class="text-lg font-semibold text-yellow-200 mb-2">⚠️ SDK Not Configured</h2>
+                    <p class="text-sm text-yellow-300">The Bitdrift SDK WebView integration is not configured. <code class="bg-yellow-800 px-1 rounded">window.bitdrift.config</code> was not found.</p>
+                    <p class="text-sm text-yellow-400 mt-2">Please ensure the WebView is set up with the Bitdrift SDK's WebView integration to capture events.</p>
+                </div>
+            ` : ''}
 
             ${card('🎯', 'Web Vitals', 'LCP, CLS, INP, FCP, TTFB are automatically captured on page load.', html`
                 <div class="space-y-2">
@@ -209,6 +220,14 @@
                         <input type="checkbox" class="w-5 h-5" /><span class="text-gray-200">Checkbox</span>
                     </label>
                     <div role="button" tabindex="0" class="text-center bg-indigo-600 hover:bg-indigo-500 text-indigo-100 py-2 px-4 rounded cursor-pointer transition">role="button"</div>
+                </div>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-400 mb-2">Redacted Content Test (should be masked in logs):</p>
+                    <div class="bg-gray-700 rounded p-3 space-y-2">
+                        <input data-redacted type="text" value="john.doe@example.com" placeholder="Email" class="w-full bg-gray-600 text-gray-200 text-sm px-3 py-2 rounded" />
+                        <input data-redacted type="password" value="MySecretPass123" placeholder="Password" class="w-full bg-gray-600 text-gray-200 text-sm px-3 py-2 rounded" />
+                        <input data-redacted type="tel" value="(555) 123-4567" placeholder="Phone" class="w-full bg-gray-600 text-gray-200 text-sm px-3 py-2 rounded" />
+                    </div>
                 </div>
                 <div class="mt-4">
                     <p class="text-sm text-gray-400 mb-2">Rage Click Target (click rapidly 3+ times):</p>
