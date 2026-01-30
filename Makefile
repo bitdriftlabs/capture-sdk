@@ -86,6 +86,10 @@ init-local-bazelrc:
 		echo ".bazelrc.local already exists. Skipping creation."; \
 	fi
 
+.PHONY: install-ts-deps
+install-ts-deps:
+	npm --prefix ./platform/webview install
+
 .PHONY: fix-ts
 fix-ts:
 	npm --prefix ./platform/webview run lint:fix

@@ -1,0 +1,49 @@
+name: check_generated_js
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+# Cancel in-progress CI jobs when a new commit is pushed to a PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  check_generated_js:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout repo to Github Actions runner
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'platform/webview/.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: 'platform/webview/package-lock.json'
+
+      # Install TypeScript dependencies
+      - name: Install TS dependencies
+        run: make install-ts-deps
+
+      # Build TypeScript and generate files
+      - name: Build TS
+        run: make build-ts
+
+      # Check for uncommitted changes
+      - name: Check for uncommitted changes
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "Error: Generated files have uncommitted changes."
+            echo "Please run 'make install-ts-deps && make build-ts' and commit the changes."
+            echo ""
+            echo "Changed files:"
+            git status --porcelain
+            echo ""
+            echo "Diff:"
+            git --no-pager diff
+            exit 1
+          fi
+          echo "No uncommitted changes detected. All generated files are up to date."
