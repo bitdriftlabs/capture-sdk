@@ -136,6 +136,78 @@ describe('user interactions', () => {
             expect(lastMsg.tagName).toBe('a');
             expect(lastMsg.isClickable).toBe(true);
         });
+
+        it('should redact text content when data-redacted attribute is present', async () => {
+            const collector = createMessageCollector();
+            const { initUserInteractionMonitoring } = await import('../user-interactions');
+
+            document.body.innerHTML = '<button id="redacted-btn" data-redacted>Sensitive Info</button>';
+            const button = document.getElementById('redacted-btn');
+
+            expect(button).not.toBeNull();
+
+            initUserInteractionMonitoring();
+            collector.clear();
+
+            simulatePointerEvent(button as HTMLButtonElement, 'pointerdown');
+
+            const messages = collector.getMessagesByType('userInteraction');
+            expect(messages.length).toBeGreaterThanOrEqual(1);
+            const lastMsg = messages[messages.length - 1];
+            expect(lastMsg.textContent).toBe('<redacted>');
+            expect(lastMsg.tagName).toBe('button');
+            expect(lastMsg.elementId).toBe('redacted-btn');
+        });
+
+        it('should not redact text content when data-redacted attribute is not present', async () => {
+            const collector = createMessageCollector();
+            const { initUserInteractionMonitoring } = await import('../user-interactions');
+
+            document.body.innerHTML = '<button id="normal-btn">Public Info</button>';
+            const button = document.getElementById('normal-btn');
+
+            expect(button).not.toBeNull();
+
+            initUserInteractionMonitoring();
+            collector.clear();
+
+            simulatePointerEvent(button as HTMLButtonElement, 'pointerdown');
+
+            const messages = collector.getMessagesByType('userInteraction');
+            expect(messages.length).toBeGreaterThanOrEqual(1);
+            const lastMsg = messages[messages.length - 1];
+            expect(lastMsg.textContent).toBe('Public Info');
+            expect(lastMsg.tagName).toBe('button');
+        });
+
+        it('should redact text content on non-clickable elements with data-redacted', async () => {
+            vi.useFakeTimers();
+            const collector = createMessageCollector();
+            const { initUserInteractionMonitoring } = await import('../user-interactions');
+
+            document.body.innerHTML = '<div id="redacted-div" data-redacted>Secret Content</div>';
+            const div = document.getElementById('redacted-div');
+
+            initUserInteractionMonitoring();
+            collector.clear();
+
+            expect(div).not.toBeNull();
+
+            // Simulate rage clicks to trigger capture on non-clickable element
+            for (let i = 0; i < 4; i++) {
+                simulatePointerEvent(div as HTMLDivElement, 'pointerdown', { clientX: 100, clientY: 100 });
+            }
+
+            // Wait for debounce
+            vi.advanceTimersByTime(600);
+
+            const messages = collector.getMessagesByType('userInteraction');
+            const rageClick = messages.find((m) => m.interactionType === 'rageClick');
+            expect(rageClick).toBeDefined();
+            expect(rageClick?.textContent).toBe('<redacted>');
+
+            vi.useRealTimers();
+        });
     });
 
     describe('rage click detection', () => {

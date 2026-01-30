@@ -202,7 +202,11 @@ const logUserInteraction = (
 
         // Get text content, truncated
         let textContent: string | undefined;
-        if (element.textContent) {
+        // Check if element has data-redacted attribute
+        const hasRedactedAttribute = element.hasAttribute('data-redacted');
+        if (hasRedactedAttribute) {
+            textContent = '<redacted>';
+        } else if (element.textContent) {
             const text = element.textContent.trim().replace(/\s+/g, ' ');
             textContent = text.length > 50 ? `${text.slice(0, 50)}...` : text || undefined;
         }
