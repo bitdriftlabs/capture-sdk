@@ -94,14 +94,12 @@ internal object WebViewCapture {
             return
         }
 
-        val notSupportedReason = getNotSupportedReason()
+        val notSupportedReason = getNotSupportedReason(webview)
         if (notSupportedReason != null) {
             effectiveLogger.logInstrumentationNotInitialized(notSupportedReason)
             return
         }
-
-        webview.settings.javaScriptEnabled = true
-
+        
         val bridgeHandler = WebViewBridgeMessageHandler(loggerImpl)
         webview.addJavascriptInterface(bridgeHandler, BRIDGE_NAME)
 
@@ -131,14 +129,17 @@ internal object WebViewCapture {
         }
     }
 
-    private fun getNotSupportedReason(): String? =
+    private fun getNotSupportedReason(webview: WebView): String? =
         if (!isWebkitAvailable()) {
             "androidx.webkit not available"
         } else if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
             "WebViewFeature.DOCUMENT_START_SCRIPT not supported"
         } else if (!WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_CLIENT)) {
             "WebViewFeature.GET_WEB_VIEW_CLIENT not supported"
-        } else {
+        } else if (!webview.settings.javaScriptEnabled){
+            "webview.settings.javaScriptEnabled is set to false"
+        }
+        else {
             null
         }
 
