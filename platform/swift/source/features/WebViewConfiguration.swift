@@ -25,28 +25,28 @@ import Foundation
 public struct WebViewConfiguration {
     /// Whether to capture page view tracking events. Defaults to false.
     public var capturePageViews: Bool
-    
+
     /// Whether to capture network requests made from the WebView. Defaults to false.
     public var captureNetworkRequests: Bool
-    
+
     /// Whether to capture navigation events. Defaults to false.
     public var captureNavigationEvents: Bool
-    
+
     /// Whether to capture Core Web Vitals (LCP, FCP, CLS, INP, TTFB). Defaults to false.
     public var captureWebVitals: Bool
-    
+
     /// Whether to capture long tasks that block the main thread. Defaults to false.
     public var captureLongTasks: Bool
-    
+
     /// Whether to capture JavaScript console.log/warn/error messages. Defaults to false.
     public var captureConsoleLogs: Bool
-    
+
     /// Whether to capture user interactions (clicks, rage clicks, etc.). Defaults to false.
     public var captureUserInteractions: Bool
-    
+
     /// Whether to capture JavaScript errors, promise rejections, and resource errors. Defaults to false.
     public var captureErrors: Bool
-    
+
     /// Initializes a new instance of the WebView configuration.
     ///
     /// - parameter capturePageViews:         Whether to capture page view tracking events. Defaults to false.
@@ -89,9 +89,9 @@ extension WebViewConfiguration {
             "captureLongTasks": captureLongTasks,
             "captureConsoleLogs": captureConsoleLogs,
             "captureUserInteractions": captureUserInteractions,
-            "captureErrors": captureErrors
+            "captureErrors": captureErrors,
         ]
-        
+
         guard let jsonData = try? JSONSerialization.data(withJSONObject: dict, options: []),
               let jsonString = String(data: jsonData, encoding: .utf8) else {
             // This should never happen since the dictionary only contains Boolean values
@@ -99,7 +99,7 @@ extension WebViewConfiguration {
             assertionFailure("Failed to serialize WebViewConfiguration to JSON")
             return "{}"
         }
-        
+
         return jsonString
     }
 }

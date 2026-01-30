@@ -17,10 +17,10 @@ public enum WebViewInstrumentationError: Error {
 extension WKWebView {
     /// Key used to track whether this WebView has been instrumented
     private static var instrumentedKey: UInt8 = 0
-    
+
     /// Key used to store the message handler
     private static var messageHandlerKey: UInt8 = 0
-    
+
     /// Indicates whether this WebView has been instrumented with Capture SDK
     private var isInstrumented: Bool {
         get {
@@ -35,7 +35,7 @@ extension WKWebView {
             )
         }
     }
-    
+
     /// Stores the message handler to keep it alive
     private var messageHandler: WebViewBridgeMessageHandler? {
         get {
@@ -50,7 +50,7 @@ extension WKWebView {
             )
         }
     }
-    
+
     /// Instruments this WKWebView to capture performance metrics, network requests,
     /// and user interactions through the Capture SDK.
     ///
@@ -81,30 +81,30 @@ extension WKWebView {
         guard !self.isInstrumented else {
             throw WebViewInstrumentationError.alreadyInstrumented
         }
-        
+
         // Create and store the message handler
         let handler = WebViewBridgeMessageHandler(logger: logger)
         self.messageHandler = handler
-        
+
         // Add the script message handler to receive messages from JavaScript
         self.configuration.userContentController.add(handler, name: "BitdriftLogger")
-        
+
         // Generate the JavaScript bridge script with the provided configuration
         let script = WebViewBridgeScript.getScript(config: config)
-        
+
         // Create a user script that runs at document start
         let userScript = WKUserScript(
             source: script,
             injectionTime: .atDocumentStart,
             forMainFrameOnly: false
         )
-        
+
         // Add the script to the user content controller
         self.configuration.userContentController.addUserScript(userScript)
-        
+
         // Mark as instrumented
         self.isInstrumented = true
-        
+
         logger.log(
             level: .debug,
             message: "WebView instrumented successfully",

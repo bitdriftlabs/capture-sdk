@@ -28,7 +28,7 @@ enum WebViewBridgeScript {
 })();
 
 """
-    
+
     /// Generates the JavaScript bundle with the provided configuration.
     ///
     /// - parameter config: The WebView instrumentation configuration

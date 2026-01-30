@@ -14,15 +14,15 @@ struct WebViewBridgeMessage: Codable {
     let tag: String?
     let type: String?
     let timestamp: Int64?
-    
+
     // bridgeReady
     let url: String?
     let instrumentationConfig: [String: AnyCodable]?
-    
+
     // webVital
     let metric: WebVitalMetric?
     let parentSpanId: String?
-    
+
     // networkRequest
     let method: String?
     let statusCode: Int?
@@ -31,21 +31,21 @@ struct WebViewBridgeMessage: Codable {
     let error: String?
     let requestType: String?
     let timing: NetworkTiming?
-    
+
     // navigation
     let fromUrl: String?
     let toUrl: String?
-    
+
     // pageView
     let action: String?
     let spanId: String?
     let reason: String?
-    
+
     // lifecycle
     let event: String?
     let performanceTime: Double?
     let visibilityState: String?
-    
+
     // error
     let name: String?
     let message: String?
@@ -53,21 +53,21 @@ struct WebViewBridgeMessage: Codable {
     let filename: String?
     let lineno: Int?
     let colno: Int?
-    
+
     // longTask
     let startTime: Double?
     let attribution: LongTaskAttribution?
-    
+
     // resourceError
     let resourceType: String?
     let tagName: String?
-    
+
     // console
     let level: String?
     let args: [String]?
-    
+
     // promiseRejection uses 'reason' from pageView section
-    
+
     // userInteraction
     let interactionType: String?
     let elementId: String?
@@ -77,7 +77,7 @@ struct WebViewBridgeMessage: Codable {
     let clickCount: Int?
     let timeWindowMs: Int?
     let duration: Double?
-    
+
     // customLog
     let fields: [String: AnyCodable]?
 }
@@ -99,17 +99,17 @@ struct WebVitalEntry: Codable {
     // Common fields
     let startTime: Double?
     let entryType: String?
-    
+
     // LCP-specific
     let element: String?
     let url: String?
     let size: Int64?
     let renderTime: Double?
     let loadTime: Double?
-    
+
     // FCP-specific
     let name: String?
-    
+
     // TTFB-specific (PerformanceNavigationTiming)
     let domainLookupStart: Double?
     let domainLookupEnd: Double?
@@ -118,13 +118,13 @@ struct WebVitalEntry: Codable {
     let secureConnectionStart: Double?
     let requestStart: Double?
     let responseStart: Double?
-    
+
     // INP-specific
     let processingStart: Double?
     let processingEnd: Double?
     let duration: Double?
     let interactionId: Int64?
-    
+
     // CLS-specific
     let value: Double?
 }
@@ -150,14 +150,14 @@ struct LongTaskAttribution: Codable {
 /// A type-erased wrapper for arbitrary Codable values
 struct AnyCodable: Codable {
     let value: Any
-    
+
     init(_ value: Any) {
         self.value = value
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        
+
         if container.decodeNil() {
             value = NSNull()
         } else if let bool = try? container.decode(Bool.self) {
@@ -179,10 +179,10 @@ struct AnyCodable: Codable {
             )
         }
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        
+
         switch value {
         case is NSNull:
             try container.encodeNil()
