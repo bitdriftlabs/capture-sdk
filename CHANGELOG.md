@@ -25,7 +25,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Added support for honoring `data-redacted` attributes on elements included in WebView user interaction events.
 
 **Fixed**
 
