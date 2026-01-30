@@ -65,8 +65,6 @@ const kotlinContent = `${licenseHeader}// AUTO-GENERATED FILE - DO NOT EDIT
 
 package io.bitdrift.capture.webview
 
-import org.json.JSONObject
-
 /**
  * Contains the bundled JavaScript SDK for WebView instrumentation.
  * This script is injected into WebViews to capture performance metrics,
