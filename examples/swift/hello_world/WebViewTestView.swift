@@ -61,19 +61,32 @@ struct WebView: UIViewRepresentable {
         )
         
         do {
-            try webView.instrument(logger: Logger.shared, config: webViewConfig)
+            guard let logger = Logger.shared else {
+                print("❌ Logger not initialized")
+                return webView
+            }
+            try webView.instrument(logger: logger, config: webViewConfig)
             print("✅ WebView instrumented successfully")
         } catch {
             print("❌ Failed to instrument WebView: \(error)")
         }
         
         // Load the test HTML file
-        if let htmlPath = Bundle.main.path(forResource: "index", ofType: "html", inDirectory: "assets"),
+        // Try with assets directory first, then fall back to root bundle (Bazel may flatten resources)
+        let htmlPath = Bundle.main.path(forResource: "index", ofType: "html", inDirectory: "assets")
+            ?? Bundle.main.path(forResource: "index", ofType: "html")
+        
+        if let htmlPath = htmlPath,
            let htmlString = try? String(contentsOfFile: htmlPath, encoding: .utf8) {
             let baseURL = URL(fileURLWithPath: htmlPath).deletingLastPathComponent()
             webView.loadHTMLString(htmlString, baseURL: baseURL)
         } else {
             print("❌ Failed to load index.html from assets")
+            // Debug: List bundle contents
+            if let resourcePath = Bundle.main.resourcePath {
+                let contents = try? FileManager.default.contentsOfDirectory(atPath: resourcePath)
+                print("📁 Bundle contents: \(contents ?? [])")
+            }
         }
         
         return webView

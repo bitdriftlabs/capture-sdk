@@ -96,7 +96,7 @@ final class WebViewBridgeMessageHandler: NSObject, WKScriptMessageHandler {
     private func handleInternalAutoInstrumentation(_ msg: WebViewBridgeMessage, timestamp: Int64) {
         guard let event = msg.event else { return }
         
-        var fields: Fields = [
+        let fields: Fields = [
             "_event": event,
             "_source": "webview",
             "_timestamp": String(timestamp),
@@ -388,7 +388,7 @@ final class WebViewBridgeMessageHandler: NSObject, WKScriptMessageHandler {
         let endTimeInterval = TimeInterval(timestamp) / 1000.0
         
         let result: SpanResult
-        switch fields["_rating"] {
+        switch fields["_rating"] as? String {
         case "good":
             result = .success
         case "needs-improvement", "poor":
@@ -402,6 +402,9 @@ final class WebViewBridgeMessageHandler: NSObject, WKScriptMessageHandler {
         let span = self.logger.startSpan(
             name: "webview.webVital",
             level: level,
+            file: nil,
+            line: nil,
+            function: nil,
             fields: fields,
             startTimeInterval: startTimeInterval,
             parentSpanID: parentUuid
@@ -425,7 +428,7 @@ final class WebViewBridgeMessageHandler: NSObject, WKScriptMessageHandler {
         let path = uri?.path
         let query = uri?.query
         
-        var extraFields: Fields = [
+        let extraFields: Fields = [
             "_source": "webview",
             "_request_type": requestType,
             "_timestamp": String(timestamp),
@@ -434,7 +437,7 @@ final class WebViewBridgeMessageHandler: NSObject, WKScriptMessageHandler {
         let requestInfo = HTTPRequestInfo(
             method: method,
             host: host,
-            path: path.map { HTTPURLPath($0) },
+            path: path.map { HTTPURLPath(value: $0) },
             query: query,
             extraFields: extraFields
         )
@@ -446,10 +449,10 @@ final class WebViewBridgeMessageHandler: NSObject, WKScriptMessageHandler {
                 responseBodyBytesReceivedCount: timing.transferSize ?? 0,
                 requestHeadersBytesCount: 0,
                 responseHeadersBytesCount: 0,
-                dnsResolutionDurationMs: timing.dnsMs,
-                tlsDurationMs: timing.tlsMs,
-                tcpDurationMs: timing.connectMs,
-                responseLatencyMs: timing.ttfbMs
+                dnsResolutionDuration: timing.dnsMs.map { TimeInterval($0) / 1000.0 },
+                tlsDuration: timing.tlsMs.map { TimeInterval($0) / 1000.0 },
+                tcpDuration: timing.connectMs.map { TimeInterval($0) / 1000.0 },
+                responseLatency: timing.ttfbMs.map { TimeInterval($0) / 1000.0 }
             )
         }
         
@@ -501,6 +504,9 @@ final class WebViewBridgeMessageHandler: NSObject, WKScriptMessageHandler {
             let span = self.logger.startSpan(
                 name: "webview.pageView",
                 level: .debug,
+                file: nil,
+                line: nil,
+                function: nil,
                 fields: fields,
                 startTimeInterval: startTime,
                 parentSpanID: nil

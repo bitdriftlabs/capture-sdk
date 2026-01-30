@@ -66,8 +66,7 @@ struct WebViewBridgeMessage: Codable {
     let level: String?
     let args: [String]?
     
-    // promiseRejection
-    let reason: String?
+    // promiseRejection uses 'reason' from pageView section
     
     // userInteraction
     let interactionType: String?
