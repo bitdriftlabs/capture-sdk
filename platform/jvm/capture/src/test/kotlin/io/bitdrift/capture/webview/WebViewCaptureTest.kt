@@ -61,33 +61,13 @@ class WebViewCaptureTest {
     }
 
     @Test
-    fun instrument_withSdkStartedButNoWebViewConfiguration_shouldLogNotInitialized() {
-        startSdk(webViewConfiguration = null)
-        val spyLogger = spyLogger()
-
-        WebViewCapture.instrument(webView, spyLogger)
-
-        assertThat(webView.settings.javaScriptEnabled).isFalse()
-        verify(spyLogger).log(
-            eq(LogLevel.WARNING),
-            fieldsCaptor.capture(),
-            eq(null),
-            messageCaptor.capture(),
-        )
-        val fields = fieldsCaptor.firstValue.toStringMap()
-        assertThat(fields["reason"]).isEqualTo("WebViewConfiguration not provided")
-        assertThat(fields["_source"]).isEqualTo("webview")
-        assertThat(messageCaptor.firstValue()).isEqualTo("webview.notInitialized")
-    }
-
-    @Test
-    fun instrument_withValidWebViewConfiguration_shouldEnableJavascriptAndLogSuccess() {
+    fun instrument_withValidWebViewConfigurationAndJsEnabled_shouldLogSuccess() {
         startSdk(webViewConfiguration = WebViewConfiguration())
         val spyLogger = spyLogger()
+        webView.settings.javaScriptEnabled = true
 
         WebViewCapture.instrument(webView, spyLogger)
 
-        assertThat(webView.settings.javaScriptEnabled).isTrue()
         verify(spyLogger).logInternal(
             eq(LogType.INTERNALSDK),
             eq(LogLevel.DEBUG),
@@ -100,6 +80,28 @@ class WebViewCaptureTest {
         assertThat(messageCaptor.firstValue()).isEqualTo("WebView bridge script injected successfully")
     }
 
+    @Test
+    fun instrument_withSdkStartedButNoWebViewConfiguration_shouldLogNotInitialized() {
+        startSdk(webViewConfiguration = null)
+        val spyLogger = spyLogger()
+
+        WebViewCapture.instrument(webView, spyLogger)
+
+        assertNotInitializedMessage(spyLogger, "WebViewConfiguration not provided")
+    }
+
+    @Test
+    fun instrument_withValidWebViewConfigurationAndJsDisabled_shouldLogNotInitMessage() {
+        startSdk(webViewConfiguration = WebViewConfiguration())
+        val spyLogger = spyLogger()
+        webView.settings.javaScriptEnabled = false
+
+        WebViewCapture.instrument(webView, spyLogger)
+
+        assertThat(webView.settings.javaScriptEnabled).isFalse()
+        assertNotInitializedMessage(spyLogger, "webview.settings.javaScriptEnabled is set to false")
+    }
+
     private fun startSdk(webViewConfiguration: WebViewConfiguration?) {
         Capture.Logger.start(
             apiKey = "test",
@@ -108,6 +110,19 @@ class WebViewCaptureTest {
             dateProvider = SystemDateProvider(),
             context = appContext,
         )
+    }
+
+    private fun assertNotInitializedMessage(spyLogger: LoggerImpl, reason: String) {
+        verify(spyLogger).log(
+            eq(LogLevel.WARNING),
+            fieldsCaptor.capture(),
+            eq(null),
+            messageCaptor.capture(),
+        )
+        val fields = fieldsCaptor.firstValue.toStringMap()
+        assertThat(fields["reason"]).isEqualTo(reason)
+        assertThat(fields["_source"]).isEqualTo("webview")
+        assertThat(messageCaptor.firstValue()).isEqualTo("webview.notInitialized")
     }
 
     private fun spyLogger(): LoggerImpl {
