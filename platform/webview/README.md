@@ -12,7 +12,7 @@ The WebView SDK uses a JavaScript bridge to communicate between web content and 
 graph TB
     subgraph "WebView (JavaScript Context)"
         JS[Web Content]
-        Bridge[Bitdrift JS Bridge<br/>(function(){ /* bitdrift script */})()]
+        Bridge["Bitdrift JS Bridge<br/>(function() { ... })()"]
         JS -->|Events/Metrics| Bridge
     end
     
