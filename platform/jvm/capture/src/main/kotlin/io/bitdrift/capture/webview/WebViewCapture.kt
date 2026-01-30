@@ -99,7 +99,7 @@ internal object WebViewCapture {
             effectiveLogger.logInstrumentationNotInitialized(notSupportedReason)
             return
         }
-        
+
         val bridgeHandler = WebViewBridgeMessageHandler(loggerImpl)
         webview.addJavascriptInterface(bridgeHandler, BRIDGE_NAME)
 
@@ -136,10 +136,9 @@ internal object WebViewCapture {
             "WebViewFeature.DOCUMENT_START_SCRIPT not supported"
         } else if (!WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_CLIENT)) {
             "WebViewFeature.GET_WEB_VIEW_CLIENT not supported"
-        } else if (!webview.settings.javaScriptEnabled){
+        } else if (!webview.settings.javaScriptEnabled) {
             "webview.settings.javaScriptEnabled is set to false"
-        }
-        else {
+        } else {
             null
         }
 
