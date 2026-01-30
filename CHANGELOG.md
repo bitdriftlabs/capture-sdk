@@ -36,7 +36,7 @@
 
 **Added**
 
-- Nothing yet!
+- WebView instrumentation support with `WKWebView.instrument(logger:config:)` method to capture Core Web Vitals (LCP, FCP, CLS, INP, TTFB), network requests, page views, lifecycle events, JavaScript errors, console logs, long tasks, and user interactions from web content.
 
 **Changed**
 
