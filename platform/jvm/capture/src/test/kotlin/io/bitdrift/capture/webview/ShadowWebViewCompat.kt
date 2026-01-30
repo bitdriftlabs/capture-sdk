@@ -8,6 +8,7 @@
 package io.bitdrift.capture.webview
 
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.webkit.WebViewCompat
 import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
@@ -23,4 +24,10 @@ object ShadowWebViewCompat {
     ) {
         // no-op
     }
+
+    @Implementation
+    @JvmStatic
+    fun getWebViewClient(
+        @Suppress("UNUSED_PARAMETER") webView: WebView,
+    ): WebViewClient? = null
 }
