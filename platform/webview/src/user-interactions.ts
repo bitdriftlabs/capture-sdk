@@ -11,9 +11,6 @@ import { safeCall, makeSafe } from './safe-call';
 /** Clickable element tags */
 const CLICKABLE_TAGS = new Set(['a', 'button', 'input', 'select', 'textarea', 'label', 'summary']);
 
-/** Input types that are clickable */
-const CLICKABLE_INPUT_TYPES = new Set(['button', 'submit', 'reset', 'checkbox', 'radio', 'file']);
-
 /** Rage click detection settings */
 const RAGE_CLICK_THRESHOLD = 3; // Number of clicks to trigger rage click
 const RAGE_CLICK_TIME_WINDOW_MS = 1000; // Time window for rage clicks
@@ -82,11 +79,6 @@ const isClickable = (element: Element): boolean => {
 
                 // Check tag name
                 if (CLICKABLE_TAGS.has(tagName)) {
-                    // For inputs, check the type
-                    if (tagName === 'input') {
-                        const type = (current as HTMLInputElement).type.toLowerCase();
-                        return CLICKABLE_INPUT_TYPES.has(type);
-                    }
                     return true;
                 }
 

@@ -211,6 +211,14 @@
                     <div role="button" tabindex="0" class="text-center bg-indigo-600 hover:bg-indigo-500 text-indigo-100 py-2 px-4 rounded cursor-pointer transition">role="button"</div>
                 </div>
                 <div class="mt-4">
+                    <p class="text-sm text-gray-400 mb-2">Redacted Content Test (should be masked in logs):</p>
+                    <div class="bg-gray-700 rounded p-3 space-y-2">
+                        <input data-redacted type="text" value="john.doe@example.com" placeholder="Email" class="w-full bg-gray-600 text-gray-200 text-sm px-3 py-2 rounded" />
+                        <input data-redacted type="password" value="MySecretPass123" placeholder="Password" class="w-full bg-gray-600 text-gray-200 text-sm px-3 py-2 rounded" />
+                        <input data-redacted type="tel" value="(555) 123-4567" placeholder="Phone" class="w-full bg-gray-600 text-gray-200 text-sm px-3 py-2 rounded" />
+                    </div>
+                </div>
+                <div class="mt-4">
                     <p class="text-sm text-gray-400 mb-2">Rage Click Target (click rapidly 3+ times):</p>
                     <div @click=${actions.rageFlash} class="bg-red-900 border-2 border-dashed border-red-600 rounded p-8 text-center text-red-300 select-none cursor-pointer">Click here rapidly!</div>
                 </div>
