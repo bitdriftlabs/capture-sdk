@@ -96,8 +96,9 @@ class WebViewCaptureTest {
             eq(ArrayFields.EMPTY),
             eq(null),
             eq(false),
-            any(),
+            messageCaptor.capture(),
         )
+        assertThat(messageCaptor.firstValue()).isEqualTo("WebView bridge script injected successfully")
     }
 
     private fun startSdk(webViewConfiguration: WebViewConfiguration?) {
