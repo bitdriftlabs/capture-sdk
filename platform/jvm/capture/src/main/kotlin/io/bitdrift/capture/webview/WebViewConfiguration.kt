@@ -1,3 +1,4 @@
+@file:Suppress("UndocumentedPublicClass")
 // capture-sdk - bitdrift's client SDK
 // Copyright Bitdrift, Inc. All rights reserved.
 //
@@ -12,40 +13,86 @@ import io.bitdrift.capture.providers.fieldsOf
 import org.json.JSONObject
 
 /**
- * Configuration for WebView instrumentation.
- *
- * **Note:** In order for this configuration to take effect, the `io.bitdrift.capture-plugin`
- * Gradle plugin must be applied to your project with `automaticWebViewInstrumentation` set to `true`.
- * Without the plugin, this configuration has no effect.
- *
- * When provided to [io.bitdrift.capture.Configuration], enables automatic WebView monitoring including
- * Core Web Vitals, page load events, and network activity capture.
- *
- * If `null` is passed to [io.bitdrift.capture.Configuration.webViewConfiguration], WebView monitoring
- * is disabled and any bytecode instrumentation injected by the Gradle plugin will be
- * short-circuited (no-op).
- *
- * @param capturePageViews Whether to capture page view tracking events. Defaults to false.
- * @param captureNetworkRequests Whether to capture network requests made from the WebView. Defaults to false.
- * @param captureNavigationEvents Whether to capture navigation events. Defaults to false.
- * @param captureWebVitals Whether to capture Core Web Vitals (LCP, FCP, CLS, INP, TTFB). Defaults to false.
- * @param captureLongTasks Whether to capture long tasks that block the main thread. Defaults to false.
- * @param captureConsoleLogs Whether to capture JavaScript console.log/warn/error messages. Defaults to false.
- * @param captureUserInteractions Whether to capture user interactions (clicks, rage clicks, etc.). Defaults to false.
- * @param captureErrors Whether to capture JavaScript errors, promise rejections, and resource errors. Defaults to false.
+ * Defines how WebView instrumentation interacts with JavaScript settings.
  */
-data class WebViewConfiguration
-    @JvmOverloads
-    constructor(
+enum class WebViewInstrumentationMode {
+    /**
+     * Uses native WebViewClient callbacks only. No JavaScript required.
+     * Captures: page view, navigation, errors, HTTP/SSL errors, renderer crashes.
+     */
+    NATIVE_ONLY,
+
+    /**
+     * Full JavaScript bridge instrumentation. Enables JavaScript if not already enabled.
+     */
+    JAVASCRIPT_BRIDGE,
+}
+
+/**
+ * Configuration for WebView instrumentation.
+ */
+sealed interface WebViewConfiguration {
+    /**
+     * Native-only instrumentation using WebViewClient callbacks.
+     */
+    data class NativeOnly(
+        /** Enables native page view events. */
         val capturePageViews: Boolean = false,
-        val captureNetworkRequests: Boolean = false,
+        /** Enables native navigation events. */
         val captureNavigationEvents: Boolean = false,
-        val captureWebVitals: Boolean = false,
-        val captureLongTasks: Boolean = false,
-        val captureConsoleLogs: Boolean = false,
-        val captureUserInteractions: Boolean = false,
+        /** Enables native error events (HTTP/SSL/render process). */
         val captureErrors: Boolean = false,
-    )
+        /** Enables resource load callbacks. */
+        val captureResourceLoads: Boolean = false,
+    ) : WebViewConfiguration
+
+    /**
+     * JavaScript bridge instrumentation. Requires/enables JavaScript.
+     */
+    data class JavaScriptBridge(
+        /** Enables page view events emitted by the JS bridge. */
+        val capturePageViews: Boolean = false,
+        /** Enables navigation events emitted by the JS bridge. */
+        val captureNavigationEvents: Boolean = false,
+        /** Enables JS error events. */
+        val captureErrors: Boolean = false,
+        /** Enables JS network request events. */
+        val captureNetworkRequests: Boolean = false,
+        /** Enables Web Vitals metrics. */
+        val captureWebVitals: Boolean = false,
+        /** Enables long task detection. */
+        val captureLongTasks: Boolean = false,
+        /** Enables console log capture. */
+        val captureConsoleLogs: Boolean = false,
+        /** Enables user interaction capture. */
+        val captureUserInteractions: Boolean = false,
+    ) : WebViewConfiguration
+
+    companion object {
+        /** Factory methods for common configurations. */
+        @JvmStatic
+        fun nativeOnly() =
+            NativeOnly(
+                capturePageViews = true,
+                captureNavigationEvents = true,
+                captureErrors = true,
+            )
+
+        /** Full JavaScript bridge configuration with common defaults enabled. */
+        @JvmStatic
+        fun javaScriptBridge() =
+            JavaScriptBridge(
+                capturePageViews = true,
+                captureNavigationEvents = true,
+                captureErrors = true,
+                captureNetworkRequests = true,
+                captureWebVitals = true,
+                captureLongTasks = true,
+                captureConsoleLogs = true,
+                captureUserInteractions = true,
+            )
+    }
+}
 
 internal fun WebViewConfiguration?.toFields(): ArrayFields =
     this?.let {
@@ -53,14 +100,27 @@ internal fun WebViewConfiguration?.toFields(): ArrayFields =
     } ?: ArrayFields.EMPTY
 
 internal fun WebViewConfiguration.toJson(): String =
-    JSONObject()
-        .apply {
-            put("captureConsoleLogs", captureConsoleLogs)
-            put("captureErrors", captureErrors)
-            put("captureNetworkRequests", captureNetworkRequests)
-            put("captureNavigationEvents", captureNavigationEvents)
-            put("capturePageViews", capturePageViews)
-            put("captureWebVitals", captureWebVitals)
-            put("captureLongTasks", captureLongTasks)
-            put("captureUserInteractions", captureUserInteractions)
-        }.toString()
+    when (this) {
+        is WebViewConfiguration.NativeOnly ->
+            JSONObject()
+                .apply {
+                    put("instrumentationMode", WebViewInstrumentationMode.NATIVE_ONLY.name)
+                    put("capturePageViews", capturePageViews)
+                    put("captureNavigationEvents", captureNavigationEvents)
+                    put("captureErrors", captureErrors)
+                    put("captureResourceLoads", captureResourceLoads)
+                }.toString()
+        is WebViewConfiguration.JavaScriptBridge ->
+            JSONObject()
+                .apply {
+                    put("instrumentationMode", WebViewInstrumentationMode.JAVASCRIPT_BRIDGE.name)
+                    put("capturePageViews", capturePageViews)
+                    put("captureNavigationEvents", captureNavigationEvents)
+                    put("captureErrors", captureErrors)
+                    put("captureNetworkRequests", captureNetworkRequests)
+                    put("captureWebVitals", captureWebVitals)
+                    put("captureLongTasks", captureLongTasks)
+                    put("captureConsoleLogs", captureConsoleLogs)
+                    put("captureUserInteractions", captureUserInteractions)
+                }.toString()
+    }
