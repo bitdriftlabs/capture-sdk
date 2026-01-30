@@ -43,6 +43,8 @@ import java.io.File
 
 class TestSpanAddingParameters(
     private val debugOutput: Boolean = true,
+    private val okHttpInstrumentationEnabled: Boolean = true,
+    private val webViewInstrumentationEnabled: Boolean = true,
     private val inMemoryDir: File,
 ) : SpanAddingClassVisitorFactory.SpanAddingParameters {
     override val debug: Property<Boolean>
@@ -53,6 +55,16 @@ class TestSpanAddingParameters(
         get() =
             DefaultProperty(PropertyHost.NO_OP, OkHttpInstrumentationType::class.javaObjectType)
                 .convention(OkHttpInstrumentationType.PROXY)
+
+    override val enableOkHttpInstrumentation: Property<Boolean>
+        get() =
+            DefaultProperty(PropertyHost.NO_OP, Boolean::class.javaObjectType)
+                .convention(okHttpInstrumentationEnabled)
+
+    override val enableWebViewInstrumentation: Property<Boolean>
+        get() =
+            DefaultProperty(PropertyHost.NO_OP, Boolean::class.javaObjectType)
+                .convention(webViewInstrumentationEnabled)
 
     override val tmpDir: Property<File>
         get() = DefaultProperty<File>(PropertyHost.NO_OP, File::class.java).convention(inMemoryDir)
