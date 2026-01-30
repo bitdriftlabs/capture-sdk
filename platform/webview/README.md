@@ -33,13 +33,14 @@ graph TB
 
 1. **Version-Locked JavaScript Bundle**: The JavaScript bridge (`bitdrift-webview.js`) is embedded directly in the SDK bundle at build time. This ensures the bridge version is always compatible with the native SDK version.
 
-2. **Platform-Specific Bridges**:
-   - **iOS**: Uses `WKWebView`'s `webkit.messageHandlers.BitdriftLogger` API
+2. **Inline Script Injection**: The JavaScript bridge is injected as an inline script with no remote dependencies. This eliminates the possibility of remote script changes negatively affecting runtime behavior or introducing security vulnerabilities.
+
+3. **Platform-Specific Bridge**: 
    - **Android**: Uses `@JavascriptInterface` exposed as `window.BitdriftLogger`
 
-3. **Automatic Instrumentation**: The bridge automatically captures web events (network requests, navigation, errors, performance metrics) and forwards them to the native SDK without requiring manual integration in the web content.
+4. **Automatic Instrumentation**: The bridge automatically captures web events (network requests, navigation, errors, performance metrics) and forwards them to the native SDK without requiring manual integration in the web content.
 
-4. **Isolated Execution**: The bridge runs in a safe, isolated context with error handling to prevent interfering with the web application's functionality.
+5. **Isolated Execution**: The bridge runs in a safe, isolated context with error handling to prevent interfering with the web application's functionality.
 
 ## Building
 
@@ -50,15 +51,14 @@ npm install
 # Build the JavaScript bundle
 npm run build
 
-# Generate native SDK files (Kotlin + Swift)
+# Generate native SDK files (Kotlin)
 npm run generate
 ```
 
 The build process:
 1. Compiles TypeScript sources into a minified JavaScript bundle (`dist/bitdrift-webview.js`)
-2. Embeds the bundle as a string constant in platform-specific source files:
+2. Embeds the bundle as a string constant in the Android SDK source file:
    - `platform/jvm/capture/src/main/kotlin/io/bitdrift/capture/webview/WebViewBridgeScript.kt`
-   - `platform/swift/source/integrations/webview/WebViewBridgeScript.swift`
 
 ## Integration
 
