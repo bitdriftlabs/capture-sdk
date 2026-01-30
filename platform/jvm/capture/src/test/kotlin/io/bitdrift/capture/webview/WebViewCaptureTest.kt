@@ -91,7 +91,7 @@ class WebViewCaptureTest {
     }
 
     @Test
-    fun instrument_withValidWebViewConfigurationAndJsDisabled_shouldLogNotInitMessage() {
+    fun instrument_withValidWebViewConfigurationAndJsDisabled_shouldLogNotInitialized() {
         startSdk(webViewConfiguration = WebViewConfiguration())
         val spyLogger = spyLogger()
         webView.settings.javaScriptEnabled = false
@@ -112,7 +112,10 @@ class WebViewCaptureTest {
         )
     }
 
-    private fun assertNotInitializedMessage(spyLogger: LoggerImpl, reason: String) {
+    private fun assertNotInitializedMessage(
+        spyLogger: LoggerImpl,
+        reason: String,
+    ) {
         verify(spyLogger).log(
             eq(LogLevel.WARNING),
             fieldsCaptor.capture(),
