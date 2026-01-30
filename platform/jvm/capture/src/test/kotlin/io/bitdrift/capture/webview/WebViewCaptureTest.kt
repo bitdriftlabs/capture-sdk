@@ -81,7 +81,8 @@ class WebViewCaptureTest {
     }
 
     @Test
-    fun instrument_withValidWebViewConfiguration_shouldEnableJavascriptAndLogSuccess() {
+    @Suppress("DEPRECATION")
+    fun instrument_withDeprecatedConstructor_shouldEnableJavascriptAndLogSuccess() {
         startSdk(webViewConfiguration = WebViewConfiguration())
         val spyLogger = spyLogger()
 
@@ -98,6 +99,94 @@ class WebViewCaptureTest {
             messageCaptor.capture(),
         )
         assertThat(messageCaptor.firstValue()).isEqualTo("WebView bridge script injected successfully")
+    }
+
+    @Test
+    fun instrument_withFullWithJavaScriptMode_shouldEnableJavascript() {
+        val config =
+            WebViewConfiguration
+                .builder()
+                .instrumentationMode(WebViewInstrumentationMode.FULL_WITH_JAVASCRIPT)
+                .capturePageViews(true)
+                .build()
+        startSdk(webViewConfiguration = config)
+
+        WebViewCapture.instrument(webView)
+
+        assertThat(webView.settings.javaScriptEnabled).isTrue()
+        assertThat(webView.webViewClient).isInstanceOf(NativeWebViewClient::class.java)
+    }
+
+    @Test
+    fun instrument_withNativeOnlyMode_shouldNotEnableJavascript() {
+        val config = WebViewConfiguration.nativeOnly()
+        startSdk(webViewConfiguration = config)
+
+        WebViewCapture.instrument(webView)
+
+        assertThat(webView.settings.javaScriptEnabled).isFalse()
+        assertThat(webView.webViewClient).isInstanceOf(NativeWebViewClient::class.java)
+    }
+
+    @Test
+    fun instrument_withNativeOnlyMode_shouldWrapExistingWebViewClient() {
+        val config = WebViewConfiguration.nativeOnly()
+        startSdk(webViewConfiguration = config)
+
+        WebViewCapture.instrument(webView)
+
+        assertThat(webView.webViewClient).isInstanceOf(NativeWebViewClient::class.java)
+    }
+
+    @Test
+    fun instrument_calledTwice_shouldOnlyInstrumentOnce() {
+        val config = WebViewConfiguration.fullWithJavaScript()
+        startSdk(webViewConfiguration = config)
+
+        WebViewCapture.instrument(webView)
+        val firstClient = webView.webViewClient
+
+        WebViewCapture.instrument(webView)
+        val secondClient = webView.webViewClient
+
+        assertThat(firstClient).isSameAs(secondClient)
+    }
+
+    @Test
+    fun fullWithJavaScript_factoryMethod_shouldHaveCorrectDefaults() {
+        val config = WebViewConfiguration.fullWithJavaScript()
+
+        assertThat(config.instrumentationMode).isEqualTo(WebViewInstrumentationMode.FULL_WITH_JAVASCRIPT)
+        assertThat(config.capturePageViews).isTrue()
+        assertThat(config.captureNetworkRequests).isTrue()
+        assertThat(config.captureNavigationEvents).isTrue()
+        assertThat(config.captureWebVitals).isTrue()
+        assertThat(config.captureLongTasks).isTrue()
+        assertThat(config.captureConsoleLogs).isTrue()
+        assertThat(config.captureUserInteractions).isTrue()
+        assertThat(config.captureErrors).isTrue()
+    }
+
+    @Test
+    fun nativeOnly_factoryMethod_shouldHaveCorrectDefaults() {
+        val config = WebViewConfiguration.nativeOnly()
+
+        assertThat(config.instrumentationMode).isEqualTo(WebViewInstrumentationMode.NATIVE_ONLY)
+        assertThat(config.capturePageViews).isTrue()
+        assertThat(config.captureErrors).isTrue()
+        assertThat(config.captureNetworkRequests).isFalse()
+        assertThat(config.captureNavigationEvents).isFalse()
+        assertThat(config.captureWebVitals).isFalse()
+        assertThat(config.captureLongTasks).isFalse()
+        assertThat(config.captureConsoleLogs).isFalse()
+        assertThat(config.captureUserInteractions).isFalse()
+    }
+
+    @Test
+    fun builder_shouldDefaultToNativeOnlyMode() {
+        val config = WebViewConfiguration.builder().build()
+
+        assertThat(config.instrumentationMode).isEqualTo(WebViewInstrumentationMode.NATIVE_ONLY)
     }
 
     private fun startSdk(webViewConfiguration: WebViewConfiguration?) {
