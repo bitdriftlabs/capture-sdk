@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import { log, createMessage } from './bridge';
+import { log, createMessage, flattenObject } from './bridge';
 import { makeSafe, safeCall } from './safe-call';
 
 /**
@@ -40,13 +40,9 @@ export const initLongTaskMonitoring = (): void => {
                             _start_time: entry.startTime.toString(),
                         };
 
-                        // Flatten attribution object using dot notation
+                        // Flatten attribution object using the utility
                         if (attribution) {
-                            if (attribution.name) fields['_attribution.name'] = attribution.name;
-                            if (attribution.containerType) fields['_attribution.container_type'] = attribution.containerType;
-                            if (attribution.containerSrc) fields['_attribution.container_src'] = attribution.containerSrc;
-                            if (attribution.containerId) fields['_attribution.container_id'] = attribution.containerId;
-                            if (attribution.containerName) fields['_attribution.container_name'] = attribution.containerName;
+                            Object.assign(fields, flattenObject(attribution, '_attribution'));
                         }
 
                         const message = createMessage({
