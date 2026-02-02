@@ -13,6 +13,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.fragment.app.Fragment
 import io.bitdrift.gradletestapp.R
 
@@ -30,6 +31,7 @@ class WebViewFragment : Fragment() {
     ): View {
         val view = inflater.inflate(R.layout.fragment_web_view, container, false)
         val webView = view.findViewById<WebView>(R.id.webView)
+        webView.webViewClient = WebViewClient()
         webView.settings.javaScriptEnabled = true
         val url = arguments?.getString(ARG_URL) ?: WEBVIEW_URLS.first().second
         webView.loadUrl(url)
