@@ -103,7 +103,13 @@ class WebViewBridgeMessageHandlerTest {
                 "v":1,
                 "type":"bridgeReady",
                 "url":"https://example.com",
-                "instrumentationConfig":{"capturePageViews":true,"captureErrors":false}
+                "instrumentationConfig":{"capturePageViews":true,"captureErrors":false},
+                "fields":{
+                    "_source":"webview",
+                    "_url":"https://example.com",
+                    "_config":"{\"capturePageViews\":true,\"captureErrors\":false}",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -133,7 +139,14 @@ class WebViewBridgeMessageHandlerTest {
                 "timestamp":1234567890,
                 "event":"load",
                 "performanceTime":123.45,
-                "visibilityState":"visible"
+                "visibilityState":"visible",
+                "fields":{
+                    "_event":"load",
+                    "_source":"webview",
+                    "_timestamp":"1234567890",
+                    "_performance_time":"123.45",
+                    "_visibility_state":"visible"
+                }
             }
             """.trimIndent()
 
@@ -167,7 +180,12 @@ class WebViewBridgeMessageHandlerTest {
                 "v":1,
                 "type":"lifecycle",
                 "timestamp":1234567890,
-                "event":"unload"
+                "event":"unload",
+                "fields":{
+                    "_event":"unload",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -203,7 +221,14 @@ class WebViewBridgeMessageHandlerTest {
                 "timestamp":1234567890,
                 "fromUrl":"https://example.com/page1",
                 "toUrl":"https://example.com/page2",
-                "method":"pushState"
+                "method":"pushState",
+                "fields":{
+                    "_from_url":"https://example.com/page1",
+                    "_to_url":"https://example.com/page2",
+                    "_method":"pushState",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -216,8 +241,8 @@ class WebViewBridgeMessageHandlerTest {
             logMessageCaptor.capture(),
         )
         val fields = arrayFieldsCaptor.firstValue.toStringMap()
-        assertThat(fields["_fromUrl"]).isEqualTo("https://example.com/page1")
-        assertThat(fields["_toUrl"]).isEqualTo("https://example.com/page2")
+        assertThat(fields["_from_url"]).isEqualTo("https://example.com/page1")
+        assertThat(fields["_to_url"]).isEqualTo("https://example.com/page2")
         assertThat(fields["_method"]).isEqualTo("pushState")
         assertThat(fields["_source"]).isEqualTo("webview")
         assertThat(fields["_timestamp"]).isEqualTo("1234567890")
@@ -231,7 +256,14 @@ class WebViewBridgeMessageHandlerTest {
             {
                 "v":1,
                 "type":"navigation",
-                "timestamp":1234567890
+                "timestamp":1234567890,
+                "fields":{
+                    "_from_url":"",
+                    "_to_url":"",
+                    "_method":"",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -244,8 +276,8 @@ class WebViewBridgeMessageHandlerTest {
             logMessageCaptor.capture(),
         )
         val fields = arrayFieldsCaptor.firstValue.toStringMap()
-        assertThat(fields["_fromUrl"]).isEqualTo("")
-        assertThat(fields["_toUrl"]).isEqualTo("")
+        assertThat(fields["_from_url"]).isEqualTo("")
+        assertThat(fields["_to_url"]).isEqualTo("")
         assertThat(fields["_method"]).isEqualTo("")
         assertThat(fields["_source"]).isEqualTo("webview")
         assertThat(fields["_timestamp"]).isEqualTo("1234567890")
@@ -265,7 +297,17 @@ class WebViewBridgeMessageHandlerTest {
                 "stack":"TypeError: Cannot read property 'foo' of undefined\n    at main.js:10:5",
                 "filename":"https://example.com/main.js",
                 "lineno":10,
-                "colno":5
+                "colno":5,
+                "fields":{
+                    "_name":"TypeError",
+                    "_message":"Cannot read property 'foo' of undefined",
+                    "_stack":"TypeError: Cannot read property 'foo' of undefined\n    at main.js:10:5",
+                    "_filename":"https://example.com/main.js",
+                    "_lineno":"10",
+                    "_colno":"5",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -296,7 +338,13 @@ class WebViewBridgeMessageHandlerTest {
             {
                 "v":1,
                 "type":"error",
-                "timestamp":1234567890
+                "timestamp":1234567890,
+                "fields":{
+                    "_name":"Error",
+                    "_message":"Unknown error",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -336,6 +384,17 @@ class WebViewBridgeMessageHandlerTest {
                     "containerSrc":"https://example.com",
                     "containerId":"myFrame",
                     "containerName":"frameOne"
+                },
+                "fields":{
+                    "_duration_ms":"250.0",
+                    "_start_time":"100.5",
+                    "_attribution_name":"self",
+                    "_container_type":"iframe",
+                    "_container_src":"https://example.com",
+                    "_container_id":"myFrame",
+                    "_container_name":"frameOne",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
                 }
             }
             """.trimIndent()
@@ -374,7 +433,12 @@ class WebViewBridgeMessageHandlerTest {
                 "v":1,
                 "type":"longTask",
                 "timestamp":1234567890,
-                "durationMs":150
+                "durationMs":150,
+                "fields":{
+                    "_duration_ms":"150.0",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -404,7 +468,12 @@ class WebViewBridgeMessageHandlerTest {
                 "v":1,
                 "type":"longTask",
                 "timestamp":1234567890,
-                "durationMs":75
+                "durationMs":75,
+                "fields":{
+                    "_duration_ms":"75.0",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -436,7 +505,14 @@ class WebViewBridgeMessageHandlerTest {
                 "timestamp":1234567890,
                 "resourceType":"script",
                 "url":"https://example.com/script.js",
-                "tagName":"SCRIPT"
+                "tagName":"SCRIPT",
+                "fields":{
+                    "_resource_type":"script",
+                    "_url":"https://example.com/script.js",
+                    "_tag_name":"SCRIPT",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -464,7 +540,14 @@ class WebViewBridgeMessageHandlerTest {
             {
                 "v":1,
                 "type":"resourceError",
-                "timestamp":1234567890
+                "timestamp":1234567890,
+                "fields":{
+                    "_resource_type":"unknown",
+                    "_url":"",
+                    "_tag_name":"",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -495,7 +578,14 @@ class WebViewBridgeMessageHandlerTest {
                 "timestamp":1234567890,
                 "level":"error",
                 "message":"Something went wrong",
-                "args":["arg1", "arg2", "arg3"]
+                "args":["arg1", "arg2", "arg3"],
+                "fields":{
+                    "_level":"error",
+                    "_message":"Something went wrong",
+                    "_args":"arg1, arg2, arg3",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -525,7 +615,13 @@ class WebViewBridgeMessageHandlerTest {
                 "type":"console",
                 "timestamp":1234567890,
                 "level":"warn",
-                "message":"Warning message"
+                "message":"Warning message",
+                "fields":{
+                    "_level":"warn",
+                    "_message":"Warning message",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -552,7 +648,13 @@ class WebViewBridgeMessageHandlerTest {
                 "type":"console",
                 "timestamp":1234567890,
                 "level":"info",
-                "message":"Info message"
+                "message":"Info message",
+                "fields":{
+                    "_level":"info",
+                    "_message":"Info message",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -578,7 +680,13 @@ class WebViewBridgeMessageHandlerTest {
                 "type":"console",
                 "timestamp":1234567890,
                 "level":"log",
-                "message":"Debug message"
+                "message":"Debug message",
+                "fields":{
+                    "_level":"log",
+                    "_message":"Debug message",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -605,7 +713,14 @@ class WebViewBridgeMessageHandlerTest {
                 "timestamp":1234567890,
                 "level":"log",
                 "message":"Many args",
-                "args":["arg1", "arg2", "arg3", "arg4", "arg5", "arg6", "arg7"]
+                "args":["arg1", "arg2", "arg3", "arg4", "arg5", "arg6", "arg7"],
+                "fields":{
+                    "_level":"log",
+                    "_message":"Many args",
+                    "_args":"arg1, arg2, arg3, arg4, arg5",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -628,7 +743,13 @@ class WebViewBridgeMessageHandlerTest {
             {
                 "v":1,
                 "type":"console",
-                "timestamp":1234567890
+                "timestamp":1234567890,
+                "fields":{
+                    "_level":"log",
+                    "_message":"",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -656,7 +777,13 @@ class WebViewBridgeMessageHandlerTest {
                 "type":"promiseRejection",
                 "timestamp":1234567890,
                 "reason":"Network request failed",
-                "stack":"Error: Network request failed\n    at fetch.js:20:10"
+                "stack":"Error: Network request failed\n    at fetch.js:20:10",
+                "fields":{
+                    "_reason":"Network request failed",
+                    "_stack":"Error: Network request failed\n    at fetch.js:20:10",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -683,7 +810,12 @@ class WebViewBridgeMessageHandlerTest {
             {
                 "v":1,
                 "type":"promiseRejection",
-                "timestamp":1234567890
+                "timestamp":1234567890,
+                "fields":{
+                    "_reason":"Unknown rejection",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -716,7 +848,17 @@ class WebViewBridgeMessageHandlerTest {
                 "isClickable":true,
                 "elementId":"submit-btn",
                 "className":"btn btn-primary",
-                "textContent":"Submit"
+                "textContent":"Submit",
+                "fields":{
+                    "_interaction_type":"click",
+                    "_tag_name":"BUTTON",
+                    "_is_clickable":"true",
+                    "_element_id":"submit-btn",
+                    "_class_name":"btn btn-primary",
+                    "_text_content":"Submit",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -757,7 +899,16 @@ class WebViewBridgeMessageHandlerTest {
                 "tagName":"DIV",
                 "isClickable":false,
                 "clickCount":5,
-                "timeWindowMs":1000
+                "timeWindowMs":1000,
+                "fields":{
+                    "_interaction_type":"rageClick",
+                    "_tag_name":"DIV",
+                    "_is_clickable":"false",
+                    "_click_count":"5",
+                    "_time_window_ms":"1000",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
@@ -791,7 +942,14 @@ class WebViewBridgeMessageHandlerTest {
                 "v":1,
                 "type":"userInteraction",
                 "timestamp":1234567890,
-                "interactionType":"hover"
+                "interactionType":"hover",
+                "fields":{
+                    "_interaction_type":"hover",
+                    "_tag_name":"",
+                    "_is_clickable":"false",
+                    "_source":"webview",
+                    "_timestamp":"1234567890"
+                }
             }
             """.trimIndent()
 
