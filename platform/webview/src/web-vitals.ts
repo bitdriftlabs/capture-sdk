@@ -39,7 +39,14 @@ export const initWebVitals = (): void => {
                 if (entry.entryType) fields._entry_type = entry.entryType;
                 
                 // LCP-specific fields
-                if ('element' in entry && entry.element) fields._element = entry.element as string;
+                if ('element' in entry && entry.element) {
+                    const element = entry.element as Element;
+                    // Extract a meaningful string representation of the element
+                    const elementStr = element.tagName ? 
+                        `${element.tagName.toLowerCase()}${element.id ? '#' + element.id : ''}${element.className ? '.' + element.className.split(' ').join('.') : ''}` :
+                        element.toString();
+                    fields._element = elementStr;
+                }
                 if ('url' in entry && entry.url) fields._url = entry.url as string;
                 if ('size' in entry && entry.size !== undefined) fields._size = (entry.size as number).toString();
                 if ('renderTime' in entry && entry.renderTime !== undefined) fields._render_time = (entry.renderTime as number).toString();

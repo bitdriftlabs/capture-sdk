@@ -48,11 +48,13 @@ export const flattenObject = (
         
         // Convert camelCase to snake_case
         const snakeKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-        const fieldKey = prefix ? `${prefix}_${snakeKey}` : `_${snakeKey}`;
+        // Build the full field key
+        const fieldKey = prefix ? `${prefix}${snakeKey}` : `_${snakeKey}`;
         
         if (typeof value === 'object' && !Array.isArray(value)) {
             // Recursively flatten nested objects
-            Object.assign(result, flattenObject(value as Record<string, unknown>, fieldKey));
+            // For nested objects, pass the current fieldKey + underscore as prefix
+            Object.assign(result, flattenObject(value as Record<string, unknown>, fieldKey + '_'));
         } else {
             // Convert value to string for logging
             result[fieldKey] = value.toString();
