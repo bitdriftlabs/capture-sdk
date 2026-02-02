@@ -50,8 +50,8 @@ export const flattenObject = (
         const snakeKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
         // Build the full field key - use dot notation for nested keys
         // When there's a prefix, remove the leading underscore from snakeKey if present
-        const cleanSnakeKey = prefix && snakeKey.startsWith('_') ? snakeKey.substring(1) : snakeKey;
-        const fieldKey = prefix ? `${prefix}.${cleanSnakeKey}` : `_${snakeKey}`;
+        const snakeKeyWithoutLeadingUnderscore = prefix && snakeKey.startsWith('_') ? snakeKey.substring(1) : snakeKey;
+        const fieldKey = prefix ? `${prefix}.${snakeKeyWithoutLeadingUnderscore}` : `_${snakeKey}`;
         
         if (typeof value === 'object' && !Array.isArray(value)) {
             // Recursively flatten nested objects
