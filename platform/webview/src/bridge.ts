@@ -6,7 +6,25 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { safeCall } from './safe-call';
-import type { AnyBridgeMessage, AnyBridgeMessageMap, BridgeMessage, CustomLogMessage, SerializableLogFields } from './types';
+import type {
+    AnyBridgeMessage,
+    AnyBridgeMessageMap,
+    BridgeMessage,
+    BridgeReadyMessage,
+    ConsoleMessage,
+    CustomLogMessage,
+    ErrorMessage,
+    InternalAutoInstrumentationMessage,
+    LifecycleMessage,
+    LongTaskMessage,
+    NavigationMessage,
+    PageViewMessage,
+    PromiseRejectionMessage,
+    ResourceErrorMessage,
+    SerializableLogFields,
+    UserInteractionMessage,
+    WebVitalMessage,
+} from './types';
 
 export const pristine = {
     console: {
@@ -154,101 +172,127 @@ export const log = (message: AnyBridgeMessage): void => {
 
 /**
  * Helper to create fields from message data based on message type
+ * Uses type parameter to infer the correct data shape
  */
-const buildFieldsForMessage = (type: string, data: Record<string, unknown>): SerializableLogFields => {
+const buildFieldsForMessage = <T extends keyof AnyBridgeMessageMap>(
+    type: T,
+    data: Omit<AnyBridgeMessageMap[T], 'v' | 'timestamp' | 'tag' | 'type' | 'fields'>
+): SerializableLogFields => {
     const fields: Record<string, string> = {};
     
     switch (type) {
-        case 'navigation':
-            fields._from_url = String(data.fromUrl ?? '');
-            fields._to_url = String(data.toUrl ?? '');
-            fields._method = String(data.method ?? '');
+        case 'navigation': {
+            const navData = data as Omit<NavigationMessage, 'v' | 'timestamp' | 'tag' | 'type' | 'fields'>;
+            fields._from_url = String(navData.fromUrl ?? '');
+            fields._to_url = String(navData.toUrl ?? '');
+            fields._method = String(navData.method ?? '');
             break;
+        }
             
-        case 'error':
-            fields._name = String(data.name ?? 'Error');
-            fields._message = String(data.message ?? 'Unknown error');
-            if (data.stack) fields._stack = String(data.stack);
-            if (data.filename) fields._filename = String(data.filename);
-            if (data.lineno) fields._lineno = String(data.lineno);
-            if (data.colno) fields._colno = String(data.colno);
+        case 'error': {
+            const errorData = data as Omit<ErrorMessage, 'v' | 'timestamp' | 'tag' | 'type' | 'fields'>;
+            fields._name = String(errorData.name ?? 'Error');
+            fields._message = String(errorData.message ?? 'Unknown error');
+            if (errorData.stack) fields._stack = String(errorData.stack);
+            if (errorData.filename) fields._filename = String(errorData.filename);
+            if (errorData.lineno) fields._lineno = String(errorData.lineno);
+            if (errorData.colno) fields._colno = String(errorData.colno);
             break;
+        }
             
-        case 'promiseRejection':
-            fields._reason = String(data.reason ?? 'Unknown rejection');
-            if (data.stack) fields._stack = String(data.stack);
+        case 'promiseRejection': {
+            const rejectionData = data as Omit<PromiseRejectionMessage, 'v' | 'timestamp' | 'tag' | 'type' | 'fields'>;
+            fields._reason = String(rejectionData.reason ?? 'Unknown rejection');
+            if (rejectionData.stack) fields._stack = String(rejectionData.stack);
             break;
+        }
             
-        case 'longTask':
-            fields._duration_ms = String(data.durationMs ?? 0);
-            fields._start_time = String(data.startTime ?? 0);
-            if (data.attribution && typeof data.attribution === 'object') {
-                Object.assign(fields, flattenObject(data.attribution as Record<string, unknown>, '_attribution'));
+        case 'longTask': {
+            const taskData = data as Omit<LongTaskMessage, 'v' | 'timestamp' | 'tag' | 'type' | 'fields'>;
+            fields._duration_ms = String(taskData.durationMs ?? 0);
+            fields._start_time = String(taskData.startTime ?? 0);
+            if (taskData.attribution && typeof taskData.attribution === 'object') {
+                Object.assign(fields, flattenObject(taskData.attribution as Record<string, unknown>, '_attribution'));
             }
             break;
+        }
             
-        case 'pageView':
-            fields._span_id = String(data.spanId ?? '');
-            fields._url = String(data.url ?? '');
-            fields._reason = String(data.reason ?? '');
-            if (data.durationMs !== undefined) {
-                fields._duration_ms = String(data.durationMs);
+        case 'pageView': {
+            const pageData = data as Omit<PageViewMessage, 'v' | 'timestamp' | 'tag' | 'type' | 'fields'>;
+            fields._span_id = String(pageData.spanId ?? '');
+            fields._url = String(pageData.url ?? '');
+            fields._reason = String(pageData.reason ?? '');
+            if (pageData.durationMs !== undefined) {
+                fields._duration_ms = String(pageData.durationMs);
             }
             break;
+        }
             
-        case 'lifecycle':
-            fields._event = String(data.event ?? '');
-            if (data.performanceTime !== undefined) {
-                fields._performance_time = String(data.performanceTime);
+        case 'lifecycle': {
+            const lifecycleData = data as Omit<LifecycleMessage, 'v' | 'timestamp' | 'tag' | 'type' | 'fields'>;
+            fields._event = String(lifecycleData.event ?? '');
+            if (lifecycleData.performanceTime !== undefined) {
+                fields._performance_time = String(lifecycleData.performanceTime);
             }
-            if (data.visibilityState) {
-                fields._visibility_state = String(data.visibilityState);
+            if (lifecycleData.visibilityState) {
+                fields._visibility_state = String(lifecycleData.visibilityState);
             }
             break;
+        }
             
-        case 'console':
-            fields._level = String(data.level ?? 'log');
-            fields._message = String(data.message ?? '');
-            if (data.args && Array.isArray(data.args)) {
-                const args = data.args as string[];
-                if (args.length > 0) {
-                    fields._args = JSON.stringify(args.slice(0, 5));
+        case 'console': {
+            const consoleData = data as Omit<ConsoleMessage, 'v' | 'timestamp' | 'tag' | 'type' | 'fields'>;
+            fields._level = String(consoleData.level ?? 'log');
+            fields._message = String(consoleData.message ?? '');
+            if (consoleData.args && Array.isArray(consoleData.args)) {
+                if (consoleData.args.length > 0) {
+                    fields._args = JSON.stringify(consoleData.args.slice(0, 5));
                 }
             }
             break;
+        }
             
-        case 'resourceError':
-            fields._resource_type = String(data.resourceType ?? 'unknown');
-            fields._url = String(data.url ?? '');
-            fields._tag_name = String(data.tagName ?? '');
+        case 'resourceError': {
+            const resourceData = data as Omit<ResourceErrorMessage, 'v' | 'timestamp' | 'tag' | 'type' | 'fields'>;
+            fields._resource_type = String(resourceData.resourceType ?? 'unknown');
+            fields._url = String(resourceData.url ?? '');
+            fields._tag_name = String(resourceData.tagName ?? '');
             break;
+        }
             
-        case 'userInteraction':
-            fields._interaction_type = String(data.interactionType ?? '');
-            fields._tag_name = String(data.tagName ?? '');
-            fields._is_clickable = String(data.isClickable ?? false);
-            if (data.elementId) fields._element_id = String(data.elementId);
-            if (data.className) fields._class_name = String(data.className);
-            if (data.textContent) fields._text_content = String(data.textContent);
-            if (data.clickCount !== undefined) fields._click_count = String(data.clickCount);
-            if (data.timeWindowMs !== undefined) fields._time_window_ms = String(data.timeWindowMs);
-            if (data.duration !== undefined) fields._duration = String(data.duration);
+        case 'userInteraction': {
+            const interactionData = data as Omit<UserInteractionMessage, 'v' | 'timestamp' | 'tag' | 'type' | 'fields'>;
+            fields._interaction_type = String(interactionData.interactionType ?? '');
+            fields._tag_name = String(interactionData.tagName ?? '');
+            fields._is_clickable = String(interactionData.isClickable ?? false);
+            if (interactionData.elementId) fields._element_id = String(interactionData.elementId);
+            if (interactionData.className) fields._class_name = String(interactionData.className);
+            if (interactionData.textContent) fields._text_content = String(interactionData.textContent);
+            if (interactionData.clickCount !== undefined) fields._click_count = String(interactionData.clickCount);
+            if (interactionData.timeWindowMs !== undefined) fields._time_window_ms = String(interactionData.timeWindowMs);
+            if (interactionData.duration !== undefined) fields._duration = String(interactionData.duration);
             break;
+        }
             
-        case 'bridgeReady':
-            fields._url = String(data.url ?? '');
-            if (data.instrumentationConfig) {
-                fields._config = JSON.stringify(data.instrumentationConfig);
+        case 'bridgeReady': {
+            const readyData = data as Omit<BridgeReadyMessage, 'v' | 'timestamp' | 'tag' | 'type' | 'fields'>;
+            fields._url = String(readyData.url ?? '');
+            if (readyData.instrumentationConfig) {
+                fields._config = JSON.stringify(readyData.instrumentationConfig);
             }
             break;
+        }
             
-        case 'internalAutoInstrumentation':
-            fields._event = String(data.event ?? '');
+        case 'internalAutoInstrumentation': {
+            const autoData = data as Omit<InternalAutoInstrumentationMessage, 'v' | 'timestamp' | 'tag' | 'type' | 'fields'>;
+            fields._event = String(autoData.event ?? '');
             break;
+        }
             
         case 'webVital': {
+            const vitalData = data as Omit<WebVitalMessage, 'v' | 'timestamp' | 'tag' | 'type' | 'fields'>;
             // For webVital messages, extract fields from the metric object
-            const metric = data.metric as Record<string, unknown>;
+            const metric = vitalData.metric;
             if (metric) {
                 fields._metric = String(metric.name ?? '');
                 fields._value = String(metric.value ?? '');
@@ -257,10 +301,10 @@ const buildFieldsForMessage = (type: string, data: Record<string, unknown>): Ser
                 if (metric.delta !== undefined) fields._delta = String(metric.delta);
                 if (metric.id) fields._metric_id = String(metric.id);
                 if (metric.navigationType) fields._navigation_type = String(metric.navigationType);
-                if (data.parentSpanId) fields._span_parent_id = String(data.parentSpanId);
+                if (vitalData.parentSpanId) fields._span_parent_id = String(vitalData.parentSpanId);
                 
                 // Extract all relevant entry fields based on metric type
-                const entries = metric.entries as Array<Record<string, unknown>> | undefined;
+                const entries = metric.entries;
                 const entry = entries?.[0];
                 if (entry) {
                     // Common fields
@@ -323,12 +367,14 @@ const buildFieldsForMessage = (type: string, data: Record<string, unknown>): Ser
             break;
         }
             
-        case 'customLog':
+        case 'customLog': {
+            const customData = data as Omit<CustomLogMessage, 'v' | 'timestamp' | 'tag' | 'type' | 'fields'>;
             // For custom logs, use the provided fields directly
-            if (data.fields && typeof data.fields === 'object') {
-                Object.assign(fields, data.fields);
+            if (customData.fields && typeof customData.fields === 'object') {
+                Object.assign(fields, customData.fields);
             }
             break;
+        }
     }
     
     return fields;
@@ -348,8 +394,8 @@ export const createMessage = <T extends keyof AnyBridgeMessageMap>({
     const ts = timestamp ?? Date.now();
     const standardFields = createStandardFields(ts);
     
-    // Build fields from the message data
-    const messageFields = buildFieldsForMessage(type, partial as Record<string, unknown>);
+    // Build fields from the message data with proper typing
+    const messageFields = buildFieldsForMessage(type, partial);
     
     return {
         tag: 'bitdrift-webview-sdk',
