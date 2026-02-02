@@ -34,23 +34,11 @@ export const initLongTaskMonitoring = (): void => {
 
                         const attribution = taskEntry.attribution?.[0];
 
-                        // Build fields with proper naming
-                        const fields: Record<string, string> = {
-                            _duration_ms: entry.duration.toString(),
-                            _start_time: entry.startTime.toString(),
-                        };
-
-                        // Flatten attribution object using the utility
-                        if (attribution) {
-                            Object.assign(fields, flattenObject(attribution, '_attribution'));
-                        }
-
                         const message = createMessage({
                             type: 'longTask',
                             durationMs: entry.duration,
                             startTime: entry.startTime,
                             attribution: attribution,
-                            fields,
                         });
                         log(message);
                     });

@@ -38,14 +38,6 @@ export const initErrorMonitoring = (): void => {
                     filename: event.filename || undefined,
                     lineno: event.lineno || undefined,
                     colno: event.colno || undefined,
-                    fields: {
-                        _name: error?.name ?? 'Error',
-                        _message: event.message || 'Unknown error',
-                        ...(stack && { _stack: stack }),
-                        ...(event.filename && { _filename: event.filename }),
-                        ...(event.lineno && { _lineno: event.lineno.toString() }),
-                        ...(event.colno && { _colno: event.colno.toString() }),
-                    },
                 });
                 log(message);
             }),
@@ -81,10 +73,6 @@ export const initPromiseRejectionMonitoring = (): void => {
                     type: 'promiseRejection',
                     reason,
                     stack: stack,
-                    fields: {
-                        _reason: reason,
-                        ...(stack && { _stack: stack }),
-                    },
                 });
                 log(message);
             }),

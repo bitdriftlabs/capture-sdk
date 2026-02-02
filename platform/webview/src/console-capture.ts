@@ -38,13 +38,7 @@ export const initConsoleCapture = (): void => {
                         type: 'console',
                         level,
                         message: messageStr,
-                        fields: {
-                            _level: level,
-                            _message: messageStr,
-                            ...(additionalArgs && additionalArgs.length > 0 && {
-                                _args: JSON.stringify(additionalArgs.slice(0, 5)),
-                            }),
-                        },
+                        args: additionalArgs,
                     });
                     log(message);
                 });
