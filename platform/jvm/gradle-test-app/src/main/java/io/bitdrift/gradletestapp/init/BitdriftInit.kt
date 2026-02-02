@@ -13,12 +13,14 @@ import android.util.Log
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.Configuration
-import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.capture.webview.WebViewConfiguration
+import io.bitdrift.capture.webview.WebViewConfiguration.JavaScriptBridge
+import io.bitdrift.capture.webview.WebViewConfiguration.NativeOnly
+import io.bitdrift.capture.webview.WebViewInstrumentationMode
 import io.bitdrift.gradletestapp.BuildConfig
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_CONSOLE_LOGS_KEY
@@ -29,6 +31,7 @@ import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Com
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_PAGE_VIEWS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_USER_INTERACTIONS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_WEB_VITALS_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_INSTRUMENTATION_MODE_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_MONITORING_ENABLED_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
@@ -142,8 +145,9 @@ object BitdriftInit {
 
     private fun SharedPreferences.getPersistedFlag(keyName: String): Boolean = getBoolean(
         keyName,
-        false)
-    
+        false,
+    )
+
     private fun getSessionStrategy(sharedPreferences: SharedPreferences): SessionStrategy =
         if (sharedPreferences.getString(
                 ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY,
@@ -161,28 +165,41 @@ object BitdriftInit {
         }
 
     private fun getWebViewConfiguration(sharedPrefs: SharedPreferences): WebViewConfiguration? {
-        if (!sharedPrefs.getBoolean(WEBVIEW_MONITORING_ENABLED_KEY, false)
-        ) {
+        if (!sharedPrefs.getBoolean(WEBVIEW_MONITORING_ENABLED_KEY, false)) {
             return null
         }
 
-        @OptIn(ExperimentalBitdriftApi::class)
-        return WebViewConfiguration(
-            captureConsoleLogs = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_CONSOLE_LOGS_KEY),
-            captureErrors = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_ERRORS_KEY),
-            captureNetworkRequests = sharedPrefs.getPersistedFlag(
-                WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY
-            ),
-            captureNavigationEvents = sharedPrefs.getPersistedFlag(
-                WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY
-            ),
-            capturePageViews = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_PAGE_VIEWS_KEY),
-            captureWebVitals = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_WEB_VITALS_KEY),
-            captureLongTasks = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_LONG_TASKS_KEY),
-            captureUserInteractions = sharedPrefs.getPersistedFlag(
-                WEBVIEW_ENABLE_USER_INTERACTIONS_KEY
-            ),
+        val instrumentationMode = getInstrumentationMode(sharedPrefs)
+
+        return when (instrumentationMode) {
+            WebViewInstrumentationMode.NATIVE_ONLY ->
+                NativeOnly(
+                    capturePageViews = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_PAGE_VIEWS_KEY),
+                    captureNavigationEvents = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY),
+                    captureErrors = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_ERRORS_KEY),
+                )
+            WebViewInstrumentationMode.JAVASCRIPT_BRIDGE ->
+                JavaScriptBridge(
+                    capturePageViews = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_PAGE_VIEWS_KEY),
+                    captureNavigationEvents = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY),
+                    captureErrors = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_ERRORS_KEY),
+                    captureNetworkRequests = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY),
+                    captureConsoleLogs = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_CONSOLE_LOGS_KEY),
+                    captureWebVitals = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_WEB_VITALS_KEY),
+                    captureLongTasks = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_LONG_TASKS_KEY),
+                    captureUserInteractions = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_USER_INTERACTIONS_KEY),
+                )
+        }
+    }
+
+    private fun getInstrumentationMode(sharedPrefs: SharedPreferences): WebViewInstrumentationMode {
+        val modeName = sharedPrefs.getString(
+            WEBVIEW_INSTRUMENTATION_MODE_KEY,
+            WebViewInstrumentationMode.NATIVE_ONLY.name,
         )
+        return runCatching {
+            WebViewInstrumentationMode.valueOf(modeName ?: WebViewInstrumentationMode.NATIVE_ONLY.name)
+        }.getOrDefault(WebViewInstrumentationMode.NATIVE_ONLY)
     }
 
     private sealed class SdkConfigResult {
