@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { safeCall } from './safe-call';
-import type { AnyBridgeMessage, AnyBridgeMessageMap, BridgeMessage, CustomLogMessage } from './types';
+import type { AnyBridgeMessage, AnyBridgeMessageMap, BridgeMessage, CustomLogMessage, SerializableLogFields } from './types';
 
 export const pristine = {
     console: {
@@ -16,6 +16,50 @@ export const pristine = {
         info: console.info,
         debug: console.debug,
     },
+};
+
+/**
+ * Create a fields object with standard fields that are always included:
+ * - _source: "webview"
+ * - _timestamp: current timestamp in ms
+ */
+export const createStandardFields = (timestamp?: number): { _source: string; _timestamp: string } => {
+    return {
+        _source: 'webview',
+        _timestamp: (timestamp ?? Date.now()).toString(),
+    };
+};
+
+/**
+ * Flatten nested objects with underscore-prefixed keys.
+ * E.g., { attribution: { name: 'foo', containerType: 'bar' } }
+ * becomes { _attribution_name: 'foo', _container_type: 'bar' }
+ */
+export const flattenObject = (
+    obj: Record<string, unknown>,
+    prefix = '',
+): Record<string, string> => {
+    const result: Record<string, string> = {};
+    
+    for (const [key, value] of Object.entries(obj)) {
+        if (value === null || value === undefined) {
+            continue;
+        }
+        
+        // Convert camelCase to snake_case
+        const snakeKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+        const fieldKey = prefix ? `${prefix}_${snakeKey}` : `_${snakeKey}`;
+        
+        if (typeof value === 'object' && !Array.isArray(value)) {
+            // Recursively flatten nested objects
+            Object.assign(result, flattenObject(value as Record<string, unknown>, fieldKey));
+        } else {
+            // Convert value to string for logging
+            result[fieldKey] = value.toString();
+        }
+    }
+    
+    return result;
 };
 
 type Platform = 'ios' | 'android' | 'unknown';
@@ -105,22 +149,28 @@ export const log = (message: AnyBridgeMessage): void => {
 };
 
 /**
- * Helper to create a timestamped message
+ * Helper to create a timestamped message with standard fields automatically added
  */
 export const createMessage = <T extends keyof AnyBridgeMessageMap>({
     type,
     timestamp,
+    fields,
     ...partial
-}: { type: T; timestamp?: number } & Omit<
+}: { type: T; timestamp?: number; fields?: SerializableLogFields } & Omit<
     AnyBridgeMessageMap[T],
-    'v' | 'timestamp' | 'tag' | 'type'
+    'v' | 'timestamp' | 'tag' | 'type' | 'fields'
 >): AnyBridgeMessageMap[T] => {
+    const ts = timestamp ?? Date.now();
+    const standardFields = createStandardFields(ts);
+    
     return {
         tag: 'bitdrift-webview-sdk',
         v: 1,
-        timestamp: timestamp ?? Date.now(),
+        timestamp: ts,
         type,
         ...partial,
+        // Merge standard fields with provided fields
+        fields: fields ? { ...standardFields, ...fields } : standardFields,
     } as unknown as AnyBridgeMessageMap[T];
 };
 

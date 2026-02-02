@@ -71,6 +71,11 @@ export const startPageView = (url: string, reason: 'initial' | 'navigation' = 'n
             reason,
             // Use our calculated start time, not Date.now()
             timestamp: pageViewStartTimeMs,
+            fields: {
+                _span_id: currentPageSpanId,
+                _url: url,
+                _reason: reason,
+            },
         });
         log(message);
     });
@@ -96,6 +101,12 @@ export const endPageView = (reason: 'navigation' | 'unload' | 'hidden'): void =>
             reason,
             durationMs,
             timestamp: now,
+            fields: {
+                _span_id: currentPageSpanId,
+                _url: window.location.href,
+                _reason: reason,
+                _duration_ms: durationMs.toString(),
+            },
         });
         log(message);
 
@@ -112,11 +123,21 @@ const logLifecycleEvent = (
     details?: Record<string, string>,
 ): void => {
     safeCall(() => {
+        const fields: Record<string, string> = {
+            _event: event,
+            _performance_time: performance.now().toString(),
+        };
+
+        if (details?.visibilityState) {
+            fields._visibility_state = details.visibilityState;
+        }
+
         const message = createMessage({
             type: 'lifecycle',
             event,
             performanceTime: performance.now(),
             ...details,
+            fields,
         });
         log(message);
     });

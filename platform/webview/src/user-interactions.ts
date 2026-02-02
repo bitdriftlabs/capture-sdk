@@ -205,6 +205,21 @@ const logUserInteraction = (
             textContent = text.length > 50 ? `${text.slice(0, 50)}...` : text || undefined;
         }
 
+        const fields: Record<string, string> = {
+            _interaction_type: interactionType,
+            _tag_name: tagName,
+            _is_clickable: isClickable.toString(),
+        };
+
+        if (elementId) fields._element_id = elementId;
+        if (className) fields._class_name = className.slice(0, 100);
+        if (textContent) fields._text_content = textContent;
+        if (interactionType === 'rageClick') {
+            if (clickCount) fields._click_count = clickCount.toString();
+            fields._time_window_ms = RAGE_CLICK_TIME_WINDOW_MS.toString();
+            if (actualTimeWindowMs) fields._duration = actualTimeWindowMs.toString();
+        }
+
         const message = createMessage({
             type: 'userInteraction',
             interactionType,
@@ -216,6 +231,7 @@ const logUserInteraction = (
             clickCount: interactionType === 'rageClick' ? clickCount : undefined,
             timeWindowMs: interactionType === 'rageClick' ? RAGE_CLICK_TIME_WINDOW_MS : undefined,
             duration: interactionType === 'rageClick' ? actualTimeWindowMs : undefined,
+            fields,
         });
         log(message);
     });

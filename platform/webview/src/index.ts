@@ -39,6 +39,12 @@ const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']
                 type: 'bridgeReady',
                 url: window.location.href,
                 instrumentationConfig: window.bitdrift.config,
+                fields: {
+                    _url: window.location.href,
+                    ...(window.bitdrift.config && {
+                        _config: JSON.stringify(window.bitdrift.config),
+                    }),
+                },
             }),
         );
 
@@ -49,6 +55,9 @@ const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']
                 createMessage({
                     type: 'internalAutoInstrumentation',
                     event: 'capturePageViews',
+                    fields: {
+                        _event: 'capturePageViews',
+                    },
                 }),
             );
         }
@@ -60,6 +69,9 @@ const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']
                 createMessage({
                     type: 'internalAutoInstrumentation',
                     event: 'captureNetworkRequests',
+                    fields: {
+                        _event: 'captureNetworkRequests',
+                    },
                 }),
             );
         }
@@ -69,6 +81,9 @@ const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']
                 createMessage({
                     type: 'internalAutoInstrumentation',
                     event: 'captureNavigationEvents',
+                    fields: {
+                        _event: 'captureNavigationEvents',
+                    },
                 }),
             );
         }
@@ -78,6 +93,9 @@ const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']
                 createMessage({
                     type: 'internalAutoInstrumentation',
                     event: 'captureWebVitals',
+                    fields: {
+                        _event: 'captureWebVitals',
+                    },
                 }),
             );
         }
@@ -87,6 +105,9 @@ const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']
                 createMessage({
                     type: 'internalAutoInstrumentation',
                     event: 'captureLongTasks',
+                    fields: {
+                        _event: 'captureLongTasks',
+                    },
                 }),
             );
         }
@@ -96,6 +117,9 @@ const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']
                 createMessage({
                     type: 'internalAutoInstrumentation',
                     event: 'captureConsoleLogs',
+                    fields: {
+                        _event: 'captureConsoleLogs',
+                    },
                 }),
             );
         }
@@ -105,6 +129,9 @@ const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']
                 createMessage({
                     type: 'internalAutoInstrumentation',
                     event: 'captureUserInteractions',
+                    fields: {
+                        _event: 'captureUserInteractions',
+                    },
                 }),
             );
         }
@@ -116,6 +143,9 @@ const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']
                 createMessage({
                     type: 'internalAutoInstrumentation',
                     event: 'captureErrors',
+                    fields: {
+                        _event: 'captureErrors',
+                    },
                 }),
             );
         }

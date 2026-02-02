@@ -85,6 +85,11 @@ export const initResourceErrorMonitoring = (): void => {
                             resourceType,
                             url,
                             tagName,
+                            fields: {
+                                _resource_type: resourceType,
+                                _url: url,
+                                _tag_name: tagName,
+                            },
                         });
                         log(message);
                     }),

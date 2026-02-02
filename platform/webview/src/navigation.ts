@@ -76,6 +76,11 @@ const logNavigation = (fromUrl: string, toUrl: string, method: 'pushState' | 're
         fromUrl,
         toUrl,
         method,
+        fields: {
+            _from_url: fromUrl,
+            _to_url: toUrl,
+            _method: method,
+        },
     });
     log(message);
 };
