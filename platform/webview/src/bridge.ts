@@ -33,7 +33,7 @@ export const createStandardFields = (timestamp?: number): { _source: string; _ti
 /**
  * Flatten nested objects with underscore-prefixed keys.
  * E.g., { attribution: { name: 'foo', containerType: 'bar' } }
- * becomes { _attribution_name: 'foo', _container_type: 'bar' }
+ * becomes { _attribution.name: 'foo', _attribution.container_type: 'bar' }
  */
 export const flattenObject = (
     obj: Record<string, unknown>,
@@ -48,13 +48,13 @@ export const flattenObject = (
         
         // Convert camelCase to snake_case
         const snakeKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-        // Build the full field key
-        const fieldKey = prefix ? `${prefix}${snakeKey}` : `_${snakeKey}`;
+        // Build the full field key - use dot notation for nested keys
+        const fieldKey = prefix ? `${prefix}.${snakeKey}` : `_${snakeKey}`;
         
         if (typeof value === 'object' && !Array.isArray(value)) {
             // Recursively flatten nested objects
-            // For nested objects, pass the current fieldKey + underscore as prefix
-            Object.assign(result, flattenObject(value as Record<string, unknown>, fieldKey + '_'));
+            // For nested objects, pass the current fieldKey (without dot) as prefix
+            Object.assign(result, flattenObject(value as Record<string, unknown>, fieldKey));
         } else {
             // Convert value to string for logging
             result[fieldKey] = value.toString();

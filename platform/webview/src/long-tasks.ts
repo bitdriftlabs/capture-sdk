@@ -40,13 +40,13 @@ export const initLongTaskMonitoring = (): void => {
                             _start_time: entry.startTime.toString(),
                         };
 
-                        // Flatten attribution object
+                        // Flatten attribution object using dot notation
                         if (attribution) {
-                            if (attribution.name) fields._attribution_name = attribution.name;
-                            if (attribution.containerType) fields._container_type = attribution.containerType;
-                            if (attribution.containerSrc) fields._container_src = attribution.containerSrc;
-                            if (attribution.containerId) fields._container_id = attribution.containerId;
-                            if (attribution.containerName) fields._container_name = attribution.containerName;
+                            if (attribution.name) fields['_attribution.name'] = attribution.name;
+                            if (attribution.containerType) fields['_attribution.container_type'] = attribution.containerType;
+                            if (attribution.containerSrc) fields['_attribution.container_src'] = attribution.containerSrc;
+                            if (attribution.containerId) fields['_attribution.container_id'] = attribution.containerId;
+                            if (attribution.containerName) fields['_attribution.container_name'] = attribution.containerName;
                         }
 
                         const message = createMessage({

@@ -388,11 +388,11 @@ class WebViewBridgeMessageHandlerTest {
                 "fields":{
                     "_duration_ms":"250.0",
                     "_start_time":"100.5",
-                    "_attribution_name":"self",
-                    "_container_type":"iframe",
-                    "_container_src":"https://example.com",
-                    "_container_id":"myFrame",
-                    "_container_name":"frameOne",
+                    "_attribution.name":"self",
+                    "_attribution.container_type":"iframe",
+                    "_attribution.container_src":"https://example.com",
+                    "_attribution.container_id":"myFrame",
+                    "_attribution.container_name":"frameOne",
                     "_source":"webview",
                     "_timestamp":"1234567890"
                 }
@@ -417,11 +417,11 @@ class WebViewBridgeMessageHandlerTest {
         assertThat(fields["_source"]).isEqualTo("webview")
         assertThat(fields["_timestamp"]).isEqualTo("1234567890")
         assertThat(fields["_start_time"]).isEqualTo("100.5")
-        assertThat(fields["_attribution_name"]).isEqualTo("self")
-        assertThat(fields["_container_type"]).isEqualTo("iframe")
-        assertThat(fields["_container_src"]).isEqualTo("https://example.com")
-        assertThat(fields["_container_id"]).isEqualTo("myFrame")
-        assertThat(fields["_container_name"]).isEqualTo("frameOne")
+        assertThat(fields["_attribution.name"]).isEqualTo("self")
+        assertThat(fields["_attribution.container_type"]).isEqualTo("iframe")
+        assertThat(fields["_attribution.container_src"]).isEqualTo("https://example.com")
+        assertThat(fields["_attribution.container_id"]).isEqualTo("myFrame")
+        assertThat(fields["_attribution.container_name"]).isEqualTo("frameOne")
         assertThat(logMessageCaptor.firstValue()).isEqualTo("webview.longTask")
     }
 
