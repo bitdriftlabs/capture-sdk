@@ -582,7 +582,7 @@ class WebViewBridgeMessageHandlerTest {
                 "fields":{
                     "_level":"error",
                     "_message":"Something went wrong",
-                    "_args":"arg1, arg2, arg3",
+                    "_args":"[\"arg1\",\"arg2\",\"arg3\"]",
                     "_source":"webview",
                     "_timestamp":"1234567890"
                 }
@@ -602,7 +602,7 @@ class WebViewBridgeMessageHandlerTest {
         assertThat(fields["_message"]).isEqualTo("Something went wrong")
         assertThat(fields["_source"]).isEqualTo("webview")
         assertThat(fields["_timestamp"]).isEqualTo("1234567890")
-        assertThat(fields["_args"]).isEqualTo("arg1, arg2, arg3")
+        assertThat(fields["_args"]).isEqualTo("[\"arg1\",\"arg2\",\"arg3\"]")
         assertThat(logMessageCaptor.firstValue()).isEqualTo("webview.console")
     }
 
@@ -717,7 +717,7 @@ class WebViewBridgeMessageHandlerTest {
                 "fields":{
                     "_level":"log",
                     "_message":"Many args",
-                    "_args":"arg1, arg2, arg3, arg4, arg5",
+                    "_args":"[\"arg1\",\"arg2\",\"arg3\",\"arg4\",\"arg5\"]",
                     "_source":"webview",
                     "_timestamp":"1234567890"
                 }
@@ -733,7 +733,7 @@ class WebViewBridgeMessageHandlerTest {
             logMessageCaptor.capture(),
         )
         val fields = arrayFieldsCaptor.firstValue.toStringMap()
-        assertThat(fields["_args"]).isEqualTo("arg1, arg2, arg3, arg4, arg5")
+        assertThat(fields["_args"]).isEqualTo("[\"arg1\",\"arg2\",\"arg3\",\"arg4\",\"arg5\"]")
     }
 
     @Test
