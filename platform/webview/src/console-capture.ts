@@ -38,10 +38,7 @@ export const initConsoleCapture = (): void => {
                         type: 'console',
                         level,
                         message: messageStr,
-                        args: additionalArgs,
                         fields: {
-                            _level: level,
-                            _message: messageStr,
                             ...(additionalArgs && additionalArgs.length > 0 && {
                                 _args: additionalArgs.slice(0, 5).join(', '),
                             }),
