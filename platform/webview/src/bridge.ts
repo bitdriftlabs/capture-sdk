@@ -248,7 +248,7 @@ const buildFieldsForMessage = (type: string, data: Record<string, unknown>): Ser
             
         case 'webVital': {
             // For webVital messages, extract fields from the metric object
-            const metric = data.metric as any;
+            const metric = data.metric as Record<string, unknown>;
             if (metric) {
                 fields._metric = String(metric.name ?? '');
                 fields._value = String(metric.value ?? '');
@@ -260,7 +260,8 @@ const buildFieldsForMessage = (type: string, data: Record<string, unknown>): Ser
                 if (data.parentSpanId) fields._span_parent_id = String(data.parentSpanId);
                 
                 // Extract all relevant entry fields based on metric type
-                const entry = metric.entries?.[0];
+                const entries = metric.entries as Array<Record<string, unknown>> | undefined;
+                const entry = entries?.[0];
                 if (entry) {
                     // Common fields
                     if (entry.startTime !== undefined) fields._start_time = String(entry.startTime);
@@ -300,15 +301,15 @@ const buildFieldsForMessage = (type: string, data: Record<string, unknown>): Ser
                 }
                 
                 // CLS-specific: Extract all entries for layout shift data
-                if (metric.name === 'CLS' && metric.entries && metric.entries.length > 0) {
+                if (metric.name === 'CLS' && entries && entries.length > 0) {
                     let largestShiftValue = 0;
                     let largestShiftTime = 0;
                     
-                    for (const clsEntry of metric.entries) {
-                        const shiftValue = 'value' in clsEntry ? (clsEntry.value as number) : 0;
+                    for (const clsEntry of entries) {
+                        const shiftValue = 'value' in clsEntry ? Number(clsEntry.value) : 0;
                         if (shiftValue > largestShiftValue) {
                             largestShiftValue = shiftValue;
-                            largestShiftTime = clsEntry.startTime ?? 0;
+                            largestShiftTime = Number(clsEntry.startTime) ?? 0;
                         }
                     }
                     
@@ -316,7 +317,7 @@ const buildFieldsForMessage = (type: string, data: Record<string, unknown>): Ser
                         fields._largest_shift_value = String(largestShiftValue);
                         fields._largest_shift_time = String(largestShiftTime);
                     }
-                    fields._shift_count = String(metric.entries.length);
+                    fields._shift_count = String(entries.length);
                 }
             }
             break;
