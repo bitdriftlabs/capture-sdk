@@ -7,7 +7,7 @@
 
 use assert_matches::assert_matches;
 use bd_error_reporter::reporter::Reporter;
-use bd_logger::StringOrBytes;
+use bd_logger::DataValue;
 use bd_test_helpers::runtime::ValueKind;
 use bd_test_helpers::test_api_server::{ExpectedStreamEvent, HandshakeMatcher, StreamHandle};
 use capture_core::events::ListenerTargetHandler as EventsListenerTargetHandler;
@@ -162,14 +162,14 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
     let log = &log_request.logs()[0];
 
     let message: JObject<'_> = match log.typed_message() {
-      StringOrBytes::String(s) => env.new_string(&s).unwrap().into(),
-      StringOrBytes::SharedString(s) => env.new_string(&*s).unwrap().into(),
-      StringOrBytes::StaticString(s) => env.new_string(s).unwrap().into(),
-      StringOrBytes::Bytes(_)
-      | StringOrBytes::Boolean(_)
-      | StringOrBytes::U64(_)
-      | StringOrBytes::I64(_)
-      | StringOrBytes::Double(_) => JObject::null(),
+      DataValue::String(s) => env.new_string(&s).unwrap().into(),
+      DataValue::SharedString(s) => env.new_string(&*s).unwrap().into(),
+      DataValue::StaticString(s) => env.new_string(s).unwrap().into(),
+      DataValue::Bytes(_)
+      | DataValue::Boolean(_)
+      | DataValue::U64(_)
+      | DataValue::I64(_)
+      | DataValue::Double(_) => JObject::null(),
     };
 
     // TODO(Augustyniak): Extract the logic below into a helper function.
@@ -180,7 +180,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
         let key = env.new_string(key).unwrap();
 
         let value = match value {
-          StringOrBytes::String(s) => {
+          DataValue::String(s) => {
             let value = env.new_string(s).unwrap();
 
             let class = env
@@ -200,7 +200,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
             }
             .unwrap()
           },
-          StringOrBytes::SharedString(s) => {
+          DataValue::SharedString(s) => {
             let value = env.new_string(&**s).unwrap();
 
             let class = env
@@ -220,7 +220,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
             }
             .unwrap()
           },
-          StringOrBytes::StaticString(s) => {
+          DataValue::StaticString(s) => {
             let value = env.new_string(s).unwrap();
 
             let class = env
@@ -240,7 +240,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
             }
             .unwrap()
           },
-          StringOrBytes::Bytes(b) => {
+          DataValue::Bytes(b) => {
             let value = env.byte_array_from_slice(b).unwrap();
 
             let class = env
@@ -260,7 +260,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
             }
             .unwrap()
           },
-          StringOrBytes::Boolean(b) => {
+          DataValue::Boolean(b) => {
             let value = env.new_string(b.to_string()).unwrap();
 
             let class = env
@@ -280,7 +280,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
             }
             .unwrap()
           },
-          StringOrBytes::U64(n) => {
+          DataValue::U64(n) => {
             let value = env.new_string(n.to_string()).unwrap();
 
             let class = env
@@ -300,7 +300,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
             }
             .unwrap()
           },
-          StringOrBytes::I64(n) => {
+          DataValue::I64(n) => {
             let value = env.new_string(n.to_string()).unwrap();
 
             let class = env
@@ -320,7 +320,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
             }
             .unwrap()
           },
-          StringOrBytes::Double(n) => {
+          DataValue::Double(n) => {
             let value = env.new_string(n.to_string()).unwrap();
 
             let class = env

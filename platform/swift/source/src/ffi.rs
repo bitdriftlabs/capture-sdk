@@ -13,10 +13,10 @@ use bd_log_primitives::LogFieldKey;
 use bd_logger::{
   AnnotatedLogField,
   AnnotatedLogFields,
+  DataValue,
   LogFieldKind,
   LogFieldValue,
   LogFields,
-  StringOrBytes,
 };
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
@@ -196,11 +196,11 @@ unsafe fn convert_fields_helper<FieldValue>(
       FIELD_TYPE_STRING => {
         let string_value: String = ffi::nsstring_into_string(field_value)
           .map_err(|e| e.context(format!("field {field_key:?}")))?;
-        StringOrBytes::String(string_value)
+        DataValue::String(string_value)
       },
       FIELD_TYPE_DATA => {
         let data_value = FromObjcObject::from_objc(field_value)? as &[u8];
-        StringOrBytes::Bytes(data_value.to_vec().into())
+        DataValue::Bytes(data_value.to_vec().into())
       },
       _ => bail!("unknown field value type: {field_type:?}"),
     };
