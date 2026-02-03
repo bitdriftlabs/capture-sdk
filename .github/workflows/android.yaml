@@ -662,7 +662,7 @@ jobs:
       - name: Cache hint on hello world failure
         if: ${{ failure() }}
         run: |
-          echo "Android hello world verification failed. If this is flaky, consider blowing away the AVD cache in the GitHub Actions UI for this workflow."
+          echo "Android hello world verification failed. If this failed due to what appears to be an adb issue, consider blowing away the AVD cache in the GitHub Actions UI for this workflow."
 
   # This is a noop job that completes once all the jobs spawned by the previous step completes. By blocking PR merges on this
   # job completing, we are able to gate it on all the previous jobs without explicitly enumerating them.
