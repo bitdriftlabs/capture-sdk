@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.3...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.4...HEAD
 
 ### Both
 
@@ -12,6 +12,44 @@
 **Changed**
 
 - Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+ 
+### Android
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.22.4]
+
+[0.22.4]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.4
+
+### Both
 
 **Fixed**
 
@@ -31,20 +69,6 @@
 
 - Fixed session replay skipping views with stale text layouts
 - Fixed `Untagged socket detected` Strict Mode Violation
-
-### iOS
-
-**Added**
-
-- Nothing yet!
-
-**Changed**
-
-- Nothing yet!
-
-**Fixed**
-
-- Nothing yet!
 
 ## [0.22.3]
 
