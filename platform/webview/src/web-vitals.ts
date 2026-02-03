@@ -18,6 +18,7 @@ export const initWebVitals = (): void => {
     safeCall(() => {
         const reportMetric = makeSafe((metric: MetricType): void => {
             const parentSpanId = getCurrentPageSpanId();
+            
             const message = createMessage({
                 type: 'webVital',
                 metric,

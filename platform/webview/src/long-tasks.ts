@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import { log, createMessage } from './bridge';
+import { log, createMessage, flattenObject } from './bridge';
 import { makeSafe, safeCall } from './safe-call';
 
 /**
