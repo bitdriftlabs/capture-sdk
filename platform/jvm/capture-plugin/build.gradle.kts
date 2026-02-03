@@ -8,13 +8,13 @@ plugins {
 group = "io.bitdrift"
 
 dependencies {
-    compileOnly("com.android.tools.build:gradle:7.4.0")
+    compileOnly("com.android.tools.build:gradle:${libs.versions.androidGradlePlugin.get()}")
     compileOnly("org.ow2.asm:asm-commons:9.4")
     compileOnly("org.ow2.asm:asm-util:9.4")
 
     testImplementation(gradleTestKit())
     testImplementation(kotlin("test"))
-    testImplementation("com.android.tools.build:gradle:7.4.0")
+    testImplementation("com.android.tools.build:gradle:${libs.versions.androidGradlePlugin.get()}")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.ow2.asm:asm-commons:9.4")
     testImplementation("org.ow2.asm:asm-util:9.4")
@@ -28,6 +28,16 @@ gradlePlugin {
             implementationClass = "io.bitdrift.capture.CapturePlugin"
         }
     }
+}
+
+val pluginTestClasspath by configurations.creating {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+    extendsFrom(configurations.getByName("compileOnly"))
+}
+
+tasks.withType<PluginUnderTestMetadata>().configureEach {
+    pluginClasspath.from(pluginTestClasspath)
 }
 
 mavenPublishing {

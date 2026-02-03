@@ -372,6 +372,9 @@ jobs:
     - name: Gradle capture-timber unit tests
       working-directory: ./platform/jvm
       run: ./gradlew capture-timber:testReleaseUnitTest --info
+    - name: Gradle capture-plugin unit tests
+      working-directory: ./platform/jvm
+      run: ./gradlew capture-plugin:test --info
     - name: Check Licenses for modules
       working-directory: ./platform/jvm
       run: ./gradlew replay:checkLicense common:checkLicense capture:checkLicense
