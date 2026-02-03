@@ -10,6 +10,7 @@ build --action_env=CC --host_action_env=CC
 build --action_env=CXX --host_action_env=CXX
 build --action_env=LLVM_CONFIG --host_action_env=LLVM_CONFIG
 build --action_env=PATH --host_action_env=PATH
+build --experimental_repository_downloader_retries=3
 
 build --features=debug_prefix_map_pwd_is_dot
 build --features=oso_prefix_is_pwd
