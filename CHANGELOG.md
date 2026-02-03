@@ -15,7 +15,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixes an issue causing certain workflows to not work accross process restart.
  
 ### Android
 

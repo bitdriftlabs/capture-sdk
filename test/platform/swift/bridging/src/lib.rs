@@ -9,7 +9,7 @@
 extern crate objc;
 
 use bd_error_reporter::reporter::Reporter;
-use bd_logger::StringOrBytes;
+use bd_logger::DataValue;
 use bd_test_helpers::config_helper::make_benchmarking_configuration_with_workflows_update;
 use objc::runtime::Object;
 use protobuf::Message;
@@ -93,42 +93,42 @@ unsafe fn populate_uploaded_log_from_server(
     let key = make_nsstring(&key).unwrap();
 
     match value {
-      StringOrBytes::String(s) => {
+      DataValue::String(s) => {
         let value = make_nsstring(&s).unwrap();
 
         let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
       },
-      StringOrBytes::SharedString(s) => {
+      DataValue::SharedString(s) => {
         let value = make_nsstring(&s).unwrap();
 
         let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
       },
-      StringOrBytes::StaticString(s) => {
+      DataValue::StaticString(s) => {
         let value = make_nsstring(s).unwrap();
 
         let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
       },
-      StringOrBytes::Bytes(s) => {
+      DataValue::Bytes(s) => {
         let value = make_nsdata(&s);
 
         let () = msg_send![uploaded_log, addBinaryFieldWithKey:key value:value];
       },
-      StringOrBytes::Boolean(b) => {
+      DataValue::Boolean(b) => {
         let value = make_nsstring(&b.to_string()).unwrap();
 
         let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
       },
-      StringOrBytes::U64(n) => {
+      DataValue::U64(n) => {
         let value = make_nsstring(&n.to_string()).unwrap();
 
         let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
       },
-      StringOrBytes::I64(n) => {
+      DataValue::I64(n) => {
         let value = make_nsstring(&n.to_string()).unwrap();
 
         let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
       },
-      StringOrBytes::Double(n) => {
+      DataValue::Double(n) => {
         let value = make_nsstring(&n.to_string()).unwrap();
 
         let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
