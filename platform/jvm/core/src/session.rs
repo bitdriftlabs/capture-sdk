@@ -7,11 +7,7 @@
 
 use crate::define_object_wrapper;
 use crate::jni::{
-  initialize_class,
-  initialize_method_handle,
-  CachedClass,
-  CachedMethod,
-  JValueWrapper,
+  initialize_class, initialize_method_handle, CachedClass, CachedMethod, JValueWrapper,
 };
 use anyhow::anyhow;
 use bd_client_common::error::InvariantError;
@@ -129,11 +125,17 @@ impl fixed::Callbacks for SessionStrategyConfigurationHandle {
 
 impl activity_based::Callbacks for SessionStrategyConfigurationHandle {
   fn session_id_changed(&self, session_id: &str) {
+    log::info!(
+      "FRAN_TAG: JNI session_id_changed callback received session_id: {}",
+      session_id
+    );
     with_handle_unexpected(
       || {
+        log::info!("FRAN_TAG: JNI about to call Java sessionIdChanged method");
         self.execute(|e, session_configuration| {
           let session_id = e.new_string(session_id)?;
 
+          log::info!("FRAN_TAG: JNI calling SESSION_STRATEGY_SESSION_ID_CHANGED");
           SESSION_STRATEGY_SESSION_ID_CHANGED
             .get()
             .ok_or(InvariantError::Invariant)?
@@ -143,7 +145,9 @@ impl activity_based::Callbacks for SessionStrategyConfigurationHandle {
               ReturnType::Primitive(Primitive::Void),
               &[JValueWrapper::Object(session_id.into()).into()],
             )
-            .map(|_| ())
+            .map(|_| {
+              log::info!("FRAN_TAG: JNI Java sessionIdChanged call succeeded");
+            })
         })
       },
       "jni: session_id_changed",

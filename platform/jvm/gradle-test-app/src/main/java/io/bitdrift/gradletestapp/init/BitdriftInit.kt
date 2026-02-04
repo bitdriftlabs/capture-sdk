@@ -41,6 +41,12 @@ import java.util.UUID
  * Starts bitdrift's Captures SDK with the persisted config settings
  */
 object BitdriftInit {
+    private var onSessionIdChangedListener: ((String) -> Unit)? = null
+
+    fun setOnSessionIdChangedListener(listener: (String) -> Unit) {
+        onSessionIdChangedListener = listener
+    }
+
     /**
      * Init sdk with the persisted settings
      */
@@ -83,6 +89,7 @@ object BitdriftInit {
                     fieldProviders = settings.fieldProviders,
                     context = context,
                 )
+                println("FRAN_TAG: initial session ID now ${Capture.Logger.sessionId}")
                 Log.i("GradleTestApp", "Session initialized " + Capture.Logger.sessionUrl)
                 return true
             }
@@ -153,9 +160,11 @@ object BitdriftInit {
             SessionStrategy.Fixed()
         } else {
             SessionStrategy.ActivityBased(
-                inactivityThresholdMins = 60L,
+                inactivityThresholdMins = 1L,
                 onSessionIdChanged = { sessionId ->
+                    println("FRAN_TAG: new session ID now $sessionId")
                     Timber.Forest.i("Bitdrift Logger session id updated: $sessionId")
+                    onSessionIdChangedListener?.invoke(sessionId)
                 },
             )
         }

@@ -22,6 +22,9 @@ import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Comp
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.PREFS_SLEEP_MODE_ENABLED
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.SESSION_REPLAY_ENABLED_PREFS_KEY
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -36,6 +39,15 @@ class SdkRepository(
     private val applicationContext = context.applicationContext
     private val sharedPreferences: SharedPreferences =
         PreferenceManager.getDefaultSharedPreferences(applicationContext)
+
+    private val _sessionIdChanged = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val sessionIdChanged: SharedFlow<String> = _sessionIdChanged.asSharedFlow()
+
+    init {
+        BitdriftInit.setOnSessionIdChangedListener { sessionId ->
+            _sessionIdChanged.tryEmit(sessionId)
+        }
+    }
 
     suspend fun initializeSdk(
         apiKey: String,

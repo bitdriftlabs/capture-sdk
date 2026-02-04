@@ -8,6 +8,7 @@
 package io.bitdrift.gradletestapp.ui.viewmodel
 
 import android.app.Application
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.bitdrift.capture.Capture.Logger
@@ -52,6 +53,17 @@ class MainViewModel(
     init {
         viewModelScope.launch {
             initializeSdkConfig()
+        }
+        viewModelScope.launch {
+            sdkRepository.sessionIdChanged.collect { sessionId ->
+                Timber.i("Session ID changed to: $sessionId, updating UI state")
+                Toast.makeText(
+                    application,
+                    "Session ID changed: $sessionId",
+                    Toast.LENGTH_LONG
+                ).show()
+                updateSdkState()
+            }
         }
     }
 
