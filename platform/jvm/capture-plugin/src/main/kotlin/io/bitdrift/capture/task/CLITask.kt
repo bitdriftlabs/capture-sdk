@@ -198,10 +198,6 @@ class BDCLIDownloader(
                     runCatching { Files.deleteIfExists(tempPath) }
                     throw IOException("Failed to download bd cli tool from $bdcliDownloadLoc", e)
                 }
-
-                if (!executableFilePath.exists()) {
-                    throw IOException("Failed to download bd cli tool from $bdcliDownloadLoc")
-                }
             }
         }
     }
