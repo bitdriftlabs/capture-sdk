@@ -1,0 +1,35 @@
+# Capture SDK - Exported Symbols List
+# Only these symbols will be visible externally from the dynamic framework.
+# All other symbols (including Rust runtime) will be hidden.
+#
+# This uses Apple ld's wildcard syntax:
+# - * matches zero or more characters
+# - ? matches one character
+# - [abc] matches a, b, or c
+
+# Swift module symbols - Capture module (all public Swift API)
+_$s7Capture*
+
+# Swift module symbols - CapturePassable module
+_$s15CapturePassable*
+
+# Swift extensions on Objective-C classes (e.g., NSURLSession.instrumentedSession)
+# These have mangled names like _$sSo{ObjCClassName}C7CaptureE{methodName}...
+_$sSo*7CaptureE*
+_$sSo*15CapturePassableE*
+
+# Objective-C classes (Swift-generated with mangled names)
+_OBJC_CLASS_$__TtC7Capture*
+_OBJC_METACLASS_$__TtC7Capture*
+_OBJC_CLASS_$__TtC15CapturePassable*
+_OBJC_METACLASS_$__TtC15CapturePassable*
+
+# Pure ObjC classes exposed for ObjC compatibility
+_OBJC_CLASS_$_CAPLogger
+_OBJC_METACLASS_$_CAPLogger
+_OBJC_CLASS_$_CAPSessionStrategy
+_OBJC_METACLASS_$_CAPSessionStrategy
+_OBJC_CLASS_$_CAPProxyURLSessionDelegate
+_OBJC_METACLASS_$_CAPProxyURLSessionDelegate
+_OBJC_CLASS_$_CAPProxyURLSessionTaskDelegate
+_OBJC_METACLASS_$_CAPProxyURLSessionTaskDelegate
