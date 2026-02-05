@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.4...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.5...HEAD
 
 ### Both
 
@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- io.bitdrift.capture-plugin: Harden `bdUpload` task for CI scenarios.
+- Nothing yet!
 
 ### iOS
 
@@ -44,6 +44,16 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.22.5]
+
+[0.22.5]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.5
+
+### Android
+
+**Added**
+
+- io.bitdrift.capture-plugin: Harden `bdUpload` task for CI scenarios.
 
 ## [0.22.4]
 
