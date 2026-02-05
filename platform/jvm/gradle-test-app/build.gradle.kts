@@ -84,8 +84,8 @@ android {
         applicationId = "io.bitdrift.gradletestapp"
         minSdk = 23
         targetSdk = 36
-        versionCode = 66
-        versionName = "1.0"
+        versionCode = 80
+        versionName = "2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

@@ -24,6 +24,7 @@ import io.bitdrift.capture.events.AppUpdateListenerLogger
 import io.bitdrift.capture.events.SessionReplayTarget
 import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.events.device.DeviceStateListenerLogger
+import io.bitdrift.capture.events.interaction.TouchInteractionListener
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.AppLifecycleListenerLogger
 import io.bitdrift.capture.events.lifecycle.EventsListenerTarget
@@ -255,6 +256,7 @@ internal class LoggerImpl(
         )
 
         addJankStatsMonitorTarget(windowManager, context)
+        addTouchInteractionListenerTarget(context)
 
         appExitLogger =
             AppExitLogger(
@@ -677,6 +679,21 @@ internal class LoggerImpl(
             }
         } else {
             errorHandler.handleError("Couldn't start JankStatsMonitor. Invalid application provided")
+        }
+    }
+
+    private fun addTouchInteractionListenerTarget(context: Context) {
+        if (context is Application) {
+            eventsListenerTarget.add(
+                TouchInteractionListener(
+                    application = context,
+                    logger = this,
+                    runtime = runtime,
+                    executor = eventListenerDispatcher.executorService,
+                ),
+            )
+        } else {
+            errorHandler.handleError("Couldn't start TouchInteractionListener. Invalid application provided")
         }
     }
 }

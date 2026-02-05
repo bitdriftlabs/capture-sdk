@@ -62,6 +62,11 @@ sealed class RuntimeFeature(
      * Whether Dropped Frames reporting is enabled
      */
     data object DROPPED_EVENTS_MONITORING : RuntimeFeature("client_feature.android.dropped_frames_reporting", defaultValue = true)
+
+    /**
+     * Whether touch interaction tracking is enabled
+     */
+    data object TOUCH_INTERACTION_EVENTS : RuntimeFeature("client_feature.android.touch_interaction_reporting", defaultValue = true)
 }
 
 /**
