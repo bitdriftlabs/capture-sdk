@@ -132,23 +132,18 @@ internal class TouchInteractionListener(
                 return@execute
             }
 
-            val fields = fieldsOfOptional(
-                "_activity" to touchData.activityName,
-                "_view_type" to touchData.viewType,
-                "_view_class" to touchData.viewClass,
-                "_view_id" to touchData.viewId,
-                "_view_tag" to touchData.viewTag,
-                "_content_description" to touchData.contentDescription,
-                "_text" to touchData.text,
-                "_x" to touchData.x.toString(),
-                "_y" to touchData.y.toString(),
-            )
-
-            logger.logInternal(
-                LogType.UX,
-                LogLevel.DEBUG,
-                fields,
-            ) { TOUCH_INTERACTION_MESSAGE }
+            val fields =
+                fieldsOfOptional(
+                    "_tag_name" to touchData.activityName,
+                    "_source" to "webview",
+                    "_element_id" to touchData.viewId,
+                    "_class_name" to touchData.viewType,
+                    "_text_content" to touchData.contentDescription,
+                )
+            val level = LogLevel.DEBUG
+            logger.logInternal(LogType.UX, level, fields) {
+                "webview.userInteraction"
+            }
         }
     }
 
