@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- io.bitdrift.capture-plugin: Harden `bdUpload` task for CI scenarios.
 
 ### iOS
 

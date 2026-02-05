@@ -15,6 +15,13 @@ import org.w3c.dom.Document
 import java.io.File
 import java.io.IOException
 import java.net.URI
+import java.nio.channels.FileChannel
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardCopyOption
+import java.nio.file.StandardOpenOption
+import java.util.UUID
 import javax.xml.parsers.DocumentBuilderFactory
 
 abstract class CLIUploadMappingTask : CLITask() {
@@ -167,20 +174,49 @@ class BDCLIDownloader(
         }
 
     fun downloadIfNeeded() {
-        if (executableFilePath.exists()) {
-            return
-        }
         val parentDir = executableFilePath.parentFile
         if (!parentDir.exists() && !parentDir.mkdirs()) {
             throw IOException("Could not create path '${parentDir.absolutePath}' to contain the downloaded binary")
         }
-        try {
-            executableFilePath.writeBytes(bdcliDownloadLoc.toURL().readBytes())
-        } catch (e: Exception) {
-            throw IOException("Failed to download bd cli tool from $bdcliDownloadLoc", e)
+
+        val lockFilePath: Path = parentDir.toPath().resolve("bd.install.lock")
+        FileChannel.open(
+            lockFilePath,
+            StandardOpenOption.CREATE,
+            StandardOpenOption.WRITE,
+        ).use { fileChannel ->
+            fileChannel.lock().use {
+                // Check only after acquiring the lock
+                if (executableFilePath.exists()) return
+
+                val tempPath = parentDir.toPath().resolve("bd.${UUID.randomUUID()}.tmp")
+                try {
+                    Files.write(tempPath, bdcliDownloadLoc.toURL().readBytes())
+                    tempPath.markAsExecutable()
+                    tempPath.moveSafelyTo(executableFilePath.toPath())
+                } catch (e: Exception) {
+                    runCatching { Files.deleteIfExists(tempPath) }
+                    throw IOException("Failed to download bd cli tool from $bdcliDownloadLoc", e)
+                }
+            }
         }
-        if (!executableFilePath.setExecutable(true)) {
-            throw IOException("Could not mark ${executableFilePath.absolutePath} as executable")
+    }
+    private fun Path.moveSafelyTo(dest: Path) {
+        try {
+            Files.move(
+                this,
+                dest,
+                StandardCopyOption.ATOMIC_MOVE,
+            )
+        } catch (_: AtomicMoveNotSupportedException) {
+            Files.move(this, dest)
+        }
+    }
+
+    private fun Path.markAsExecutable() {
+        val tempFile = this.toFile()
+        if (!tempFile.setExecutable(true, false)) {
+            throw IOException("Could not mark ${tempFile.absolutePath} as executable")
         }
     }
 }
