@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Gradle plugin: Harden `bdUpload` task for CI scenarios.
 
 ### iOS
 
