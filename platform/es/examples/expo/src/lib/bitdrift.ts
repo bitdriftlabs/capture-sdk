@@ -15,8 +15,9 @@ if (BITDRIFT_API_KEY) {
   init(BITDRIFT_API_KEY, SessionStrategy.Fixed, {
     url: process.env.EXPO_PUBLIC_BITDRIFT_API_URL ?? 'https://api.bitdrift.io',
     enableNetworkInstrumentation: true,
+    
+    // enableNativeFatalIssues Should be enabled by default
     crashReporting: {
-      enableNativeFatalIssues: true,
       UNSTABLE_enableJsErrors: true,
     },
   });
