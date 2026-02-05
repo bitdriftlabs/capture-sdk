@@ -36,8 +36,8 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
   override fun init(key: String, sessionStrategy: String, options: ReadableMap?) {
     val apiUrl = options?.getString("url") ?: "https://api.bitdrift.io"
     val crashReportingOptions = options?.getMap("crashReporting")
-    val enableNativeFatalIssues = crashReportingOptions?.getBoolean("enableNativeFatalIssues") ?: true
-    val enableJsErrors = crashReportingOptions?.getBoolean("UNSTABLE_enableJsErrors") ?: false
+    val enableNativeFatalIssues = crashReportingOptions.getBooleanOrDefault("enableNativeFatalIssues", true)
+    val enableJsErrors = crashReportingOptions.getBooleanOrDefault("UNSTABLE_enableJsErrors", false)
 
     ReportDirectory.setupWatcherDirectory(reactApplicationContext, enableJsErrors)
 
@@ -148,5 +148,8 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
 
   companion object {
     const val NAME = "BdReactNative"
+
+    private fun ReadableMap?.getBooleanOrDefault(key: String, defaultValue: Boolean): Boolean =
+      this?.takeIf { it.hasKey(key) }?.getBoolean(key) ?: defaultValue
   }
 }
