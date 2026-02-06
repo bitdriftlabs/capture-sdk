@@ -8,7 +8,8 @@
 package io.bitdrift.capture.task
 
 import org.gradle.api.DefaultTask
-import org.gradle.api.file.Directory
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.w3c.dom.Document
@@ -28,9 +29,9 @@ abstract class CLIUploadMappingTask : CLITask() {
     @TaskAction
     fun action() {
         // e.g. build/intermediates/packaged_manifests/release/processReleaseManifestForPackage/AndroidManifest.xml
-        val androidManifestXmlFile = buildDir.asFile.mostRecentSubfileNamed("AndroidManifest.xml")
+        val androidManifestXmlFile = buildDir.get().asFile.mostRecentSubfileNamed("AndroidManifest.xml")
         // e.g. build/outputs/mapping/release/mapping.txt
-        val mappingTxtFile = buildDir.asFile.mostRecentSubfileNamed("mapping.txt")
+        val mappingTxtFile = buildDir.get().asFile.mostRecentSubfileNamed("mapping.txt")
 
         val manifest = androidManifestXmlFile.asXmlDocument().documentElement
         val appId = manifest.getAttribute("package")
@@ -57,7 +58,7 @@ abstract class CLIUploadSymbolsTask : CLITask() {
     @TaskAction
     fun action() {
         // e.g. build/intermediates/merged_native_libs/release/mergeReleaseNativeLibs
-        val nativeLibsDir = buildDir.asFile.mostRecentSubfileMatching(".*merge.*NativeLibs".toRegex())
+        val nativeLibsDir = buildDir.get().asFile.mostRecentSubfileMatching(".*merge.*NativeLibs".toRegex())
         runBDCLI(listOf("debug-files", "upload", nativeLibsDir.absolutePath))
     }
 }
@@ -66,9 +67,9 @@ abstract class CLIUploadSourceMapTask : CLITask() {
     @TaskAction
     fun action() {
         // e.g. build/generated/sourcemaps/react/release/index.android.bundle.map
-        val sourceMapFile = buildDir.asFile.mostRecentSubfileNamedOrNull("index.android.bundle.map")
+        val sourceMapFile = buildDir.get().asFile.mostRecentSubfileNamedOrNull("index.android.bundle.map")
         // e.g. build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle
-        val bundleFile = buildDir.asFile.mostRecentSubfileNamedOrNull("index.android.bundle")
+        val bundleFile = buildDir.get().asFile.mostRecentSubfileNamedOrNull("index.android.bundle")
 
         if (sourceMapFile == null || bundleFile == null) {
             println("No React Native sourcemaps found, skipping upload")
@@ -89,14 +90,19 @@ abstract class CLIUploadSourceMapTask : CLITask() {
 }
 
 abstract class CLITask : DefaultTask() {
-    @Internal
-    val buildDir: Directory = project.layout.buildDirectory.get()
+    @get:Internal
+    abstract val buildDir: DirectoryProperty
 
-    @Internal
-    val bdcliFile: File = buildDir.dir("bin").file("bd").asFile
+    @get:Internal
+    abstract val baseDomain: Property<String>
 
-    @Internal
-    val downloader = BDCLIDownloader(bdcliFile)
+    @get:Internal
+    val bdcliFile: File
+        get() = buildDir.file("bin/bd").get().asFile
+
+    @get:Internal
+    val downloader: BDCLIDownloader
+        get() = BDCLIDownloader(bdcliFile)
 
     fun runBDCLI(args: List<String>) {
         checkEnvironment()
@@ -105,13 +111,7 @@ abstract class CLITask : DefaultTask() {
     }
 
     private fun withBaseDomain(args: List<String>): List<String> {
-        val baseDomain =
-            project.extensions
-                .findByType(io.bitdrift.capture.extension.BitdriftPluginExtension::class.java)
-                ?.baseDomain
-                ?.orNull
-                ?.trim()
-                .orEmpty()
+        val baseDomain = baseDomain.orNull?.trim().orEmpty()
         return if (baseDomain.isNotEmpty()) {
             listOf("--base-domain", baseDomain) + args
         } else {
