@@ -37,16 +37,22 @@ abstract class CapturePlugin
             target.tasks.register("bdUploadMapping", CLIUploadMappingTask::class.java) { task ->
                 task.description = "Upload mapping to Bitdrift"
                 task.group = "Upload"
+                task.buildDir.set(target.layout.buildDirectory)
+                task.baseDomain.set(extension.baseDomain)
             }
 
             target.tasks.register("bdUploadSymbols", CLIUploadSymbolsTask::class.java) { task ->
                 task.description = "Upload symbols to Bitdrift"
                 task.group = "Upload"
+                task.buildDir.set(target.layout.buildDirectory)
+                task.baseDomain.set(extension.baseDomain)
             }
 
             target.tasks.register("bdUploadSourceMap", CLIUploadSourceMapTask::class.java) { task ->
                 task.description = "Upload source map to Bitdrift"
                 task.group = "Upload"
+                task.buildDir.set(target.layout.buildDirectory)
+                task.baseDomain.set(extension.baseDomain)
             }
 
             target.tasks.register("bdUpload") { task ->
