@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitdrift SDK Test Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .rage-flash { animation: flash 0.1s ease-in-out; }
+        @keyframes flash {
+            0%, 100% { background-color: #fecaca; }
+            50% { background-color: #ef4444; }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen p-4">
+    <div id="app" class="max-w-lg mx-auto space-y-4"></div>
+
+    <script type="module">
+        import { html, render } from 'https://esm.run/lit-html';
+
+        // State
+        const state = {
+            networkStatus: '',
+            currentPath: location.pathname + location.hash,
+            longTaskBtn: 'Block Main Thread (150ms)',
+            inpBtn: 'Click for INP Measurement',
+            clsItems: [],
+            resourceErrors: [],
+            navCounter: 0,
+            pageLoadTime: new Date().toLocaleTimeString(),
+            memoryLeakStatus: '',
+            leakedData: [],
+        };
+
+        const rerender = () => render(App(), document.getElementById('app'));
+        window.addEventListener('popstate', () => { state.currentPath = location.pathname + location.hash; rerender(); });
+
+        // Helpers
+        const btn = (color, label, onClick, cls = '') =>
+            html`<button @click=${onClick} class="bg-${color}-500 hover:bg-${color}-600 text-white py-2 px-3 rounded text-sm transition ${cls}">${label}</button>`;
+
+        const card = (icon, title, desc, content) => html`
+            <section class="bg-gray-800 rounded-lg p-4 shadow-md">
+                <h2 class="text-lg font-semibold text-gray-100 mb-3">${icon} ${title}</h2>
+                <p class="text-sm text-gray-400 mb-3">${desc}</p>
+                ${content}
+            </section>`;
+
+        // Actions
+        const actions = {
+            cls: () => { state.clsItems = [...state.clsItems, Date.now()]; rerender(); },
+            inp: (e) => {
+                const start = Date.now(); while (Date.now() - start < 20);
+                state.inpBtn = 'Clicked! (INP recorded)'; rerender();
+                setTimeout(() => { state.inpBtn = 'Click for INP Measurement'; rerender(); }, 1000);
+            },
+            fetch: async (url, label) => {
+                state.networkStatus = 'Fetching...'; rerender();
+                try {
+                    const r = await fetch(url);
+                    state.networkStatus = `${r.ok ? '✅' : '⚠️'} ${label}: ${r.status}`;
+                } catch (e) { state.networkStatus = `❌ ${label}: ${e.message}`; }
+                rerender();
+            },
+            xhr: () => {
+                state.networkStatus = 'XHR requesting...'; rerender();
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', 'https://httpbin.org/json');
+                xhr.onload = () => { state.networkStatus = `✅ XHR: ${xhr.status}`; rerender(); };
+                xhr.onerror = () => { state.networkStatus = '❌ XHR failed'; rerender(); };
+                xhr.send();
+            },
+            pushState: () => { history.pushState({}, '', `/page-${++state.navCounter}`); state.currentPath = location.pathname; rerender(); },
+            replaceState: () => { history.replaceState({}, '', `/replaced-${Date.now()}`); state.currentPath = location.pathname; rerender(); },
+            back: () => history.back(),
+            longTask: () => {
+                state.longTaskBtn = 'Blocking...'; rerender();
+                setTimeout(() => {
+                    const start = Date.now(); while (Date.now() - start < 150);
+                    state.longTaskBtn = 'Done! (150ms blocked)'; rerender();
+                    setTimeout(() => { state.longTaskBtn = 'Block Main Thread (150ms)'; rerender(); }, 1500);
+                }, 10);
+            },
+            brokenResource: (type) => {
+                const ts = Date.now();
+                if (type === 'img') {
+                    const img = document.createElement('img');
+                    img.src = `https://example.com/missing-${ts}.jpg`;
+                    document.body.appendChild(img); img.remove();
+                } else if (type === 'script') {
+                    const s = document.createElement('script');
+                    s.src = `https://example.com/missing-${ts}.js`;
+                    document.head.appendChild(s);
+                } else {
+                    const l = document.createElement('link');
+                    l.rel = 'stylesheet'; l.href = `https://example.com/missing-${ts}.css`;
+                    document.head.appendChild(l);
+                }
+                state.resourceErrors = [...state.resourceErrors, `${type} @ ${new Date().toLocaleTimeString()}`];
+                rerender();
+            },
+            console: (method) => {
+                const msg = `Test ${method} message`;
+                if (method === 'log') console.log(msg, { key: 'value', number: 42 });
+                else if (method === 'warn') console.warn(msg);
+                else if (method === 'error') console.error(msg, new Error('Sample error'));
+                else if (method === 'info') console.info(msg);
+                else console.debug(msg);
+            },
+            throwError: () => setTimeout(() => { throw new Error('Test uncaught error'); }, 0),
+            refError: () => setTimeout(() => { undefinedVar.foo(); }, 0),
+            promiseReject: () => Promise.reject(new Error('Test unhandled rejection')),
+            rageFlash: (e) => { e.target.classList.add('rage-flash'); setTimeout(() => e.target.classList.remove('rage-flash'), 100); },
+            createMemoryLeak: () => {
+                const leakSize = 10 * 1024 * 1024;
+                const largeArray = new Array(leakSize).fill('x'.repeat(100));
+                state.leakedData.push({
+                    data: largeArray,
+                    timestamp: Date.now(),
+                    listeners: [],
+                    dom: []
+                });
+                for (let i = 0; i < 1000; i++) {
+                    const handler = () => { console.log('leaked handler', largeArray.length); };
+                    window.addEventListener('fake-event-' + i, handler);
+                    state.leakedData[state.leakedData.length - 1].listeners.push(handler);
+                }
+                for (let i = 0; i < 100; i++) {
+                    const div = document.createElement('div');
+                    div.innerHTML = 'x'.repeat(10000);
+                    div.leakedRef = largeArray;
+                    state.leakedData[state.leakedData.length - 1].dom.push(div);
+                }
+                const sizeMB = (leakSize * 100 / (1024 * 1024)).toFixed(1);
+                state.memoryLeakStatus = `Leaked ~${sizeMB}MB (${state.leakedData.length} leaks total)`;
+                rerender();
+            },
+        };
+
+        // Check for SDK integration
+        const isSdkConfigured = () => window.bitdrift?.config;
+
+        // App template
+        const App = () => html`
+            <header class="bg-indigo-600 text-white rounded-lg p-4 shadow-md">
+                <h1 class="text-xl font-bold">Bitdrift SDK Test Page</h1>
+                <p class="text-indigo-200 text-sm mt-1">Trigger instrumentation events and observe in logcat</p>
+            </header>
+
+            ${!isSdkConfigured() ? html`
+                <div class="bg-yellow-900 border border-yellow-600 rounded-lg p-4 shadow-md">
+                    <h2 class="text-lg font-semibold text-yellow-200 mb-2">⚠️ SDK Not Configured</h2>
+                    <p class="text-sm text-yellow-300">The Bitdrift SDK WebView integration is not configured. <code class="bg-yellow-800 px-1 rounded">window.bitdrift.config</code> was not found.</p>
+                    <p class="text-sm text-yellow-400 mt-2">Please ensure the WebView is set up with the Bitdrift SDK's WebView integration to capture events.</p>
+                </div>
+            ` : ''}
+
+            ${card('🎯', 'Web Vitals', 'LCP, CLS, INP, FCP, TTFB are automatically captured on page load.', html`
+                <div class="space-y-2">
+                    ${btn('amber', 'Cause Layout Shift (CLS)', actions.cls, 'w-full')}
+                    ${btn('blue', state.inpBtn, actions.inp, 'w-full')}
+                </div>
+                <div class="mt-3">
+                    ${state.clsItems.map(() => html`<div class="bg-amber-900 border border-amber-600 text-amber-200 p-4 rounded mb-2">Layout shift triggered!</div>`)}
+                </div>
+                <img src="https://picsum.photos/400/200" alt="LCP test" class="w-full h-auto mt-3 rounded" />
+            `)}
+
+            ${card('🌐', 'Network', 'Trigger fetch/XHR requests to test network interception.', html`
+                <div class="grid grid-cols-2 gap-2">
+                    ${btn('green', 'Fetch Success', () => actions.fetch('https://httpbin.org/get', 'Success'))}
+                    ${btn('red', 'Fetch 500', () => actions.fetch('https://httpbin.org/status/500', '500 Error'))}
+                    ${btn('red', 'Network Fail', () => actions.fetch('https://invalid-xyz.test/', 'Network'), 'bg-red-700 hover:bg-red-800')}
+                    ${btn('purple', 'XHR Request', actions.xhr)}
+                </div>
+                <p class="mt-3 text-sm text-gray-300">${state.networkStatus}</p>
+            `)}
+
+            ${card('🧭', 'Navigation', 'Trigger SPA-style navigation events.', html`
+                <div class="grid grid-cols-2 gap-2">
+                    ${btn('teal', 'pushState', actions.pushState)}
+                    ${btn('teal', 'replaceState', actions.replaceState, 'bg-teal-600 hover:bg-teal-700')}
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                    ${btn('teal', 'Back', actions.back, 'bg-teal-700 hover:bg-teal-800')}
+                    <a href="secondary.html" class="bg-cyan-500 hover:bg-cyan-600 text-white py-2 px-3 rounded text-sm text-center transition">Navigate →</a>
+                </div>
+                <p class="mt-3 text-sm text-gray-400">Current path: ${state.currentPath}</p>
+            `)}
+
+            ${card('⏱️', 'Long Tasks', 'Block the main thread for >50ms to trigger long task detection.', html`
+                ${btn('orange', state.longTaskBtn, actions.longTask, 'w-full')}
+            `)}
+
+            ${card('💔', 'Resource Errors', 'Inject broken resources to trigger error capture.', html`
+                <div class="grid grid-cols-3 gap-2">
+                    ${btn('rose', 'Broken Image', () => actions.brokenResource('img'))}
+                    ${btn('rose', 'Broken Script', () => actions.brokenResource('script'), 'bg-rose-600 hover:bg-rose-700')}
+                    ${btn('rose', 'Broken CSS', () => actions.brokenResource('css'), 'bg-rose-700 hover:bg-rose-800')}
+                </div>
+                <div class="mt-3 text-xs text-red-400">${state.resourceErrors.map(e => html`<div>${e}</div>`)}</div>
+            `)}
+
+            ${card('📝', 'Console Capture', 'Trigger various console methods.', html`
+                <div class="grid grid-cols-5 gap-2">
+                    ${btn('gray', 'log', () => actions.console('log'), 'text-xs py-2 px-2')}
+                    ${btn('yellow', 'warn', () => actions.console('warn'), 'text-xs py-2 px-2')}
+                    ${btn('red', 'error', () => actions.console('error'), 'text-xs py-2 px-2')}
+                    ${btn('blue', 'info', () => actions.console('info'), 'text-xs py-2 px-2')}
+                    ${btn('purple', 'debug', () => actions.console('debug'), 'text-xs py-2 px-2')}
+                </div>
+            `)}
+
+            ${card('👆', 'User Interactions', 'Click various elements to test interaction tracking.', html`
+                <div class="space-y-2">
+                    <button class="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded transition">Regular Button</button>
+                    <a href="#link-test" class="block text-center bg-indigo-400 hover:bg-indigo-500 text-white py-2 px-4 rounded transition">Link Click</a>
+                    <label class="flex items-center space-x-2 p-2 bg-gray-700 rounded cursor-pointer">
+                        <input type="checkbox" class="w-5 h-5" /><span class="text-gray-200">Checkbox</span>
+                    </label>
+                    <div role="button" tabindex="0" class="text-center bg-indigo-600 hover:bg-indigo-500 text-indigo-100 py-2 px-4 rounded cursor-pointer transition">role="button"</div>
+                </div>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-400 mb-2">Redacted Content Test (should be masked in logs):</p>
+                    <div class="bg-gray-700 rounded p-3 space-y-2">
+                        <input data-redacted type="text" value="john.doe@example.com" placeholder="Email" class="w-full bg-gray-600 text-gray-200 text-sm px-3 py-2 rounded" />
+                        <input data-redacted type="password" value="MySecretPass123" placeholder="Password" class="w-full bg-gray-600 text-gray-200 text-sm px-3 py-2 rounded" />
+                        <input data-redacted type="tel" value="(555) 123-4567" placeholder="Phone" class="w-full bg-gray-600 text-gray-200 text-sm px-3 py-2 rounded" />
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-400 mb-2">Rage Click Target (click rapidly 3+ times):</p>
+                    <div @click=${actions.rageFlash} class="bg-red-900 border-2 border-dashed border-red-600 rounded p-8 text-center text-red-300 select-none cursor-pointer">Click here rapidly!</div>
+                </div>
+            `)}
+
+            ${card('💥', 'Errors & Promise Rejections', 'Trigger uncaught errors and unhandled rejections.', html`
+                <div class="grid grid-cols-3 gap-2">
+                    ${btn('red', 'Throw Error', actions.throwError, 'bg-red-600 hover:bg-red-700')}
+                    ${btn('red', 'ReferenceError', actions.refError, 'bg-red-700 hover:bg-red-800')}
+                    ${btn('red', 'Promise.reject', actions.promiseReject, 'bg-red-800 hover:bg-red-900')}
+                </div>
+            `)}
+
+            ${card('💥', 'Memory Leak', 'Create memory leak when tapping multiple times.', html`
+                ${btn('red', 'Create Memory Leak (~100MB)', actions.createMemoryLeak, 'w-full bg-red-600 hover:bg-red-700')}
+                ${state.memoryLeakStatus ? html`<p class="mt-3 text-sm text-yellow-400">⚠️ ${state.memoryLeakStatus}</p>` : ''}
+                <p class="mt-2 text-xs text-gray-500">Each click leaks ~100MB of memory, creates 1000 event listeners, and 100 detached DOM nodes.</p>
+            `)}
+
+            ${card('📄', 'Page View', 'Page view is tracked automatically. Use navigation buttons to trigger new page views.', html`
+                <p class="text-sm text-gray-400">Page loaded at: ${state.pageLoadTime}</p>
+            `)}
+
+            <footer class="text-center text-gray-500 text-sm py-4">Bitdrift Capture SDK Test Page</footer>
+        `;
+
+        rerender();
+    </script>
+</body>
+</html>
