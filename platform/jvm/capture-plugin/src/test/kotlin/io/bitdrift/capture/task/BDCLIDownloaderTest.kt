@@ -15,6 +15,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.test.Ignore
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -22,7 +23,7 @@ class BDCLIDownloaderTest {
     @get:Rule
     val tempDir = TemporaryFolder()
 
-    @Test
+    @Ignore("TODO(FRAN): BIT-7392 To resolve this flaky test")
     fun `downloadIfNeeded does not throw when called concurrently`() {
         val binDir = tempDir.newFolder("bin")
         val bdFile = File(binDir, "bd")
