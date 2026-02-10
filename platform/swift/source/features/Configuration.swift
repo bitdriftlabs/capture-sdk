@@ -12,6 +12,9 @@ public struct Configuration {
     /// The session replay configuration. Pass `nil` to disable session replay.
     public var sessionReplayConfiguration: SessionReplayConfiguration?
 
+    /// The WebView configuration. Pass `nil` to disable WebView monitoring.
+    public var webViewConfiguration: WebViewConfiguration?
+
     /// .enabled if Capture should initialize in minimal activity mode
     public var sleepMode: SleepMode
 
@@ -28,6 +31,7 @@ public struct Configuration {
     /// Initializes a new instance of the Capture configuration.
     ///
     /// - parameter sessionReplayConfiguration: The session replay configuration to use. Passing `nil` disables the feature.
+    /// - parameter webViewConfiguration:       The WebView configuration to use. Passing `nil` disables WebView monitoring.
     /// - parameter sleepMode:                  .enabled if Capture should initialize in minimal activity mode
     /// - parameter enableFatalIssueReporting:  true if Capture should enable Fatal Issue Reporting
     /// - parameter apiURL:                     The base URL of Capture API. Depend on its default value unless
@@ -37,6 +41,7 @@ public struct Configuration {
     ///                                         the default location (i.e. The app's document directory).
     public init(
         sessionReplayConfiguration: SessionReplayConfiguration? = .init(),
+        webViewConfiguration: WebViewConfiguration? = nil,
         sleepMode: SleepMode = .disabled,
         enableFatalIssueReporting: Bool = true,
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
@@ -44,6 +49,7 @@ public struct Configuration {
         rootFileURL: URL? = nil
     ) {
         self.sessionReplayConfiguration = sessionReplayConfiguration
+        self.webViewConfiguration = webViewConfiguration
         self.sleepMode = sleepMode
         self.enableFatalIssueReporting = enableFatalIssueReporting
         self.apiURL = apiURL
