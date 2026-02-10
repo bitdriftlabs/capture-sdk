@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- io.bitdrift.capture-plugin: Further improvements on `bdUpload` task.
 
 ### iOS
 
