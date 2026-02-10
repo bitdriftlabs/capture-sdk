@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.5...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.6...HEAD
 
 ### Both
 
@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- io.bitdrift.capture-plugin: Further improvements on `bdUpload` task.
+- Nothing yet!
 
 ### iOS
 
@@ -44,6 +44,16 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.22.6]
+
+[0.22.6]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.6
+
+### Android
+
+**Added**
+
+- io.bitdrift.capture-plugin: Further improvements on `bdUpload` task.
 
 ## [0.22.5]
 
