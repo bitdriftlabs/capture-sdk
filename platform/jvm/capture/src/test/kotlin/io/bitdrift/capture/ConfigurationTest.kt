@@ -45,6 +45,7 @@ class ConfigurationTest {
                 anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),
+                anyOrNull(),
             ),
         ).thenReturn(-1L)
 
@@ -77,6 +78,7 @@ class ConfigurationTest {
             anyOrNull(),
             anyOrNull(),
             anyOrNull(),
+            anyOrNull(),
         )
 
         // We perform another attempt to configure the logger to verify that
@@ -92,6 +94,7 @@ class ConfigurationTest {
 
         // We verify that the second configure call was a no-op.
         verify(bridge, times(1)).createLogger(
+            anyOrNull(),
             anyOrNull(),
             anyOrNull(),
             anyOrNull(),

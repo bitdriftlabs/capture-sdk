@@ -26,6 +26,7 @@ internal interface IBridge {
         network: ICaptureNetwork,
         preferences: IPreferences,
         errorReporter: IErrorReporter,
+        issueReportCallback: IssueReportCallback?,
         startInSleepMode: Boolean,
     ): Long
 }

@@ -69,6 +69,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         network: ICaptureNetwork,
         preferences: IPreferences,
         errorReporter: IErrorReporter,
+        issueReportCallback: IssueReportCallback?,
         startInSleepMode: Boolean,
     ): Long
 
@@ -124,6 +125,23 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         loggerId: Long,
         key: String,
         value: String,
+    )
+
+    /**
+     * Adds a field to all issue reports processed by the logger from this point forward.
+     */
+    external fun addIssueField(
+        loggerId: Long,
+        key: String,
+        value: String,
+    )
+
+    /**
+     * Removes a field with a given key from issue reports.
+     */
+    external fun removeIssueField(
+        loggerId: Long,
+        key: String,
     )
 
     /**

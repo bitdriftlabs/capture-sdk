@@ -21,7 +21,8 @@
 
 **Added**
 
-- Nothing yet!
+- Issue report callback to receive report as a string before upload.
+- Add issue fields API to attach custom fields to issue reports.
 
 **Changed**
 

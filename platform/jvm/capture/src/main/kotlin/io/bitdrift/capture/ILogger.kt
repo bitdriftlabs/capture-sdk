@@ -77,6 +77,24 @@ interface ILogger {
     fun removeField(key: String)
 
     /**
+     * Adds a field to all issue reports processed by the logger from this point forward.
+     *
+     * @param key the name of the field to add.
+     * @param value the value of the field to add.
+     */
+    fun addIssueField(
+        key: String,
+        value: String,
+    )
+
+    /**
+     * Removes a field with a given key from issue reports.
+     *
+     * @param key the name of the field to remove.
+     */
+    fun removeIssueField(key: String)
+
+    /**
      * Records a feature flag exposure with a variant. Use this method to track when
      * a user is exposed to a specific feature flag variant in your application. The exposure
      * is recorded with a timestamp and tracked for the duration of the process.

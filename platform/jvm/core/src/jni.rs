@@ -11,39 +11,26 @@ use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandl
 use crate::session::SessionStrategyConfigurationHandle;
 use crate::session_replay::{self, TargetHandler as SessionReplayTargetHandler};
 use crate::{
-  define_object_wrapper,
-  events,
-  ffi,
-  key_value_storage,
-  new_global,
-  report_processing,
-  resource_utilization,
-  session,
+  define_object_wrapper, events, ffi, key_value_storage, new_global, report_processing,
+  resource_utilization, session,
 };
 use anyhow::{anyhow, bail};
 use bd_api::{Platform, PlatformNetworkStream, StreamEvent};
 use bd_client_common::error::InvariantError;
 use bd_error_reporter::reporter::{
-  handle_unexpected,
-  handle_unexpected_error_with_details,
-  with_handle_unexpected,
-  with_handle_unexpected_or,
-  MetadataErrorReporter,
-  UnexpectedErrorHandler,
+  handle_unexpected, handle_unexpected_error_with_details, with_handle_unexpected,
+  with_handle_unexpected_or, MetadataErrorReporter, UnexpectedErrorHandler,
 };
 use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields};
+use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
+  Report, ReportType,
+};
 use bd_proto::protos::logging::payload::LogType;
+use flatbuffers::root;
 use futures_util::FutureExt;
 use jni::descriptors::Desc;
 use jni::objects::{
-  GlobalRef,
-  JClass,
-  JMethodID,
-  JObject,
-  JObjectArray,
-  JPrimitiveArray,
-  JString,
-  JValueGen,
+  GlobalRef, JClass, JMethodID, JObject, JObjectArray, JPrimitiveArray, JString, JValueGen,
   JValueOwned,
 };
 use jni::signature::{Primitive, ReturnType};
@@ -196,6 +183,7 @@ static STACK_TRACE_PROVIDER_INVOKE: OnceLock<CachedMethod> = OnceLock::new();
 
 static REPORT_PROCESSING_SESSION_CURRENT: OnceLock<CachedClass> = OnceLock::new();
 static REPORT_PROCESSING_SESSION_PREVIOUS_RUN: OnceLock<CachedClass> = OnceLock::new();
+static ISSUE_REPORT_CALLBACK_ON_REPORT: OnceLock<CachedMethod> = OnceLock::new();
 
 pub(crate) fn initialize_method_handle<
   'local,
@@ -341,6 +329,14 @@ fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
     Some(&REPORT_PROCESSING_SESSION_PREVIOUS_RUN),
   )?;
 
+  initialize_method_handle(
+    &mut env,
+    "io/bitdrift/capture/IssueReportCallback",
+    "onReport",
+    "(Ljava/lang/String;Ljava/lang/String;Z)V",
+    &ISSUE_REPORT_CALLBACK_ON_REPORT,
+  )?;
+
   key_value_storage::initialize(&mut env)?;
   events::initialize(&mut env)?;
   ffi::initialize(&mut env)?;
@@ -482,7 +478,7 @@ extern "system" fn Java_io_bitdrift_capture_network_Jni_onApiChunkReceived(
 
       let _ignored = stream_state
         .event_tx
-        .blocking_send(StreamEvent::Data((&slice[.. (size as usize)]).into()));
+        .blocking_send(StreamEvent::Data((&slice[..(size as usize)]).into()));
 
       Ok(())
     },
@@ -620,6 +616,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   network: JObject<'_>,
   preferences: JObject<'_>,
   error_reporter: JObject<'_>,
+  issue_report_callback: JObject<'_>,
   start_in_sleep_mode: jboolean,
 ) -> jlong {
   with_handle_unexpected_or(
@@ -667,6 +664,17 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         static_metadata.clone(),
       );
 
+      let issue_report_callback: Option<Arc<dyn bd_crash_handler::ReportCallback>> =
+        if issue_report_callback.is_null() {
+          None
+        } else {
+          Some(Arc::new(new_global!(
+            IssueReportCallbackHandle,
+            &mut env,
+            issue_report_callback
+          )?) as Arc<dyn bd_crash_handler::ReportCallback>)
+        };
+
       let resource_utilization_target = Box::new(new_global!(
         ResourceUtilizationTargetHandler,
         &mut env,
@@ -704,6 +712,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         network: network_manager,
         static_metadata,
         start_in_sleep_mode: start_in_sleep_mode == JNI_TRUE,
+        report_callback: issue_report_callback,
       })
       .with_internal_logger(true)
       .build()
@@ -731,6 +740,43 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
     -1,
     "jni create logger",
   )
+}
+
+define_object_wrapper!(IssueReportCallbackHandle);
+
+impl bd_crash_handler::ReportCallback for IssueReportCallbackHandle {
+  fn on_report(
+    &self,
+    report: &[u8],
+    report_type: ReportType,
+    origin: bd_crash_handler::ReportOrigin,
+  ) {
+    let _ignored = self.execute(|e, callback| {
+      let report_text = root::<Report>(report)
+        .map(|report| format!("{report:?}"))
+        .unwrap_or_else(|_| "<invalid report>".to_string());
+      let report_type = report_type.variant_name().unwrap_or("Unknown");
+      let origin_is_previous = matches!(origin, bd_crash_handler::ReportOrigin::Previous);
+      let is_previous_session = if origin_is_previous { 1 } else { 0 } as jboolean;
+      let report_text = e.new_string(report_text)?;
+      let report_type = e.new_string(report_type)?;
+
+      ISSUE_REPORT_CALLBACK_ON_REPORT
+        .get()
+        .ok_or(InvariantError::Invariant)?
+        .call_method(
+          e,
+          callback,
+          ReturnType::Primitive(Primitive::Void),
+          &[
+            JValueWrapper::JObject(report_text.as_raw()).into(),
+            JValueWrapper::JObject(report_type.as_raw()).into(),
+            JValueWrapper::Boolean(is_previous_session).into(),
+          ],
+        )
+        .map(|_| ())
+    });
+  }
 }
 
 fn set_thread_name(env: &mut JNIEnv<'_>, name: &str) -> anyhow::Result<()> {
@@ -829,6 +875,54 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_addLogField(
       Ok(())
     },
     "jni add log field",
+  );
+}
+
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_addIssueField(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  key: JString<'_>,
+  value: JString<'_>,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let key = unsafe { env.get_string_unchecked(&key) }?
+        .to_string_lossy()
+        .to_string();
+      let value = unsafe { env.get_string_unchecked(&value) }?
+        .to_string_lossy()
+        .to_string();
+
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.add_issue_field(key, value.into());
+
+      Ok(())
+    },
+    "jni add issue field",
+  );
+}
+
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_removeIssueField(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  key: JString<'_>,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let key = unsafe { env.get_string_unchecked(&key) }?
+        .to_string_lossy()
+        .to_string();
+
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.remove_issue_field(&key);
+
+      Ok(())
+    },
+    "jni remove issue field",
   );
 }
 

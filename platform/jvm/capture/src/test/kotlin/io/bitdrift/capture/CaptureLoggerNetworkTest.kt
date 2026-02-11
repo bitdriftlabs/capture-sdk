@@ -91,6 +91,7 @@ class CaptureLoggerNetworkTest {
                 network,
                 mock(),
                 mock(),
+                null,
                 false,
             )
         CaptureJniLibrary.startLogger(logger)
@@ -174,6 +175,7 @@ class CaptureLoggerNetworkTest {
                 network,
                 mock(),
                 mock(),
+                null,
                 false,
             )
         CaptureJniLibrary.startLogger(loggerId)
@@ -210,6 +212,7 @@ class CaptureLoggerNetworkTest {
                 // jni trying to call methods on Mockito mocks.
                 MockPreferences(),
                 mock(),
+                null,
                 false,
             )
         CaptureJniLibrary.startLogger(logger)

@@ -13,6 +13,7 @@ import android.util.Log
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.Configuration
+import io.bitdrift.capture.IssueReportCallback
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
@@ -84,6 +85,10 @@ object BitdriftInit {
                     context = context,
                 )
                 Log.i("GradleTestApp", "Session initialized " + Capture.Logger.sessionUrl)
+
+                repeat(20){
+                    Capture.Logger.addIssueField("my_crash_key $it", "my_crash_value $it")
+                }
                 return true
             }
 
@@ -117,11 +122,22 @@ object BitdriftInit {
 
         val sessionStrategy = getSessionStrategy(sharedPreferences)
         val webViewConfig = getWebViewConfiguration(sharedPreferences)
+        val issueReportCallback = object: IssueReportCallback{
+            override fun onReport(
+                report: String,
+                reportType: String,
+                isPreviousSession: Boolean
+            ) {
+                println("FRAN_TAG: $reportType \n $report \n . $reportType .\n $isPreviousSession")
+            }
+        }
+
         val configuration =
             Configuration(
                 sessionReplayConfiguration = if (sessionReplayEnabled) SessionReplayConfiguration() else null,
                 enableFatalIssueReporting = fatalIssueReporterEnabled,
                 webViewConfiguration = webViewConfig,
+                issueReportCallback = issueReportCallback,
             )
 
         val userID = UUID.randomUUID().toString()
@@ -129,6 +145,7 @@ object BitdriftInit {
             listOf(
                 FieldProvider { mapOf("user_id" to userID) },
             )
+        Capture.Logger.addField("my_crash_key_field", "my_fake_crash")
         val captureSdkInitSettings =
             CaptureSdkInitSettings(
                 apiUrl = apiUrl,

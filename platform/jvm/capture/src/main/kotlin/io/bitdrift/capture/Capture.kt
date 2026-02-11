@@ -234,6 +234,18 @@ object Capture {
             logger()?.startNewSession()
         }
 
+//        @JvmStatic
+//        fun appendMetadataToCrashReports(metadata: Map<String, String>){
+//            // Here to talk to native layer
+//            if(logger() == null){
+//                return
+//            }
+//            val loggerImpl = logger() as LoggerImpl
+//            if(loggerImpl.issueReporter == null){
+//                return
+//            }
+//        }
+
         /**
          * Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a
          * given device in real-time fashion. The creation of the device code requires communication with
@@ -283,6 +295,28 @@ object Capture {
         @JvmStatic
         fun removeField(key: String) {
             logger()?.removeField(key)
+        }
+
+        /**
+         * Adds a field to all issue reports processed by the logger from this point forward.
+         *
+         * @param key the name of the field to add.
+         * @param value the value of the field to add.
+         */
+        fun addIssueField(
+            key: String,
+            value: String,
+        ) {
+            logger()?.addIssueField(key, value)
+        }
+
+        /**
+         * Removes a field with a given key from issue reports.
+         *
+         * @param key the name of the field to remove.
+         */
+        fun removeIssueField(key: String) {
+            logger()?.removeIssueField(key)
         }
 
         /**

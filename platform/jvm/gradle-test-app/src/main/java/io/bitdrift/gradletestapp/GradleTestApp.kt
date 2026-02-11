@@ -42,7 +42,7 @@ class GradleTestApp : Application() {
         sharedPreferences.getBoolean(DEFERRED_START_PREFS_KEY, false)
 
     private fun attachAdditionalMonitoringTools() {
-        StrictModeConfigurator.install()
+        // StrictModeConfigurator.install()
         CrashSdkInitializer.init(this)
         ActivitySpanCallbacks.create()
         AppStartInfoLogger.register(this)

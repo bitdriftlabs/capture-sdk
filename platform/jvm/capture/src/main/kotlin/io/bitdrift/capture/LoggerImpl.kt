@@ -89,7 +89,7 @@ internal class LoggerImpl(
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    private val issueReporter: IIssueReporter? =
+    internal val issueReporter: IIssueReporter? =
         if (configuration.enableFatalIssueReporting) {
             IssueReporter(dateProvider = dateProvider)
         } else {
@@ -209,6 +209,7 @@ internal class LoggerImpl(
                 network,
                 preferences,
                 localErrorReporter,
+                configuration.issueReportCallback,
                 configuration.sleepMode == SleepMode.ENABLED,
             )
 
@@ -404,6 +405,17 @@ internal class LoggerImpl(
 
     override fun removeField(key: String) {
         CaptureJniLibrary.removeLogField(this.loggerId, key)
+    }
+
+    override fun addIssueField(
+        key: String,
+        value: String,
+    ) {
+        CaptureJniLibrary.addIssueField(this.loggerId, key, value)
+    }
+
+    override fun removeIssueField(key: String) {
+        CaptureJniLibrary.removeIssueField(this.loggerId, key)
     }
 
     override fun setFeatureFlagExposure(
