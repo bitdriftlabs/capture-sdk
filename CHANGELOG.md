@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- io.bitdrift.capture-plugin: Fix concurrent `bdUpload` task execution with certain CI scenarios causing `OverlappingFileLockException`.
 
 **Changed**
 
