@@ -174,33 +174,40 @@ class BDCLIDownloader(
         }
 
     fun downloadIfNeeded() {
-        val parentDir = executableFilePath.parentFile
-        if (!parentDir.exists() && !parentDir.mkdirs()) {
-            throw IOException("Could not create path '${parentDir.absolutePath}' to contain the downloaded binary")
-        }
+        synchronized(lock) {
+            if (executableFilePath.exists()) return
 
-        val lockFilePath: Path = parentDir.toPath().resolve("bd.install.lock")
-        FileChannel.open(
-            lockFilePath,
-            StandardOpenOption.CREATE,
-            StandardOpenOption.WRITE,
-        ).use { fileChannel ->
-            fileChannel.lock().use {
-                // Check only after acquiring the lock
-                if (executableFilePath.exists()) return
+            val parentDir = executableFilePath.parentFile
+            if (!parentDir.exists() && !parentDir.mkdirs()) {
+                throw IOException("Could not create path '${parentDir.absolutePath}' to contain the downloaded binary")
+            }
 
-                val tempPath = parentDir.toPath().resolve("bd.${UUID.randomUUID()}.tmp")
-                try {
-                    Files.write(tempPath, bdcliDownloadLoc.toURL().readBytes())
-                    tempPath.markAsExecutable()
-                    tempPath.moveSafelyTo(executableFilePath.toPath())
-                } catch (e: Exception) {
-                    runCatching { Files.deleteIfExists(tempPath) }
-                    throw IOException("Failed to download bd cli tool from $bdcliDownloadLoc", e)
+            val lockFilePath: Path = parentDir.toPath().resolve("bd.install.lock")
+            FileChannel.open(
+                lockFilePath,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.WRITE,
+            ).use { fileChannel ->
+                fileChannel.lock().use {
+                    if (executableFilePath.exists()) return
+
+                    val tempPath = parentDir.toPath().resolve("bd.${UUID.randomUUID()}.tmp")
+                    try {
+                        Files.write(tempPath, bdcliDownloadLoc.toURL().readBytes())
+                        tempPath.markAsExecutable()
+                        tempPath.moveSafelyTo(executableFilePath.toPath())
+                    } catch (e: Exception) {
+                        runCatching { Files.deleteIfExists(tempPath) }
+                        throw IOException(
+                            "Failed to download bd cli tool from $bdcliDownloadLoc",
+                            e
+                        )
+                    }
                 }
             }
         }
     }
+
     private fun Path.moveSafelyTo(dest: Path) {
         try {
             Files.move(
@@ -218,6 +225,10 @@ class BDCLIDownloader(
         if (!tempFile.setExecutable(true, false)) {
             throw IOException("Could not mark ${tempFile.absolutePath} as executable")
         }
+    }
+
+    private companion object {
+        private val lock = Any()
     }
 }
 
