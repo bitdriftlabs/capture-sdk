@@ -15,8 +15,6 @@ brew install llvm
 cargo install rustfilt
 ```
 
-**Note:** The script checks prerequisites on startup and provides installation instructions if anything is missing.
-
 ### Usage
 
 ```bash
@@ -32,10 +30,10 @@ cargo install rustfilt
 
 ```bash
 # Auto-detect architecture
-./symbolicate.sh -d peloton_dump.txt -v 0.19.1
+./symbolicate.sh -d dump.txt -v 0.19.1
 
 # Specify architecture
-./symbolicate.sh -d peloton_dump.txt -v 0.19.1 -a arm64-v8a
+./symbolicate.sh -d dump.txt -v 0.19.1 -a arm64-v8a
 ```
 
 ### Output
