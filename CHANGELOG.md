@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.6...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.7...HEAD
 
 ### Both
 
@@ -21,7 +21,7 @@
 
 **Added**
 
-- io.bitdrift.capture-plugin: Fix concurrent `bdUpload` task execution with certain CI scenarios causing `OverlappingFileLockException`.
+- Nothing yet!
 
 **Changed**
 
@@ -44,6 +44,16 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.22.7]
+
+[0.22.7]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.7
+
+### Android
+
+**Fixed**
+
+- io.bitdrift.capture-plugin: Fix concurrent `bdUpload` task execution with certain CI scenarios causing `OverlappingFileLockException`.
 
 ## [0.22.6]
 
