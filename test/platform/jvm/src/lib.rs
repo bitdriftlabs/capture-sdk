@@ -169,7 +169,9 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
       | DataValue::Boolean(_)
       | DataValue::U64(_)
       | DataValue::I64(_)
-      | DataValue::Double(_) => JObject::null(),
+      | DataValue::Double(_)
+      | DataValue::Map(_)
+      | DataValue::Array(_) => JObject::null(),
     };
 
     // TODO(Augustyniak): Extract the logic below into a helper function.
@@ -322,6 +324,48 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
           },
           DataValue::Double(n) => {
             let value = env.new_string(n.to_string()).unwrap();
+
+            let class = env
+              .find_class("io/bitdrift/capture/providers/FieldValue$StringField")
+              .unwrap();
+
+            let constructor_id = env
+              .get_method_id(&class, "<init>", "(Ljava/lang/String;)V")
+              .unwrap();
+
+            unsafe {
+              env.new_object_unchecked(
+                class,
+                constructor_id,
+                &[JValueWrapper::Object(value.into()).into()],
+              )
+            }
+            .unwrap()
+          },
+          DataValue::Map(m) => {
+            // For test purposes, represent the map as a debug string
+            let value = env.new_string(format!("{m:?}")).unwrap();
+
+            let class = env
+              .find_class("io/bitdrift/capture/providers/FieldValue$StringField")
+              .unwrap();
+
+            let constructor_id = env
+              .get_method_id(&class, "<init>", "(Ljava/lang/String;)V")
+              .unwrap();
+
+            unsafe {
+              env.new_object_unchecked(
+                class,
+                constructor_id,
+                &[JValueWrapper::Object(value.into()).into()],
+              )
+            }
+            .unwrap()
+          },
+          DataValue::Array(a) => {
+            // For test purposes, represent the array as a debug string
+            let value = env.new_string(format!("{a:?}")).unwrap();
 
             let class = env
               .find_class("io/bitdrift/capture/providers/FieldValue$StringField")

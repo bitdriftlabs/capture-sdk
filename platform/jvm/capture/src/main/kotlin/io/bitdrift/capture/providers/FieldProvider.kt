@@ -24,6 +24,7 @@ data class Field(
             return when (value) {
                 is FieldValue.StringField -> value.stringValue
                 is FieldValue.BinaryField -> throw UnsupportedOperationException()
+                is FieldValue.MapField -> throw UnsupportedOperationException()
             }
         }
 
@@ -36,23 +37,25 @@ data class Field(
             return when (value) {
                 is FieldValue.BinaryField -> value.byteArrayValue
                 is FieldValue.StringField -> throw UnsupportedOperationException()
+                is FieldValue.MapField -> value.encode()
             }
         }
 
     /**
-     * The type of the field value. 0 means Binary field (Byte Array), 1 means String.
+     * The type of the field value. 0 means Binary field (Byte Array), 1 means String, 2 means Map.
      */
     val valueType: Int
         get() {
             return when (value) {
                 is FieldValue.BinaryField -> 0
                 is FieldValue.StringField -> 1
+                is FieldValue.MapField -> 2
             }
         }
 }
 
 /**
- * A single field value, representing either a string or a binary value.
+ * A single field value, representing either a string, binary, or map value.
  */
 sealed class FieldValue {
     /**
@@ -83,9 +86,143 @@ sealed class FieldValue {
 
         override fun toString(): String = String(byteArrayValue)
     }
+
+    /**
+     * A map representation of a field value.
+     * The map can contain nested maps and supports the following value types:
+     * - String
+     * - ByteArray
+     * - Boolean
+     * - Long (signed 64-bit)
+     * - ULong (unsigned 64-bit)
+     * - Double
+     * - Map<String, Any> (nested maps)
+     *
+     * @param mapValue the underlying map with String keys
+     */
+    data class MapField(
+        val mapValue: Map<String, Any>,
+    ) : FieldValue() {
+        internal fun encode(): ByteArray {
+            val buffer = MapEncoder()
+            buffer.encodeMap(mapValue)
+            return buffer.toByteArray()
+        }
+    }
+}
+
+/**
+ * Binary encoder for map field values using little-endian byte order.
+ */
+internal class MapEncoder {
+    private val buffer = java.io.ByteArrayOutputStream()
+
+    fun encodeMap(map: Map<String, Any>) {
+        writeU32(map.size)
+        for ((key, value) in map) {
+            writeString(key)
+            encodeValue(value)
+        }
+    }
+
+    private fun encodeValue(value: Any) {
+        when (value) {
+            is String -> {
+                buffer.write(VALUE_TYPE_STRING)
+                val bytes = value.toByteArray(Charsets.UTF_8)
+                writeU32(bytes.size)
+                buffer.write(bytes)
+            }
+            is ByteArray -> {
+                buffer.write(VALUE_TYPE_BYTES)
+                writeU32(value.size)
+                buffer.write(value)
+            }
+            is Boolean -> {
+                buffer.write(VALUE_TYPE_BOOL)
+                buffer.write(if (value) 1 else 0)
+            }
+            is ULong -> {
+                buffer.write(VALUE_TYPE_U64)
+                writeU64(value.toLong())
+            }
+            is Long -> {
+                buffer.write(VALUE_TYPE_I64)
+                writeI64(value)
+            }
+            is Int -> {
+                buffer.write(VALUE_TYPE_I64)
+                writeI64(value.toLong())
+            }
+            is Double -> {
+                buffer.write(VALUE_TYPE_DOUBLE)
+                writeF64(value)
+            }
+            is Float -> {
+                buffer.write(VALUE_TYPE_DOUBLE)
+                writeF64(value.toDouble())
+            }
+            is Map<*, *> -> {
+                buffer.write(VALUE_TYPE_MAP)
+                @Suppress("UNCHECKED_CAST")
+                encodeMap(value as Map<String, Any>)
+            }
+            else -> throw IllegalArgumentException("Unsupported map value type: ${value::class.java.name}")
+        }
+    }
+
+    private fun writeString(s: String) {
+        val bytes = s.toByteArray(Charsets.UTF_8)
+        writeU32(bytes.size)
+        buffer.write(bytes)
+    }
+
+    private fun writeU32(value: Int) {
+        buffer.write(value and 0xFF)
+        buffer.write((value shr 8) and 0xFF)
+        buffer.write((value shr 16) and 0xFF)
+        buffer.write((value shr 24) and 0xFF)
+    }
+
+    private fun writeU64(value: Long) {
+        buffer.write((value and 0xFF).toInt())
+        buffer.write(((value shr 8) and 0xFF).toInt())
+        buffer.write(((value shr 16) and 0xFF).toInt())
+        buffer.write(((value shr 24) and 0xFF).toInt())
+        buffer.write(((value shr 32) and 0xFF).toInt())
+        buffer.write(((value shr 40) and 0xFF).toInt())
+        buffer.write(((value shr 48) and 0xFF).toInt())
+        buffer.write(((value shr 56) and 0xFF).toInt())
+    }
+
+    private fun writeI64(value: Long) {
+        writeU64(value)
+    }
+
+    private fun writeF64(value: Double) {
+        writeU64(java.lang.Double.doubleToRawLongBits(value))
+    }
+
+    fun toByteArray(): ByteArray = buffer.toByteArray()
+
+    companion object {
+        const val VALUE_TYPE_STRING = 0x00
+        const val VALUE_TYPE_BYTES = 0x01
+        const val VALUE_TYPE_BOOL = 0x02
+        const val VALUE_TYPE_U64 = 0x03
+        const val VALUE_TYPE_I64 = 0x04
+        const val VALUE_TYPE_DOUBLE = 0x05
+        const val VALUE_TYPE_MAP = 0x06
+    }
 }
 
 typealias Fields = Map<String, String>
+
+/**
+ * A collection of typed fields that can include string, binary, and map values.
+ * Use [typedFieldOf] or [typedFieldsOf] to construct instances.
+ */
+typealias TypedFields = Array<Field>
 
 /**
  * A field provider is used to provide additional fields to each log event.
@@ -93,6 +230,48 @@ typealias Fields = Map<String, String>
  * It is invoked inline during logging, and so should therefore avoid doing expensive or blocking work.
  */
 fun interface FieldProvider : () -> Fields
+
+/**
+ * Creates a [TypedFields] instance containing a single typed field.
+ *
+ * This is useful when you want to include a single field with a non-string value
+ * (such as a binary field or a map field) in your log.
+ *
+ * @param key The field key.
+ * @param value The field value (can be [FieldValue.StringField], [FieldValue.BinaryField], or [FieldValue.MapField]).
+ * @return A [TypedFields] instance containing the single field.
+ *
+ * Example:
+ * ```
+ * typedFieldOf("metadata", FieldValue.MapField(mapOf("nested_key" to "nested_value")))
+ * ```
+ */
+fun typedFieldOf(
+    key: String,
+    value: FieldValue,
+): TypedFields = arrayOf(Field(key, value))
+
+/**
+ * Creates a [TypedFields] instance from key-value pairs.
+ *
+ * This is useful when you want to include multiple fields with potentially non-string values
+ * (such as binary fields or map fields) in your log.
+ *
+ * @param pairs Vararg of key-value pairs, where each value is a [FieldValue].
+ * @return A [TypedFields] instance containing the provided fields.
+ *
+ * Example:
+ * ```
+ * typedFieldsOf(
+ *     "user_id" to FieldValue.StringField("12345"),
+ *     "metadata" to FieldValue.MapField(mapOf(
+ *         "nested_key" to "nested_value",
+ *         "count" to 42L
+ *     ))
+ * )
+ * ```
+ */
+fun typedFieldsOf(vararg pairs: Pair<String, FieldValue>): TypedFields = Array(pairs.size) { i -> Field(pairs[i].first, pairs[i].second) }
 
 /**
  * Converts a String into FieldValue.StringField.

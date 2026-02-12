@@ -193,6 +193,29 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     )
 
     /**
+     * Writes a log to the Capture logger with typed fields (including map fields).
+     *
+     * @param loggerId the ID of the logger to write to.
+     * @param logType the type of the log to be logged.
+     * @param logLevel the log level of the log.
+     * @param log the log message of the log.
+     * @param fields array of typed Field objects (can include string, binary, and map values).
+     * @param matchingFieldKeys array of matching field keys.
+     * @param matchingFieldValues array of matching field values.
+     * @param blocking if true, the call blocks until the log has been processed.
+     */
+    external fun writeTypedLog(
+        loggerId: Long,
+        logType: Int,
+        logLevel: Int,
+        log: String,
+        fields: Array<Field>?,
+        matchingFieldKeys: Array<String>?,
+        matchingFieldValues: Array<String>?,
+        blocking: Boolean,
+    )
+
+    /**
      * Shuts down the logger, blocking until the event loop has terminated. This is not yet ready
      * to be exposed as a public API due to lack of testing and no timeout on the blocking wait.
      */

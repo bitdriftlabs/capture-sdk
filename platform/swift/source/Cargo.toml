@@ -29,6 +29,7 @@ bd-session.workspace         = true
 bd-time.workspace            = true
 log.workspace                = true
 objc.workspace               = true
+ordered-float.workspace      = true
 parking_lot.workspace        = true
 platform-shared.workspace    = true
 protobuf.workspace           = true

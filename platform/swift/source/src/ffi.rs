@@ -9,7 +9,7 @@
 use crate::ffi;
 use ahash::AHashMap;
 use anyhow::bail;
-use bd_log_primitives::LogFieldKey;
+use bd_log_primitives::{LogFieldKey, LogMapData};
 use bd_logger::{
   AnnotatedLogField,
   AnnotatedLogFields,
@@ -20,6 +20,7 @@ use bd_logger::{
 };
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
+use ordered_float::NotNan;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
@@ -152,6 +153,7 @@ pub fn convert_map<S: ::std::hash::BuildHasher>(
 
 const FIELD_TYPE_STRING: usize = 0;
 const FIELD_TYPE_DATA: usize = 1;
+const FIELD_TYPE_MAP: usize = 2;
 
 /// Converts a `NSArray` into a `AnnotatedLogFields` of references to the underlying data.
 /// # Safety
@@ -202,6 +204,7 @@ unsafe fn convert_fields_helper<FieldValue>(
         let data_value = FromObjcObject::from_objc(field_value)? as &[u8];
         DataValue::Bytes(data_value.to_vec().into())
       },
+      FIELD_TYPE_MAP => convert_map_value(field_value)?,
       _ => bail!("unknown field value type: {field_type:?}"),
     };
 
@@ -209,6 +212,92 @@ unsafe fn convert_fields_helper<FieldValue>(
   }
 
   Ok(fields)
+}
+
+unsafe fn convert_map_value(ptr: *const Object) -> anyhow::Result<DataValue> {
+  debug_check_class!(ptr, NSDictionary);
+
+  if ptr.is_null() {
+    return Ok(DataValue::Map(LogMapData::default()));
+  }
+
+  let all_keys: *const Object = msg_send![ptr, allKeys];
+  let count: usize = msg_send![all_keys, count];
+
+  let mut entries: AHashMap<String, DataValue> = AHashMap::new();
+  for i in 0 .. count {
+    let key_obj: *const Object = msg_send![all_keys, objectAtIndex: i];
+    let key = ffi::nsstring_into_string(key_obj)?;
+
+    let value_obj: *const Object = msg_send![ptr, objectForKey: key_obj];
+    let value = convert_nsobject_to_data_value(value_obj)?;
+    entries.insert(key, value);
+  }
+
+  Ok(DataValue::Map(LogMapData::new(entries)))
+}
+
+unsafe fn convert_nsobject_to_data_value(ptr: *const Object) -> anyhow::Result<DataValue> {
+  if ptr.is_null() {
+    bail!("null value in map");
+  }
+
+  if msg_send![ptr, isKindOfClass: class!(NSDictionary)] {
+    return convert_map_value(ptr);
+  }
+
+  if msg_send![ptr, isKindOfClass: class!(NSString)] {
+    let string_value = ffi::nsstring_into_string(ptr)?;
+    return Ok(DataValue::String(string_value));
+  }
+
+  if msg_send![ptr, isKindOfClass: class!(NSData)] {
+    let data_value = <[u8] as FromObjcObject>::from_objc(ptr)?;
+    return Ok(DataValue::Bytes(data_value.to_vec().into()));
+  }
+
+  if msg_send![ptr, isKindOfClass: class!(NSNumber)] {
+    return convert_nsnumber_to_data_value(ptr);
+  }
+
+  bail!("unsupported type in map value");
+}
+
+unsafe fn convert_nsnumber_to_data_value(ptr: *const Object) -> anyhow::Result<DataValue> {
+  let objc_type: *const c_char = msg_send![ptr, objCType];
+  if objc_type.is_null() {
+    bail!("NSNumber objCType returned null");
+  }
+  let type_encoding = CStr::from_ptr(objc_type).to_str()?;
+
+  match type_encoding {
+    "c" | "B" => {
+      let bool_val: bool = msg_send![ptr, boolValue];
+      Ok(DataValue::Boolean(bool_val))
+    },
+    "s" | "i" | "l" | "q" => {
+      let int_val: i64 = msg_send![ptr, longLongValue];
+      Ok(DataValue::I64(int_val))
+    },
+    "S" | "I" | "L" | "Q" => {
+      let uint_val: u64 = msg_send![ptr, unsignedLongLongValue];
+      Ok(DataValue::U64(uint_val))
+    },
+    "f" | "d" => {
+      let double_val: f64 = msg_send![ptr, doubleValue];
+      match NotNan::new(double_val) {
+        Ok(nn) => Ok(DataValue::Double(nn)),
+        Err(_) => bail!("NaN value in map"),
+      }
+    },
+    _ => {
+      let double_val: f64 = msg_send![ptr, doubleValue];
+      match NotNan::new(double_val) {
+        Ok(nn) => Ok(DataValue::Double(nn)),
+        Err(_) => bail!("NaN value in map"),
+      }
+    },
+  }
 }
 
 /// Converts a `NSArray` of feature flag tuples into a `Vec<(String, Option<String>)>`.

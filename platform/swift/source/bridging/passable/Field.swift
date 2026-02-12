@@ -11,6 +11,7 @@ import Foundation
 public enum FieldType: Int {
     case string = 0
     case data
+    case map
 }
 
 @objc

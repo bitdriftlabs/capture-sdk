@@ -11,6 +11,7 @@ import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.ArrayFields
+import io.bitdrift.capture.providers.TypedFields
 import java.util.UUID
 import kotlin.time.Duration
 
@@ -136,6 +137,30 @@ interface ILogger {
     fun log(
         level: LogLevel,
         arrayFields: ArrayFields,
+        throwable: Throwable? = null,
+        message: () -> String,
+    )
+
+    /**
+     * Logs a message at a specified level using typed fields that can include map values.
+     *
+     * This overload accepts [TypedFields] which supports string, binary, and map field values,
+     * enabling structured data to be attached to log entries.
+     *
+     * To construct `TypedFields` instance you can use:
+     * - [io.bitdrift.capture.providers.typedFieldOf] for a single field
+     * - [io.bitdrift.capture.providers.typedFieldsOf] for multiple fields
+     *
+     * @param level the severity of the log.
+     * @param typedFields typed fields to be added to the log line, which can include map values.
+     * @param throwable an optional throwable to include in the log line.
+     * @param message the main message of the log line, evaluated lazily.
+     * @see io.bitdrift.capture.providers.typedFieldOf for constructing a single typed field.
+     * @see io.bitdrift.capture.providers.typedFieldsOf for constructing multiple typed fields.
+     */
+    fun log(
+        level: LogLevel,
+        typedFields: TypedFields,
         throwable: Throwable? = null,
         message: () -> String,
     )
