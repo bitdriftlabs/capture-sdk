@@ -172,6 +172,8 @@ while IFS= read -r line; do
         # Only symbolicate if BuildId matches our symbols (or no BuildId specified in line)
         if [[ -z "$LINE_BUILD_ID" ]] || [[ "$LINE_BUILD_ID" == "$BUILD_ID" ]]; then
             # Strip leading zeros but keep at least one digit
+            # ${ADDR%%[!0]*} matches all leading zeros, then we strip them with #
+            # If result is empty (all zeros), we default to "0"
             STRIPPED_ADDR="${ADDR#"${ADDR%%[!0]*}"}"
             HEX_ADDR="0x${STRIPPED_ADDR:-0}"
             
