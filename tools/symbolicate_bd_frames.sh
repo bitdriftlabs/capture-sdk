@@ -171,7 +171,7 @@ while IFS= read -r line; do
         
         # Only symbolicate if BuildId matches our symbols (or no BuildId specified in line)
         if [[ -z "$LINE_BUILD_ID" ]] || [[ "$LINE_BUILD_ID" == "$BUILD_ID" ]]; then
-            HEX_ADDR="0x${ADDR##+(0)}"
+            HEX_ADDR="0x${ADDR#"${ADDR%%[!0]*}"}"
             
             # Symbolicate the address with llvm-addr2line
             RESULT=$(llvm-addr2line -f -e "$SYMBOLS_FILE" "$HEX_ADDR" 2>/dev/null | head -1)
