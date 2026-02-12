@@ -43,7 +43,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed recording of bundle version for issues where bundle version is the complete app version rather than a separate build number
 
 ## [0.22.7]
 

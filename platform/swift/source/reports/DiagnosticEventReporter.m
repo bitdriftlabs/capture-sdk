@@ -313,7 +313,16 @@ static void serialize_device_metrics(BDProcessorHandle handle, NSDictionary *met
 }
 
 static void serialize_app_metrics(BDProcessorHandle handle, NSString *app_version, NSDictionary *metadata) {
-  NSString *bundle_version = [NSString stringWithFormat:@"%@.%@", app_version, string_for_key(metadata, @"appBuildVersion")];
+  NSString *build_version = string_for_key(metadata, @"appBuildVersion");
+  NSString *bundle_version = nil;
+  if ([build_version hasPrefix:app_version]
+      && !([build_version length] > [app_version length]
+        && [build_version characterAtIndex:[app_version length]] >= '0'
+        && [build_version characterAtIndex:[app_version length]] <= '9')) {
+    bundle_version = build_version;
+  } else {
+    bundle_version = [NSString stringWithFormat:@"%@.%@", app_version, build_version];
+  }
   BDAppMetrics app = {
     .app_id = cstring_from(string_for_key(metadata, @"bundleIdentifier")),
     .version = cstring_from(app_version),

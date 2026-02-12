@@ -553,6 +553,34 @@ ThermalInfo: (
         XCTAssertEqual("D366A690-4127-4BB6-B6A9-019A2ACD0D8D", image2.id!)
         XCTAssertEqual(frame2.frameAddress - imageOffset2, image2.loadAddress)
     }
+
+    func testRecordedAppVersions() throws {
+        let testCases: [(version: String, build: String, expectedBuild: String)] = [
+            (version: "1.2", build: "1.2-build1", expectedBuild: "1.2-build1"),
+            (version: "1.2", build: "1.2", expectedBuild: "1.2"),
+            (version: "1.2", build: "1.22", expectedBuild: "1.2.1.22"),
+            (version: "1.2.5", build: "1.2.5.1", expectedBuild: "1.2.5.1"),
+            (version: "1.2", build: "4", expectedBuild: "1.2.4"),
+        ]
+        for testCase in testCases {
+            let reportDir = try createTempDir()
+            let reporter = DiagnosticEventReporter(outputDir: reportDir, sdkVersion: "41.5.67", eventTypes: [.crash], minimumHangSeconds: 1)
+            let timestamp = dateFormatter.date(from: "2008-11-25")!
+            let crash = try MockCrashDiagnostic()
+            crash.mockAppVersion = testCase.version
+            crash.mockMetadata = MockMetadata(["bundleIdentifier": "com.example.someapp", "appBuildVersion": testCase.build])
+            reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash], timestamp: timestamp)])
+
+            let path = reportDir.path
+            let files = try FileManager.default.contentsOfDirectory(atPath: path)
+            let contents = FileManager.default.contents(atPath: "\(path)/\(files[0])")!
+            var buf = ByteBuffer(data: contents)
+            let report: Report = try! getCheckedRoot(byteBuffer: &buf)
+            XCTAssertEqual(testCase.expectedBuild, report.appMetrics!.buildNumber!.cfBundleVersion!)
+
+            try FileManager.default.removeItem(at: reportDir)
+        }
+    }
 }
 
 // MARK: - utility functions
@@ -592,6 +620,24 @@ final class MockDiagnosticPayload: MXDiagnosticPayload {
     }
 }
 
+@objc
+final class MockMetadata: MXMetaData {
+    let mockJSON: [String: String]
+
+    override func __dictionaryRepresentation() -> [AnyHashable: Any] {
+        return mockJSON
+    }
+
+    init(_ contents: [String: String]) {
+        self.mockJSON = contents
+        super.init()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
+
 final class MockCrashDiagnostic: MXCrashDiagnostic {
     let mockCallStackTree: MockCallStackTree?
     let mockSignal: NSNumber?
@@ -599,12 +645,16 @@ final class MockCrashDiagnostic: MXCrashDiagnostic {
     let mockExceptionCode: NSNumber?
     let mockExceptionReason: Any?
     let mockTerminationReason: String?
+    var mockAppVersion = "1.1.0"
+    var mockMetadata = MockMetadata([:])
 
     override var callStackTree: MXCallStackTree { get { return mockCallStackTree! } }
     override var signal: NSNumber? { get { return mockSignal } }
     override var exceptionType: NSNumber? { get { return mockExceptionType  } }
     override var exceptionCode: NSNumber? { get { return mockExceptionCode } }
     override var terminationReason: String? { get { return mockTerminationReason } }
+    override var applicationVersion: String { get { return mockAppVersion } }
+    override var metaData: MXMetaData { get { return mockMetadata } }
 
     @available(iOS 17.0, *)
     override var exceptionReason: MXCrashDiagnosticObjectiveCExceptionReason? {
