@@ -13,8 +13,8 @@ usage() {
     echo "                  If not provided, will auto-detect from dump file"
     echo ""
     echo "Example:"
-    echo "  $0 -d peloton_dump.txt -v 0.19.1"
-    echo "  $0 -d peloton_dump.txt -v 0.19.1 -a arm64-v8a"
+    echo "  $0 -d dump.txt -v 0.19.1"
+    echo "  $0 -d dump.txt -v 0.19.1 -a arm64-v8a"
     exit 1
 }
 
