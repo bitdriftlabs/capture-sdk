@@ -100,7 +100,7 @@ fi
 
 # Create temp directory
 TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
+trap 'rm -rf $TEMP_DIR' EXIT
 
 echo "Working directory: $TEMP_DIR"
 
@@ -171,7 +171,7 @@ while IFS= read -r line; do
         
         # Only symbolicate if BuildId matches our symbols (or no BuildId specified in line)
         if [[ -z "$LINE_BUILD_ID" ]] || [[ "$LINE_BUILD_ID" == "$BUILD_ID" ]]; then
-            HEX_ADDR="0x$(echo "$ADDR" | sed 's/^0*//')"
+            HEX_ADDR="0x${ADDR##+(0)}"
             
             # Symbolicate the address with llvm-addr2line
             RESULT=$(llvm-addr2line -f -e "$SYMBOLS_FILE" "$HEX_ADDR" 2>/dev/null | head -1)
