@@ -169,8 +169,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
       | DataValue::Boolean(_)
       | DataValue::U64(_)
       | DataValue::I64(_)
-      | DataValue::Double(_)
-      | DataValue::Map(_) => JObject::null(),
+      | DataValue::Double(_) => JObject::null(),
     };
 
     // TODO(Augustyniak): Extract the logic below into a helper function.
@@ -323,27 +322,6 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
           },
           DataValue::Double(n) => {
             let value = env.new_string(n.to_string()).unwrap();
-
-            let class = env
-              .find_class("io/bitdrift/capture/providers/FieldValue$StringField")
-              .unwrap();
-
-            let constructor_id = env
-              .get_method_id(&class, "<init>", "(Ljava/lang/String;)V")
-              .unwrap();
-
-            unsafe {
-              env.new_object_unchecked(
-                class,
-                constructor_id,
-                &[JValueWrapper::Object(value.into()).into()],
-              )
-            }
-            .unwrap()
-          },
-          // Map values are serialized as debug strings for test purposes
-          DataValue::Map(m) => {
-            let value = env.new_string(format!("{m:?}")).unwrap();
 
             let class = env
               .find_class("io/bitdrift/capture/providers/FieldValue$StringField")
