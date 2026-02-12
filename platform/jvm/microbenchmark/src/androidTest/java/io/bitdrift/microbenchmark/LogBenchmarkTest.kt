@@ -24,6 +24,7 @@ import io.bitdrift.capture.network.HttpResponse.HttpResult
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.webview.WebViewBridgeMessageHandler
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -51,18 +52,21 @@ class LogBenchmarkTest {
             apiUrl = "https://api-test.bitdrift.dev".toHttpUrl(),
             context = InstrumentationRegistry.getInstrumentation().targetContext,
             sessionStrategy = SessionStrategy.Fixed(),
-            fieldProviders = fieldProviders
+            fieldProviders = fieldProviders,
         )
     }
 
-    private fun createFieldProviders(providers: Int = 5, fields: Int = 10): List<FieldProvider> {
-        return (1..providers).map { providerIndex ->
-            val fields = (1..fields).associate { fieldIndex ->
-                "provider${providerIndex}_key$fieldIndex" to "provider${providerIndex}_val$fieldIndex"
-            }
+    private fun createFieldProviders(
+        providers: Int = 5,
+        fields: Int = 10,
+    ): List<FieldProvider> =
+        (1..providers).map { providerIndex ->
+            val fields =
+                (1..fields).associate { fieldIndex ->
+                    "provider${providerIndex}_key$fieldIndex" to "provider${providerIndex}_val$fieldIndex"
+                }
             FieldProvider { fields }
         }
-    }
 
     @Test
     fun logNotMatchedNoFields() {
@@ -142,33 +146,37 @@ class LogBenchmarkTest {
         val headers = buildFieldsMap(50, keyIdentifier = "header_")
 
         benchmarkRule.measureRepeated {
-            val request = HttpRequestInfo(
-                method = "GET",
-                host = "www.google.com",
-                path = HttpUrlPath(
-                    value = "/search",
-                    template = "/search"
-                ),
-                query = "q=Bitdrift",
-                headers = headers,
-                extraFields = extraFields
-            )
+            val request =
+                HttpRequestInfo(
+                    method = "GET",
+                    host = "www.google.com",
+                    path =
+                        HttpUrlPath(
+                            value = "/search",
+                            template = "/search",
+                        ),
+                    query = "q=Bitdrift",
+                    headers = headers,
+                    extraFields = extraFields,
+                )
             Capture.Logger.log(request)
 
-            val response = HttpResponse(
-                host = request.host,
-                path = HttpUrlPath(request.path?.value ?: "/"),
-                query = request.query,
-                statusCode = 200,
-                result = HttpResult.SUCCESS,
-                headers = headers
-            )
-            val responseInfo = HttpResponseInfo(
-                request = request,
-                response = response,
-                durationMs = 100,
-                extraFields = extraFields
-            )
+            val response =
+                HttpResponse(
+                    host = request.host,
+                    path = HttpUrlPath(request.path?.value ?: "/"),
+                    query = request.query,
+                    statusCode = 200,
+                    result = HttpResult.SUCCESS,
+                    headers = headers,
+                )
+            val responseInfo =
+                HttpResponseInfo(
+                    request = request,
+                    response = response,
+                    durationMs = 100,
+                    extraFields = extraFields,
+                )
             Capture.Logger.log(responseInfo)
         }
     }
@@ -218,6 +226,60 @@ class LogBenchmarkTest {
         return Capture.logger() as IInternalLogger
     }
 
-    private fun buildFieldsMap(size: Int, keyIdentifier: String = "key_"): Map<String, String> =
-        (1..size).associate { "$keyIdentifier$it" to "value_$it" }
+    private fun buildFieldsMap(
+        size: Int,
+        keyIdentifier: String = "key_",
+    ): Map<String, String> = (1..size).associate { "$keyIdentifier$it" to "value_$it" }
+
+    @Test
+    fun mapFieldEncoding10Entries() {
+        val map = (1..10).associate { "key_$it" to "value_$it" as Any }
+        val mapField = FieldValue.MapField(map)
+
+        benchmarkRule.measureRepeated {
+            mapField.encode()
+        }
+    }
+
+    @Test
+    fun mapFieldEncoding100Entries() {
+        val map = (1..100).associate { "key_$it" to "value_$it" as Any }
+        val mapField = FieldValue.MapField(map)
+
+        benchmarkRule.measureRepeated {
+            mapField.encode()
+        }
+    }
+
+    @Test
+    fun mapFieldEncodingNestedMap() {
+        val innerMap = (1..10).associate { "inner_$it" to "value_$it" as Any }
+        val outerMap =
+            (1..10).associate { index ->
+                "outer_$index" to (if (index % 2 == 0) innerMap else "string_$index") as Any
+            }
+        val mapField = FieldValue.MapField(outerMap)
+
+        benchmarkRule.measureRepeated {
+            mapField.encode()
+        }
+    }
+
+    @Test
+    fun mapFieldEncodingMixedTypes() {
+        val map =
+            mapOf<String, Any>(
+                "string" to "hello",
+                "long" to 42L,
+                "int" to 100,
+                "bool" to true,
+                "double" to 3.14159,
+                "bytes" to byteArrayOf(1, 2, 3, 4, 5),
+            )
+        val mapField = FieldValue.MapField(map)
+
+        benchmarkRule.measureRepeated {
+            mapField.encode()
+        }
+    }
 }

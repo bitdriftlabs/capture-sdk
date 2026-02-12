@@ -11,6 +11,11 @@ import android.app.Application
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 import io.bitdrift.capture.Capture
+import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.TypedFields
+import io.bitdrift.capture.providers.typedFieldOf
+import io.bitdrift.capture.providers.typedFieldsOf
 import io.bitdrift.gradletestapp.diagnostics.fatalissues.CrashSdkInitializer
 import io.bitdrift.gradletestapp.diagnostics.lifecycle.ActivitySpanCallbacks
 import io.bitdrift.gradletestapp.diagnostics.papa.PapaTelemetry
@@ -34,6 +39,12 @@ class GradleTestApp : Application() {
         } else {
             BitdriftInit.init(this, sharedPreferences)
         }
+
+        Capture.Logger.log(
+            LogLevel.INFO, typedFields = typedFieldsOf(
+                "key" to FieldValue.MapField(mapOf("nested" to "bar"))
+            )
+        ) { "foo" };
 
         attachAdditionalMonitoringTools()
     }
