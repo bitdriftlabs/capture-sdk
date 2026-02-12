@@ -38,37 +38,4 @@ final class FieldExtensionTests: XCTestCase {
 
         XCTAssertThrowsError(try Field.make(key: "foo", value: FailingEncodable()))
     }
-
-    func testMapFieldIsEncodedAsMap() throws {
-        let mapValue: [String: any FieldValue] = [
-            "string_key": "hello",
-            "number_key": 42,
-            "bool_key": true,
-            "double_key": 3.14
-        ]
-
-        let field = try Field.make(key: "test_map", value: mapValue)
-
-        XCTAssertEqual(field.type, .map)
-        XCTAssert(field.data is NSDictionary)
-    }
-
-    func testNestedMapFieldIsEncodedAsMap() throws {
-        let innerMap: [String: String] = [
-            "inner_string": "inner_value",
-            "inner_number": "100"
-        ]
-        let outerMap: [String: any FieldValue] = [
-            "outer_string": "outer_value",
-            "nested": innerMap
-        ]
-
-        let field = try Field.make(key: "nested_map", value: outerMap)
-
-        XCTAssertEqual(field.type, .map)
-        
-        let nsDict = field.data as? NSDictionary
-        XCTAssertNotNil(nsDict)
-        XCTAssertNotNil(nsDict?["nested"] as? NSDictionary)
-    }
 }

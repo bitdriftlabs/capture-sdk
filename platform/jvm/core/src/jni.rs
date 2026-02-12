@@ -31,7 +31,7 @@ use bd_error_reporter::reporter::{
   MetadataErrorReporter,
   UnexpectedErrorHandler,
 };
-use bd_logger::{AnnotatedLogFields, Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields};
+use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields};
 use bd_proto::protos::logging::payload::LogType;
 use futures_util::FutureExt;
 use jni::descriptors::Desc;
@@ -958,59 +958,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
       Ok(())
     },
     "jni write log",
-  );
-}
-
-#[no_mangle]
-#[allow(clippy::cast_sign_loss)]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeTypedLog(
-  mut env: JNIEnv<'_>,
-  _class: JClass<'_>,
-  logger_id: jlong,
-  log_type: jint,
-  log_level: jint,
-  log: JString<'_>,
-  fields: JObjectArray<'_>,
-  matching_field_keys: JObjectArray<'_>,
-  matching_field_values: JObjectArray<'_>,
-  blocking: jboolean,
-) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let fields = if fields.is_null() {
-        AnnotatedLogFields::new()
-      } else {
-        ffi::jarray_to_annotated_fields(&mut env, &fields, LogFieldKind::Ootb)?
-      };
-      let matching_fields = ffi::nullable_string_arrays_to_annotated_fields(
-        &mut env,
-        &matching_field_keys,
-        &matching_field_values,
-        LogFieldKind::Ootb,
-      )?;
-
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.log(
-        log_level as u32,
-        LogType::from_i32(log_type).unwrap_or(LogType::NORMAL),
-        unsafe { env.get_string_unchecked(&log) }?
-          .to_string_lossy()
-          .to_string()
-          .into(),
-        fields,
-        matching_fields,
-        None,
-        if blocking == JNI_TRUE {
-          Block::Yes(std::time::Duration::from_secs(1))
-        } else {
-          Block::No
-        },
-        &CaptureSession::default(),
-      );
-
-      Ok(())
-    },
-    "jni write typed log",
   );
 }
 

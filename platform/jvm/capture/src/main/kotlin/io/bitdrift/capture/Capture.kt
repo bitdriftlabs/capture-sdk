@@ -25,7 +25,6 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
-import io.bitdrift.capture.providers.TypedFields
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.utils.BuildTypeChecker
 import okhttp3.HttpUrl
@@ -422,27 +421,6 @@ object Capture {
             message: () -> String,
         ) {
             logger()?.log(level = level, fields = fields, throwable = throwable, message = message)
-        }
-
-        /**
-         * Logs a message at a specified level with typed fields that can include map values.
-         *
-         * @param level the severity of the log.
-         * @param typedFields typed fields to include with the log, which can contain map values.
-         * @param throwable an optional throwable to include with the log.
-         * @param message the message to log.
-         * @see io.bitdrift.capture.providers.typedFieldOf for constructing a single typed field.
-         * @see io.bitdrift.capture.providers.typedFieldsOf for constructing multiple typed fields.
-         */
-        @JvmStatic
-        @JvmOverloads
-        fun log(
-            level: LogLevel,
-            typedFields: TypedFields,
-            throwable: Throwable? = null,
-            message: () -> String,
-        ) {
-            logger()?.log(level = level, typedFields = typedFields, throwable = throwable, message = message)
         }
 
         /**

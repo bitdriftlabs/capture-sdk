@@ -6,7 +6,6 @@ publish      = false
 version      = "1.0.0"
 
 [dependencies]
-ahash.workspace                 = true
 android_logger.workspace        = true
 anyhow.workspace                = true
 async-trait.workspace           = true
@@ -16,7 +15,6 @@ bd-client-stats-store.workspace = true
 bd-device.workspace             = true
 bd-error-reporter.workspace     = true
 bd-key-value.workspace          = true
-bd-log-primitives.workspace     = true
 bd-logger.workspace             = true
 bd-proto.workspace              = true
 bd-report-parsers.workspace     = true
@@ -28,7 +26,6 @@ futures-util.workspace          = true
 jni.workspace                   = true
 log.workspace                   = true
 memmap2.workspace               = true
-ordered-float.workspace         = true
 platform-shared.workspace       = true
 protobuf.workspace              = true
 tempfile.workspace              = true

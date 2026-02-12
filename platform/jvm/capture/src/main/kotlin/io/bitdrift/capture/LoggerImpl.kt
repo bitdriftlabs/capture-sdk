@@ -43,7 +43,6 @@ import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.MetadataProvider
-import io.bitdrift.capture.providers.TypedFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
@@ -394,29 +393,6 @@ internal class LoggerImpl(
             false,
             message,
         )
-    }
-
-    @Suppress("TooGenericExceptionCaught")
-    override fun log(
-        level: LogLevel,
-        typedFields: TypedFields,
-        throwable: Throwable?,
-        message: () -> String,
-    ) {
-        try {
-            CaptureJniLibrary.writeTypedLog(
-                this.loggerId,
-                LogType.NORMAL.value,
-                level.value,
-                message(),
-                typedFields.ifEmpty { null },
-                null,
-                null,
-                false,
-            )
-        } catch (e: Throwable) {
-            errorHandler.handleError("write typed log", e)
-        }
     }
 
     override fun addField(
