@@ -123,12 +123,10 @@ object BitdriftInit {
                 enableFatalIssueReporting = fatalIssueReporterEnabled,
                 webViewConfiguration = webViewConfig,
             )
-
-        val userID = UUID.randomUUID().toString()
-        val fieldProviders =
-            listOf(
-                FieldProvider { mapOf("user_id" to userID) },
-            )
+        val fieldProviders = listOf(FieldProvider {
+            mapOf("user_id" to UUID.randomUUID().toString())
+            mapOf("is_debug_build" to BuildConfig.DEBUG.toString())
+        })
         val captureSdkInitSettings =
             CaptureSdkInitSettings(
                 apiUrl = apiUrl,
