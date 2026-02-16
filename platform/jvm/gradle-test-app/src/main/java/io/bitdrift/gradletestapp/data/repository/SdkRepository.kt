@@ -68,8 +68,9 @@ class SdkRepository(
             Logger.createTemporaryDeviceCode { captureResult ->
                 when (captureResult) {
                     is CaptureResult.Success ->{
-                        Logger.addField("device_code", captureResult.value)
-                        continuation.resume(Result.success(captureResult.value))
+                        val deviceCodeId = captureResult.value
+                        Logger.addField("device_code", deviceCodeId)
+                        continuation.resume(Result.success(deviceCodeId))
                     }
                     is CaptureResult.Failure -> {
                         val error = "Failed to generate device code: ${captureResult.error.message}"
