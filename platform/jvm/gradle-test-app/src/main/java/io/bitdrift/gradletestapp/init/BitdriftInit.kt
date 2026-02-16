@@ -60,7 +60,6 @@ object BitdriftInit {
             if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
             Timber.plant(CaptureTree())
             Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
-            Capture.Logger.addField("is_debug_build", BuildConfig.DEBUG.toString())
             return true
         } else {
             Timber.e("Failed to initialize Bitdrift SDK - check your API key and URL configuration")

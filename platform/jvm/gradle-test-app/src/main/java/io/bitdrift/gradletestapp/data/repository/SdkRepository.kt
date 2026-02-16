@@ -67,7 +67,10 @@ class SdkRepository(
         suspendCancellableCoroutine { continuation ->
             Logger.createTemporaryDeviceCode { captureResult ->
                 when (captureResult) {
-                    is CaptureResult.Success -> continuation.resume(Result.success(captureResult.value))
+                    is CaptureResult.Success ->{
+                        Logger.addField("device_code", captureResult.value)
+                        continuation.resume(Result.success(captureResult.value))
+                    }
                     is CaptureResult.Failure -> {
                         val error = "Failed to generate device code: ${captureResult.error.message}"
                         Timber.e(error)
