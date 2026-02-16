@@ -60,6 +60,7 @@ object BitdriftInit {
             if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
             Timber.plant(CaptureTree())
             Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
+            Capture.Logger.addField("is_debug_build", BuildConfig.DEBUG.toString())
             return true
         } else {
             Timber.e("Failed to initialize Bitdrift SDK - check your API key and URL configuration")
@@ -123,9 +124,9 @@ object BitdriftInit {
                 enableFatalIssueReporting = fatalIssueReporterEnabled,
                 webViewConfiguration = webViewConfig,
             )
+        val userUuid = UUID.randomUUID().toString()
         val fieldProviders = listOf(FieldProvider {
-            mapOf("user_id" to UUID.randomUUID().toString())
-            mapOf("is_debug_build" to BuildConfig.DEBUG.toString())
+            mapOf("user_id" to userUuid)
         })
         val captureSdkInitSettings =
             CaptureSdkInitSettings(
