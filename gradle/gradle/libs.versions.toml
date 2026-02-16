@@ -1,7 +1,7 @@
 
 [versions]
 appcompat = "1.7.1"
-bd-capture = "0.22.3"
+bd-capture = "0.22.7"
 constraintlayout = "2.2.1"
 espressoCore = "3.6.1"
 junit = "4.13.2"
