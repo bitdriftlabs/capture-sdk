@@ -20,6 +20,8 @@ import io.bitdrift.gradletestapp.data.model.ClearError
 import io.bitdrift.gradletestapp.data.model.ConfigAction
 import io.bitdrift.gradletestapp.data.model.DiagnosticsAction
 import io.bitdrift.gradletestapp.data.model.FeatureFlagsTestAction
+import io.bitdrift.gradletestapp.data.model.GlobalFieldAction
+import io.bitdrift.gradletestapp.data.model.GlobalFieldEntry
 import io.bitdrift.gradletestapp.data.model.NavigationAction
 import io.bitdrift.gradletestapp.data.model.NetworkTestAction
 import io.bitdrift.gradletestapp.data.model.SessionAction
@@ -69,6 +71,8 @@ class MainViewModel(
                     ),
             )
         }
+        val persistedFields = sdkRepository.restoreGlobalFields()
+        _uiState.update { it.copy(globalFields = persistedFields) }
         updateSdkState()
         checkAutoInitialization()
 
@@ -119,6 +123,34 @@ class MainViewModel(
                 networkTestingRepository.performRetrofitRequest()
             }
 
+            is GlobalFieldAction.AddFieldAction -> {
+                viewModelScope.launch {
+                    sdkRepository.addGlobalField(action.key, action.value)
+                }
+                _uiState.update { state ->
+                    state.copy(
+                        globalFields =
+                            state.globalFields +
+                                GlobalFieldEntry(
+                                    key = action.key,
+                                    value = action.value,
+                                    isAdded = true,
+                                ),
+                    )
+                }
+            }
+
+            is GlobalFieldAction.RemoveFieldKey -> {
+                viewModelScope.launch {
+                    sdkRepository.removeField(action.key)
+                }
+                _uiState.update { state ->
+                    state.copy(
+                        globalFields = state.globalFields.filterNot { it.key == action.key },
+                    )
+                }
+            }
+
             is FeatureFlagsTestAction.AddVariantFlag -> addVariantFlag(action.value)
             is FeatureFlagsTestAction.AddManyFeatureFlags -> addManyFeatureFlags()
 
@@ -137,6 +169,7 @@ class MainViewModel(
             is NavigationAction.NavigateToDialogAndModals -> {}
             is NavigationAction.NavigateToStressTest -> {}
             is NavigationAction.InvokeService -> {}
+
         }
     }
 

@@ -43,8 +43,10 @@ import io.bitdrift.gradletestapp.data.model.ClearError
 import io.bitdrift.gradletestapp.data.model.ConfigAction
 import io.bitdrift.gradletestapp.data.model.DiagnosticsAction
 import io.bitdrift.gradletestapp.data.model.FeatureFlagsTestAction
+import io.bitdrift.gradletestapp.data.model.GlobalFieldAction
 import io.bitdrift.gradletestapp.data.model.NetworkTestAction
 import io.bitdrift.gradletestapp.data.model.SessionAction
+import io.bitdrift.gradletestapp.ui.compose.components.GlobalFieldsCard
 import io.bitdrift.gradletestapp.ui.compose.components.FeatureFlagsTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.NavigationCard
 import io.bitdrift.gradletestapp.ui.compose.components.NetworkTestingCard
@@ -292,6 +294,13 @@ private fun SdkApisTabContent(
                     Toast.makeText(context, toasterText, Toast.LENGTH_SHORT).show()
                 },
                 onAction = onAction,
+            )
+        }
+        item {
+            GlobalFieldsCard(
+                currentFields = uiState.globalFields,
+                addFieldAction = { key: String, value: String -> onAction(GlobalFieldAction.AddFieldAction(key, value)) },
+                removeFieldKeyAction = { key: String -> onAction(GlobalFieldAction.RemoveFieldKey(key)) },
             )
         }
         item {

@@ -90,6 +90,12 @@ sealed class StressTestAction : AppAction {
     object TriggerStrictModeViolation : StressTestAction()
 }
 
+sealed class GlobalFieldAction : AppAction {
+    data class AddFieldAction(val key: String, val value: String) : AppAction
+
+    data class RemoveFieldKey(val key: String) : AppAction
+}
+
 object ClearError : AppAction
 
 enum class JankType(val displayName: String, val durationMs: Long) {

@@ -14,6 +14,7 @@ data class AppState(
     val config: ConfigState = ConfigState(),
     val session: SessionState = SessionState(),
     val diagnostics: DiagnosticsState = DiagnosticsState(),
+    val globalFields: List<GlobalFieldEntry> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
 )
