@@ -12,14 +12,14 @@ import io.bitdrift.capture.reports.processor.IIssueReporterProcessor
 import java.io.InputStream
 
 class FakeIssueReporterProcessor : IIssueReporterProcessor {
-    private var shouldFailPersistingJvmCrash = false
+    private var shouldThrowWhenProcessingJvmCrash = false
 
-    fun shouldFailPersistingJvmCrash(shouldFailPersistingJvmCrash: Boolean) {
-        this.shouldFailPersistingJvmCrash = shouldFailPersistingJvmCrash
+    fun shouldFailPersistingJvmCrash(shouldThrowWhenProcessingJvmCrash: Boolean) {
+        this.shouldThrowWhenProcessingJvmCrash = shouldThrowWhenProcessingJvmCrash
     }
 
     fun reset() {
-        this.shouldFailPersistingJvmCrash = false
+        this.shouldThrowWhenProcessingJvmCrash = false
     }
 
     override fun processAppExitReport(
@@ -36,7 +36,7 @@ class FakeIssueReporterProcessor : IIssueReporterProcessor {
         throwable: Throwable,
         allThreads: Map<Thread, Array<StackTraceElement>>?,
     ) {
-        if (shouldFailPersistingJvmCrash) {
+        if (shouldThrowWhenProcessingJvmCrash) {
             throw ProcessJvmException("Critical issue while processing JVM crash")
         }
     }

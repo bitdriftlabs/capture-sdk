@@ -163,7 +163,7 @@ class IssueReporterTest {
 
     @Test
     fun onJvmCrash_withExceptionThrownWhilePersisting_shouldLogInternalError() {
-        val issueReporter = buildAndInitReporterWithFakeProcessor(shouldFailPersistingJvmCrash = true)
+        val issueReporter = buildAndInitReporterWithFakeProcessor(shouldThrowWhenProcessingJvmCrash = true)
         val crashingThread = Thread {}
         val originalCrashError = Exception("Original crash exception")
 
@@ -183,7 +183,7 @@ class IssueReporterTest {
 
     @Test
     fun onJvmCrash_withoutExceptionThrownWhilePersisting_shouldNotLogInternalError() {
-        val issueReporter = buildAndInitReporterWithFakeProcessor(shouldFailPersistingJvmCrash = false)
+        val issueReporter = buildAndInitReporterWithFakeProcessor(shouldThrowWhenProcessingJvmCrash = false)
         val crashingThread = Thread {}
         val originalCrashError = Exception("Original crash exception")
 
@@ -275,8 +275,8 @@ class IssueReporterTest {
             dateProvider = FakeDateProvider,
         )
 
-    private fun buildAndInitReporterWithFakeProcessor(shouldFailPersistingJvmCrash: Boolean): IssueReporter {
-        fakeIssueReporterProcessor.shouldFailPersistingJvmCrash(shouldFailPersistingJvmCrash)
+    private fun buildAndInitReporterWithFakeProcessor(shouldThrowWhenProcessingJvmCrash: Boolean): IssueReporter {
+        fakeIssueReporterProcessor.shouldFailPersistingJvmCrash(shouldThrowWhenProcessingJvmCrash)
         val issueReporter =
             IssueReporter(
                 internalLogger,
