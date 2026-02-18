@@ -13,8 +13,12 @@ import android.util.Log
 import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.CaptureJniLibrary
+import io.bitdrift.capture.IInternalLogger
+import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.LogType
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.common.IBackgroundThreadHandler
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.reports.IssueReporterState.NotInitialized
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
@@ -24,8 +28,9 @@ import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
-import io.bitdrift.capture.reports.persistence.IssueReporterStorage
+import io.bitdrift.capture.reports.persistence.IssueReporterStore
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
+import io.bitdrift.capture.reports.processor.IIssueReporterProcessor
 import io.bitdrift.capture.reports.processor.IssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
@@ -44,18 +49,20 @@ import kotlin.time.TimeSource
  * @param captureUncaughtExceptionHandler Handler for uncaught exceptions.
  */
 internal class IssueReporter(
+    private val internalLogger: IInternalLogger,
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
     private val dateProvider: DateProvider,
+    private val issueReporterProcessorFactory: (String, IClientAttributes, DateProvider) -> IIssueReporterProcessor =
+        ::buildDefaultIssueReporterProcessor,
 ) : IIssueReporter,
     IJvmCrashListener {
     @VisibleForTesting
     internal var issueReporterState: IssueReporterState = NotInitialized
         private set
     private var initializationDuration: Duration? = null
-
-    private var issueReporterProcessor: IssueReporterProcessor? = null
+    private var issueReporterProcessor: IIssueReporterProcessor? = null
 
     /**
      * Initializes the IssueReporter handler once we have the required dependencies available
@@ -92,13 +99,7 @@ internal class IssueReporter(
                 return
             }
 
-            issueReporterProcessor =
-                IssueReporterProcessor(
-                    IssueReporterStorage(sdkDirectory),
-                    clientAttributes,
-                    CaptureJniLibrary,
-                    dateProvider,
-                )
+            issueReporterProcessor = issueReporterProcessorFactory(sdkDirectory, clientAttributes, dateProvider)
             captureUncaughtExceptionHandler.install(this)
 
             backgroundThreadHandler.runAsync {
@@ -125,7 +126,7 @@ internal class IssueReporter(
     /**
      * Returns the underlying report processor
      */
-    internal fun getIssueReporterProcessor(): IssueReporterProcessor? = issueReporterProcessor
+    internal fun getIssueReporterProcessor(): IIssueReporterProcessor? = issueReporterProcessor
 
     /**
      * Returns the current init state
@@ -133,21 +134,29 @@ internal class IssueReporter(
     override fun initializationState(): IssueReporterState = issueReporterState
 
     /**
-     * Persists any JVM crash
+     * Processes any JVM crash.
      */
     override fun onJvmCrash(
         thread: Thread,
         throwable: Throwable,
     ) {
         runCatching {
-            issueReporterProcessor?.persistJvmCrash(
+            issueReporterProcessor?.processJvmCrash(
                 callerThread = thread,
                 throwable = throwable,
                 allThreads = Thread.getAllStackTraces(),
             )
         }.getOrElse {
-            val errorMessage = "Error while persisting JVM crash. $it"
-            Log.e(LOG_TAG, errorMessage)
+            val errorMessage = "Error while processing JVM crash. "
+            internalLogger.logInternal(
+                LogType.INTERNALSDK,
+                LogLevel.ERROR,
+                ArrayFields.EMPTY,
+                it,
+            ) {
+                errorMessage
+            }
+            Log.e(LOG_TAG, errorMessage + "$it")
         }
     }
 
@@ -168,7 +177,7 @@ internal class IssueReporter(
             val lastReason = lastReasonResult.applicationExitInfo
             lastReason.traceInputStream?.use {
                 mapToFatalIssueType(lastReason.reason)?.let { fatalIssueType ->
-                    issueReporterProcessor?.persistAppExitReport(
+                    issueReporterProcessor?.processAppExitReport(
                         fatalIssueType = fatalIssueType,
                         timestamp = lastReason.timestamp,
                         description = lastReason.description,
@@ -203,5 +212,17 @@ internal class IssueReporter(
             buildMap {
                 put(FATAL_ISSUE_REPORTING_STATE_KEY, IssueReporterState.ClientDisabled.readableType)
             }
+
+        fun buildDefaultIssueReporterProcessor(
+            sdkDirectory: String,
+            clientAttributes: IClientAttributes,
+            dateProvider: DateProvider,
+        ): IIssueReporterProcessor =
+            IssueReporterProcessor(
+                IssueReporterStore(sdkDirectory),
+                clientAttributes,
+                CaptureJniLibrary,
+                dateProvider,
+            )
     }
 }

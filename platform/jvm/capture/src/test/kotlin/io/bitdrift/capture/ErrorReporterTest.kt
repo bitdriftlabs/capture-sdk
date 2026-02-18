@@ -12,13 +12,10 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.bitdrift.capture.error.ErrorReportRequest
 import io.bitdrift.capture.error.ErrorReporterService
-import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.IIssueReporter
-import io.bitdrift.capture.reports.IssueReporter
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockWebServer
@@ -37,10 +34,6 @@ import java.util.concurrent.TimeUnit
 class ErrorReporterTest {
     private lateinit var server: MockWebServer
     private lateinit var reporter: ErrorReporterService
-    private val issueReporter: IIssueReporter =
-        IssueReporter(
-            dateProvider = FakeDateProvider,
-        )
 
     init {
         CaptureJniLibrary.load()
@@ -115,7 +108,6 @@ class ErrorReporterTest {
                 sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
                 configuration = Configuration(),
                 errorReporter = reporter,
-                issueReporter = issueReporter,
             )
 
         val errorHandler = ErrorHandler()

@@ -539,7 +539,7 @@ object Capture {
         internal fun reportStrictModeViolation(violation: Violation) {
             (logger() as? LoggerImpl)
                 ?.getIssueProcessor()
-                ?.persistStrictModeViolation(
+                ?.processStrictModeViolation(
                     violation = violation,
                 )
         }
@@ -565,7 +565,7 @@ object Capture {
             debugId: String,
             sdkVersion: String,
         ) {
-            (logger() as? LoggerImpl)?.getIssueProcessor()?.persistJavaScriptReport(
+            (logger() as? LoggerImpl)?.getIssueProcessor()?.processJavaScriptReport(
                 errorName,
                 message,
                 stack,

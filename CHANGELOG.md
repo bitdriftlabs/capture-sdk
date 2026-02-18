@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Log internal sdk error if we fail to process and persist a JVM report
 
 **Changed**
 

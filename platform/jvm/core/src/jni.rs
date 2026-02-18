@@ -1284,7 +1284,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processIssueRe
 }
 
 #[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_persistANR(
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPersistANR(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   stream: JObject<'_>,
@@ -1307,7 +1307,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_persistANR(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_persistJavaScriptError(
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPersistJavaScriptError(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   error_name: JString<'_>,

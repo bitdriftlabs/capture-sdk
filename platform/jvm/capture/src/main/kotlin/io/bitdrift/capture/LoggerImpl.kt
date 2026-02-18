@@ -48,10 +48,9 @@ import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
-import io.bitdrift.capture.reports.IIssueReporter
 import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
-import io.bitdrift.capture.reports.processor.IssueReporterProcessor
+import io.bitdrift.capture.reports.processor.IIssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
@@ -89,12 +88,6 @@ internal class LoggerImpl(
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    private val issueReporter: IIssueReporter? =
-        if (configuration.enableFatalIssueReporting) {
-            IssueReporter(dateProvider = dateProvider)
-        } else {
-            null
-        },
 ) : IInternalLogger,
     ICompletedReportsProcessor {
     @OptIn(ExperimentalBitdriftApi::class)
@@ -117,6 +110,13 @@ internal class LoggerImpl(
     private val eventsListenerTarget = EventsListenerTarget()
 
     private val sessionReplayTarget: ISessionReplayTarget
+
+    private val issueReporter: IssueReporter? =
+        if (configuration.enableFatalIssueReporting) {
+            IssueReporter(internalLogger = this, dateProvider = dateProvider)
+        } else {
+            null
+        }
 
     @VisibleForTesting
     internal val loggerId: LoggerId
@@ -645,7 +645,7 @@ internal class LoggerImpl(
         }
     }
 
-    internal fun getIssueProcessor(): IssueReporterProcessor? = (issueReporter as? IssueReporter)?.getIssueReporterProcessor()
+    internal fun getIssueProcessor(): IIssueReporterProcessor? = issueReporter?.getIssueReporterProcessor()
 
     private fun startDebugOperationsAsNeeded(context: Context) {
         if (!BuildTypeChecker.isDebuggable(context)) {

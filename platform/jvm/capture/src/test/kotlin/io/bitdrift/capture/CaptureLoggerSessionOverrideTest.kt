@@ -24,11 +24,9 @@ import com.nhaarman.mockitokotlin2.doReturn
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.attributes.ClientAttributes
-import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
@@ -59,10 +57,6 @@ class CaptureLoggerSessionOverrideTest {
 
     private lateinit var logger: LoggerImpl
     private var testServerPort: Int? = null
-    private val issueReporter =
-        IssueReporter(
-            dateProvider = FakeDateProvider,
-        )
 
     @Before
     fun setUp() {
@@ -130,7 +124,6 @@ class CaptureLoggerSessionOverrideTest {
                 context = context,
                 preferences = preferences,
                 activityManager = activityManager,
-                issueReporter = issueReporter,
                 clientAttributes = clientAttributes,
             )
 
@@ -175,7 +168,6 @@ class CaptureLoggerSessionOverrideTest {
                 context = context,
                 preferences = preferences,
                 activityManager = activityManager,
-                issueReporter = issueReporter,
                 clientAttributes = newClientAttributes,
             )
 

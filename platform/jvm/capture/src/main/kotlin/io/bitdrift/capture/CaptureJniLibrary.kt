@@ -370,7 +370,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param timestampMillis The time at which the event took place
      * @param destinationPath Target file path to write the report
      */
-    external override fun persistANR(
+    external override fun processAndPersistANR(
         stream: InputStream,
         timestampMillis: Long,
         destinationPath: String,
@@ -378,7 +378,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     )
 
     /**
-     * Persists a JavaScript error report to disk
+     * Processes and persists a JavaScript error report to disk
      *
      * @param errorName The main readable error name
      * @param errorMessage The detailed JavaScript error message
@@ -391,7 +391,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param attributes Client attributes for metadata
      * @param sdkVersion bitdrift's React Native SDK version(e.g 8.1)
      */
-    external override fun persistJavaScriptError(
+    external override fun processAndPersistJavaScriptError(
         errorName: String,
         errorMessage: String,
         stackTrace: String,
