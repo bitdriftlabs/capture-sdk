@@ -19,7 +19,6 @@ import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
@@ -32,8 +31,6 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
-import io.bitdrift.capture.reports.IIssueReporter
-import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.toStringMap
 import okhttp3.HttpUrl
@@ -64,7 +61,6 @@ class CaptureLoggerTest {
         }
 
     private var testServerPort: Int? = null
-    private val issueReporter: IIssueReporter = IssueReporter(dateProvider = FakeDateProvider)
 
     @Before
     fun setUp() {
@@ -490,7 +486,6 @@ class CaptureLoggerTest {
                 context = ContextHolder.APP_CONTEXT,
                 dateProvider = dateProvider,
                 configuration = Configuration(),
-                issueReporter = issueReporter,
             )
         val sdkConfiguredDuration =
             LoggerImpl.SdkConfiguredDuration(

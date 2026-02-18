@@ -11,9 +11,9 @@ import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 import java.io.File
 import java.util.UUID
 
-internal class IssueReporterStorage(
+internal class IssueReporterStore(
     sdkDirectory: String,
-) : IIssueReporterStorage {
+) : IIssueReporterStore {
     private val fatalDirectory by lazy {
         createReportDirectoryIfNeeded(sdkDirectory, FATAL_DESTINATION_FILE_PATH)
     }

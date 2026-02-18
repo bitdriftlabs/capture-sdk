@@ -13,9 +13,6 @@ import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.LoggerImpl
-import io.bitdrift.capture.fakes.FakeDateProvider
-import io.bitdrift.capture.reports.IIssueReporter
-import io.bitdrift.capture.reports.IssueReporter
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -29,11 +26,6 @@ import java.util.concurrent.CountDownLatch
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
 class SessionStrategyTest {
-    private val issueReporter: IIssueReporter =
-        IssueReporter(
-            dateProvider = FakeDateProvider,
-        )
-
     @Before
     fun setUp() {
         val initializer = ContextHolder()
@@ -92,7 +84,6 @@ class SessionStrategyTest {
                     },
                 configuration = Configuration(),
                 preferences = mock(),
-                issueReporter = issueReporter,
             )
 
         val sessionId = logger.sessionId

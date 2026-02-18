@@ -16,7 +16,7 @@ interface IStreamingReportProcessor {
     /**
      * Call to convert a trace input stream into a report file
      */
-    fun persistANR(
+    fun processAndPersistANR(
         stream: InputStream,
         timestampMillis: Long,
         destinationPath: String,
@@ -26,7 +26,7 @@ interface IStreamingReportProcessor {
     /**
      * Call to convert a JS error trace into a fbs report file
      */
-    fun persistJavaScriptError(
+    fun processAndPersistJavaScriptError(
         errorName: String,
         errorMessage: String,
         stackTrace: String,

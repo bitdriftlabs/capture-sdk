@@ -26,7 +26,7 @@ import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Platform
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.SDKInfo
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Timestamp
-import io.bitdrift.capture.reports.persistence.IIssueReporterStorage
+import io.bitdrift.capture.reports.persistence.IIssueReporterStore
 import java.io.InputStream
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -35,18 +35,18 @@ import kotlin.time.toDuration
  * Process reports into a packed format
  */
 internal class IssueReporterProcessor(
-    private val reporterIssueStorage: IIssueReporterStorage,
+    private val reporterIssueStore: IIssueReporterStore,
     private val clientAttributes: IClientAttributes,
     private val streamingReportsProcessor: IStreamingReportProcessor,
     private val dateProvider: DateProvider,
-) {
+) : IIssueReporterProcessor {
     companion object {
         // Initial size for file builder buffer
         private const val FBS_BUILDER_DEFAULT_SIZE = 1024
     }
 
     /**
-     * Persists a JavaScript report
+     * Processes and persists a JavaScript report.
      *  @param errorName The main readable error name
      *  @param message The detailed JavaScript error message
      *  @param stack Raw stacktrace
@@ -55,7 +55,7 @@ internal class IssueReporterProcessor(
      * @param debugId Debug id that will be used for de-minification
      * @param sdkVersion bitdrift's React Native SDK version(e.g 8.1)
      */
-    fun persistJavaScriptReport(
+    override fun processJavaScriptReport(
         errorName: String,
         message: String,
         stack: String,
@@ -68,12 +68,12 @@ internal class IssueReporterProcessor(
             val timestamp = dateProvider.invoke().time
             val destinationPath =
                 if (isFatalIssue) {
-                    reporterIssueStorage.generateFatalIssueFilePath()
+                    reporterIssueStore.generateFatalIssueFilePath()
                 } else {
-                    reporterIssueStorage.generateNonFatalIssueFilePath()
+                    reporterIssueStore.generateNonFatalIssueFilePath()
                 }
 
-            streamingReportsProcessor.persistJavaScriptError(
+            streamingReportsProcessor.processAndPersistJavaScriptError(
                 errorName = errorName,
                 errorMessage = message,
                 stackTrace = stack,
@@ -91,24 +91,24 @@ internal class IssueReporterProcessor(
     }
 
     /**
-     * Process AppTerminations due to ANRs and native crashes into packed format
+     * Processes AppTerminations due to ANRs and native crashes into packed format.
      * @param fatalIssueType The flatbuffer type of fatal issue being processed
      * (e.g. [ReportType.AppNotResponding] or [ReportType.NativeCrash])
      * @param timestamp The timestamp when the issue occurred
      * @param description Optional description of the issue
      * @param traceInputStream Input stream containing the fatal issue trace data
      */
-    fun persistAppExitReport(
+    override fun processAppExitReport(
         fatalIssueType: Byte,
         timestamp: Long,
-        description: String? = null,
+        description: String?,
         traceInputStream: InputStream,
     ) {
         if (fatalIssueType == ReportType.AppNotResponding) {
-            streamingReportsProcessor.persistANR(
+            streamingReportsProcessor.processAndPersistANR(
                 traceInputStream,
                 timestamp,
-                reporterIssueStorage.generateFatalIssueFilePath(),
+                reporterIssueStore.generateFatalIssueFilePath(),
                 clientAttributes,
             )
         } else if (fatalIssueType == ReportType.NativeCrash) {
@@ -127,7 +127,7 @@ internal class IssueReporterProcessor(
                 )
             builder.finish(report)
 
-            reporterIssueStorage.persistFatalIssue(
+            reporterIssueStore.persistFatalIssue(
                 timestamp,
                 builder.sizedByteArray(),
                 ReportType.NativeCrash,
@@ -136,16 +136,16 @@ internal class IssueReporterProcessor(
     }
 
     /**
-     * Process JVM crashes into a packed format
+     * Processes JVM crashes into a packed format.
      *
      * NOTE: This will need to run by default on the caller thread
      */
-    fun persistJvmCrash(
+    override fun processJvmCrash(
         callerThread: Thread,
         throwable: Throwable,
         allThreads: Map<Thread, Array<StackTraceElement>>?,
     ) {
-        persistJvmIssue(
+        processAndPersistJvmIssue(
             callerThread = callerThread,
             throwable = throwable,
             allThreads = allThreads,
@@ -155,13 +155,13 @@ internal class IssueReporterProcessor(
     }
 
     /**
-     * Process StrictMode violations into a packed format
+     * Processes StrictMode violations into a packed format.
      *
      * NOTE: This will need to run by default on the caller thread
      */
     @RequiresApi(Build.VERSION_CODES.P)
-    fun persistStrictModeViolation(violation: Violation) {
-        persistJvmIssue(
+    override fun processStrictModeViolation(violation: Violation) {
+        processAndPersistJvmIssue(
             callerThread = Thread.currentThread(),
             throwable = violation,
             allThreads = Thread.getAllStackTraces(),
@@ -170,7 +170,7 @@ internal class IssueReporterProcessor(
         )
     }
 
-    private fun persistJvmIssue(
+    private fun processAndPersistJvmIssue(
         callerThread: Thread,
         throwable: Throwable,
         allThreads: Map<Thread, Array<StackTraceElement>>?,
@@ -196,13 +196,13 @@ internal class IssueReporterProcessor(
         builder.finish(report)
 
         if (isFatal) {
-            reporterIssueStorage.persistFatalIssue(
+            reporterIssueStore.persistFatalIssue(
                 timestamp,
                 builder.sizedByteArray(),
                 reportType,
             )
         } else {
-            reporterIssueStorage.persistNonFatalIssue(
+            reporterIssueStore.persistNonFatalIssue(
                 timestamp,
                 builder.sizedByteArray(),
                 reportType,

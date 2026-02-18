@@ -26,7 +26,7 @@ import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Architecture
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Platform
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Report
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
-import io.bitdrift.capture.reports.persistence.IIssueReporterStorage
+import io.bitdrift.capture.reports.persistence.IIssueReporterStore
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -40,7 +40,7 @@ import java.nio.ByteBuffer
 @Config(sdk = [31])
 class IssueReporterProcessorTest {
     private lateinit var attributes: ClientAttributes
-    private val issueReporterStorage: IIssueReporterStorage = mock()
+    private val issueReporterStorage: IIssueReporterStore = mock()
     private val streamingReportProcessor: IStreamingReportProcessor = mock()
     private val lifecycleOwner: LifecycleOwner = mock()
     private val issueReportCaptor = argumentCaptor<ByteArray>()
@@ -63,11 +63,11 @@ class IssueReporterProcessorTest {
     }
 
     @Test
-    fun persistJvmCrash_withFakeException_shouldCreateNonEmptyErrorModel() {
+    fun processJvmCrash_withFakeException_shouldCreateNonEmptyErrorModel() {
         val callerThread = Thread("crashing_thread")
         val fakeException = FakeJvmException()
 
-        processor.persistJvmCrash(
+        processor.processJvmCrash(
             callerThread,
             fakeException,
             null,
@@ -91,7 +91,7 @@ class IssueReporterProcessorTest {
         assertThat(
             error.stackTrace(0)!!.symbolName,
         ).isEqualTo(
-            "persistJvmCrash_withFakeException_shouldCreateNonEmptyErrorModel",
+            "processJvmCrash_withFakeException_shouldCreateNonEmptyErrorModel",
         )
         assertThat(error.stackTrace(0)!!.sourceFile!!.path).isEqualTo("IssueReporterProcessorTest.kt")
         assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(fakeException.stackTrace[0].lineNumber.toLong())
@@ -99,13 +99,13 @@ class IssueReporterProcessorTest {
     }
 
     @Test
-    fun persistJvmCrash_withChainedException_shouldBuildErrors() {
+    fun processJvmCrash_withChainedException_shouldBuildErrors() {
         val exception =
             RuntimeException(
                 "OnErrorNotImplementedException",
                 IllegalArgumentException("Artificial exception"),
             )
-        processor.persistJvmCrash(
+        processor.processJvmCrash(
             Thread("crashing-thread"),
             exception,
             null,
@@ -128,17 +128,17 @@ class IssueReporterProcessorTest {
     }
 
     @Test
-    fun persistAppExitReport_whenAnr() {
+    fun processAppExitReport_whenAnr() {
         doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
         val trace = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt")
-        processor.persistAppExitReport(
+        processor.processAppExitReport(
             fatalIssueType = ReportType.AppNotResponding,
             FAKE_TIME_STAMP,
             "Input Dispatching Timed Out",
             trace,
         )
 
-        verify(streamingReportProcessor).persistANR(
+        verify(streamingReportProcessor).processAndPersistANR(
             eq(trace),
             eq(FAKE_TIME_STAMP),
             eq("/some/path/foo.cap"),
@@ -147,11 +147,11 @@ class IssueReporterProcessorTest {
     }
 
     @Test
-    fun persistAppExitReport_whenNativeCrash_shouldCreateNativeReport() {
+    fun processAppExitReport_whenNativeCrash_shouldCreateNativeReport() {
         val description = "Native crash"
         val traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.bin")
 
-        processor.persistAppExitReport(
+        processor.processAppExitReport(
             ReportType.NativeCrash,
             FAKE_TIME_STAMP,
             description,
@@ -195,11 +195,11 @@ class IssueReporterProcessorTest {
     }
 
     @Test
-    fun persistAppExitReport_withInvalidReason_shouldNotInteractWithStorage() {
+    fun processAppExitReport_withInvalidReason_shouldNotInteractWithStorage() {
         val description = null
         val traceInputStream = createTraceInputStream("sample native crash trace")
 
-        processor.persistAppExitReport(
+        processor.processAppExitReport(
             ReportType.JVMCrash,
             FAKE_TIME_STAMP,
             description,
@@ -211,7 +211,7 @@ class IssueReporterProcessorTest {
     }
 
     @Test
-    fun persistJavaScriptReport_withFatalIssue_shouldCallStreamingProcessorWithCorrectArguments() {
+    fun processJavaScriptReport_withFatalIssue_shouldCallStreamingProcessorWithCorrectArguments() {
         doReturn(FAKE_FATAL_PATH).`when`(issueReporterStorage).generateFatalIssueFilePath()
 
         persistJavaScriptError(isFatalIssue = true)
@@ -220,7 +220,7 @@ class IssueReporterProcessorTest {
     }
 
     @Test
-    fun persistJavaScriptReport_withNonFatalIssue_shouldCallStreamingProcessorWithCorrectArguments() {
+    fun processJavaScriptReport_withNonFatalIssue_shouldCallStreamingProcessorWithCorrectArguments() {
         doReturn(FAKE_NON_FATAL_PATH).`when`(issueReporterStorage).generateNonFatalIssueFilePath()
 
         persistJavaScriptError(isFatalIssue = false)
@@ -230,7 +230,7 @@ class IssueReporterProcessorTest {
 
     private fun assertJavaScriptArguments(expectedFatalIssue: Boolean) {
         val expectedPath = if (expectedFatalIssue) FAKE_FATAL_PATH else FAKE_NON_FATAL_PATH
-        verify(streamingReportProcessor).persistJavaScriptError(
+        verify(streamingReportProcessor).processAndPersistJavaScriptError(
             errorName = eq(FAKE_ERROR_NAME),
             errorMessage = eq(FAKE_ERROR_MESSAGE),
             stackTrace = eq(FAKE_STACK_TRACE),
@@ -245,7 +245,7 @@ class IssueReporterProcessorTest {
     }
 
     private fun persistJavaScriptError(isFatalIssue: Boolean) {
-        processor.persistJavaScriptReport(
+        processor.processJavaScriptReport(
             errorName = FAKE_ERROR_NAME,
             message = FAKE_ERROR_MESSAGE,
             stack = FAKE_STACK_TRACE,

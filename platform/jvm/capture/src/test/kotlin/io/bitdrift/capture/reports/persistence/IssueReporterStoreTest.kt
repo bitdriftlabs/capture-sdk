@@ -25,14 +25,14 @@ import kotlin.io.path.createTempDirectory
 import kotlin.io.path.deleteRecursively
 import kotlin.io.path.pathString
 
-class IssueReporterStorageTest {
-    private lateinit var storage: IssueReporterStorage
+class IssueReporterStoreTest {
+    private lateinit var storage: IssueReporterStore
     private lateinit var dir: Path
 
     @Before
     fun setUp() {
         dir = createTempDirectory()
-        storage = IssueReporterStorage(dir.pathString)
+        storage = IssueReporterStore(dir.pathString)
     }
 
     @OptIn(ExperimentalPathApi::class)

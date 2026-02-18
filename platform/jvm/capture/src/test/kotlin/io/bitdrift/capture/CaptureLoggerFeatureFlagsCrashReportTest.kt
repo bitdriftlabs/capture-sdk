@@ -11,10 +11,8 @@ import android.annotation.TargetApi
 import android.os.Build
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.util.concurrent.MoreExecutors
-import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.threading.CaptureDispatchers
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
@@ -82,7 +80,6 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
                 configuration = Configuration(),
                 context = ContextHolder.APP_CONTEXT,
                 preferences = preferences,
-                issueReporter = IssueReporter(dateProvider = FakeDateProvider),
             )
         return try {
             block(logger)
@@ -134,7 +131,7 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
 
             val crashingThread = Thread.currentThread()
             val exception = RuntimeException("Test crash for feature flags verification")
-            processor!!.persistJvmCrash(crashingThread, exception, null)
+            processor!!.processJvmCrash(crashingThread, exception, null)
         }
 
         // Phase 3: Third app start - verify crash report contains feature flags
