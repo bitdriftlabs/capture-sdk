@@ -30,6 +30,7 @@ internal interface IInternalLogger : ILogger {
         level: LogLevel,
         arrayFields: ArrayFields,
         throwable: Throwable?,
+        blocking: Boolean = false,
         message: () -> String,
     )
 

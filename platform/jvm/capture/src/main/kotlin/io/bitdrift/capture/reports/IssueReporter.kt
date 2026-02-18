@@ -147,16 +147,17 @@ internal class IssueReporter(
                 allThreads = Thread.getAllStackTraces(),
             )
         }.getOrElse {
-            val errorMessage = "Error while processing JVM crash. "
+            val errorMessage = "Error while processing JVM crash"
             internalLogger.logInternal(
-                LogType.INTERNALSDK,
-                LogLevel.ERROR,
-                ArrayFields.EMPTY,
-                it,
+                type = LogType.INTERNALSDK,
+                level = LogLevel.ERROR,
+                arrayFields = ArrayFields.EMPTY,
+                throwable = it,
+                blocking = true,
             ) {
                 errorMessage
             }
-            Log.e(LOG_TAG, errorMessage + "$it")
+            Log.e(LOG_TAG, "$errorMessage. $it")
         }
     }
 

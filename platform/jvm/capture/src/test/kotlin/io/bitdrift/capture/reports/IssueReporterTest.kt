@@ -170,15 +170,16 @@ class IssueReporterTest {
         issueReporter.onJvmCrash(crashingThread, originalCrashError)
 
         verify(internalLogger).logInternal(
-            eq(LogType.INTERNALSDK),
-            eq(LogLevel.ERROR),
-            eq(ArrayFields.EMPTY),
-            throwableCaptor.capture(),
-            logMessageCaptor.capture(),
+            type = eq(LogType.INTERNALSDK),
+            level = eq(LogLevel.ERROR),
+            arrayFields = eq(ArrayFields.EMPTY),
+            throwable = throwableCaptor.capture(),
+            blocking = eq(true),
+            message = logMessageCaptor.capture(),
         )
         assertThat(throwableCaptor.firstValue.message).contains("Critical issue while processing JVM crash")
         assertThat(logMessageCaptor.firstValue())
-            .isEqualTo("Error while processing JVM crash. ")
+            .isEqualTo("Error while processing JVM crash")
     }
 
     @Test
@@ -190,11 +191,12 @@ class IssueReporterTest {
         issueReporter.onJvmCrash(crashingThread, originalCrashError)
 
         verify(internalLogger, never()).logInternal(
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
+            type = any(),
+            level = any(),
+            arrayFields = any(),
+            throwable = any(),
+            blocking = any(),
+            message = any(),
         )
     }
 

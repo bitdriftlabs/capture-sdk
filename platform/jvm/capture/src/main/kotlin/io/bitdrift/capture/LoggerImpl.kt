@@ -475,6 +475,7 @@ internal class LoggerImpl(
         level: LogLevel,
         arrayFields: ArrayFields,
         throwable: Throwable?,
+        blocking: Boolean,
         message: () -> String,
     ) {
         val throwableFields =
@@ -492,7 +493,7 @@ internal class LoggerImpl(
             arrayFields = combineFields(arrayFields, throwableFields),
             matchingArrayFields = ArrayFields.EMPTY,
             attributesOverrides = null,
-            blocking = false,
+            blocking = blocking,
             message,
         )
     }
