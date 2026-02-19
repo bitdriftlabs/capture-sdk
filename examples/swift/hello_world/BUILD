@@ -46,6 +46,7 @@ ios_application(
         "//bazel:ios_device_build": "//bazel/ios:ios_provisioning_profile",
         "//conditions:default": None,
     }),
+    resources = glob(["assets/**"]),
     tags = [
         "no-remote",
     ],
@@ -77,6 +78,7 @@ ios_application(
         "//bazel:ios_device_build": "//bazel/ios:ios_provisioning_profile",
         "//conditions:default": None,
     }),
+    resources = glob(["assets/**"]),
     tags = [
         "no-remote",
     ],
