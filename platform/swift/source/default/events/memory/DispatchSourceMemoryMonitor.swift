@@ -20,6 +20,7 @@ final class DispatchSourceMemoryMonitor {
 
     init(logger: CoreLogging) {
         self.logger = logger
+        self.memorySnapshotProvider.logger = logger
         // Set the event handler, but don't enable until `start()` is called.
         self.dispatchSource.setEventHandler { [weak self] in
             self?.maybeSnapshot()

@@ -58,7 +58,7 @@ extension MemorySnapshot: ResourceSnapshot {
     }
 
     private var hasValidMemoryLimit: Bool {
-        appTotalMemoryLimitKB > appTotalMemoryUsedKB
+        appTotalMemoryLimitKB >= appTotalMemoryUsedKB
     }
 
     private func appUsedPercent() -> Double {

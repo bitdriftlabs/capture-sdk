@@ -72,4 +72,20 @@ final class ResourceUtilizationControllerTests: XCTestCase {
         XCTAssertNotNil(self.logger.resourceUtilizationLogs[2]
                             .fields[DiskUsageSnapshot.FieldKey.documentsDirectory.rawValue])
     }
+
+    func testMemorySnapshotIncludesIsMemoryLowFieldWhenThresholdProvided() {
+        let snapshot = MemorySnapshot(
+            appTotalMemoryLimitKB: 100,
+            appTotalMemoryUsedKB: 100,
+            deviceTotalMemoryKB: 200,
+            lowMemoryConfigThresholdPercent: 90,
+            relativeTimestamp: nil,
+            timeSinceDeviceBoot: 1,
+            sequenceNumber: 1,
+            timeToCaptureMicroseconds: 0
+        )
+
+        let fields = snapshot.toDictionary()
+        XCTAssertNotNil(fields["_is_memory_low"])
+    }
 }
