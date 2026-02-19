@@ -1,6 +1,6 @@
-load("@rules_apple//apple:apple.bzl", "apple_static_xcframework")
+load("@rules_apple//apple:apple.bzl", "apple_static_xcframework", "apple_xcframework")
 load("@rules_apple//apple:docc.bzl", "docc_archive")
-load("@rules_apple//apple:ios.bzl", "ios_static_framework")
+load("@rules_apple//apple:ios.bzl", "ios_dynamic_framework", "ios_static_framework")
 load("@rules_cc//cc:defs.bzl", "objc_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
@@ -181,4 +181,71 @@ docc_archive(
     ],
     transform_for_static_hosting = True,
     visibility = ["//visibility:public"],
+)
+
+# Dynamic XCFramework for distribution - isolates all Rust symbols to avoid conflicts
+# with other Rust-based libraries (e.g., Yttrium/Reown-Swift)
+apple_xcframework(
+    name = "CaptureDynamic",
+    bundle_id = "io.bitdrift.Capture",
+    bundle_name = "Capture",
+    exported_symbols_lists = [":capture_exported_symbols"],
+    infoplists = ["//platform/swift/resources:info_plist"],
+    ios = {
+        "device": ["arm64"],
+        "simulator": [
+            "arm64",
+            "x86_64",
+        ],
+    },
+    linkopts = [
+        "-dead_strip",
+        # Strip non-global symbols from output
+        "-x",
+    ],
+    minimum_os_versions = {
+        "ios": MINIMUM_IOS_VERSION,
+    },
+    tags = [
+        "macos_only",
+        "no-cache",
+        "no-remote",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [":ios_lib"],
+)
+
+# Exported symbols list - only expose public Capture API, hide all Rust internals
+exports_files(["capture_exported_symbols.txt"])
+
+filegroup(
+    name = "capture_exported_symbols",
+    srcs = ["capture_exported_symbols.txt"],
+    visibility = ["//visibility:public"],
+)
+
+# Dynamic framework for single-platform builds (useful for testing)
+ios_dynamic_framework(
+    name = "capture_ios_dynamic_framework",
+    bundle_id = "io.bitdrift.Capture",
+    bundle_name = "Capture",
+    exported_symbols_lists = [":capture_exported_symbols"],
+    families = [
+        "iphone",
+        "ipad",
+    ],
+    infoplists = ["//platform/swift/resources:info_plist"],
+    linkopts = [
+        "-dead_strip",
+        # Strip non-global symbols from output
+        "-x",
+    ],
+    minimum_os_version = MINIMUM_IOS_VERSION,
+    tags = [
+        "macos_only",
+        "no-cache",
+        "no-remote",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [":ios_lib"],
 )
