@@ -43,7 +43,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Emit `_is_memory_low` on iOS system memory pressure events (AppMemPressure from DispatchSource) when the threshold is configured; periodic resource utilization emission remains unchanged.
 
 ## [0.22.7]
 
