@@ -1,4 +1,4 @@
-load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_shared_library")
+load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_crate")
 
 exports_files(["AndroidManifest.xml"])
 
@@ -8,14 +8,15 @@ exports_files(["AndroidManifest.xml"])
 # at src/platform/jvm named either libcapture.so or libcapture.dylib depending on the platform.
 # This allows the JniLibrary to load this with the name "capture" when the library path is set
 # to src/platform/jvm.
-bitdrift_rust_shared_library(
+bitdrift_rust_crate(
     name = "capture_shared",
+    crate_name = "capture",
+    shared_library = True,
     compile_data = [
         "jni_symbols.lds",
     ],
-    crate_name = "capture",
     crate_root = "src/lib.rs",
-    rustc_flags = [
+    rustc_flags_extra = [
         "-Clink-args=-lm",  # Required to avoid dlopen runtime failures unrelated to rust
         "-Clink-args=-lz",  # Link against system zlib library
     ] + select({
@@ -41,7 +42,7 @@ bitdrift_rust_shared_library(
         "no-remote",
     ],
     visibility = ["//visibility:public"],
-    deps = [
+    deps_extra = [
         "//platform/jvm/core:capture_core",
     ],
 )

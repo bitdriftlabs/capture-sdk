@@ -1,12 +1,19 @@
-load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
+load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_crate")
 
-bitdrift_rust_library(
+bitdrift_rust_crate(
     name = "capture_core",
+    crate_name = "capture_core",
     visibility = ["//visibility:public"],
-    deps = [
+    deps_extra = [
         "//platform/shared:platform-shared",
     ],
     alwayslink = True,
+)
+
+alias(
+    name = "core",
+    actual = ":capture_core",
+    visibility = ["//visibility:public"],
 )
 
 # Concatenate the proguard files from the capture and replay libraries

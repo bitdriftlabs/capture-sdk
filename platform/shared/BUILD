@@ -1,24 +1,30 @@
-load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
-load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_binary", "bitdrift_rust_library")
+load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_crate")
 
-bitdrift_rust_library(
+bitdrift_rust_crate(
     name = "platform-shared",
+    crate_name = "platform_shared",
     srcs = glob(["src/**/*.rs"]),
     visibility = ["//visibility:public"],
-    deps = [":build_script"],
+    build_script_data = [":sdk_version"],
 )
 
-bitdrift_rust_binary(
-    name = "version_codegen",
-    srcs = glob(["version_codegen/**/*.rs"]),
+alias(
+    name = "shared",
+    actual = ":platform-shared",
     visibility = ["//visibility:public"],
 )
 
-cargo_build_script(
-    name = "build_script",
-    srcs = ["build.rs"],
-    data = [":sdk_version"],
-    edition = "2021",
+bitdrift_rust_crate(
+    name = "version_codegen",
+    crate_name = "version_codegen",
+    crate_srcs = glob(["version_codegen/**/*.rs"]),
+    extra_binaries = ["//platform/shared:version_codegen"],
+    visibility = ["//visibility:public"],
+    build_script_enabled = False,
+    library = False,
+    binary = True,
+    binary_crate_root = "version_codegen/main.rs",
+    binary_srcs = glob(["version_codegen/**/*.rs"]),
 )
 
 filegroup(

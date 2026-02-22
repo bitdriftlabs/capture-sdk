@@ -8,7 +8,6 @@ alias(
 
 bitdrift_rust_library(
     name = "platform_test_helpers",
-    testonly = True,
     deps = [
         "//platform/shared:platform-shared",
     ],
