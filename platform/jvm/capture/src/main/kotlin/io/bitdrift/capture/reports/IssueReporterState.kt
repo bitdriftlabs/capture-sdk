@@ -8,7 +8,7 @@
 package io.bitdrift.capture.reports
 
 /**
- * Represents all different states for [io.bitdrift.capture.reports.IssueReporter.processPriorReportFiles]
+ * Represents all different states for [io.bitdrift.capture.reports.IssueReporter.processPriorReportFiles].
  */
 sealed class IssueReporterState(
     /**
