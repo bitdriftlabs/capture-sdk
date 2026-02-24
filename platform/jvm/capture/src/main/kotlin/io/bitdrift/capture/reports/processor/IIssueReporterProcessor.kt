@@ -19,12 +19,12 @@ import java.io.InputStream
  */
 interface IIssueReporterProcessor {
     /**
-     * Process AppTerminations due to ANRs and native crashes into packed format
+     * Process AppTerminations due to ANRs and native crashes into packed format.
      * @param fatalIssueType The flatbuffer type of fatal issue being processed
-     * (e.g. [ReportType.AppNotResponding] or [ReportType.NativeCrash])
-     * @param timestamp The timestamp when the issue occurred
-     * @param description Optional description of the issue
-     * @param traceInputStream Input stream containing the fatal issue trace data
+     * (e.g. [ReportType.AppNotResponding] or [ReportType.NativeCrash]).
+     * @param timestamp The timestamp when the issue occurred.
+     * @param description Optional description of the issue.
+     * @param traceInputStream Input stream containing the fatal issue trace data.
      */
     fun processAppExitReport(
         fatalIssueType: Byte,
