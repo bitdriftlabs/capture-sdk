@@ -9,7 +9,7 @@ use crate::jni::{initialize_class, initialize_method_handle, CachedClass, Cached
 use anyhow::bail;
 use bd_client_common::error::InvariantError;
 use bd_logger::{AnnotatedLogField, AnnotatedLogFields, LogFieldKind, LogFieldValue, LogFields};
-use jni::objects::{JMap, JObject, JObjectArray, JPrimitiveArray};
+use jni::objects::{JMap, JObject, JObjectArray, JPrimitiveArray, JString};
 use jni::signature::{Primitive, ReturnType};
 use jni::JNIEnv;
 use std::collections::HashMap;
@@ -186,6 +186,20 @@ pub(crate) fn jarray_to_fields(
 /// 2. Multiple JNI method calls per field (getKey, getValueType, getValue)
 ///
 /// The keys and values arrays must have the same length - keys[i] corresponds to values[i].
+/// Returns empty fields if keys is null.
+pub fn nullable_string_arrays_to_annotated_fields(
+  env: &mut JNIEnv<'_>,
+  keys: &JObjectArray<'_>,
+  values: &JObjectArray<'_>,
+  kind: LogFieldKind,
+) -> anyhow::Result<AnnotatedLogFields> {
+  if keys.is_null() {
+    return Ok(AnnotatedLogFields::new());
+  }
+  string_arrays_to_annotated_fields(env, keys, values, kind)
+}
+
+/// The keys and values arrays must have the same length - keys[i] corresponds to values[i].
 pub fn string_arrays_to_annotated_fields(
   env: &mut JNIEnv<'_>,
   keys: &JObjectArray<'_>,
@@ -194,29 +208,41 @@ pub fn string_arrays_to_annotated_fields(
 ) -> anyhow::Result<AnnotatedLogFields> {
   let len = env.get_array_length(keys)?;
   #[allow(clippy::cast_sign_loss)]
-  let mut fields = AnnotatedLogFields::with_capacity(len as usize);
+  let len_usize = len as usize;
+  let mut fields = AnnotatedLogFields::with_capacity(len_usize);
+
+  if len == 0 {
+    return Ok(fields);
+  }
 
   for i in 0 .. len {
-    env.with_local_frame(4, |env| -> anyhow::Result<()> {
-      let key_obj = env.get_object_array_element(keys, i)?;
-      let value_obj = env.get_object_array_element(values, i)?;
+    let key_obj = env.get_object_array_element(keys, i)?;
+    let value_obj = env.get_object_array_element(values, i)?;
 
-      let key = unsafe { env.get_string_unchecked(&key_obj.into()) }?
-        .to_string_lossy()
-        .to_string();
-      let value = unsafe { env.get_string_unchecked(&value_obj.into()) }?
-        .to_string_lossy()
-        .to_string();
+    let key_jstr: JString<'_> = key_obj.into();
+    let value_jstr: JString<'_> = value_obj.into();
 
-      fields.insert(
-        key.into(),
-        AnnotatedLogField {
-          value: LogFieldValue::String(value),
-          kind,
-        },
-      );
-      Ok(())
-    })?;
+    // Extract strings and convert to owned immediately so we can release JNI refs
+    let key_str = {
+      let key = unsafe { env.get_string_unchecked(&key_jstr) }?;
+      key.to_string_lossy().into_owned()
+    };
+    let value_str = {
+      let value = unsafe { env.get_string_unchecked(&value_jstr) }?;
+      value.to_string_lossy().into_owned()
+    };
+
+    fields.insert(
+      key_str.into(),
+      AnnotatedLogField {
+        value: LogFieldValue::String(value_str),
+        kind,
+      },
+    );
+
+    // Clean up local references to avoid exhausting JNI local ref table
+    env.delete_local_ref(key_jstr)?;
+    env.delete_local_ref(value_jstr)?;
   }
 
   Ok(fields)
