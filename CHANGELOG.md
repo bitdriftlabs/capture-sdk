@@ -26,6 +26,7 @@
 **Changed**
 
 - Bump `androidx.metrics:metrics-performance` dep to 1.0.0
+- io.bitdrift.capture-plugin: `automaticOkHttpInstrumentation` now defaults to `PROXY` mode instead of `OVERWRITE`, preserving any custom `EventListener.Factory` on the `OkHttpClient`.
 
 **Fixed**
 

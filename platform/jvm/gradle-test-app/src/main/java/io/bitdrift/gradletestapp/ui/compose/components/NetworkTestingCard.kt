@@ -20,7 +20,8 @@ import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
  */
 @Composable
 fun NetworkTestingCard(
-    onOkHttpRequest: () -> Unit,
+    onOkHttpManualRequest: () -> Unit,
+    onOkHttpAutoRequest: () -> Unit,
     onGraphQlRequest: () -> Unit,
     onRetrofitRequest: () -> Unit,
     modifier: Modifier = Modifier,
@@ -54,16 +55,32 @@ fun NetworkTestingCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 OutlinedButton(
-                    onClick = onOkHttpRequest,
+                    onClick = onOkHttpManualRequest,
                     modifier = Modifier.weight(1f),
                     colors =
                         ButtonDefaults.outlinedButtonColors(
                             contentColor = BitdriftColors.TextPrimary,
                         ),
                 ) {
-                    Text("OkHttp", maxLines = 1, softWrap = false)
+                    Text("OkHttp (Manual)", maxLines = 1, softWrap = false)
                 }
 
+                OutlinedButton(
+                    onClick = onOkHttpAutoRequest,
+                    modifier = Modifier.weight(1f),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = BitdriftColors.TextPrimary,
+                        ),
+                ) {
+                    Text("OkHttp (Auto)", maxLines = 1, softWrap = false)
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 OutlinedButton(
                     onClick = onGraphQlRequest,
                     modifier = Modifier.weight(1f),

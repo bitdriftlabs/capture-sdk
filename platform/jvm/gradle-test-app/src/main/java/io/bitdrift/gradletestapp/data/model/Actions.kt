@@ -51,7 +51,9 @@ sealed class DiagnosticsAction : AppAction {
 }
 
 sealed class NetworkTestAction : AppAction {
-    object PerformOkHttpRequest : NetworkTestAction()
+    object PerformOkHttpRequestManual : NetworkTestAction()
+
+    object PerformOkHttpRequestAutomatic : NetworkTestAction()
 
     object PerformGraphQlRequest : NetworkTestAction()
 

@@ -23,8 +23,11 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.Callback
+import okhttp3.Connection
+import okhttp3.EventListener
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
+import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
@@ -32,14 +35,16 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import timber.log.Timber
 import java.io.IOException
+import java.net.InetSocketAddress
+import java.net.Proxy
 import kotlin.random.Random
 
 /**
  * Performs OkHttp/GraphQL requests
  */
 class NetworkTestingRepository {
-    // Initialize network clients
-    private val okHttpClient: OkHttpClient =
+    // Manual integration: explicit CaptureOkHttpEventListenerFactory with custom field providers
+    private val okHttpClientManual: OkHttpClient =
         OkHttpClient
             .Builder()
             .eventListenerFactory(
@@ -48,16 +53,24 @@ class NetworkTestingRepository {
                     responseFieldProvider = CustomResponseFieldProvider(),
                 ),
             ).build()
+
+    // Automatic integration: relies on Gradle plugin instrumentation (tests PROXY vs OVERWRITE)
+    private val okHttpClientAutomatic: OkHttpClient =
+        OkHttpClient
+            .Builder()
+            .eventListenerFactory { TimberOkHttpEventListener() }
+            .build()
+
     private val apolloClient: ApolloClient =
         ApolloClient
             .Builder()
             .serverUrl("https://apollo-fullstack-tutorial.herokuapp.com/graphql")
-            .okHttpClient(okHttpClient)
+            .okHttpClient(okHttpClientManual)
             .addInterceptor(CaptureApolloInterceptor())
             .build()
     private val retrofitService = Retrofit.Builder()
         .baseUrl("https://binaryjazz.us")
-        .client(okHttpClient)
+        .client(okHttpClientManual)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
         .create(BinaryJazzRetrofitService::class.java)
@@ -104,8 +117,16 @@ class NetworkTestingRepository {
     }
 
     fun performOkHttpRequest() {
+        performOkHttpRequestWithClient(okHttpClientManual, "Manual")
+    }
+
+    fun performOkHttpRequestAutomatic() {
+        performOkHttpRequestWithClient(okHttpClientAutomatic, "Automatic")
+    }
+
+    private fun performOkHttpRequestWithClient(okHttpClient: OkHttpClient, label: String) {
         val requestDef = requestDefinitions.random()
-        Timber.i("Performing OkHttp Network Request: $requestDef")
+        Timber.i("Performing OkHttp Network Request ($label): $requestDef")
 
         val url =
             HttpUrl
@@ -136,14 +157,14 @@ class NetworkTestingRepository {
                         response.use {
                             it.body!!.string()
                         }
-                    Timber.v("OkHttp request completed with status code=${response.code} and body=$body")
+                    Timber.v("OkHttp request ($label) completed with status code=${response.code} and body=$body")
                 }
 
                 override fun onFailure(
                     call: Call,
                     e: IOException,
                 ) {
-                    Timber.v("OkHttp request failed with exception=$e")
+                    Timber.v("OkHttp request ($label) failed with exception=$e")
                 }
             },
         )
@@ -174,6 +195,36 @@ class NetworkTestingRepository {
             } catch (e: Exception) {
                 Timber.e(e, "Retrofit request failed")
             }
+        }
+    }
+
+    /**
+     * Logs OkHttp events via Timber. Used with auto-instrumentation to test PROXY vs OVERWRITE.
+     */
+    private class TimberOkHttpEventListener : EventListener() {
+        override fun callStart(call: Call) {
+            Timber.d("[TimberOkHttpEventListener] callStart: ${call.request().url}")
+        }
+
+        override fun callEnd(call: Call) {
+            Timber.d("[TimberOkHttpEventListener] callEnd: ${call.request().url}")
+        }
+
+        override fun connectStart(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
+            Timber.d("[TimberOkHttpEventListener] connectStart")
+        }
+
+        override fun connectEnd(
+            call: Call,
+            inetSocketAddress: InetSocketAddress,
+            proxy: Proxy,
+            protocol: Protocol?
+        ) {
+            Timber.d("[TimberOkHttpEventListener] connectEnd")
+        }
+
+        override fun connectionAcquired(call: Call, connection: Connection) {
+            Timber.d("[TimberOkHttpEventListener] connectionAcquired")
         }
     }
 

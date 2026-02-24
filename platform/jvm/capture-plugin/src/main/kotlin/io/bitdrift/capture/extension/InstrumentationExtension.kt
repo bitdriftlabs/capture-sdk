@@ -47,7 +47,7 @@ open class InstrumentationExtension
             objects
                 .property(
                     OkHttpInstrumentationType::class.java,
-                ).convention(OkHttpInstrumentationType.OVERWRITE)
+                ).convention(OkHttpInstrumentationType.PROXY)
 
         enum class OkHttpInstrumentationType {
             PROXY,
