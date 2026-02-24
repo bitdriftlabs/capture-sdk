@@ -21,7 +21,7 @@ mockitoCore             = "5.12.0"
 mockitoKotlin           = "2.2.0"
 mockitoKotlinVersion    = "4.1.0"
 okhttp                  = "4.12.0"
-performance             = "1.0.0-beta02"
+performance             = "1.0.0"
 protobufKotlinLite      = "4.31.1"
 retrofit                = "3.0.0"
 robolectric             = "4.13"
@@ -50,7 +50,6 @@ kotlin-mockito-kotlin      = { module = "org.mockito.kotlin:mockito-kotlin", ver
 kotlin-result-jvm          = { module = "com.michael-bull.kotlin-result:kotlin-result-jvm", version.ref = "kotlinResultJvm" }
 mockito-core               = { module = "org.mockito:mockito-core", version.ref = "mockitoCore" }
 mockito-kotlin             = { module = "com.nhaarman.mockitokotlin2:mockito-kotlin", version.ref = "mockitoKotlin" }
-mockito-kotlin-inline      = { module = "org.mockito:mockito-inline", version.ref = "mockitoCore" }
 mockwebserver              = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttp" }
 okhttp                     = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 performance                = { module = "androidx.metrics:metrics-performance", version.ref = "performance" }

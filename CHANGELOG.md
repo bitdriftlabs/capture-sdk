@@ -25,7 +25,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Bump `androidx.metrics:metrics-performance` dep to 1.0.0
 
 **Fixed**
 
