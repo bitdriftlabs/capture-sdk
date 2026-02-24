@@ -67,7 +67,7 @@ jobs:
       - name: Serve Expo
         run: npm exec nx start expo-example > /tmp/expo_logs &
       - name: run tests
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@b530d96654c385303d652368551fb075bc2f0b6b # pin@v2.35.0
         with:
           api-level: 29
           script: cd examples/expo/android && ./gradlew installDebug --build-cache -PreactNativeDevServerPort=19000 -PreactNativeArchitectures=x86 && maestro test ../maestro_flow.yaml
