@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.7...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.8...HEAD
 
 ### Both
 
@@ -21,12 +21,11 @@
 
 **Added**
 
-- Log internal sdk error if we fail to process and persist a JVM report
+- Nothing yet!
 
 **Changed**
 
-- Bump `androidx.metrics:metrics-performance` dep to 1.0.0
-- io.bitdrift.capture-plugin: `automaticOkHttpInstrumentation` now defaults to `PROXY` mode instead of `OVERWRITE`, preserving any custom `EventListener.Factory` on the `OkHttpClient`.
+- Nothing yet!
 
 **Fixed**
 
@@ -45,6 +44,21 @@
 **Fixed**
 
 - Emit `_is_memory_low` on iOS system memory pressure events (AppMemPressure from DispatchSource) when the threshold is configured; periodic resource utilization emission remains unchanged.
+
+## [0.22.8]
+
+[0.22.8]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.8
+
+### Android
+
+**Added**
+
+- Log internal sdk error if we fail to process and persist a JVM report
+
+**Changed**
+
+- Bump `androidx.metrics:metrics-performance` dep to `1.0.0`
+- io.bitdrift.capture-plugin: `automaticOkHttpInstrumentation` now defaults to `PROXY` mode instead of `OVERWRITE`, preserving any custom `EventListener.Factory` on the `OkHttpClient`.
 
 ## [0.22.7]
 
