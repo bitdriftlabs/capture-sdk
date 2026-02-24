@@ -43,7 +43,7 @@
 
 **Fixed**
 
-- Emit `_is_memory_low` on iOS system memory pressure events (AppMemPressure from DispatchSource) when the threshold is configured; periodic resource utilization emission remains unchanged.
+- Nothing yet!
 
 ## [0.22.8]
 
@@ -59,6 +59,12 @@
 
 - Bump `androidx.metrics:metrics-performance` dep to `1.0.0`
 - io.bitdrift.capture-plugin: `automaticOkHttpInstrumentation` now defaults to `PROXY` mode instead of `OVERWRITE`, preserving any custom `EventListener.Factory` on the `OkHttpClient`.
+
+### iOS
+
+**Fixed**
+
+- Emit `_is_memory_low` on iOS system memory pressure events (AppMemPressure from DispatchSource) when the threshold is configured; periodic resource utilization emission remains unchanged.
 
 ## [0.22.7]
 
