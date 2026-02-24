@@ -317,7 +317,8 @@ private fun SdkApisTabContent(
         }
         item {
             NetworkTestingCard(
-                onOkHttpRequest = { onAction(NetworkTestAction.PerformOkHttpRequest) },
+                onOkHttpManualRequest = { onAction(NetworkTestAction.PerformOkHttpRequestManual) },
+                onOkHttpAutoRequest = { onAction(NetworkTestAction.PerformOkHttpRequestAutomatic) },
                 onGraphQlRequest = { onAction(NetworkTestAction.PerformGraphQlRequest) },
                 onRetrofitRequest = { onAction(NetworkTestAction.PerformRetrofitRequest) },
             )

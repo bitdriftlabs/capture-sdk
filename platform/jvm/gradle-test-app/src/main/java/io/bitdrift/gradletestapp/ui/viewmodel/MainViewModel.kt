@@ -113,8 +113,11 @@ class MainViewModel(
             is DiagnosticsAction.ForceAppExit -> forceAppExit()
             is DiagnosticsAction.UpdateAppExitReason -> updateAppExitReason(action.reason)
 
-            is NetworkTestAction.PerformOkHttpRequest -> {
+            is NetworkTestAction.PerformOkHttpRequestManual -> {
                 networkTestingRepository.performOkHttpRequest()
+            }
+            is NetworkTestAction.PerformOkHttpRequestAutomatic -> {
+                networkTestingRepository.performOkHttpRequestAutomatic()
             }
             is NetworkTestAction.PerformGraphQlRequest -> {
                 networkTestingRepository.performGraphQlRequest()

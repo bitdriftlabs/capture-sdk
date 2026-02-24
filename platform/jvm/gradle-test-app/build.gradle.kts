@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.apollo.graphql)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    // TODO(Fran): BIT-7448. Update to 0.22.8 once release is completed
     id("io.bitdrift.capture-plugin") version "0.22.7"
 }
 
@@ -172,5 +173,6 @@ bitdrift {
     instrumentation {
         automaticOkHttpInstrumentation = true
         automaticWebViewInstrumentation = true
+        // Comment out to change the default type. e.g. okHttpInstrumentationType = OVERWRITE
     }
 }
