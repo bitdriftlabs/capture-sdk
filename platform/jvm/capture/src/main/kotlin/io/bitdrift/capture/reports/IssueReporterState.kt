@@ -42,17 +42,29 @@ sealed class IssueReporterState(
     data object ClientDisabled : IssueReporterState("CLIENT_CONFIG_DISABLED")
 
     /**
-     * Reporting not enabled because server-side configuration is disabled
+     * Runtime configuration states
      */
-    data object RuntimeDisabled : IssueReporterState("RUNTIME_CONFIG_DISABLED")
+    sealed class RuntimeState(
+        override val readableType: String,
+    ) : IssueReporterState(readableType) {
+        /**
+         * Reporting enabled because server-side configuration is enabled
+         */
+        data object Enabled : RuntimeState("RUNTIME_CONFIG_ENABLED")
 
-    /**
-     * Reporting not enabled because server-side configuration is unset
-     */
-    data object RuntimeUnset : IssueReporterState("RUNTIME_CONFIG_UNSET")
+        /**
+         * Reporting not enabled because server-side configuration is disabled
+         */
+        data object Disabled : RuntimeState("RUNTIME_CONFIG_DISABLED")
 
-    /**
-     * Reporting not enabled because server-side configuration is corrupted
-     */
-    data object RuntimeInvalid : IssueReporterState("RUNTIME_CONFIG_INVALID")
+        /**
+         * Reporting not enabled because server-side configuration is unset
+         */
+        data object Unset : RuntimeState("RUNTIME_CONFIG_UNSET")
+
+        /**
+         * Reporting not enabled because server-side configuration is corrupted
+         */
+        data object Invalid : RuntimeState("RUNTIME_CONFIG_INVALID")
+    }
 }

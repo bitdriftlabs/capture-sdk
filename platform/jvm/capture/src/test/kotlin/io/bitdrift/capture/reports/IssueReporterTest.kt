@@ -101,7 +101,7 @@ class IssueReporterTest {
         )
 
         issueReporter.issueReporterState.assert(
-            IssueReporterState.RuntimeDisabled::class.java,
+            IssueReporterState.RuntimeState.Disabled::class.java,
         )
         assertThat(
             issueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
@@ -119,7 +119,7 @@ class IssueReporterTest {
         )
 
         issueReporter.issueReporterState.assert(
-            IssueReporterState.RuntimeInvalid::class.java,
+            IssueReporterState.RuntimeState.Invalid::class.java,
         )
         assertThat(
             issueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
@@ -137,7 +137,7 @@ class IssueReporterTest {
         )
 
         issueReporter.issueReporterState.assert(
-            IssueReporterState.RuntimeUnset::class.java,
+            IssueReporterState.RuntimeState.Unset::class.java,
         )
         assertThat(
             issueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
