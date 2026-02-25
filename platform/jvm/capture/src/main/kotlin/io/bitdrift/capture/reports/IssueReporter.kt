@@ -21,6 +21,7 @@ import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.reports.IssueReporterState.NotInitialized
+import io.bitdrift.capture.reports.IssueReporterState.RuntimeState
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.mapToFatalIssueType
@@ -77,44 +78,23 @@ internal class IssueReporter(
             Log.e(LOG_TAG, "Issue reporting already being initialized")
             return
         }
+        val duration = TimeSource.Monotonic.markNow()
+
         // setting immediate value to avoid re-initializing if the first state check takes time
         issueReporterState = IssueReporterState.Initializing
 
-        val duration = TimeSource.Monotonic.markNow()
-        runCatching {
-            runCatching {
-                if (!isFatalIssueReportingRuntimeEnabled(sdkDirectory)) {
-                    issueReporterState = IssueReporterState.RuntimeDisabled
-                    initializationDuration = duration.elapsedNow()
-                    return
-                }
-            }.onFailure {
-                issueReporterState =
-                    if (it is FileNotFoundException) {
-                        IssueReporterState.RuntimeUnset
-                    } else {
-                        IssueReporterState.RuntimeInvalid
-                    }
+        getRuntimeState(sdkDirectory)
+            .takeIf { state -> state != RuntimeState.Enabled }
+            ?.let { state ->
+                issueReporterState = state
                 initializationDuration = duration.elapsedNow()
                 return
             }
 
+        runCatching {
             issueReporterProcessor = issueReporterProcessorFactory(sdkDirectory, clientAttributes, dateProvider)
             captureUncaughtExceptionHandler.install(this)
-
-            backgroundThreadHandler.runAsync {
-                runCatching {
-                    persistLastExitReasonIfNeeded(activityManager)
-                    completedReportsProcessor.processIssueReports(ReportProcessingSession.PreviousRun)
-                }.onSuccess {
-                    issueReporterState =
-                        IssueReporterState.Initialized
-                }.onFailure {
-                    logError(completedReportsProcessor, it)
-                    issueReporterState =
-                        IssueReporterState.InitializationFailed
-                }
-            }
+            processPriorReports(activityManager, completedReportsProcessor)
         }.getOrElse {
             logError(completedReportsProcessor, it)
             issueReporterState =
@@ -168,6 +148,39 @@ internal class IssueReporter(
                 put(FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY, it.toDouble(DurationUnit.MILLISECONDS).toString())
             }
         }
+
+    private fun getRuntimeState(sdkDirectory: String): RuntimeState =
+        runCatching {
+            if (isFatalIssueReportingRuntimeEnabled(sdkDirectory)) {
+                RuntimeState.Enabled
+            } else {
+                RuntimeState.Disabled
+            }
+        }.getOrElse { exception ->
+            when (exception) {
+                is FileNotFoundException -> RuntimeState.Unset
+                else -> RuntimeState.Invalid
+            }
+        }
+
+    private fun processPriorReports(
+        activityManager: ActivityManager,
+        completedReportsProcessor: ICompletedReportsProcessor,
+    ) {
+        backgroundThreadHandler.runAsync {
+            runCatching {
+                persistLastExitReasonIfNeeded(activityManager)
+                completedReportsProcessor.processIssueReports(ReportProcessingSession.PreviousRun)
+            }.onSuccess {
+                issueReporterState =
+                    IssueReporterState.Initialized
+            }.onFailure {
+                logError(completedReportsProcessor, it)
+                issueReporterState =
+                    IssueReporterState.InitializationFailed
+            }
+        }
+    }
 
     private fun persistLastExitReasonIfNeeded(activityManager: ActivityManager) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
