@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fix OkHttp connection leak
 
 ### iOS
 
