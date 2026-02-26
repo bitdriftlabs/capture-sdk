@@ -114,7 +114,10 @@ internal class OkHttpNetwork(
         // We call the deallocate call of stream handle N-1 when we create stream handle N, ensuring
         // that we never maintain more than one active stream.
         val streamState = StreamState(streamId, headers)
-        activeStream.getAndSet(streamState)?.streamId?.deallocate()
+        activeStream.getAndSet(streamState)?.let { oldStream ->
+            oldStream.shutdown()
+            oldStream.streamId.deallocate()
+        }
         return streamState
     }
 
@@ -174,8 +177,10 @@ internal class OkHttpNetwork(
                     ) {
                         // Once we get a response handle, hand it over to the executor for async processing.
                         networkDispatcher.runAsync {
-                            response.use {
+                            try {
                                 consumeResponse(response)
+                            } finally {
+                                response.close()
                             }
                         }
                     }
@@ -204,6 +209,7 @@ internal class OkHttpNetwork(
             // This is called when the native end no longer needs this stream, so cancel it if it's
             // still active.
             call.cancel()
+            runCatching { sink.close() }
         }
 
         // Closes the stream unless the stream has already been deallocated.

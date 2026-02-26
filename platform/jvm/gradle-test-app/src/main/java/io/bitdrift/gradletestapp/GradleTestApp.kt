@@ -18,8 +18,10 @@ import io.bitdrift.gradletestapp.diagnostics.startup.AppStartInfoLogger
 import io.bitdrift.gradletestapp.diagnostics.strictmode.StrictModeConfigurator
 import io.bitdrift.gradletestapp.init.BitdriftInit
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFERRED_START_PREFS_KEY
+import okhttp3.OkHttpClient
 import timber.log.Timber
-
+import java.util.logging.Level
+import java.util.logging.Logger
 /**
  * A Kotlin app entry point that initializes the Bitdrift Logger automatically only when ConfigState.isDeferredStart is set to false
  */
@@ -42,6 +44,7 @@ class GradleTestApp : Application() {
         sharedPreferences.getBoolean(DEFERRED_START_PREFS_KEY, false)
 
     private fun attachAdditionalMonitoringTools() {
+        Logger.getLogger(OkHttpClient::class.java.name).level = Level.FINE
         StrictModeConfigurator.install()
         CrashSdkInitializer.init(this)
         ActivitySpanCallbacks.create()
