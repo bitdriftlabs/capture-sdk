@@ -857,13 +857,19 @@ extern "C" fn capture_remove_log_field(logger_id: LoggerId<'_>, key: *const c_ch
 }
 
 #[no_mangle]
-extern "C" fn capture_flush(logger_id: LoggerId<'_>, blocking: bool) {
+extern "C" fn capture_flush(
+  logger_id: LoggerId<'_>,
+  blocking: bool,
+  poll_callback: Option<extern "C" fn()>,
+) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
-      let blocking = if blocking {
-        Block::Yes(std::time::Duration::from_secs(1))
-      } else {
-        Block::No
+      let blocking = match (blocking, poll_callback) {
+        (true, Some(callback)) => {
+          Block::YesWithCallback(std::time::Duration::from_secs(1), callback)
+        },
+        (true, None) => Block::Yes(std::time::Duration::from_secs(1)),
+        (false, _) => Block::No,
       };
       logger_id.flush_state(blocking);
 

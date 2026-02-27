@@ -247,8 +247,10 @@ void capture_remove_log_field(logger_id logger_id, const char *key);
  *
  * @param logger_id the logger to flush.
  * @param blocking whether the method should return only after the flush is complete.
+ * @param poll_callback optional callback invoked during blocking wait instead of sleeping.
+ *        This allows the caller to pump the run loop while waiting.
  */
-void capture_flush(logger_id logger_id, bool blocking);
+void capture_flush(logger_id logger_id, bool blocking, void (*_Nullable poll_callback)(void));
 
 /*
  * Sets a feature flag exposure.
