@@ -647,7 +647,10 @@ extern "C" fn capture_write_log(
         matching_fields,
         attributes_overrides,
         if blocking {
-          Block::Yes(std::time::Duration::from_secs(1))
+          Block::Yes {
+            timeout: std::time::Duration::from_secs(1),
+            poll_callback: None,
+          }
         } else {
           Block::No
         },
@@ -864,14 +867,18 @@ extern "C" fn capture_flush(
 ) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
-      let blocking = match (blocking, poll_callback) {
-        (true, Some(callback)) => {
-          Block::YesWithCallback(std::time::Duration::from_secs(1), callback)
+      let block = match (blocking, poll_callback) {
+        (true, Some(callback)) => Block::Yes {
+          timeout: std::time::Duration::from_secs(1),
+          poll_callback: Some(Box::new(move || callback())),
         },
-        (true, None) => Block::Yes(std::time::Duration::from_secs(1)),
+        (true, None) => Block::Yes {
+          timeout: std::time::Duration::from_secs(1),
+          poll_callback: None,
+        },
         (false, _) => Block::No,
       };
-      logger_id.flush_state(blocking);
+      logger_id.flush_state(block);
 
       Ok(())
     },

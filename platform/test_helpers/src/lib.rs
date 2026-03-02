@@ -410,7 +410,10 @@ pub fn run_large_upload_test_impl(
       [].into(),
       [].into(),
       None,
-      Block::Yes(std::time::Duration::from_secs(1)),
+      Block::Yes {
+        timeout: std::time::Duration::from_secs(1),
+        poll_callback: None,
+      },
       &CaptureSession::default(),
     );
   }
