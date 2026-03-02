@@ -22,8 +22,12 @@ use jni::sys::{jint, jlong, jobject};
 use jni::JNIEnv;
 use platform_shared::LoggerId;
 use platform_test_helpers::{
-  await_api_server_stream_closed, await_configuration_ack, await_next_api_stream,
-  configure_aggressive_continuous_uploads, send_configuration_update, start_test_api_server,
+  await_api_server_stream_closed,
+  await_configuration_ack,
+  await_next_api_stream,
+  configure_aggressive_continuous_uploads,
+  send_configuration_update,
+  start_test_api_server,
   stop_test_api_server,
 };
 use std::collections::HashMap;
