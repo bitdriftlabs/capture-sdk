@@ -22,12 +22,8 @@ use jni::sys::{jint, jlong, jobject};
 use jni::JNIEnv;
 use platform_shared::LoggerId;
 use platform_test_helpers::{
-  await_api_server_stream_closed,
-  await_configuration_ack,
-  await_next_api_stream,
-  configure_aggressive_continuous_uploads,
-  send_configuration_update,
-  start_test_api_server,
+  await_api_server_stream_closed, await_configuration_ack, await_next_api_stream,
+  configure_aggressive_continuous_uploads, send_configuration_update, start_test_api_server,
   stop_test_api_server,
 };
 use std::collections::HashMap;
@@ -169,7 +165,9 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
       | DataValue::Boolean(_)
       | DataValue::U64(_)
       | DataValue::I64(_)
-      | DataValue::Double(_) => JObject::null(),
+      | DataValue::Double(_)
+      | DataValue::Map(_)
+      | DataValue::Array(_) => JObject::null(),
     };
 
     // TODO(Augustyniak): Extract the logic below into a helper function.
@@ -340,6 +338,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
             }
             .unwrap()
           },
+          DataValue::Map(_) | DataValue::Array(_) => JObject::null(),
         };
 
         _ = fields.put(&mut env, &key, &value);
