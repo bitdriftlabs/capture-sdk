@@ -52,11 +52,14 @@ export interface BridgeMessage {
     type: MessageType;
     /** Timestamp when the event occurred (ms since epoch) */
     timestamp: number;
+    /** Pre-formatted log fields with underscore prefix and snake_case naming */
+    fields?: SerializableLogFields;
 }
 
 export interface InternalAutoInstrumentationMessage extends BridgeMessage {
     type: 'internalAutoInstrumentation';
     event: keyof WebViewInstrumentationConfig;
+    fields: SerializableLogFields;
 }
 
 export interface CustomLogMessage extends BridgeMessage {
@@ -74,6 +77,8 @@ export interface BridgeReadyMessage extends BridgeMessage {
     /** URL of the page being loaded */
     url: string;
     instrumentationConfig: WebViewInstrumentationConfig | undefined;
+    /** Pre-formatted log fields */
+    fields: SerializableLogFields;
 }
 
 /**
@@ -84,6 +89,8 @@ export interface WebVitalMessage extends BridgeMessage {
     metric: MetricType;
     /** Parent span ID for nesting under page view */
     parentSpanId?: string;
+    /** Pre-formatted log fields */
+    fields: SerializableLogFields;
 }
 
 /**
@@ -140,6 +147,8 @@ export interface NavigationMessage extends BridgeMessage {
     toUrl: string;
     /** Navigation method: 'pushState' | 'replaceState' | 'popstate' */
     method: 'pushState' | 'replaceState' | 'popstate';
+    /** Pre-formatted log fields */
+    fields: SerializableLogFields;
 }
 
 /**
@@ -159,6 +168,8 @@ export interface ErrorMessage extends BridgeMessage {
     lineno?: number;
     /** Column number */
     colno?: number;
+    /** Pre-formatted log fields */
+    fields: SerializableLogFields;
 }
 
 /**
@@ -176,6 +187,8 @@ export interface PageViewMessage extends BridgeMessage {
     reason: 'initial' | 'navigation' | 'unload' | 'hidden';
     /** Duration of page view in ms (only on end) */
     durationMs?: number;
+    /** Pre-formatted log fields */
+    fields: SerializableLogFields;
 }
 
 /**
@@ -189,6 +202,8 @@ export interface LifecycleMessage extends BridgeMessage {
     performanceTime: number;
     /** Visibility state (for visibilitychange) */
     visibilityState?: string;
+    /** Pre-formatted log fields */
+    fields: SerializableLogFields;
 }
 
 /**
@@ -208,6 +223,8 @@ export interface LongTaskMessage extends BridgeMessage {
         containerId?: string;
         containerName?: string;
     };
+    /** Pre-formatted log fields */
+    fields: SerializableLogFields;
 }
 
 /**
@@ -221,6 +238,8 @@ export interface ResourceErrorMessage extends BridgeMessage {
     url: string;
     /** Tag name of the element */
     tagName: string;
+    /** Pre-formatted log fields */
+    fields: SerializableLogFields;
 }
 
 /**
@@ -234,6 +253,8 @@ export interface ConsoleMessage extends BridgeMessage {
     message: string;
     /** Additional arguments passed to console */
     args?: string[];
+    /** Pre-formatted log fields */
+    fields: SerializableLogFields;
 }
 
 /**
@@ -245,6 +266,8 @@ export interface PromiseRejectionMessage extends BridgeMessage {
     reason: string;
     /** Stack trace if available */
     stack?: string;
+    /** Pre-formatted log fields */
+    fields: SerializableLogFields;
 }
 
 /**
@@ -270,6 +293,8 @@ export interface UserInteractionMessage extends BridgeMessage {
     timeWindowMs?: number;
     /** Actual duration of the rage click time window in ms */
     duration?: number;
+    /** Pre-formatted log fields */
+    fields: SerializableLogFields;
 }
 
 /**
