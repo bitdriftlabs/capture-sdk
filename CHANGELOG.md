@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added the `_url` field to WebVital events sent from the WebView bridge to provide more context about the page associated with the metric.
 
 **Changed**
 
