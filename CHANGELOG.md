@@ -43,7 +43,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fix potential EXC_BAD_ACCESS crash in React Native apps during app teardown by pumping the run loop during blocking flush operations (related to facebook/react-native#53774)
 
 ## [0.22.8]
 
