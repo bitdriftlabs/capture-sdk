@@ -133,6 +133,16 @@ unsafe fn populate_uploaded_log_from_server(
 
         let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
       },
+      DataValue::Map(_) => {
+        let value = make_nsstring("<map>").unwrap();
+
+        let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
+      },
+      DataValue::Array(_) => {
+        let value = make_nsstring("<array>").unwrap();
+
+        let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
+      },
     }
   }
 
