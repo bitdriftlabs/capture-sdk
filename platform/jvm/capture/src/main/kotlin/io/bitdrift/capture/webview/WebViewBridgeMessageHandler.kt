@@ -186,6 +186,7 @@ internal class WebViewBridgeMessageHandler(
                 metric.id?.let { put("_metric_id", it) }
                 metric.navigationType?.let { put("_navigation_type", it) }
                 parentSpanId?.let { put("_span_parent_id", it) }
+                msg.url?.let { put("_url", it) }
                 put("_source", "webview")
             }
 
@@ -225,7 +226,7 @@ internal class WebViewBridgeMessageHandler(
         // Extract LCP-specific entry data if available
         metric.entries?.firstOrNull()?.let { entry ->
             entry.element?.let { fields["_element"] = it }
-            entry.url?.let { fields["_url"] = it }
+            entry.url?.takeIf { it.isNotEmpty() }?.let { fields["_url"] = it }
             entry.size?.let { fields["_size"] = it.toString() }
             entry.renderTime?.let { fields["_render_time"] = it.toString() }
             entry.loadTime?.let { fields["_load_time"] = it.toString() }

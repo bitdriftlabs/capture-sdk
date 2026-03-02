@@ -84,6 +84,7 @@ export interface WebVitalMessage extends BridgeMessage {
     metric: MetricType;
     /** Parent span ID for nesting under page view */
     parentSpanId?: string;
+    url?: string;
 }
 
 /**

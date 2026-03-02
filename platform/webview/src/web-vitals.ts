@@ -22,6 +22,7 @@ export const initWebVitals = (): void => {
                 type: 'webVital',
                 metric,
                 ...(parentSpanId && { parentSpanId }),
+                url: window.location.href,
             });
             log(message);
         });
