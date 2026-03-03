@@ -186,7 +186,7 @@ internal class WebViewBridgeMessageHandler(
                 metric.id?.let { put("_metric_id", it) }
                 metric.navigationType?.let { put("_navigation_type", it) }
                 parentSpanId?.let { put("_span_parent_id", it) }
-                msg.url?.let { put("_url", it) }
+                msg.url?.let { put("_page_url", it) }
                 put("_source", "webview")
             }
 
@@ -223,13 +223,9 @@ internal class WebViewBridgeMessageHandler(
         val fields = commonFields.toMutableMap()
         fields["_metric"] = "LCP"
 
-        // Extract LCP-specific entry data if available
-        metric.entries?.firstOrNull()?.let { entry ->
-            entry.element?.let { fields["_element"] = it }
-            entry.url?.takeIf { it.isNotEmpty() }?.let { fields["_url"] = it }
-            entry.size?.let { fields["_size"] = it.toString() }
-            entry.renderTime?.let { fields["_render_time"] = it.toString() }
-            entry.loadTime?.let { fields["_load_time"] = it.toString() }
+        // Include entries array as JSON
+        metric.entries?.takeIf { it.isNotEmpty() }?.let { entries ->
+            fields["_entries"] = gson.toJson(entries)
         }
 
         logWebVitalDurationSpan(timestamp, value, level, fields, parentSpanId)
@@ -251,11 +247,9 @@ internal class WebViewBridgeMessageHandler(
         val fields = commonFields.toMutableMap()
         fields["_metric"] = "FCP"
 
-        // Extract FCP-specific entry data if available (PerformancePaintTiming)
-        metric.entries?.firstOrNull()?.let { entry ->
-            entry.name?.let { fields["_paint_type"] = it }
-            entry.startTime?.let { fields["_start_time"] = it.toString() }
-            entry.entryType?.let { fields["_entry_type"] = it }
+        // Include entries array as JSON
+        metric.entries?.takeIf { it.isNotEmpty() }?.let { entries ->
+            fields["_entries"] = gson.toJson(entries)
         }
 
         logWebVitalDurationSpan(timestamp, value, level, fields, parentSpanId)
@@ -277,15 +271,9 @@ internal class WebViewBridgeMessageHandler(
         val fields = commonFields.toMutableMap()
         fields["_metric"] = "TTFB"
 
-        // Extract TTFB-specific entry data if available (PerformanceNavigationTiming)
-        metric.entries?.firstOrNull()?.let { entry ->
-            entry.domainLookupStart?.let { fields["_dns_start"] = it.toString() }
-            entry.domainLookupEnd?.let { fields["_dns_end"] = it.toString() }
-            entry.connectStart?.let { fields["_connect_start"] = it.toString() }
-            entry.connectEnd?.let { fields["_connect_end"] = it.toString() }
-            entry.secureConnectionStart?.let { fields["_tls_start"] = it.toString() }
-            entry.requestStart?.let { fields["_request_start"] = it.toString() }
-            entry.responseStart?.let { fields["_response_start"] = it.toString() }
+        // Include entries array as JSON
+        metric.entries?.takeIf { it.isNotEmpty() }?.let { entries ->
+            fields["_entries"] = gson.toJson(entries)
         }
 
         logWebVitalDurationSpan(timestamp, value, level, fields, parentSpanId)
@@ -307,14 +295,9 @@ internal class WebViewBridgeMessageHandler(
         val fields = commonFields.toMutableMap()
         fields["_metric"] = "INP"
 
-        // Extract INP-specific entry data if available
-        metric.entries?.firstOrNull()?.let { entry ->
-            entry.name?.let { fields["_event_type"] = it }
-            entry.startTime?.let { fields["_interaction_time"] = it.toString() }
-            entry.processingStart?.let { fields["_processing_start"] = it.toString() }
-            entry.processingEnd?.let { fields["_processing_end"] = it.toString() }
-            entry.duration?.let { fields["_duration"] = it.toString() }
-            entry.interactionId?.let { fields["_interaction_id"] = it.toString() }
+        // Include entries array as JSON
+        metric.entries?.takeIf { it.isNotEmpty() }?.let { entries ->
+            fields["_entries"] = gson.toJson(entries)
         }
 
         logWebVitalDurationSpan(timestamp, value, level, fields, parentSpanId)
@@ -333,27 +316,9 @@ internal class WebViewBridgeMessageHandler(
         val fields = commonFields.toMutableMap()
         fields["_metric"] = "CLS"
 
-        // Extract CLS-specific data from entries
-        val entries = metric.entries
-        if (!entries.isNullOrEmpty()) {
-            // Find the largest shift
-            var largestShiftValue = 0.0
-            var largestShiftTime = 0.0
-
-            for (entry in entries) {
-                val shiftValue = entry.value ?: 0.0
-                if (shiftValue > largestShiftValue) {
-                    largestShiftValue = shiftValue
-                    largestShiftTime = entry.startTime ?: 0.0
-                }
-            }
-
-            if (largestShiftValue > 0) {
-                fields["_largest_shift_value"] = largestShiftValue.toString()
-                fields["_largest_shift_time"] = largestShiftTime.toString()
-            }
-
-            fields["_shift_count"] = entries.size.toString()
+        // Include entries array as JSON
+        metric.entries?.takeIf { it.isNotEmpty() }?.let { entries ->
+            fields["_entries"] = gson.toJson(entries)
         }
 
         logger.logInternal(LogType.UX, level, fields.toFields()) {
