@@ -41,7 +41,8 @@ internal class ResourceUtilizationTarget(
                         memorySnapshot,
                         diskUsageMonitor.getDiskUsage(),
                         fieldsOf(powerMonitor.isPowerSaveModeEnabledAttribute()),
-                        fieldsOf(batteryMonitor.batteryPercentageAttribute()),
+                        fieldsOf(batteryMonitor.batteryValAttribute()),
+                        fieldsOf(batteryMonitor.batteryLevelAttribute()),
                         fieldsOf(batteryMonitor.isBatteryChargingAttribute()),
                     )
 

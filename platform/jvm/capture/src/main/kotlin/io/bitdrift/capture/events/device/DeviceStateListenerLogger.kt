@@ -93,7 +93,7 @@ internal class DeviceStateListenerLogger(
                     log(
                         combineFields(
                             fieldOf("_state", "charging"),
-                            fieldsOf(batteryMonitor.batteryPercentageAttribute()),
+                            fieldsOf(batteryMonitor.batteryValAttribute()),
                         ),
                         BATTERY_CHANGE,
                     )
@@ -102,7 +102,7 @@ internal class DeviceStateListenerLogger(
                     log(
                         combineFields(
                             fieldOf("_state", "unplugged"),
-                            fieldsOf(batteryMonitor.batteryPercentageAttribute()),
+                            fieldsOf(batteryMonitor.batteryValAttribute()),
                         ),
                         BATTERY_CHANGE,
                     )
@@ -117,7 +117,7 @@ internal class DeviceStateListenerLogger(
                     log(
                         combineFields(
                             fieldsOf(powerMonitor.isPowerSaveModeEnabledAttribute()),
-                            fieldsOf(batteryMonitor.batteryPercentageAttribute()),
+                            fieldsOf(batteryMonitor.batteryValAttribute()),
                             fieldsOf(batteryMonitor.isBatteryChargingAttribute()),
                         ),
                         BATTERY_LOW,
