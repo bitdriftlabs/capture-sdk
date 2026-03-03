@@ -140,6 +140,9 @@ protocol CoreLogging: AnyObject {
     /// Flushes logger's state to disk.
     ///
     /// - parameter blocking: Whether the method should return only after the flushing completes.
+    ///                       When blocking is true and the `flushRunLoopPumping` runtime flag is
+    ///                       enabled, the flush will pump the run loop to prevent blocking the
+    ///                       main thread's event processing.
     func flush(blocking: Bool)
 
     /// Sets a feature flag exposure with a variant.

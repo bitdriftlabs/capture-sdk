@@ -169,7 +169,9 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
       | DataValue::Boolean(_)
       | DataValue::U64(_)
       | DataValue::I64(_)
-      | DataValue::Double(_) => JObject::null(),
+      | DataValue::Double(_)
+      | DataValue::Map(_)
+      | DataValue::Array(_) => JObject::null(),
     };
 
     // TODO(Augustyniak): Extract the logic below into a helper function.
@@ -340,6 +342,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
             }
             .unwrap()
           },
+          DataValue::Map(_) | DataValue::Array(_) => JObject::null(),
         };
 
         _ = fields.put(&mut env, &key, &value);

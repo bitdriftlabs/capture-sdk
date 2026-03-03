@@ -89,6 +89,11 @@ extension RuntimeVariable<Bool> {
         defaultValue: true
     )
 
+    static let flushRunLoopPumping = RuntimeVariable(
+        name: "client_feature.ios.flush_run_loop_pumping",
+        defaultValue: true
+    )
+
     static let crashReporting = RuntimeVariable(
         name: "crash_reporting.enabled",
         defaultValue: false

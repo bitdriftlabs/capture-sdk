@@ -10,6 +10,10 @@ import Foundation
 
 typealias LoggerID = Int64
 
+private let pumpRunLoop: @convention(c) () -> Void = {
+    RunLoop.current.run(until: Date().addingTimeInterval(0.005))
+}
+
 /// Creates the directory we'll use for the SDK's ring buffer and other storage files,
 /// and disables file protection on it to prevent the app from crashing with EXEC_BAD_ACCESS
 /// when the device is locked. Failing to set the protection policy on the directory will result
@@ -233,7 +237,11 @@ final class LoggerBridge: LoggerBridging {
     }
 
     func flush(blocking: Bool) {
-        capture_flush(self.loggerID, blocking)
+        if blocking && runtimeValue(.flushRunLoopPumping) {
+            capture_flush(self.loggerID, true, pumpRunLoop)
+        } else {
+            capture_flush(self.loggerID, blocking, nil)
+        }
     }
 
     func setFeatureFlagExposure(withName flag: String, variant: String) {
