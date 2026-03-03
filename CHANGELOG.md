@@ -21,7 +21,8 @@
 
 **Added**
 
-- Added the `_url` field to WebVital events sent from the WebView bridge to provide more context about the page associated with the metric.
+- Added the `_page_url` field to WebVital events sent from the WebView bridge to provide more context about the page associated with the metric.
+- Return all performance timing entries for WebVital events instead of just the first.
 
 **Changed**
 
