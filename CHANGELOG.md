@@ -21,11 +21,11 @@
 
 **Added**
 
-- Nothing yet!
+- Added the `_page_url` field to WebVital events sent from the WebView bridge to provide more context about the page associated with the metric.
 
 **Changed**
 
-- Nothing yet!
+- Return all performance timing entries for WebVital events instead of just the first.
 
 **Fixed**
 

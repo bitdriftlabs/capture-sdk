@@ -22,6 +22,9 @@ export const initWebVitals = (): void => {
                 type: 'webVital',
                 metric,
                 ...(parentSpanId && { parentSpanId }),
+                // Include the URL of the page where the metric was recorded
+                // We're purposefully stripping query params and fragments to reduce PII and cardinality.
+                url: `${window.location.origin}${window.location.pathname}`,
             });
             log(message);
         });
