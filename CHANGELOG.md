@@ -49,6 +49,12 @@
 
 [0.22.9]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.9
 
+### Both
+
+**Added**
+
+- Battery drain rate monitoring on resource utilization logs
+
 ### Android
 
 **Added**
