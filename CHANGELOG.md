@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.8...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.9...HEAD
 
 ### Both
 
@@ -21,6 +21,38 @@
 
 **Added**
 
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.22.9]
+
+[0.22.9]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.9
+
+### Android
+
+**Added**
+
 - Added the `_page_url` field to WebVital events sent from the WebView bridge to provide more context about the page associated with the metric.
 
 **Changed**
@@ -32,14 +64,6 @@
 - Fix OkHttp connection leak
 
 ### iOS
-
-**Added**
-
-- Nothing yet!
-
-**Changed**
-
-- Nothing yet!
 
 **Fixed**
 
