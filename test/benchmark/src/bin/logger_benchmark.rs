@@ -141,6 +141,7 @@ fn buffer_write_and_read(c: &mut Criterion) {
     bd_buffer::AllowOverwrite::Yes,
     stats.clone(),
     stats,
+    |_| {},
   )
   .unwrap();
   let mut producer = buffer.clone().register_producer().unwrap();
