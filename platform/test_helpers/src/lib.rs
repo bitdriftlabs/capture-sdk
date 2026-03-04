@@ -19,13 +19,10 @@ use bd_test_helpers::runtime::{make_update, ValueKind};
 use bd_test_helpers::test_api_server::ExpectedStreamEvent;
 use bd_test_helpers::{config_helper, test_api_server};
 use config_helper::{
-  configuration_update,
-  make_benchmarking_configuration_update,
-  make_benchmarking_configuration_with_workflows_update,
-  make_buffer_matcher_matching_everything,
+  configuration_update, make_benchmarking_configuration_update,
+  make_benchmarking_configuration_with_workflows_update, make_buffer_matcher_matching_everything,
   make_buffer_matcher_matching_everything_except_internal_logs,
-  make_configuration_update_with_workflow_flushing_buffer,
-  BufferConfigBuilder,
+  make_configuration_update_with_workflow_flushing_buffer, BufferConfigBuilder,
 };
 use platform_shared::LoggerId;
 use std::ffi::{c_char, CString};
@@ -277,19 +274,19 @@ pub fn server_instance_configure_aggressive_uploads_impl(
         ValueKind::Int(1),
       ),
       (
-        bd_runtime::runtime::log_upload::RetryBackoffMaxFlag::path(),
+        bd_runtime::runtime::retry_backoff::RetryBackoffMaxFlag::path(),
         ValueKind::Int(1),
       ),
       (
-        bd_runtime::runtime::log_upload::RetryBackoffInitialFlag::path(),
+        bd_runtime::runtime::retry_backoff::RetryBackoffInitialFlag::path(),
         ValueKind::Int(1),
       ),
       (
-        bd_runtime::runtime::api::InitialBackoffInterval::path(),
+        bd_runtime::runtime::retry_backoff::InitialBackoffInterval::path(),
         ValueKind::Int(1),
       ),
       (
-        bd_runtime::runtime::api::MaxBackoffInterval::path(),
+        bd_runtime::runtime::retry_backoff::MaxBackoffInterval::path(),
         ValueKind::Int(10),
       ),
       (
