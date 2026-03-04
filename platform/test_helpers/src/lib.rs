@@ -19,16 +19,23 @@ use bd_test_helpers::runtime::{make_update, ValueKind};
 use bd_test_helpers::test_api_server::ExpectedStreamEvent;
 use bd_test_helpers::{config_helper, test_api_server};
 use config_helper::{
-  configuration_update, make_benchmarking_configuration_update,
-  make_benchmarking_configuration_with_workflows_update, make_buffer_matcher_matching_everything,
+  configuration_update,
+  make_benchmarking_configuration_update,
+  make_benchmarking_configuration_with_workflows_update,
+  make_buffer_matcher_matching_everything,
   make_buffer_matcher_matching_everything_except_internal_logs,
-  make_configuration_update_with_workflow_flushing_buffer, BufferConfigBuilder,
+  make_configuration_update_with_workflow_flushing_buffer,
+  BufferConfigBuilder,
 };
 use platform_shared::LoggerId;
 use std::ffi::{c_char, CString};
 use std::sync::{LazyLock, Mutex, MutexGuard};
 use test_api_server::{
-  default_configuration_update, start_server, ServerHandle, StreamAction, StreamHandle,
+  default_configuration_update,
+  start_server,
+  ServerHandle,
+  StreamAction,
+  StreamHandle,
 };
 pub use test_api_server::{EventCallback, StreamEvent};
 use time::Duration;
@@ -387,7 +394,7 @@ pub fn run_large_upload_test_impl(
 
   handle.blocking_next_configuration_ack();
 
-  for _ in 0..22 {
+  for _ in 0 .. 22 {
     logger_id.log(
       log_level::DEBUG,
       LogType::NORMAL,
