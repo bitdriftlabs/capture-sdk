@@ -28,11 +28,7 @@ use platform_shared::LoggerId;
 use std::ffi::{c_char, CString};
 use std::sync::{LazyLock, Mutex, MutexGuard};
 use test_api_server::{
-  default_configuration_update,
-  start_server,
-  ServerHandle,
-  StreamAction,
-  StreamHandle,
+  default_configuration_update, start_server, ServerHandle, StreamAction, StreamHandle,
 };
 pub use test_api_server::{EventCallback, StreamEvent};
 use time::Duration;
@@ -274,14 +270,6 @@ pub fn server_instance_configure_aggressive_uploads_impl(
         ValueKind::Int(1),
       ),
       (
-        bd_runtime::runtime::retry_backoff::RetryBackoffMaxFlag::path(),
-        ValueKind::Int(1),
-      ),
-      (
-        bd_runtime::runtime::retry_backoff::RetryBackoffInitialFlag::path(),
-        ValueKind::Int(1),
-      ),
-      (
         bd_runtime::runtime::retry_backoff::InitialBackoffInterval::path(),
         ValueKind::Int(1),
       ),
@@ -399,7 +387,7 @@ pub fn run_large_upload_test_impl(
 
   handle.blocking_next_configuration_ack();
 
-  for _ in 0 .. 22 {
+  for _ in 0..22 {
     logger_id.log(
       log_level::DEBUG,
       LogType::NORMAL,
