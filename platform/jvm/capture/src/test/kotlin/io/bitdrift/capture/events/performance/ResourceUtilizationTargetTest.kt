@@ -62,7 +62,8 @@ class ResourceUtilizationTargetTest {
     @Test
     @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
     fun resourceUtilizationTickEmitsLog() {
-        whenever(batteryMonitor.batteryPercentageAttribute()).thenReturn(Pair("_battery_val", "0.75"))
+        whenever(batteryMonitor.batteryValAttribute()).thenReturn(Pair("_battery_val", "0.75"))
+        whenever(batteryMonitor.batteryLevelAttribute()).thenReturn(Pair("_battery_level", "75"))
         whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
         whenever(powerMonitor.isPowerSaveModeEnabledAttribute()).thenReturn(Pair("_low_power_enabled", "1"))
         whenever(diskUsageMonitor.getDiskUsage()).thenReturn(ArrayFields.EMPTY)
@@ -82,6 +83,7 @@ class ResourceUtilizationTargetTest {
                 "_memory_class" to "1",
                 "_is_memory_low" to "0",
                 "_battery_val" to "0.75",
+                "_battery_level" to "75",
                 "_state" to "charging",
                 "_low_power_enabled" to "1",
             )
@@ -101,7 +103,8 @@ class ResourceUtilizationTargetTest {
     fun resourceUtilizationTickEmitsAppMemPressureLog() {
         memoryMetricsProvider.setIsMemoryLow(true)
 
-        whenever(batteryMonitor.batteryPercentageAttribute()).thenReturn(Pair("_battery_val", "0.75"))
+        whenever(batteryMonitor.batteryValAttribute()).thenReturn(Pair("_battery_val", "0.75"))
+        whenever(batteryMonitor.batteryLevelAttribute()).thenReturn(Pair("_battery_level", "75"))
         whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
         whenever(powerMonitor.isPowerSaveModeEnabledAttribute()).thenReturn(Pair("_low_power_enabled", "1"))
         whenever(diskUsageMonitor.getDiskUsage()).thenReturn(ArrayFields.EMPTY)

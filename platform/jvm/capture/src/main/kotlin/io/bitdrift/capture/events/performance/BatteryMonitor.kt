@@ -17,7 +17,9 @@ internal class BatteryMonitor(
 ) {
     private val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
 
-    fun batteryPercentageAttribute(): Pair<String, String> = "_battery_val" to batteryPercentage().toString()
+    fun batteryValAttribute(): Pair<String, String> = "_battery_val" to batteryPercentage().toString()
+
+    fun batteryLevelAttribute(): Pair<String, String> = "_battery_level" to batteryLevelCapacity().toString()
 
     fun isBatteryChargingAttribute(): Pair<String, String> = Pair("_state", if (isBatteryCharging()) "charging" else "unplugged")
 
@@ -30,5 +32,7 @@ internal class BatteryMonitor(
         return (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL)
     }
 
-    private fun batteryPercentage(): Float = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) / 100.0f
+    private fun batteryPercentage(): Float = batteryLevelCapacity() / 100.0f
+
+    private fun batteryLevelCapacity(): Int = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
 }

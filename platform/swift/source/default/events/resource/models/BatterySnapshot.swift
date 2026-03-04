@@ -17,9 +17,13 @@ struct BatterySnapshot {
 
 extension BatterySnapshot: ResourceSnapshot {
     func toDictionary() -> [String: String] {
-        return [
+        var dict: [String: String] = [
             "_battery_val": String(self.batteryValue),
             "_state": self.batteryState,
         ]
+        if self.batteryValue >= 0 {
+            dict["_battery_level"] = String(Int(self.batteryValue * 100))
+        }
+        return dict
     }
 }

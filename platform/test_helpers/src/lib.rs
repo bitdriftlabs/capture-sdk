@@ -277,19 +277,11 @@ pub fn server_instance_configure_aggressive_uploads_impl(
         ValueKind::Int(1),
       ),
       (
-        bd_runtime::runtime::log_upload::RetryBackoffMaxFlag::path(),
+        bd_runtime::runtime::retry_backoff::InitialBackoffInterval::path(),
         ValueKind::Int(1),
       ),
       (
-        bd_runtime::runtime::log_upload::RetryBackoffInitialFlag::path(),
-        ValueKind::Int(1),
-      ),
-      (
-        bd_runtime::runtime::api::InitialBackoffInterval::path(),
-        ValueKind::Int(1),
-      ),
-      (
-        bd_runtime::runtime::api::MaxBackoffInterval::path(),
+        bd_runtime::runtime::retry_backoff::MaxBackoffInterval::path(),
         ValueKind::Int(10),
       ),
       (
