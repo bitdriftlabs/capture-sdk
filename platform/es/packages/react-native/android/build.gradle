@@ -112,7 +112,7 @@ dependencies {
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-  api 'io.bitdrift:capture:0.22.8'
+  api 'io.bitdrift:capture:0.22.9'
 }
 
 if (isNewArchitectureEnabled()) {
