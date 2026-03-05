@@ -21,7 +21,8 @@ final class LoggerBridgingFactory: LoggerBridgingFactoryProvider {
         model: String,
         network: Network?,
         errorReporting: RemoteErrorReporting,
-        sleepMode: SleepMode
+        sleepMode: SleepMode,
+        issueCallbackConfiguration: IssueCallbackConfiguration?
     ) -> LoggerBridging? {
         return LoggerBridge(
             apiKey: apiKey,
@@ -36,7 +37,8 @@ final class LoggerBridgingFactory: LoggerBridgingFactoryProvider {
             model: model,
             network: network,
             errorReporting: errorReporting,
-            sleepMode: sleepMode
+            sleepMode: sleepMode,
+            issueCallbackConfiguration: issueCallbackConfiguration
         )
     }
 }

@@ -210,6 +210,7 @@ internal class LoggerImpl(
                 preferences,
                 localErrorReporter,
                 configuration.sleepMode == SleepMode.ENABLED,
+                if (configuration.enableFatalIssueReporting) configuration.issueCallbackConfiguration else null,
             )
 
         check(loggerId != -1L) { "initialization of the rust logger failed" }

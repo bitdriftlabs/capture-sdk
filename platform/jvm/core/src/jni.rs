@@ -23,6 +23,7 @@ use crate::{
 use anyhow::{anyhow, bail};
 use bd_api::{Platform, PlatformNetworkStream, StreamEvent};
 use bd_client_common::error::InvariantError;
+use bd_crash_handler::CrashReportHook;
 use bd_error_reporter::reporter::{
   handle_unexpected,
   handle_unexpected_error_with_details,
@@ -197,6 +198,10 @@ static STACK_TRACE_PROVIDER_INVOKE: OnceLock<CachedMethod> = OnceLock::new();
 static REPORT_PROCESSING_SESSION_CURRENT: OnceLock<CachedClass> = OnceLock::new();
 static REPORT_PROCESSING_SESSION_PREVIOUS_RUN: OnceLock<CachedClass> = OnceLock::new();
 
+static ISSUE_REPORT_DISPATCHER_DISPATCH: OnceLock<CachedMethod> = OnceLock::new();
+static ISSUE_REPORT_CLASS: OnceLock<CachedClass> = OnceLock::new();
+static ISSUE_REPORT_CONSTRUCTOR: OnceLock<CachedMethod> = OnceLock::new();
+
 pub(crate) fn initialize_method_handle<
   'local,
   'other_local,
@@ -346,6 +351,28 @@ fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
     &mut env,
     "io/bitdrift/capture/reports/processor/ReportProcessingSession$PreviousRun",
     Some(&REPORT_PROCESSING_SESSION_PREVIOUS_RUN),
+  )?;
+
+  initialize_method_handle(
+    &mut env,
+    "io/bitdrift/capture/reports/IssueCallbackConfiguration",
+    "dispatch",
+    "(Lio/bitdrift/capture/reports/Report;)V",
+    &ISSUE_REPORT_DISPATCHER_DISPATCH,
+  )?;
+
+  let issue_report_class = initialize_class(
+    &mut env,
+    "io/bitdrift/capture/reports/Report",
+    Some(&ISSUE_REPORT_CLASS),
+  )?;
+
+  initialize_method_handle(
+    &mut env,
+    &issue_report_class.class,
+    "<init>",
+    "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)V",
+    &ISSUE_REPORT_CONSTRUCTOR,
   )?;
 
   key_value_storage::initialize(&mut env)?;
@@ -610,6 +637,67 @@ impl bd_logger::MetadataProvider for MetadataProvider {
   }
 }
 
+define_object_wrapper!(IssueCallbackConfigurationHandle);
+
+impl CrashReportHook for IssueCallbackConfigurationHandle {
+  fn on_crash_report(&self, info: &bd_crash_handler::CrashReportInfo) {
+    with_handle_unexpected(
+      || -> anyhow::Result<()> {
+        self.execute(|env, dispatcher| {
+          let report_type = env.new_string(&info.report_type)?;
+          let reason = env.new_string(info.crash_reason.as_deref().unwrap_or(""))?;
+          let details = env.new_string(info.crash_details.as_deref().unwrap_or(""))?;
+          let session_id = env.new_string(&info.session_id)?;
+
+          let fields_map = platform_shared::log_fields_to_string_map(&info.fields);
+          let fields = ffi::map_to_jmap(env, &fields_map)?;
+
+          let report_class = ISSUE_REPORT_CLASS.get().ok_or(InvariantError::Invariant)?;
+          let report_obj = unsafe {
+            env.new_object_unchecked(
+              &report_class.class,
+              ISSUE_REPORT_CONSTRUCTOR
+                .get()
+                .ok_or(InvariantError::Invariant)?
+                .method_id,
+              &[
+                jvalue {
+                  l: report_type.as_raw(),
+                },
+                jvalue { l: reason.as_raw() },
+                jvalue {
+                  l: details.as_raw(),
+                },
+                jvalue {
+                  l: session_id.as_raw(),
+                },
+                jvalue { l: fields.as_raw() },
+              ],
+            )?
+          };
+
+          ISSUE_REPORT_DISPATCHER_DISPATCH
+            .get()
+            .ok_or(InvariantError::Invariant)?
+            .call_method(
+              env,
+              dispatcher,
+              ReturnType::Primitive(Primitive::Void),
+              &[jvalue {
+                l: report_obj.as_raw(),
+              }],
+            )?;
+
+          Ok(())
+        })?;
+
+        Ok(())
+      },
+      "jni issue report callback",
+    );
+  }
+}
+
 #[no_mangle]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   mut env: JNIEnv<'_>,
@@ -628,6 +716,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   preferences: JObject<'_>,
   error_reporter: JObject<'_>,
   start_in_sleep_mode: jboolean,
+  issue_report_callback: JObject<'_>,
 ) -> jlong {
   with_handle_unexpected_or(
     || {
@@ -697,6 +786,16 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       // the error reporter is set up.
       UnexpectedErrorHandler::set_reporter(Arc::new(error_reporter));
 
+      let crash_report_hook: Option<Arc<dyn CrashReportHook>> = if issue_report_callback.is_null() {
+        None
+      } else {
+        Some(Arc::new(new_global!(
+          IssueCallbackConfigurationHandle,
+          &mut env,
+          issue_report_callback
+        )?))
+      };
+
       let executor = jni::Executor::new(Arc::new(env.get_java_vm()?));
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory,
@@ -713,6 +812,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         start_in_sleep_mode: start_in_sleep_mode == JNI_TRUE,
       })
       .with_internal_logger(true)
+      .with_crash_report_hook(crash_report_hook)
       .build()
       .map(|(logger, _, future, _)| {
         LoggerHolder::new(

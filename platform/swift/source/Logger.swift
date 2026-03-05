@@ -189,7 +189,10 @@ public final class Logger {
             model: deviceAttributes.hardwareVersion,
             network: network,
             errorReporting: self.remoteErrorReporter,
-            sleepMode: configuration.sleepMode
+            sleepMode: configuration.sleepMode,
+            issueCallbackConfiguration: configuration.enableFatalIssueReporting
+                ? configuration.issueCallbackConfiguration
+                : nil
         ) else {
             return nil
         }

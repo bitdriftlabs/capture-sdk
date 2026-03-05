@@ -14,6 +14,7 @@ bd-api.workspace             = true
 bd-bonjson.workspace         = true
 bd-bonjson-ffi.workspace     = true
 bd-client-common.workspace   = true
+bd-crash-handler.workspace   = true
 bd-device.workspace          = true
 bd-error-reporter.workspace  = true
 bd-key-value.workspace       = true

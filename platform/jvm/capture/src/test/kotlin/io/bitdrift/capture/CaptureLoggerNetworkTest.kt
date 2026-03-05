@@ -92,6 +92,7 @@ class CaptureLoggerNetworkTest {
                 mock(),
                 mock(),
                 false,
+                null,
             )
         CaptureJniLibrary.startLogger(logger)
         return logger
@@ -175,6 +176,7 @@ class CaptureLoggerNetworkTest {
                 mock(),
                 mock(),
                 false,
+                null,
             )
         CaptureJniLibrary.startLogger(loggerId)
         logger = loggerId
@@ -211,6 +213,7 @@ class CaptureLoggerNetworkTest {
                 MockPreferences(),
                 mock(),
                 false,
+                null,
             )
         CaptureJniLibrary.startLogger(logger)
 

@@ -23,12 +23,14 @@ use bd_logger::{
   log_level,
   AnnotatedLogField,
   LogFieldKind,
+  LogFields,
   LoggerBuilder,
   ReportProcessingSession,
 };
 use bd_proto::protos::logging::payload::LogType;
 use bd_runtime::runtime::Snapshot;
 use parking_lot::Once;
+use std::collections::HashMap;
 use std::future::Future;
 use std::ops::{Deref, DerefMut};
 use std::pin::Pin;
@@ -105,6 +107,13 @@ impl DerefMut for LoggerId<'_> {
 
 pub type LoggerFuture =
   Pin<Box<dyn Future<Output = anyhow::Result<()>> + 'static + std::marker::Send>>;
+
+pub fn log_fields_to_string_map<'a>(fields: &'a LogFields) -> HashMap<&'a str, &'a str> {
+  fields
+    .iter()
+    .filter_map(|(k, v)| v.as_str().map(|s| (k.as_ref(), s)))
+    .collect()
+}
 
 //
 // LoggerHolder
