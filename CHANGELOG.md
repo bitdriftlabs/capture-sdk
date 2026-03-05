@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fix inaccurate calculation at `Battery Level Change Per Min`
 
 ### iOS
 
