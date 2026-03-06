@@ -29,6 +29,7 @@
 
 **Fixed**
 
+- Fix memory leak in JankStatsMonitor when activity is destroyed without `onPause` being called
 - Fix inaccurate calculation at `Battery Level Change Per Min`
 
 ### iOS

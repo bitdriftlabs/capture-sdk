@@ -23,6 +23,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.IInternalLogger
+import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.Mocks
 import io.bitdrift.capture.common.IWindowManager
@@ -52,8 +53,8 @@ class JankStatsMonitorTest {
     private val windowManager: IWindowManager = mock()
     private val mainThreadHandler = Mocks.sameThreadHandler
 
-    private val errorMessageCaptor = argumentCaptor<String>()
     private val illegalStateExceptionCaptor = argumentCaptor<IllegalStateException>()
+    private val logMessageCaptor = argumentCaptor<() -> String>()
 
     private lateinit var application: Application
     private lateinit var activity: Activity
@@ -267,11 +268,15 @@ class JankStatsMonitorTest {
 
         jankStatsMonitor.onActivityResumed(mockedActivity)
 
-        verify(logger).handleInternalError(
-            errorMessageCaptor.capture(),
-            illegalStateExceptionCaptor.capture(),
+        verify(logger).logInternal(
+            type = eq(LogType.INTERNALSDK),
+            level = eq(LogLevel.ERROR),
+            arrayFields = eq(ArrayFields.EMPTY),
+            throwable = illegalStateExceptionCaptor.capture(),
+            blocking = eq(false),
+            message = logMessageCaptor.capture(),
         )
-        assertThat(errorMessageCaptor.lastValue).isEqualTo("Couldn't create JankStats instance")
+        assertThat(logMessageCaptor.firstValue()).isEqualTo("Couldn't create JankStats instance")
         assertThat(illegalStateExceptionCaptor.lastValue).isInstanceOf(IllegalStateException::class.java)
         assertThat(
             illegalStateExceptionCaptor.lastValue.message,
@@ -315,6 +320,27 @@ class JankStatsMonitorTest {
         )
     }
 
+    @Test
+    fun onActivityDestroyed_afterOnStateChangedAttachesJankStats_shouldClearJankStatsWithoutLeak() {
+        // 1. SDK starts, onStateChanged ON_CREATE and ON_RESUME triggers findFirstValidActivity
+        //    which returns our activity and attaches JankStats to its window
+        jankStatsMonitor.onStateChanged(processLifecycleOwner, Lifecycle.Event.ON_CREATE)
+        jankStatsMonitor.onStateChanged(processLifecycleOwner, Lifecycle.Event.ON_RESUME)
+
+        assertThat(jankStatsMonitor.jankStats).isNotNull()
+
+        // 2. Activity is destroyed WITHOUT going through onActivityPaused
+        //    (simulates finish() from onCreate, or activity was already paused when SDK started)
+        jankStatsMonitor.onActivityDestroyed(activity)
+
+        // 3. Prior Leak: jankStats wasn't null before
+        assertThat(jankStatsMonitor.jankStats).isNull()
+
+        jankStatsMonitor.onActivityResumed(activity)
+
+        assertThat(jankStatsMonitor.jankStats).isNotNull
+    }
+
     private fun triggerOnFrame(
         isJankyFrame: Boolean,
         durationInMilli: Long,
@@ -349,19 +375,14 @@ class JankStatsMonitorTest {
     }
 
     private fun assertWrongDuration(expectedMessage: String) {
-        verify(logger, never()).logInternal(
-            any(),
-            any(),
-            any(),
-            any(),
-            anyOrNull(),
-            any(),
-            any(),
+        verify(logger).logInternal(
+            type = eq(LogType.INTERNALSDK),
+            level = eq(LogLevel.ERROR),
+            arrayFields = eq(ArrayFields.EMPTY),
+            throwable = anyOrNull(),
+            blocking = eq(false),
+            message = logMessageCaptor.capture(),
         )
-        verify(logger).handleInternalError(
-            errorMessageCaptor.capture(),
-            eq(null),
-        )
-        assertThat(errorMessageCaptor.lastValue).isEqualTo(expectedMessage)
+        assertThat(logMessageCaptor.firstValue()).isEqualTo(expectedMessage)
     }
 }

@@ -62,6 +62,7 @@ internal class JankStatsMonitor(
     JankStats.OnFrameListener {
     @VisibleForTesting
     internal var jankStats: JankStats? = null
+    private var currentWindow: Window? = null
     private var performanceMetricsStateHolder: PerformanceMetricsState.Holder? = null
 
     override fun start() {
@@ -101,7 +102,7 @@ internal class JankStatsMonitor(
             val errorMessage =
                 "Unexpected frame duration. durationInNano: $durationNano." +
                     " durationMillis: $durationMillis"
-            logger.handleInternalError(errorMessage)
+            logInternalError(errorMessage)
             return
         }
 
@@ -121,7 +122,7 @@ internal class JankStatsMonitor(
     }
 
     /**
-     * [LifecycleEventObserver] callback to determine when Application is first created
+     * [LifecycleEventObserver] callback to determine when the Application process is first resumed
      */
     override fun onStateChanged(
         source: LifecycleOwner,
@@ -130,11 +131,11 @@ internal class JankStatsMonitor(
         if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
             return
         }
-        if (event == Lifecycle.Event.ON_CREATE) {
+        if (event == Lifecycle.Event.ON_RESUME) {
             windowManager.findFirstValidActivity()?.let {
                 setJankStatsForCurrentWindow(it.window)
             }
-            // We are done detecting initial Application ON_CREATE, we don't need to listen anymore
+            // We are done detecting initial Application ON_RESUME, we don't need to listen anymore
             processLifecycleOwner.lifecycle.removeObserver(this)
         }
     }
@@ -147,7 +148,7 @@ internal class JankStatsMonitor(
     }
 
     override fun onActivityPaused(activity: Activity) {
-        stopCollection()
+        stopCollectionIfNeeded(activity)
     }
 
     override fun onActivityCreated(
@@ -173,7 +174,7 @@ internal class JankStatsMonitor(
     }
 
     override fun onActivityDestroyed(activity: Activity) {
-        // no-op
+        stopCollectionIfNeeded(activity)
     }
 
     fun trackScreenNameChanged(screenName: String) {
@@ -190,13 +191,17 @@ internal class JankStatsMonitor(
                 return
             }
             jankStats = JankStats.createAndTrack(window, this)
+            currentWindow = window
             performanceMetricsStateHolder = PerformanceMetricsState.getHolderForHierarchy(window.decorView.rootView)
             jankStats?.jankHeuristicMultiplier = runtime.getConfigValue(RuntimeConfig.JANK_FRAME_HEURISTICS_MULTIPLIER).toFloat()
         } catch (illegalStateException: IllegalStateException) {
-            logger.handleInternalError(
-                "Couldn't create JankStats instance",
-                illegalStateException,
-            )
+            logInternalError(errorMessage = "Couldn't create JankStats instance", throwable = illegalStateException)
+        }
+    }
+
+    private fun stopCollectionIfNeeded(activity: Activity) {
+        if (activity.window == currentWindow) {
+            stopCollection()
         }
     }
 
@@ -204,6 +209,7 @@ internal class JankStatsMonitor(
         jankStats?.isTrackingEnabled = false
         performanceMetricsStateHolder?.state?.removeState(SCREEN_NAME_KEY)
         jankStats = null
+        currentWindow = null
         performanceMetricsStateHolder = null
     }
 
@@ -255,6 +261,20 @@ internal class JankStatsMonitor(
                 frameDurationUiNanos
             }
         }
+
+    private fun logInternalError(
+        errorMessage: String,
+        throwable: Throwable? = null,
+    ) {
+        logger.logInternal(
+            type = LogType.INTERNALSDK,
+            level = LogLevel.ERROR,
+            arrayFields = ArrayFields.EMPTY,
+            throwable = throwable,
+        ) {
+            errorMessage
+        }
+    }
 
     /**
      * The different type of Janks according to Play Vitals
