@@ -27,9 +27,12 @@ import io.bitdrift.capture.providers.fieldsOf
  * WebView instrumentation for capturing page load events, performance metrics,
  * and network activity from within WebViews.
  *
- * This class injects a JavaScript bridge to capture Core Web Vitals and network requests
- * made from within the web content.
+ * Supports two instrumentation modes configured via [WebViewConfiguration]:
  *
+ * - **NativeOnly**: Uses native WebViewClient callbacks. No JavaScript enabled is required.
+ *
+ * - **JavaScriptBridge**: Injects a JavaScript bridge for rich telemetry including
+ *   Web Vitals, console logs, JS errors, user interactions. Enables JavaScript if needed.
  *
  * Usage:
  * ```kotlin
@@ -37,29 +40,24 @@ import io.bitdrift.capture.providers.fieldsOf
  * webView.loadUrl("https://example.com")
  * ```
  *
- * **Note:** WebViewCapture.instrument(webView) will be called automatically only if the `io.bitdrift.capture-plugin`
- *  Gradle plugin must be applied to your project with `automaticWebViewInstrumentation` set to `true`.
+ * **Note:** WebViewCapture.instrument(webView) will be called automatically only if the
+ * `io.bitdrift.capture-plugin` Gradle plugin is applied with `automaticWebViewInstrumentation`
+ * set to `true`.
  */
 internal object WebViewCapture {
     private const val BRIDGE_NAME = "BitdriftLogger"
     private const val TAG_KEY_INSTRUMENTED = 0x62697464 // "bitd" in hex, unique key for setTag
 
-    /**
-     * Instruments a WebView to capture Core Web Vitals and network requests.
+     /**
+      * Instruments a WebView based on the configured [WebViewConfiguration].
      *
      * This method is idempotent - calling it multiple times on the same WebView
      * will only instrument it once.
      *
-     * This method:
-     * - Enables JavaScript execution
-     * - Injects the Bitdrift JavaScript bridge at document start
-     * - Registers a native interface for receiving bridge messages
-     *
      * Requirements:
      * - The Bitdrift SDK must be initialized before calling this method
      * - WebView monitoring must be enabled in the Capture configuration
-     * - androidx.webkit library must be available
-     * - WebViewFeature.DOCUMENT_START_SCRIPT must be supported
+      * - For JavaScriptBridge mode: androidx.webkit library must be available
      *
      * @param webview The WebView to instrument
      * @param logger Optional logger instance. If null, uses Capture.logger()
@@ -94,20 +92,60 @@ internal object WebViewCapture {
             return
         }
 
-        val notSupportedReason = getNotSupportedReason()
-        if (notSupportedReason != null) {
-            effectiveLogger.logInstrumentationNotInitialized(notSupportedReason)
-            return
+        when (webViewConfig) {
+            is WebViewConfiguration.NativeOnly -> {
+                instrumentNativeOnly(webview, loggerImpl, webViewConfig)
+            }
+            is WebViewConfiguration.JavaScriptBridge -> {
+                val notSupportedReason = getNotSupportedReason()
+                if (notSupportedReason != null) {
+                    effectiveLogger.logInstrumentationNotInitialized(notSupportedReason)
+                    return
+                }
+                instrumentWithJavaScript(webview, loggerImpl, webViewConfig)
+            }
         }
 
+        webview.markAsInstrumented()
+    }
+
+    @SuppressLint("RequiresFeature")
+    private fun instrumentNativeOnly(
+        webview: WebView,
+        logger: IInternalLogger,
+        config: WebViewConfiguration.NativeOnly,
+    ) {
+        val existingClient = WebViewCompat.getWebViewClient(webview)
+        webview.webViewClient = NativeWebViewClient(existingClient, logger, config)
+        logger.logInternal(
+            LogType.INTERNALSDK,
+            LogLevel.DEBUG,
+            fieldsOf("_mode" to "native"),
+        ) {
+            "WebView instrumented with native callbacks"
+        }
+    }
+
+    @SuppressLint("SetJavaScriptEnabled", "RequiresFeature")
+    private fun instrumentWithJavaScript(
+        webview: WebView,
+        effectiveLogger: IInternalLogger,
+        webViewConfig: WebViewConfiguration.JavaScriptBridge,
+    ) {
         webview.settings.javaScriptEnabled = true
 
-        val bridgeHandler = WebViewBridgeMessageHandler(loggerImpl)
+        val bridgeHandler = WebViewBridgeMessageHandler(effectiveLogger)
         webview.addJavascriptInterface(bridgeHandler, BRIDGE_NAME)
 
         injectScript(webview, effectiveLogger, webViewConfig)
 
-        webview.markAsInstrumented()
+        effectiveLogger.logInternal(
+            LogType.INTERNALSDK,
+            LogLevel.DEBUG,
+            fieldsOf("_mode" to "javascript"),
+        ) {
+            "WebView instrumented with JavaScript bridge"
+        }
     }
 
     private fun isWebkitAvailable(): Boolean =
@@ -146,7 +184,7 @@ internal object WebViewCapture {
     private fun injectScript(
         webview: WebView,
         logger: IInternalLogger?,
-        config: WebViewConfiguration,
+        config: WebViewConfiguration.JavaScriptBridge,
     ) {
         runCatching {
             val script = WebViewBridgeScript.getScript(config)
