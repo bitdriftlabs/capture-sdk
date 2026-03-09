@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.9...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.10...HEAD
 
 ### Both
 
@@ -29,8 +29,7 @@
 
 **Fixed**
 
-- Fix memory leak in JankStatsMonitor when activity is destroyed without `onPause` being called
-- Fix inaccurate calculation at `Battery Level Change Per Min`
+- Nothing yet!
 
 ### iOS
 
@@ -45,6 +44,17 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.22.10]
+
+[0.22.10]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.10
+
+### Android
+
+**Fixed**
+
+- Fix memory leak in JankStatsMonitor when activity is destroyed without `onPause` being called
+- Fix inaccurate calculation at `Battery Level Change Per Min`
 
 ## [0.22.9]
 
