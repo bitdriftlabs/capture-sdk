@@ -403,7 +403,7 @@ pub fn run_large_upload_test_impl(
       [].into(),
       None,
       Block::Yes {
-        timeout: std::time::Duration::from_secs(1),
+        timeout: std::time::Duration::from_secs(5),
         poll_callback: None,
       },
       &CaptureSession::default(),

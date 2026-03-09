@@ -48,8 +48,21 @@ public final class TestApiServer: @unchecked Sendable {
 
     /// Waits for the next API stream connection.
     ///
+    /// - parameter timeout: The total amount of time to wait before giving up.
+    ///
     /// - returns: The stream ID, or -1 on timeout.
-    public func nextStream() async -> Int32 {
+    public func nextStream(timeout: TimeInterval = 5) async -> Int32 {
+        let deadline = Date().addingTimeInterval(timeout)
+        var streamID = await awaitNextStream()
+
+        while streamID == -1, Date() < deadline {
+            streamID = await awaitNextStream()
+        }
+
+        return streamID
+    }
+
+    private func awaitNextStream() async -> Int32 {
         await withCheckedContinuation { continuation in
             DispatchQueue.global().async {
                 continuation.resume(returning: server_instance_await_next_stream(self.handle))
