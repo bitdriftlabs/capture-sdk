@@ -416,6 +416,14 @@ public final class LoggerObjc: NSObject {
             }
         }
     }
+
+    /// Registers an opaque user identifier against the current device identifier.
+    ///
+    /// - parameter opaqueUserID: The opaque user ID to register.
+    @objc
+    public static func setOpaqueUserID(_ opaqueUserID: String) {
+        Capture.Logger.setOpaqueUserID(opaqueUserID)
+    }
 }
 
 /// Describes the strategy to use for session management.

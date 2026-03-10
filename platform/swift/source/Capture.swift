@@ -446,4 +446,11 @@ extension Logger {
             }
         }
     }
+
+    /// Registers an opaque user identifier against the current device identifier.
+    ///
+    /// - parameter opaqueUserID: The opaque user ID to register.
+    public static func setOpaqueUserID(_ opaqueUserID: String) {
+        Self.getShared()?.setOpaqueUserID(opaqueUserID)
+    }
 }

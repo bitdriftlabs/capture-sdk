@@ -123,6 +123,8 @@ extension MockLogging: Logging {
 
     public func createTemporaryDeviceCode(completion _: @escaping (Result<String, Error>) -> Void) {}
 
+    public func setOpaqueUserID(_: String) {}
+
     public func startSpan(name: String, level: LogLevel, file: String? = nil, line: Int? = nil,
                           function: String? = nil, fields: Fields? = nil,
                           startTimeInterval: TimeInterval? = nil,

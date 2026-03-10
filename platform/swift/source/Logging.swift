@@ -111,6 +111,11 @@ public protocol Logging {
     ///                         main queue.
     func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void)
 
+    /// Registers an opaque user identifier against the current device identifier.
+    ///
+    /// - parameter opaqueUserID: The opaque user ID to register.
+    func setOpaqueUserID(_ opaqueUserID: String)
+
     /// Starts debug operations if needed. This is typically called once during app launch and will
     /// start debug operations (such as creating a device code) if the heuristics indicate that the app is
     /// running in a debug-like environment.

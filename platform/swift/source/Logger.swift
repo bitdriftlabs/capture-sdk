@@ -32,6 +32,7 @@ public final class Logger {
 
     private let remoteErrorReporter: RemoteErrorReporting
     private let deviceCodeController: DeviceCodeController
+    private let opaqueUserIDController: OpaqueUserIDController
 
     private(set) var sessionReplayController: SessionReplayController?
     private(set) var dispatchSourceMemoryMonitor: DispatchSourceMemoryMonitor?
@@ -231,6 +232,7 @@ public final class Logger {
         self.dispatchSourceMemoryMonitor = Self.setUpMemoryStateMonitoring(logger: self.underlyingLogger)
 
         self.deviceCodeController = DeviceCodeController(client: client)
+        self.opaqueUserIDController = OpaqueUserIDController(client: client, timeProvider: timeProvider)
 
         #if targetEnvironment(simulator)
         Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
@@ -552,6 +554,10 @@ extension Logger: Logging {
         // `deviceID` has been read and cached on the Tokio run-loop, making it a relatively
         // cheap operation. This approach avoids the heavy operation of reading from `UserDefaults`.
         self.deviceCodeController.createTemporaryDeviceCode(deviceID: self.deviceID, completion: completion)
+    }
+
+    public func setOpaqueUserID(_ opaqueUserID: String) {
+        self.opaqueUserIDController.registerOpaqueUserID(opaqueUserID, deviceID: self.deviceID)
     }
 
     public func logAppLaunchTTI(_ duration: TimeInterval) {

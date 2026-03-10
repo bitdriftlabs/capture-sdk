@@ -9,6 +9,7 @@
 enum APIEndpoint {
     case reportError
     case getTemporaryDeviceCode
+    case registerOpaqueUserID
 
     var path: String {
         switch self {
@@ -16,6 +17,8 @@ enum APIEndpoint {
             "/v1/sdk-errors"
         case .getTemporaryDeviceCode:
             "/v1/device/code"
+        case .registerOpaqueUserID:
+            "/v1/opaque-user-id"
         }
     }
 }
