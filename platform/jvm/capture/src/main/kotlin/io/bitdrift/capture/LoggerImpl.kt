@@ -84,6 +84,7 @@ internal class LoggerImpl(
     sharedOkHttpClient: OkHttpClient = OkHttpClient(),
     private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey, client = sharedOkHttpClient),
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
+    private var opaqueUserIdService: IOpaqueUserIdService = OpaqueUserIdService(apiClient),
     activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
@@ -540,6 +541,14 @@ internal class LoggerImpl(
 
     override fun flush(blocking: Boolean) {
         CaptureJniLibrary.flush(this.loggerId, blocking)
+    }
+
+    override fun setOpaqueUserId(opaqueUserId: String) {
+        CaptureJniLibrary.getDeviceId(this.loggerId)?.let {
+            // TODO: Fran. To report/log internal error if null?
+            deviceId ->
+            opaqueUserIdService.registerOpaqueUserId(opaqueUserId, deviceId)
+        }
     }
 
     internal fun shouldLogAppUpdate(

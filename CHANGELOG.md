@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Add `Capture.Logger.setOpaqueUserId` to register opaque user IDs via authenticated `POST /v1/opaque-user-id` requests with a client-side limit of 5 calls per minute.
 
 **Changed**
 

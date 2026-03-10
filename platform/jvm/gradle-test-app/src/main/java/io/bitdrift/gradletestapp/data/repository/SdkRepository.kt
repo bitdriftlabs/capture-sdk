@@ -15,6 +15,7 @@ import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.SleepMode
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.gradletestapp.init.BitdriftInit
 import io.bitdrift.gradletestapp.data.model.GlobalFieldEntry
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
@@ -29,6 +30,7 @@ import timber.log.Timber
 import kotlin.coroutines.resume
 import java.net.URLDecoder
 import java.net.URLEncoder
+import java.util.UUID
 
 /**
  * Repository that manages SDK state and operations
@@ -178,6 +180,14 @@ class SdkRepository(
             LogLevel.WARNING -> Timber.w(message)
             LogLevel.ERROR -> Timber.e(message)
         }
+    }
+
+    @OptIn(ExperimentalBitdriftApi::class)
+    fun setOpaqueUserId(opaqueUserId: String? = null): String {
+        val value = opaqueUserId?.takeIf { it.isNotBlank() } ?: UUID.randomUUID().toString()
+        Logger.setOpaqueUserId(value)
+        Timber.i("Set opaque user ID: %s", value)
+        return value
     }
 
     fun setSleepModeEnabled(enabled: Boolean) {

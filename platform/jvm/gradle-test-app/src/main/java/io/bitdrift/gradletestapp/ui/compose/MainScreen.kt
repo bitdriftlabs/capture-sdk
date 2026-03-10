@@ -50,6 +50,7 @@ import io.bitdrift.gradletestapp.ui.compose.components.GlobalFieldsCard
 import io.bitdrift.gradletestapp.ui.compose.components.FeatureFlagsTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.NavigationCard
 import io.bitdrift.gradletestapp.ui.compose.components.NetworkTestingCard
+import io.bitdrift.gradletestapp.ui.compose.components.OpaqueUserIdCard
 import io.bitdrift.gradletestapp.ui.compose.components.SdkStatusCard
 import io.bitdrift.gradletestapp.ui.compose.components.SessionManagementCard
 import io.bitdrift.gradletestapp.ui.compose.components.SleepModeCard
@@ -294,6 +295,11 @@ private fun SdkApisTabContent(
                     Toast.makeText(context, toasterText, Toast.LENGTH_SHORT).show()
                 },
                 onAction = onAction,
+            )
+        }
+        item {
+            OpaqueUserIdCard(
+                onSetOpaqueUserId = { value -> onAction(DiagnosticsAction.SetOpaqueUserId(value)) },
             )
         }
         item {

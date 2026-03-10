@@ -469,6 +469,17 @@ object Capture {
         ): Span? = logger()?.startSpan(name, level, fields, startTimeMs, parentSpanId)
 
         /**
+         * Registers an opaque user identifier against the current device identifier.
+         *
+         * @param opaqueUserId the opaque user ID to register.
+         */
+        @ExperimentalBitdriftApi
+        @JvmStatic
+        fun setOpaqueUserId(opaqueUserId: String) {
+            logger()?.setOpaqueUserId(opaqueUserId)
+        }
+
+        /**
          * Wrap the specified [block] in calls to [startSpan] (with the supplied params)
          * and [Span.end]. The result will be based on whether [block] threw an exception or not.
          *

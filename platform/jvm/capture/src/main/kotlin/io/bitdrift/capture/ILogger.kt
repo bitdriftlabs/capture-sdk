@@ -53,6 +53,13 @@ interface ILogger {
     fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit)
 
     /**
+     * Registers an opaque user identifier against the current device identifier.
+     *
+     * @param opaqueUserId the opaque user ID to register.
+     */
+    fun setOpaqueUserId(opaqueUserId: String)
+
+    /**
      * Adds a field to all logs emitted by the logger from this point forward.
      * If a field with a given key has already been registered with the logger, its value is
      * replaced with the new one.

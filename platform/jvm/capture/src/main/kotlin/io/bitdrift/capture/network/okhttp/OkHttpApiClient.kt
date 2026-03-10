@@ -29,6 +29,8 @@ internal sealed class HttpApiEndpoint(
     object GetTemporaryDeviceCode : HttpApiEndpoint("v1/device/code")
 
     object ReportSdkError : HttpApiEndpoint("v1/sdk-errors")
+
+    object RegisterOpaqueUserId : HttpApiEndpoint("v1/opaque-user-id")
 }
 
 internal class OkHttpApiClient(

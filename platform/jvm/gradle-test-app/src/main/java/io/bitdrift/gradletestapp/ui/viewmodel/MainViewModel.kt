@@ -110,6 +110,7 @@ class MainViewModel(
             is SessionAction.CopySessionUrl -> copySessionUrl()
 
             is DiagnosticsAction.LogMessage -> logMessage()
+            is DiagnosticsAction.SetOpaqueUserId -> setOpaqueUserId(action.opaqueUserId)
             is DiagnosticsAction.ForceAppExit -> forceAppExit()
             is DiagnosticsAction.UpdateAppExitReason -> updateAppExitReason(action.reason)
 
@@ -309,6 +310,13 @@ class MainViewModel(
             val level = _uiState.value.config.selectedLogLevel
             val message = "Log message with level: $level"
             sdkRepository.logMessage(level, message)
+        }
+    }
+
+    private fun setOpaqueUserId(opaqueUserId: String) {
+        viewModelScope.launch {
+            val value = sdkRepository.setOpaqueUserId(opaqueUserId)
+            Timber.i("Opaque user ID sent from SDK APIs tab: $value")
         }
     }
 

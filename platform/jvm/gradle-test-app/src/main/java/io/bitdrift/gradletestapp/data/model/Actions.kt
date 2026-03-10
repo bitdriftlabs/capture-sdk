@@ -43,6 +43,10 @@ sealed class SessionAction : AppAction {
 sealed class DiagnosticsAction : AppAction {
     object LogMessage : DiagnosticsAction()
 
+    data class SetOpaqueUserId(
+        val opaqueUserId: String,
+    ) : DiagnosticsAction()
+
     object ForceAppExit : DiagnosticsAction()
 
     data class UpdateAppExitReason(
