@@ -255,7 +255,6 @@ maven.install(
         "org.jetbrains.kotlin:kotlin-stdlib:{}".format(KOTLIN_STD_VERSION),
         "androidx.emoji2:emoji2:1.5.0",
         "androidx.collection:collection:1.4.5",
-        "androidx.metrics:metrics-performance:1.0.0",
         # The Java artifact's newest published Maven Central version lags the
         # FlatBuffers Bazel module (25.9.23).
         "com.google.flatbuffers:flatbuffers-java:25.2.10",

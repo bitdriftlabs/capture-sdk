@@ -34,7 +34,6 @@ import io.bitdrift.capture.events.lifecycle.EventsListenerTarget
 import io.bitdrift.capture.events.lifecycle.WindowFocusFlushLogger
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
-import io.bitdrift.capture.events.performance.JankStatsMonitor
 import io.bitdrift.capture.events.performance.MemoryMetricsProvider
 import io.bitdrift.capture.events.performance.MemoryPressureLevel
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
@@ -134,7 +133,6 @@ internal class LoggerImpl(
     private val localeAttributes = LocaleAttributes(context)
     private val networkAttributes = NetworkAttributes(context)
     private val ootbFieldProviders: List<IOotbFieldProvider> = listOf(localeAttributes, networkAttributes)
-    private var jankStatsMonitor: JankStatsMonitor? = null
 
     // Session URLs are only needed when queried externally, so derive the
     // timeline base URL on first access. We replace only the first "api."
@@ -301,8 +299,6 @@ internal class LoggerImpl(
             ),
         )
 
-        addJankStatsMonitorTarget(windowManager, context)
-
         addWindowFocusFlushTarget(context, windowManager)
 
         appExitLogger =
@@ -384,7 +380,6 @@ internal class LoggerImpl(
     override fun logScreenView(screenName: String) {
         // TODO(Fran): BIT-7953 reset replay timer
         sessionReplayTarget.captureScreen()
-        jankStatsMonitor?.trackScreenNameChanged(screenName)
         CaptureJniLibrary.writeScreenViewLog(this.loggerId, screenName)
     }
 
@@ -730,9 +725,9 @@ internal class LoggerImpl(
                     "_capture_start_thread" to captureStartThread,
                     "_is_sdk_directory_first_created" to isSdkDirectoryFirstCreated.toString(),
                     "_native_load_duration_ms" to
-                        sdkConfiguredDuration.nativeLoadDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
+                            sdkConfiguredDuration.nativeLoadDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
                     "_logger_build_duration_ms" to
-                        sdkConfiguredDuration.loggerImplBuildDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
+                            sdkConfiguredDuration.loggerImplBuildDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
                     "_session_replay_enabled" to isSessionReplayEnabled.toString(),
                     "_webview_monitoring_enabled" to isWebViewMonitoringEnabled.toString(),
                 )
@@ -795,27 +790,6 @@ internal class LoggerImpl(
             )
         } else {
             errorHandler.handleError("Couldn't start WindowFocusFlushLogger. Invalid application provided")
-        }
-    }
-
-    private fun addJankStatsMonitorTarget(
-        windowManager: IWindowManager,
-        context: Context,
-    ) {
-        if (context is Application) {
-            jankStatsMonitor =
-                JankStatsMonitor(
-                    context,
-                    this,
-                    ProcessLifecycleOwner.get(),
-                    runtime,
-                    windowManager,
-                )
-            jankStatsMonitor?.let {
-                eventsListenerTarget.add(it)
-            }
-        } else {
-            errorHandler.handleError("Couldn't start JankStatsMonitor. Invalid application provided")
         }
     }
 
