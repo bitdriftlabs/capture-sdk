@@ -907,13 +907,13 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   // This should only fail if the JVM is in a bad state.
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = ffi::string_arrays_to_annotated_fields(
+      let fields = ffi::nullable_string_arrays_to_annotated_fields(
         &mut env,
         &field_keys,
         &field_values,
         LogFieldKind::Ootb,
       )?;
-      let matching_fields = ffi::string_arrays_to_annotated_fields(
+      let matching_fields = ffi::nullable_string_arrays_to_annotated_fields(
         &mut env,
         &matching_field_keys,
         &matching_field_values,
