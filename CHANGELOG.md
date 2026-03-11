@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.10...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.11...HEAD
 
 ### Both
 
@@ -21,7 +21,7 @@
 
 **Added**
 
-- Log internal sdk error if we fail to process and persist other issue reports (e.g. Native Crash, ANRs, etc)
+- Nothing yet!
 
 **Changed**
 
@@ -44,6 +44,16 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.22.11]
+
+[0.22.11]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.11
+
+### Android
+
+**Added**
+
+- Log internal sdk error if we fail to process and persist other issue reports (e.g. Native Crash, ANRs, etc)
 
 ## [0.22.10]
 
