@@ -139,4 +139,6 @@ extension MockLoggerBridging: LoggerBridging {
     public func processIssueReports(reportProcessingSession: ReportProcessingSession) {}
 
     public func setFeatureFlagExposure(withName flag: String, variant: String) {}
+
+    public func registerOpaqueUserID(_: String) {}
 }

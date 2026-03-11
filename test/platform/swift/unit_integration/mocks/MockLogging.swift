@@ -149,4 +149,6 @@ extension MockLogging: Logging {
     public func setFeatureFlagExposure(withName flag: String, variant: String) {}
 
     public func setFeatureFlagExposure(withName flag: String, variant: Bool) {}
+
+    public func registerOpaqueUserID(_: String) {}
 }
