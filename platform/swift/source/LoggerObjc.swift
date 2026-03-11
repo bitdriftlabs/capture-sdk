@@ -399,6 +399,14 @@ public final class LoggerObjc: NSObject {
         Capture.Logger.setFeatureFlagExposure(withName: name, variant: variant)
     }
 
+    /// Registers an opaque user identifier for backend correlation with device identifier.
+    ///
+    /// - parameter opaqueUserID: Opaque user identifier (for example, a hashed user ID)
+    @objc
+    public static func registerOpaqueUserID(_ opaqueUserID: String) {
+        Capture.Logger.registerOpaqueUserID(opaqueUserID)
+    }
+
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with
     /// the bitdrift remote service.

@@ -151,6 +151,11 @@ protocol CoreLogging: AnyObject {
     /// - parameter variant: The variant of the flag exposure to set
     func setFeatureFlagExposure(withName flag: String, variant: String)
 
+    /// Registers an opaque user identifier for backend correlation with device identifier.
+    ///
+    /// - parameter opaqueUserID: Opaque user identifier (for example, a hashed user ID).
+    func registerOpaqueUserID(_ opaqueUserID: String)
+
     /// Retrieves the value of a given runtime variable.
     ///
     /// - parameter variable: The runtime variable.

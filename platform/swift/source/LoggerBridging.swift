@@ -74,6 +74,11 @@ protocol LoggerBridging {
     /// - parameter variant: The variant of the flag exposure to set
     func setFeatureFlagExposure(withName name: String, variant: String)
 
+    /// Registers an opaque user identifier for backend correlation with device identifier.
+    ///
+    /// - parameter opaqueUserID: Opaque user identifier (for example, a hashed user ID).
+    func registerOpaqueUserID(_ opaqueUserID: String)
+
     /// Retrieves a given runtime variable.
     ///
     /// - parameter feature: The runtime variable.

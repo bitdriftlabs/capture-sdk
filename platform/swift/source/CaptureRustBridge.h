@@ -262,6 +262,14 @@ void capture_flush(logger_id logger_id, bool blocking, void (*_Nullable poll_cal
 void capture_set_feature_flag_exposure(logger_id logger_id, const char *flag,
                                        const char *_Nullable variant);
 
+/*
+ * Registers an opaque user identifier for backend correlation with device identifier.
+ *
+ * @param logger_id the logger to register the opaque user identifier on.
+ * @param opaque_user_id opaque user identifier (for example, a hashed user ID).
+ */
+void capture_register_opaque_user_id(logger_id logger_id, const char *opaque_user_id);
+
 /**
  * Signals the specified logger to shut down.
  *

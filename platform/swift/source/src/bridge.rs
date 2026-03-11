@@ -912,6 +912,21 @@ extern "C" fn capture_set_feature_flag_exposure(
 }
 
 #[no_mangle]
+extern "C" fn capture_register_opaque_user_id(
+  logger_id: LoggerId<'_>,
+  opaque_user_id: *const c_char,
+) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      let opaque_user_id = unsafe { CStr::from_ptr(opaque_user_id) }.to_str()?;
+      logger_id.register_opaque_user_id(opaque_user_id);
+      Ok(())
+    },
+    "swift register opaque user id",
+  );
+}
+
+#[no_mangle]
 extern "C" fn capture_set_sleep_mode(logger_id: LoggerId<'_>, enabled: bool) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
