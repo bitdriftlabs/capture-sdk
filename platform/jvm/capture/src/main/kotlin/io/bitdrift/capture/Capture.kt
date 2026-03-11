@@ -303,6 +303,17 @@ object Capture {
         }
 
         /**
+         * Registers an opaque user identifier for backend correlation with device identifier.
+         *
+         * @param opaqueUserId opaque user identifier (for example, a hashed user ID)
+         */
+        @JvmStatic
+        @ExperimentalBitdriftApi
+        fun registerOpaqueUserId(opaqueUserId: String) {
+            logger()?.registerOpaqueUserId(opaqueUserId)
+        }
+
+        /**
          * Records a feature flag exposure with a boolean variant. Use this method to track when
          * a user is exposed to a specific feature flag variant in your application. The exposure
          * is recorded with a timestamp and tracked for the duration of the process.

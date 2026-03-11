@@ -41,6 +41,8 @@ import java.util.UUID
  * Starts bitdrift's Captures SDK with the persisted config settings
  */
 object BitdriftInit {
+    private val userUuid = UUID.randomUUID().toString()
+
     /**
      * Init sdk with the persisted settings
      */
@@ -60,6 +62,10 @@ object BitdriftInit {
             if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
             Timber.plant(CaptureTree())
             Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
+
+            @OptIn(ExperimentalBitdriftApi::class)
+            Capture.Logger.registerOpaqueUserId(userUuid)
+
             return true
         } else {
             Timber.e("Failed to initialize Bitdrift SDK - check your API key and URL configuration")
@@ -123,10 +129,10 @@ object BitdriftInit {
                 enableFatalIssueReporting = fatalIssueReporterEnabled,
                 webViewConfiguration = webViewConfig,
             )
-        val userUuid = UUID.randomUUID().toString()
         val fieldProviders = listOf(FieldProvider {
             mapOf("user_id" to userUuid)
         })
+
         val captureSdkInitSettings =
             CaptureSdkInitSettings(
                 apiUrl = apiUrl,

@@ -151,6 +151,17 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     )
 
     /**
+     * Registers an opaque user identifier that is persisted and attached to static device metadata.
+     *
+     * @param loggerId the logger to register the opaque user identifier for.
+     * @param opaqueUserId opaque (for example, hashed) user identifier.
+     */
+    external fun registerOpaqueUserId(
+        loggerId: Long,
+        opaqueUserId: String,
+    )
+
+    /**
      * Sets a feature flag exposure with a boolean variant.
      *
      * @param name the name of the flag exposure to set
