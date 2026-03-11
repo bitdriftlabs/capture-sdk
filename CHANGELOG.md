@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Log internal sdk error if we fail to process and persist other issue reports (e.g. Native Crash, ANRs, etc)
 
 **Changed**
 

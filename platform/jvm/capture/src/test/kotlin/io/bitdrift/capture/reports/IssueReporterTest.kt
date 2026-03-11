@@ -12,22 +12,16 @@ import android.content.Context
 import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.IInternalLogger
-import io.bitdrift.capture.LogLevel
-import io.bitdrift.capture.LogType
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeDateProvider
-import io.bitdrift.capture.fakes.FakeIssueReporterProcessor
-import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
@@ -62,9 +56,6 @@ class IssueReporterTest {
     private val internalLogger: IInternalLogger = mock()
     private val appContext = ApplicationProvider.getApplicationContext<Context>()
     private val clientAttributes = ClientAttributes(appContext, lifecycleOwner)
-    private val fakeIssueReporterProcessor = FakeIssueReporterProcessor()
-    private val logMessageCaptor = argumentCaptor<() -> String>()
-    private val throwableCaptor = argumentCaptor<Throwable>()
 
     @Before
     fun setup() {
@@ -87,7 +78,6 @@ class IssueReporterTest {
     @After
     fun teardown() {
         reportsDir.delete()
-        fakeIssueReporterProcessor.reset()
     }
 
     @Test
@@ -159,45 +149,6 @@ class IssueReporterTest {
             IssueReporterState.Initialized::class.java,
         )
         verify(completedReportsProcessor).processIssueReports(ReportProcessingSession.PreviousRun)
-    }
-
-    @Test
-    fun onJvmCrash_withExceptionThrownWhilePersisting_shouldLogInternalError() {
-        val issueReporter = buildAndInitReporterWithFakeProcessor(shouldThrowWhenProcessingJvmCrash = true)
-        val crashingThread = Thread {}
-        val originalCrashError = Exception("Original crash exception")
-
-        issueReporter.onJvmCrash(crashingThread, originalCrashError)
-
-        verify(internalLogger).logInternal(
-            type = eq(LogType.INTERNALSDK),
-            level = eq(LogLevel.ERROR),
-            arrayFields = eq(ArrayFields.EMPTY),
-            throwable = throwableCaptor.capture(),
-            blocking = eq(true),
-            message = logMessageCaptor.capture(),
-        )
-        assertThat(throwableCaptor.firstValue.message).contains("Critical issue while processing JVM crash")
-        assertThat(logMessageCaptor.firstValue())
-            .isEqualTo("Error while processing JVM crash")
-    }
-
-    @Test
-    fun onJvmCrash_withoutExceptionThrownWhilePersisting_shouldNotLogInternalError() {
-        val issueReporter = buildAndInitReporterWithFakeProcessor(shouldThrowWhenProcessingJvmCrash = false)
-        val crashingThread = Thread {}
-        val originalCrashError = Exception("Original crash exception")
-
-        issueReporter.onJvmCrash(crashingThread, originalCrashError)
-
-        verify(internalLogger, never()).logInternal(
-            type = any(),
-            level = any(),
-            arrayFields = any(),
-            throwable = any(),
-            blocking = any(),
-            message = any(),
-        )
     }
 
     private fun IssueReporterState.assert(
@@ -276,24 +227,4 @@ class IssueReporterTest {
             captureUncaughtExceptionHandler,
             dateProvider = FakeDateProvider,
         )
-
-    private fun buildAndInitReporterWithFakeProcessor(shouldThrowWhenProcessingJvmCrash: Boolean): IssueReporter {
-        fakeIssueReporterProcessor.shouldFailPersistingJvmCrash(shouldThrowWhenProcessingJvmCrash)
-        val issueReporter =
-            IssueReporter(
-                internalLogger,
-                FakeBackgroundThreadHandler(),
-                latestAppExitInfoProvider,
-                captureUncaughtExceptionHandler,
-                dateProvider = FakeDateProvider,
-                issueReporterProcessorFactory = { _, _, _ -> fakeIssueReporterProcessor },
-            )
-        issueReporter.init(
-            activityManager,
-            sdkDirectory,
-            clientAttributes,
-            completedReportsProcessor,
-        )
-        return issueReporter
-    }
 }

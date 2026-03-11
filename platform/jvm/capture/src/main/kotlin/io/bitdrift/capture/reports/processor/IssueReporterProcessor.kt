@@ -9,11 +9,10 @@ package io.bitdrift.capture.reports.processor
 
 import android.os.Build
 import android.os.strictmode.Violation
-import android.util.Log
 import androidx.annotation.RequiresApi
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.BuildConstants
-import io.bitdrift.capture.Capture.LOG_TAG
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.providers.DateProvider
@@ -39,6 +38,7 @@ internal class IssueReporterProcessor(
     private val clientAttributes: IClientAttributes,
     private val streamingReportsProcessor: IStreamingReportProcessor,
     private val dateProvider: DateProvider,
+    private val internalLogger: IInternalLogger,
 ) : IIssueReporterProcessor {
     companion object {
         // Initial size for file builder buffer
@@ -86,7 +86,11 @@ internal class IssueReporterProcessor(
                 sdkVersion = sdkVersion,
             )
         }.onFailure {
-            Log.e(LOG_TAG, "Error at persistJavaScriptReport: $it", it)
+            internalLogger.logInternalError(
+                throwable = it,
+            ) {
+                "Error while persisting and processing a JavaScriptError"
+            }
         }
     }
 
@@ -104,34 +108,40 @@ internal class IssueReporterProcessor(
         description: String?,
         traceInputStream: InputStream,
     ) {
-        if (fatalIssueType == ReportType.AppNotResponding) {
-            streamingReportsProcessor.processAndPersistANR(
-                traceInputStream,
-                timestamp,
-                reporterIssueStore.generateFatalIssueFilePath(),
-                clientAttributes,
-            )
-        } else if (fatalIssueType == ReportType.NativeCrash) {
-            val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
-            val sdk = createSDKInfo(builder)
-            val appMetrics = createAppMetrics(builder)
-            val deviceMetrics = createDeviceMetrics(builder, timestamp)
-            val report =
-                NativeCrashProcessor.process(
-                    builder,
-                    sdk,
-                    appMetrics,
-                    deviceMetrics,
-                    description,
+        runCatching {
+            if (fatalIssueType == ReportType.AppNotResponding) {
+                streamingReportsProcessor.processAndPersistANR(
                     traceInputStream,
+                    timestamp,
+                    reporterIssueStore.generateFatalIssueFilePath(),
+                    clientAttributes,
                 )
-            builder.finish(report)
+            } else if (fatalIssueType == ReportType.NativeCrash) {
+                val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
+                val sdk = createSDKInfo(builder)
+                val appMetrics = createAppMetrics(builder)
+                val deviceMetrics = createDeviceMetrics(builder, timestamp)
+                val report =
+                    NativeCrashProcessor.process(
+                        builder,
+                        sdk,
+                        appMetrics,
+                        deviceMetrics,
+                        description,
+                        traceInputStream,
+                    )
+                builder.finish(report)
 
-            reporterIssueStore.persistFatalIssue(
-                timestamp,
-                builder.sizedByteArray(),
-                ReportType.NativeCrash,
-            )
+                reporterIssueStore.persistFatalIssue(
+                    timestamp,
+                    builder.sizedByteArray(),
+                    ReportType.NativeCrash,
+                )
+            }
+        }.onFailure {
+            internalLogger.logInternalError(it) {
+                "Error while processing and persisting an AppExit report"
+            }
         }
     }
 
@@ -177,36 +187,42 @@ internal class IssueReporterProcessor(
         reportType: Byte,
         isFatal: Boolean,
     ) {
-        val timestamp = dateProvider.invoke().time
-        val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
-        val sdk = createSDKInfo(builder)
-        val appMetrics = createAppMetrics(builder)
-        val deviceMetrics = createDeviceMetrics(builder, timestamp)
-        val report =
-            JvmProcessor.getJvmReport(
-                builder,
-                sdk,
-                appMetrics,
-                deviceMetrics,
-                throwable,
-                callerThread,
-                allThreads,
-                reportType,
-            )
-        builder.finish(report)
+        runCatching {
+            val timestamp = dateProvider.invoke().time
+            val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
+            val sdk = createSDKInfo(builder)
+            val appMetrics = createAppMetrics(builder)
+            val deviceMetrics = createDeviceMetrics(builder, timestamp)
+            val report =
+                JvmProcessor.getJvmReport(
+                    builder,
+                    sdk,
+                    appMetrics,
+                    deviceMetrics,
+                    throwable,
+                    callerThread,
+                    allThreads,
+                    reportType,
+                )
+            builder.finish(report)
 
-        if (isFatal) {
-            reporterIssueStore.persistFatalIssue(
-                timestamp,
-                builder.sizedByteArray(),
-                reportType,
-            )
-        } else {
-            reporterIssueStore.persistNonFatalIssue(
-                timestamp,
-                builder.sizedByteArray(),
-                reportType,
-            )
+            if (isFatal) {
+                reporterIssueStore.persistFatalIssue(
+                    timestamp,
+                    builder.sizedByteArray(),
+                    reportType,
+                )
+            } else {
+                reporterIssueStore.persistNonFatalIssue(
+                    timestamp,
+                    builder.sizedByteArray(),
+                    reportType,
+                )
+            }
+        }.onFailure {
+            internalLogger.logInternalError(it, blocking = isFatal) {
+                "Error while processing and persisting a JVM report"
+            }
         }
     }
 

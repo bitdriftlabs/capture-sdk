@@ -14,11 +14,8 @@ import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.IInternalLogger
-import io.bitdrift.capture.LogLevel
-import io.bitdrift.capture.LogType
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.common.IBackgroundThreadHandler
-import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.reports.IssueReporterState.NotInitialized
 import io.bitdrift.capture.reports.IssueReporterState.RuntimeState
@@ -55,8 +52,6 @@ internal class IssueReporter(
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
     private val dateProvider: DateProvider,
-    private val issueReporterProcessorFactory: (String, IClientAttributes, DateProvider) -> IIssueReporterProcessor =
-        ::buildDefaultIssueReporterProcessor,
 ) : IIssueReporter,
     IJvmCrashListener {
     @VisibleForTesting
@@ -92,7 +87,7 @@ internal class IssueReporter(
             }
 
         runCatching {
-            issueReporterProcessor = issueReporterProcessorFactory(sdkDirectory, clientAttributes, dateProvider)
+            issueReporterProcessor = buildDefaultIssueReporterProcessor(sdkDirectory, clientAttributes, dateProvider, internalLogger)
             captureUncaughtExceptionHandler.install(this)
             processPriorReports(activityManager, completedReportsProcessor)
         }.getOrElse {
@@ -120,25 +115,11 @@ internal class IssueReporter(
         thread: Thread,
         throwable: Throwable,
     ) {
-        runCatching {
-            issueReporterProcessor?.processJvmCrash(
-                callerThread = thread,
-                throwable = throwable,
-                allThreads = Thread.getAllStackTraces(),
-            )
-        }.getOrElse {
-            val errorMessage = "Error while processing JVM crash"
-            internalLogger.logInternal(
-                type = LogType.INTERNALSDK,
-                level = LogLevel.ERROR,
-                arrayFields = ArrayFields.EMPTY,
-                throwable = it,
-                blocking = true,
-            ) {
-                errorMessage
-            }
-            Log.e(LOG_TAG, "$errorMessage. $it")
-        }
+        issueReporterProcessor?.processJvmCrash(
+            callerThread = thread,
+            throwable = throwable,
+            allThreads = Thread.getAllStackTraces(),
+        )
     }
 
     override fun getLogStatusFieldsMap(): Map<String, String> =
@@ -231,12 +212,14 @@ internal class IssueReporter(
             sdkDirectory: String,
             clientAttributes: IClientAttributes,
             dateProvider: DateProvider,
+            internalLogger: IInternalLogger,
         ): IIssueReporterProcessor =
             IssueReporterProcessor(
                 IssueReporterStore(sdkDirectory),
                 clientAttributes,
                 CaptureJniLibrary,
                 dateProvider,
+                internalLogger,
             )
     }
 }
