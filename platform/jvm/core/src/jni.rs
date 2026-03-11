@@ -894,6 +894,28 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlag
 }
 
 #[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_registerOpaqueUserId(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  opaque_user_id: JString<'_>,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let opaque_user_id = unsafe { env.get_string_unchecked(&opaque_user_id) }?
+        .to_string_lossy()
+        .to_string();
+
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.register_opaque_user_id(&opaque_user_id);
+
+      Ok(())
+    },
+    "jni register opaque user id",
+  );
+}
+
+#[no_mangle]
 // Java types are always signed, but log level/type are both unsigned.
 #[allow(clippy::cast_sign_loss)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(

@@ -413,6 +413,10 @@ internal class LoggerImpl(
         CaptureJniLibrary.setFeatureFlagExposure(this.loggerId, name, variant)
     }
 
+    override fun registerOpaqueUserId(opaqueUserId: String) {
+        CaptureJniLibrary.registerOpaqueUserId(this.loggerId, opaqueUserId)
+    }
+
     override fun setFeatureFlagExposure(
         name: String,
         variant: Boolean,

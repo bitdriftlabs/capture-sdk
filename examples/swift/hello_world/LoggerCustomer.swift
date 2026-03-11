@@ -10,6 +10,7 @@ import Foundation
 import MetricKit
 
 private let kDeviceId = "ios-helloworld"
+private let kOpaqueUserID = "hello-world-opaque-user-id"
 
 private struct EncodableExampleStruct: Encodable {
     private struct InternalEncodableExampleStruct: Encodable {
@@ -103,6 +104,7 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
             )
 
         Logger.addField(withKey: "field_container_field_key", value: "field_container_value")
+        Logger.registerOpaqueUserID(kOpaqueUserID)
         Logger.logInfo("App launched. Logger configured.")
 
         MXMetricManager.shared.add(self)

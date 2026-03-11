@@ -166,6 +166,10 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.setFeatureFlagExposure(withName: name, variant: variant)
     }
 
+    func registerOpaqueUserID(_ opaqueUserID: String) {
+        self.underlyingLogger.registerOpaqueUserID(opaqueUserID)
+    }
+
     func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
         self.underlyingLogger.runtimeValue(variable)
     }

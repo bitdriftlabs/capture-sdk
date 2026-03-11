@@ -248,6 +248,10 @@ final class LoggerBridge: LoggerBridging {
         capture_set_feature_flag_exposure(self.loggerID, flag, variant)
     }
 
+    func registerOpaqueUserID(_ opaqueUserID: String) {
+        capture_register_opaque_user_id(self.loggerID, opaqueUserID)
+    }
+
     func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
         return variable.load(loggerID: self.loggerID)
     }

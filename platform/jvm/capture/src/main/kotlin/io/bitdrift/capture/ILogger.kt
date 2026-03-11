@@ -90,6 +90,14 @@ interface ILogger {
     )
 
     /**
+     * Registers an opaque user identifier for correlation with device identifier in backend debug
+     * tooling. Typical inputs are hashed user IDs.
+     *
+     * @param opaqueUserId opaque user identifier.
+     */
+    fun registerOpaqueUserId(opaqueUserId: String)
+
+    /**
      * Records a feature flag exposure with a boolean variant. Use this method to track when
      * a user is exposed to a specific feature flag variant in your application. The exposure
      * is recorded with a timestamp and tracked for the duration of the process.
