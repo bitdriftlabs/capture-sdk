@@ -14,6 +14,7 @@ import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
 import io.bitdrift.capture.reports.processor.IStreamingReportProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
+import okio.IOException
 import java.io.InputStream
 
 // We use our own type here instead of a builtin function to allow us to avoid proguard-rewriting this class.
@@ -370,6 +371,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param timestampMillis The time at which the event took place
      * @param destinationPath Target file path to write the report
      */
+    @Throws(IOException::class, IllegalArgumentException::class)
     external override fun processAndPersistANR(
         stream: InputStream,
         timestampMillis: Long,

@@ -11,12 +11,14 @@ import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.doReturn
+import com.nhaarman.mockitokotlin2.doThrow
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.fakes.FakeDateProvider.DEFAULT_TEST_TIMESTAMP
@@ -33,6 +35,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.IOException
 import java.io.InputStream
 import java.nio.ByteBuffer
 
@@ -42,9 +45,12 @@ class IssueReporterProcessorTest {
     private lateinit var attributes: ClientAttributes
     private val issueReporterStorage: IIssueReporterStore = mock()
     private val streamingReportProcessor: IStreamingReportProcessor = mock()
+    private val internalLogger: IInternalLogger = mock()
     private val lifecycleOwner: LifecycleOwner = mock()
     private val issueReportCaptor = argumentCaptor<ByteArray>()
     private val reportTypeCaptor = argumentCaptor<Byte>()
+    private val throwableCaptor = argumentCaptor<Throwable>()
+    private val logMessageCaptor = argumentCaptor<() -> String>()
 
     private lateinit var processor: IssueReporterProcessor
 
@@ -59,6 +65,7 @@ class IssueReporterProcessorTest {
                 attributes,
                 streamingReportProcessor,
                 FakeDateProvider,
+                internalLogger,
             )
     }
 
@@ -128,6 +135,29 @@ class IssueReporterProcessorTest {
     }
 
     @Test
+    fun processJvmCrash_whenPersistFails_shouldLogInternalError() {
+        doThrow(RuntimeException("persist failed"))
+            .`when`(issueReporterStorage)
+            .persistFatalIssue(any(), any(), any())
+
+        processor.processJvmCrash(
+            Thread("crashing-thread"),
+            RuntimeException("crash"),
+            null,
+        )
+
+        verify(internalLogger).logInternalError(
+            throwable = throwableCaptor.capture(),
+            blocking = eq(true),
+            message = logMessageCaptor.capture(),
+        )
+        assertThat(throwableCaptor.firstValue).isInstanceOf(RuntimeException::class.java)
+        assertThat(throwableCaptor.firstValue.message).isEqualTo("persist failed")
+        assertThat(logMessageCaptor.firstValue())
+            .isEqualTo("Error while processing and persisting a JVM report")
+    }
+
+    @Test
     fun processAppExitReport_whenAnr() {
         doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
         val trace = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt")
@@ -144,6 +174,57 @@ class IssueReporterProcessorTest {
             eq("/some/path/foo.cap"),
             eq(attributes),
         )
+    }
+
+    @Test
+    fun processAppExitReport_whenAnrPersistThrowsRuntimeWithIOExceptionCause_shouldLogInternalErrorWithExpectedException() {
+        val exception =
+            RuntimeException(
+                "jni persist ANR: wrapped",
+                IOException("jni persist ANR: Permission denied (os error 13)"),
+            )
+        setReportDirectoryAndThrowException(exception)
+
+        processor.processAppExitReport(
+            fatalIssueType = ReportType.AppNotResponding,
+            FAKE_TIME_STAMP,
+            "Input Dispatching Timed Out",
+            buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt"),
+        )
+
+        verify(internalLogger).logInternalError(
+            throwable = throwableCaptor.capture(),
+            blocking = eq(false),
+            message = logMessageCaptor.capture(),
+        )
+        assertThat(throwableCaptor.firstValue).isInstanceOf(RuntimeException::class.java)
+        assertThat(throwableCaptor.firstValue.cause).isInstanceOf(IOException::class.java)
+        assertThat(throwableCaptor.firstValue.cause?.message).contains("jni persist ANR")
+        assertThat(logMessageCaptor.firstValue())
+            .isEqualTo("Error while processing and persisting an AppExit report")
+    }
+
+    @Test
+    fun processAppExitReport_whenAnrPersistThrowsIllegalArgumentException_shouldLogInternalErrorWithExpectedException() {
+        val exception = IllegalArgumentException("jni persist ANR: failed to parse destination: bad value")
+        setReportDirectoryAndThrowException(exception)
+
+        processor.processAppExitReport(
+            fatalIssueType = ReportType.AppNotResponding,
+            FAKE_TIME_STAMP,
+            "Input Dispatching Timed Out",
+            buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt"),
+        )
+
+        verify(internalLogger).logInternalError(
+            throwable = throwableCaptor.capture(),
+            blocking = eq(false),
+            message = logMessageCaptor.capture(),
+        )
+        assertThat(throwableCaptor.firstValue).isInstanceOf(IllegalArgumentException::class.java)
+        assertThat(throwableCaptor.firstValue.message).contains("jni persist ANR")
+        assertThat(logMessageCaptor.firstValue())
+            .isEqualTo("Error while processing and persisting an AppExit report")
     }
 
     @Test
@@ -228,6 +309,26 @@ class IssueReporterProcessorTest {
         assertJavaScriptArguments(expectedFatalIssue = false)
     }
 
+    @Test
+    fun processJavaScriptReport_whenStreamingProcessorFails_shouldLogInternalError() {
+        doReturn(FAKE_FATAL_PATH).`when`(issueReporterStorage).generateFatalIssueFilePath()
+        doThrow(RuntimeException("js persist failed"))
+            .`when`(streamingReportProcessor)
+            .processAndPersistJavaScriptError(any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+
+        persistJavaScriptError(isFatalIssue = true)
+
+        verify(internalLogger).logInternalError(
+            throwable = throwableCaptor.capture(),
+            blocking = eq(false),
+            message = logMessageCaptor.capture(),
+        )
+        assertThat(throwableCaptor.firstValue).isInstanceOf(RuntimeException::class.java)
+        assertThat(throwableCaptor.firstValue.message).isEqualTo("js persist failed")
+        assertThat(logMessageCaptor.firstValue())
+            .isEqualTo("Error while persisting and processing a JavaScriptError")
+    }
+
     private fun assertJavaScriptArguments(expectedFatalIssue: Boolean) {
         val expectedPath = if (expectedFatalIssue) FAKE_FATAL_PATH else FAKE_NON_FATAL_PATH
         verify(streamingReportProcessor).processAndPersistJavaScriptError(
@@ -259,6 +360,13 @@ class IssueReporterProcessorTest {
     private fun buildTraceInputStringFromFile(rawFilePath: String): InputStream =
         io.bitdrift.capture.TestResourceHelper
             .getResourceAsStream(rawFilePath)
+
+    private fun setReportDirectoryAndThrowException(exception: Exception) {
+        doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
+        doThrow(exception)
+            .`when`(streamingReportProcessor)
+            .processAndPersistANR(any(), eq(FAKE_TIME_STAMP), eq("/some/path/foo.cap"), eq(attributes))
+    }
 
     private companion object {
         const val FAKE_TIME_STAMP = 1241515210914L

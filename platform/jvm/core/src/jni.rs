@@ -259,6 +259,13 @@ fn check_exception(env: &mut JNIEnv<'_>) {
   }
 }
 
+fn throw_java_exception(env: &mut JNIEnv<'_>, class: &str, message: &str) {
+  if let Err(e) = env.throw_new(class, message) {
+    log::error!("failed to throw Java exception {class}: {e}; original message: {message}");
+    check_exception(env);
+  }
+}
+
 fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
   let mut env = vm.get_env()?;
 
@@ -1298,18 +1305,22 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
   destination: JString<'_>,
   attributes: JObject<'_>,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let destination = unsafe { env.get_string_unchecked(&destination) }
-        .map_err(|e| anyhow::anyhow!("failed to parse destination: {e}"))?
-        .to_string_lossy()
-        .to_string();
-
-      report_processing::persist_anr(&mut env, &stream, timestamp, &destination, &attributes)?;
-      Ok(())
+  let destination = match unsafe { env.get_string_unchecked(&destination) } {
+    Ok(destination) => destination.to_string_lossy().to_string(),
+    Err(e) => {
+      let message = format!("jni persist ANR: failed to parse destination: {e}");
+      throw_java_exception(&mut env, "java/lang/IllegalArgumentException", &message);
+      return;
     },
-    "jni persist ANR",
-  );
+  };
+
+  match report_processing::persist_anr(&mut env, &stream, timestamp, &destination, &attributes) {
+    Ok(()) => {},
+    Err(e) => {
+      let message = format!("jni persist ANR: {e:#}");
+      throw_java_exception(&mut env, "java/io/IOException", &message);
+    },
+  }
 }
 
 #[no_mangle]

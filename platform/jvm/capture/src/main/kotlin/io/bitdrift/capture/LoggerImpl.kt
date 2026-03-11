@@ -470,6 +470,22 @@ internal class LoggerImpl(
         }
     }
 
+    override fun logInternalError(
+        throwable: Throwable?,
+        blocking: Boolean,
+        message: () -> String,
+    ) {
+        logInternal(
+            type = LogType.INTERNALSDK,
+            level = LogLevel.ERROR,
+            arrayFields = ArrayFields.EMPTY,
+            throwable = throwable,
+            blocking = blocking,
+        ) {
+            message()
+        }
+    }
+
     override fun logInternal(
         type: LogType,
         level: LogLevel,

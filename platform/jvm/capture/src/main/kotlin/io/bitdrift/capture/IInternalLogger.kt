@@ -34,6 +34,12 @@ internal interface IInternalLogger : ILogger {
         message: () -> String,
     )
 
+    fun logInternalError(
+        throwable: Throwable? = null,
+        blocking: Boolean = false,
+        message: () -> String,
+    )
+
     fun handleInternalError(
         detail: String,
         throwable: Throwable? = null,
