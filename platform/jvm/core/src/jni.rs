@@ -900,7 +900,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_registerOpaque
         .to_string();
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.register_opaque_user_id(opaque_user_id);
+      logger.register_opaque_user_id(&opaque_user_id);
 
       Ok(())
     },
