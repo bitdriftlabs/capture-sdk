@@ -7,6 +7,35 @@
 
 import Foundation
 
+/// Configuration for issue report callbacks.
+///
+/// Use this to provide:
+/// - the queue where callbacks run
+/// - the callback that receives issue report metadata before send
+@objc(CAPIssueCallbackConfiguration)
+public final class IssueCallbackConfiguration: NSObject {
+    private let callbackQueue: DispatchQueue
+    private let issueReportCallback: IssueReportCallback
+
+    /// Creates issue callback configuration.
+    ///
+    /// - parameter callbackQueue:       Queue used to run callback invocations.
+    /// - parameter issueReportCallback: Callback invoked before an issue report is sent.
+    @objc
+    public init(callbackQueue: DispatchQueue, issueReportCallback: IssueReportCallback) {
+        self.callbackQueue = callbackQueue
+        self.issueReportCallback = issueReportCallback
+    }
+
+    // Called from Rust/FFI via Objective-C selector lookup. Keep selector stable.
+    @objc(dispatch:)
+    internal func dispatch(_ report: IssueReport) {
+        callbackQueue.async { [issueReportCallback] in
+            issueReportCallback.onBeforeReportSend(report: report)
+        }
+    }
+}
+
 /// Metadata about a detected fatal issue.
 @objc(CAPIssueReport)
 public final class IssueReport: NSObject {
@@ -48,33 +77,4 @@ public protocol IssueReportCallback: AnyObject {
     ///
     /// - parameter report: The issue report metadata.
     func onBeforeReportSend(report: IssueReport)
-}
-
-/// Configuration for issue report callbacks.
-///
-/// Use this to provide:
-/// - the queue where callbacks run
-/// - the callback that receives issue report metadata before send
-@objc(CAPIssueCallbackConfiguration)
-public final class IssueCallbackConfiguration: NSObject {
-    private let callbackQueue: DispatchQueue
-    private let issueReportCallback: IssueReportCallback
-
-    /// Creates issue callback configuration.
-    ///
-    /// - parameter callbackQueue:       Queue used to run callback invocations.
-    /// - parameter issueReportCallback: Callback invoked before an issue report is sent.
-    @objc
-    public init(callbackQueue: DispatchQueue, issueReportCallback: IssueReportCallback) {
-        self.callbackQueue = callbackQueue
-        self.issueReportCallback = issueReportCallback
-    }
-
-    // Called from Rust/FFI via Objective-C selector lookup. Keep selector stable.
-    @objc(dispatch:)
-    internal func dispatch(_ report: IssueReport) {
-        callbackQueue.async { [issueReportCallback] in
-            issueReportCallback.onBeforeReportSend(report: report)
-        }
-    }
 }
