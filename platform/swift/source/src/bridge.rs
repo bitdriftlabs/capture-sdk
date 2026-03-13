@@ -15,6 +15,7 @@ use crate::key_value_storage::UserDefaultsStorage;
 use crate::{events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
 use bd_api::{Platform, PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
+use bd_crash_handler::{CrashReportHook, CrashReportInfo};
 use bd_error_reporter::reporter::{
   handle_unexpected,
   with_handle_unexpected,
@@ -383,6 +384,57 @@ unsafe impl Sync for LogMetadataProvider {}
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for LogMetadataProvider {}
 
+#[allow(clippy::non_send_fields_in_send_ty)]
+struct IssueCallbackConfigurationHandle {
+  swift_object: StrongPtr,
+}
+
+unsafe impl Sync for IssueCallbackConfigurationHandle {}
+unsafe impl Send for IssueCallbackConfigurationHandle {}
+
+impl IssueCallbackConfigurationHandle {
+  #[allow(clippy::not_unsafe_ptr_arg_deref)]
+  fn new(swift_object: *mut Object) -> Self {
+    Self {
+      swift_object: unsafe { StrongPtr::retain(swift_object) },
+    }
+  }
+}
+
+impl CrashReportHook for IssueCallbackConfigurationHandle {
+  fn on_crash_report(&self, info: &CrashReportInfo) {
+    with_handle_unexpected(
+      || -> anyhow::Result<()> {
+        objc::rc::autoreleasepool(|| {
+          let report_type = make_nsstring(&info.report_type)?;
+          let reason = make_nsstring(info.crash_reason.as_deref().unwrap_or_default())?;
+          let details = make_nsstring(info.crash_details.as_deref().unwrap_or_default())?;
+          let session_id = make_nsstring(&info.session_id)?;
+
+          let fields_map = platform_shared::log_fields_to_string_map(&info.fields);
+          let fields = ffi::convert_map(&fields_map)?;
+
+          let report_alloc: *mut Object = unsafe { msg_send![class!(CAPIssueReport), alloc] };
+          let report_obj: *mut Object = unsafe {
+            msg_send![report_alloc,
+              initWithReportType:*report_type
+              reason:*reason
+              details:*details
+              sessionID:*session_id
+              fields:*fields
+            ]
+          };
+
+          let () = unsafe { msg_send![*self.swift_object, dispatch: report_obj] };
+
+          Ok(())
+        })
+      },
+      "swift issue report callback",
+    );
+  }
+}
+
 impl MetadataProvider for LogMetadataProvider {
   #[allow(clippy::cast_possible_truncation)]
   fn timestamp(&self) -> anyhow::Result<time::OffsetDateTime> {
@@ -445,6 +497,7 @@ extern "C" fn capture_create_logger(
   bd_network_nsobject: *mut Object,
   error_reporter_ns_object: *mut Object,
   start_in_sleep_mode: bool,
+  issue_callback_configuration: *mut Object,
 ) -> LoggerId<'static> {
   initialize_logging();
 
@@ -517,6 +570,15 @@ extern "C" fn capture_create_logger(
         static_metadata,
         start_in_sleep_mode,
       })
+      .with_crash_report_hook(
+        if issue_callback_configuration.is_null() {
+          None
+        } else {
+          Some(Arc::new(IssueCallbackConfigurationHandle::new(
+            issue_callback_configuration,
+          )))
+        },
+      )
       .with_internal_logger(true)
       .build()
       .map(|(logger, _, future, _)| LoggerHolder::new(logger, future))?;

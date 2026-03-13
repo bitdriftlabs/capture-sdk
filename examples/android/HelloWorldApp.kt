@@ -15,8 +15,11 @@ import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.IssueCallbackConfiguration
+import io.bitdrift.capture.reports.IssueReportCallback
 import okhttp3.HttpUrl
 import java.util.UUID
+import java.util.concurrent.Executor
 
 private const val bitdriftAPIKey = "<YOUR API KEY GOES HERE>"
 private val BITDRIFT_URL = HttpUrl.Builder().scheme("https").host("api.bitdrift.io").build()
@@ -26,31 +29,52 @@ class HelloWorldApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        
+
         setupExampleCrashHandler()
 
-        val userID = UUID.randomUUID().toString();
+        val userID = UUID.randomUUID().toString()
+        val issueCallbackConfiguration =
+            IssueCallbackConfiguration(
+                executor = Executor { command -> command.run() },
+                issueReportCallback =
+                    IssueReportCallback { report ->
+                        Logger.logInfo(
+                            mapOf(
+                                "reportType" to report.reportType,
+                                "session" to report.sessionId,
+                                "details" to report.details,
+                                "reason" to report.reason,
+                                "fields" to report.fields.toString(),
+                            ),
+                        ) {
+                            "Callback issue Report occurred ${report.details}: ${report.reason}"
+                        }
+                    },
+            )
 
         Logger.start(
             apiKey = bitdriftAPIKey,
             apiUrl = BITDRIFT_URL,
             sessionStrategy = SessionStrategy.Fixed { UUID.randomUUID().toString() },
-            configuration = Configuration(),
+            configuration = Configuration(issueCallbackConfiguration = issueCallbackConfiguration),
             fieldProviders = listOf(
                 FieldProvider {
                     mapOf(
                         "foo" to "bar",
-                        "user_id" to userID
+                        "user_id" to userID,
                     )
-                }
-            )
+                },
+            ),
         )
 
         Log.v("HelloWorldApp", "Android Bitdrift app launched with session url=${Logger.sessionUrl}")
 
-        Handler(Looper.getMainLooper()).postDelayed({
-            Log.i("HelloWorldApp", getCaptureSdkInitializedMessage())
-        }, kLoggerRunningDurationThreshold)
+        Handler(Looper.getMainLooper()).postDelayed(
+            {
+                Log.i("HelloWorldApp", getCaptureSdkInitializedMessage())
+            },
+            kLoggerRunningDurationThreshold,
+        )
     }
 
     private fun setupExampleCrashHandler() {
@@ -61,16 +85,16 @@ class HelloWorldApp : Application() {
         }
     }
 
-    private fun getCaptureSdkInitializedMessage():String{
+    private fun getCaptureSdkInitializedMessage(): String {
         return if (Logger.sessionUrl != null) {
-           SDK_STARTED_MESSAGE
+            SDK_STARTED_MESSAGE
         } else {
-           SDK_NOT_STARTED_MESSAGE
+            SDK_NOT_STARTED_MESSAGE
         }
     }
 
     private companion object {
-       private const val SDK_STARTED_MESSAGE = "Capture SDK properly initialized"
-       private const val SDK_NOT_STARTED_MESSAGE = "Capture SDK not started yet"
+        private const val SDK_STARTED_MESSAGE = "Capture SDK properly initialized"
+        private const val SDK_NOT_STARTED_MESSAGE = "Capture SDK not started yet"
     }
 }

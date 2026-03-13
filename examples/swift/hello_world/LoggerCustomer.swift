@@ -88,11 +88,19 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
             return
         }
 
+        let issueCallbackConfiguration = IssueCallbackConfiguration(
+            callbackQueue: .main,
+            issueReportCallback: CustomerIssueReportCallback()
+        )
+
         Logger
             .start(
                 withAPIKey: Configuration.storedAPIKey ?? "",
                 sessionStrategy: .fixed(),
-                configuration: Capture.Configuration(apiURL: apiURL),
+                configuration: Capture.Configuration(
+                    apiURL: apiURL,
+                    issueCallbackConfiguration: issueCallbackConfiguration
+                ),
                 fieldProviders: [CustomFieldProvider()]
             )?
             .enableIntegrations(
@@ -277,5 +285,20 @@ struct CustomNetworkResponseFieldProvider: URLSessionResponseFieldProvider {
         return [
             "additional_network_response_field": response.debugDescription,
         ]
+    }
+}
+
+private final class CustomerIssueReportCallback: IssueReportCallback {
+    func onBeforeReportSend(report: IssueReport) {
+        Capture.Logger.logInfo(
+            "Callback issue Report occurred \(report.details): \(report.reason)",
+            fields: [
+                "reportType": report.reportType,
+                "session": report.sessionID,
+                "details": report.details,
+                "reason": report.reason,
+                "fields": report.fields.description,
+            ]
+        )
     }
 }

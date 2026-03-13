@@ -21,6 +21,10 @@ public struct Configuration {
     /// If specified, this path will be used to store all SDK internal files instead of the default location (i.e. The app's document directory).
     public var rootFileURL: URL?
 
+    /// Optional callback configuration used for issue report callbacks.
+    /// This is only effective when `enableFatalIssueReporting` is true.
+    public var issueCallbackConfiguration: IssueCallbackConfiguration?
+
     /// The base URL of Capture API. Depend on its default value unless specifically instructed otherwise during discussions with
     /// bitdrift. Defaults to bitdrift's hosted API base URL.
     let apiURL: URL
@@ -35,18 +39,21 @@ public struct Configuration {
     ///                                         to bitdrift's SaaS API base URL.
     /// - parameter rootFileURL:                If specified, this path will be used to store all SDK internal files instead of
     ///                                         the default location (i.e. The app's document directory).
+    /// - parameter issueCallbackConfiguration: Optional callback configuration for issue reports.
     public init(
         sessionReplayConfiguration: SessionReplayConfiguration? = .init(),
         sleepMode: SleepMode = .disabled,
         enableFatalIssueReporting: Bool = true,
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
         apiURL: URL = URL(string: "https://api.bitdrift.io")!,
-        rootFileURL: URL? = nil
+        rootFileURL: URL? = nil,
+        issueCallbackConfiguration: IssueCallbackConfiguration? = nil
     ) {
         self.sessionReplayConfiguration = sessionReplayConfiguration
         self.sleepMode = sleepMode
         self.enableFatalIssueReporting = enableFatalIssueReporting
         self.apiURL = apiURL
         self.rootFileURL = rootFileURL
+        self.issueCallbackConfiguration = issueCallbackConfiguration
     }
 }

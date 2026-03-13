@@ -12,6 +12,7 @@ import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
+import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.processor.IStreamingReportProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import okio.IOException
@@ -71,6 +72,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         preferences: IPreferences,
         errorReporter: IErrorReporter,
         startInSleepMode: Boolean,
+        issueCallbackConfiguration: IssueCallbackConfiguration?,
     ): Long
 
     /**

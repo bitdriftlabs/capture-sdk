@@ -78,7 +78,8 @@ final class LoggerBridge: LoggerBridging {
         model: String,
         network: Network?,
         errorReporting: RemoteErrorReporting,
-        sleepMode: SleepMode
+        sleepMode: SleepMode,
+        issueCallbackConfiguration: IssueCallbackConfiguration?
     ) {
         do {
             try makeDirectoryAndDisableProtection(at: bufferDirectoryPath)
@@ -101,7 +102,8 @@ final class LoggerBridge: LoggerBridging {
             model,
             network,
             errorReporting,
-            sleepMode == SleepMode.enabled
+            sleepMode == SleepMode.enabled,
+            issueCallbackConfiguration
         )
 
         if loggerID == -1 {
@@ -132,7 +134,8 @@ final class LoggerBridge: LoggerBridging {
         model: String,
         network: Network?,
         errorReporting: RemoteErrorReporting,
-        sleepMode: SleepMode
+        sleepMode: SleepMode,
+        issueCallbackConfiguration: IssueCallbackConfiguration?
     ) -> LoggerBridging? {
         return LoggerBridge(
             apiKey: apiKey,
@@ -147,7 +150,8 @@ final class LoggerBridge: LoggerBridging {
             model: model,
             network: network,
             errorReporting: errorReporting,
-            sleepMode: sleepMode
+            sleepMode: sleepMode,
+            issueCallbackConfiguration: issueCallbackConfiguration
         )
     }
 

@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
+import io.bitdrift.capture.reports.IssueCallbackConfiguration
 
 internal interface IBridge {
     fun createLogger(
@@ -27,5 +28,6 @@ internal interface IBridge {
         preferences: IPreferences,
         errorReporter: IErrorReporter,
         startInSleepMode: Boolean,
+        issueCallbackConfiguration: IssueCallbackConfiguration?,
     ): Long
 }

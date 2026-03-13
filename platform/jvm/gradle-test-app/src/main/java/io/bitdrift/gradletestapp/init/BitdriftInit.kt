@@ -17,10 +17,13 @@ import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.replay.SessionReplayConfiguration
+import io.bitdrift.capture.reports.IssueCallbackConfiguration
+import io.bitdrift.capture.reports.IssueReportCallback
+import io.bitdrift.capture.reports.Report
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.capture.webview.WebViewConfiguration
 import io.bitdrift.gradletestapp.BuildConfig
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog
+import java.util.concurrent.Executors
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_CONSOLE_LOGS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_ERRORS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_LONG_TASKS_KEY
@@ -36,6 +39,7 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
 import java.util.UUID
+import java.util.concurrent.ExecutorService
 
 /**
  * Starts bitdrift's Captures SDK with the persisted config settings
@@ -123,10 +127,16 @@ object BitdriftInit {
 
         val sessionStrategy = getSessionStrategy(sharedPreferences)
         val webViewConfig = getWebViewConfiguration(sharedPreferences)
+        val issueCallbackConfiguration = IssueCallbackConfiguration(
+            executor = buildIssueReportCallbackExecutor(),
+            issueReportCallback = CustomerIssueReportCallback(),
+        )
+
         val configuration =
             Configuration(
                 sessionReplayConfiguration = if (sessionReplayEnabled) SessionReplayConfiguration() else null,
                 enableFatalIssueReporting = fatalIssueReporterEnabled,
+                issueCallbackConfiguration = issueCallbackConfiguration,
                 webViewConfiguration = webViewConfig,
             )
         val fieldProviders = listOf(FieldProvider {
@@ -146,8 +156,9 @@ object BitdriftInit {
 
     private fun SharedPreferences.getPersistedFlag(keyName: String): Boolean = getBoolean(
         keyName,
-        false)
-    
+        false
+    )
+
     private fun getSessionStrategy(sharedPreferences: SharedPreferences): SessionStrategy =
         if (sharedPreferences.getString(
                 ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY,
@@ -187,6 +198,27 @@ object BitdriftInit {
                 WEBVIEW_ENABLE_USER_INTERACTIONS_KEY
             ),
         )
+    }
+
+    private fun buildIssueReportCallbackExecutor(): ExecutorService =
+        Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, "customer-issue-report-callback")
+        }
+
+    private class CustomerIssueReportCallback : IssueReportCallback {
+        override fun onBeforeReportSend(report: Report) {
+            Capture.Logger.logInfo(
+                mapOf(
+                    "reportType" to report.reportType,
+                    "session" to report.sessionId,
+                    "details" to report.details,
+                    "reason" to report.reason,
+                    "fields" to report.fields.toString(),
+                )
+            ) {
+                "Callback issue Report occurred ${report.details}: ${report.reason}"
+            }
+        }
     }
 
     private sealed class SdkConfigResult {

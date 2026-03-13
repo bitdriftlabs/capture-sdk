@@ -11,19 +11,20 @@ internal import CaptureLoggerBridge
 protocol LoggerBridgingFactoryProvider {
     /// Creates a new instance of logger bridging.
     ///
-    /// - parameter apiKey:                    The bitdrift Capture API key.
-    /// - parameter bufferDirectoryPath:       The directory to use for storing files.
-    /// - parameter sessionStrategy:           The session strategy to use.
-    /// - parameter metadataProvider:          The metadata provider to use.
-    /// - parameter resourceUtilizationTarget: The resource utilization target to use.
-    /// - parameter sessionReplayTarget:       The session replay target to use.
-    /// - parameter eventsListenerTarget:      The events listener target to use.
-    /// - parameter appID:                     The host application application identifier.
-    /// - parameter releaseVersion:            The host application release version.
-    /// - parameter model:                     The host device model.
-    /// - parameter network:                   The interface to use for network operations.
-    /// - parameter errorReporting:            The interface to use for reporting errors.
-    /// - parameter sleepMode:                 .enabled if sleep mode should be initialized now
+    /// - parameter apiKey:                     The bitdrift Capture API key.
+    /// - parameter bufferDirectoryPath:        The directory to use for storing files.
+    /// - parameter sessionStrategy:            The session strategy to use.
+    /// - parameter metadataProvider:           The metadata provider to use.
+    /// - parameter resourceUtilizationTarget:  The resource utilization target to use.
+    /// - parameter sessionReplayTarget:        The session replay target to use.
+    /// - parameter eventsListenerTarget:       The events listener target to use.
+    /// - parameter appID:                      The host application application identifier.
+    /// - parameter releaseVersion:             The host application release version.
+    /// - parameter model:                      The host device model.
+    /// - parameter network:                    The interface to use for network operations.
+    /// - parameter errorReporting:             The interface to use for reporting errors.
+    /// - parameter sleepMode:                  .enabled if sleep mode should be initialized now.
+    /// - parameter issueCallbackConfiguration: Optional callback configuration for issue reports.
     ///
     /// - returns: The logger bridging instance.
     func makeLogger(
@@ -39,6 +40,7 @@ protocol LoggerBridgingFactoryProvider {
         model: String,
         network: Network?,
         errorReporting: RemoteErrorReporting,
-        sleepMode: SleepMode
+        sleepMode: SleepMode,
+        issueCallbackConfiguration: IssueCallbackConfiguration?
     ) -> LoggerBridging?
 }

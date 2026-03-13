@@ -7,7 +7,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added issue report callback support so apps can receive issue metadata before a report is sent (reportType, reason, details, sessionId, and callback fields).
 
 **Changed**
 

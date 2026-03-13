@@ -64,6 +64,15 @@
    public <methods>;
 }
 
+# Accessed reflectively from Rust/JNI (class/method names must remain stable).
+-keep class io.bitdrift.capture.reports.IssueCallbackConfiguration {
+   public void dispatch(io.bitdrift.capture.reports.Report);
+}
+
+-keep class io.bitdrift.capture.reports.Report {
+   public <init>(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.util.Map);
+}
+
 -keep, includedescriptorclasses class io.bitdrift.capture.IEventsListenerTarget {
    public <methods>;
 }
