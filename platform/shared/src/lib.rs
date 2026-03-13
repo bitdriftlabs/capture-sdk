@@ -108,7 +108,8 @@ impl DerefMut for LoggerId<'_> {
 pub type LoggerFuture =
   Pin<Box<dyn Future<Output = anyhow::Result<()>> + 'static + std::marker::Send>>;
 
-pub fn log_fields_to_string_map<'a>(fields: &'a LogFields) -> HashMap<&'a str, &'a str> {
+#[must_use]
+pub fn log_fields_to_string_map(fields: &LogFields) -> HashMap<&str, &str> {
   fields
     .iter()
     .filter_map(|(k, v)| v.as_str().map(|s| (k.as_ref(), s)))

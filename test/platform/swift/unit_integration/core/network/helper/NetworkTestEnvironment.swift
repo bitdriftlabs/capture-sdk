@@ -55,7 +55,8 @@ final class NetworkTestEnvironment {
                 model: "",
                 network: network,
                 errorReporting: MockRemoteErrorReporter(),
-                sleepMode: .disabled
+                sleepMode: .disabled,
+                issueCallbackConfiguration: nil
             )
         )
 
