@@ -27,23 +27,32 @@ internal class MetadataProvider(
     private fun fields(fieldProviders: List<FieldProvider>): Array<Field> {
         if (fieldProviders.isEmpty()) return emptyArray()
 
-        val result = mutableListOf<Field>()
-        for (fieldProvider in fieldProviders) {
+        val collectedMaps = arrayOfNulls<Map<String, String>>(fieldProviders.size)
+        var totalSize = 0
+
+        for (i in fieldProviders.indices) {
             try {
-                val providedFields = fieldProvider()
-                for ((key, value) in providedFields) {
-                    result.add(Field(key, FieldValue.StringField(value)))
-                }
+                val providedFields = fieldProviders[i]()
+                collectedMaps[i] = providedFields
+                totalSize += providedFields.size
             } catch (e: Throwable) {
-                // We cannot log to our logger as we are in the middle of processing
-                // a log and want to avoid an infinite cycle of logs.
-                // The issue is not with our code but customer's provider.
-                val message = "Field Provider \"${fieldProvider.javaClass.name}\" threw an exception"
+                val message = "Field Provider \"${fieldProviders[i].javaClass.name}\" threw an exception"
                 errorLog(message, e)
                 errorHandler.handleError(message, e)
             }
         }
-        if (result.isEmpty()) return emptyArray()
-        return result.toTypedArray()
+
+        if (totalSize == 0) return emptyArray()
+
+        val result = arrayOfNulls<Field>(totalSize)
+        var index = 0
+        for (map in collectedMaps) {
+            if (map != null) {
+                for ((key, value) in map) {
+                    result[index++] = Field(key, FieldValue.StringField(value))
+                }
+            }
+        }
+        return result.requireNoNulls()
     }
 }
