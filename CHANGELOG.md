@@ -1,13 +1,13 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.11...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.12...HEAD
 
 ### Both
 
 **Added**
 
-- Added issue report callback support so apps can receive issue metadata before a report is sent (reportType, reason, details, sessionId, and callback fields).
+- Nothing yet!
 
 **Changed**
 
@@ -44,6 +44,16 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.22.12]
+
+[0.22.12]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.12
+
+### Both
+
+**Added**
+
+- Added experimental issue report callback support so apps can receive issue metadata before a report is sent (reportType, reason, details, sessionId, and fields)
 
 ## [0.22.11]
 
