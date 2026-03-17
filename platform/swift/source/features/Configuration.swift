@@ -22,6 +22,7 @@ public struct Configuration {
     public var rootFileURL: URL?
 
     /// Optional callback configuration used for issue report callbacks.
+    /// This API is in experimental phase and may change in the future.
     /// This is only effective when `enableFatalIssueReporting` is true.
     public var issueCallbackConfiguration: IssueCallbackConfiguration?
 
@@ -40,6 +41,7 @@ public struct Configuration {
     /// - parameter rootFileURL:                If specified, this path will be used to store all SDK internal files instead of
     ///                                         the default location (i.e. The app's document directory).
     /// - parameter issueCallbackConfiguration: Optional callback configuration for issue reports.
+    ///   This API is in experimental phase and may change in the future.
     public init(
         sessionReplayConfiguration: SessionReplayConfiguration? = .init(),
         sleepMode: SleepMode = .disabled,

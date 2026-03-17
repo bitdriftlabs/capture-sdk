@@ -127,6 +127,8 @@ object BitdriftInit {
 
         val sessionStrategy = getSessionStrategy(sharedPreferences)
         val webViewConfig = getWebViewConfiguration(sharedPreferences)
+
+        @OptIn(ExperimentalBitdriftApi::class)
         val issueCallbackConfiguration = IssueCallbackConfiguration(
             executor = buildIssueReportCallbackExecutor(),
             issueReportCallback = CustomerIssueReportCallback(),
