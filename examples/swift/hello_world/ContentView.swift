@@ -26,6 +26,7 @@ struct ContentView: View {
         ScrollView {
             VStack(spacing: 10) {
                 NavigationLink("Configuration") { ConfigurationView() }
+                NavigationLink("WebView Test") { WebViewTestView() }
                 Text("ACTIONS")
                 HStack {
                     Button(action: { self.loggerCustomer.log(with: self.selectedLogLevel) }) {
