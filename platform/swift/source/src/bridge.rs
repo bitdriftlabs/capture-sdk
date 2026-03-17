@@ -17,21 +17,12 @@ use anyhow::anyhow;
 use bd_api::{Platform, PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
 use bd_crash_handler::{CrashReportHook, CrashReportInfo};
 use bd_error_reporter::reporter::{
-  handle_unexpected,
-  with_handle_unexpected,
-  with_handle_unexpected_or,
-  MetadataErrorReporter,
+  handle_unexpected, with_handle_unexpected, with_handle_unexpected_or, MetadataErrorReporter,
   UnexpectedErrorHandler,
 };
 use bd_logger::{
-  Block,
-  CaptureSession,
-  LogAttributesOverrides,
-  LogFieldKind,
-  LogFields,
-  LogLevel,
-  MetadataProvider,
-  ReportProcessingSession,
+  Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields, LogLevel,
+  MetadataProvider, ReportProcessingSession,
 };
 use bd_noop_network::NoopNetwork;
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1;
@@ -39,9 +30,7 @@ use bd_proto::protos::logging::payload::LogType;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use platform_shared::javascript_error::{
-  persist_javascript_error_report,
-  AppMetadata,
-  DeviceMetadata,
+  persist_javascript_error_report, AppMetadata, DeviceMetadata,
 };
 use platform_shared::metadata::{self, Mobile};
 use platform_shared::{LoggerHolder, LoggerId};
@@ -257,7 +246,7 @@ impl<W: StreamWriter + Send> PlatformNetworkStream for SwiftNetworkStream<W> {
         return Ok(());
       }
 
-      slice = &slice[written ..];
+      slice = &slice[written..];
     }
   }
 }
@@ -402,9 +391,9 @@ impl IssueCallbackConfigurationHandle {
 }
 
 impl CrashReportHook for IssueCallbackConfigurationHandle {
-  fn on_crash_report(&self, info: &CrashReportInfo) {
-    with_handle_unexpected(
-      || -> anyhow::Result<()> {
+  fn on_crash_report(&self, info: &CrashReportInfo) -> bool {
+    with_handle_unexpected_or(
+      || -> anyhow::Result<bool> {
         objc::rc::autoreleasepool(|| {
           let report_type = make_nsstring(&info.report_type)?;
           let reason = make_nsstring(info.crash_reason.as_deref().unwrap_or_default())?;
@@ -425,13 +414,18 @@ impl CrashReportHook for IssueCallbackConfigurationHandle {
             ]
           };
 
-          let () = unsafe { msg_send![*self.swift_object, dispatch: report_obj] };
+          let should_send: bool = unsafe { msg_send![*self.swift_object, dispatch: report_obj] };
 
-          Ok(())
+          if !should_send {
+            log::debug!("Issue callback requested dropping report");
+          }
+
+          Ok(should_send)
         })
       },
+      true,
       "swift issue report callback",
-    );
+    )
   }
 }
 
@@ -570,15 +564,13 @@ extern "C" fn capture_create_logger(
         static_metadata,
         start_in_sleep_mode,
       })
-      .with_crash_report_hook(
-        if issue_callback_configuration.is_null() {
-          None
-        } else {
-          Some(Arc::new(IssueCallbackConfigurationHandle::new(
-            issue_callback_configuration,
-          )))
-        },
-      )
+      .with_crash_report_hook(if issue_callback_configuration.is_null() {
+        None
+      } else {
+        Some(Arc::new(IssueCallbackConfigurationHandle::new(
+          issue_callback_configuration,
+        )))
+      })
       .with_internal_logger(true)
       .build()
       .map(|(logger, _, future, _)| LoggerHolder::new(logger, future))?;

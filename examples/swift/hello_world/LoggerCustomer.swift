@@ -289,7 +289,7 @@ struct CustomNetworkResponseFieldProvider: URLSessionResponseFieldProvider {
 }
 
 private final class CustomerIssueReportCallback: IssueReportCallback {
-    func onBeforeReportSend(report: IssueReport) {
+    func onBeforeReportSend(report: IssueReport) -> Bool {
         Capture.Logger.logInfo(
             "Callback issue Report occurred \(report.details): \(report.reason)",
             fields: [
@@ -300,5 +300,6 @@ private final class CustomerIssueReportCallback: IssueReportCallback {
                 "fields": report.fields.description,
             ]
         )
+        return true
     }
 }

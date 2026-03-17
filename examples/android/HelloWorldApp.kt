@@ -49,6 +49,7 @@ class HelloWorldApp : Application() {
                         ) {
                             "Callback issue Report occurred ${report.details}: ${report.reason}"
                         }
+                        true
                     },
             )
 

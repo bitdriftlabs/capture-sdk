@@ -11,40 +11,23 @@ use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandl
 use crate::session::SessionStrategyConfigurationHandle;
 use crate::session_replay::{self, TargetHandler as SessionReplayTargetHandler};
 use crate::{
-  define_object_wrapper,
-  events,
-  ffi,
-  key_value_storage,
-  new_global,
-  report_processing,
-  resource_utilization,
-  session,
+  define_object_wrapper, events, ffi, key_value_storage, new_global, report_processing,
+  resource_utilization, session,
 };
 use anyhow::{anyhow, bail};
 use bd_api::{Platform, PlatformNetworkStream, StreamEvent};
 use bd_client_common::error::InvariantError;
 use bd_crash_handler::CrashReportHook;
 use bd_error_reporter::reporter::{
-  handle_unexpected,
-  handle_unexpected_error_with_details,
-  with_handle_unexpected,
-  with_handle_unexpected_or,
-  MetadataErrorReporter,
-  UnexpectedErrorHandler,
+  handle_unexpected, handle_unexpected_error_with_details, with_handle_unexpected,
+  with_handle_unexpected_or, MetadataErrorReporter, UnexpectedErrorHandler,
 };
 use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields};
 use bd_proto::protos::logging::payload::LogType;
 use futures_util::FutureExt;
 use jni::descriptors::Desc;
 use jni::objects::{
-  GlobalRef,
-  JClass,
-  JMethodID,
-  JObject,
-  JObjectArray,
-  JPrimitiveArray,
-  JString,
-  JValueGen,
+  GlobalRef, JClass, JMethodID, JObject, JObjectArray, JPrimitiveArray, JString, JValueGen,
   JValueOwned,
 };
 use jni::signature::{Primitive, ReturnType};
@@ -357,7 +340,7 @@ fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
     &mut env,
     "io/bitdrift/capture/reports/IssueCallbackConfiguration",
     "dispatch",
-    "(Lio/bitdrift/capture/reports/Report;)V",
+    "(Lio/bitdrift/capture/reports/Report;)Z",
     &ISSUE_REPORT_DISPATCHER_DISPATCH,
   )?;
 
@@ -516,7 +499,7 @@ extern "system" fn Java_io_bitdrift_capture_network_Jni_onApiChunkReceived(
 
       let _ignored = stream_state
         .event_tx
-        .blocking_send(StreamEvent::Data((&slice[.. (size as usize)]).into()));
+        .blocking_send(StreamEvent::Data((&slice[..(size as usize)]).into()));
 
       Ok(())
     },
@@ -640,10 +623,10 @@ impl bd_logger::MetadataProvider for MetadataProvider {
 define_object_wrapper!(IssueCallbackConfigurationHandle);
 
 impl CrashReportHook for IssueCallbackConfigurationHandle {
-  fn on_crash_report(&self, info: &bd_crash_handler::CrashReportInfo) {
-    with_handle_unexpected(
-      || -> anyhow::Result<()> {
-        self.execute(|env, dispatcher| {
+  fn on_crash_report(&self, info: &bd_crash_handler::CrashReportInfo) -> bool {
+    with_handle_unexpected_or(
+      || -> anyhow::Result<bool> {
+        let should_send = self.execute(|env, dispatcher| {
           let report_type = env.new_string(&info.report_type)?;
           let reason = env.new_string(info.crash_reason.as_deref().unwrap_or(""))?;
           let details = env.new_string(info.crash_details.as_deref().unwrap_or(""))?;
@@ -676,25 +659,31 @@ impl CrashReportHook for IssueCallbackConfigurationHandle {
             )?
           };
 
-          ISSUE_REPORT_DISPATCHER_DISPATCH
+          let callback_result = ISSUE_REPORT_DISPATCHER_DISPATCH
             .get()
             .ok_or(InvariantError::Invariant)?
             .call_method(
               env,
               dispatcher,
-              ReturnType::Primitive(Primitive::Void),
+              ReturnType::Primitive(Primitive::Boolean),
               &[jvalue {
                 l: report_obj.as_raw(),
               }],
-            )?;
+            )?
+            .z()?;
 
-          Ok(())
+          Ok(callback_result)
         })?;
 
-        Ok(())
+        if !should_send {
+          log::debug!("Issue callback requested dropping report");
+        }
+
+        Ok(should_send)
       },
+      true,
       "jni issue report callback",
-    );
+    )
   }
 }
 

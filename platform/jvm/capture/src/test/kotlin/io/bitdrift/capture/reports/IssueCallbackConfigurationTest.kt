@@ -80,7 +80,7 @@ class IssueCallbackConfigurationTest {
         val issueCallbackConfiguration =
             IssueCallbackConfiguration(
                 executor = MoreExecutors.newDirectExecutorService(),
-                issueReportCallback = {},
+                issueReportCallback = { true },
             )
         val spyLogger = startSdkAndReturnLogger(issueCallbackConfiguration)
 

@@ -206,7 +206,7 @@ object BitdriftInit {
         }
 
     private class CustomerIssueReportCallback : IssueReportCallback {
-        override fun onBeforeReportSend(report: Report) {
+        override fun onBeforeReportSend(report: Report): Boolean {
             Capture.Logger.logInfo(
                 mapOf(
                     "reportType" to report.reportType,
@@ -218,6 +218,7 @@ object BitdriftInit {
             ) {
                 "Callback issue Report occurred ${report.details}: ${report.reason}"
             }
+            return report.reportType != "Strict Mode Violation"
         }
     }
 

@@ -12,6 +12,7 @@ import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.IInternalLogger
 import java.util.concurrent.Executor
+import java.util.concurrent.FutureTask
 import kotlin.jvm.JvmName
 
 /**
@@ -33,16 +34,22 @@ class IssueCallbackConfiguration(
      */
     @Suppress("unused")
     @JvmName("dispatch")
-    internal fun dispatch(report: Report) {
-        runSafely("Issue report callback dispatch failed") {
-            executor.execute { invokeCallback(report) }
-        }
+    internal fun dispatch(report: Report): Boolean {
+        val task = FutureTask { invokeCallback(report) }
+        return runCatching {
+            executor.execute(task)
+            task.get()
+        }.onFailure {
+            handleFailure("Issue report callback dispatch failed", it)
+        }.getOrDefault(true)
     }
 
-    private fun invokeCallback(report: Report) {
+    private fun invokeCallback(report: Report): Boolean {
+        var shouldSend = true
         runSafely("Issue report callback failed") {
-            issueReportCallback.onBeforeReportSend(report)
+            shouldSend = issueReportCallback.onBeforeReportSend(report)
         }
+        return shouldSend
     }
 
     private inline fun runSafely(
@@ -86,6 +93,9 @@ data class Report(
 fun interface IssueReportCallback {
     /**
      * Called before an issue report is sent.
+     *
+     * Return `true` to continue report processing.
+     * Return `false` to drop the report.
      */
-    fun onBeforeReportSend(report: Report)
+    fun onBeforeReportSend(report: Report): Boolean
 }

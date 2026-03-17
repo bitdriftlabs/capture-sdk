@@ -29,10 +29,12 @@ public final class IssueCallbackConfiguration: NSObject {
 
     // Called from Rust/FFI via Objective-C selector lookup. Keep selector stable.
     @objc(dispatch:)
-    internal func dispatch(_ report: IssueReport) {
+    internal func dispatch(_ report: IssueReport) -> Bool {
+        var shouldSend = true
         callbackQueue.async { [issueReportCallback] in
-            issueReportCallback.onBeforeReportSend(report: report)
+            shouldSend = issueReportCallback.onBeforeReportSend(report: report)
         }
+        return shouldSend
     }
 }
 
@@ -76,5 +78,6 @@ public protocol IssueReportCallback: AnyObject {
     /// Called before an issue report is sent.
     ///
     /// - parameter report: The issue report metadata.
-    func onBeforeReportSend(report: IssueReport)
+    /// - returns: `true` to continue report processing, `false` to drop the report.
+    func onBeforeReportSend(report: IssueReport) -> Bool
 }
