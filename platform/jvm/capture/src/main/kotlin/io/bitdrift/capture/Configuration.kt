@@ -32,5 +32,6 @@ data class Configuration
         val sleepMode: SleepMode = SleepMode.DISABLED,
         @property:ExperimentalBitdriftApi
         val webViewConfiguration: WebViewConfiguration? = null,
+        @property:ExperimentalBitdriftApi
         val issueCallbackConfiguration: IssueCallbackConfiguration? = null,
     )

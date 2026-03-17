@@ -48,6 +48,7 @@ import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
+import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.reports.processor.IIssueReporterProcessor
@@ -210,7 +211,7 @@ internal class LoggerImpl(
                 preferences,
                 localErrorReporter,
                 configuration.sleepMode == SleepMode.ENABLED,
-                if (configuration.enableFatalIssueReporting) configuration.issueCallbackConfiguration else null,
+                getIssueCallbackConfiguration(configuration),
             )
 
         check(loggerId != -1L) { "initialization of the rust logger failed" }
@@ -701,6 +702,10 @@ internal class LoggerImpl(
             errorHandler.handleError("Couldn't start JankStatsMonitor. Invalid application provided")
         }
     }
+
+    @OptIn(ExperimentalBitdriftApi::class)
+    private fun getIssueCallbackConfiguration(configuration: Configuration): IssueCallbackConfiguration? =
+        if (configuration.enableFatalIssueReporting) configuration.issueCallbackConfiguration else null
 }
 
 internal sealed class LogAttributesOverrides {
