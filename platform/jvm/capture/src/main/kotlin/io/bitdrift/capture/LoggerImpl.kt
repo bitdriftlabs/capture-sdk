@@ -211,7 +211,7 @@ internal class LoggerImpl(
                 preferences,
                 localErrorReporter,
                 configuration.sleepMode == SleepMode.ENABLED,
-                getIssueCallbackConfiguration(configuration)
+                getIssueCallbackConfiguration(configuration),
             )
 
         check(loggerId != -1L) { "initialization of the rust logger failed" }
@@ -704,9 +704,8 @@ internal class LoggerImpl(
     }
 
     @OptIn(ExperimentalBitdriftApi::class)
-    private fun getIssueCallbackConfiguration(configuration: Configuration): IssueCallbackConfiguration? {
-        return if (configuration.enableFatalIssueReporting) configuration.issueCallbackConfiguration else null
-    }
+    private fun getIssueCallbackConfiguration(configuration: Configuration): IssueCallbackConfiguration? =
+        if (configuration.enableFatalIssueReporting) configuration.issueCallbackConfiguration else null
 }
 
 internal sealed class LogAttributesOverrides {
