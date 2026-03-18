@@ -959,3 +959,358 @@ final class URLSessionIntegrationTests: XCTestCase {
         return url
     }
 }
+
+final class URLSessionTracePropagationTests: XCTestCase {
+    private var loggerBridge: MockLoggerBridging!
+
+    override func setUp() {
+        super.setUp()
+        self.loggerBridge = MockLoggerBridging()
+        URLSessionIntegration.shared.disableURLSessionTaskSwizzling()
+
+        let logger: Logger? = Logger(
+            withAPIKey: "123",
+            remoteErrorReporter: nil,
+            configuration: .init(rootFileURL: FileManager.default.temporaryDirectory.appendingPathComponent("bitdrift_test_\(UUID().uuidString)")),
+            sessionStrategy: .fixed(),
+            dateProvider: nil,
+            fieldProviders: [],
+            enableNetwork: false,
+            storageProvider: MockStorageProvider(),
+            timeProvider: MockTimeProvider(),
+            loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: self.loggerBridge)
+        )
+        guard let sharedLogger = logger else {
+            XCTFail("failed to initialize test logger")
+            return
+        }
+        Logger.resetShared(logger: sharedLogger)
+
+        URLSessionIntegration.shared.start(
+            logger: sharedLogger,
+            disableSwizzling: false,
+            requestFieldProvider: nil,
+            responseFieldProvider: nil
+        )
+    }
+
+    override func tearDown() {
+        URLSessionIntegration.shared.disableURLSessionTaskSwizzling()
+        Logger.resetShared()
+        super.tearDown()
+    }
+
+    func testCapResume_whenTracingInactive_shouldNotAttachTraceContext() throws {
+        self.loggerBridge.tracingActive = false
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+
+        task.resume()
+
+        XCTAssertNil(task.cap_traceContext)
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_whenModeDisabled_shouldNotAttachTraceContext() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "none")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+
+        task.resume()
+
+        XCTAssertNil(task.cap_traceContext)
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_whenW3CEnabled_shouldAttachTraceContext() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+
+        task.resume()
+
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        XCTAssertEqual(32, traceContext.traceID.count)
+        XCTAssertEqual(16, traceContext.spanID.count)
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_whenW3CEnabled_shouldInjectTraceparentHeader() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+
+        task.resume()
+
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        let traceparent = try XCTUnwrap(headers?["traceparent"])
+        XCTAssertEqual(traceparent, "00-\(traceContext.traceID)-\(traceContext.spanID)-01")
+
+        let captureHeader = try XCTUnwrap(headers?["x-capture-span-trace-id"])
+        XCTAssertEqual(captureHeader, traceContext.traceID)
+
+        XCTAssertNil(headers?["b3"])
+        XCTAssertNil(headers?["X-B3-TraceId"])
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_whenB3SingleEnabled_shouldInjectB3Header() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-single")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+
+        task.resume()
+
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        XCTAssertEqual(32, traceContext.traceID.count)
+        XCTAssertEqual(16, traceContext.spanID.count)
+
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        let b3 = try XCTUnwrap(headers?["b3"])
+        XCTAssertEqual(b3, "\(traceContext.traceID)-\(traceContext.spanID)-1")
+
+        let captureHeader = try XCTUnwrap(headers?["x-capture-span-trace-id"])
+        XCTAssertEqual(captureHeader, traceContext.traceID)
+
+        XCTAssertNil(headers?["traceparent"])
+        XCTAssertNil(headers?["X-B3-TraceId"])
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_whenB3MultiEnabled_shouldInjectB3MultiHeaders() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-multi")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+
+        task.resume()
+
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        XCTAssertEqual(32, traceContext.traceID.count)
+        XCTAssertEqual(16, traceContext.spanID.count)
+
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        XCTAssertEqual(headers?["X-B3-TraceId"], traceContext.traceID)
+        XCTAssertEqual(headers?["X-B3-SpanId"], traceContext.spanID)
+        XCTAssertEqual(headers?["X-B3-Sampled"], "1")
+
+        let captureHeader = try XCTUnwrap(headers?["x-capture-span-trace-id"])
+        XCTAssertEqual(captureHeader, traceContext.traceID)
+
+        XCTAssertNil(headers?["traceparent"])
+        XCTAssertNil(headers?["b3"])
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    // MARK: - Existing header detection
+
+    func testCapResume_withExistingTraceparent_shouldExtractTraceIDAndSkipInjection() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
+
+        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        request.setValue("00-abcdef1234567890abcdef1234567890-1234567890abcdef-01", forHTTPHeaderField: "traceparent")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: request)
+
+        task.resume()
+
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        XCTAssertEqual(traceContext.traceID, "abcdef1234567890abcdef1234567890")
+        XCTAssertEqual(traceContext.spanID, "")
+
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        XCTAssertEqual(headers?["traceparent"], "00-abcdef1234567890abcdef1234567890-1234567890abcdef-01")
+        XCTAssertNil(headers?["x-capture-span-trace-id"])
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_withExistingB3Single_shouldExtractTraceIDAndSkipInjection() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-single")
+
+        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        request.setValue("abcdef1234567890abcdef1234567890-1234567890abcdef-1", forHTTPHeaderField: "b3")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: request)
+
+        task.resume()
+
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        XCTAssertEqual(traceContext.traceID, "abcdef1234567890abcdef1234567890")
+        XCTAssertEqual(traceContext.spanID, "")
+
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        XCTAssertEqual(headers?["b3"], "abcdef1234567890abcdef1234567890-1234567890abcdef-1")
+        XCTAssertNil(headers?["x-capture-span-trace-id"])
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_withExistingB3Multi_shouldExtractTraceIDAndSkipInjection() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-multi")
+
+        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        request.setValue("abcdef1234567890abcdef1234567890", forHTTPHeaderField: "X-B3-TraceId")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: request)
+
+        task.resume()
+
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        XCTAssertEqual(traceContext.traceID, "abcdef1234567890abcdef1234567890")
+        XCTAssertEqual(traceContext.spanID, "")
+
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        XCTAssertEqual(headers?["X-B3-TraceId"], "abcdef1234567890abcdef1234567890")
+        XCTAssertNil(headers?["X-B3-SpanId"])
+        XCTAssertNil(headers?["X-B3-Sampled"])
+        XCTAssertNil(headers?["x-capture-span-trace-id"])
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    // MARK: - Cross-format existing header detection
+
+    func testCapResume_withW3CMode_andExistingB3Header_shouldExtractFromB3() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
+
+        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        request.setValue("abcdef1234567890abcdef1234567890-1234567890abcdef-1", forHTTPHeaderField: "b3")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: request)
+
+        task.resume()
+
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        XCTAssertEqual(traceContext.traceID, "abcdef1234567890abcdef1234567890")
+        XCTAssertEqual(traceContext.spanID, "")
+
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        XCTAssertNil(headers?["traceparent"])
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_withB3Mode_andExistingTraceparent_shouldExtractFromW3C() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-single")
+
+        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        request.setValue("00-abcdef1234567890abcdef1234567890-1234567890abcdef-01", forHTTPHeaderField: "traceparent")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: request)
+
+        task.resume()
+
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        XCTAssertEqual(traceContext.traceID, "abcdef1234567890abcdef1234567890")
+        XCTAssertEqual(traceContext.spanID, "")
+
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        XCTAssertNil(headers?["b3"])
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_withB3MultiMode_andExistingB3Single_shouldExtractFromB3() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-multi")
+
+        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        request.setValue("abcdef1234567890abcdef1234567890-1234567890abcdef-1", forHTTPHeaderField: "b3")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: request)
+
+        task.resume()
+
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        XCTAssertEqual(traceContext.traceID, "abcdef1234567890abcdef1234567890")
+        XCTAssertEqual(traceContext.spanID, "")
+
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        XCTAssertNil(headers?["X-B3-TraceId"])
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+}
+
+// MARK: - extractExistingTraceID unit tests
+
+final class URLSessionTracePropagationExtractionTests: XCTestCase {
+    func testExtractExistingTraceID_fromW3CTraceparent() {
+        let headers = ["traceparent": "00-abcdef1234567890abcdef1234567890-1234567890abcdef-01"]
+        let traceID = URLSessionTracePropagation.extractExistingTraceID(from: headers)
+        XCTAssertEqual(traceID, "abcdef1234567890abcdef1234567890")
+    }
+
+    func testExtractExistingTraceID_fromB3Single() {
+        let headers = ["b3": "abcdef1234567890abcdef1234567890-1234567890abcdef-1"]
+        let traceID = URLSessionTracePropagation.extractExistingTraceID(from: headers)
+        XCTAssertEqual(traceID, "abcdef1234567890abcdef1234567890")
+    }
+
+    func testExtractExistingTraceID_fromB3Multi() {
+        let headers = ["X-B3-TraceId": "abcdef1234567890abcdef1234567890"]
+        let traceID = URLSessionTracePropagation.extractExistingTraceID(from: headers)
+        XCTAssertEqual(traceID, "abcdef1234567890abcdef1234567890")
+    }
+
+    func testExtractExistingTraceID_prefersW3COverB3() {
+        let headers = [
+            "traceparent": "00-w3ctraceida1b2c3d4e5f6a7b8c9d0-1234567890abcdef-01",
+            "b3": "b3traceida1b2c3d4e5f6a7b8c9d0e1f2-1234567890abcdef-1",
+        ]
+        let traceID = URLSessionTracePropagation.extractExistingTraceID(from: headers)
+        XCTAssertEqual(traceID, "w3ctraceida1b2c3d4e5f6a7b8c9d0")
+    }
+
+    func testExtractExistingTraceID_returnsNilForNoHeaders() {
+        XCTAssertNil(URLSessionTracePropagation.extractExistingTraceID(from: nil))
+    }
+
+    func testExtractExistingTraceID_returnsNilForEmptyHeaders() {
+        XCTAssertNil(URLSessionTracePropagation.extractExistingTraceID(from: [:]))
+    }
+
+    func testExtractExistingTraceID_returnsNilForUnrelatedHeaders() {
+        let headers = ["Content-Type": "application/json", "Authorization": "Bearer token"]
+        XCTAssertNil(URLSessionTracePropagation.extractExistingTraceID(from: headers))
+    }
+}

@@ -483,6 +483,49 @@ class CaptureOkHttpEventListenerFactoryTest {
     }
 
     @Test
+    fun testTraceHeadersBecomeSpanFields() {
+        val traceId = "0123456789abcdef0123456789abcdef"
+        val request =
+            Request
+                .Builder()
+                .url(endpoint)
+                .post("test".toRequestBody())
+                .header("x-capture-span-key", "trace")
+                .header("x-capture-span-trace-field-trace_id", traceId)
+                .build()
+
+        val response =
+            Response
+                .Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_2)
+                .code(200)
+                .message("message")
+                .build()
+
+        whenever(call.request()).thenReturn(request)
+
+        val factory = createListenerFactory()
+        val listener = factory.create(call)
+
+        listener.callStart(call)
+        listener.responseHeadersEnd(call, response)
+        listener.responseBodyEnd(call, 1)
+        listener.callEnd(call)
+
+        val requestInfoCapture = argumentCaptor<HttpRequestInfo>()
+        verify(logger).log(requestInfoCapture.capture())
+        val responseInfoCapture = argumentCaptor<HttpResponseInfo>()
+        verify(logger).log(responseInfoCapture.capture())
+
+        val requestInfo = requestInfoCapture.firstValue
+        val responseInfo = responseInfoCapture.firstValue
+
+        assertThat(requestInfo.arrayFields[TraceContextFactory.TRACE_ID_FIELD_KEY].toString()).isEqualTo(traceId)
+        assertThat(responseInfo.arrayFields[TraceContextFactory.TRACE_ID_FIELD_KEY].toString()).isEqualTo(traceId)
+    }
+
+    @Test
     fun testApolloHeadersSendGraphQlSpans() {
         // ARRANGE
         val headerFields =

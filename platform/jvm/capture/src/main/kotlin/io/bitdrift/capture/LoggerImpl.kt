@@ -16,7 +16,9 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.IWindowManager
+import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.common.RuntimeStringConfig
 import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.error.ErrorReporterService
 import io.bitdrift.capture.error.IErrorReporter
@@ -94,7 +96,8 @@ internal class LoggerImpl(
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
 ) : IInternalLogger,
-    ICompletedReportsProcessor {
+    ICompletedReportsProcessor,
+    IRuntimeProvider {
     @OptIn(ExperimentalBitdriftApi::class)
     internal val webViewConfiguration: WebViewConfiguration? = configuration.webViewConfiguration
 
@@ -314,6 +317,9 @@ internal class LoggerImpl(
 
     override val deviceId: String
         get() = CaptureJniLibrary.getDeviceId(this.loggerId) ?: "unknown"
+
+    override val isTracingActive: Boolean
+        get() = CaptureJniLibrary.isTracingActive(this.loggerId)
 
     override fun startNewSession() {
         CaptureJniLibrary.startNewSession(this.loggerId)
@@ -541,6 +547,12 @@ internal class LoggerImpl(
             duration.toDouble(DurationUnit.SECONDS),
         )
     }
+
+    override fun isRuntimeFeatureEnabled(feature: RuntimeFeature): Boolean = runtime.isEnabled(feature)
+
+    override fun getRuntimeConfigValue(config: RuntimeConfig): Int = runtime.getConfigValue(config)
+
+    override fun getRuntimeStringConfigValue(config: RuntimeStringConfig): String = runtime.getConfigValue(config)
 
     override fun logSessionReplayScreenshot(
         fields: Array<Field>,

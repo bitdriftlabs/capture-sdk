@@ -125,6 +125,15 @@ class MainViewModel(
             is NetworkTestAction.PerformRetrofitRequest -> {
                 networkTestingRepository.performRetrofitRequest()
             }
+            is NetworkTestAction.PerformPreExistingW3cRequest -> {
+                networkTestingRepository.performPreExistingW3cRequest()
+            }
+            is NetworkTestAction.PerformPreExistingB3SingleRequest -> {
+                networkTestingRepository.performPreExistingB3SingleRequest()
+            }
+            is NetworkTestAction.PerformPreExistingB3MultiRequest -> {
+                networkTestingRepository.performPreExistingB3MultiRequest()
+            }
 
             is GlobalFieldAction.AddFieldAction -> {
                 viewModelScope.launch {

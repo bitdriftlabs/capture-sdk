@@ -118,6 +118,26 @@ sealed class RuntimeConfig(
 }
 
 /**
+ * Known runtime string config values.
+ * @param configName the runtime key to use for this config value
+ * @param defaultValue The value
+ */
+sealed class RuntimeStringConfig(
+    val configName: String,
+    val defaultValue: String,
+) {
+    /**
+     * Configures trace propagation header mode for automatic network tracing.
+     *
+     * Accepted values:
+     * - "none": disable trace propagation headers
+     * - "w3c": use `traceparent`
+     * - "b3": use `b3`
+     */
+    data object TRACE_PROPAGATION_MODE : RuntimeStringConfig("trace.propagation_mode", "none")
+}
+
+/**
  * Allows checking whether a runtime feature is enabled. Features may be remotely disabled via the a runtime flag, making it possible to
  * disable features that are known to be problematic with certain SDK versions.
  */
@@ -133,4 +153,10 @@ interface Runtime {
      * @param config the configuration value to check
      */
     fun getConfigValue(config: RuntimeConfig): Int
+
+    /**
+     * Returns the configured string value.
+     * @param config the string configuration value to check
+     */
+    fun getConfigValue(config: RuntimeStringConfig): String
 }

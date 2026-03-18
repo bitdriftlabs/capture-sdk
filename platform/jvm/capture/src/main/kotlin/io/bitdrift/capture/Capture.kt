@@ -227,6 +227,14 @@ object Capture {
             get() = logger()?.deviceId
 
         /**
+         * Whether workflow-controlled tracing is currently active for this session.
+         * Returns `null` prior to SDK start.
+         */
+        @JvmStatic
+        val isTracingActive: Boolean?
+            get() = logger()?.isTracingActive
+
+        /**
          * Defines the initialization of a new session within the currently running logger
          * If no logger is started, this is a no-op.
          */

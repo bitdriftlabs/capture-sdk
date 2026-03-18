@@ -7,7 +7,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added distributed tracing support for network instrumentation with W3C (`traceparent`), B3 Single (`b3`), and B3 Multi (`X-B3-*`) propagation formats.
 
 **Changed**
 

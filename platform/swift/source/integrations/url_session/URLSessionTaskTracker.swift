@@ -29,6 +29,36 @@ final class URLSessionTaskTracker {
 
     static let shared = URLSessionTaskTracker()
 
+    static func enrichExtraFields(
+        _ extraFields: Fields?,
+        with traceContext: URLSessionTraceContext?
+    ) -> Fields?
+    {
+        guard let traceContext else {
+            return extraFields
+        }
+
+        var updatedExtraFields = extraFields ?? [:]
+        updatedExtraFields[URLSessionTracePropagation.traceIDField] = traceContext.traceID
+
+        return updatedExtraFields
+    }
+
+    private static func ensureTraceContext(for task: URLSessionTask) -> URLSessionTraceContext? {
+        if let traceContext = task.cap_traceContext {
+            return traceContext
+        }
+
+        let integration = URLSessionIntegration.shared
+        guard integration.tracePropagationMode != .disabled, integration.isTracingActive else {
+            return nil
+        }
+
+        let traceContext = URLSessionTraceContext.make()
+        task.cap_traceContext = traceContext
+        return traceContext
+    }
+
     /// Ensures the given task type is supported by our current network instrumentation. Some of these don't
     /// have all properties we
     /// access, and those are only known at runtime. To play safe, we only check the positive case here we
@@ -62,6 +92,7 @@ final class URLSessionTaskTracker {
             if let originalRequest = task.originalRequest {
                 extraFields = URLSessionIntegration.shared.requestFieldProvider?.provideExtraFields(for: originalRequest)
             }
+            extraFields = Self.enrichExtraFields(extraFields, with: Self.ensureTraceContext(for: task))
             guard let requestInfo = HTTPRequestInfo(task: task, extraFields: extraFields) else {
                 return
             }
@@ -92,6 +123,7 @@ final class URLSessionTaskTracker {
                     for: httpURLResponse
                 )
             }
+            extraFields = Self.enrichExtraFields(extraFields, with: task.cap_traceContext)
             let responseInfo = HTTPResponseInfo(
                 requestInfo: requestInfo,
                 response: httpResponse,
@@ -100,6 +132,7 @@ final class URLSessionTaskTracker {
             )
 
             URLSessionIntegration.shared.logger?.log(responseInfo, file: nil, line: nil, function: nil)
+            task.cap_traceContext = nil
         }
     }
 }

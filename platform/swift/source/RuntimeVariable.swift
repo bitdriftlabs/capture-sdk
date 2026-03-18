@@ -13,6 +13,7 @@ protocol RuntimeValue {}
 
 extension Bool: RuntimeValue {}
 extension UInt32: RuntimeValue {}
+extension String: RuntimeValue {}
 
 /// The runtime variable.
 struct RuntimeVariable<T: RuntimeValue> {
@@ -31,6 +32,9 @@ extension RuntimeVariable {
         } else if T.self == UInt32.self {
             // swiftlint:disable:next force_cast
             capture_runtime_uint32_variable_value(loggerID, self.name, self.defaultValue as! UInt32) as! T
+        } else if T.self == String.self {
+            // swiftlint:disable:next force_cast
+            capture_runtime_string_variable_value(loggerID, self.name, self.defaultValue as! String) as! T
         } else {
             fatalError("unsupported runtime variable type")
         }
@@ -109,5 +113,12 @@ extension RuntimeVariable<UInt32> {
     static let appLowMemoryPercentThreshold = RuntimeVariable(
         name: "client_feature.ios.app_low_memory_percent_threshold",
         defaultValue: 90
+    )
+}
+
+extension RuntimeVariable<String> {
+    static let tracePropagationMode = RuntimeVariable(
+        name: "client_config.trace.propagation_mode",
+        defaultValue: "none"
     )
 }

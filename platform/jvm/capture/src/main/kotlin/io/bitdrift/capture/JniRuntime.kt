@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.common.RuntimeStringConfig
 
 internal class JniRuntime(
     private val logger: LoggerId,
@@ -17,6 +18,9 @@ internal class JniRuntime(
     override fun isEnabled(feature: RuntimeFeature): Boolean = Jni.isRuntimeEnabled(logger, feature.featureName, feature.defaultValue)
 
     override fun getConfigValue(config: RuntimeConfig): Int = Jni.runtimeValue(logger, config.configName, config.defaultValue)
+
+    override fun getConfigValue(config: RuntimeStringConfig): String =
+        Jni.runtimeStringValue(logger, config.configName, config.defaultValue)
 }
 
 internal object Jni {
@@ -31,4 +35,10 @@ internal object Jni {
         variableName: String,
         defaultValue: Int,
     ): Int
+
+    external fun runtimeStringValue(
+        logger: LoggerId,
+        variableName: String,
+        defaultValue: String,
+    ): String
 }

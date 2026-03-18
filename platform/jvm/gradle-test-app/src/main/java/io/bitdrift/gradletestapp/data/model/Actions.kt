@@ -58,6 +58,12 @@ sealed class NetworkTestAction : AppAction {
     object PerformGraphQlRequest : NetworkTestAction()
 
     object PerformRetrofitRequest : NetworkTestAction()
+
+    object PerformPreExistingW3cRequest : NetworkTestAction()
+
+    object PerformPreExistingB3SingleRequest : NetworkTestAction()
+
+    object PerformPreExistingB3MultiRequest : NetworkTestAction()
 }
 
 sealed class FeatureFlagsTestAction : AppAction {

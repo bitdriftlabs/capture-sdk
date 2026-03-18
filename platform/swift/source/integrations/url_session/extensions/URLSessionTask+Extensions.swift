@@ -8,6 +8,7 @@
 import Foundation
 
 private var kRequestInfoKey: UInt8 = 0
+private var kTraceContextKey: UInt8 = 0
 
 extension URLSessionTask {
     /// The HTTP Request Info associated with a given `URLSessionTask`.
@@ -16,6 +17,13 @@ extension URLSessionTask {
         get { objc_getAssociatedObject(self, &kRequestInfoKey) as? HTTPRequestInfo }
         set {
             objc_setAssociatedObject(self, &kRequestInfoKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+
+    var cap_traceContext: URLSessionTraceContext? {
+        get { objc_getAssociatedObject(self, &kTraceContextKey) as? URLSessionTraceContext }
+        set {
+            objc_setAssociatedObject(self, &kTraceContextKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
 }
