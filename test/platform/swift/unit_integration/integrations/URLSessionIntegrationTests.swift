@@ -959,3 +959,88 @@ final class URLSessionIntegrationTests: XCTestCase {
         return url
     }
 }
+
+final class URLSessionTracePropagationTests: XCTestCase {
+    private var loggerBridge: MockLoggerBridging!
+
+    override func setUp() {
+        super.setUp()
+        self.loggerBridge = MockLoggerBridging()
+        URLSessionIntegration.shared.disableURLSessionTaskSwizzling()
+
+        let logger: Logger? = Logger(
+            withAPIKey: "123",
+            remoteErrorReporter: nil,
+            configuration: .init(rootFileURL: FileManager.default.temporaryDirectory.appendingPathComponent("bitdrift_test_\(UUID().uuidString)")),
+            sessionStrategy: .fixed(),
+            dateProvider: nil,
+            fieldProviders: [],
+            enableNetwork: false,
+            storageProvider: MockStorageProvider(),
+            timeProvider: MockTimeProvider(),
+            loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: self.loggerBridge)
+        )
+        guard let sharedLogger = logger else {
+            XCTFail("failed to initialize test logger")
+            return
+        }
+        Logger.resetShared(logger: sharedLogger)
+
+        URLSessionIntegration.shared.start(
+            logger: sharedLogger,
+            disableSwizzling: false,
+            requestFieldProvider: nil,
+            responseFieldProvider: nil
+        )
+    }
+
+    override func tearDown() {
+        URLSessionIntegration.shared.disableURLSessionTaskSwizzling()
+        Logger.resetShared()
+        super.tearDown()
+    }
+
+    func testCapResume_whenTracingInactive_shouldNotAttachTraceContext() throws {
+        self.loggerBridge.tracingActive = false
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+
+        task.cap_resume()
+
+        XCTAssertNil(task.cap_traceContext)
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_whenModeDisabled_shouldNotAttachTraceContext() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "none")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+
+        task.cap_resume()
+
+        XCTAssertNil(task.cap_traceContext)
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_whenW3CEnabled_shouldAttachTraceContext() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+
+        task.cap_resume()
+
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        XCTAssertEqual(32, traceContext.traceID.count)
+        XCTAssertEqual(16, traceContext.spanID.count)
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+}

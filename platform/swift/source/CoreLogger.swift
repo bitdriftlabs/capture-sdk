@@ -13,6 +13,10 @@ import Foundation
 final class CoreLogger {
     private let underlyingLogger: LoggerBridging
 
+    var isTracingActive: Bool {
+        self.underlyingLogger.isTracingActive
+    }
+
     /// Initializes a new instance of the logger using provided Rust Logger bridging logger creation closure.
     /// It breaks-down Rust logger initialization process into two separate stages:
     /// initialization and the actual start of the logger. This separation helps us to avoid data race

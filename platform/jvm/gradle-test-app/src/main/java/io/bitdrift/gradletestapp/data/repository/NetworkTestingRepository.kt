@@ -7,14 +7,19 @@
 
 package io.bitdrift.gradletestapp.data.repository
 
+import android.content.Context
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.network.okHttpClient
+import com.chuckerteam.chucker.api.ChuckerCollector
+import com.chuckerteam.chucker.api.ChuckerInterceptor
+import com.chuckerteam.chucker.api.RetentionManager
 import com.example.rocketreserver.BookTripsMutation
 import com.example.rocketreserver.LaunchListQuery
 import com.example.rocketreserver.LoginMutation
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.apollo.CaptureApolloInterceptor
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
+import io.bitdrift.capture.network.okhttp.CaptureOkHttpTracingInterceptor
 import io.bitdrift.capture.network.okhttp.OkHttpRequestFieldProvider
 import io.bitdrift.capture.network.okhttp.OkHttpResponseFieldProvider
 import io.bitdrift.capture.network.retrofit.RetrofitUrlPathProvider
@@ -42,22 +47,39 @@ import kotlin.random.Random
 /**
  * Performs OkHttp/GraphQL requests
  */
-class NetworkTestingRepository {
+class NetworkTestingRepository(context: Context) {
+
+    private val chuckerInterceptor: ChuckerInterceptor =
+        ChuckerInterceptor
+            .Builder(context)
+            .collector(
+                ChuckerCollector(
+                    context = context,
+                    showNotification = true,
+                    retentionPeriod = RetentionManager.Period.ONE_HOUR,
+                ),
+            ).alwaysReadResponseBody(true)
+            .build()
+
     // Manual integration: explicit CaptureOkHttpEventListenerFactory with custom field providers
     private val okHttpClientManual: OkHttpClient =
         OkHttpClient
             .Builder()
+            .addInterceptor(chuckerInterceptor)
+            .addInterceptor(CaptureOkHttpTracingInterceptor())
             .eventListenerFactory(
                 CaptureOkHttpEventListenerFactory(
                     requestFieldProvider = RetrofitUrlPathProvider(CustomRequestFieldProvider()),
                     responseFieldProvider = CustomResponseFieldProvider(),
                 ),
-            ).build()
+            )
+            .build()
 
     // Automatic integration: relies on Gradle plugin instrumentation (tests PROXY vs OVERWRITE)
     private val okHttpClientAutomatic: OkHttpClient =
         OkHttpClient
             .Builder()
+            .addInterceptor(chuckerInterceptor)
             .eventListenerFactory { TimberOkHttpEventListener() }
             .build()
 
