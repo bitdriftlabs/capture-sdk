@@ -11,40 +11,23 @@ use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandl
 use crate::session::SessionStrategyConfigurationHandle;
 use crate::session_replay::{self, TargetHandler as SessionReplayTargetHandler};
 use crate::{
-  define_object_wrapper,
-  events,
-  ffi,
-  key_value_storage,
-  new_global,
-  report_processing,
-  resource_utilization,
-  session,
+  define_object_wrapper, events, ffi, key_value_storage, new_global, report_processing,
+  resource_utilization, session,
 };
 use anyhow::{anyhow, bail};
 use bd_api::{Platform, PlatformNetworkStream, StreamEvent};
 use bd_client_common::error::InvariantError;
 use bd_crash_handler::CrashReportHook;
 use bd_error_reporter::reporter::{
-  handle_unexpected,
-  handle_unexpected_error_with_details,
-  with_handle_unexpected,
-  with_handle_unexpected_or,
-  MetadataErrorReporter,
-  UnexpectedErrorHandler,
+  handle_unexpected, handle_unexpected_error_with_details, with_handle_unexpected,
+  with_handle_unexpected_or, MetadataErrorReporter, UnexpectedErrorHandler,
 };
 use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields};
 use bd_proto::protos::logging::payload::LogType;
 use futures_util::FutureExt;
 use jni::descriptors::Desc;
 use jni::objects::{
-  GlobalRef,
-  JClass,
-  JMethodID,
-  JObject,
-  JObjectArray,
-  JPrimitiveArray,
-  JString,
-  JValueGen,
+  GlobalRef, JClass, JMethodID, JObject, JObjectArray, JPrimitiveArray, JString, JValueGen,
   JValueOwned,
 };
 use jni::signature::{Primitive, ReturnType};
@@ -516,7 +499,7 @@ extern "system" fn Java_io_bitdrift_capture_network_Jni_onApiChunkReceived(
 
       let _ignored = stream_state
         .event_tx
-        .blocking_send(StreamEvent::Data((&slice[.. (size as usize)]).into()));
+        .blocking_send(StreamEvent::Data((&slice[..(size as usize)]).into()));
 
       Ok(())
     },
@@ -911,6 +894,20 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getDeviceId<'a
     JObject::null().into(),
     "jni get_device_id",
   )
+}
+
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_isTracingActive(
+  _env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: LoggerId<'_>,
+) -> jboolean {
+  with_handle_unexpected_or(
+    || Ok(logger_id.is_tracing_active()),
+    false,
+    "jni is_tracing_active",
+  )
+  .into()
 }
 
 #[no_mangle]

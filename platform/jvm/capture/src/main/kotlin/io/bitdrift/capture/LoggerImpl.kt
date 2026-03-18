@@ -311,6 +311,9 @@ internal class LoggerImpl(
     override val deviceId: String
         get() = CaptureJniLibrary.getDeviceId(this.loggerId) ?: "unknown"
 
+    override val isTracingActive: Boolean
+        get() = CaptureJniLibrary.isTracingActive(this.loggerId)
+
     override fun startNewSession() {
         CaptureJniLibrary.startNewSession(this.loggerId)
     }

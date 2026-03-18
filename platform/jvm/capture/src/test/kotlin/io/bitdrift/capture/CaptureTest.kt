@@ -91,4 +91,20 @@ class CaptureTest {
         // Calling reconfigure a second time does not change the static logger.
         assertThat(logger).isEqualTo(Capture.logger())
     }
+
+    @Test
+    fun dTracingStateIsAccessible() {
+        val initializer = ContextHolder()
+        initializer.create(ApplicationProvider.getApplicationContext())
+
+        assertThat(Logger.isTracingActive).isNull()
+
+        Logger.start(
+            apiKey = "test1",
+            sessionStrategy = SessionStrategy.Fixed(),
+            dateProvider = null,
+        )
+
+        assertThat(Logger.isTracingActive).isNotNull()
+    }
 }

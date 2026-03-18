@@ -112,6 +112,11 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     external fun getDeviceId(loggerId: Long): String?
 
     /**
+     * Returns true when workflow-controlled tracing is active for the current session.
+     */
+    external fun isTracingActive(loggerId: Long): Boolean
+
+    /**
      * Adds a field that should be attached to all logs emitted by the logger going forward.
      * If a field with a given key has already been registered with the logger, its value is
      * overridden with the new value.
