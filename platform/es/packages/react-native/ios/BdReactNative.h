@@ -1,12 +1,14 @@
 
 #ifdef RCT_NEW_ARCH_ENABLED
 #import "RNBdReactNativeSpec/RNBdReactNativeSpec.h"
+#import <React/RCTEventEmitter.h>
 
-@interface BdReactNative : NSObject <NativeBdReactNativeSpec>
+@interface BdReactNative : RCTEventEmitter <NativeBdReactNativeSpec>
 #else
 #import <React/RCTBridgeModule.h>
+#import <React/RCTEventEmitter.h>
 
-@interface BdReactNative : NSObject <RCTBridgeModule>
+@interface BdReactNative : RCTEventEmitter <RCTBridgeModule>
 
 #endif
 

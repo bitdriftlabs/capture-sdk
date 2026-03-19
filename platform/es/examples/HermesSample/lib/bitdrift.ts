@@ -1,6 +1,7 @@
 import {
   init,
   debug,
+  info,
   SessionStrategy,
   getSessionID,
   getSessionURL,
@@ -16,6 +17,15 @@ if (BITDRIFT_API_KEY) {
     crashReporting: {
       enableNativeFatalIssues: true,
       UNSTABLE_enableJsErrors: true,
+      UNSTABLE_onBeforeReportSend: (report) => {
+        info('Issue callback triggered', {
+          reportType: report.reportType,
+          session: report.sessionId,
+          details: report.details,
+          reason: report.reason,
+          fields: JSON.stringify(report.fields),
+        });
+      },
     },
   });
 

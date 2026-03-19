@@ -8,6 +8,9 @@
 import Capture
 import Foundation
 
+// Must match src/index.tsx ISSUE_REPORT_EVENT and Android/iOS bridge constants.
+let CAPRNIssueReportDidEmitNotification = Notification.Name("BdReactNative.onBeforeReportSend")
+
 @objc public class CAPRNLogger: NSObject {
     
     private static let debugId: String? = {
@@ -15,7 +18,13 @@ import Foundation
     }()
     
     @objc public static func start(
-        key: String, sessionStrategy: String, url: String?, enableNetworkInstrumentation: Bool, enableNativeFatalIssues: Bool, enableJsErrors: Bool
+        key: String,
+        sessionStrategy: String,
+        url: String?,
+        enableNetworkInstrumentation: Bool,
+        enableNativeFatalIssues: Bool,
+        enableJsErrors: Bool,
+        enableIssueCallbackBridge: Bool
     ) {
         ReportDirectory.setupWatcherDirectory(enableJsErrors: enableJsErrors)
         
@@ -29,9 +38,20 @@ import Foundation
                 SessionStrategy.fixed()
             }
 
+        let issueCallbackConfiguration: IssueCallbackConfiguration?
+        if enableIssueCallbackBridge {
+            issueCallbackConfiguration = IssueCallbackConfiguration(
+                callbackQueue: DispatchQueue(label: "io.bitdrift.capture.reactnative.issue-callback", qos: .utility),
+                issueReportCallback: CAPRNIssueReportCallback()
+            )
+        } else {
+            issueCallbackConfiguration = nil
+        }
+
         let configuration = Configuration(
             enableFatalIssueReporting: enableNativeFatalIssues,
-            apiURL: URL(string: url ?? "https://api.bitdrift.io")!
+            apiURL: URL(string: url ?? "https://api.bitdrift.io")!,
+            issueCallbackConfiguration: issueCallbackConfiguration
         )
 
         let integrator = Capture.Logger.start(
@@ -169,5 +189,21 @@ import Foundation
     @objc
     public static func setFeatureFlagExposureBool(name: String, variant: Bool) {
         Capture.Logger.setFeatureFlagExposure(withName: name, variant: variant)
+    }
+}
+
+private final class CAPRNIssueReportCallback: NSObject, IssueReportCallback {
+    func onBeforeReportSend(report: IssueReport) {
+        NotificationCenter.default.post(
+            name: CAPRNIssueReportDidEmitNotification,
+            object: nil,
+            userInfo: [
+                "reportType": report.reportType,
+                "reason": report.reason,
+                "details": report.details,
+                "sessionId": report.sessionID,
+                "fields": report.fields,
+            ]
+        )
     }
 }

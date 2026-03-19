@@ -3,6 +3,7 @@ import {
   addField,
   removeField,
   debug,
+  info,
   SessionStrategy,
   getSessionID,
   getSessionURL,
@@ -19,6 +20,16 @@ if (BITDRIFT_API_KEY) {
     // enableNativeFatalIssues Should be enabled by default
     crashReporting: {
       UNSTABLE_enableJsErrors: true,
+      UNSTABLE_onBeforeReportSend: (report) => {
+        console.log('Issue callback triggered:', report);
+        info('Issue callback triggered', {
+          reportType: report.reportType,
+          session: report.sessionId,
+          details: report.details,
+          reason: report.reason,
+          fields: JSON.stringify(report.fields),
+        });
+      },
     },
   });
 
