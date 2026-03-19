@@ -1,4 +1,9 @@
-import { NativeModules, Platform } from 'react-native';
+import {
+  DeviceEventEmitter,
+  NativeEventEmitter,
+  NativeModules,
+  Platform,
+} from 'react-native';
 import { installGlobalErrorHandler } from './globalErrorHandler';
 import {
   logInternal,
@@ -7,12 +12,45 @@ import {
   Serializable,
   LogLevel,
 } from './log';
-import { InitOptions, SessionStrategy } from './NativeBdReactNative';
+import {
+  InitOptions as NativeInitOptions,
+  CrashReportingOptions as NativeCrashReportingOptions,
+  SessionStrategy,
+} from './NativeBdReactNative';
 import NativeBdReactNative from './NativeBdReactNative';
-export { SessionStrategy, type CrashReportingOptions } from './NativeBdReactNative';
+export { SessionStrategy } from './NativeBdReactNative';
+
+// Cross-platform native<->JS event contract for issue report callbacks.
+// If this value changes, update the matching constants in:
+// - android/src/main/java/com/bdreactnative/BdReactNativeModule.kt
+// - ios/BdReactNative.mm
+// - ios/Logger.swift
+const ISSUE_REPORT_EVENT = 'BdReactNative.onBeforeReportSend';
+
+export type IssueReport = {
+  reportType: string;
+  reason: string;
+  details: string;
+  sessionId: string;
+  fields: Record<string, string>;
+};
+
+export type CrashReportingOptions = Omit<
+  NativeCrashReportingOptions,
+  'enableIssueCallbackBridge'
+> & {
+  UNSTABLE_onBeforeReportSend?: (report: IssueReport) => void;
+};
+
+export type InitOptions = Omit<NativeInitOptions, 'crashReporting'> & {
+  crashReporting?: CrashReportingOptions;
+};
+
+type EventSubscription = { remove: () => void };
 
 let api_url: string;
 let api_key: string;
+let issueReportSubscription: EventSubscription | undefined;
 
 const LINKING_ERROR =
   `The package '@bitdrift/react-native' doesn't seem to be linked. Make sure: \n\n` +
@@ -40,6 +78,51 @@ const BdReactNative = BdReactNativeModule
       },
     );
 
+function createIssueReportEmitter() {
+  if (Platform.OS === 'ios') {
+    return new NativeEventEmitter(BdReactNativeModule);
+  }
+  return DeviceEventEmitter;
+}
+
+function resetIssueReportSubscription() {
+  issueReportSubscription?.remove();
+  issueReportSubscription = undefined;
+}
+
+function maybeRegisterIssueReportCallback(options?: InitOptions) {
+  resetIssueReportSubscription();
+
+  const callback = options?.crashReporting?.UNSTABLE_onBeforeReportSend;
+  if (!callback) {
+    return;
+  }
+
+  issueReportSubscription = createIssueReportEmitter().addListener(
+    ISSUE_REPORT_EVENT,
+    (report: IssueReport) => {
+      callback(report);
+    },
+  );
+}
+
+function toNativeInitOptions(options?: InitOptions): NativeInitOptions {
+  const enableIssueCallbackBridge = Boolean(
+    options?.crashReporting?.UNSTABLE_onBeforeReportSend,
+  );
+
+  return {
+    ...options,
+    crashReporting: options?.crashReporting
+      ? {
+          enableNativeFatalIssues: options.crashReporting.enableNativeFatalIssues,
+          UNSTABLE_enableJsErrors: options.crashReporting.UNSTABLE_enableJsErrors,
+          enableIssueCallbackBridge: enableIssueCallbackBridge,
+        }
+      : undefined,
+  };
+}
+
 export function init(
   key: string,
   sessionStrategy: SessionStrategy,
@@ -47,12 +130,16 @@ export function init(
 ): void {
   api_url = options?.url ?? 'api.bitdrift.io';
   api_key = key;
+
   // Install JS global error handler if enabled via config
   if (options?.crashReporting?.UNSTABLE_enableJsErrors === true) {
     installGlobalErrorHandler();
   }
 
-  return BdReactNative.init(key, sessionStrategy, options ?? {});
+  maybeRegisterIssueReportCallback(options);
+
+  const nativeOptions = toNativeInitOptions(options);
+  return BdReactNative.init(key, sessionStrategy, nativeOptions);
 }
 
 export function trace(message: string, fields?: SerializableLogFields): void {

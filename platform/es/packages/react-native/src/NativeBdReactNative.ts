@@ -18,6 +18,8 @@ export type CrashReportingOptions = {
   enableNativeFatalIssues?: boolean;
   /** Enable JS global error handler via ErrorUtils.setGlobalHandler. This is an experimental feature at the moment and may change in future releases. */
   UNSTABLE_enableJsErrors?: boolean;
+  /** Internal flag used by the JS layer to enable native issue callback wiring only when needed. */
+  enableIssueCallbackBridge?: boolean;
 };
 
 export type InitOptions = {
@@ -61,6 +63,10 @@ export interface Spec extends TurboModule {
   setFeatureFlagExposureString(name: string, variant: string): void;
 
   setFeatureFlagExposureBool(name: string, variant: boolean): void;
+
+  addListener(eventName: string): void;
+
+  removeListeners(count: number): void;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('BdReactNative');

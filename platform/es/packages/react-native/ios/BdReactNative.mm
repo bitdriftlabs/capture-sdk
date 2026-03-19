@@ -5,6 +5,38 @@
 @implementation BdReactNative
 RCT_EXPORT_MODULE()
 
+// Must match src/index.tsx ISSUE_REPORT_EVENT and Android equivalent.
+static NSString *const kIssueReportEventName = @"BdReactNative.onBeforeReportSend";
+static NSNotificationName const kIssueReportNotificationName = @"BdReactNative.onBeforeReportSend";
+
+- (NSArray<NSString *> *)supportedEvents
+{
+  return @[kIssueReportEventName];
+}
+
+- (void)startObserving
+{
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(handleIssueReportNotification:)
+                                               name:kIssueReportNotificationName
+                                             object:nil];
+}
+
+- (void)stopObserving
+{
+  [[NSNotificationCenter defaultCenter] removeObserver:self
+                                                  name:kIssueReportNotificationName
+                                                object:nil];
+}
+
+- (void)handleIssueReportNotification:(NSNotification *)notification
+{
+  NSDictionary *payload = notification.userInfo ?: @{};
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [self sendEventWithName:kIssueReportEventName body:payload];
+  });
+}
+
 RCT_EXPORT_METHOD(log:(double)level
       message:(NSString*)message
       fields:(NSDictionary*)fields)
@@ -80,6 +112,8 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
   NSNumber* enableNativeFatalIssuesValue = crashReportingOptions[@"enableNativeFatalIssues"];
   BOOL enableNativeFatalIssues = enableNativeFatalIssuesValue != nil ? [enableNativeFatalIssuesValue boolValue] : YES;
   BOOL enableJsErrors = [crashReportingOptions[@"UNSTABLE_enableJsErrors"] boolValue];
+  NSNumber* enableIssueCallbackBridgeValue = crashReportingOptions[@"enableIssueCallbackBridge"];
+  BOOL enableIssueCallbackBridge = enableIssueCallbackBridgeValue != nil ? [enableIssueCallbackBridgeValue boolValue] : NO;
 
   [CAPRNLogger
     startWithKey:apiKey
@@ -88,6 +122,7 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
     enableNetworkInstrumentation:enableNetworkInstrumentation
     enableNativeFatalIssues:enableNativeFatalIssues
     enableJsErrors:enableJsErrors
+    enableIssueCallbackBridge:enableIssueCallbackBridge
   ];
 }
 
@@ -101,10 +136,12 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
   
   BOOL enableNativeFatalIssues = true;
   BOOL enableJsErrors = false;
+  BOOL enableIssueCallbackBridge = false;
   if (options.crashReporting().has_value()) {
     auto crashReporting = options.crashReporting().value();
     enableNativeFatalIssues = crashReporting.enableNativeFatalIssues().has_value() ? crashReporting.enableNativeFatalIssues().value() : true;
     enableJsErrors = crashReporting.UNSTABLE_enableJsErrors().has_value() ? crashReporting.UNSTABLE_enableJsErrors().value() : false;
+    enableIssueCallbackBridge = crashReporting.enableIssueCallbackBridge().has_value() ? crashReporting.enableIssueCallbackBridge().value() : false;
   }
 
   [CAPRNLogger
@@ -114,6 +151,7 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
     enableNetworkInstrumentation:enableNetworkInstrumentation
     enableNativeFatalIssues:enableNativeFatalIssues
     enableJsErrors:enableJsErrors
+    enableIssueCallbackBridge:enableIssueCallbackBridge
   ];
 }
 
