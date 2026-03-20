@@ -10,24 +10,46 @@ import { withAppBuildGradle, withSettingsGradle } from '@expo/config-plugins';
 import type { ConfigPlugin } from '@expo/config-plugins';
 import PluginProps from './config';
 
+const CAPTURE_PLUGIN_ID = "id 'io.bitdrift.capture-plugin'";
+const BITDRIFT_MAVEN_HOST = 'dl.bitdrift.io';
+
 const withBitdriftAppBuildGradle: ConfigPlugin<PluginProps | void> = (
   config,
   props,
 ) => {
   return withAppBuildGradle(config, (config) => {
-    if (!config.modResults.contents.includes('dl.bitdrift.io')) {
-      // TODO(snowp): Eventually we'd always install the plugin and gate the okhttp instrumentation
-      // config on the networkInstrumentation prop.
-      if (props && props.networkInstrumentation) {
-        // Add the capture-plugin at the very top of the file.
-        config.modResults.contents =
-          `plugins {
+    const shouldEnableNetworkInstrumentation = props?.networkInstrumentation === true;
+    const okHttpInstrumentationType =
+      props?.okHttpInstrumentationType === 'OVERWRITE' ? 'OVERWRITE' : 'PROXY';
+
+    if (
+      shouldEnableNetworkInstrumentation &&
+      !config.modResults.contents.includes(CAPTURE_PLUGIN_ID)
+    ) {
+      config.modResults.contents =
+        `plugins {
     id 'io.bitdrift.capture-plugin' version '0.22.12'
 }
 
 ` + config.modResults.contents;
-      }
+    }
 
+    if (
+      shouldEnableNetworkInstrumentation &&
+      !config.modResults.contents.includes('automaticOkHttpInstrumentation')
+    ) {
+      config.modResults.contents += `
+
+bitdrift {
+    instrumentation {
+        automaticOkHttpInstrumentation = true
+        okHttpInstrumentationType = ${okHttpInstrumentationType}
+    }
+}
+`;
+    }
+
+    if (!config.modResults.contents.includes(BITDRIFT_MAVEN_HOST)) {
       // Define the bitdrift maven repository at the end. This is necessary to resolve the SDK dependency specified by the plugin.
       config.modResults.contents += `
 
@@ -52,7 +74,7 @@ const withBitdriftSettingsGradle: ConfigPlugin<PluginProps | void> = (
 ) => {
   // Add the bitdrift maven repository to the pluginManagement block to allow the plugin to resolve the SDK dependency. This is safe to do regardless of whether the network instrumentation is enabled or not.
   return withSettingsGradle(config, (config) => {
-    if (!config.modResults.contents.includes('dl.bitdrift.io')) {
+    if (!config.modResults.contents.includes(BITDRIFT_MAVEN_HOST)) {
       // There will be a pluginManagement block in the settings.gradle file already, so we need to insert ourselves
       // into the existing block.
       //

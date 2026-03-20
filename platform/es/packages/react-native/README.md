@@ -166,7 +166,7 @@ Enabling this via the Objective-C API is not yet supported if initialization is 
 
 #### Android
 
-To enable network integration in Android a Gradle plugin needs to be added to the project. This can be done by adding a dependency on the `io.bitdrift.capture-plugin` plugin in the `plugins` block of the apps's `build.gradle` file:
+To enable automatic OkHttp instrumentation on Android, add the `io.bitdrift.capture-plugin` plugin in the app `build.gradle` file:
 
 ```gradle
 plugins {
@@ -175,6 +175,18 @@ plugins {
 ```
 
 To find the version to use, use the same version of the Capture SDK that is being used in the React Native project. Check the `build.gradle` file in the `node_modules/@bitdrift/react-native/android` directory for the version of the Capture SDK being used.
+
+For manual Gradle setup, enable plugin instrumentation:
+
+```gradle
+bitdrift {
+    instrumentation {
+        automaticOkHttpInstrumentation = true
+        // Optional. Defaults to PROXY when omitted.
+        // okHttpInstrumentationType = OVERWRITE
+    }
+}
+```
 
 In addition to this the plugin repository needs to be added to the `pluginManagement` block in the `settings.gradle` file:
 
@@ -209,3 +221,30 @@ When using Expo to generate the project, this can be achieved by setting the `ne
   }
 }
 ```
+
+When using the Expo plugin with `networkInstrumentation: true`, the Android Gradle plugin and `bitdrift { instrumentation { ... } }` block are generated automatically.
+
+The Android plugin mode can be configured with `okHttpInstrumentationType`:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "@bitdrift/react-native",
+        {
+          "networkInstrumentation": true,
+          "okHttpInstrumentationType": "OVERWRITE"
+        }
+      ]
+    ]
+  }
+}
+```
+
+`okHttpInstrumentationType` is Android-only and has no effect on iOS.
+
+- `PROXY` (default): preserves existing `EventListener.Factory` behavior in OkHttp clients.
+- `OVERWRITE`: replaces the listener factory and can avoid duplicate network spans in some app setups.
+
+If you recently upgraded and started seeing duplicate spans on Android, set `okHttpInstrumentationType` to `OVERWRITE`.
