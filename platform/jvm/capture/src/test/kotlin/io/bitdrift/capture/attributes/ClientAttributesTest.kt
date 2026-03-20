@@ -260,7 +260,7 @@ class ClientAttributesTest {
 
         val fields = clientAttributes.invoke()
 
-        assertThat(fields).containsEntry("manufacturer", "unknown")
+        assertThat(fields).containsEntry("_manufacturer", "unknown")
     }
 
     @Test
