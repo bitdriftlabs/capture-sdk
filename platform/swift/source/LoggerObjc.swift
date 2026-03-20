@@ -352,6 +352,20 @@ public final class LoggerObjc: NSObject {
         return Capture.Logger.deviceID
     }
 
+    /// Reports previous app run status.
+    ///
+    /// This API is in experimental phase and may change in the future.
+    ///
+    /// - returns: A dictionary containing `hasFatallyTerminated` when available.
+    @objc
+    public static func previousRunInfo() -> [String: Any]? {
+        guard let previousRunInfo = Capture.Logger.previousRunInfo else {
+            return nil
+        }
+
+        return ["hasFatallyTerminated": previousRunInfo.hasFatallyTerminated]
+    }
+
     // MARK: - Extra
 
     /// Adds a field to all logs emitted by the logger from this point forward.

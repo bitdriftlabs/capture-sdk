@@ -23,6 +23,7 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
+import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.reports.processor.IssueReporterProcessor
@@ -221,10 +222,11 @@ class IssueReporterTest {
 
     private fun buildReporter(): IssueReporter =
         IssueReporter(
-            internalLogger,
-            FakeBackgroundThreadHandler(),
-            latestAppExitInfoProvider,
-            captureUncaughtExceptionHandler,
+            internalLogger = internalLogger,
+            backgroundThreadHandler = FakeBackgroundThreadHandler(),
+            latestAppExitInfoProvider = latestAppExitInfoProvider,
+            previousRunInfoResolver = PreviousRunInfoResolver(sdkDirectory),
+            captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
             dateProvider = FakeDateProvider,
         )
 }

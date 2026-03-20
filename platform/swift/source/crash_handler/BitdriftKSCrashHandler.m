@@ -66,6 +66,7 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
 
 @interface BitdriftKSCrashHandler ()
 @property(nonatomic, strong) NSString *kscrashReportFilePath;
+@property(nullable, nonatomic, strong) NSNumber *didCrashLastLaunch;
 @property(class, nonatomic, readonly, strong) BitdriftKSCrashHandler *sharedInstance;
 @end
 
@@ -113,13 +114,17 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     switch (capture_cache_kscrash_report(self.kscrashReportFilePath)) {
         case CacheResultReportDoesNotExist:
             // KSCrash didn't detect a crash last launch.
+            self.didCrashLastLaunch = @NO;
             break;
         case CacheResultSuccess:
+            self.didCrashLastLaunch = @YES;
             break;
         case CacheResultPartialSuccess:
             // We got a partial document, which might have at least some info we could use.
+            self.didCrashLastLaunch = @YES;
             break;
         case CacheResultFailure:
+            self.didCrashLastLaunch = nil;
             *error = [NSError errorWithDomain:@"BitdriftKSCrashHandler" code:0 userInfo:@{
                     NSLocalizedDescriptionKey:@"Configuration failed",
              NSLocalizedFailureReasonErrorKey:[NSString stringWithFormat:@"Error caching kscrash report at \"%@\"",
@@ -132,6 +137,10 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     [fm removeItemAtPath:crashReportFile error:nil];
 
     return result;
+}
+
++ (NSNumber *_Nullable)didCrashLastLaunch {
+    return BitdriftKSCrashHandler.sharedInstance.didCrashLastLaunch;
 }
 
 + (BOOL)startCrashReporterWithError:(NSError **)error {

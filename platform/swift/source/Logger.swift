@@ -41,6 +41,7 @@ public final class Logger {
     private let sessionURLBase: URL
 
     static var issueReporterInitResult: IssueReporterInitResult = (.notInitialized, 0)
+    static var hasFatallyTerminatedOnPreviousRun: Bool?
     static var diagnosticReporter = Atomic<DiagnosticEventReporter?>(nil)
 
     private static let syncedShared = Atomic<State>(.notStarted)
@@ -236,9 +237,11 @@ public final class Logger {
         self.deviceCodeController = DeviceCodeController(client: client)
 
         #if targetEnvironment(simulator)
+        Logger.hasFatallyTerminatedOnPreviousRun = nil
         Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
         #else
         if !configuration.enableFatalIssueReporting {
+            Logger.hasFatallyTerminatedOnPreviousRun = nil
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
         } else {
             Logger.issueReporterInitResult = measureTime {
@@ -256,7 +259,9 @@ public final class Logger {
                 do {
                     try BitdriftKSCrashWrapper.configure(withCrashReportDirectory: kscrashReportDir)
                     try BitdriftKSCrashWrapper.startCrashReporter()
+                    Logger.hasFatallyTerminatedOnPreviousRun = BitdriftKSCrashWrapper.didCrashLastLaunch()?.boolValue
                 } catch {
+                    Logger.hasFatallyTerminatedOnPreviousRun = nil
                 }
 
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)

@@ -50,6 +50,9 @@ import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReporter
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
+import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
+import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.reports.processor.IIssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
@@ -85,7 +88,7 @@ internal class LoggerImpl(
     sharedOkHttpClient: OkHttpClient = OkHttpClient(),
     private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey, client = sharedOkHttpClient),
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
-    activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
+    private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
@@ -112,9 +115,15 @@ internal class LoggerImpl(
 
     private val sessionReplayTarget: ISessionReplayTarget
 
+    private val previousRunInfoResolver = PreviousRunInfoResolver(this, LatestAppExitInfoProvider)
+
     private val issueReporter: IssueReporter? =
         if (configuration.enableFatalIssueReporting) {
-            IssueReporter(internalLogger = this, dateProvider = dateProvider)
+            IssueReporter(
+                internalLogger = this,
+                dateProvider = dateProvider,
+                previousRunInfoResolver = previousRunInfoResolver,
+            )
         } else {
             null
         }
@@ -265,6 +274,7 @@ internal class LoggerImpl(
                 runtime,
                 memoryMetricsProvider = memoryMetricsProvider,
                 issueReporter = issueReporter,
+                previousRunInfoResolver = previousRunInfoResolver,
             )
 
         // Install the app exit logger before the Capture logger is started to ensure
@@ -273,6 +283,8 @@ internal class LoggerImpl(
         appExitLogger.installAppExitLogger()
 
         CaptureJniLibrary.startLogger(this.loggerId)
+
+        previousRunInfoResolver.initLegacyWatcher(sdkDirectory)
 
         // issue reporter needs to be initialized after appExitLogger and the jniLogger
         issueReporter?.init(
@@ -669,6 +681,8 @@ internal class LoggerImpl(
     }
 
     internal fun getIssueProcessor(): IIssueReporterProcessor? = issueReporter?.getIssueReporterProcessor()
+
+    internal fun getPreviousRunInfo(): PreviousRunInfo? = previousRunInfoResolver.get(activityManager)
 
     private fun startDebugOperationsAsNeeded(context: Context) {
         if (!BuildTypeChecker.isDebuggable(context)) {

@@ -7,7 +7,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added experimental `Capture.Logger.getPreviousRunInfo()` API to get detailed previous run information.
 
 **Changed**
 

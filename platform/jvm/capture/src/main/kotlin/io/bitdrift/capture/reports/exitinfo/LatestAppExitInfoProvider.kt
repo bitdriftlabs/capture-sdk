@@ -54,3 +54,43 @@ internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
             else -> null
         }
 }
+
+/**
+ * Retrieves the latest [ApplicationExitInfo] if available.
+ */
+fun interface ILatestAppExitInfoProvider {
+    /**
+     * Returns the latest [ApplicationExitInfo] when present.
+     */
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun get(activityManager: ActivityManager): LatestAppExitReasonResult
+}
+
+/**
+ * The [ApplicationExitInfo] lookup result.
+ */
+sealed class LatestAppExitReasonResult {
+    /**
+     * Returns the latest [ApplicationExitInfo] when available.
+     */
+    data class Valid(
+        /** Latest [ApplicationExitInfo] for the current process. */
+        val applicationExitInfo: ApplicationExitInfo,
+    ) : LatestAppExitReasonResult()
+
+    /**
+     * No [ApplicationExitInfo] was available.
+     * (e.g. this is expected on first app installation)
+     */
+    data object None : LatestAppExitReasonResult()
+
+    /**
+     * Returns the detailed error while trying to determine prior reasons.
+     */
+    data class Error(
+        /** Human-readable message describing the lookup failure. */
+        val message: String,
+        /** Optional throwable associated with the lookup failure. */
+        val throwable: Throwable? = null,
+    ) : LatestAppExitReasonResult()
+}

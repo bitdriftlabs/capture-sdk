@@ -26,6 +26,7 @@ import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.utils.BuildTypeChecker
 import okhttp3.HttpUrl
 import java.util.UUID
@@ -252,6 +253,14 @@ object Capture {
                 mainThreadHandler.run { completion(CaptureResult.Failure(SdkNotStartedError)) }
             }
         }
+
+        /**
+         * Returns a snapshot of the previous app run status.
+         *
+         */
+        @JvmStatic
+        @ExperimentalBitdriftApi
+        fun getPreviousRunInfo(): PreviousRunInfo? = (logger() as? LoggerImpl)?.getPreviousRunInfo()
 
         /**
          * Adds a field that should be attached to all logs emitted by the logger going forward.
