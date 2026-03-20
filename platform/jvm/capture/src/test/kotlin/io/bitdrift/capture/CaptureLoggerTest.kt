@@ -243,7 +243,6 @@ class CaptureLoggerTest {
             @Suppress("UNUSED_VARIABLE")
             val deviceId = logger.deviceId
             val apiStreamId = CaptureTestJniLibrary.awaitNextApiStream()
-
             assertThat(
                 CaptureTestJniLibrary.awaitApiServerReceivedHandshake(
                     apiStreamId,

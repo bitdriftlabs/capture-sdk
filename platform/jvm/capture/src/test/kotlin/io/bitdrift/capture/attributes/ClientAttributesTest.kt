@@ -254,6 +254,16 @@ class ClientAttributesTest {
     }
 
     @Test
+    fun manufacturer_withStartedLifecycle_shouldMatchConfigManufacturer() {
+        val clientAttributes =
+            ClientAttributes(appContext, obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED))
+
+        val fields = clientAttributes.invoke()
+
+        assertThat(fields).containsEntry("manufacturer", "unknown")
+    }
+
+    @Test
     fun locale_withStartedLifecycle_shouldMatchConfigSdkInt() {
         val clientAttributes =
             ClientAttributes(appContext, obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED))
