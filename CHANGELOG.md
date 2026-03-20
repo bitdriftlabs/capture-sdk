@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Add `manufacturer` OOTB field
 
 **Changed**
 

@@ -82,6 +82,8 @@ internal class ClientAttributes(
             "os_version" to osVersion,
             // Device model name.
             "model" to model,
+            // Device manufacturer name.
+            "_manufacturer" to manufacturer,
             // The SDK level (e.g. 35).
             "_os_api_level" to osApiLevel.toString(),
             // The version of this package, as specified by the manifest's `versionName` attribute.
