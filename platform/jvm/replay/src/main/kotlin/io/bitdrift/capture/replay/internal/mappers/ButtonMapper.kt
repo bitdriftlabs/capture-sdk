@@ -33,8 +33,10 @@ internal class ButtonMapper(
     private val buttonMapperConfig: ButtonMapperConfig = ButtonMapperConfig(8, 8, 8, 8),
     private val switchConfig: SwitchConfig = SwitchConfig(paddingStart = 5, widthRatio = 2, heightRatio = 1),
 ) : Mapper() {
-    override fun map(view: View): MutableList<ReplayRect> {
-        val list = super.map(view)
+    override fun mapWithKnownOrigin(
+        view: View,
+        list: MutableList<ReplayRect>,
+    ): MutableList<ReplayRect> {
         when (view) {
             is SwitchCompat -> {
                 // SwitchCompat is a CompoundButton but uses thumbDrawable instead of ButtonDrawable

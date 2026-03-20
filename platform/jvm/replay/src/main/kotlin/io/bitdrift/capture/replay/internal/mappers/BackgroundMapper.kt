@@ -14,8 +14,10 @@ import io.bitdrift.capture.replay.internal.ReplayRect
 
 @Suppress("DEPRECATION")
 internal class BackgroundMapper : Mapper() {
-    override fun map(view: View): MutableList<ReplayRect> {
-        val list = super.map(view)
+    override fun mapWithKnownOrigin(
+        view: View,
+        list: MutableList<ReplayRect>,
+    ): MutableList<ReplayRect> {
 
         view.background?.let { drawable ->
             val type =

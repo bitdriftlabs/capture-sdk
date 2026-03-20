@@ -7,9 +7,7 @@
 
 package io.bitdrift.capture.replay.internal.mappers
 
-import android.content.res.Resources
 import android.view.View
-import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.isVisible
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
@@ -63,28 +61,17 @@ internal class ViewMapper(
 
     private fun View.viewToReplayRect(): List<ReplayRect> {
         val list = mutableListOf<ReplayRect>()
-        val resourceName =
-            if (isValidResId(this.id)) {
-                try {
-                    resources.getResourceEntryName(this.id)
-                } catch (ignore: Resources.NotFoundException) {
-                    // Do nothing.
-                    SessionReplayController.L.e(ignore, "Ignoring view due to:${ignore.message} for ${this.id}")
-                    "Failed to retrieve ID"
-                }
-            } else {
-                "invalid_resource_id"
-            }
-
         val type = viewMapperConfiguration.mapper[this.javaClass.simpleName]
         if (type == null) {
+            val out = IntArray(2)
+            this.getLocationOnScreen(out)
             // Try to use generic mapper
-            list.addAll(buttonMapper.map(this))
-            list.addAll(textMapper.map(this))
-            list.addAll(backgroundMapper.map(this))
+            list.addAll(buttonMapper.map(this, out[0], out[1]))
+            list.addAll(textMapper.map(this, out[0], out[1]))
+            list.addAll(backgroundMapper.map(this, out[0], out[1]))
             if (list.isEmpty()) {
                 SessionReplayController.L.v(
-                    "Ignoring Unknown view: $resourceName ${this.javaClass.simpleName}:" +
+                    "Ignoring Unknown view: id=${this.id} ${this.javaClass.simpleName}:" +
                         " w=${this.width}, h=${this.height}",
                 )
             } else {
@@ -102,14 +89,4 @@ internal class ViewMapper(
         return list
     }
 
-    private fun isValidResId(resId: Int): Boolean {
-        @Suppress("MaxLineLength")
-        // the checks below are to avoid spamming logcat with errors emitted by the Android sub-system when calling resources.getResourceEntryName(invalidResourceId)
-        // see: https://cs.android.com/android/platform/superproject/main/+/6adcde7195b0c9efd344a2bec2412909ab66d047:frameworks/base/libs/androidfw/AssetManager2.cpp;l=657
-        // lifted from: https://cs.android.com/android/platform/superproject/main/+/a2a9539615425091c7413249e5dc063009cf222b:frameworks/base/libs/androidfw/include/androidfw/ResourceUtils.h;l=62
-        return resId != View.NO_ID &&
-            resId != ResourcesCompat.ID_NULL &&
-            (resId.toUInt() and 0x00ff0000u) != 0u &&
-            (resId.toUInt() and 0xff000000u) != 0u
-    }
 }

@@ -29,8 +29,10 @@ internal data class TextMapperConfig(
 internal class TextMapper(
     private val textMapperConfig: TextMapperConfig = TextMapperConfig(false, interlinePadding = 4),
 ) : Mapper() {
-    override fun map(view: View): MutableList<ReplayRect> {
-        val list = super.map(view)
+    override fun mapWithKnownOrigin(
+        view: View,
+        list: MutableList<ReplayRect>,
+    ): MutableList<ReplayRect> {
 
         if (view is TextView) {
             val bounds = Rect()
