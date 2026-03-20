@@ -26,6 +26,7 @@ export { SessionStrategy } from './NativeBdReactNative';
 // - ios/BdReactNative.mm
 // - ios/Logger.swift
 const ISSUE_REPORT_EVENT = 'BdReactNative.onBeforeReportSend';
+const DEFAULT_API_URL = 'https://api.bitdrift.io';
 
 export type IssueReport = {
   reportType: string;
@@ -48,8 +49,8 @@ export type InitOptions = Omit<NativeInitOptions, 'crashReporting'> & {
 
 type EventSubscription = { remove: () => void };
 
-let api_url: string;
-let api_key: string;
+let api_url = DEFAULT_API_URL;
+let api_key = '';
 let issueReportSubscription: EventSubscription | undefined;
 
 const LINKING_ERROR =
@@ -106,13 +107,14 @@ function maybeRegisterIssueReportCallback(options?: InitOptions) {
   );
 }
 
-function toNativeInitOptions(options?: InitOptions): NativeInitOptions {
+function toNativeInitOptions(apiUrl: string, options?: InitOptions): NativeInitOptions {
   const enableIssueCallbackBridge = Boolean(
     options?.crashReporting?.UNSTABLE_onBeforeReportSend,
   );
 
   return {
     ...options,
+    url: apiUrl,
     crashReporting: options?.crashReporting
       ? {
           enableNativeFatalIssues: options.crashReporting.enableNativeFatalIssues,
@@ -123,12 +125,22 @@ function toNativeInitOptions(options?: InitOptions): NativeInitOptions {
   };
 }
 
+function buildDeviceCodeUrl(apiUrl: string): string {
+  const deviceCodeUrl = new URL('/v1/device/code', `${apiUrl}/`);
+  const hostWithPort =
+    deviceCodeUrl.port.length > 0
+      ? deviceCodeUrl.host
+      : `${deviceCodeUrl.hostname}:443`;
+
+  return `https://${hostWithPort}${deviceCodeUrl.pathname}${deviceCodeUrl.search}${deviceCodeUrl.hash}`;
+}
+
 export function init(
   key: string,
   sessionStrategy: SessionStrategy,
   options?: InitOptions,
 ): void {
-  api_url = options?.url ?? 'api.bitdrift.io';
+  api_url = options?.url ?? DEFAULT_API_URL;
   api_key = key;
 
   // Install JS global error handler if enabled via config
@@ -138,7 +150,7 @@ export function init(
 
   maybeRegisterIssueReportCallback(options);
 
-  const nativeOptions = toNativeInitOptions(options);
+  const nativeOptions = toNativeInitOptions(api_url, options);
   return BdReactNative.init(key, sessionStrategy, nativeOptions);
 }
 
@@ -259,7 +271,7 @@ export async function generateDeviceCode(): Promise<string> {
     const deviceId = await getDeviceID();
     const body = JSON.stringify({ device_id: deviceId });
 
-    return fetch(`${api_url}:443/v1/device/code`, {
+    return fetch(buildDeviceCodeUrl(api_url), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
