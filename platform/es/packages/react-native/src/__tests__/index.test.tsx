@@ -220,3 +220,84 @@ describe('init crash reporting callback wiring', () => {
     );
   });
 });
+
+describe('generateDeviceCode URL handling', () => {
+  const fetchMock = jest.fn();
+
+  beforeEach(() => {
+    (global as unknown as { fetch: typeof fetchMock }).fetch = fetchMock;
+    fetchMock.mockResolvedValue({
+      json: async () => ({ code: 'abc123' }),
+    });
+  });
+
+  afterEach(() => {
+    fetchMock.mockReset();
+  });
+
+  test('uses https default API URL when url is not provided', async () => {
+    const { sdk, nativeModule } = loadSdk('ios');
+    nativeModule.getDeviceID.mockResolvedValue('device-id');
+
+    sdk.init('test-key', sdk.SessionStrategy.Fixed);
+    await sdk.generateDeviceCode();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.bitdrift.io:443/v1/device/code',
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    );
+  });
+
+  test('uses explicit https API URL override', async () => {
+    const { sdk, nativeModule } = loadSdk('ios');
+    nativeModule.getDeviceID.mockResolvedValue('device-id');
+
+    sdk.init('test-key', sdk.SessionStrategy.Fixed, {
+      url: 'https://api.bitdrift.dev',
+    });
+    await sdk.generateDeviceCode();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.bitdrift.dev:443/v1/device/code',
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    );
+  });
+
+  test('trims trailing slash from API URL', async () => {
+    const { sdk, nativeModule } = loadSdk('ios');
+    nativeModule.getDeviceID.mockResolvedValue('device-id');
+
+    sdk.init('test-key', sdk.SessionStrategy.Fixed, {
+      url: 'https://api.bitdrift.dev/',
+    });
+    await sdk.generateDeviceCode();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.bitdrift.dev:443/v1/device/code',
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    );
+  });
+
+  test('preserves explicit https port', async () => {
+    const { sdk, nativeModule } = loadSdk('ios');
+    nativeModule.getDeviceID.mockResolvedValue('device-id');
+
+    sdk.init('test-key', sdk.SessionStrategy.Fixed, {
+      url: 'https://localhost:8443',
+    });
+    await sdk.generateDeviceCode();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://localhost:8443/v1/device/code',
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    );
+  });
+});
