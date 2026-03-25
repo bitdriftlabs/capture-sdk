@@ -223,6 +223,7 @@ object BitdriftInit {
 
     private class CustomerIssueReportCallback : IssueReportCallback {
         override fun onBeforeReportSend(report: Report) {
+            Timber.i("CustomerIssueReportCallback $report")
             Capture.Logger.logInfo(
                 mapOf(
                     "reportType" to report.reportType,

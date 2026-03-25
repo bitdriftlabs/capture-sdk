@@ -78,7 +78,8 @@ internal class PreviousRunInfoResolver(
                 internalLogger.logInternalError { ERROR_STATE_FILE_NOT_INITIALIZED }
                 return null
             }
-        if (!file.exists()) return null
+        // Upon initial app installation there won't be a state file
+        if (!file.exists()) return PreviousRunInfo(hasFatallyTerminated = false)
 
         return try {
             val values = parseKeyValueFile(file)

@@ -41,12 +41,14 @@ class PreviousRunInfoResolverTest {
     }
 
     @Test
-    fun initLegacyWatcher_whenNoStateFile_returnsNoCrash() {
+    fun initLegacyWatcher_whenNoStateFile_shouldReturnsNoCrash() {
         previousRunInfoResolver.initLegacyWatcher(tempFolder.root.absolutePath)
 
-        val result = previousRunInfoResolver.get(activityManager)
+        val previousRunInfo = previousRunInfoResolver.get(activityManager)
 
-        assertThat(result).isNull()
+        assertThat(previousRunInfo).isEqualTo(
+            PreviousRunInfo(hasFatallyTerminated = false),
+        )
     }
 
     @Test
@@ -58,9 +60,9 @@ class PreviousRunInfoResolverTest {
 
         val nextRunResolver = PreviousRunInfoResolver(internalLogger)
         nextRunResolver.initLegacyWatcher(sdkDir)
-        val result = nextRunResolver.get(activityManager)
+        val previousRunInfo = nextRunResolver.get(activityManager)
 
-        assertThat(result).isEqualTo(
+        assertThat(previousRunInfo).isEqualTo(
             PreviousRunInfo(hasFatallyTerminated = true, reason = ExitReason.JvmCrash),
         )
     }
@@ -77,18 +79,18 @@ class PreviousRunInfoResolverTest {
 
         val thirdResolver = PreviousRunInfoResolver(internalLogger)
         thirdResolver.initLegacyWatcher(sdkDir)
-        val result = thirdResolver.get(activityManager)
+        val previousRunInfo = thirdResolver.get(activityManager)
 
-        assertThat(result).isEqualTo(
+        assertThat(previousRunInfo).isEqualTo(
             PreviousRunInfo(hasFatallyTerminated = false),
         )
     }
 
     @Test
     fun get_beforeInitLegacyWatcher_returnsNull() {
-        val result = previousRunInfoResolver.get(activityManager)
+        val previousRunInfo = previousRunInfoResolver.get(activityManager)
 
-        assertThat(result).isNull()
+        assertThat(previousRunInfo).isNull()
     }
 
     @Test
