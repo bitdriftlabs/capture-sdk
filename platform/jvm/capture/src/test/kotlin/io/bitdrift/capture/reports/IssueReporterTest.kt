@@ -218,7 +218,7 @@ class IssueReporterTest {
     }
 
     @Test
-    fun onJvmCrash_shouldCallPersistJvmCrashState() {
+    fun onJvmCrash_withoutFatalIssuesEnabled_shouldCallPersistJvmCrashState() {
         issueReporter.init(
             activityManager,
             sdkDirectory,
