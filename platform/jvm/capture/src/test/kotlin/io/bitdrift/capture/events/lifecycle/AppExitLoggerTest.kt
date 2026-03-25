@@ -34,6 +34,7 @@ import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.reports.IssueReporterState
+import io.bitdrift.capture.reports.exitinfo.IPreviousRunInfoResolver
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
@@ -49,6 +50,7 @@ class AppExitLoggerTest {
     private val runtime: Runtime = mock()
     private val versionChecker: BuildVersionChecker = mock()
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
+    private val previousRunInfoResolver: IPreviousRunInfoResolver = mock()
     private val memoryMetricsProvider = FakeMemoryMetricsProvider()
     private val lastExitInfo = FakeLatestAppExitInfoProvider()
 
@@ -202,6 +204,22 @@ class AppExitLoggerTest {
     }
 
     @Test
+    fun onJvmCrash_shouldCallPersistJvmCrashState() {
+        appExitLogger.onJvmCrash(Thread.currentThread(), RuntimeException("crash"))
+
+        verify(previousRunInfoResolver).persistJvmCrashState()
+    }
+
+    @Test
+    fun onJvmCrash_whenBuiltInFatalIssueMechanism_shouldNotCallPersistJvmCrashState() {
+        val appExitLogger = buildAppExitLogger(IssueReporterState.Initialized)
+
+        appExitLogger.onJvmCrash(Thread.currentThread(), RuntimeException("crash"))
+
+        verify(previousRunInfoResolver, never()).persistJvmCrashState()
+    }
+
+    @Test
     fun onJvmCrash_whenBuiltInFatalIssueMechanism_shouldNotSendAppExitCrashLog() {
         val appExitLogger = buildAppExitLogger(IssueReporterState.Initialized)
         whenever(runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_CRASH)).thenReturn(true)
@@ -303,6 +321,7 @@ class AppExitLoggerTest {
             lastExitInfo,
             captureUncaughtExceptionHandler,
             FakeIssueReporter(fatalReporterInitState),
+            previousRunInfoResolver,
         )
 
     private fun fieldsMatchExpectedAnr(arrayFields: ArrayFields): Boolean {

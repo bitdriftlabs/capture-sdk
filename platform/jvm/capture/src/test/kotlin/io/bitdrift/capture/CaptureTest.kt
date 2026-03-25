@@ -117,7 +117,7 @@ class CaptureTest {
         whenever(appExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_CRASH)
         val provider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) }
 
-        val previousRunInfo = PreviousRunInfoResolver(".", provider).get(activityManager)
+        val previousRunInfo = PreviousRunInfoResolver(mock(), provider).get(activityManager)
 
         assertThat(previousRunInfo).isEqualTo(
             PreviousRunInfo(hasFatallyTerminated = true, reason = ExitReason.JvmCrash),
@@ -132,7 +132,7 @@ class CaptureTest {
         whenever(appExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_EXIT_SELF)
         val provider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) }
 
-        val previousRunInfo = PreviousRunInfoResolver(".", provider).get(activityManager)
+        val previousRunInfo = PreviousRunInfoResolver(mock(), provider).get(activityManager)
 
         assertThat(previousRunInfo).isEqualTo(
             PreviousRunInfo(hasFatallyTerminated = false, reason = ExitReason.ExitSelf),
@@ -145,7 +145,7 @@ class CaptureTest {
         val activityManager: ActivityManager = mock()
         val provider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.None }
 
-        val previousRunInfo = PreviousRunInfoResolver(".", provider).get(activityManager)
+        val previousRunInfo = PreviousRunInfoResolver(mock(), provider).get(activityManager)
 
         assertThat(previousRunInfo).isEqualTo(PreviousRunInfo(hasFatallyTerminated = false, reason = null))
     }
@@ -162,7 +162,7 @@ class CaptureTest {
                 )
             }
 
-        val previousRunInfo = PreviousRunInfoResolver(".", provider).get(activityManager)
+        val previousRunInfo = PreviousRunInfoResolver(mock(), provider).get(activityManager)
 
         assertThat(previousRunInfo).isNull()
     }
