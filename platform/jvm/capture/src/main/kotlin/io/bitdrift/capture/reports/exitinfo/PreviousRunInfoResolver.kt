@@ -134,8 +134,11 @@ internal class PreviousRunInfoResolver(
 /**
  * Snapshot of the previous app run status.
  *
- * @property hasFatallyTerminated Whether the previous run ended in a fatal termination
- * (crash or ANR).
+ * On API 30, native crashes will be reported as a fatal termination reason but will not
+ * trigger an `onBeforeSend` callback with the crash report. The `onBeforeSend` callback
+ * for native crashes is only available on API >= 31.
+ *
+ * @property hasFatallyTerminated Whether the previous run ended in a fatal termination.
  * @property reason Platform exit reason when available.
  */
 data class PreviousRunInfo(

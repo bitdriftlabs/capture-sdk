@@ -255,8 +255,13 @@ object Capture {
         }
 
         /**
-         * Returns a snapshot of the previous app run status.
+         * Returns a snapshot of the previous app run status, or `null` if not available.
          *
+         * Must be called after [start]. Returns `null` if the logger is not initialized.
+         *
+         * Note: on API 30, native crashes will be reported as a fatal termination reason but
+         * will not trigger an `onBeforeSend` callback with the crash report. The `onBeforeSend`
+         * callback for native crashes is only available on API >= 31.
          */
         @JvmStatic
         @ExperimentalBitdriftApi
