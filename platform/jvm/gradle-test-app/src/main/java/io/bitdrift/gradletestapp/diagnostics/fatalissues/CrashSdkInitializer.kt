@@ -54,7 +54,10 @@ object CrashSdkInitializer {
                     }
 
                 }
-            Timber.i("Bugsnag.start() took ${bugSnagStartTime.inWholeMilliseconds} ms")
+            val bugsnagDurationMs = bugSnagStartTime.inWholeMilliseconds.toString()
+            Capture.Logger.logInfo(mapOf("bugsnag_start_duration_ms" to bugsnagDurationMs)) {
+                "Bugsnag.start() took $bugsnagDurationMs ms"
+            }
             reportNonFatalIssue()
         }
 
