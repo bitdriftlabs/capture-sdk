@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import {
   generateDeviceCode,
+  getPreviousRunInfo,
   getSessionURL,
   info,
   debug,
@@ -24,6 +25,7 @@ import {
   warn,
   logScreenView,
   logAppLaunchTTI,
+  type PreviousRunInfo,
   setFeatureFlagExposure,
 } from '@bitdrift/react-native';
 import axios from 'axios';
@@ -108,10 +110,13 @@ const HomeScreen = () => {
     null,
   );
   const [sessionURL, setSessionURL] = useState<string | null>(null);
+  const [previousRunInfo, setPreviousRunInfo] = useState<PreviousRunInfo>(null);
   const [showPickerModal, setShowPickerModal] = useState(false);
   const [showErrorPickerModal, setShowErrorPickerModal] = useState(false);
 
   useEffect(() => {
+    setPreviousRunInfo(getPreviousRunInfo());
+
     getSessionURL()
       .then(setSessionURL)
       .catch(() => {});
@@ -162,6 +167,9 @@ const HomeScreen = () => {
 
       <Text testID="sdk-status">
         {sessionURL ? 'SDK Ready' : 'SDK Not Ready'}
+      </Text>
+      <Text testID="previous-run-info" style={styles.previousRunInfoText}>
+        Previous run info: {JSON.stringify(previousRunInfo)}
       </Text>
 
       {!hasAPIKeyConfigured && (
@@ -439,6 +447,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
+  },
+  previousRunInfoText: {
+    marginTop: 8,
+    marginBottom: 8,
+    fontSize: 12,
   },
   button: {
     backgroundColor: '#00A76F',

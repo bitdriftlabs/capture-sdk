@@ -15,6 +15,7 @@ import {
 import {
   InitOptions as NativeInitOptions,
   CrashReportingOptions as NativeCrashReportingOptions,
+  PreviousRunInfo as PreviousRunInfoModel,
   SessionStrategy,
 } from './NativeBdReactNative';
 import NativeBdReactNative from './NativeBdReactNative';
@@ -225,6 +226,16 @@ export async function getSessionID(): Promise<string> {
 
 export async function getSessionURL(): Promise<string> {
   return NativeBdReactNative.getSessionURL();
+}
+
+export type { PreviousRunInfo } from './NativeBdReactNative';
+
+/**
+ * Returns information about the previous app run, or `null` when not available.
+ * Must be called after {@link init}.
+ */
+export function getPreviousRunInfo(): PreviousRunInfoModel {
+  return NativeBdReactNative.getPreviousRunInfo();
 }
 
 /**
