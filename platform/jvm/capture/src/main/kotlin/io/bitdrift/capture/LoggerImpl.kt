@@ -116,14 +116,13 @@ internal class LoggerImpl(
 
     private val sessionReplayTarget: ISessionReplayTarget
 
-    private val previousRunInfoResolver = PreviousRunInfoResolver(this, LatestAppExitInfoProvider)
+    private val previousRunInfoResolver = PreviousRunInfoResolver(activityManager)
 
     private val issueReporter: IssueReporter? =
         if (configuration.enableFatalIssueReporting) {
             IssueReporter(
                 internalLogger = this,
                 dateProvider = dateProvider,
-                previousRunInfoResolver = previousRunInfoResolver,
             )
         } else {
             null
@@ -275,10 +274,7 @@ internal class LoggerImpl(
                 runtime,
                 memoryMetricsProvider = memoryMetricsProvider,
                 issueReporter = issueReporter,
-                previousRunInfoResolver = previousRunInfoResolver,
             )
-
-        previousRunInfoResolver.initLegacyWatcher(sdkDirectory)
 
         // Install the app exit logger before the Capture logger is started to ensure
         // that logs emitted during the installation are the first logs emitted by the

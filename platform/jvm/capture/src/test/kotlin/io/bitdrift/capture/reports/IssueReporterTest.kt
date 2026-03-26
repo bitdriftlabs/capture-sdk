@@ -23,7 +23,6 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
-import io.bitdrift.capture.reports.exitinfo.IPreviousRunInfoResolver
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.reports.processor.IssueReporterProcessor
@@ -53,8 +52,6 @@ class IssueReporterTest {
     private val completedReportsProcessor: ICompletedReportsProcessor = mock()
 
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = mock()
-
-    private val previousRunInfoResolver: IPreviousRunInfoResolver = mock()
 
     private val internalLogger: IInternalLogger = mock()
     private val appContext = ApplicationProvider.getApplicationContext<Context>()
@@ -217,20 +214,6 @@ class IssueReporterTest {
         assertThat(processor).isNull()
     }
 
-    @Test
-    fun onJvmCrash_withFatalIssuesEnabled_shouldCallPersistJvmCrashState() {
-        issueReporter.init(
-            activityManager,
-            sdkDirectory,
-            clientAttributes,
-            completedReportsProcessor,
-        )
-
-        issueReporter.onJvmCrash(Thread.currentThread(), RuntimeException("test crash"))
-
-        verify(previousRunInfoResolver).persistJvmCrashState()
-    }
-
     private fun assertCrashFile(crashFileExist: Boolean) {
         val crashFile = File(reportsDir, "/new/latest_crash_info.json")
         assertThat(crashFile.exists()).isEqualTo(crashFileExist)
@@ -241,7 +224,6 @@ class IssueReporterTest {
             internalLogger = internalLogger,
             backgroundThreadHandler = FakeBackgroundThreadHandler(),
             latestAppExitInfoProvider = latestAppExitInfoProvider,
-            previousRunInfoResolver = previousRunInfoResolver,
             captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
             dateProvider = FakeDateProvider,
         )

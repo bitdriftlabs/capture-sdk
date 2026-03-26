@@ -28,7 +28,14 @@ internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
     private var cachedResult: LatestAppExitReasonResult? = null
 
     @RequiresApi(Build.VERSION_CODES.R)
-    override fun get(activityManager: ActivityManager): LatestAppExitReasonResult = cachedResult ?: getReasonAndCacheResult(activityManager)
+    override fun get(activityManager: ActivityManager): LatestAppExitReasonResult {
+        cachedResult?.let { return it }
+
+        synchronized(this) {
+            cachedResult?.let { return it }
+            return getReasonAndCacheResult(activityManager)
+        }
+    }
 
     @RequiresApi(Build.VERSION_CODES.R)
     private fun getReasonAndCacheResult(activityManager: ActivityManager): LatestAppExitReasonResult {

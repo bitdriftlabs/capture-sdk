@@ -20,7 +20,6 @@ import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.reports.IssueReporterState.NotInitialized
 import io.bitdrift.capture.reports.IssueReporterState.RuntimeState
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
-import io.bitdrift.capture.reports.exitinfo.IPreviousRunInfoResolver
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.mapToFatalIssueType
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
@@ -51,7 +50,6 @@ internal class IssueReporter(
     private val internalLogger: IInternalLogger,
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
-    private val previousRunInfoResolver: IPreviousRunInfoResolver,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
     private val dateProvider: DateProvider,
 ) : IIssueReporter,
@@ -122,7 +120,6 @@ internal class IssueReporter(
             throwable = throwable,
             allThreads = Thread.getAllStackTraces(),
         )
-        previousRunInfoResolver.persistJvmCrashState()
     }
 
     override fun getLogStatusFieldsMap(): Map<String, String> =

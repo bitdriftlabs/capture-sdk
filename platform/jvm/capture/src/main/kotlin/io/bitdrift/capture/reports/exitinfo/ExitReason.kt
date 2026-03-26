@@ -26,7 +26,7 @@ enum class ExitReason(
     LowMemory("LOW_MEMORY"),
 
     /** App exited due to a JVM crash. */
-    JvmCrash("CRASH"),
+    JvmCrash("JVM_CRASH"),
 
     /** App exited due to a native crash. */
     NativeCrash("CRASH_NATIVE"),

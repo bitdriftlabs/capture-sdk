@@ -9,146 +9,106 @@ package io.bitdrift.capture.reports.exitinfo
 
 import android.app.ActivityManager
 import android.app.ApplicationExitInfo
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.never
-import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import io.bitdrift.capture.IInternalLogger
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [24])
+@Config(sdk = [30])
 class PreviousRunInfoResolverTest {
-    @get:Rule
-    val tempFolder = TemporaryFolder()
-
-    private val internalLogger: IInternalLogger = mock()
     private val activityManager: ActivityManager = mock()
-    private lateinit var previousRunInfoResolver: PreviousRunInfoResolver
+    private lateinit var resolver: PreviousRunInfoResolver
 
     @Before
     fun setUp() {
-        previousRunInfoResolver = PreviousRunInfoResolver(internalLogger)
+        LatestAppExitInfoProvider.clearCache()
     }
 
     @Test
-    fun initLegacyWatcher_whenNoStateFile_shouldReturnNull() {
-        previousRunInfoResolver.initLegacyWatcher(tempFolder.root.absolutePath)
-
-        val previousRunInfo = previousRunInfoResolver.get(activityManager)
-
-        assertThat(previousRunInfo).isNull()
-    }
-
-    @Test
-    fun get_afterPersistJvmCrashState_returnsCrashOnNextInit() {
-        val sdkDir = tempFolder.root.absolutePath
-
-        previousRunInfoResolver.initLegacyWatcher(sdkDir)
-        previousRunInfoResolver.persistJvmCrashState()
-
-        val nextRunResolver = PreviousRunInfoResolver(internalLogger)
-        nextRunResolver.initLegacyWatcher(sdkDir)
-        val previousRunInfo = nextRunResolver.get(activityManager)
-
-        assertThat(previousRunInfo).isEqualTo(
-            PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash),
-        )
-    }
-
-    @Test
-    fun initLegacyWatcher_resetsStateForCurrentRun() {
-        val sdkDir = tempFolder.root.absolutePath
-
-        previousRunInfoResolver.initLegacyWatcher(sdkDir)
-        previousRunInfoResolver.persistJvmCrashState()
-
-        val secondResolver = PreviousRunInfoResolver(internalLogger)
-        secondResolver.initLegacyWatcher(sdkDir)
-
-        val thirdResolver = PreviousRunInfoResolver(internalLogger)
-        thirdResolver.initLegacyWatcher(sdkDir)
-        val previousRunInfo = thirdResolver.get(activityManager)
-
-        assertThat(previousRunInfo).isEqualTo(
-            PreviousRunInfo(hasFatallyTerminated = false),
-        )
-    }
-
-    @Test
-    fun get_beforeInitLegacyWatcher_returnsNull() {
-        val previousRunInfo = previousRunInfoResolver.get(activityManager)
-
-        assertThat(previousRunInfo).isNull()
-    }
-
-    @Test
-    fun persistJvmCrashState_beforeInit_logsInternalError() {
-        previousRunInfoResolver.persistJvmCrashState()
-
-        verify(internalLogger).logInternalError(
-            eq(null),
-            eq(false),
-            any(),
-        )
-    }
-
-    @Test
-    @Config(sdk = [30])
-    fun initLegacyWatcher_whenApi30_shouldBeNoop() {
-        val sdkDir = tempFolder.root.absolutePath
-        previousRunInfoResolver.initLegacyWatcher(sdkDir)
-
-        assertThat(tempFolder.root.resolve("reports/previous_run_info.state").exists()).isFalse()
-    }
-
-    @Test
-    @Config(sdk = [30])
-    fun persistJvmCrashState_whenApi30_shouldBeNoop() {
-        val sdkDir = tempFolder.root.absolutePath
-        previousRunInfoResolver.initLegacyWatcher(sdkDir)
-        previousRunInfoResolver.persistJvmCrashState()
-
-        assertThat(tempFolder.root.resolve("reports/previous_run_info.state").exists()).isFalse()
-        verify(internalLogger, never()).logInternalError(any(), any(), any())
-    }
-
-    @Test
-    @Config(sdk = [30])
-    fun get_onApi30_returnsFatalForCrashReason() {
+    fun get_returnsFatalForCrashReason() {
         val appExitInfo: ApplicationExitInfo = mock()
         whenever(appExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_CRASH)
-        val provider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) }
-        val resolver = PreviousRunInfoResolver(internalLogger, provider)
+        resolver = PreviousRunInfoResolver(ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) })
 
-        val previousRunInfo = resolver.get(activityManager)
+        val result = resolver.get(activityManager)
 
-        assertThat(previousRunInfo).isEqualTo(
+        assertThat(result).isEqualTo(
             PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash),
         )
     }
 
     @Test
-    @Config(sdk = [30])
-    fun get_onApi30_returnsNonFatalForUserRequested() {
+    fun get_returnsFatalForNativeCrash() {
+        val appExitInfo: ApplicationExitInfo = mock()
+        whenever(appExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_CRASH_NATIVE)
+        resolver = PreviousRunInfoResolver(ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) })
+
+        val result = resolver.get(activityManager)
+
+        assertThat(result).isEqualTo(
+            PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.NativeCrash),
+        )
+    }
+
+    @Test
+    fun get_returnsFatalForAnr() {
+        val appExitInfo: ApplicationExitInfo = mock()
+        whenever(appExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_ANR)
+        resolver = PreviousRunInfoResolver(ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) })
+
+        val result = resolver.get(activityManager)
+
+        assertThat(result).isEqualTo(
+            PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.AppNotResponding),
+        )
+    }
+
+    @Test
+    fun get_returnsNonFatalForUserRequested() {
         val appExitInfo: ApplicationExitInfo = mock()
         whenever(appExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_USER_REQUESTED)
-        val provider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) }
-        val resolver = PreviousRunInfoResolver(internalLogger, provider)
+        resolver = PreviousRunInfoResolver(ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) })
 
-        val previousRunInfo = resolver.get(activityManager)
+        val result = resolver.get(activityManager)
 
-        assertThat(previousRunInfo).isEqualTo(
+        assertThat(result).isEqualTo(
             PreviousRunInfo(hasFatallyTerminated = false, terminationReason = ExitReason.UserRequested),
         )
+    }
+
+    @Test
+    fun get_returnsNonFatalWhenNoExitInfo() {
+        resolver = PreviousRunInfoResolver(ILatestAppExitInfoProvider { LatestAppExitReasonResult.None })
+
+        val result = resolver.get(activityManager)
+
+        assertThat(result).isEqualTo(PreviousRunInfo(hasFatallyTerminated = false))
+    }
+
+    @Test
+    fun get_returnsNullOnError() {
+        resolver =
+            PreviousRunInfoResolver(
+                ILatestAppExitInfoProvider { LatestAppExitReasonResult.Error("test error") },
+            )
+
+        val result = resolver.get(activityManager)
+
+        assertThat(result).isNull()
+    }
+
+    @Test
+    @Config(sdk = [24])
+    fun get_belowApi30_returnsNull() {
+        resolver = PreviousRunInfoResolver()
+
+        val result = resolver.get(activityManager)
+
+        assertThat(result).isNull()
     }
 }

@@ -27,10 +27,8 @@ import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.reports.IIssueReporter
 import io.bitdrift.capture.reports.IssueReporterState
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
-import io.bitdrift.capture.reports.exitinfo.IPreviousRunInfoResolver
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
-import io.bitdrift.capture.reports.exitinfo.toExitReason
 import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
@@ -45,7 +43,6 @@ internal class AppExitLogger(
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
     private val issueReporter: IIssueReporter?,
-    private val previousRunInfoResolver: IPreviousRunInfoResolver,
 ) : IJvmCrashListener {
     companion object {
         private const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -113,8 +110,6 @@ internal class AppExitLogger(
             return
         }
 
-        previousRunInfoResolver.persistJvmCrashState()
-
         // explicitly letting it run in the caller thread
         logger.logInternal(
             LogType.LIFECYCLE,
@@ -175,7 +170,7 @@ internal class AppExitLogger(
         return fieldsOf(
             APP_EXIT_SOURCE_KEY to "ApplicationExitInfo",
             APP_EXIT_PROCESS_NAME_KEY to this.processName,
-            APP_EXIT_REASON_KEY to this.reason.toExitReason().value,
+            APP_EXIT_REASON_KEY to this.reason.toReasonText(),
             APP_EXIT_IMPORTANCE_KEY to this.importance.toImportanceText(),
             APP_EXIT_STATUS_KEY to this.status.toString(),
             APP_EXIT_PSS_KEY to this.pss.toString(),
@@ -183,6 +178,25 @@ internal class AppExitLogger(
             APP_EXIT_DESCRIPTION_KEY to this.description.orEmpty(),
         )
     }
+
+    private fun Int.toReasonText(): String =
+        when (this) {
+            ApplicationExitInfo.REASON_EXIT_SELF -> "EXIT_SELF"
+            ApplicationExitInfo.REASON_SIGNALED -> "SIGNALED"
+            ApplicationExitInfo.REASON_LOW_MEMORY -> "LOW_MEMORY"
+            ApplicationExitInfo.REASON_CRASH -> "CRASH"
+            ApplicationExitInfo.REASON_CRASH_NATIVE -> "CRASH_NATIVE"
+            ApplicationExitInfo.REASON_ANR -> "ANR"
+            ApplicationExitInfo.REASON_INITIALIZATION_FAILURE -> "INITIALIZATION_FAILURE"
+            ApplicationExitInfo.REASON_PERMISSION_CHANGE -> "PERMISSION_CHANGE"
+            ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE -> "EXCESSIVE_RESOURCE_USAGE"
+            ApplicationExitInfo.REASON_USER_REQUESTED -> "USER_REQUESTED"
+            ApplicationExitInfo.REASON_USER_STOPPED -> "USER_STOPPED"
+            ApplicationExitInfo.REASON_DEPENDENCY_DIED -> "DEPENDENCY_DIED"
+            ApplicationExitInfo.REASON_OTHER -> "OTHER"
+            ApplicationExitInfo.REASON_FREEZER -> "FREEZER"
+            else -> "UNKNOWN"
+        }
 
     private fun Int.toImportanceText(): String =
         when (this) {
