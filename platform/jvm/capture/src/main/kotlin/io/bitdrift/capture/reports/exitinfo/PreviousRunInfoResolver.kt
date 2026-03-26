@@ -78,16 +78,16 @@ internal class PreviousRunInfoResolver(
                 internalLogger.logInternalError { ERROR_STATE_FILE_NOT_INITIALIZED }
                 return null
             }
-        // Upon initial app installation there won't be a state file
-        if (!file.exists()) return PreviousRunInfo(hasFatallyTerminated = false)
+        // Upon initial sdk start we can't gather reliable prior app termination state
+        if (!file.exists()) return null
 
-        return try {
+        return runCatching {
             val values = parseKeyValueFile(file)
             val hasCrashed = values[KEY_HAS_FATAL_TERMINATION]?.toBooleanStrictOrNull() ?: false
             val reason = values[KEY_REASON]?.ifEmpty { null }?.let(ExitReason::fromValue)
             PreviousRunInfo(hasFatallyTerminated = hasCrashed, reason = reason)
-        } catch (e: Exception) {
-            internalLogger.logInternalError(e) { "Failed to read PreviousRunInfo persisted state" }
+        }.getOrElse {
+            internalLogger.logInternalError(it) { "Failed to read PreviousRunInfo persisted state" }
             null
         }
     }

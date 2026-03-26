@@ -41,14 +41,12 @@ class PreviousRunInfoResolverTest {
     }
 
     @Test
-    fun initLegacyWatcher_whenNoStateFile_shouldReturnsNoCrash() {
+    fun initLegacyWatcher_whenNoStateFile_shouldReturnNull() {
         previousRunInfoResolver.initLegacyWatcher(tempFolder.root.absolutePath)
 
         val previousRunInfo = previousRunInfoResolver.get(activityManager)
 
-        assertThat(previousRunInfo).isEqualTo(
-            PreviousRunInfo(hasFatallyTerminated = false),
-        )
+        assertThat(previousRunInfo).isNull()
     }
 
     @Test
