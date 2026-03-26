@@ -705,7 +705,6 @@ object Capture {
                 sdkConfiguredDuration = sdkConfiguredDuration,
                 captureStartThread = Thread.currentThread().name,
             )
-
         } catch (e: Throwable) {
             Log.w(LOG_TAG, "Failed to start Capture", e)
             default.set(LoggerState.StartFailure)
