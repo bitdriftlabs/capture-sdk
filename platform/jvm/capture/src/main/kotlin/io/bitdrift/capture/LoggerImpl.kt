@@ -50,7 +50,6 @@ import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReporter
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
@@ -671,7 +670,7 @@ internal class LoggerImpl(
 
     internal fun getIssueProcessor(): IIssueReporterProcessor? = issueReporter?.getIssueReporterProcessor()
 
-    internal fun getPreviousRunInfo(): PreviousRunInfo? = previousRunInfoResolver.get(activityManager)
+    internal fun getPreviousRunInfo(): PreviousRunInfo? = previousRunInfoResolver.get()
 
     /**
      * Initializes the issue reporter. Must be called immediately right after the LoggerImpl is created

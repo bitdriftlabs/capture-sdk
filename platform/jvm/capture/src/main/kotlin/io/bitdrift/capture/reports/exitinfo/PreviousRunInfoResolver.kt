@@ -21,7 +21,6 @@ internal class PreviousRunInfoResolver(
     private val activityManager: ActivityManager,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
 ) : IPreviousRunInfoResolver {
-
     override fun get(): PreviousRunInfo? =
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             // TODO (BIT-7703): Enable support below OS 11

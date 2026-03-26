@@ -19,6 +19,8 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.ExitReason
+import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
 import org.assertj.core.api.Assertions.assertThat
@@ -114,7 +116,11 @@ class CaptureTest {
         val appExitInfo: ApplicationExitInfo = mock()
         whenever(appExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_CRASH)
 
-        val previousRunInfo = PreviousRunInfoResolver(mock()).get(activityManager)
+        val previousRunInfo =
+            PreviousRunInfoResolver(
+                activityManager = activityManager,
+                latestAppExitInfoProvider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) },
+            ).get()
 
         assertThat(previousRunInfo).isEqualTo(
             PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash),
@@ -128,7 +134,11 @@ class CaptureTest {
         val appExitInfo: ApplicationExitInfo = mock()
         whenever(appExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_EXIT_SELF)
 
-        val previousRunInfo = PreviousRunInfoResolver(mock()).get(activityManager)
+        val previousRunInfo =
+            PreviousRunInfoResolver(
+                activityManager = activityManager,
+                latestAppExitInfoProvider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) },
+            ).get()
 
         assertThat(previousRunInfo).isEqualTo(
             PreviousRunInfo(hasFatallyTerminated = false, terminationReason = ExitReason.ExitSelf),
@@ -140,7 +150,11 @@ class CaptureTest {
     fun getPreviousRunInfo_returnsNoCrashWhenNoExitInfo() {
         val activityManager: ActivityManager = mock()
 
-        val previousRunInfo = PreviousRunInfoResolver(mock()).get(activityManager)
+        val previousRunInfo =
+            PreviousRunInfoResolver(
+                activityManager = activityManager,
+                latestAppExitInfoProvider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.None },
+            ).get()
 
         assertThat(previousRunInfo).isEqualTo(PreviousRunInfo(hasFatallyTerminated = false, terminationReason = null))
     }
@@ -150,7 +164,11 @@ class CaptureTest {
     fun getPreviousRunInfo_returnsNullWhenProviderFails() {
         val activityManager: ActivityManager = mock()
 
-        val previousRunInfo = PreviousRunInfoResolver(mock()).get(activityManager)
+        val previousRunInfo =
+            PreviousRunInfoResolver(
+                activityManager = activityManager,
+                latestAppExitInfoProvider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.Error("test") },
+            ).get()
 
         assertThat(previousRunInfo).isNull()
     }
