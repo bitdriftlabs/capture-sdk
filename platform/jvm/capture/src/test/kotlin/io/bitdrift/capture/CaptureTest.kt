@@ -120,7 +120,7 @@ class CaptureTest {
         val previousRunInfo = PreviousRunInfoResolver(mock(), provider).get(activityManager)
 
         assertThat(previousRunInfo).isEqualTo(
-            PreviousRunInfo(hasFatallyTerminated = true, reason = ExitReason.JvmCrash),
+            PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash),
         )
     }
 
@@ -135,7 +135,7 @@ class CaptureTest {
         val previousRunInfo = PreviousRunInfoResolver(mock(), provider).get(activityManager)
 
         assertThat(previousRunInfo).isEqualTo(
-            PreviousRunInfo(hasFatallyTerminated = false, reason = ExitReason.ExitSelf),
+            PreviousRunInfo(hasFatallyTerminated = false, terminationReason = ExitReason.ExitSelf),
         )
     }
 
@@ -147,7 +147,7 @@ class CaptureTest {
 
         val previousRunInfo = PreviousRunInfoResolver(mock(), provider).get(activityManager)
 
-        assertThat(previousRunInfo).isEqualTo(PreviousRunInfo(hasFatallyTerminated = false, reason = null))
+        assertThat(previousRunInfo).isEqualTo(PreviousRunInfo(hasFatallyTerminated = false, terminationReason = null))
     }
 
     @Test

@@ -73,7 +73,7 @@ object BitdriftInit {
             @OptIn(ExperimentalBitdriftApi::class)
             Capture.Logger.getPreviousRunInfo()?.let { previousRunInfo ->
                 val hasFatallyTerminated = previousRunInfo.hasFatallyTerminated.toString()
-                val reason = previousRunInfo.reason?.toString() ?: ""
+                val reason = previousRunInfo.terminationReason?.toString() ?: ""
                 Capture.Logger.logInfo(
                     mapOf(
                         "hasFatallyTerminated" to hasFatallyTerminated,

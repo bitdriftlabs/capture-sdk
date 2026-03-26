@@ -61,7 +61,7 @@ class PreviousRunInfoResolverTest {
         val previousRunInfo = nextRunResolver.get(activityManager)
 
         assertThat(previousRunInfo).isEqualTo(
-            PreviousRunInfo(hasFatallyTerminated = true, reason = ExitReason.JvmCrash),
+            PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash),
         )
     }
 
@@ -133,7 +133,7 @@ class PreviousRunInfoResolverTest {
         val previousRunInfo = resolver.get(activityManager)
 
         assertThat(previousRunInfo).isEqualTo(
-            PreviousRunInfo(hasFatallyTerminated = true, reason = ExitReason.JvmCrash),
+            PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash),
         )
     }
 
@@ -148,7 +148,7 @@ class PreviousRunInfoResolverTest {
         val previousRunInfo = resolver.get(activityManager)
 
         assertThat(previousRunInfo).isEqualTo(
-            PreviousRunInfo(hasFatallyTerminated = false, reason = ExitReason.UserRequested),
+            PreviousRunInfo(hasFatallyTerminated = false, terminationReason = ExitReason.UserRequested),
         )
     }
 }

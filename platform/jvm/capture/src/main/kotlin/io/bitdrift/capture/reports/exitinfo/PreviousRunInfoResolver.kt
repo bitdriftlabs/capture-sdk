@@ -55,7 +55,7 @@ internal class PreviousRunInfoResolver(
     override fun persistJvmCrashState() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) return
 
-        writePersistedState(PreviousRunInfo(hasFatallyTerminated = true, reason = ExitReason.JvmCrash))
+        writePersistedState(PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash))
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
@@ -65,7 +65,7 @@ internal class PreviousRunInfoResolver(
                 val reason = result.applicationExitInfo.reason.toExitReason()
                 PreviousRunInfo(
                     hasFatallyTerminated = isFatalReason(reason),
-                    reason = reason,
+                    terminationReason = reason,
                 )
             }
             is LatestAppExitReasonResult.None -> PreviousRunInfo(hasFatallyTerminated = false)
@@ -85,7 +85,7 @@ internal class PreviousRunInfoResolver(
             val values = parseKeyValueFile(file)
             val hasCrashed = values[KEY_HAS_FATAL_TERMINATION]?.toBooleanStrictOrNull() ?: false
             val reason = values[KEY_REASON]?.ifEmpty { null }?.let(ExitReason::fromValue)
-            PreviousRunInfo(hasFatallyTerminated = hasCrashed, reason = reason)
+            PreviousRunInfo(hasFatallyTerminated = hasCrashed, terminationReason = reason)
         }.getOrElse {
             internalLogger.logInternalError(it) { "Failed to read PreviousRunInfo persisted state" }
             null
@@ -110,7 +110,7 @@ internal class PreviousRunInfoResolver(
             file.parentFile?.mkdirs()
             file.writeText(
                 "$KEY_HAS_FATAL_TERMINATION$KEY_VALUE_DELIMITER${info.hasFatallyTerminated}\n" +
-                    "$KEY_REASON$KEY_VALUE_DELIMITER${info.reason?.value.orEmpty()}\n",
+                    "$KEY_REASON$KEY_VALUE_DELIMITER${info.terminationReason?.value.orEmpty()}\n",
             )
         }.onFailure {
             internalLogger.logInternalError(it) {
@@ -140,11 +140,11 @@ internal class PreviousRunInfoResolver(
  * for native crashes is only available on API >= 31.
  *
  * @property hasFatallyTerminated Whether the previous run ended in a fatal termination.
- * @property reason Platform exit reason when available.
+ * @property terminationReason Platform exit reason when available.
  */
 data class PreviousRunInfo(
     val hasFatallyTerminated: Boolean,
-    val reason: ExitReason? = null,
+    val terminationReason: ExitReason? = null,
 )
 
 /**
