@@ -72,26 +72,6 @@ class LogBenchmarkTest {
             Capture.Logger.logInfo { LOG_MESSAGE }
         }
     }
-
-    @Test
-    fun logNotMatched5Fields() {
-        startLogger()
-        val fields = buildFieldsMap(5)
-
-        benchmarkRule.measureRepeated {
-            Capture.Logger.logInfo(fields) { LOG_MESSAGE }
-        }
-    }
-
-    @Test
-    fun logNotMatched10Fields() {
-        startLogger()
-        val fields = buildFieldsMap(10)
-
-        benchmarkRule.measureRepeated {
-            Capture.Logger.logInfo(fields) { LOG_MESSAGE }
-        }
-    }
     
     @Test
     fun logNotMatched5000Fields() {
