@@ -103,6 +103,42 @@ init('<api key>', SessionStrategy.Activity, {
 - `UNSTABLE_enableJsErrors`: When `true`, enables reporting of JavaScript errors (both fatal and non-fatal) via React Native's global error handler. Captures unhandled exceptions with stack traces. This feature is experimental and may change in future releases. Defaults to `false`.
 - `UNSTABLE_onBeforeReportSend`: Called before an issue report is sent. Receives `{ reportType, reason, details, sessionId, fields }`.
 
+### Previous Run Info
+
+Use `getPreviousRunInfo()` to check whether the previous app run ended in a fatal termination.
+
+```ts
+import {
+  getPreviousRunInfo,
+  init,
+  SessionStrategy,
+  type PreviousRunInfo,
+} from '@bitdrift/react-native';
+
+init('<api key>', SessionStrategy.Activity);
+
+const previousRunInfo: PreviousRunInfo = getPreviousRunInfo();
+
+if (previousRunInfo?.hasFatallyTerminated) {
+  console.log('Previous run terminated fatally', previousRunInfo.terminationReason);
+}
+```
+
+`PreviousRunInfo` shape:
+
+```ts
+type PreviousRunInfo = {
+  hasFatallyTerminated: boolean;
+  terminationReason?: string;
+} | null;
+```
+
+- This API is synchronous.
+- Call it after `init(...)`.
+- Android: available on API 30+ (Android 11+); returns `null` on older versions.
+- iOS simulator: returns `null` by design; use a physical device to validate.
+- `terminationReason` is currently populated on Android. iOS currently provides `hasFatallyTerminated`.
+
 ```js
 import { trace, debug, info, warn, error } from '@bitdrift/react-native';
 
