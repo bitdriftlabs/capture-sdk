@@ -98,6 +98,7 @@ internal class LoggerImpl(
     internal val webViewConfiguration: WebViewConfiguration? = configuration.webViewConfiguration
 
     private val metadataProvider: MetadataProvider
+    private val sdkDirectory: String
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
     private val diskUsageMonitor: DiskUsageMonitor
@@ -162,7 +163,7 @@ internal class LoggerImpl(
                 okHttpClient = sharedOkHttpClient,
             )
 
-        val sdkDirectory = SdkDirectory.getPath(context)
+        sdkDirectory = SdkDirectory.getPath(context)
 
         val localErrorReporter =
             errorReporter ?: ErrorReporterService(
@@ -285,14 +286,6 @@ internal class LoggerImpl(
         CaptureJniLibrary.startLogger(this.loggerId)
 
         previousRunInfoResolver.initLegacyWatcher(sdkDirectory)
-
-        // issue reporter needs to be initialized after appExitLogger and the jniLogger
-        issueReporter?.init(
-            activityManager = activityManager,
-            sdkDirectory = sdkDirectory,
-            clientAttributes = clientAttributes,
-            completedReportsProcessor = this,
-        )
 
         startDebugOperationsAsNeeded(context)
     }
@@ -683,6 +676,19 @@ internal class LoggerImpl(
     internal fun getIssueProcessor(): IIssueReporterProcessor? = issueReporter?.getIssueReporterProcessor()
 
     internal fun getPreviousRunInfo(): PreviousRunInfo? = previousRunInfoResolver.get(activityManager)
+
+    /**
+     * Initializes the issue reporter. Must be called immediately right after the LoggerImpl is created
+     * so we can guarantee that any calls to Capture.Logger.* are valid within `onBeforeReportSend`
+     */
+    internal fun initIssueReporter() {
+        issueReporter?.init(
+            activityManager = activityManager,
+            sdkDirectory = sdkDirectory,
+            clientAttributes = clientAttributes,
+            completedReportsProcessor = this,
+        )
+    }
 
     private fun startDebugOperationsAsNeeded(context: Context) {
         if (!BuildTypeChecker.isDebuggable(context)) {

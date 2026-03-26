@@ -689,6 +689,10 @@ object Capture {
 
             default.set(LoggerState.Started(loggerImpl))
 
+            // Must be initialized right after the logger state is set to avoid a null
+            // Capture.logger() reference when onBeforeSend callbacks are triggered.
+            loggerImpl.initIssueReporter()
+
             val sdkConfiguredDuration =
                 SdkConfiguredDuration(
                     wholeStartDuration = startSdkTimer.elapsedNow(),
@@ -701,6 +705,7 @@ object Capture {
                 sdkConfiguredDuration = sdkConfiguredDuration,
                 captureStartThread = Thread.currentThread().name,
             )
+
         } catch (e: Throwable) {
             Log.w(LOG_TAG, "Failed to start Capture", e)
             default.set(LoggerState.StartFailure)
