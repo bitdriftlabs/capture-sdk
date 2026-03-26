@@ -114,6 +114,18 @@ extension Logger {
         return Self.getShared()?.deviceID
     }
 
+    /// Reports previous app run status.
+    ///
+    /// This API is in experimental phase and may change in the future.
+    ///
+    /// Returns `nil` when previous run status is not available.
+    public static var previousRunInfo: PreviousRunInfo? {
+        guard let hasFatallyTerminatedOnPreviousRun = Logger.hasFatallyTerminatedOnPreviousRun else {
+            return nil
+        }
+        return PreviousRunInfo(hasFatallyTerminated: hasFatallyTerminatedOnPreviousRun)
+    }
+
     public static func setSleepMode(_ mode: SleepMode) {
         Self.getShared()?.setSleepMode(mode)
     }

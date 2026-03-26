@@ -7,18 +7,28 @@
 
 package io.bitdrift.capture
 
+import android.app.ActivityManager
+import android.app.ApplicationExitInfo
 import androidx.test.core.app.ApplicationProvider
+import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.Capture.Logger
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.exitinfo.ExitReason
+import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
+import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
+import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
+import org.mockito.Mockito.mock
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -66,6 +76,13 @@ class CaptureTest {
     }
 
     @Test
+    @OptIn(ExperimentalBitdriftApi::class)
+    fun bGetPreviousRunInfoNoopWhenLoggerNotConfigured() {
+        assertThat(Capture.logger()).isNull()
+        assertThat(Logger.getPreviousRunInfo()).isNull()
+    }
+
+    @Test
     fun cIdempotentConfigure() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
@@ -90,5 +107,69 @@ class CaptureTest {
 
         // Calling reconfigure a second time does not change the static logger.
         assertThat(logger).isEqualTo(Capture.logger())
+    }
+
+    @Test
+    @Config(sdk = [30])
+    fun getPreviousRunInfo_returnsCrashForCrashReasons() {
+        val activityManager: ActivityManager = mock()
+        val appExitInfo: ApplicationExitInfo = mock()
+        whenever(appExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_CRASH)
+
+        val previousRunInfo =
+            PreviousRunInfoResolver(
+                activityManager = activityManager,
+                latestAppExitInfoProvider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) },
+            ).get()
+
+        assertThat(previousRunInfo).isEqualTo(
+            PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash),
+        )
+    }
+
+    @Test
+    @Config(sdk = [30])
+    fun getPreviousRunInfo_returnsNoCrashForNonCrashReason() {
+        val activityManager: ActivityManager = mock()
+        val appExitInfo: ApplicationExitInfo = mock()
+        whenever(appExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_EXIT_SELF)
+
+        val previousRunInfo =
+            PreviousRunInfoResolver(
+                activityManager = activityManager,
+                latestAppExitInfoProvider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) },
+            ).get()
+
+        assertThat(previousRunInfo).isEqualTo(
+            PreviousRunInfo(hasFatallyTerminated = false, terminationReason = ExitReason.ExitSelf),
+        )
+    }
+
+    @Test
+    @Config(sdk = [30])
+    fun getPreviousRunInfo_returnsNoCrashWhenNoExitInfo() {
+        val activityManager: ActivityManager = mock()
+
+        val previousRunInfo =
+            PreviousRunInfoResolver(
+                activityManager = activityManager,
+                latestAppExitInfoProvider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.None },
+            ).get()
+
+        assertThat(previousRunInfo).isEqualTo(PreviousRunInfo(hasFatallyTerminated = false, terminationReason = null))
+    }
+
+    @Test
+    @Config(sdk = [30])
+    fun getPreviousRunInfo_returnsNullWhenProviderFails() {
+        val activityManager: ActivityManager = mock()
+
+        val previousRunInfo =
+            PreviousRunInfoResolver(
+                activityManager = activityManager,
+                latestAppExitInfoProvider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.Error("test") },
+            ).get()
+
+        assertThat(previousRunInfo).isNull()
     }
 }

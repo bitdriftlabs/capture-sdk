@@ -221,10 +221,10 @@ class IssueReporterTest {
 
     private fun buildReporter(): IssueReporter =
         IssueReporter(
-            internalLogger,
-            FakeBackgroundThreadHandler(),
-            latestAppExitInfoProvider,
-            captureUncaughtExceptionHandler,
+            internalLogger = internalLogger,
+            backgroundThreadHandler = FakeBackgroundThreadHandler(),
+            latestAppExitInfoProvider = latestAppExitInfoProvider,
+            captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
             dateProvider = FakeDateProvider,
         )
 }

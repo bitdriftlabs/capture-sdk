@@ -70,6 +70,20 @@ object BitdriftInit {
             @OptIn(ExperimentalBitdriftApi::class)
             Capture.Logger.registerOpaqueUserId(userUuid)
 
+            @OptIn(ExperimentalBitdriftApi::class)
+            Capture.Logger.getPreviousRunInfo()?.let { previousRunInfo ->
+                val hasFatallyTerminated = previousRunInfo.hasFatallyTerminated.toString()
+                val reason = previousRunInfo.terminationReason?.toString() ?: ""
+                Capture.Logger.logInfo(
+                    mapOf(
+                        "hasFatallyTerminated" to hasFatallyTerminated,
+                        "reason" to reason
+                    )
+                ) {
+                    "Bitdrift PreviousRunInfo"
+                }
+            }
+
             return true
         } else {
             Timber.e("Failed to initialize Bitdrift SDK - check your API key and URL configuration")

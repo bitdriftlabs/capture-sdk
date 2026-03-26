@@ -26,6 +26,7 @@ import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.utils.BuildTypeChecker
 import okhttp3.HttpUrl
 import java.util.UUID
@@ -252,6 +253,21 @@ object Capture {
                 mainThreadHandler.run { completion(CaptureResult.Failure(SdkNotStartedError)) }
             }
         }
+
+        /**
+         * Returns a snapshot of the previous app run status, or `null` if not available.
+         *
+         * Must be called after [start]. Returns `null` if the logger is not initialized.
+         *
+         * Available on Android API 30+ (OS 11+). On API < 30, this returns `null` at the moment.
+         *
+         * Note: on API 30, native crashes are reported as a fatal termination reason but do not
+         * trigger an `onBeforeSend` callback with the crash report. The `onBeforeSend` callback
+         * for native crashes is only available on API >= 31.
+         */
+        @JvmStatic
+        @ExperimentalBitdriftApi
+        fun getPreviousRunInfo(): PreviousRunInfo? = (logger() as? LoggerImpl)?.getPreviousRunInfo()
 
         /**
          * Adds a field that should be attached to all logs emitted by the logger going forward.
@@ -674,6 +690,10 @@ object Capture {
                 }
 
             default.set(LoggerState.Started(loggerImpl))
+
+            // Must be initialized right after the logger state is set to avoid a null
+            // Capture.logger() reference when onBeforeSend callbacks are triggered.
+            loggerImpl.initIssueReporter()
 
             val sdkConfiguredDuration =
                 SdkConfiguredDuration(

@@ -115,6 +115,15 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         Logger.registerOpaqueUserID(kOpaqueUserID)
         Logger.logInfo("App launched. Logger configured.")
 
+        if let previousRunInfo = Capture.Logger.previousRunInfo {
+            Capture.Logger.logInfo(
+                "Bitdrift PreviousRunInfo",
+                fields: [
+                    "hasFatallyTerminated": String(previousRunInfo.hasFatallyTerminated),
+                ]
+            )
+        }
+
         MXMetricManager.shared.add(self)
     }
 

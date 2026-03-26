@@ -45,6 +45,13 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (BOOL)startCrashReporterWithError:(NSError **)error;
 
+/**
+ * Returns whether KSCrash detected a crash on the previous app launch.
+ *
+ * Returns `nil` when the crash reporter has not been configured yet.
+ */
++ (NSNumber *_Nullable)didCrashLastLaunch;
+
 + (void)stopCrashReporter;
 
 @end

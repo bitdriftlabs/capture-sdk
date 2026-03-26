@@ -40,8 +40,24 @@ object CrashSdkInitializer {
                             }
                         }
                     Bugsnag.start(application, bugsnagConfiguration)
+
+                    val bugsnagLastRunInfo = Bugsnag.getLastRunInfo()
+                    bugsnagLastRunInfo?.let { lastRunInfo ->
+                        Capture.Logger.logInfo(
+                            mapOf("crashed" to lastRunInfo.crashed.toString(),
+                                "crashedDuringLaunch" to lastRunInfo.crashedDuringLaunch.toString(),
+                                "consecutiveLaunchCrashes" to lastRunInfo.consecutiveLaunchCrashes.toString()
+                            )
+                        ) {
+                            "Bugsnag LastRunInfo"
+                        }
+                    }
+
                 }
-            Timber.i("Bugsnag.start() took ${bugSnagStartTime.inWholeMilliseconds} ms")
+            val bugsnagDurationMs = bugSnagStartTime.inWholeMilliseconds.toString()
+            Capture.Logger.logInfo(mapOf("bugsnag_start_duration_ms" to bugsnagDurationMs)) {
+                "Bugsnag.start() took $bugsnagDurationMs ms"
+            }
             reportNonFatalIssue()
         }
 

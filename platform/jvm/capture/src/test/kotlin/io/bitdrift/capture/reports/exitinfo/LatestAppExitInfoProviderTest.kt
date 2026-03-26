@@ -13,9 +13,12 @@ import android.app.ApplicationExitInfo
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.times
+import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -26,6 +29,11 @@ import org.robolectric.annotation.Config
 class LatestAppExitInfoProviderTest {
     private val activityManager: ActivityManager = mock()
     private val latestAppExitInfoProvider = LatestAppExitInfoProvider
+
+    @After
+    fun tearDown() {
+        latestAppExitInfoProvider.clearCache()
+    }
 
     @Test
     fun get_withExceptionThrow_shouldReturnNullAndSendError() {
@@ -81,6 +89,21 @@ class LatestAppExitInfoProviderTest {
         assertResult<LatestAppExitReasonResult.None>(
             exitReason,
         )
+    }
+
+    @Test
+    fun get_multipleCalls_shouldOnlyQueryActivityManagerOnce() {
+        val mockExitInfo: ApplicationExitInfo = mock()
+        whenever(mockExitInfo.processName).thenReturn(Application.getProcessName())
+        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
+
+        val initialResult = latestAppExitInfoProvider.get(activityManager)
+        latestAppExitInfoProvider.get(activityManager)
+        latestAppExitInfoProvider.get(activityManager)
+        val latestResult = latestAppExitInfoProvider.get(activityManager)
+
+        assertThat(initialResult).isEqualTo(latestResult)
+        verify(activityManager, times(1)).getHistoricalProcessExitReasons(anyOrNull(), any(), any())
     }
 
     private inline fun <reified T : LatestAppExitReasonResult> assertResult(

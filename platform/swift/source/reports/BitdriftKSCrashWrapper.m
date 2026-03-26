@@ -39,6 +39,14 @@
 #endif
 }
 
++ (NSNumber *_Nullable)didCrashLastLaunch {
+#ifndef BITDRIFT_OMIT_KSCRASH
+    return [BitdriftKSCrashHandler didCrashLastLaunch];
+#else
+    return nil;
+#endif
+}
+
 + (void)stopCrashReporter {
 #ifndef BITDRIFT_OMIT_KSCRASH
     [BitdriftKSCrashHandler stopCrashReporter];

@@ -11,8 +11,10 @@ import android.app.Application
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.Configuration
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
@@ -68,6 +70,20 @@ class HelloWorldApp : Application() {
         )
 
         Log.v("HelloWorldApp", "Android Bitdrift app launched with session url=${Logger.sessionUrl}")
+
+        @OptIn(ExperimentalBitdriftApi::class)
+        Capture.Logger.getPreviousRunInfo()?.let { previousRunInfo ->
+            val hasFatallyTerminated = previousRunInfo.hasFatallyTerminated.toString()
+            val reason = previousRunInfo.terminationReason?.toString() ?: ""
+            Capture.Logger.logInfo(
+                mapOf(
+                    "hasFatallyTerminated" to hasFatallyTerminated,
+                    "reason" to reason,
+                ),
+            ) {
+                "Bitdrift PreviousRunInfo"
+            }
+        }
 
         Handler(Looper.getMainLooper()).postDelayed(
             {

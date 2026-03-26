@@ -50,6 +50,8 @@ import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReporter
+import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
+import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.reports.processor.IIssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
@@ -85,7 +87,7 @@ internal class LoggerImpl(
     sharedOkHttpClient: OkHttpClient = OkHttpClient(),
     private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey, client = sharedOkHttpClient),
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
-    activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
+    private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
@@ -95,6 +97,7 @@ internal class LoggerImpl(
     internal val webViewConfiguration: WebViewConfiguration? = configuration.webViewConfiguration
 
     private val metadataProvider: MetadataProvider
+    private val sdkDirectory: String
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
     private val diskUsageMonitor: DiskUsageMonitor
@@ -112,9 +115,14 @@ internal class LoggerImpl(
 
     private val sessionReplayTarget: ISessionReplayTarget
 
+    private val previousRunInfoResolver = PreviousRunInfoResolver(activityManager)
+
     private val issueReporter: IssueReporter? =
         if (configuration.enableFatalIssueReporting) {
-            IssueReporter(internalLogger = this, dateProvider = dateProvider)
+            IssueReporter(
+                internalLogger = this,
+                dateProvider = dateProvider,
+            )
         } else {
             null
         }
@@ -153,7 +161,7 @@ internal class LoggerImpl(
                 okHttpClient = sharedOkHttpClient,
             )
 
-        val sdkDirectory = SdkDirectory.getPath(context)
+        sdkDirectory = SdkDirectory.getPath(context)
 
         val localErrorReporter =
             errorReporter ?: ErrorReporterService(
@@ -273,14 +281,6 @@ internal class LoggerImpl(
         appExitLogger.installAppExitLogger()
 
         CaptureJniLibrary.startLogger(this.loggerId)
-
-        // issue reporter needs to be initialized after appExitLogger and the jniLogger
-        issueReporter?.init(
-            activityManager = activityManager,
-            sdkDirectory = sdkDirectory,
-            clientAttributes = clientAttributes,
-            completedReportsProcessor = this,
-        )
 
         startDebugOperationsAsNeeded(context)
     }
@@ -669,6 +669,21 @@ internal class LoggerImpl(
     }
 
     internal fun getIssueProcessor(): IIssueReporterProcessor? = issueReporter?.getIssueReporterProcessor()
+
+    internal fun getPreviousRunInfo(): PreviousRunInfo? = previousRunInfoResolver.get()
+
+    /**
+     * Initializes the issue reporter. Must be called immediately right after the LoggerImpl is created
+     * so we can guarantee that any calls to Capture.Logger.* are valid within `onBeforeReportSend`
+     */
+    internal fun initIssueReporter() {
+        issueReporter?.init(
+            activityManager = activityManager,
+            sdkDirectory = sdkDirectory,
+            clientAttributes = clientAttributes,
+            completedReportsProcessor = this,
+        )
+    }
 
     private fun startDebugOperationsAsNeeded(context: Context) {
         if (!BuildTypeChecker.isDebuggable(context)) {
