@@ -18,10 +18,10 @@ import io.bitdrift.capture.Capture
 import io.bitdrift.capture.providers.session.SessionStrategy
 import com.facebook.react.bridge.Promise
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 import io.bitdrift.capture.Configuration
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReportCallback
 import java.util.concurrent.ExecutorService
@@ -153,6 +153,16 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
     } else {
       promise.reject("session_url_undefined", "Session URL is undefined")
     }
+  }
+
+  @OptIn(ExperimentalBitdriftApi::class)
+  @ReactMethod(isBlockingSynchronousMethod = true)
+  override fun getPreviousRunInfo(): WritableMap? {
+    val info = Capture.Logger.getPreviousRunInfo() ?: return null
+    val map = Arguments.createMap()
+    map.putBoolean("hasFatallyTerminated", info.hasFatallyTerminated)
+    info.terminationReason?.let { map.putString("terminationReason", it.name) }
+    return map
   }
 
   @ReactMethod

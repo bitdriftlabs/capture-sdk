@@ -28,6 +28,11 @@ export type InitOptions = {
   crashReporting?: CrashReportingOptions;
 };
 
+export type PreviousRunInfo = {
+  hasFatallyTerminated: boolean;
+  terminationReason?: string;
+} | null;
+
 export interface Spec extends TurboModule {
   init(
     key: string,
@@ -46,6 +51,8 @@ export interface Spec extends TurboModule {
   getSessionID(): Promise<string>;
 
   getSessionURL(): Promise<string>;
+
+  getPreviousRunInfo(): PreviousRunInfo;
 
   logScreenView(screenName: string): void;
 

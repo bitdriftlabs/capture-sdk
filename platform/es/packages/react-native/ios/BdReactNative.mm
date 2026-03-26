@@ -67,6 +67,10 @@ RCT_EXPORT_METHOD(getSessionURL:(RCTPromiseResolveBlock)resolve reject:(RCTPromi
     [CAPRNLogger getSessionURL:resolve rejecter:reject];
 }
 
+RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(getPreviousRunInfo) {
+    return [CAPRNLogger getPreviousRunInfo];
+}
+
 RCT_EXPORT_METHOD(logScreenView:(NSString *)screenName)
 {
     [CAPRNLogger logScreenViewWithScreenName:screenName];

@@ -11,6 +11,7 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.WritableMap
 
 abstract class BdReactNativeSpec internal constructor(context: ReactApplicationContext):
   ReactContextBaseJavaModule(context) {
@@ -22,6 +23,8 @@ abstract class BdReactNativeSpec internal constructor(context: ReactApplicationC
   abstract fun getSessionID(promise: Promise)
 
   abstract fun getSessionURL(promise: Promise)
+
+  abstract fun getPreviousRunInfo(): WritableMap?
 
   abstract fun log(level: Double, message: String, jsFields: ReadableMap?)
 

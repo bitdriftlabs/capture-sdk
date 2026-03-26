@@ -134,6 +134,14 @@ let CAPRNIssueReportDidEmitNotification = Notification.Name("BdReactNative.onBef
     }
 
     @objc
+    public static func getPreviousRunInfo() -> [String: Any]? {
+        guard let info = Capture.Logger.previousRunInfo else {
+            return nil
+        }
+        return ["hasFatallyTerminated": info.hasFatallyTerminated]
+    }
+
+    @objc
     public static func logScreenView(screenName: String) {
         Capture.Logger.logScreenView(screenName: screenName)
     }
