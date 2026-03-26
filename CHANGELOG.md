@@ -1,13 +1,13 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.12...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.13...HEAD
 
 ### Both
 
 **Added**
 
-- Added experimental API to get detailed previous run information (`Capture.Logger.getPreviousRunInfo()` on Android, `Capture.Logger.previousRunInfo` on iOS/Swift, `previousRunInfo()` in Objective-C).
+- Nothing yet!
 
 **Changed**
 
@@ -21,7 +21,7 @@
 
 **Added**
 
-- Add `manufacturer` OOTB field
+- Nothing yet!
 
 **Changed**
 
@@ -44,6 +44,22 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.22.13]
+
+[0.22.13]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.13
+
+### Both
+
+**Added**
+
+- Added experimental API to get detailed previous run information (`Capture.Logger.getPreviousRunInfo()` on Android, `Capture.Logger.previousRunInfo` on iOS/Swift, `previousRunInfo()` in Objective-C).
+
+### Android
+
+**Added**
+
+- Add `_manufacturer` OOTB field
 
 ## [0.22.12]
 
