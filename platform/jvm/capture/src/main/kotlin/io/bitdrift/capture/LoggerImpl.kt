@@ -278,14 +278,14 @@ internal class LoggerImpl(
                 previousRunInfoResolver = previousRunInfoResolver,
             )
 
+        previousRunInfoResolver.initLegacyWatcher(sdkDirectory)
+
         // Install the app exit logger before the Capture logger is started to ensure
         // that logs emitted during the installation are the first logs emitted by the
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
         CaptureJniLibrary.startLogger(this.loggerId)
-
-        previousRunInfoResolver.initLegacyWatcher(sdkDirectory)
 
         startDebugOperationsAsNeeded(context)
     }

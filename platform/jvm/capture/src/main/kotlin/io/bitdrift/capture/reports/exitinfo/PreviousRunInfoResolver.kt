@@ -150,7 +150,7 @@ data class PreviousRunInfo(
 /**
  * Contract for producing [PreviousRunInfo] from app exit signals.
  */
-interface IPreviousRunInfoResolver {
+internal interface IPreviousRunInfoResolver {
     /**
      * Returns previous run status, or `null` when previous run info is not applicable.
      */
