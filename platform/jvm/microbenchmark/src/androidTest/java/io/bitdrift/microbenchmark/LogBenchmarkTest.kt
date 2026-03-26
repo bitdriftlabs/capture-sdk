@@ -72,7 +72,7 @@ class LogBenchmarkTest {
             Capture.Logger.logInfo { LOG_MESSAGE }
         }
     }
-    
+
     @Test
     fun logNotMatched5000Fields() {
         startLogger()

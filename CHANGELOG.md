@@ -7,7 +7,7 @@
 
 **Added**
 
-- Added experimental `Capture.Logger.getPreviousRunInfo()` API to get detailed previous run information.
+- Added experimental API to get detailed previous run information (`Capture.Logger.getPreviousRunInfo()` on Android, `Capture.Logger.previousRunInfo` on iOS/Swift, `previousRunInfo()` in Objective-C).
 
 **Changed**
 

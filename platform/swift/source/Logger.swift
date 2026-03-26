@@ -258,10 +258,10 @@ public final class Logger {
                 let kscrashReportDir = Logger.kscrashReportDirectory(base: directoryURL)
                 do {
                     try BitdriftKSCrashWrapper.configure(withCrashReportDirectory: kscrashReportDir)
-                    try BitdriftKSCrashWrapper.startCrashReporter()
                     Logger.hasFatallyTerminatedOnPreviousRun = BitdriftKSCrashWrapper.didCrashLastLaunch()?.boolValue
+                    try BitdriftKSCrashWrapper.startCrashReporter()
                 } catch {
-                    Logger.hasFatallyTerminatedOnPreviousRun = nil
+                    // hasFatallyTerminatedOnPreviousRun may already be set if configure() succeeded
                 }
 
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)

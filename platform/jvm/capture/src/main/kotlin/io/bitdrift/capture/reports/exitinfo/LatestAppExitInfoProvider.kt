@@ -22,7 +22,7 @@ internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         "LatestAppExitInfoProvider: Failed to retrieve LatestAppExitReasonResult"
 
     /**
-     * Catching after initial fetch to avoid unnecessary IPC binder calls once value is retrieved
+     * Caching after initial fetch to avoid unnecessary IPC binder calls once value is retrieved
      */
     @Volatile
     private var cachedResult: LatestAppExitReasonResult? = null
@@ -36,7 +36,7 @@ internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
             try {
                 // a null packageName means match all packages belonging to the caller's process (UID)
                 // pid should be 0, a value of 0 means to ignore this parameter and return all matching records
-                // maxNum should be 0, this will return the list of all last exists at the time
+                // maxNum should be 0, this will return the list of all last exits at the time
                 val latestKnownExitReasons =
                     activityManager
                         .getHistoricalProcessExitReasons(null, 0, 0)
