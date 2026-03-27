@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayArrow
@@ -46,6 +47,8 @@ import io.bitdrift.gradletestapp.data.model.FeatureFlagsTestAction
 import io.bitdrift.gradletestapp.data.model.GlobalFieldAction
 import io.bitdrift.gradletestapp.data.model.NetworkTestAction
 import io.bitdrift.gradletestapp.data.model.SessionAction
+import io.bitdrift.gradletestapp.ui.compose.components.AppTerminationsCard
+import io.bitdrift.gradletestapp.ui.compose.components.FatalIssuesCard
 import io.bitdrift.gradletestapp.ui.compose.components.GlobalFieldsCard
 import io.bitdrift.gradletestapp.ui.compose.components.FeatureFlagsTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.NavigationCard
@@ -64,6 +67,7 @@ private enum class BottomNavTab(
 ) {
     HOME("Home", "home_tab", Icons.Default.Home),
     SDK_APIS("SDK APIs", "sdk_apis_tab", Icons.Default.PlayArrow),
+    APP_TERMINATIONS("App Exits", "app_exits_tab", Icons.AutoMirrored.Filled.ExitToApp),
     STRESS_TESTS("Stress", "stress_tests_tab", Icons.Default.Warning),
     NAVIGATE("Navigate", "navigate_tab", Icons.Default.Menu),
     SETTINGS("Settings", "settings_tab", Icons.Default.Settings),
@@ -165,6 +169,10 @@ fun MainScreen(
                     context = context,
                 )
                 BottomNavTab.STRESS_TESTS -> StressTestsTabContent(
+                    onAction = onAction,
+                )
+                BottomNavTab.APP_TERMINATIONS -> AppTerminationsTabContent(
+                    uiState = uiState,
                     onAction = onAction,
                 )
                 BottomNavTab.NAVIGATE -> NavigateTabContent(
@@ -293,12 +301,10 @@ private fun SdkApisTabContent(
             TestingToolsCard(
                 uiState = uiState,
                 onLogLevelChange = { onAction(ConfigAction.UpdateLogLevel(it)) },
-                onAppExitReasonChange = { onAction(DiagnosticsAction.UpdateAppExitReason(it)) },
                 onLogMessage = {
                     onAction(DiagnosticsAction.LogMessage)
                     Toast.makeText(context, toasterText, Toast.LENGTH_SHORT).show()
                 },
-                onAction = onAction,
             )
         }
         item {
@@ -332,6 +338,37 @@ private fun SdkApisTabContent(
                 onLocalBackendAddToCartRequest = { onAction(NetworkTestAction.PerformLocalBackendAddToCartRequest) },
                 onLocalBackendGetCartRequest = { onAction(NetworkTestAction.PerformLocalBackendGetCartRequest) },
                 onLocalBackendDeleteCartItemRequest = { onAction(NetworkTestAction.PerformLocalBackendDeleteCartItemRequest) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun AppTerminationsTabContent(
+    uiState: AppState,
+    onAction: (AppAction) -> Unit,
+) {
+    val listState = rememberLazyListState()
+
+    LazyColumn(
+        state = listState,
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(vertical = 8.dp),
+    ) {
+        item {
+            AppTerminationsCard(
+                uiState = uiState,
+                onAppExitReasonChange = { onAction(DiagnosticsAction.UpdateAppExitReason(it)) },
+                onAction = onAction,
+            )
+        }
+        item {
+            FatalIssuesCard(
+                onAction = onAction,
             )
         }
     }

@@ -45,6 +45,12 @@ sealed class DiagnosticsAction : AppAction {
 
     object ForceAppExit : DiagnosticsAction()
 
+    object TriggerRandomNativeCrash : DiagnosticsAction()
+
+    object TriggerRandomJvmCrash : DiagnosticsAction()
+
+    object TriggerRandomAnrCrash : DiagnosticsAction()
+
     data class UpdateAppExitReason(
         val reason: AppExitReason,
     ) : DiagnosticsAction()

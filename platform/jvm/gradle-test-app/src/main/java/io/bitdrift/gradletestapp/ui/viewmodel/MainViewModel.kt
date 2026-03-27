@@ -111,6 +111,9 @@ class MainViewModel(
 
             is DiagnosticsAction.LogMessage -> logMessage()
             is DiagnosticsAction.ForceAppExit -> forceAppExit()
+            is DiagnosticsAction.TriggerRandomNativeCrash -> triggerRandomNativeCrash()
+            is DiagnosticsAction.TriggerRandomJvmCrash -> triggerRandomJvmCrash()
+            is DiagnosticsAction.TriggerRandomAnrCrash -> triggerRandomAnrCrash()
             is DiagnosticsAction.UpdateAppExitReason -> updateAppExitReason(action.reason)
 
             is NetworkTestAction.PerformOkHttpRequestManual -> {
@@ -348,6 +351,42 @@ class MainViewModel(
         }, "fatal-issue-trigger").start()
     }
 
+    private fun triggerRandomNativeCrash() {
+        triggerRandomFatalIssue(
+            label = "native",
+            reasons = NATIVE_CRASH_REASONS,
+            threadName = "native-fatal-issue-trigger",
+        )
+    }
+
+    private fun triggerRandomJvmCrash() {
+        triggerRandomFatalIssue(
+            label = "JVM",
+            reasons = JVM_CRASH_REASONS,
+            threadName = "jvm-fatal-issue-trigger",
+        )
+    }
+
+    private fun triggerRandomAnrCrash() {
+        triggerRandomFatalIssue(
+            label = "ANR",
+            reasons = ANR_CRASH_REASONS,
+            threadName = "anr-fatal-issue-trigger",
+        )
+    }
+
+    private fun triggerRandomFatalIssue(
+        label: String,
+        reasons: List<AppExitReason>,
+        threadName: String,
+    ) {
+        val reason = reasons.random()
+        Timber.i("Triggering random $label fatal issue with reason: $reason")
+        Thread({
+            appExitRepository.triggerAppExit(application, reason)
+        }, threadName).start()
+    }
+
     private fun updateApiKey(apiKey: String) {
         _uiState.update {
             it.copy(config = it.config.copy(apiKey = apiKey))
@@ -399,3 +438,28 @@ class MainViewModel(
         }
     }
 }
+
+private val NATIVE_CRASH_REASONS =
+    listOf(
+        AppExitReason.NATIVE_CAPTURE_DESTROY_CRASH,
+        AppExitReason.NATIVE_SIGSEGV,
+        AppExitReason.NATIVE_SIGBUS,
+    )
+
+private val JVM_CRASH_REASONS =
+    listOf(
+        AppExitReason.APP_CRASH_COROUTINE_EXCEPTION,
+        AppExitReason.APP_CRASH_REGULAR_JVM_EXCEPTION,
+        AppExitReason.APP_CRASH_RX_JAVA_EXCEPTION,
+        AppExitReason.APP_CRASH_OUT_OF_MEMORY,
+    )
+
+private val ANR_CRASH_REASONS =
+    listOf(
+        AppExitReason.ANR_BLOCKING_GET,
+        AppExitReason.ANR_BROADCAST_RECEIVER,
+        AppExitReason.ANR_COROUTINES,
+        AppExitReason.ANR_DEADLOCK,
+        AppExitReason.ANR_GENERIC,
+        AppExitReason.ANR_SLEEP_MAIN_THREAD,
+    )
