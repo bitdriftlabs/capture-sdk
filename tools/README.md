@@ -18,13 +18,14 @@ cargo install rustfilt
 ### Usage
 
 ```bash
-./tools/symbolicate_bd_frames.sh -d <dump_file> -v <version> [-a <arch>]
+./tools/symbolicate_bd_frames.sh -d <dump_file> -v <version> [-a <arch>] [-o <output_file>]
 ```
 
 **Arguments:**
 - `-d` - Crash dump file (required)
 - `-v` - SDK version, e.g. `0.19.1` (required)
 - `-a` - Architecture: `arm64-v8a`, `armeabi-v7a`, `x86_64`, `x86` (optional, auto-detected)
+- `-o` - Output file to save the symbolicated trace (optional)
 
 ### Examples
 
@@ -34,6 +35,9 @@ cargo install rustfilt
 
 # Specify architecture
 ./tools/symbolicate_bd_frames.sh -d dump.txt -v 0.19.1 -a arm64-v8a
+
+# Save output to file
+./tools/symbolicate_bd_frames.sh -d dump.txt -v 0.19.1 -o symbolicated.txt
 ```
 
 ### Output

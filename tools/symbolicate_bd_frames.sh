@@ -4,17 +4,18 @@ set -e
 
 # Usage function
 usage() {
-    echo "Usage: $0 -d <dump_file> -v <version> [-a <arch>]"
+    echo "Usage: $0 -d <dump_file> -v <version> [-a <arch>] [-o <output_file>]"
     echo ""
     echo "Options:"
-    echo "  -d <dump_file>  Path to the crash dump file (Tombstone or Bugsnag formatted)"
-    echo "  -v <version>    SDK version (e.g., 0.19.1)"
-    echo "  -a <arch>       [Optional] Architecture (arm64-v8a, armeabi-v7a, x86_64, x86)"
-    echo "                  If not provided, will auto-detect from dump file"
+    echo "  -d <dump_file>    Path to the crash dump file (Tombstone or Bugsnag formatted)"
+    echo "  -v <version>      SDK version (e.g., 0.19.1)"
+    echo "  -a <arch>         [Optional] Architecture (arm64-v8a, armeabi-v7a, x86_64, x86)"
+    echo "                    If not provided, will auto-detect from dump file"
+    echo "  -o <output_file>  [Optional] Path to save the symbolicated output"
     echo ""
     echo "Example:"
     echo "  $0 -d dump.txt -v 0.19.1"
-    echo "  $0 -d dump.txt -v 0.22.3 -a arm64-v8a"
+    echo "  $0 -d dump.txt -v 0.22.3 -a arm64-v8a -o output.txt"
     exit 1
 }
 
@@ -22,12 +23,14 @@ usage() {
 DUMP_FILE=""
 VERSION=""
 ARCH=""
+OUT_FILE=""
 
-while getopts "d:v:a:h" opt; do
+while getopts "d:v:a:o:h" opt; do
     case $opt in
         d) DUMP_FILE="$OPTARG" ;;
         v) VERSION="$OPTARG" ;;
         a) ARCH="$OPTARG" ;;
+        o) OUT_FILE="$OPTARG" ;;
         h) usage ;;
         *) usage ;;
     esac
@@ -210,25 +213,35 @@ done <<< "$BACKTRACE_LINES"
 
 echo "Found $SYMBOL_COUNT addresses to symbolicate"
 echo ""
-echo "========================================"
-echo "SYMBOLICATED BACKTRACE"
-echo "========================================"
 
-# Print the full backtrace with symbolicated lines
-while IFS= read -r line; do
-    echo "$line"
-    
-    # Check if this line has a symbolicated version
-    if echo "$line" | grep -q "pc [0-9a-f]"; then
-        ADDR=$(echo "$line" | grep -o 'pc [0-9a-f]*' | head -1 | awk '{print $2}')
-        SYMBOL=$(grep "^$ADDR|" "$SYMBOL_MAP_FILE" 2>/dev/null | head -1 | cut -d'|' -f2-)
-        if [[ -n "$SYMBOL" ]]; then
-            echo "       [SYMBOLICATED] $SYMBOL"
+print_backtrace() {
+    echo "========================================"
+    echo "SYMBOLICATED BACKTRACE"
+    echo "========================================"
+
+    # Print the full backtrace with symbolicated lines
+    while IFS= read -r line; do
+        echo "$line"
+        
+        # Check if this line has a symbolicated version
+        if echo "$line" | grep -q "pc [0-9a-f]"; then
+            ADDR=$(echo "$line" | grep -o 'pc [0-9a-f]*' | head -1 | awk '{print $2}')
+            SYMBOL=$(grep "^$ADDR|" "$SYMBOL_MAP_FILE" 2>/dev/null | head -1 | cut -d'|' -f2-)
+            if [[ -n "$SYMBOL" ]]; then
+                echo "       [SYMBOLICATED] $SYMBOL"
+            fi
         fi
-    fi
-done <<< "$BACKTRACE_LINES"
+    done <<< "$BACKTRACE_LINES"
 
-echo ""
-echo "========================================"
-echo "END OF BACKTRACE"
-echo "========================================"
+    echo ""
+    echo "========================================"
+    echo "END OF BACKTRACE"
+    echo "========================================"
+}
+
+if [[ -n "$OUT_FILE" ]]; then
+    print_backtrace > "$OUT_FILE"
+    echo "Symbolicated output saved to: $OUT_FILE"
+else
+    print_backtrace
+fi
