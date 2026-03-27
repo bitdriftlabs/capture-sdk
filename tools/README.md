@@ -2,7 +2,7 @@
 
 ## Crash Symbolication Tool
 
-Symbolicate Android native crash stack traces using Bitdrift Capture SDK debug symbols.
+Symbolicate Android native crash stack traces using Bitdrift Capture SDK debug symbols. Supports standard Android Logcat/Tombstone traces and custom crash reporting dumps like from Bugsnag.
 
 ### Prerequisites
 
@@ -18,7 +18,7 @@ cargo install rustfilt
 ### Usage
 
 ```bash
-./symbolicate.sh -d <dump_file> -v <version> [-a <arch>]
+./tools/symbolicate_bd_frames.sh -d <dump_file> -v <version> [-a <arch>]
 ```
 
 **Arguments:**
@@ -30,10 +30,10 @@ cargo install rustfilt
 
 ```bash
 # Auto-detect architecture
-./symbolicate.sh -d dump.txt -v 0.19.1
+./tools/symbolicate_bd_frames.sh -d dump.txt -v 0.19.1
 
 # Specify architecture
-./symbolicate.sh -d dump.txt -v 0.19.1 -a arm64-v8a
+./tools/symbolicate_bd_frames.sh -d dump.txt -v 0.19.1 -a arm64-v8a
 ```
 
 ### Output
@@ -60,7 +60,7 @@ The script symbolicates any frame where the Build ID matches the provided symbol
 1. Validates prerequisites (`llvm-addr2line`, `rustfilt`, etc.)
 2. Auto-detects architecture from crash dump (or uses provided `-a` flag)
 3. Downloads symbols from `https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture/{version}/`
-4. Verifies Build IDs match between dump and symbols
-5. Symbolicates all backtrace frames with matching Build IDs
+4. Verifies Build IDs match between dump and symbols (or selectively ignores it for supported edge cases like Bugsnag's `base.apk` frames)
+5. Symbolicates all backtrace frames matching our module or Build ID
 6. Demangles Rust symbols using `rustfilt` (if available)
 7. Auto-cleans temporary files on exit
