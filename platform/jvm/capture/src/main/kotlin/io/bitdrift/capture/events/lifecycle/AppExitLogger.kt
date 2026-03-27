@@ -8,7 +8,6 @@
 package io.bitdrift.capture.events.lifecycle
 
 import android.annotation.SuppressLint
-import android.app.ActivityManager
 import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
 import android.os.Build
@@ -27,7 +26,6 @@ import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.reports.IIssueReporter
 import io.bitdrift.capture.reports.IssueReporterState
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
@@ -36,11 +34,10 @@ import io.bitdrift.capture.utils.BuildVersionChecker
 
 internal class AppExitLogger(
     private val logger: IInternalLogger,
-    private val activityManager: ActivityManager,
     private val runtime: Runtime,
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
     private val memoryMetricsProvider: IMemoryMetricsProvider,
-    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
+    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
     private val issueReporter: IIssueReporter?,
 ) : IJvmCrashListener {
@@ -79,7 +76,7 @@ internal class AppExitLogger(
             return
         }
 
-        when (val lastExitInfoResult = latestAppExitInfoProvider.get(activityManager)) {
+        when (val lastExitInfoResult = latestAppExitInfoProvider.get()) {
             is LatestAppExitReasonResult.Error ->
                 logger.handleInternalError(lastExitInfoResult.message, lastExitInfoResult.throwable)
 

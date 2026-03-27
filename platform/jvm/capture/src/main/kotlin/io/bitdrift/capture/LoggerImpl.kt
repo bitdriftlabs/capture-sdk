@@ -50,6 +50,8 @@ import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReporter
+import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
@@ -115,13 +117,15 @@ internal class LoggerImpl(
 
     private val sessionReplayTarget: ISessionReplayTarget
 
-    private val previousRunInfoResolver = PreviousRunInfoResolver(activityManager)
+    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
+    private val previousRunInfoResolver = PreviousRunInfoResolver(latestAppExitInfoProvider)
 
     private val issueReporter: IssueReporter? =
         if (configuration.enableFatalIssueReporting) {
             IssueReporter(
                 internalLogger = this,
                 dateProvider = dateProvider,
+                latestAppExitInfoProvider = latestAppExitInfoProvider,
             )
         } else {
             null
@@ -269,9 +273,9 @@ internal class LoggerImpl(
         appExitLogger =
             AppExitLogger(
                 logger = this,
-                activityManager,
                 runtime,
                 memoryMetricsProvider = memoryMetricsProvider,
+                latestAppExitInfoProvider = latestAppExitInfoProvider,
                 issueReporter = issueReporter,
             )
 
@@ -678,7 +682,6 @@ internal class LoggerImpl(
      */
     internal fun initIssueReporter() {
         issueReporter?.init(
-            activityManager = activityManager,
             sdkDirectory = sdkDirectory,
             clientAttributes = clientAttributes,
             completedReportsProcessor = this,

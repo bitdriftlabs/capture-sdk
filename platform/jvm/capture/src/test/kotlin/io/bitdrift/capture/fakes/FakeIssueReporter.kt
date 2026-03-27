@@ -17,7 +17,6 @@ class FakeIssueReporter(
     private val initializationState: IssueReporterState,
 ) : IIssueReporter {
     override fun init(
-        activityManager: ActivityManager,
         sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,

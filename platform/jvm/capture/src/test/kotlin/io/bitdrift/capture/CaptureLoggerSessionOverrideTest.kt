@@ -66,7 +66,6 @@ class CaptureLoggerSessionOverrideTest {
 
         CaptureDispatchers.setTestExecutorService(MoreExecutors.newDirectExecutorService())
         CaptureJniLibrary.load()
-        LatestAppExitInfoProvider.clearCache()
         testServerPort = CaptureTestJniLibrary.startTestApiServer(-1)
 
         val lifecycleRegistry = LifecycleRegistry(lifecycleOwner)
@@ -78,7 +77,6 @@ class CaptureLoggerSessionOverrideTest {
     @After
     fun teardown() {
         CaptureTestJniLibrary.stopTestApiServer()
-        LatestAppExitInfoProvider.clearCache()
     }
 
     private fun contextWithAppVersion(
@@ -154,7 +152,6 @@ class CaptureLoggerSessionOverrideTest {
         // We need to shut down the logger first before starting a new one, otherwise the new one fails to initialize due to the flock
         // on the ring buffer.
         CaptureJniLibrary.shutdown(logger.loggerId)
-        LatestAppExitInfoProvider.clearCache()
 
         val newContext = contextWithAppVersion(newAppVersion, newAppVersionCode)
         val newClientAttributes = ClientAttributes(newContext, lifecycleOwner)

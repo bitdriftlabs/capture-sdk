@@ -17,10 +17,9 @@ import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 /**
  * Concrete impl of [ILatestAppExitInfoProvider]
  */
-internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
-    internal const val EXIT_REASON_EXCEPTION_MESSAGE =
-        "LatestAppExitInfoProvider: Failed to retrieve LatestAppExitReasonResult"
-
+internal class LatestAppExitInfoProvider(
+    private val activityManager: ActivityManager,
+) : ILatestAppExitInfoProvider {
     /**
      * Caching after initial fetch to avoid unnecessary IPC binder calls once value is retrieved
      */
@@ -28,7 +27,7 @@ internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
     private var cachedResult: LatestAppExitReasonResult? = null
 
     @RequiresApi(Build.VERSION_CODES.R)
-    override fun get(activityManager: ActivityManager): LatestAppExitReasonResult {
+    override fun get(): LatestAppExitReasonResult {
         cachedResult?.let { return it }
 
         synchronized(this) {
@@ -68,7 +67,7 @@ internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         return result
     }
 
-    fun mapToFatalIssueType(exitReasonType: Int): Byte? =
+    override fun convertExitReasonToFbReportType(exitReasonType: Int): Byte? =
         when (exitReasonType) {
             ApplicationExitInfo.REASON_ANR -> ReportType.AppNotResponding
             ApplicationExitInfo.REASON_CRASH_NATIVE -> ReportType.NativeCrash
@@ -79,17 +78,27 @@ internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
     internal fun clearCache() {
         cachedResult = null
     }
+
+    internal companion object {
+        internal const val EXIT_REASON_EXCEPTION_MESSAGE =
+            "LatestAppExitInfoProvider: Failed to retrieve LatestAppExitReasonResult"
+    }
 }
 
 /**
  * Retrieves the latest [ApplicationExitInfo] if available.
  */
-fun interface ILatestAppExitInfoProvider {
+interface ILatestAppExitInfoProvider {
     /**
      * Returns the latest [ApplicationExitInfo] when present.
      */
     @RequiresApi(Build.VERSION_CODES.R)
-    fun get(activityManager: ActivityManager): LatestAppExitReasonResult
+    fun get(): LatestAppExitReasonResult
+
+    /**
+     * Converts an [ApplicationExitInfo] reason into Flatbuffer [io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType]
+     */
+    fun convertExitReasonToFbReportType(exitReasonType: Int): Byte?
 }
 
 /**

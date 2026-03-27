@@ -45,7 +45,6 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
 
         CaptureDispatchers.setTestExecutorService(MoreExecutors.newDirectExecutorService())
         CaptureJniLibrary.load()
-        LatestAppExitInfoProvider.clearCache()
         testServer = TestApiServer()
 
         // Enable crash reporting by creating the config file.

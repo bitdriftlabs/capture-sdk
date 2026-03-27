@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.fakes
 
-import android.app.ActivityManager
 import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
 import com.nhaarman.mockitokotlin2.mock
@@ -94,7 +93,7 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         hasErrorResult = true
     }
 
-    override fun get(activityManager: ActivityManager): LatestAppExitReasonResult {
+    override fun get(): LatestAppExitReasonResult {
         if (hasNoPriorReason) {
             return LatestAppExitReasonResult.None
         } else if (hasErrorResult) {
@@ -120,10 +119,11 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         return LatestAppExitReasonResult.Valid(appExitReason)
     }
 
+    override fun convertExitReasonToFbReportType(exitReasonType: Int): Byte? = null
+
     companion object {
         const val SESSION_ID = "uuid-test-sample"
         const val TIME_STAMP = 1742376168992
-        const val PROCESS_NAME = "test-process-name"
         val PROCESS_STATE_SUMMARY = SESSION_ID.toByteArray(StandardCharsets.UTF_8)
         const val DEFAULT_DESCRIPTION = "test-description"
         val FAKE_EXCEPTION by lazy {
