@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.events.lifecycle
 
-import android.app.ActivityManager
 import android.app.ApplicationExitInfo
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
@@ -34,7 +33,7 @@ import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.reports.IssueReporterState
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.Companion.EXIT_REASON_EXCEPTION_MESSAGE
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
 import io.bitdrift.capture.utils.toStringMap
@@ -45,7 +44,6 @@ import java.io.IOException
 
 class AppExitLoggerTest {
     private val logger: IInternalLogger = mock()
-    private val activityManager: ActivityManager = mock()
     private val runtime: Runtime = mock()
     private val versionChecker: BuildVersionChecker = mock()
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
@@ -70,7 +68,6 @@ class AppExitLoggerTest {
         appExitLogger.installAppExitLogger()
         // ASSERT
         verify(captureUncaughtExceptionHandler, never()).install(any())
-        verify(activityManager, never()).getHistoricalProcessExitReasons(anyOrNull(), any(), any())
     }
 
     @Test
@@ -296,7 +293,6 @@ class AppExitLoggerTest {
     private fun buildAppExitLogger(fatalReporterInitState: IssueReporterState = IssueReporterState.NotInitialized) =
         AppExitLogger(
             logger,
-            activityManager,
             runtime,
             versionChecker,
             memoryMetricsProvider,

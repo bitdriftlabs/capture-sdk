@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.reports
 
-import android.app.ActivityManager
 import android.content.Context
 import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
@@ -40,7 +39,6 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [30]) // needs API 30 to use ApplicationExitInfo
 class IssueReporterTest {
-    private lateinit var activityManager: ActivityManager
     private lateinit var issueReporter: IssueReporter
     private lateinit var reportsDir: File
     private lateinit var configFile: File
@@ -60,10 +58,8 @@ class IssueReporterTest {
     @Before
     fun setup() {
         val initializer = ContextHolder()
-        val appContext: Context = ApplicationProvider.getApplicationContext()
         initializer.create(ApplicationProvider.getApplicationContext())
 
-        activityManager = appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         reportsDir =
             File(
                 APP_CONTEXT.filesDir,
@@ -84,7 +80,6 @@ class IssueReporterTest {
     fun initialize_whenDisabledViaConfig_shouldNotInit() {
         configFile.writeText("crash_reporting.enabled,false")
         issueReporter.init(
-            activityManager,
             sdkDirectory,
             clientAttributes,
             completedReportsProcessor,
@@ -102,7 +97,6 @@ class IssueReporterTest {
     fun initialize_whenConfigCorrupt_shouldNotInit() {
         configFile.writeText("crash_reporting.enabled")
         issueReporter.init(
-            activityManager,
             sdkDirectory,
             clientAttributes,
             completedReportsProcessor,
@@ -120,7 +114,6 @@ class IssueReporterTest {
     fun initialize_whenConfigNotPresent_shouldNotInit() {
         configFile.delete()
         issueReporter.init(
-            activityManager,
             sdkDirectory,
             clientAttributes,
             completedReportsProcessor,
@@ -137,14 +130,13 @@ class IssueReporterTest {
     @Test
     fun initialize_whenEnabled_shouldInitCrashHandlerAndFetchAppExitReason() {
         issueReporter.init(
-            activityManager,
             sdkDirectory,
             clientAttributes,
             completedReportsProcessor,
         )
 
         verify(captureUncaughtExceptionHandler).install(eq(issueReporter))
-        verify(latestAppExitInfoProvider).get(any())
+        verify(latestAppExitInfoProvider).get()
         issueReporter.issueReporterState.assert(
             IssueReporterState.Initialized::class.java,
         )
@@ -162,11 +154,10 @@ class IssueReporterTest {
     @Test
     fun init_whenAppExitInfoFails_shouldCallOnErrorOccurred() {
         val exception = RuntimeException("test error")
-        whenever(latestAppExitInfoProvider.get(any()))
+        whenever(latestAppExitInfoProvider.get())
             .thenThrow(exception)
 
         issueReporter.init(
-            activityManager,
             sdkDirectory,
             clientAttributes,
             completedReportsProcessor,
@@ -188,7 +179,6 @@ class IssueReporterTest {
     @Test
     fun getIssueReporterProcessor_whenInitialized_shouldReturnValidProcessor() {
         issueReporter.init(
-            activityManager,
             sdkDirectory,
             clientAttributes,
             completedReportsProcessor,
@@ -203,7 +193,6 @@ class IssueReporterTest {
     fun getIssueReporterProcessor_whenInitCalledButDisabled_shouldReturnNull() {
         configFile.writeText("crash_reporting.enabled,false")
         issueReporter.init(
-            activityManager,
             sdkDirectory,
             clientAttributes,
             completedReportsProcessor,
