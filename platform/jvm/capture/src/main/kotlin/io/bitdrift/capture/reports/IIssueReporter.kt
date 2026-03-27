@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.reports
 
-import android.app.ActivityManager
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 
@@ -19,7 +18,6 @@ interface IIssueReporter {
      * Initializes the IssueReporter
      */
     fun init(
-        activityManager: ActivityManager,
         sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,

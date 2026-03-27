@@ -16,9 +16,8 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.EXIT_REASON_EXCEPTION_MESSAGE
+import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.Companion.EXIT_REASON_EXCEPTION_MESSAGE
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -28,19 +27,15 @@ import org.robolectric.annotation.Config
 @Config(sdk = [30])
 class LatestAppExitInfoProviderTest {
     private val activityManager: ActivityManager = mock()
-    private val latestAppExitInfoProvider = LatestAppExitInfoProvider
-
-    @After
-    fun tearDown() {
-        latestAppExitInfoProvider.clearCache()
-    }
 
     @Test
     fun get_withExceptionThrow_shouldReturnNullAndSendError() {
         val error = RuntimeException("test exception")
         whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenThrow(error)
 
-        val exitReason = latestAppExitInfoProvider.get(activityManager)
+        val latestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
+
+        val exitReason = latestAppExitInfoProvider.get()
 
         assertResult<LatestAppExitReasonResult.Error>(
             exitReason,
@@ -54,7 +49,9 @@ class LatestAppExitInfoProviderTest {
         whenever(mockExitInfo.processName).thenReturn(Application.getProcessName())
         whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
 
-        val exitReason = latestAppExitInfoProvider.get(activityManager)
+        val latestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
+
+        val exitReason = latestAppExitInfoProvider.get()
 
         assertResult<LatestAppExitReasonResult.Valid>(
             exitReason,
@@ -69,7 +66,9 @@ class LatestAppExitInfoProviderTest {
                 .getHistoricalProcessExitReasons(anyOrNull(), any(), any()),
         ).thenReturn(emptyList())
 
-        val exitReason = latestAppExitInfoProvider.get(activityManager)
+        val latestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
+
+        val exitReason = latestAppExitInfoProvider.get()
 
         assertResult<LatestAppExitReasonResult.None>(
             exitReason,
@@ -84,7 +83,9 @@ class LatestAppExitInfoProviderTest {
                 .getHistoricalProcessExitReasons(anyOrNull(), any(), any()),
         ).thenReturn(listOf(mockExitInfo))
 
-        val exitReason = latestAppExitInfoProvider.get(activityManager)
+        val latestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
+
+        val exitReason = latestAppExitInfoProvider.get()
 
         assertResult<LatestAppExitReasonResult.None>(
             exitReason,
@@ -97,10 +98,12 @@ class LatestAppExitInfoProviderTest {
         whenever(mockExitInfo.processName).thenReturn(Application.getProcessName())
         whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
 
-        val initialResult = latestAppExitInfoProvider.get(activityManager)
-        latestAppExitInfoProvider.get(activityManager)
-        latestAppExitInfoProvider.get(activityManager)
-        val latestResult = latestAppExitInfoProvider.get(activityManager)
+        val latestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
+
+        val initialResult = latestAppExitInfoProvider.get()
+        latestAppExitInfoProvider.get()
+        latestAppExitInfoProvider.get()
+        val latestResult = latestAppExitInfoProvider.get()
 
         assertThat(initialResult).isEqualTo(latestResult)
         verify(activityManager, times(1)).getHistoricalProcessExitReasons(anyOrNull(), any(), any())

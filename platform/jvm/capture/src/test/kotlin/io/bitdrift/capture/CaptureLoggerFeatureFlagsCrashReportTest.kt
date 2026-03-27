@@ -13,7 +13,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.common.util.concurrent.MoreExecutors
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.threading.CaptureDispatchers
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
@@ -45,7 +44,6 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
 
         CaptureDispatchers.setTestExecutorService(MoreExecutors.newDirectExecutorService())
         CaptureJniLibrary.load()
-        LatestAppExitInfoProvider.clearCache()
         testServer = TestApiServer()
 
         // Enable crash reporting by creating the config file.

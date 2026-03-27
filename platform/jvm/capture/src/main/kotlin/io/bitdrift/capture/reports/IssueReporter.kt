@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.reports
 
-import android.app.ActivityManager
 import android.os.Build
 import android.util.Log
 import androidx.annotation.VisibleForTesting
@@ -20,8 +19,6 @@ import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.reports.IssueReporterState.NotInitialized
 import io.bitdrift.capture.reports.IssueReporterState.RuntimeState
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
-import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.mapToFatalIssueType
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
@@ -42,14 +39,16 @@ import kotlin.time.TimeSource
 /**
  * Reports different Issue Types (JVM crash, ANR, native, StrictMode, etc).
  *
+ * @param internalLogger Logger used for internal SDK errors/diagnostics.
  * @param backgroundThreadHandler Handler for background thread operations.
  * @param latestAppExitInfoProvider Provider for retrieving latest app exit information.
  * @param captureUncaughtExceptionHandler Handler for uncaught exceptions.
+ * @param dateProvider Date source used when building report payload metadata.
  */
 internal class IssueReporter(
     private val internalLogger: IInternalLogger,
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
-    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
+    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
     private val dateProvider: DateProvider,
 ) : IIssueReporter,
@@ -64,7 +63,6 @@ internal class IssueReporter(
      * Initializes the IssueReporter handler once we have the required dependencies available
      */
     override fun init(
-        activityManager: ActivityManager,
         sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
@@ -89,7 +87,7 @@ internal class IssueReporter(
         runCatching {
             issueReporterProcessor = buildDefaultIssueReporterProcessor(sdkDirectory, clientAttributes, dateProvider, internalLogger)
             captureUncaughtExceptionHandler.install(this)
-            processPriorReports(activityManager, completedReportsProcessor)
+            processPriorReports(completedReportsProcessor)
         }.getOrElse {
             logError(completedReportsProcessor, it)
             issueReporterState =
@@ -144,13 +142,10 @@ internal class IssueReporter(
             }
         }
 
-    private fun processPriorReports(
-        activityManager: ActivityManager,
-        completedReportsProcessor: ICompletedReportsProcessor,
-    ) {
+    private fun processPriorReports(completedReportsProcessor: ICompletedReportsProcessor) {
         backgroundThreadHandler.runAsync {
             runCatching {
-                persistLastExitReasonIfNeeded(activityManager)
+                persistLastExitReasonIfNeeded()
                 completedReportsProcessor.processIssueReports(ReportProcessingSession.PreviousRun)
             }.onSuccess {
                 issueReporterState =
@@ -163,15 +158,15 @@ internal class IssueReporter(
         }
     }
 
-    private fun persistLastExitReasonIfNeeded(activityManager: ActivityManager) {
+    private fun persistLastExitReasonIfNeeded() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return
         }
-        val lastReasonResult = latestAppExitInfoProvider.get(activityManager)
+        val lastReasonResult = latestAppExitInfoProvider.get()
         if (lastReasonResult is LatestAppExitReasonResult.Valid) {
             val lastReason = lastReasonResult.applicationExitInfo
             lastReason.traceInputStream?.use {
-                mapToFatalIssueType(lastReason.reason)?.let { fatalIssueType ->
+                latestAppExitInfoProvider.convertExitReasonToFbsReportType(lastReason.reason)?.let { fatalIssueType ->
                     issueReporterProcessor?.processAppExitReport(
                         fatalIssueType = fatalIssueType,
                         timestamp = lastReason.timestamp,

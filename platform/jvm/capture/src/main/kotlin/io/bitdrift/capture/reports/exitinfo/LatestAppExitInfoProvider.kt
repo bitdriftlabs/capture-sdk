@@ -11,85 +11,82 @@ import android.app.Application
 import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 
 /**
  * Concrete impl of [ILatestAppExitInfoProvider]
  */
-internal object LatestAppExitInfoProvider : ILatestAppExitInfoProvider {
-    internal const val EXIT_REASON_EXCEPTION_MESSAGE =
-        "LatestAppExitInfoProvider: Failed to retrieve LatestAppExitReasonResult"
-
+internal class LatestAppExitInfoProvider(
+    private val activityManager: ActivityManager,
+) : ILatestAppExitInfoProvider {
     /**
      * Caching after initial fetch to avoid unnecessary IPC binder calls once value is retrieved
      */
-    @Volatile
-    private var cachedResult: LatestAppExitReasonResult? = null
-
-    @RequiresApi(Build.VERSION_CODES.R)
-    override fun get(activityManager: ActivityManager): LatestAppExitReasonResult {
-        cachedResult?.let { return it }
-
-        synchronized(this) {
-            cachedResult?.let { return it }
-            return getReasonAndCacheResult(activityManager)
+    private val cachedResult: LatestAppExitReasonResult by lazy {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            LatestAppExitReasonResult.None
+        } else {
+            getReason()
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    private fun getReasonAndCacheResult(activityManager: ActivityManager): LatestAppExitReasonResult {
-        val result =
-            try {
-                // a null packageName means match all packages belonging to the caller's process (UID)
-                // pid should be 0, a value of 0 means to ignore this parameter and return all matching records
-                // maxNum should be 0, this will return the list of all last exits at the time
-                val latestKnownExitReasons =
-                    activityManager
-                        .getHistoricalProcessExitReasons(null, 0, 0)
+    override fun get(): LatestAppExitReasonResult = cachedResult
 
-                val matchingProcessReason =
-                    latestKnownExitReasons.firstOrNull {
-                        it.processName == Application.getProcessName()
-                    }
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun getReason(): LatestAppExitReasonResult =
+        try {
+            // a null packageName means match all packages belonging to the caller's process (UID)
+            // pid should be 0, a value of 0 means to ignore this parameter and return all matching records
+            // maxNum should be 0, this will return the list of all last exits at the time
+            val latestKnownExitReasons =
+                activityManager
+                    .getHistoricalProcessExitReasons(null, 0, 0)
 
-                if (matchingProcessReason == null) {
-                    LatestAppExitReasonResult.None
-                } else {
-                    LatestAppExitReasonResult.Valid(matchingProcessReason)
+            val matchingProcessReason =
+                latestKnownExitReasons.firstOrNull {
+                    it.processName == Application.getProcessName()
                 }
-            } catch (error: Throwable) {
-                LatestAppExitReasonResult.Error(
-                    EXIT_REASON_EXCEPTION_MESSAGE,
-                    error,
-                )
-            }
-        cachedResult = result
-        return result
-    }
 
-    fun mapToFatalIssueType(exitReasonType: Int): Byte? =
+            if (matchingProcessReason == null) {
+                LatestAppExitReasonResult.None
+            } else {
+                LatestAppExitReasonResult.Valid(matchingProcessReason)
+            }
+        } catch (error: Throwable) {
+            LatestAppExitReasonResult.Error(
+                EXIT_REASON_EXCEPTION_MESSAGE,
+                error,
+            )
+        }
+
+    override fun convertExitReasonToFbsReportType(exitReasonType: Int): Byte? =
         when (exitReasonType) {
             ApplicationExitInfo.REASON_ANR -> ReportType.AppNotResponding
             ApplicationExitInfo.REASON_CRASH_NATIVE -> ReportType.NativeCrash
             else -> null
         }
 
-    @VisibleForTesting
-    internal fun clearCache() {
-        cachedResult = null
+    internal companion object {
+        internal const val EXIT_REASON_EXCEPTION_MESSAGE =
+            "LatestAppExitInfoProvider: Failed to retrieve LatestAppExitReasonResult"
     }
 }
 
 /**
  * Retrieves the latest [ApplicationExitInfo] if available.
  */
-fun interface ILatestAppExitInfoProvider {
+interface ILatestAppExitInfoProvider {
     /**
      * Returns the latest [ApplicationExitInfo] when present.
      */
     @RequiresApi(Build.VERSION_CODES.R)
-    fun get(activityManager: ActivityManager): LatestAppExitReasonResult
+    fun get(): LatestAppExitReasonResult
+
+    /**
+     * Converts an [ApplicationExitInfo] reason into Flatbuffer [io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType]
+     */
+    fun convertExitReasonToFbsReportType(exitReasonType: Int): Byte?
 }
 
 /**

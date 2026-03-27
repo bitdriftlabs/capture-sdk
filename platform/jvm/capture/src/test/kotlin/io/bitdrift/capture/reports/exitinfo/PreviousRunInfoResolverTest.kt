@@ -7,10 +7,8 @@
 
 package io.bitdrift.capture.reports.exitinfo
 
-import android.app.ActivityManager
 import android.app.ApplicationExitInfo
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -21,25 +19,18 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [30])
 class PreviousRunInfoResolverTest {
-    private val activityManager: ActivityManager = mock()
-    private lateinit var resolver: PreviousRunInfoResolver
+    private val latestAppExitInfoProvider = FakeLatestAppExitInfoProvider()
 
     @Before
-    fun setUp() {
-        LatestAppExitInfoProvider.clearCache()
+    fun tearDown() {
+        latestAppExitInfoProvider.reset()
     }
 
     @Test
     fun get_returnsFatalForCrashReason() {
-        val appExitInfo: ApplicationExitInfo = mock()
-        whenever(appExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_CRASH)
-        resolver =
-            PreviousRunInfoResolver(
-                activityManager = activityManager,
-                latestAppExitInfoProvider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) },
-            )
+        latestAppExitInfoProvider.setAsValidReason(exitReasonType = ApplicationExitInfo.REASON_CRASH)
 
-        val result = resolver.get()
+        val result = PreviousRunInfoResolver(latestAppExitInfoProvider).get()
 
         assertThat(result).isEqualTo(
             PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash),
@@ -48,15 +39,9 @@ class PreviousRunInfoResolverTest {
 
     @Test
     fun get_returnsFatalForNativeCrash() {
-        val appExitInfo: ApplicationExitInfo = mock()
-        whenever(appExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_CRASH_NATIVE)
-        resolver =
-            PreviousRunInfoResolver(
-                activityManager = activityManager,
-                latestAppExitInfoProvider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) },
-            )
+        latestAppExitInfoProvider.setAsValidReason(exitReasonType = ApplicationExitInfo.REASON_CRASH_NATIVE)
 
-        val result = resolver.get()
+        val result = PreviousRunInfoResolver(latestAppExitInfoProvider).get()
 
         assertThat(result).isEqualTo(
             PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.NativeCrash),
@@ -65,15 +50,9 @@ class PreviousRunInfoResolverTest {
 
     @Test
     fun get_returnsFatalForAnr() {
-        val appExitInfo: ApplicationExitInfo = mock()
-        whenever(appExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_ANR)
-        resolver =
-            PreviousRunInfoResolver(
-                activityManager = activityManager,
-                latestAppExitInfoProvider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) },
-            )
+        latestAppExitInfoProvider.setAsValidReason(exitReasonType = ApplicationExitInfo.REASON_ANR)
 
-        val result = resolver.get()
+        val result = PreviousRunInfoResolver(latestAppExitInfoProvider).get()
 
         assertThat(result).isEqualTo(
             PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.AppNotResponding),
@@ -82,15 +61,9 @@ class PreviousRunInfoResolverTest {
 
     @Test
     fun get_returnsNonFatalForUserRequested() {
-        val appExitInfo: ApplicationExitInfo = mock()
-        whenever(appExitInfo.reason).thenReturn(ApplicationExitInfo.REASON_USER_REQUESTED)
-        resolver =
-            PreviousRunInfoResolver(
-                activityManager = activityManager,
-                latestAppExitInfoProvider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.Valid(appExitInfo) },
-            )
+        latestAppExitInfoProvider.setAsValidReason(exitReasonType = ApplicationExitInfo.REASON_USER_REQUESTED)
 
-        val result = resolver.get()
+        val result = PreviousRunInfoResolver(latestAppExitInfoProvider).get()
 
         assertThat(result).isEqualTo(
             PreviousRunInfo(hasFatallyTerminated = false, terminationReason = ExitReason.UserRequested),
@@ -99,29 +72,18 @@ class PreviousRunInfoResolverTest {
 
     @Test
     fun get_returnsNonFatalWhenNoExitInfo() {
-        resolver =
-            PreviousRunInfoResolver(
-                activityManager = activityManager,
-                latestAppExitInfoProvider = ILatestAppExitInfoProvider { LatestAppExitReasonResult.None },
-            )
+        latestAppExitInfoProvider.setAsEmptyReason()
 
-        val result = resolver.get()
+        val result = PreviousRunInfoResolver(latestAppExitInfoProvider).get()
 
         assertThat(result).isEqualTo(PreviousRunInfo(hasFatallyTerminated = false))
     }
 
     @Test
     fun get_returnsNullOnError() {
-        resolver =
-            PreviousRunInfoResolver(
-                activityManager = activityManager,
-                latestAppExitInfoProvider =
-                    ILatestAppExitInfoProvider {
-                        LatestAppExitReasonResult.Error("test error")
-                    },
-            )
+        latestAppExitInfoProvider.setAsErrorResult()
 
-        val result = resolver.get()
+        val result = PreviousRunInfoResolver(latestAppExitInfoProvider).get()
 
         assertThat(result).isNull()
     }
@@ -129,9 +91,7 @@ class PreviousRunInfoResolverTest {
     @Test
     @Config(sdk = [24])
     fun get_belowApi30_returnsNull() {
-        resolver = PreviousRunInfoResolver(activityManager = activityManager)
-
-        val result = resolver.get()
+        val result = PreviousRunInfoResolver(latestAppExitInfoProvider).get()
 
         assertThat(result).isNull()
     }

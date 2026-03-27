@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.reports.exitinfo
 
-import android.app.ActivityManager
 import android.os.Build
 import androidx.annotation.RequiresApi
 
@@ -18,20 +17,19 @@ import androidx.annotation.RequiresApi
  * On API < 30, returns `null` (no previous run info available yet). Will be implemented in BIT-7703.
  */
 internal class PreviousRunInfoResolver(
-    private val activityManager: ActivityManager,
-    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider,
+    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider,
 ) : IPreviousRunInfoResolver {
     override fun get(): PreviousRunInfo? =
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             // TODO (BIT-7703): Enable support below OS 11
             null
         } else {
-            getFromAppExitInfo(activityManager)
+            getFromAppExitInfo()
         }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    private fun getFromAppExitInfo(activityManager: ActivityManager): PreviousRunInfo? =
-        when (val result = latestAppExitInfoProvider.get(activityManager)) {
+    private fun getFromAppExitInfo(): PreviousRunInfo? =
+        when (val result = latestAppExitInfoProvider.get()) {
             is LatestAppExitReasonResult.Valid -> {
                 val reason = result.applicationExitInfo.reason.toExitReason()
                 PreviousRunInfo(
