@@ -162,6 +162,11 @@ if [[ -z "$BACKTRACE_LINES" ]]; then
 fi
 
 if [[ -z "$BACKTRACE_LINES" ]]; then
+    # Try looking for raw debuggerd format like #00 0x0000...
+    BACKTRACE_LINES=$(grep -E "#[0-9]{2} 0x[0-9a-f]+" "$DUMP_FILE" || true)
+fi
+
+if [[ -z "$BACKTRACE_LINES" ]]; then
     echo "Error: No backtrace found in dump file"
     exit 1
 fi
@@ -173,10 +178,15 @@ touch "$SYMBOL_MAP_FILE"
 # Symbolicate addresses
 SYMBOL_COUNT=0
 while IFS= read -r line; do
-    # Check if line contains a pc address
-    if echo "$line" | grep -q "pc [0-9a-f]"; then
+    # Check if line contains a pc address or #xx 0x... format
+    if echo "$line" | grep -qE "pc [0-9a-f]|#[0-9]{2} 0x[0-9a-f]"; then
         # Extract pc address, gracefully handling bugsnag stacktrace formats
-        ADDR=$(echo "$line" | grep -o 'pc [0-9a-f]*' | head -1 | awk '{print $2}')
+        if echo "$line" | grep -q "pc [0-9a-f]"; then
+            ADDR=$(echo "$line" | grep -o 'pc [0-9a-f]*' | head -1 | awk '{print $2}')
+        else
+            ADDR=$(echo "$line" | grep -oE '#[0-9]{2} 0x[0-9a-f]+' | head -1 | awk '{print $2}' | sed 's/^0x//')
+        fi
+        
         # Extract Build ID if present on the line
         LINE_BUILD_ID=$(echo "$line" | grep -oE 'BuildId: [a-f0-9]+' | awk '{print $2}')
         
@@ -218,13 +228,21 @@ print_backtrace() {
     # Print the full backtrace with symbolicated lines
     while IFS= read -r line; do
         # Check if this line has a symbolicated version
-        if echo "$line" | grep -q "pc [0-9a-f]"; then
-            ADDR=$(echo "$line" | grep -o 'pc [0-9a-f]*' | head -1 | awk '{print $2}')
+        if echo "$line" | grep -qE "pc [0-9a-f]|#[0-9]{2} 0x[0-9a-f]"; then
+            if echo "$line" | grep -q "pc [0-9a-f]"; then
+                ADDR=$(echo "$line" | grep -o 'pc [0-9a-f]*' | head -1 | awk '{print $2}')
+            else
+                ADDR=$(echo "$line" | grep -oE '#[0-9]{2} 0x[0-9a-f]+' | head -1 | awk '{print $2}' | sed 's/^0x//')
+            fi
             SYMBOL=$(grep "^$ADDR|" "$SYMBOL_MAP_FILE" 2>/dev/null | head -1 | cut -d'|' -f2-)
             if [[ -n "$SYMBOL" ]]; then
-                # Replace everything after the pc address with the symbolicated output
+                # Replace everything after the pc/address with the symbolicated output
                 # Keep the original prefix up to the pc address
-                prefix=$(echo "$line" | sed -E "s/(pc [0-9a-f]+).*/\1/")
+                if echo "$line" | grep -q "pc [0-9a-f]"; then
+                    prefix=$(echo "$line" | sed -E "s/(pc [0-9a-f]+).*/\1/")
+                else
+                    prefix=$(echo "$line" | sed -E "s/(#[0-9]{2} 0x[0-9a-f]+).*/\1/")
+                fi
                 echo "$prefix [symbolicated] $SYMBOL"
             else
                 echo "$line"

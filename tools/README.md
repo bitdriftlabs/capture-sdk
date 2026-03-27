@@ -2,7 +2,7 @@
 
 ## Crash Symbolication Tool
 
-Symbolicate Android native crash stack traces using Bitdrift Capture SDK debug symbols. Supports standard Android Logcat/Tombstone traces and custom crash reporting dumps like from Bugsnag.
+Symbolicate Android native crash stack traces using Bitdrift Capture SDK debug symbols. Supports standard Android Logcat/Tombstone traces, custom crash reporting dumps like from Bugsnag, and raw `debuggerd` output formats.
 
 ### Prerequisites
 
@@ -44,11 +44,26 @@ cargo install rustfilt
 
 Displays the complete backtrace with symbolicated function names replacing the binary path and offset, clearly marked with a `[symbolicated]` tag:
 
+**Logcat / Tombstone format:**
 ```
 2026-03-06 10:12:22.304 18860 A #00 pc 000000000018e44c [symbolicated] alloc::vec::from_elem
 2026-03-06 10:12:22.304 18860 A #01 pc 00000000000fbdac [symbolicated] <bincode::features::serde::de_borrowed::SerdeDecoder<DE> as serde_core::de::Deserializer>::deserialize_string
 2026-03-06 10:12:22.304 18860 A #02 pc 00000000000faf80 [symbolicated] bd_key_value::Store::get
 2026-03-06 10:12:22.304 18860 A #03 pc 0000000000144fec  /apex/com.android.runtime/lib64/libart.so (BuildId: 76cae8c2fae7f4328bb0144fc1b9a546)
+```
+
+**Raw debuggerd format:**
+```
+#00 0x000000000018e44c [symbolicated] alloc::vec::from_elem
+#01 0x00000000000fbdac [symbolicated] <bincode::features::serde::de_borrowed::SerdeDecoder<DE> as serde_core::de::Deserializer>::deserialize_string
+#02 0x00000000000faf80 [symbolicated] bd_key_value::Store::get
+```
+
+**Bugsnag format:**
+```
+STACKTRACE
+  #00 pc 000000000021b334 [symbolicated] bd_workflows::engine::WorkflowsEngine::process_event
+  #01 pc 000000000020a1bc [symbolicated] bd_workflows::engine::WorkflowsEngine::new
 ```
 
 The script symbolicates any frame where the Build ID matches the provided symbols.
