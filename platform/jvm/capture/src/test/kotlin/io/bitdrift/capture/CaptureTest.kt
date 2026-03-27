@@ -21,6 +21,7 @@ import io.bitdrift.capture.reports.exitinfo.ExitReason
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.Before
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,7 +35,7 @@ import org.robolectric.annotation.Config
 class CaptureTest {
     private val latestAppExitInfoProvider = FakeLatestAppExitInfoProvider()
 
-    @Test
+    @Before
     fun tearDown() {
         latestAppExitInfoProvider.reset()
     }

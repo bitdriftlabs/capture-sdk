@@ -10,6 +10,7 @@ package io.bitdrift.capture.reports.exitinfo
 import android.app.ApplicationExitInfo
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -20,7 +21,7 @@ import org.robolectric.annotation.Config
 class PreviousRunInfoResolverTest {
     private val latestAppExitInfoProvider = FakeLatestAppExitInfoProvider()
 
-    @Test
+    @Before
     fun tearDown() {
         latestAppExitInfoProvider.reset()
     }
@@ -82,6 +83,14 @@ class PreviousRunInfoResolverTest {
     fun get_returnsNullOnError() {
         latestAppExitInfoProvider.setAsErrorResult()
 
+        val result = PreviousRunInfoResolver(latestAppExitInfoProvider).get()
+
+        assertThat(result).isNull()
+    }
+
+    @Test
+    @Config(sdk = [24])
+    fun get_belowApi30_returnsNull() {
         val result = PreviousRunInfoResolver(latestAppExitInfoProvider).get()
 
         assertThat(result).isNull()
