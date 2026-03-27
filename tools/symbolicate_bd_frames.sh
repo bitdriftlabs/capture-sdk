@@ -4,17 +4,18 @@ set -e
 
 # Usage function
 usage() {
-    echo "Usage: $0 -d <dump_file> -v <version> [-a <arch>]"
+    echo "Usage: $0 -d <dump_file> -v <version> [-a <arch>] [-o <output_file>]"
     echo ""
     echo "Options:"
-    echo "  -d <dump_file>  Path to the crash dump file"
-    echo "  -v <version>    SDK version (e.g., 0.19.1)"
-    echo "  -a <arch>       Architecture (arm64-v8a, armeabi-v7a, x86_64, x86)"
-    echo "                  If not provided, will auto-detect from dump file"
+    echo "  -d <dump_file>    Path to the crash dump file (Tombstone or Bugsnag formatted)"
+    echo "  -v <version>      SDK version (e.g., 0.19.1)"
+    echo "  -a <arch>         [Optional] Architecture (arm64-v8a, armeabi-v7a, x86_64, x86)"
+    echo "                    If not provided, will auto-detect from dump file"
+    echo "  -o <output_file>  [Optional] Path to save the symbolicated output"
     echo ""
     echo "Example:"
     echo "  $0 -d dump.txt -v 0.19.1"
-    echo "  $0 -d dump.txt -v 0.19.1 -a arm64-v8a"
+    echo "  $0 -d dump.txt -v 0.22.3 -a arm64-v8a -o output.txt"
     exit 1
 }
 
@@ -22,12 +23,14 @@ usage() {
 DUMP_FILE=""
 VERSION=""
 ARCH=""
+OUT_FILE=""
 
-while getopts "d:v:a:h" opt; do
+while getopts "d:v:a:o:h" opt; do
     case $opt in
         d) DUMP_FILE="$OPTARG" ;;
         v) VERSION="$OPTARG" ;;
         a) ARCH="$OPTARG" ;;
+        o) OUT_FILE="$OPTARG" ;;
         h) usage ;;
         *) usage ;;
     esac
@@ -83,13 +86,13 @@ echo ""
 # Auto-detect architecture if not provided
 if [[ -z "$ARCH" ]]; then
     echo "Auto-detecting architecture from dump file..."
-    if grep -q "ABI: 'arm64'" "$DUMP_FILE"; then
+    if grep -qE "ABI: 'arm64'|arm64-v8a|aarch64|arm64" "$DUMP_FILE"; then
         ARCH="arm64-v8a"
-    elif grep -q "ABI: 'arm'" "$DUMP_FILE"; then
+    elif grep -qE "ABI: 'arm'|armeabi-v7a|armv7" "$DUMP_FILE"; then
         ARCH="armeabi-v7a"
-    elif grep -q "ABI: 'x86_64'" "$DUMP_FILE"; then
+    elif grep -qE "ABI: 'x86_64'|x86_64|amd64" "$DUMP_FILE"; then
         ARCH="x86_64"
-    elif grep -q "ABI: 'x86'" "$DUMP_FILE"; then
+    elif grep -qE "ABI: 'x86'|x86|i686" "$DUMP_FILE"; then
         ARCH="x86"
     else
         echo "Error: Could not auto-detect architecture from dump file"
@@ -133,7 +136,7 @@ echo "Extracting debug symbols..."
 gunzip -c "$SYMBOLS_GZ" > "$SYMBOLS_FILE"
 
 # Extract BuildId from dump
-BUILD_ID=$(grep "BuildId:" "$DUMP_FILE" | head -1 | awk '{print $NF}' | tr -d ')')
+BUILD_ID=$(grep -E "(BuildId:|Build ID:)" "$DUMP_FILE" | head -1 | awk '{print $NF}' | tr -d ')')
 echo "Build ID from dump: $BUILD_ID"
 
 # Verify BuildId matches (if possible)
@@ -141,7 +144,8 @@ SYMBOLS_BUILD_ID=$(file "$SYMBOLS_FILE" | grep -o 'BuildID\[xxHash\]=[a-f0-9]*' 
 if [[ -n "$SYMBOLS_BUILD_ID" ]]; then
     echo "Build ID from symbols: $SYMBOLS_BUILD_ID"
     if [[ "$BUILD_ID" != "$SYMBOLS_BUILD_ID" ]]; then
-        echo "Warning: Build IDs do not match!"
+        echo "Warning: Initial Build ID from dump ($BUILD_ID) does not match symbols ($SYMBOLS_BUILD_ID)!"
+        echo "Will attempt to symbolicate frames matching $SYMBOLS_BUILD_ID."
     fi
 fi
 
@@ -149,8 +153,18 @@ fi
 echo ""
 echo "Extracting backtrace from dump..."
 
-# Extract all backtrace lines
-BACKTRACE_LINES=$(grep "backtrace:" -A 100 "$DUMP_FILE" | grep "^[ ]*#" | head -100)
+# Extract all lines with a program counter address
+BACKTRACE_LINES=$(grep "pc " "$DUMP_FILE" || true)
+
+if [[ -z "$BACKTRACE_LINES" ]]; then
+    # Try looking for STACKTRACE format if "pc " wasn't found natively, though bugsnag lines usually have "pc "
+    BACKTRACE_LINES=$(grep "STACKTRACE" -A 100 "$DUMP_FILE" | grep -i "pc " || true)
+fi
+
+if [[ -z "$BACKTRACE_LINES" ]]; then
+    # Try looking for raw debuggerd format like #00 0x0000...
+    BACKTRACE_LINES=$(grep -E "#[0-9]{2} 0x[0-9a-f]+" "$DUMP_FILE" || true)
+fi
 
 if [[ -z "$BACKTRACE_LINES" ]]; then
     echo "Error: No backtrace found in dump file"
@@ -164,13 +178,23 @@ touch "$SYMBOL_MAP_FILE"
 # Symbolicate addresses
 SYMBOL_COUNT=0
 while IFS= read -r line; do
-    # Check if line contains a pc address and BuildId
-    if echo "$line" | grep -q "pc [0-9a-f]"; then
-        ADDR=$(echo "$line" | awk '{print $3}')
+    # Check if line contains a pc address or #xx 0x... format
+    if echo "$line" | grep -qE "pc [0-9a-f]|#[0-9]{2} 0x[0-9a-f]"; then
+        # Extract pc address, gracefully handling bugsnag stacktrace formats
+        if echo "$line" | grep -q "pc [0-9a-f]"; then
+            ADDR=$(echo "$line" | grep -o 'pc [0-9a-f]*' | head -1 | awk '{print $2}')
+        else
+            ADDR=$(echo "$line" | grep -oE '#[0-9]{2} 0x[0-9a-f]+' | head -1 | awk '{print $2}' | sed 's/^0x//')
+        fi
+        
+        # Extract Build ID if present on the line
         LINE_BUILD_ID=$(echo "$line" | grep -oE 'BuildId: [a-f0-9]+' | awk '{print $2}')
         
-        # Only symbolicate if BuildId matches our symbols (or no BuildId specified in line)
-        if [[ -z "$LINE_BUILD_ID" ]] || [[ "$LINE_BUILD_ID" == "$BUILD_ID" ]]; then
+        # Determine target Build ID to check against (prefer downloaded symbols)
+        TARGET_BUILD_ID=${SYMBOLS_BUILD_ID:-$BUILD_ID}
+        
+        # Only symbolicate if we have no constraint, or Build IDs match, or the frame uses base.apk (our module in Bugsnag style)
+        if [[ -z "$LINE_BUILD_ID" ]] || [[ -z "$TARGET_BUILD_ID" ]] || [[ "$LINE_BUILD_ID" == "$TARGET_BUILD_ID" ]] || [[ "$line" == *"base.apk"* ]]; then
             # Strip leading zeros but keep at least one digit
             # ${ADDR%%[!0]*} matches all leading zeros, then we strip them with #
             # If result is empty (all zeros), we default to "0"
@@ -199,25 +223,39 @@ done <<< "$BACKTRACE_LINES"
 
 echo "Found $SYMBOL_COUNT addresses to symbolicate"
 echo ""
-echo "========================================"
-echo "SYMBOLICATED BACKTRACE"
-echo "========================================"
 
-# Print the full backtrace with symbolicated lines
-while IFS= read -r line; do
-    echo "$line"
-    
-    # Check if this line has a symbolicated version
-    if echo "$line" | grep -q "pc [0-9a-f]"; then
-        ADDR=$(echo "$line" | awk '{print $3}')
-        SYMBOL=$(grep "^$ADDR|" "$SYMBOL_MAP_FILE" 2>/dev/null | cut -d'|' -f2-)
-        if [[ -n "$SYMBOL" ]]; then
-            echo "       [SYMBOLICATED] $SYMBOL"
+print_backtrace() {
+    # Print the full backtrace with symbolicated lines
+    while IFS= read -r line; do
+        # Check if this line has a symbolicated version
+        if echo "$line" | grep -qE "pc [0-9a-f]|#[0-9]{2} 0x[0-9a-f]"; then
+            if echo "$line" | grep -q "pc [0-9a-f]"; then
+                ADDR=$(echo "$line" | grep -o 'pc [0-9a-f]*' | head -1 | awk '{print $2}')
+            else
+                ADDR=$(echo "$line" | grep -oE '#[0-9]{2} 0x[0-9a-f]+' | head -1 | awk '{print $2}' | sed 's/^0x//')
+            fi
+            SYMBOL=$(grep "^$ADDR|" "$SYMBOL_MAP_FILE" 2>/dev/null | head -1 | cut -d'|' -f2-)
+            if [[ -n "$SYMBOL" ]]; then
+                # Replace everything after the pc/address with the symbolicated output
+                # Keep the original prefix up to the pc address
+                if echo "$line" | grep -q "pc [0-9a-f]"; then
+                    prefix=$(echo "$line" | sed -E "s/(pc [0-9a-f]+).*/\1/")
+                else
+                    prefix=$(echo "$line" | sed -E "s/(#[0-9]{2} 0x[0-9a-f]+).*/\1/")
+                fi
+                echo "$prefix [symbolicated] $SYMBOL"
+            else
+                echo "$line"
+            fi
+        else
+            echo "$line"
         fi
-    fi
-done <<< "$BACKTRACE_LINES"
+    done < "$DUMP_FILE"
+}
 
-echo ""
-echo "========================================"
-echo "END OF BACKTRACE"
-echo "========================================"
+if [[ -n "$OUT_FILE" ]]; then
+    print_backtrace > "$OUT_FILE"
+    echo "Symbolicated output saved to: $OUT_FILE"
+else
+    print_backtrace
+fi
