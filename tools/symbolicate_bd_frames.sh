@@ -9,12 +9,12 @@ usage() {
     echo "Options:"
     echo "  -d <dump_file>  Path to the crash dump file (Tombstone or Bugsnag formatted)"
     echo "  -v <version>    SDK version (e.g., 0.19.1)"
-    echo "  -a <arch>       Architecture (arm64-v8a, armeabi-v7a, x86_64, x86)"
+    echo "  -a <arch>       [Optional] Architecture (arm64-v8a, armeabi-v7a, x86_64, x86)"
     echo "                  If not provided, will auto-detect from dump file"
     echo ""
     echo "Example:"
     echo "  $0 -d dump.txt -v 0.19.1"
-    echo "  $0 -d bugsnag_dump.txt -v 0.22.3 -a arm64-v8a"
+    echo "  $0 -d dump.txt -v 0.22.3 -a arm64-v8a"
     exit 1
 }
 
