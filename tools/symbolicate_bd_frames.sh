@@ -215,28 +215,24 @@ echo "Found $SYMBOL_COUNT addresses to symbolicate"
 echo ""
 
 print_backtrace() {
-    echo "========================================"
-    echo "SYMBOLICATED BACKTRACE"
-    echo "========================================"
-
     # Print the full backtrace with symbolicated lines
     while IFS= read -r line; do
-        echo "$line"
-        
         # Check if this line has a symbolicated version
         if echo "$line" | grep -q "pc [0-9a-f]"; then
             ADDR=$(echo "$line" | grep -o 'pc [0-9a-f]*' | head -1 | awk '{print $2}')
             SYMBOL=$(grep "^$ADDR|" "$SYMBOL_MAP_FILE" 2>/dev/null | head -1 | cut -d'|' -f2-)
             if [[ -n "$SYMBOL" ]]; then
-                echo "       [SYMBOLICATED] $SYMBOL"
+                # Replace everything after the pc address with the symbolicated output
+                # Keep the original prefix up to the pc address
+                prefix=$(echo "$line" | sed -E "s/(pc [0-9a-f]+).*/\1/")
+                echo "$prefix [symbolicated] $SYMBOL"
+            else
+                echo "$line"
             fi
+        else
+            echo "$line"
         fi
-    done <<< "$BACKTRACE_LINES"
-
-    echo ""
-    echo "========================================"
-    echo "END OF BACKTRACE"
-    echo "========================================"
+    done < "$DUMP_FILE"
 }
 
 if [[ -n "$OUT_FILE" ]]; then
