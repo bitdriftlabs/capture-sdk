@@ -16,6 +16,7 @@ import io.bitdrift.capture.network.HttpRequestMetrics
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
+import io.bitdrift.capture.network.okhttp.CaptureOkHttpTracingInterceptor.Companion.TRACE_ID_HEADER
 import okhttp3.Call
 import okhttp3.Connection
 import okhttp3.EventListener
@@ -102,7 +103,11 @@ internal class CaptureOkHttpEventListener internal constructor(
         callStartTimeMs = clock.elapsedRealtime()
 
         val request = call.request()
-        val extraFields = requestExtraFieldsProvider.provideExtraFields(request)
+        val extraFields =
+            buildExtraFieldsWithOptionalTraceId(
+                request,
+                requestExtraFieldsProvider.provideExtraFields(request),
+            )
 
         val pathTemplateHeaderValues = request.headers.values("x-capture-path-template")
         val pathTemplate =
@@ -356,6 +361,12 @@ internal class CaptureOkHttpEventListener internal constructor(
         // successful or not to keep iOS and Android implementation in sync.
         val isSuccess = (statusCode in 200..<400)
 
+        val extraFields =
+            buildExtraFieldsWithOptionalTraceId(
+                request,
+                responseExtraFieldsProvider.provideExtraFields(response),
+            )
+
         // Capture response URL attributes in case there was a redirect and attributes such as host,
         // path, and query have different values for the original request and the response.
         // https://square.github.io/okhttp/features/interceptors/#application-interceptors
@@ -380,7 +391,7 @@ internal class CaptureOkHttpEventListener internal constructor(
                 response = httpResponse,
                 durationMs = (clock.elapsedRealtime() - callStartTimeMs),
                 metrics = getMetrics(),
-                extraFields = responseExtraFieldsProvider.provideExtraFields(response),
+                extraFields = extraFields,
             )
 
         logger?.log(httpResponseInfo)
@@ -397,6 +408,8 @@ internal class CaptureOkHttpEventListener internal constructor(
         // If there are multiple requests for a given call `response.request` will be the last of
         // them i.e., redirected request.
         val request = lastResponse?.request ?: call.request()
+
+        val extraFields = buildExtraFieldsWithOptionalTraceId(request)
 
         // Capture response URL attributes in case there was a redirect and attributes such as host,
         // path, and query have different values for the original request and the response.
@@ -421,6 +434,7 @@ internal class CaptureOkHttpEventListener internal constructor(
                 response = httpResponse,
                 durationMs = (clock.elapsedRealtime() - callStartTimeMs),
                 metrics = getMetrics(),
+                extraFields = extraFields,
             )
         logger?.log(httpResponseInfo)
     }
@@ -494,6 +508,18 @@ internal class CaptureOkHttpEventListener internal constructor(
                 TrafficStats.setThreadStatsTag(tag)
                 previousThreadStatsTag = null
             }
+        }
+    }
+
+    private fun buildExtraFieldsWithOptionalTraceId(
+        request: Request,
+        baseFields: Map<String, String> = emptyMap(),
+    ): Map<String, String> {
+        val traceId = request.header(TRACE_ID_HEADER) ?: return baseFields
+        return if (baseFields.isEmpty()) {
+            mapOf(TraceContextFactory.TRACE_ID_FIELD_KEY to traceId)
+        } else {
+            baseFields + (TraceContextFactory.TRACE_ID_FIELD_KEY to traceId)
         }
     }
 

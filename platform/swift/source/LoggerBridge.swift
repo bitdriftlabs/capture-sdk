@@ -65,6 +65,10 @@ final class LoggerBridge: LoggerBridging {
     let loggerID: LoggerID
     private var blockingShutdown = false
 
+    var isTracingActive: Bool {
+        capture_is_tracing_active(self.loggerID)
+    }
+
     init?(
         apiKey: String,
         bufferDirectoryPath: String,

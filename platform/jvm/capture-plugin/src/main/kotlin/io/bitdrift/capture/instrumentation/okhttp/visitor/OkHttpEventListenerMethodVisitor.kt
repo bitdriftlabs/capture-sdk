@@ -53,6 +53,8 @@ class OkHttpEventListenerMethodVisitor(
     ) {
     private val captureOkHttpEventListenerFactory =
         "io/bitdrift/capture/network/okhttp/CaptureOkHttpEventListenerFactory"
+    private val captureOkHttpTracingInterceptor =
+        "io/bitdrift/capture/network/okhttp/CaptureOkHttpTracingInterceptor"
 
     override fun onMethodEnter() {
         super.onMethodEnter()
@@ -64,6 +66,8 @@ class OkHttpEventListenerMethodVisitor(
     }
 
     private fun addOverwritingEventListener() {
+        addTracingInterceptor()
+
         // Add the following call at the beginning of the constructor with the Builder parameter:
         // builder.eventListenerFactory(new CaptureOkHttpEventListenerFactory());
 
@@ -95,9 +99,12 @@ class OkHttpEventListenerMethodVisitor(
             "(Lokhttp3/EventListener\$Factory;)Lokhttp3/OkHttpClient\$Builder;",
             false,
         )
+        visitInsn(Opcodes.POP)
     }
 
     private fun addProxyingEventListener() {
+        addTracingInterceptor()
+
         // Add the following call at the beginning of the constructor with the Builder parameter:
         // builder.eventListenerFactory(new CaptureOkHttpEventListenerFactory(builder.eventListenerFactory));
 
@@ -141,5 +148,35 @@ class OkHttpEventListenerMethodVisitor(
             "(Lokhttp3/EventListener\$Factory;)Lokhttp3/OkHttpClient\$Builder;",
             false,
         )
+        visitInsn(Opcodes.POP)
+    }
+
+    private fun addTracingInterceptor() {
+        // Add the following call at the beginning of the constructor with the Builder parameter:
+        // builder.addInterceptor(new CaptureOkHttpTracingInterceptor());
+
+        // OkHttpClient.Builder is the parameter, retrieved here
+        visitVarInsn(Opcodes.ALOAD, 1)
+
+        // Create CaptureOkHttpTracingInterceptor instance
+        visitTypeInsn(Opcodes.NEW, captureOkHttpTracingInterceptor)
+        visitInsn(Opcodes.DUP)
+        visitMethodInsn(
+            Opcodes.INVOKESPECIAL,
+            captureOkHttpTracingInterceptor,
+            "<init>",
+            "()V",
+            false,
+        )
+
+        // Call addInterceptor(Interceptor)
+        visitMethodInsn(
+            Opcodes.INVOKEVIRTUAL,
+            "okhttp3/OkHttpClient\$Builder",
+            "addInterceptor",
+            "(Lokhttp3/Interceptor;)Lokhttp3/OkHttpClient\$Builder;",
+            false,
+        )
+        visitInsn(Opcodes.POP)
     }
 }

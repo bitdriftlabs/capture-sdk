@@ -14,6 +14,8 @@ typealias InternalFields = [CapturePassable.Field]
 /// An abstraction around Rust logger calls. It's main purpose is to help with dependency injection so that
 /// tests do not call into Rust methods.
 protocol LoggerBridging {
+    var isTracingActive: Bool { get }
+
     func log(
         level: LogLevel,
         message: @autoclosure () -> String,

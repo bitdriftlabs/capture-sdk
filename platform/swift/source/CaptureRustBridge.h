@@ -308,6 +308,15 @@ void capture_api_release_stream(stream_id);
 bool capture_runtime_bool_variable_value(logger_id logger_id, const char *variable_name, bool default_value);
 
 /*
+ * Checks whether tracing is currently active for the logger/session.
+ *
+ * @param logger_id the logger to query.
+ *
+ * @returns true if tracing is active, false otherwise.
+ */
+bool capture_is_tracing_active(logger_id logger_id);
+
+/*
  * Returns the value of an integer runtime variable via client runtime configuration.
  *
  * @param logger_id the logger to check the variable value for.
@@ -317,6 +326,17 @@ bool capture_runtime_bool_variable_value(logger_id logger_id, const char *variab
  * @returns the value of the uin32_t variable.
  */
 uint32_t capture_runtime_uint32_variable_value(logger_id logger_id, const char *variable_name, uint32_t default_value);
+
+/*
+ * Returns the value of a string runtime variable via client runtime configuration.
+ *
+ * @param logger_id the logger to check the variable value for.
+ * @param variable_name the name of the string variable to check.
+ * @param default_value the default value to use when the relevant configuration entry is missing.
+ *
+ * @returns the value of the string variable.
+ */
+NSString * capture_runtime_string_variable_value(logger_id logger_id, const char *variable_name, const char *default_value);
 
 /*
  * Records the session replay record capture screen duration.

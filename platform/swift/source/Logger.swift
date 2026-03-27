@@ -611,6 +611,14 @@ extension Logger: Logging {
 // MARK: - Features
 
 extension Logger {
+    internal var isTracingActive: Bool {
+        (self.underlyingLogger as? CoreLogger)?.isTracingActive == true
+    }
+
+    internal func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
+        self.underlyingLogger.runtimeValue(variable)
+    }
+
     static func setUpMemoryStateMonitoring(
         logger: CoreLogging
     ) -> DispatchSourceMemoryMonitor
