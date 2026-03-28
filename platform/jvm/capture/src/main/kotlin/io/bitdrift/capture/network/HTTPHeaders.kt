@@ -15,15 +15,26 @@ private val DISALLOWED_HEADER_KEYS = setOf<String>("authorization", "proxy-autho
 internal object HTTPHeaders {
     fun normalizeHeaders(headers: Map<String, String>): ArrayFields {
         if (headers.isEmpty()) return ArrayFields.EMPTY
-        val keys = mutableListOf<String>()
-        val values = mutableListOf<String>()
+
+        val keys = arrayOfNulls<String>(headers.size)
+        val values = arrayOfNulls<String>(headers.size)
+        var index = 0
+
         headers.forEach { (key, value) ->
             if (!DISALLOWED_HEADER_KEYS.contains(key.lowercase())) {
-                keys.add("$HEADERS_FIELD_KEY_PREFIX.$key")
-                values.add(value)
+                keys[index] = "$HEADERS_FIELD_KEY_PREFIX.$key"
+                values[index] = value
+                index++
             }
         }
-        if (keys.isEmpty()) return ArrayFields.EMPTY
-        return ArrayFields(keys.toTypedArray(), values.toTypedArray())
+
+        if (index == 0) return ArrayFields.EMPTY
+        if (index == headers.size) {
+            return ArrayFields(keys.requireNoNulls(), values.requireNoNulls())
+        }
+        return ArrayFields(
+            keys.copyOf(index).requireNoNulls(),
+            values.copyOf(index).requireNoNulls(),
+        )
     }
 }
