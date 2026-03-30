@@ -35,10 +35,14 @@ extension URLSessionTask {
         }
 
         let existingHeaders = self.originalRequest?.allHTTPHeaderFields
+
+        guard !URLSessionTracePropagation.isBitdriftInternalRequest(existingHeaders) else {
+            return
+        }
+
         if URLSessionTracePropagation.hasExistingTraceHeaders(in: existingHeaders) {
-            if let sampledTraceID = URLSessionTracePropagation.extractSampledTraceID(from: existingHeaders) {
-                self.cap_traceContext = URLSessionTraceContext(traceID: sampledTraceID, spanID: "")
-            }
+            let sampledTraceID = URLSessionTracePropagation.extractSampledTraceID(from: existingHeaders)
+            self.cap_traceContext = URLSessionTraceContext(traceID: sampledTraceID ?? "", spanID: "")
             return
         }
 

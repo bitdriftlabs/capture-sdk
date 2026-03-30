@@ -1114,6 +1114,31 @@ final class URLSessionTracePropagationTests: XCTestCase {
         session.invalidateAndCancel()
     }
 
+    // MARK: - Bitdrift internal request exclusion
+
+    func testCapResume_withBitdriftApiKey_shouldNotAttachTraceContext() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
+
+        var request = URLRequest(url: URL(staticString: "https://api.bitdrift.io/v1/device-code"))
+        request.setValue("test-api-key", forHTTPHeaderField: "x-bitdrift-api-key")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: request)
+
+        task.resume()
+
+        XCTAssertNil(task.cap_traceContext)
+
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        XCTAssertNil(headers?["traceparent"])
+        XCTAssertNil(headers?["b3"])
+        XCTAssertNil(headers?["X-B3-TraceId"])
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
     // MARK: - Existing header detection
 
     func testCapResume_withExistingTraceparent_shouldExtractTraceIDAndSkipInjection() throws {
@@ -1199,7 +1224,8 @@ final class URLSessionTracePropagationTests: XCTestCase {
 
         task.resume()
 
-        XCTAssertNil(task.cap_traceContext)
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        XCTAssertTrue(traceContext.traceID.isEmpty)
 
         let headers = task.originalRequest?.allHTTPHeaderFields
         XCTAssertEqual(headers?["X-B3-TraceId"], "abcdef1234567890abcdef1234567890")
@@ -1220,7 +1246,8 @@ final class URLSessionTracePropagationTests: XCTestCase {
 
         task.resume()
 
-        XCTAssertNil(task.cap_traceContext)
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        XCTAssertTrue(traceContext.traceID.isEmpty)
 
         let headers = task.originalRequest?.allHTTPHeaderFields
         XCTAssertEqual(headers?["traceparent"], "00-abcdef1234567890abcdef1234567890-1234567890abcdef-00")
@@ -1327,6 +1354,20 @@ final class URLSessionTracePropagationDetectionTests: XCTestCase {
     func testHasExistingTraceHeaders_withUnrelatedHeaders() {
         let headers = ["Content-Type": "application/json", "Authorization": "Bearer token"]
         XCTAssertFalse(URLSessionTracePropagation.hasExistingTraceHeaders(in: headers))
+    }
+
+    func testIsBitdriftInternalRequest_withApiKey() {
+        let headers = ["x-bitdrift-api-key": "test-key"]
+        XCTAssertTrue(URLSessionTracePropagation.isBitdriftInternalRequest(headers))
+    }
+
+    func testIsBitdriftInternalRequest_withoutApiKey() {
+        let headers = ["Content-Type": "application/json"]
+        XCTAssertFalse(URLSessionTracePropagation.isBitdriftInternalRequest(headers))
+    }
+
+    func testIsBitdriftInternalRequest_nilHeaders() {
+        XCTAssertFalse(URLSessionTracePropagation.isBitdriftInternalRequest(nil))
     }
 }
 

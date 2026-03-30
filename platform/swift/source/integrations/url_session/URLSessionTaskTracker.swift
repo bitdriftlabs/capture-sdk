@@ -34,7 +34,7 @@ final class URLSessionTaskTracker {
         with traceContext: URLSessionTraceContext?
     ) -> Fields?
     {
-        guard let traceContext else {
+        guard let traceContext, !traceContext.traceID.isEmpty else {
             return extraFields
         }
 
@@ -51,6 +51,11 @@ final class URLSessionTaskTracker {
 
         let integration = URLSessionIntegration.shared
         guard integration.tracePropagationMode != .disabled, integration.isTracingActive else {
+            return nil
+        }
+
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        guard !URLSessionTracePropagation.isBitdriftInternalRequest(headers) else {
             return nil
         }
 

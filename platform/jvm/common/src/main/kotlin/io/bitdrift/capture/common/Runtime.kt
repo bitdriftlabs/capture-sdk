@@ -134,7 +134,7 @@ sealed class RuntimeStringConfig(
      * - "w3c": use `traceparent`
      * - "b3": use `b3`
      */
-    data object TRACE_PROPAGATION_MODE : RuntimeStringConfig("trace.propagation_mode", "none")
+    data object TRACE_PROPAGATION_MODE : RuntimeStringConfig("client_config.trace.propagation_mode", "none")
 }
 
 /**

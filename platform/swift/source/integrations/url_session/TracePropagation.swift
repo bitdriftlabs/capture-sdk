@@ -47,6 +47,12 @@ enum URLSessionTracePropagation {
         "\(traceContext.traceID)-\(traceContext.spanID)-1"
     }
 
+    private static let bitdriftAPIKeyHeader = "x-bitdrift-api-key"
+
+    static func isBitdriftInternalRequest(_ headers: [String: String]?) -> Bool {
+        headers?[bitdriftAPIKeyHeader] != nil
+    }
+
     static func hasExistingTraceHeaders(in headers: [String: String]?) -> Bool {
         guard let headers else { return false }
         return headers[traceparentHeader] != nil
