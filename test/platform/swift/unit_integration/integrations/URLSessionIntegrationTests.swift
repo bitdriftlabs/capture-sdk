@@ -1058,9 +1058,6 @@ final class URLSessionTracePropagationTests: XCTestCase {
         let traceparent = try XCTUnwrap(headers?["traceparent"])
         XCTAssertEqual(traceparent, "00-\(traceContext.traceID)-\(traceContext.spanID)-01")
 
-        let captureHeader = try XCTUnwrap(headers?["x-capture-span-trace-id"])
-        XCTAssertEqual(captureHeader, traceContext.traceID)
-
         XCTAssertNil(headers?["b3"])
         XCTAssertNil(headers?["X-B3-TraceId"])
 
@@ -1084,9 +1081,6 @@ final class URLSessionTracePropagationTests: XCTestCase {
         let headers = task.originalRequest?.allHTTPHeaderFields
         let b3 = try XCTUnwrap(headers?["b3"])
         XCTAssertEqual(b3, "\(traceContext.traceID)-\(traceContext.spanID)-1")
-
-        let captureHeader = try XCTUnwrap(headers?["x-capture-span-trace-id"])
-        XCTAssertEqual(captureHeader, traceContext.traceID)
 
         XCTAssertNil(headers?["traceparent"])
         XCTAssertNil(headers?["X-B3-TraceId"])
@@ -1112,9 +1106,6 @@ final class URLSessionTracePropagationTests: XCTestCase {
         XCTAssertEqual(headers?["X-B3-TraceId"], traceContext.traceID)
         XCTAssertEqual(headers?["X-B3-SpanId"], traceContext.spanID)
         XCTAssertEqual(headers?["X-B3-Sampled"], "1")
-
-        let captureHeader = try XCTUnwrap(headers?["x-capture-span-trace-id"])
-        XCTAssertEqual(captureHeader, traceContext.traceID)
 
         XCTAssertNil(headers?["traceparent"])
         XCTAssertNil(headers?["b3"])
@@ -1143,7 +1134,6 @@ final class URLSessionTracePropagationTests: XCTestCase {
 
         let headers = task.originalRequest?.allHTTPHeaderFields
         XCTAssertEqual(headers?["traceparent"], "00-abcdef1234567890abcdef1234567890-1234567890abcdef-01")
-        XCTAssertNil(headers?["x-capture-span-trace-id"])
 
         task.cancel()
         session.invalidateAndCancel()
@@ -1167,18 +1157,18 @@ final class URLSessionTracePropagationTests: XCTestCase {
 
         let headers = task.originalRequest?.allHTTPHeaderFields
         XCTAssertEqual(headers?["b3"], "abcdef1234567890abcdef1234567890-1234567890abcdef-1")
-        XCTAssertNil(headers?["x-capture-span-trace-id"])
 
         task.cancel()
         session.invalidateAndCancel()
     }
 
-    func testCapResume_withExistingB3Multi_shouldExtractTraceIDAndSkipInjection() throws {
+    func testCapResume_withExistingB3Multi_sampled_shouldExtractTraceIDAndSkipInjection() throws {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-multi")
 
         var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
         request.setValue("abcdef1234567890abcdef1234567890", forHTTPHeaderField: "X-B3-TraceId")
+        request.setValue("1", forHTTPHeaderField: "X-B3-Sampled")
 
         let session = URLSession(configuration: .default)
         let task = session.dataTask(with: request)
@@ -1191,9 +1181,49 @@ final class URLSessionTracePropagationTests: XCTestCase {
 
         let headers = task.originalRequest?.allHTTPHeaderFields
         XCTAssertEqual(headers?["X-B3-TraceId"], "abcdef1234567890abcdef1234567890")
-        XCTAssertNil(headers?["X-B3-SpanId"])
-        XCTAssertNil(headers?["X-B3-Sampled"])
-        XCTAssertNil(headers?["x-capture-span-trace-id"])
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_withExistingB3Multi_notSampled_shouldSkipTraceContext() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-multi")
+
+        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        request.setValue("abcdef1234567890abcdef1234567890", forHTTPHeaderField: "X-B3-TraceId")
+        request.setValue("0", forHTTPHeaderField: "X-B3-Sampled")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: request)
+
+        task.resume()
+
+        XCTAssertNil(task.cap_traceContext)
+
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        XCTAssertEqual(headers?["X-B3-TraceId"], "abcdef1234567890abcdef1234567890")
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_withExistingTraceparent_notSampled_shouldSkipTraceContext() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
+
+        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        request.setValue("00-abcdef1234567890abcdef1234567890-1234567890abcdef-00", forHTTPHeaderField: "traceparent")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: request)
+
+        task.resume()
+
+        XCTAssertNil(task.cap_traceContext)
+
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        XCTAssertEqual(headers?["traceparent"], "00-abcdef1234567890abcdef1234567890-1234567890abcdef-00")
 
         task.cancel()
         session.invalidateAndCancel()
@@ -1215,7 +1245,6 @@ final class URLSessionTracePropagationTests: XCTestCase {
 
         let traceContext = try XCTUnwrap(task.cap_traceContext)
         XCTAssertEqual(traceContext.traceID, "abcdef1234567890abcdef1234567890")
-        XCTAssertEqual(traceContext.spanID, "")
 
         let headers = task.originalRequest?.allHTTPHeaderFields
         XCTAssertNil(headers?["traceparent"])
@@ -1238,7 +1267,6 @@ final class URLSessionTracePropagationTests: XCTestCase {
 
         let traceContext = try XCTUnwrap(task.cap_traceContext)
         XCTAssertEqual(traceContext.traceID, "abcdef1234567890abcdef1234567890")
-        XCTAssertEqual(traceContext.spanID, "")
 
         let headers = task.originalRequest?.allHTTPHeaderFields
         XCTAssertNil(headers?["b3"])
@@ -1261,7 +1289,6 @@ final class URLSessionTracePropagationTests: XCTestCase {
 
         let traceContext = try XCTUnwrap(task.cap_traceContext)
         XCTAssertEqual(traceContext.traceID, "abcdef1234567890abcdef1234567890")
-        XCTAssertEqual(traceContext.spanID, "")
 
         let headers = task.originalRequest?.allHTTPHeaderFields
         XCTAssertNil(headers?["X-B3-TraceId"])
@@ -1271,46 +1298,146 @@ final class URLSessionTracePropagationTests: XCTestCase {
     }
 }
 
-// MARK: - extractExistingTraceID unit tests
+// MARK: - hasExistingTraceHeaders unit tests
+
+final class URLSessionTracePropagationDetectionTests: XCTestCase {
+    func testHasExistingTraceHeaders_withTraceparent() {
+        let headers = ["traceparent": "00-abcdef1234567890abcdef1234567890-1234567890abcdef-01"]
+        XCTAssertTrue(URLSessionTracePropagation.hasExistingTraceHeaders(in: headers))
+    }
+
+    func testHasExistingTraceHeaders_withB3Single() {
+        let headers = ["b3": "abcdef1234567890abcdef1234567890-1234567890abcdef-1"]
+        XCTAssertTrue(URLSessionTracePropagation.hasExistingTraceHeaders(in: headers))
+    }
+
+    func testHasExistingTraceHeaders_withB3Multi() {
+        let headers = ["X-B3-TraceId": "abcdef1234567890abcdef1234567890"]
+        XCTAssertTrue(URLSessionTracePropagation.hasExistingTraceHeaders(in: headers))
+    }
+
+    func testHasExistingTraceHeaders_withNoHeaders() {
+        XCTAssertFalse(URLSessionTracePropagation.hasExistingTraceHeaders(in: nil))
+    }
+
+    func testHasExistingTraceHeaders_withEmptyHeaders() {
+        XCTAssertFalse(URLSessionTracePropagation.hasExistingTraceHeaders(in: [:]))
+    }
+
+    func testHasExistingTraceHeaders_withUnrelatedHeaders() {
+        let headers = ["Content-Type": "application/json", "Authorization": "Bearer token"]
+        XCTAssertFalse(URLSessionTracePropagation.hasExistingTraceHeaders(in: headers))
+    }
+}
+
+// MARK: - extractSampledTraceID unit tests
 
 final class URLSessionTracePropagationExtractionTests: XCTestCase {
-    func testExtractExistingTraceID_fromW3CTraceparent() {
+    func testExtractSampledTraceID_fromW3C_sampled() {
         let headers = ["traceparent": "00-abcdef1234567890abcdef1234567890-1234567890abcdef-01"]
-        let traceID = URLSessionTracePropagation.extractExistingTraceID(from: headers)
-        XCTAssertEqual(traceID, "abcdef1234567890abcdef1234567890")
+        XCTAssertEqual(
+            URLSessionTracePropagation.extractSampledTraceID(from: headers),
+            "abcdef1234567890abcdef1234567890"
+        )
     }
 
-    func testExtractExistingTraceID_fromB3Single() {
+    func testExtractSampledTraceID_fromW3C_notSampled() {
+        let headers = ["traceparent": "00-abcdef1234567890abcdef1234567890-1234567890abcdef-00"]
+        XCTAssertNil(URLSessionTracePropagation.extractSampledTraceID(from: headers))
+    }
+
+    func testExtractSampledTraceID_fromW3C_sampledWithExtraBits() {
+        let headers = ["traceparent": "00-abcdef1234567890abcdef1234567890-1234567890abcdef-03"]
+        XCTAssertEqual(
+            URLSessionTracePropagation.extractSampledTraceID(from: headers),
+            "abcdef1234567890abcdef1234567890"
+        )
+    }
+
+    func testExtractSampledTraceID_fromW3C_sampledFf() {
+        let headers = ["traceparent": "00-abcdef1234567890abcdef1234567890-1234567890abcdef-ff"]
+        XCTAssertEqual(
+            URLSessionTracePropagation.extractSampledTraceID(from: headers),
+            "abcdef1234567890abcdef1234567890"
+        )
+    }
+
+    func testExtractSampledTraceID_fromW3C_notSampledEvenFlags() {
+        let headers = ["traceparent": "00-abcdef1234567890abcdef1234567890-1234567890abcdef-02"]
+        XCTAssertNil(URLSessionTracePropagation.extractSampledTraceID(from: headers))
+    }
+
+    func testExtractSampledTraceID_fromW3C_garbageFlags() {
+        let headers = ["traceparent": "00-abcdef1234567890abcdef1234567890-1234567890abcdef-zz"]
+        XCTAssertNil(URLSessionTracePropagation.extractSampledTraceID(from: headers))
+    }
+
+    func testExtractSampledTraceID_fromB3Single_sampled() {
         let headers = ["b3": "abcdef1234567890abcdef1234567890-1234567890abcdef-1"]
-        let traceID = URLSessionTracePropagation.extractExistingTraceID(from: headers)
-        XCTAssertEqual(traceID, "abcdef1234567890abcdef1234567890")
+        XCTAssertEqual(
+            URLSessionTracePropagation.extractSampledTraceID(from: headers),
+            "abcdef1234567890abcdef1234567890"
+        )
     }
 
-    func testExtractExistingTraceID_fromB3Multi() {
+    func testExtractSampledTraceID_fromB3Single_debug() {
+        let headers = ["b3": "abcdef1234567890abcdef1234567890-1234567890abcdef-d"]
+        XCTAssertEqual(
+            URLSessionTracePropagation.extractSampledTraceID(from: headers),
+            "abcdef1234567890abcdef1234567890"
+        )
+    }
+
+    func testExtractSampledTraceID_fromB3Single_notSampled() {
+        let headers = ["b3": "abcdef1234567890abcdef1234567890-1234567890abcdef-0"]
+        XCTAssertNil(URLSessionTracePropagation.extractSampledTraceID(from: headers))
+    }
+
+    func testExtractSampledTraceID_fromB3Multi_sampled() {
+        let headers = [
+            "X-B3-TraceId": "abcdef1234567890abcdef1234567890",
+            "X-B3-Sampled": "1",
+        ]
+        XCTAssertEqual(
+            URLSessionTracePropagation.extractSampledTraceID(from: headers),
+            "abcdef1234567890abcdef1234567890"
+        )
+    }
+
+    func testExtractSampledTraceID_fromB3Multi_notSampled() {
+        let headers = [
+            "X-B3-TraceId": "abcdef1234567890abcdef1234567890",
+            "X-B3-Sampled": "0",
+        ]
+        XCTAssertNil(URLSessionTracePropagation.extractSampledTraceID(from: headers))
+    }
+
+    func testExtractSampledTraceID_fromB3Multi_missingSampled() {
         let headers = ["X-B3-TraceId": "abcdef1234567890abcdef1234567890"]
-        let traceID = URLSessionTracePropagation.extractExistingTraceID(from: headers)
-        XCTAssertEqual(traceID, "abcdef1234567890abcdef1234567890")
+        XCTAssertNil(URLSessionTracePropagation.extractSampledTraceID(from: headers))
     }
 
-    func testExtractExistingTraceID_prefersW3COverB3() {
+    func testExtractSampledTraceID_prefersW3COverB3() {
         let headers = [
             "traceparent": "00-w3ctraceida1b2c3d4e5f6a7b8c9d0-1234567890abcdef-01",
             "b3": "b3traceida1b2c3d4e5f6a7b8c9d0e1f2-1234567890abcdef-1",
         ]
-        let traceID = URLSessionTracePropagation.extractExistingTraceID(from: headers)
-        XCTAssertEqual(traceID, "w3ctraceida1b2c3d4e5f6a7b8c9d0")
+        XCTAssertEqual(
+            URLSessionTracePropagation.extractSampledTraceID(from: headers),
+            "w3ctraceida1b2c3d4e5f6a7b8c9d0"
+        )
     }
 
-    func testExtractExistingTraceID_returnsNilForNoHeaders() {
-        XCTAssertNil(URLSessionTracePropagation.extractExistingTraceID(from: nil))
+    func testExtractSampledTraceID_nilForNoHeaders() {
+        XCTAssertNil(URLSessionTracePropagation.extractSampledTraceID(from: nil))
     }
 
-    func testExtractExistingTraceID_returnsNilForEmptyHeaders() {
-        XCTAssertNil(URLSessionTracePropagation.extractExistingTraceID(from: [:]))
+    func testExtractSampledTraceID_nilForEmptyHeaders() {
+        XCTAssertNil(URLSessionTracePropagation.extractSampledTraceID(from: [:]))
     }
 
-    func testExtractExistingTraceID_returnsNilForUnrelatedHeaders() {
+    func testExtractSampledTraceID_nilForUnrelatedHeaders() {
         let headers = ["Content-Type": "application/json", "Authorization": "Bearer token"]
-        XCTAssertNil(URLSessionTracePropagation.extractExistingTraceID(from: headers))
+        XCTAssertNil(URLSessionTracePropagation.extractSampledTraceID(from: headers))
     }
 }

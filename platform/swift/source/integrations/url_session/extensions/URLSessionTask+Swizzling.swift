@@ -35,8 +35,10 @@ extension URLSessionTask {
         }
 
         let existingHeaders = self.originalRequest?.allHTTPHeaderFields
-        if let existingTraceID = URLSessionTracePropagation.extractExistingTraceID(from: existingHeaders) {
-            self.cap_traceContext = URLSessionTraceContext(traceID: existingTraceID, spanID: "")
+        if URLSessionTracePropagation.hasExistingTraceHeaders(in: existingHeaders) {
+            if let sampledTraceID = URLSessionTracePropagation.extractSampledTraceID(from: existingHeaders) {
+                self.cap_traceContext = URLSessionTraceContext(traceID: sampledTraceID, spanID: "")
+            }
             return
         }
 
@@ -68,7 +70,6 @@ extension URLSessionTask {
             break
         }
 
-        mutableRequest.setValue(traceContext.traceID, forHTTPHeaderField: URLSessionTracePropagation.traceIDHeader)
         try? ObjCWrapper.doTry {
             self.setValue(mutableRequest as URLRequest, forKey: "originalRequest")
         }

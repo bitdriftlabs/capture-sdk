@@ -16,7 +16,6 @@ import io.bitdrift.capture.network.HttpRequestMetrics
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
-import io.bitdrift.capture.network.okhttp.CaptureOkHttpTracingInterceptor.Companion.TRACE_ID_HEADER
 import okhttp3.Call
 import okhttp3.Connection
 import okhttp3.EventListener
@@ -515,9 +514,9 @@ internal class CaptureOkHttpEventListener internal constructor(
         request: Request,
         baseFields: Map<String, String> = emptyMap(),
     ): Map<String, String> {
-        val traceId = request.header(TRACE_ID_HEADER) ?: return baseFields
+        val traceId = TracePropagation.extractSampledTraceId(request) ?: return baseFields
         val fields = baseFields.toMutableMap()
-        fields[TraceContextFactory.TRACE_ID_FIELD_KEY] = traceId
+        fields[TracePropagation.TRACE_ID_FIELD_KEY] = traceId
         return fields
     }
 

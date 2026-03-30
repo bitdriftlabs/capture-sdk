@@ -33,8 +33,6 @@ enum URLSessionTracePropagationMode {
 
 enum URLSessionTracePropagation {
     static let traceIDField = "_trace_id"
-    static let traceIDHeader = "x-capture-span-trace-id"
-    static let legacyTraceIDHeader = "x-capture-span-trace-field-trace_id"
     static let traceparentHeader = "traceparent"
     static let b3Header = "b3"
     static let xB3TraceIDHeader = "X-B3-TraceId"
@@ -49,33 +47,45 @@ enum URLSessionTracePropagation {
         "\(traceContext.traceID)-\(traceContext.spanID)-1"
     }
 
-    /// Checks all known tracing header formats (W3C, B3 single, B3 multi) regardless of the
-    /// configured propagation mode.
+    static func hasExistingTraceHeaders(in headers: [String: String]?) -> Bool {
+        guard let headers else { return false }
+        return headers[traceparentHeader] != nil
+            || headers[b3Header] != nil
+            || headers[xB3TraceIDHeader] != nil
+    }
+
+    /// Extracts the trace ID from known tracing headers only when the trace is sampled.
     ///
     /// - parameter headers: The request headers to inspect.
     ///
-    /// - returns: The trace ID extracted from the first matching header, or `nil` if none found.
-    static func extractExistingTraceID(from headers: [String: String]?) -> String? {
+    /// - returns: The trace ID if the trace is sampled, or `nil` otherwise.
+    static func extractSampledTraceID(from headers: [String: String]?) -> String? {
         guard let headers else { return nil }
 
         // W3C traceparent: 00-<traceId>-<spanId>-<flags>
         if let traceparent = headers[traceparentHeader] {
             let parts = traceparent.split(separator: "-")
-            if parts.count >= 2 {
-                return String(parts[1])
+            guard parts.count >= 4,
+                  let flags = UInt8(parts[3], radix: 16),
+                  flags & 0x01 == 1
+            else {
+                return nil
             }
+            return String(parts[1])
         }
 
         // B3 single: <traceId>-<spanId>-<sampled>[-<parentSpanId>]
         if let b3 = headers[b3Header] {
             let parts = b3.split(separator: "-")
-            if let first = parts.first {
-                return String(first)
-            }
+            guard parts.count >= 3 else { return nil }
+            let sampled = parts[2]
+            guard sampled == "1" || sampled == "d" else { return nil }
+            return String(parts[0])
         }
 
         // B3 multi
         if let traceID = headers[xB3TraceIDHeader] {
+            guard headers[xB3SampledHeader] == "1" else { return nil }
             return traceID
         }
 

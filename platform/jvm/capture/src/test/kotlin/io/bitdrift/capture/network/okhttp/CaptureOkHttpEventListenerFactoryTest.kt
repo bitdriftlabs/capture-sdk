@@ -521,8 +521,8 @@ class CaptureOkHttpEventListenerFactoryTest {
         val requestInfo = requestInfoCapture.firstValue
         val responseInfo = responseInfoCapture.firstValue
 
-        assertThat(requestInfo.arrayFields[TraceContextFactory.TRACE_ID_FIELD_KEY].toString()).isEqualTo(traceId)
-        assertThat(responseInfo.arrayFields[TraceContextFactory.TRACE_ID_FIELD_KEY].toString()).isEqualTo(traceId)
+        assertThat(requestInfo.arrayFields[TracePropagation.TRACE_ID_FIELD_KEY].toString()).isEqualTo(traceId)
+        assertThat(responseInfo.arrayFields[TracePropagation.TRACE_ID_FIELD_KEY].toString()).isEqualTo(traceId)
     }
 
     @Test

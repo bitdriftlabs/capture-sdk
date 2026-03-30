@@ -40,10 +40,8 @@ class CaptureOkHttpTracingInterceptorTest {
 
         val request = chain.capturedRequest!!
         val traceparent = request.header("traceparent")
-        val traceId = request.header(CaptureOkHttpTracingInterceptor.TRACE_ID_HEADER)
         assertThat(traceparent).startsWith("00-")
         assertThat(traceparent).endsWith("-01")
-        assertThat(traceId).hasSize(32)
         assertThat(request.header("b3")).isNull()
     }
 
@@ -59,9 +57,7 @@ class CaptureOkHttpTracingInterceptorTest {
 
         val request = chain.capturedRequest!!
         val b3 = request.header("b3")
-        val traceId = request.header(CaptureOkHttpTracingInterceptor.TRACE_ID_HEADER)
         assertThat(b3).contains("-1")
-        assertThat(traceId).hasSize(32)
         assertThat(request.header("traceparent")).isNull()
     }
 
@@ -81,11 +77,10 @@ class CaptureOkHttpTracingInterceptorTest {
         assertThat(request.header("X-B3-Sampled")).isEqualTo("1")
         assertThat(request.header("traceparent")).isNull()
         assertThat(request.header("b3")).isNull()
-        assertThat(request.header(CaptureOkHttpTracingInterceptor.TRACE_ID_HEADER)).hasSize(32)
     }
 
     @Test
-    fun intercept_whenNotActiveTracing_debugBypassStillAddsHeaders() {
+    fun intercept_whenNotActiveTracing_shouldNotAddHeaders() {
         setActiveTracingState(isActiveTracingEnabled = false)
         setPropagationMode("w3c")
 
@@ -97,7 +92,6 @@ class CaptureOkHttpTracingInterceptorTest {
         val request = chain.capturedRequest!!
         assertThat(request.header("traceparent")).isNull()
         assertThat(request.header("b3")).isNull()
-        assertThat(request.header(CaptureOkHttpTracingInterceptor.TRACE_ID_HEADER)).isNull()
     }
 
     @Test
@@ -113,11 +107,10 @@ class CaptureOkHttpTracingInterceptorTest {
         val request = chain.capturedRequest!!
         assertThat(request.header("traceparent")).isNull()
         assertThat(request.header("b3")).isNull()
-        assertThat(request.header(CaptureOkHttpTracingInterceptor.TRACE_ID_HEADER)).isNull()
     }
 
     @Test
-    fun intercept_whenStringModeUnknown_shouldFallbackToIntMode() {
+    fun intercept_whenStringModeUnknown_shouldDefaultToNone() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("invalid")
 
@@ -129,11 +122,10 @@ class CaptureOkHttpTracingInterceptorTest {
         val request = chain.capturedRequest!!
         assertThat(request.header("b3")).isNull()
         assertThat(request.header("traceparent")).isNull()
-        assertThat(request.header(CaptureOkHttpTracingInterceptor.TRACE_ID_HEADER)).isNull()
     }
 
     @Test
-    fun intercept_whenW3cAndExistingTraceparent_shouldNotOverwriteButAddCaptureTraceId() {
+    fun intercept_whenExistingTraceparent_shouldPassThroughUnchanged() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("w3c")
 
@@ -151,12 +143,11 @@ class CaptureOkHttpTracingInterceptorTest {
 
         val captured = chain.capturedRequest!!
         assertThat(captured.header("traceparent")).isEqualTo(existingTraceparent)
-        assertThat(captured.header(CaptureOkHttpTracingInterceptor.TRACE_ID_HEADER))
-            .isEqualTo("88c131f5a4a41657a4cc039862759571")
+        assertThat(captured.headers.size).isEqualTo(request.headers.size)
     }
 
     @Test
-    fun intercept_whenB3SingleAndExistingB3_shouldNotOverwriteButAddCaptureTraceId() {
+    fun intercept_whenExistingB3Single_shouldPassThroughUnchanged() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("b3-single")
 
@@ -174,12 +165,11 @@ class CaptureOkHttpTracingInterceptorTest {
 
         val captured = chain.capturedRequest!!
         assertThat(captured.header("b3")).isEqualTo(existingB3)
-        assertThat(captured.header(CaptureOkHttpTracingInterceptor.TRACE_ID_HEADER))
-            .isEqualTo("88c131f5a4a41657a4cc039862759571")
+        assertThat(captured.headers.size).isEqualTo(request.headers.size)
     }
 
     @Test
-    fun intercept_whenB3MultiAndExistingHeaders_shouldNotOverwriteButAddCaptureTraceId() {
+    fun intercept_whenExistingB3Multi_shouldPassThroughUnchanged() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("b3-multi")
 
@@ -202,12 +192,11 @@ class CaptureOkHttpTracingInterceptorTest {
         assertThat(captured.header("X-B3-TraceId")).isEqualTo(existingTraceId)
         assertThat(captured.header("X-B3-SpanId")).isEqualTo(existingSpanId)
         assertThat(captured.header("X-B3-Sampled")).isEqualTo("1")
-        assertThat(captured.header(CaptureOkHttpTracingInterceptor.TRACE_ID_HEADER))
-            .isEqualTo(existingTraceId)
+        assertThat(captured.headers.size).isEqualTo(request.headers.size)
     }
 
     @Test
-    fun intercept_whenW3cModeButExistingB3Header_shouldNotInjectAndExtractTraceId() {
+    fun intercept_whenW3cModeButExistingB3Header_shouldPassThroughUnchanged() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("w3c")
 
@@ -226,12 +215,11 @@ class CaptureOkHttpTracingInterceptorTest {
         val captured = chain.capturedRequest!!
         assertThat(captured.header("b3")).isEqualTo(existingB3)
         assertThat(captured.header("traceparent")).isNull()
-        assertThat(captured.header(CaptureOkHttpTracingInterceptor.TRACE_ID_HEADER))
-            .isEqualTo("88c131f5a4a41657a4cc039862759571")
+        assertThat(captured.headers.size).isEqualTo(request.headers.size)
     }
 
     @Test
-    fun intercept_whenB3SingleModeButExistingTraceparent_shouldNotInjectAndExtractTraceId() {
+    fun intercept_whenB3SingleModeButExistingTraceparent_shouldPassThroughUnchanged() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("b3-single")
 
@@ -250,12 +238,11 @@ class CaptureOkHttpTracingInterceptorTest {
         val captured = chain.capturedRequest!!
         assertThat(captured.header("traceparent")).isEqualTo(existingTraceparent)
         assertThat(captured.header("b3")).isNull()
-        assertThat(captured.header(CaptureOkHttpTracingInterceptor.TRACE_ID_HEADER))
-            .isEqualTo("88c131f5a4a41657a4cc039862759571")
+        assertThat(captured.headers.size).isEqualTo(request.headers.size)
     }
 
     @Test
-    fun intercept_whenB3MultiModeButExistingB3SingleHeader_shouldNotInjectAndExtractTraceId() {
+    fun intercept_whenB3MultiModeButExistingB3SingleHeader_shouldPassThroughUnchanged() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("b3-multi")
 
@@ -275,8 +262,7 @@ class CaptureOkHttpTracingInterceptorTest {
         assertThat(captured.header("b3")).isEqualTo(existingB3)
         assertThat(captured.header("X-B3-TraceId")).isNull()
         assertThat(captured.header("X-B3-SpanId")).isNull()
-        assertThat(captured.header(CaptureOkHttpTracingInterceptor.TRACE_ID_HEADER))
-            .isEqualTo("88c131f5a4a41657a4cc039862759571")
+        assertThat(captured.headers.size).isEqualTo(request.headers.size)
     }
 
     private fun setPropagationMode(value: String) {

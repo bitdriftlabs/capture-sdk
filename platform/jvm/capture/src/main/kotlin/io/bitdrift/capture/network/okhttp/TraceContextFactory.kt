@@ -9,12 +9,6 @@ package io.bitdrift.capture.network.okhttp
 
 import java.security.SecureRandom
 
-/**
- * Generates a [TraceContext] which will be added to network headers. This is gated by
- * [io.bitdrift.capture.common.RuntimeStringConfig.TRACE_PROPAGATION_MODE].
- *
- * Sampled flag is hardcoded to 1 since traces are only generated when tracing is active.
- */
 internal class TraceContextFactory {
     private val secureRandom = SecureRandom()
 
@@ -38,8 +32,6 @@ internal class TraceContextFactory {
     }
 
     internal companion object {
-        internal const val TRACE_ID_FIELD_KEY = "_trace_id"
-
         private const val LOWER_HEX_DIGITS = "0123456789abcdef"
 
         private val BYTE_TO_HEX_TABLE =

@@ -21,8 +21,8 @@ import okhttp3.Response
  * Injects tracing headers into outgoing requests when Capture tracing is active for this session.
  *
  * If the request already contains any known tracing headers (W3C `traceparent`, B3 single `b3`,
- * or B3 multi `X-B3-TraceId`), regardless of the configured propagation format, those headers are
- * left untouched and the trace ID is extracted so it can still be attached to Capture logs.
+ * or B3 multi `X-B3-TraceId`), those headers are left untouched and no new headers are injected.
+ * The trace ID is later extracted from standard headers by the event listener for Capture logs.
  *
  * The propagation format is resolved from a runtime config flag.
  */
@@ -37,10 +37,9 @@ class CaptureOkHttpTracingInterceptor
 
         override fun intercept(chain: Interceptor.Chain): Response {
             val currentLogger = Capture.logger()
-
             val request = chain.request()
-            if (currentLogger == null) {
-                // This means the SDK wasn't initialized, so this interceptor should be a no-op
+
+            if (currentLogger == null || TracePropagation.hasExistingTraceHeaders(request)) {
                 return chain.proceed(request)
             }
 
@@ -49,15 +48,7 @@ class CaptureOkHttpTracingInterceptor
                 return chain.proceed(request)
             }
 
-            val existingTraceId = extractExistingTraceId(request)
-            if (existingTraceId != null) {
-                val requestBuilder = request.newBuilder()
-                requestBuilder.header(TRACE_ID_HEADER, existingTraceId)
-                return chain.proceed(requestBuilder.build())
-            }
-
             val requestBuilder = request.newBuilder()
-
             val traceContext = traceContextFactory.generateTraceContext()
             when (propagationMode) {
                 TracePropagationMode.W3C -> {
@@ -76,21 +67,7 @@ class CaptureOkHttpTracingInterceptor
 
                 TracePropagationMode.NONE -> return chain.proceed(request)
             }
-            requestBuilder.header(TRACE_ID_HEADER, traceContext.traceId)
             return chain.proceed(requestBuilder.build())
-        }
-
-        private fun extractExistingTraceId(request: Request): String? {
-            // W3C traceparent: 00-<traceId>-<spanId>-<flags>
-            val w3c = request.header("traceparent")?.split("-")?.getOrNull(1)
-            if (w3c != null) return w3c
-
-            // B3 single: <traceId>-<spanId>-<sampled>[-<parentSpanId>]
-            val b3Single = request.header("b3")?.split("-")?.getOrNull(0)
-            if (b3Single != null) return b3Single
-
-            // B3 multi
-            return request.header("X-B3-TraceId")
         }
 
         private fun shouldAddTraceHeaders(
@@ -98,15 +75,13 @@ class CaptureOkHttpTracingInterceptor
             propagationMode: TracePropagationMode,
             request: Request,
         ): Boolean =
-            currentLogger.isTracingActive && propagationMode != TracePropagationMode.NONE && request.header("x-bitdrift-api-key") == null
+            currentLogger.isTracingActive &&
+                propagationMode != TracePropagationMode.NONE &&
+                request.header("x-bitdrift-api-key") == null
 
         private fun getPropagationMode(): TracePropagationMode {
             val runtimeValue =
                 runtimeProvider.getRuntimeStringConfigValue(RuntimeStringConfig.TRACE_PROPAGATION_MODE)
             return TracePropagationMode.fromRuntimeValue(runtimeValue)
-        }
-
-        internal companion object {
-            internal const val TRACE_ID_HEADER = "x-capture-span-trace-id"
         }
     }
