@@ -24,6 +24,7 @@ fun SessionManagementCard(
     uiState: AppState,
     onStartNewSession: () -> Unit,
     onGenerateDeviceCode: () -> Unit,
+    onCopySessionId: () -> Unit,
     onCopySessionUrl: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -56,7 +57,7 @@ fun SessionManagementCard(
             if (uiState.session.sessionId != null) {
                 SessionIdField(
                     sessionId = uiState.session.sessionId,
-                    onCopySessionUrl = onCopySessionUrl,
+                    onCopySessionId = onCopySessionId,
                 )
             }
 
@@ -107,7 +108,7 @@ private fun SessionStrategyField(sessionStrategy: String) {
 @Composable
 private fun SessionIdField(
     sessionId: String,
-    onCopySessionUrl: () -> Unit,
+    onCopySessionId: () -> Unit,
 ) {
     OutlinedTextField(
         value = sessionId,
@@ -126,7 +127,7 @@ private fun SessionIdField(
                 cursorColor = BitdriftColors.TextBright,
             ),
         trailingIcon = {
-            TextButton(onClick = onCopySessionUrl) {
+            TextButton(onClick = onCopySessionId) {
                 Text("Copy", color = BitdriftColors.TextBright)
             }
         },

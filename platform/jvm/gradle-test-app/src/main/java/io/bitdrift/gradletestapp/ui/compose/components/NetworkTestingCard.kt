@@ -27,6 +27,9 @@ fun NetworkTestingCard(
     onPreExistingW3cRequest: () -> Unit,
     onPreExistingB3SingleRequest: () -> Unit,
     onPreExistingB3MultiRequest: () -> Unit,
+    onLocalBackendAddToCartRequest: () -> Unit,
+    onLocalBackendGetCartRequest: () -> Unit,
+    onLocalBackendDeleteCartItemRequest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -148,6 +151,50 @@ fun NetworkTestingCard(
                         ),
                 ) {
                     Text("B3 Multi", maxLines = 1, softWrap = false)
+                }
+            }
+
+            Text(
+                text = "Local Backend",
+                style = MaterialTheme.typography.labelMedium,
+                color = BitdriftColors.TextPrimary,
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    onClick = onLocalBackendAddToCartRequest,
+                    modifier = Modifier.weight(1f),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = BitdriftColors.TextPrimary,
+                        ),
+                ) {
+                    Text("Add", maxLines = 1, softWrap = false)
+                }
+
+                OutlinedButton(
+                    onClick = onLocalBackendGetCartRequest,
+                    modifier = Modifier.weight(1f),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = BitdriftColors.TextPrimary,
+                        ),
+                ) {
+                    Text("Get", maxLines = 1, softWrap = false)
+                }
+
+                OutlinedButton(
+                    onClick = onLocalBackendDeleteCartItemRequest,
+                    modifier = Modifier.weight(1f),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = BitdriftColors.TextPrimary,
+                        ),
+                ) {
+                    Text("Delete", maxLines = 1, softWrap = false)
                 }
             }
         }

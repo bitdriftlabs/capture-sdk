@@ -31,11 +31,13 @@ import okhttp3.Callback
 import okhttp3.Connection
 import okhttp3.EventListener
 import okhttp3.HttpUrl
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import org.json.JSONObject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import timber.log.Timber
@@ -252,6 +254,35 @@ class NetworkTestingRepository(context: Context) {
         performRequestWithPreExistingHeaders(request, "Pre-existing B3 Multi")
     }
 
+    fun performLocalBackendAddToCartRequest() {
+        val requestBody = JSONObject()
+            .put("product_id", LOCAL_BACKEND_PRODUCT_ID)
+            .put("quantity", 1)
+            .toString()
+            .toRequestBody(JSON_MEDIA_TYPE)
+        val request = Request.Builder()
+            .url("$LOCAL_BACKEND_BASE_URL/cart")
+            .post(requestBody)
+            .build()
+        performRequestWithPreExistingHeaders(request, "Local Backend Add to Cart")
+    }
+
+    fun performLocalBackendGetCartRequest() {
+        val request = Request.Builder()
+            .url("$LOCAL_BACKEND_BASE_URL/cart")
+            .get()
+            .build()
+        performRequestWithPreExistingHeaders(request, "Local Backend Get Cart")
+    }
+
+    fun performLocalBackendDeleteCartItemRequest() {
+        val request = Request.Builder()
+            .url("$LOCAL_BACKEND_BASE_URL/cart/$LOCAL_BACKEND_PRODUCT_ID")
+            .delete()
+            .build()
+        performRequestWithPreExistingHeaders(request, "Local Backend Delete Cart Item")
+    }
+
     private fun performRequestWithPreExistingHeaders(request: Request, label: String) {
         Timber.i("Performing OkHttp request ($label): ${request.url}")
         okHttpClientManual.newCall(request).enqueue(
@@ -322,5 +353,11 @@ class NetworkTestingRepository(context: Context) {
             } else {
                 emptyMap()
             }
+    }
+
+    private companion object {
+        private const val LOCAL_BACKEND_BASE_URL = "http://10.0.2.2:5173/api"
+        private const val LOCAL_BACKEND_PRODUCT_ID = "classic-tee"
+        private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
 }
