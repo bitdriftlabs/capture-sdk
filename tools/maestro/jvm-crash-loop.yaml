@@ -1,0 +1,8 @@
+appId: io.bitdrift.gradletestapp
+---
+- repeat:
+    times: 50
+    commands:
+      - launchApp
+      - tapOn: "App Exits"
+      - tapOn: "JVM crash"

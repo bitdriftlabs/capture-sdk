@@ -22,4 +22,7 @@ object BitdriftColors {
 
     val Error = Color.Red
     val Warning = Color(0xFFFFA500)
+    val CrashNative = Color(0xFFE11D48)
+    val CrashJvm = Color(0xFFF59E0B)
+    val CrashAnr = Color(0xFF8B5CF6)
 }
