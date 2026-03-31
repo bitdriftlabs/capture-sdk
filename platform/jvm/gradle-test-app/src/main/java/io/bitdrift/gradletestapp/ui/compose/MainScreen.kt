@@ -252,10 +252,15 @@ private fun HomeTabContent(
                 uiState = uiState,
                 onStartNewSession = { onAction(SessionAction.StartNewSession) },
                 onGenerateDeviceCode = { onAction(SessionAction.GenerateDeviceCode) },
+                onCopySessionId = {
+                    uiState.session.sessionId?.let { sessionId ->
+                        clipboardManager.setText(AnnotatedString(sessionId))
+                    }
+                },
                 onCopySessionUrl = {
                     onAction(SessionAction.CopySessionUrl)
-                    uiState.session.sessionUrl?.let { url ->
-                        clipboardManager.setText(AnnotatedString(url))
+                    uiState.session.sessionUrl?.let { sessionUrl ->
+                        clipboardManager.setText(AnnotatedString(sessionUrl))
                     }
                 },
             )
@@ -324,6 +329,9 @@ private fun SdkApisTabContent(
                 onPreExistingW3cRequest = { onAction(NetworkTestAction.PerformPreExistingW3cRequest) },
                 onPreExistingB3SingleRequest = { onAction(NetworkTestAction.PerformPreExistingB3SingleRequest) },
                 onPreExistingB3MultiRequest = { onAction(NetworkTestAction.PerformPreExistingB3MultiRequest) },
+                onLocalBackendAddToCartRequest = { onAction(NetworkTestAction.PerformLocalBackendAddToCartRequest) },
+                onLocalBackendGetCartRequest = { onAction(NetworkTestAction.PerformLocalBackendGetCartRequest) },
+                onLocalBackendDeleteCartItemRequest = { onAction(NetworkTestAction.PerformLocalBackendDeleteCartItemRequest) },
             )
         }
     }

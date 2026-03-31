@@ -134,6 +134,15 @@ class MainViewModel(
             is NetworkTestAction.PerformPreExistingB3MultiRequest -> {
                 networkTestingRepository.performPreExistingB3MultiRequest()
             }
+            is NetworkTestAction.PerformLocalBackendAddToCartRequest -> {
+                networkTestingRepository.performLocalBackendAddToCartRequest()
+            }
+            is NetworkTestAction.PerformLocalBackendGetCartRequest -> {
+                networkTestingRepository.performLocalBackendGetCartRequest()
+            }
+            is NetworkTestAction.PerformLocalBackendDeleteCartItemRequest -> {
+                networkTestingRepository.performLocalBackendDeleteCartItemRequest()
+            }
 
             is GlobalFieldAction.AddFieldAction -> {
                 viewModelScope.launch {

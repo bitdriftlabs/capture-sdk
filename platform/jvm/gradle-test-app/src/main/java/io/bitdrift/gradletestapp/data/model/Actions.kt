@@ -64,6 +64,12 @@ sealed class NetworkTestAction : AppAction {
     object PerformPreExistingB3SingleRequest : NetworkTestAction()
 
     object PerformPreExistingB3MultiRequest : NetworkTestAction()
+
+    object PerformLocalBackendAddToCartRequest : NetworkTestAction()
+
+    object PerformLocalBackendGetCartRequest : NetworkTestAction()
+
+    object PerformLocalBackendDeleteCartItemRequest : NetworkTestAction()
 }
 
 sealed class FeatureFlagsTestAction : AppAction {
