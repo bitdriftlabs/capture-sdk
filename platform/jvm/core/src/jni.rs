@@ -48,7 +48,18 @@ use jni::objects::{
   JValueOwned,
 };
 use jni::signature::{Primitive, ReturnType};
-use jni::sys::{jboolean, jbyteArray, jdouble, jint, jlong, jobject, jvalue, JNI_ERR, JNI_TRUE};
+use jni::sys::{
+  jboolean,
+  jbyteArray,
+  jdouble,
+  jint,
+  jlong,
+  jobject,
+  jstring,
+  jvalue,
+  JNI_ERR,
+  JNI_TRUE,
+};
 use jni::{JNIEnv, JavaVM};
 use platform_shared::metadata::Mobile;
 use platform_shared::{LoggerHolder, LoggerId};
@@ -914,6 +925,15 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getDeviceId<'a
 }
 
 #[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_isTracingActive(
+  _env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: LoggerId<'_>,
+) -> jboolean {
+  logger_id.is_tracing_active().into()
+}
+
+#[no_mangle]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_addLogField(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1575,6 +1595,43 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeValue(
     default_value,
     "jni runtimeValue",
   )
+}
+
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeStringValue(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: LoggerId<'_>,
+  variable_name: JString<'_>,
+  default_value: JString<'_>,
+) -> jstring {
+  with_handle_unexpected_or(
+    || {
+      let (logger, variable_name) =
+        runtime_logger_and_variable_name(&env, logger_id, &variable_name)?;
+      let default_value = unsafe { env.get_string_unchecked(&default_value) }?
+        .to_str()?
+        .to_string();
+      let value = logger
+        .runtime_snapshot()
+        .get_string(&variable_name, default_value);
+      Ok(env.new_string(value)?.into_raw())
+    },
+    JObject::null().into_raw(),
+    "jni runtimeStringValue",
+  )
+}
+
+fn runtime_logger_and_variable_name<'a>(
+  env: &JNIEnv<'a>,
+  logger_id: LoggerId<'a>,
+  variable_name: &JString<'a>,
+) -> anyhow::Result<(LoggerId<'a>, String)> {
+  let variable_name = unsafe { env.get_string_unchecked(variable_name) }?
+    .to_str()?
+    .to_string();
+
+  Ok((logger_id, variable_name))
 }
 
 fn unix_milliseconds_to_date(millis_since_utc_epoch: i64) -> anyhow::Result<OffsetDateTime> {

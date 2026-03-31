@@ -19,9 +19,66 @@ extension URLSessionTask {
             return
         }
 
+        self.injectTraceHeadersIfNeeded()
+
         URLSessionTaskTracker.shared.taskWillStart(self)
         try? ObjCWrapper.doTry {
             self.delegate = ProxyURLSessionTaskDelegate(target: self.delegate)
+        }
+    }
+
+    private func injectTraceHeadersIfNeeded() {
+        let integration = URLSessionIntegration.shared
+        let mode = integration.tracePropagationMode
+        guard mode != .disabled, integration.isTracingActive else {
+            return
+        }
+
+        let existingHeaders = self.originalRequest?.allHTTPHeaderFields
+
+        guard !URLSessionTracePropagation.isBitdriftInternalRequest(existingHeaders) else {
+            return
+        }
+
+        if URLSessionTracePropagation.hasExistingTraceHeaders(in: existingHeaders) {
+            self.cap_hasExistingTraceHeaders = true
+            if let sampledTraceID = URLSessionTracePropagation.extractSampledTraceID(from: existingHeaders) {
+                self.cap_traceContext = URLSessionTraceContext(traceID: sampledTraceID, spanID: "")
+            }
+            return
+        }
+
+        let traceContext = URLSessionTraceContext.make()
+        self.cap_hasExistingTraceHeaders = false
+        self.cap_traceContext = traceContext
+
+        guard let request = self.originalRequest,
+              let mutableRequest = (request as NSURLRequest).mutableCopy() as? NSMutableURLRequest
+        else {
+            return
+        }
+
+        switch mode {
+        case .w3c:
+            mutableRequest.setValue(
+                URLSessionTracePropagation.traceparentValue(traceContext: traceContext),
+                forHTTPHeaderField: URLSessionTracePropagation.traceparentHeader
+            )
+        case .b3Single:
+            mutableRequest.setValue(
+                URLSessionTracePropagation.b3SingleValue(traceContext: traceContext),
+                forHTTPHeaderField: URLSessionTracePropagation.b3Header
+            )
+        case .b3Multi:
+            mutableRequest.setValue(traceContext.traceID, forHTTPHeaderField: URLSessionTracePropagation.xB3TraceIDHeader)
+            mutableRequest.setValue(traceContext.spanID, forHTTPHeaderField: URLSessionTracePropagation.xB3SpanIDHeader)
+            mutableRequest.setValue("1", forHTTPHeaderField: URLSessionTracePropagation.xB3SampledHeader)
+        case .disabled:
+            break
+        }
+
+        try? ObjCWrapper.doTry {
+            self.setValue(mutableRequest as URLRequest, forKey: "originalRequest")
         }
     }
 }

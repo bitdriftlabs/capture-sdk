@@ -321,6 +321,9 @@ private fun SdkApisTabContent(
                 onOkHttpAutoRequest = { onAction(NetworkTestAction.PerformOkHttpRequestAutomatic) },
                 onGraphQlRequest = { onAction(NetworkTestAction.PerformGraphQlRequest) },
                 onRetrofitRequest = { onAction(NetworkTestAction.PerformRetrofitRequest) },
+                onPreExistingW3cRequest = { onAction(NetworkTestAction.PerformPreExistingW3cRequest) },
+                onPreExistingB3SingleRequest = { onAction(NetworkTestAction.PerformPreExistingB3SingleRequest) },
+                onPreExistingB3MultiRequest = { onAction(NetworkTestAction.PerformPreExistingB3MultiRequest) },
             )
         }
     }

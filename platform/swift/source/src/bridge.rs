@@ -653,6 +653,11 @@ extern "C" fn capture_runtime_bool_variable_value(
 }
 
 #[no_mangle]
+extern "C" fn capture_is_tracing_active(logger_id: LoggerId<'_>) -> bool {
+  logger_id.is_tracing_active()
+}
+
+#[no_mangle]
 extern "C" fn capture_runtime_uint32_variable_value(
   logger_id: LoggerId<'_>,
   variable_name: *const c_char,
@@ -669,6 +674,33 @@ extern "C" fn capture_runtime_uint32_variable_value(
     },
     default_value,
     "swift runtime int value",
+  )
+}
+
+#[no_mangle]
+extern "C" fn capture_runtime_string_variable_value(
+  logger_id: LoggerId<'_>,
+  variable_name: *const c_char,
+  default_value: *const c_char,
+) -> *const Object {
+  with_handle_unexpected_or(
+    move || {
+      let variable_name = unsafe { CStr::from_ptr(variable_name) }.to_str()?;
+      let default_value = unsafe { CStr::from_ptr(default_value) }
+        .to_str()?
+        .to_string();
+      let value = logger_id
+        .runtime_snapshot()
+        .get_string(variable_name, default_value);
+
+      Ok(
+        make_nsstring(&value)
+          .unwrap_or_else(|_| make_empty_nsstring())
+          .autorelease(),
+      )
+    },
+    make_empty_nsstring().autorelease(),
+    "swift runtime string value",
   )
 }
 

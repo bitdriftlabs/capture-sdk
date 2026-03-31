@@ -41,6 +41,8 @@ public final class MockLoggerBridging {
 
     public var shouldLogAppUpdateEvent = false
 
+    public var tracingActive = true
+
     public var logAppUpdateExpectation: XCTestExpectation?
 
     public init() {}
@@ -52,6 +54,8 @@ public final class MockLoggerBridging {
 }
 
 extension MockLoggerBridging: LoggerBridging {
+    public var isTracingActive: Bool { self.tracingActive }
+
     public func start() {}
 
     public func getSessionID() -> String { "foo" }

@@ -38,6 +38,11 @@ interface ILogger {
     val deviceId: String
 
     /**
+     * Whether workflow-controlled tracing is currently active for this session.
+     */
+    val isTracingActive: Boolean
+
+    /**
      * Defines the initialization of a new session within the current logger.
      */
     fun startNewSession()

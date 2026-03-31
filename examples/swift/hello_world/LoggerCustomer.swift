@@ -108,7 +108,7 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
                     requestFieldProvider: CustomNetworkFieldProvider(),
                     responseFieldProvider: CustomNetworkResponseFieldProvider()
                 ), ],
-                disableSwizzling: true
+                disableSwizzling: false
             )
 
         Logger.addField(withKey: "field_container_field_key", value: "field_container_value")

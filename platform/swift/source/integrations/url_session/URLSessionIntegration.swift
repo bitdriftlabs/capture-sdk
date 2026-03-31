@@ -70,6 +70,19 @@ final class URLSessionIntegration {
         return self.underlyingResponseFieldProvider.load()
     }
 
+    var tracePropagationMode: URLSessionTracePropagationMode {
+        guard let logger = Logger.getShared() as? Logger else {
+            return .disabled
+        }
+
+        let runtimeValue = logger.runtimeValue(.tracePropagationMode)
+        return URLSessionTracePropagationMode(runtimeValue: runtimeValue)
+    }
+
+    var isTracingActive: Bool {
+        (Logger.getShared() as? Logger)?.isTracingActive == true
+    }
+
     func start(
         logger: Logging,
         disableSwizzling: Bool,

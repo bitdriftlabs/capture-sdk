@@ -24,6 +24,9 @@ fun NetworkTestingCard(
     onOkHttpAutoRequest: () -> Unit,
     onGraphQlRequest: () -> Unit,
     onRetrofitRequest: () -> Unit,
+    onPreExistingW3cRequest: () -> Unit,
+    onPreExistingB3SingleRequest: () -> Unit,
+    onPreExistingB3MultiRequest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -101,6 +104,50 @@ fun NetworkTestingCard(
                         ),
                 ) {
                     Text("Retrofit", maxLines = 1, softWrap = false)
+                }
+            }
+
+            Text(
+                text = "Pre-existing Trace Headers",
+                style = MaterialTheme.typography.labelMedium,
+                color = BitdriftColors.TextPrimary,
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    onClick = onPreExistingW3cRequest,
+                    modifier = Modifier.weight(1f),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = BitdriftColors.TextPrimary,
+                        ),
+                ) {
+                    Text("W3C", maxLines = 1, softWrap = false)
+                }
+
+                OutlinedButton(
+                    onClick = onPreExistingB3SingleRequest,
+                    modifier = Modifier.weight(1f),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = BitdriftColors.TextPrimary,
+                        ),
+                ) {
+                    Text("B3 Single", maxLines = 1, softWrap = false)
+                }
+
+                OutlinedButton(
+                    onClick = onPreExistingB3MultiRequest,
+                    modifier = Modifier.weight(1f),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = BitdriftColors.TextPrimary,
+                        ),
+                ) {
+                    Text("B3 Multi", maxLines = 1, softWrap = false)
                 }
             }
         }

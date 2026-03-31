@@ -33,7 +33,7 @@ class StressTestFragment : Fragment() {
         MainViewModelFactory(
             appContext,
             SdkRepository(appContext),
-            NetworkTestingRepository(),
+            NetworkTestingRepository(appContext),
             AppExitRepository(),
             StressTestRepository(),
         )
