@@ -117,8 +117,15 @@ extension RuntimeVariable<UInt32> {
 }
 
 extension RuntimeVariable<String> {
+    /// Configures trace propagation header mode for automatic network tracing.
+    ///
+    /// Accepted values:
+    /// - "none": disable trace propagation headers
+    /// - "w3c": use the W3C `traceparent` header
+    /// - "b3-single": use the Zipkin B3 `b3` header
+    /// - "b3-multi": use the Zipkin B3 `X-B3-*` headers
     static let tracePropagationMode = RuntimeVariable(
         name: "client_config.trace.propagation_mode",
-        defaultValue: "none"
+        defaultValue: "w3c"
     )
 }

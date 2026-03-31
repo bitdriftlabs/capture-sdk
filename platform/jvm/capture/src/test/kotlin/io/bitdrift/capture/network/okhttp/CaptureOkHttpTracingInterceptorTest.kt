@@ -38,7 +38,7 @@ class CaptureOkHttpTracingInterceptorTest {
 
         interceptor.intercept(chain)
 
-        val request = chain.capturedRequest!!
+        val request = chain.capturedRequest
         val traceparent = request.header("traceparent")
         assertThat(traceparent).startsWith("00-")
         assertThat(traceparent).endsWith("-01")
@@ -55,7 +55,7 @@ class CaptureOkHttpTracingInterceptorTest {
 
         interceptor.intercept(chain)
 
-        val request = chain.capturedRequest!!
+        val request = chain.capturedRequest
         val b3 = request.header("b3")
         assertThat(b3).contains("-1")
         assertThat(request.header("traceparent")).isNull()
@@ -71,7 +71,7 @@ class CaptureOkHttpTracingInterceptorTest {
 
         interceptor.intercept(chain)
 
-        val request = chain.capturedRequest!!
+        val request = chain.capturedRequest
         assertThat(request.header("X-B3-TraceId")).hasSize(32)
         assertThat(request.header("X-B3-SpanId")).hasSize(16)
         assertThat(request.header("X-B3-Sampled")).isEqualTo("1")
@@ -89,7 +89,7 @@ class CaptureOkHttpTracingInterceptorTest {
 
         interceptor.intercept(chain)
 
-        val request = chain.capturedRequest!!
+        val request = chain.capturedRequest
         assertThat(request.header("traceparent")).isNull()
         assertThat(request.header("b3")).isNull()
     }
@@ -104,7 +104,7 @@ class CaptureOkHttpTracingInterceptorTest {
 
         interceptor.intercept(chain)
 
-        val request = chain.capturedRequest!!
+        val request = chain.capturedRequest
         assertThat(request.header("traceparent")).isNull()
         assertThat(request.header("b3")).isNull()
     }
@@ -119,7 +119,7 @@ class CaptureOkHttpTracingInterceptorTest {
 
         interceptor.intercept(chain)
 
-        val request = chain.capturedRequest!!
+        val request = chain.capturedRequest
         assertThat(request.header("b3")).isNull()
         assertThat(request.header("traceparent")).isNull()
     }
@@ -141,7 +141,7 @@ class CaptureOkHttpTracingInterceptorTest {
 
         interceptor.intercept(chain)
 
-        val captured = chain.capturedRequest!!
+        val captured = chain.capturedRequest
         assertThat(captured.header("traceparent")).isEqualTo(existingTraceparent)
         assertThat(captured.headers.size).isEqualTo(request.headers.size)
     }
@@ -163,7 +163,7 @@ class CaptureOkHttpTracingInterceptorTest {
 
         interceptor.intercept(chain)
 
-        val captured = chain.capturedRequest!!
+        val captured = chain.capturedRequest
         assertThat(captured.header("b3")).isEqualTo(existingB3)
         assertThat(captured.headers.size).isEqualTo(request.headers.size)
     }
@@ -188,7 +188,7 @@ class CaptureOkHttpTracingInterceptorTest {
 
         interceptor.intercept(chain)
 
-        val captured = chain.capturedRequest!!
+        val captured = chain.capturedRequest
         assertThat(captured.header("X-B3-TraceId")).isEqualTo(existingTraceId)
         assertThat(captured.header("X-B3-SpanId")).isEqualTo(existingSpanId)
         assertThat(captured.header("X-B3-Sampled")).isEqualTo("1")
@@ -212,7 +212,7 @@ class CaptureOkHttpTracingInterceptorTest {
 
         interceptor.intercept(chain)
 
-        val captured = chain.capturedRequest!!
+        val captured = chain.capturedRequest
         assertThat(captured.header("b3")).isEqualTo(existingB3)
         assertThat(captured.header("traceparent")).isNull()
         assertThat(captured.headers.size).isEqualTo(request.headers.size)
@@ -235,7 +235,7 @@ class CaptureOkHttpTracingInterceptorTest {
 
         interceptor.intercept(chain)
 
-        val captured = chain.capturedRequest!!
+        val captured = chain.capturedRequest
         assertThat(captured.header("traceparent")).isEqualTo(existingTraceparent)
         assertThat(captured.header("b3")).isNull()
         assertThat(captured.headers.size).isEqualTo(request.headers.size)
@@ -258,7 +258,7 @@ class CaptureOkHttpTracingInterceptorTest {
 
         interceptor.intercept(chain)
 
-        val captured = chain.capturedRequest!!
+        val captured = chain.capturedRequest
         assertThat(captured.header("b3")).isEqualTo(existingB3)
         assertThat(captured.header("X-B3-TraceId")).isNull()
         assertThat(captured.header("X-B3-SpanId")).isNull()

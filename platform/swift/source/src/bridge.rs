@@ -654,11 +654,7 @@ extern "C" fn capture_runtime_bool_variable_value(
 
 #[no_mangle]
 extern "C" fn capture_is_tracing_active(logger_id: LoggerId<'_>) -> bool {
-  with_handle_unexpected_or(
-    move || Ok(logger_id.is_tracing_active()),
-    false,
-    "swift is tracing active",
-  )
+  logger_id.is_tracing_active()
 }
 
 #[no_mangle]
@@ -697,7 +693,11 @@ extern "C" fn capture_runtime_string_variable_value(
         .runtime_snapshot()
         .get_string(variable_name, default_value);
 
-      Ok(make_nsstring(&value)?.autorelease())
+      Ok(
+        make_nsstring(&value)
+          .unwrap_or_else(|_| make_empty_nsstring())
+          .autorelease(),
+      )
     },
     make_empty_nsstring().autorelease(),
     "swift runtime string value",

@@ -15,7 +15,7 @@ import okhttp3.Response
 class FakeOkHttpInterceptorChain(
     private val originalRequest: Request,
 ) : Interceptor.Chain {
-    var capturedRequest: Request? = null
+    var capturedRequest: Request = originalRequest
 
     override fun request(): Request = originalRequest
 

@@ -131,10 +131,11 @@ sealed class RuntimeStringConfig(
      *
      * Accepted values:
      * - "none": disable trace propagation headers
-     * - "w3c": use `traceparent`
-     * - "b3": use `b3`
+     * - "w3c": use the W3C `traceparent` header
+     * - "b3-single": use the Zipkin B3 `b3` header
+     * - "b3-multi": use the Zipkin B3 `X-B3-*` headers
      */
-    data object TRACE_PROPAGATION_MODE : RuntimeStringConfig("client_config.trace.propagation_mode", "none")
+    data object TRACE_PROPAGATION_MODE : RuntimeStringConfig("client_config.trace.propagation_mode", "w3c")
 }
 
 /**

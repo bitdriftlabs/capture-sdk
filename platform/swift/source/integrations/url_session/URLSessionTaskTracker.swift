@@ -49,6 +49,10 @@ final class URLSessionTaskTracker {
             return traceContext
         }
 
+        if task.cap_hasExistingTraceHeaders {
+            return nil
+        }
+
         let integration = URLSessionIntegration.shared
         guard integration.tracePropagationMode != .disabled, integration.isTracingActive else {
             return nil
@@ -138,6 +142,7 @@ final class URLSessionTaskTracker {
 
             URLSessionIntegration.shared.logger?.log(responseInfo, file: nil, line: nil, function: nil)
             task.cap_traceContext = nil
+            task.cap_hasExistingTraceHeaders = false
         }
     }
 }

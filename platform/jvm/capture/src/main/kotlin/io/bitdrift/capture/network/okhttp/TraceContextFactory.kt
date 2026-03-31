@@ -44,27 +44,30 @@ internal class TraceContextFactory {
 }
 
 /** Supported trace propagation modes. */
-internal enum class TracePropagationMode {
+internal enum class TracePropagationMode(
+    /** Stable text representation safe for serialization/logging. */
+    val value: String,
+) {
     /** Disable trace header injection. */
-    NONE,
+    NONE("none"),
 
     /** W3C Trace Context format via the `traceparent` header. */
-    W3C,
+    W3C("w3c"),
 
     /** Zipkin B3 single-header format via the `b3` header. */
-    B3_SINGLE,
+    B3_SINGLE("b3-single"),
 
     /** Zipkin B3 multiple-headers format via `X-B3-*` headers. */
-    B3_MULTI,
+    B3_MULTI("b3-multi"),
     ;
 
     internal companion object {
-        fun fromRuntimeValue(value: String): TracePropagationMode =
-            when (value.trim().lowercase()) {
-                "none" -> NONE
-                "w3c" -> W3C
-                "b3-single" -> B3_SINGLE
-                "b3-multi" -> B3_MULTI
+        fun fromRuntimeValue(configValue: String): TracePropagationMode =
+            when (configValue.trim().lowercase()) {
+                NONE.value -> NONE
+                W3C.value -> W3C
+                B3_SINGLE.value -> B3_SINGLE
+                B3_MULTI.value -> B3_MULTI
                 else -> NONE
             }
     }

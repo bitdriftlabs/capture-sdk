@@ -1028,6 +1028,25 @@ final class URLSessionTracePropagationTests: XCTestCase {
         session.invalidateAndCancel()
     }
 
+    func testCapResume_whenModeNotConfigured_shouldDefaultToW3C() throws {
+        self.loggerBridge.tracingActive = true
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+
+        task.resume()
+
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        let traceparent = try XCTUnwrap(headers?["traceparent"])
+        XCTAssertEqual(traceparent, "00-\(traceContext.traceID)-\(traceContext.spanID)-01")
+        XCTAssertNil(headers?["b3"])
+        XCTAssertNil(headers?["X-B3-TraceId"])
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
     func testCapResume_whenW3CEnabled_shouldAttachTraceContext() throws {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
@@ -1224,8 +1243,8 @@ final class URLSessionTracePropagationTests: XCTestCase {
 
         task.resume()
 
-        let traceContext = try XCTUnwrap(task.cap_traceContext)
-        XCTAssertTrue(traceContext.traceID.isEmpty)
+        XCTAssertNil(task.cap_traceContext)
+        XCTAssertTrue(task.cap_hasExistingTraceHeaders)
 
         let headers = task.originalRequest?.allHTTPHeaderFields
         XCTAssertEqual(headers?["X-B3-TraceId"], "abcdef1234567890abcdef1234567890")
@@ -1246,8 +1265,8 @@ final class URLSessionTracePropagationTests: XCTestCase {
 
         task.resume()
 
-        let traceContext = try XCTUnwrap(task.cap_traceContext)
-        XCTAssertTrue(traceContext.traceID.isEmpty)
+        XCTAssertNil(task.cap_traceContext)
+        XCTAssertTrue(task.cap_hasExistingTraceHeaders)
 
         let headers = task.originalRequest?.allHTTPHeaderFields
         XCTAssertEqual(headers?["traceparent"], "00-abcdef1234567890abcdef1234567890-1234567890abcdef-00")

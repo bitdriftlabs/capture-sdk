@@ -930,12 +930,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_isTracingActiv
   _class: JClass<'_>,
   logger_id: LoggerId<'_>,
 ) -> jboolean {
-  with_handle_unexpected_or(
-    || Ok(logger_id.is_tracing_active()),
-    false,
-    "jni is_tracing_active",
-  )
-  .into()
+  logger_id.is_tracing_active().into()
 }
 
 #[no_mangle]
@@ -1606,7 +1601,7 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeValue(
 pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeStringValue(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
-  logger_id: jlong,
+  logger_id: LoggerId<'_>,
   variable_name: JString<'_>,
   default_value: JString<'_>,
 ) -> jstring {
@@ -1629,15 +1624,14 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeStringValue(
 
 fn runtime_logger_and_variable_name<'a>(
   env: &JNIEnv<'a>,
-  logger_id: jlong,
+  logger_id: LoggerId<'a>,
   variable_name: &JString<'a>,
 ) -> anyhow::Result<(LoggerId<'a>, String)> {
-  let logger = unsafe { LoggerId::from_raw(logger_id) };
   let variable_name = unsafe { env.get_string_unchecked(variable_name) }?
     .to_str()?
     .to_string();
 
-  Ok((logger, variable_name))
+  Ok((logger_id, variable_name))
 }
 
 fn unix_milliseconds_to_date(millis_since_utc_epoch: i64) -> anyhow::Result<OffsetDateTime> {

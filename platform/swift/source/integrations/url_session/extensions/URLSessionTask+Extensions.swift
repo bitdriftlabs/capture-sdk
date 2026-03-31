@@ -8,7 +8,8 @@
 import Foundation
 
 private var kRequestInfoKey: UInt8 = 0
-private var kTraceContextKey: UInt8 = 0
+private var kTraceContextKey: UInt8 = 1
+private var kHasExistingTraceHeadersKey: UInt8 = 2
 
 extension URLSessionTask {
     /// The HTTP Request Info associated with a given `URLSessionTask`.
@@ -24,6 +25,18 @@ extension URLSessionTask {
         get { objc_getAssociatedObject(self, &kTraceContextKey) as? URLSessionTraceContext }
         set {
             objc_setAssociatedObject(self, &kTraceContextKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+
+    var cap_hasExistingTraceHeaders: Bool {
+        get { (objc_getAssociatedObject(self, &kHasExistingTraceHeadersKey) as? NSNumber)?.boolValue == true }
+        set {
+            objc_setAssociatedObject(
+                self,
+                &kHasExistingTraceHeadersKey,
+                NSNumber(value: newValue),
+                .OBJC_ASSOCIATION_RETAIN_NONATOMIC
+            )
         }
     }
 }

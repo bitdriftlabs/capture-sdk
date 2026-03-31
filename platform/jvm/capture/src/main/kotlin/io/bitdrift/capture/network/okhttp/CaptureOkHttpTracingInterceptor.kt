@@ -10,9 +10,13 @@ package io.bitdrift.capture.network.okhttp
 import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureRuntimeProvider
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.IRuntimeProvider
+import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.LogType
 import io.bitdrift.capture.common.RuntimeStringConfig
+import io.bitdrift.capture.providers.fieldsOf
 import okhttp3.Interceptor
 import okhttp3.Request
 import okhttp3.Response
@@ -44,6 +48,8 @@ class CaptureOkHttpTracingInterceptor
             }
 
             val propagationMode = getPropagationMode()
+            propagationMode.logInternalStatus()
+
             if (!shouldAddTraceHeaders(currentLogger, propagationMode, request)) {
                 return chain.proceed(request)
             }
@@ -52,7 +58,10 @@ class CaptureOkHttpTracingInterceptor
             val traceContext = traceContextFactory.generateTraceContext()
             when (propagationMode) {
                 TracePropagationMode.W3C -> {
-                    requestBuilder.header("traceparent", "00-${traceContext.traceId}-${traceContext.spanId}-01")
+                    requestBuilder.header(
+                        "traceparent",
+                        "00-${traceContext.traceId}-${traceContext.spanId}-01",
+                    )
                 }
 
                 TracePropagationMode.B3_SINGLE -> {
@@ -77,11 +86,30 @@ class CaptureOkHttpTracingInterceptor
         ): Boolean =
             currentLogger.isTracingActive &&
                 propagationMode != TracePropagationMode.NONE &&
-                request.header("x-bitdrift-api-key") == null
+                !isBitdriftInternalRequest(request)
+
+        private fun isBitdriftInternalRequest(request: Request): Boolean = request.header(BITDRIFT_API_KEY_HEADER) != null
 
         private fun getPropagationMode(): TracePropagationMode {
             val runtimeValue =
                 runtimeProvider.getRuntimeStringConfigValue(RuntimeStringConfig.TRACE_PROPAGATION_MODE)
             return TracePropagationMode.fromRuntimeValue(runtimeValue)
+        }
+
+        private fun TracePropagationMode.logInternalStatus() {
+            val internalLogger = Capture.logger() as? IInternalLogger
+            internalLogger?.logInternal(
+                type = LogType.INTERNALSDK,
+                level = LogLevel.INFO,
+                arrayFields =
+                    fieldsOf(
+                        "is_tracing_active" to internalLogger.isTracingActive.toString(),
+                        "configured_propagation_mode" to this.value,
+                    ),
+            ) { "Tracing configuration" }
+        }
+
+        private companion object {
+            private const val BITDRIFT_API_KEY_HEADER = "x-bitdrift-api-key"
         }
     }

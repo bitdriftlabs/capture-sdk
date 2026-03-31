@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 package io.bitdrift.capture.network.okhttp
 
+import io.bitdrift.capture.common.RuntimeStringConfig
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 
@@ -44,5 +45,10 @@ class TraceContextFactoryTest {
         assertThat(TracePropagationMode.fromRuntimeValue("disabled")).isEqualTo(TracePropagationMode.NONE)
         assertThat(TracePropagationMode.fromRuntimeValue(""))
             .isEqualTo(TracePropagationMode.NONE)
+    }
+
+    @Test
+    fun tracePropagationMode_runtimeConfig_shouldDefaultToW3C() {
+        assertThat(RuntimeStringConfig.TRACE_PROPAGATION_MODE.defaultValue).isEqualTo("w3c")
     }
 }

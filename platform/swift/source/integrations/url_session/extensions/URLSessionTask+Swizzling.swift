@@ -41,12 +41,15 @@ extension URLSessionTask {
         }
 
         if URLSessionTracePropagation.hasExistingTraceHeaders(in: existingHeaders) {
-            let sampledTraceID = URLSessionTracePropagation.extractSampledTraceID(from: existingHeaders)
-            self.cap_traceContext = URLSessionTraceContext(traceID: sampledTraceID ?? "", spanID: "")
+            self.cap_hasExistingTraceHeaders = true
+            if let sampledTraceID = URLSessionTracePropagation.extractSampledTraceID(from: existingHeaders) {
+                self.cap_traceContext = URLSessionTraceContext(traceID: sampledTraceID, spanID: "")
+            }
             return
         }
 
         let traceContext = URLSessionTraceContext.make()
+        self.cap_hasExistingTraceHeaders = false
         self.cap_traceContext = traceContext
 
         guard let request = self.originalRequest,

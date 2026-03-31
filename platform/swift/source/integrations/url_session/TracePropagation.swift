@@ -19,6 +19,8 @@ enum URLSessionTracePropagationMode {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
         {
+        case "none":
+            self = .disabled
         case "b3-single":
             self = .b3Single
         case "b3-multi":
