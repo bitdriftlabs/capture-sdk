@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed an issue where 3rd-party dependencies like `androidx` were included in the released Javadoc artifacts.
 
 ### iOS
 
