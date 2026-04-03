@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Fixed an issue where 3rd-party dependencies like `androidx` were included in the released Javadoc artifacts.
+- Fixed an issue where 3rd-party dependencies like `androidx` were included in the released Javadoc artifacts. Also updated the style of `capture-timber` and `capture-apollo` javadocs to match. 
 
 ### iOS
 
