@@ -32,7 +32,7 @@ def _sources_javadocs_impl(ctx):
             -jar $dokka_cli_jar \
             -pluginsClasspath $plugin_classpath \
             -moduleName "Capture" \
-            -sourceSet "-src $sources_dir -noStdlibLink -noJdkLink" \
+            -sourceSet "-src $sources_dir -noStdlibLink -noJdkLink -perPackageOptions io.bitdrift.capture.*,-suppress;.*,+suppress" \
             -outputDir $tmp_dir > /dev/null \
             -pluginsConfiguration "org.jetbrains.dokka.base.DokkaBase={\\"footerMessage\\": \\"\\u00A9 2025 bitdrift, Inc.\\", \\"separateInheritedMembers\\": true}"
 
