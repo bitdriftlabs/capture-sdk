@@ -34,7 +34,7 @@ def _sources_javadocs_impl(ctx):
             -moduleName "Capture" \
             -sourceSet "-src $sources_dir -noStdlibLink -noJdkLink -perPackageOptions io.bitdrift.capture.*,-suppress;.*,+suppress" \
             -outputDir $tmp_dir > /dev/null \
-            -pluginsConfiguration "org.jetbrains.dokka.base.DokkaBase={\"footerMessage\": \"\u00A9 2026 bitdrift, Inc.\", \"separateInheritedMembers\": true}"
+            -pluginsConfiguration 'org.jetbrains.dokka.base.DokkaBase={"footerMessage": "© 2026 bitdrift, Inc.", "separateInheritedMembers": true}'
 
         original_directory=$PWD
         cd $tmp_dir
