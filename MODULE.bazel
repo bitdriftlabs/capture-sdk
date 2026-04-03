@@ -160,9 +160,9 @@ maven.install(
         "com.google.code.findbugs:jsr305:3.0.2",
 
         # Dokka (javadocs generator)
-        "org.jetbrains.dokka:analysis-kotlin-descriptors:1.9.10",
-        "org.jetbrains.dokka:dokka-base:1.9.10",
-        "org.jetbrains.dokka:dokka-cli:1.9.10",
+        "org.jetbrains.dokka:analysis-kotlin-descriptors:1.9.20",
+        "org.jetbrains.dokka:dokka-base:1.9.20",
+        "org.jetbrains.dokka:dokka-cli:1.9.20",
 
         # Library dependencies
         "com.google.code.gson:gson:2.10.1",
