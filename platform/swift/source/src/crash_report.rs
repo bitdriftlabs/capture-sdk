@@ -576,8 +576,10 @@ mod tests {
 
     *CACHED_KSCRASH_REPORT.lock() = Some(report);
 
+    let result = cached_kscrash_timestamp_impl().unwrap();
+    *CACHED_KSCRASH_REPORT.lock() = None;
     assert_eq!(
-      cached_kscrash_timestamp_impl().unwrap(),
+      result,
       CachedCrashTimestamp {
         seconds: 1_234_567_890,
         nanoseconds: 500_000_000,
@@ -599,8 +601,10 @@ mod tests {
 
     *CACHED_KSCRASH_REPORT.lock() = Some(report);
 
+    let result = cached_kscrash_timestamp_impl().unwrap();
+    *CACHED_KSCRASH_REPORT.lock() = None;
     assert_eq!(
-      cached_kscrash_timestamp_impl().unwrap(),
+      result,
       CachedCrashTimestamp {
         seconds: 1_234_567_890,
         nanoseconds: 0,
@@ -624,6 +628,7 @@ mod tests {
 
     let mut event_id_ptr: *const Object = std::ptr::null();
     let result = cached_kscrash_event_id_impl(&mut event_id_ptr).unwrap();
+    *CACHED_KSCRASH_REPORT.lock() = None;
     assert_eq!(result, CachedCrashEventIdResult::EventDoesNotExist);
     assert!(event_id_ptr.is_null());
   }
@@ -646,6 +651,7 @@ mod tests {
 
     let mut event_id_ptr: *const Object = std::ptr::null();
     let result = cached_kscrash_event_id_impl(&mut event_id_ptr).unwrap();
+    *CACHED_KSCRASH_REPORT.lock() = None;
     assert_eq!(result, CachedCrashEventIdResult::Success);
     assert!(!event_id_ptr.is_null());
     let event_id_str = unsafe { nsstring_into_string(event_id_ptr) }.unwrap();
