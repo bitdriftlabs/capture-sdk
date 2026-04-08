@@ -29,6 +29,7 @@ static NSString *const OS_VERSION_MATCHER = @"^(?<osName>.*)\\s+(?<osVersion>\\d
 static NSString *const DEFAULT_HANG_NAME = @"App Hang";
 // SDK identifier used in generated files
 static const char *const SDK_ID = "io.bitdrift.capture-apple";
+static NSString *const PREVIOUS_RUN_CRASH_MARKER_PREFIX = @"previous_run_crash_";
 
 /**
  * Create a buffer containing a serialized diagnostic
@@ -45,6 +46,8 @@ static ReportType serialize_diagnostic(BDProcessorHandle handle,
                                        MXDiagnostic *_Nonnull event,
                                        NSTimeInterval timestamp)
                                        API_AVAILABLE(ios(14.0), macos(12.0));
+
+static NSString *dedupe_marker_filename(NSString *eventID);
 
 static const char *name_for_diagnostic_type(ReportType type);
 
@@ -111,6 +114,16 @@ static const char *name_for_diagnostic_type(ReportType type);
 }
 
 - (void)processDiagnostic:(MXDiagnostic *)event atTimestamp:(NSTimeInterval)timestamp {
+  if ([event isKindOfClass:[MXCrashDiagnostic class]]) {
+    NSString *eventID = [BitdriftKSCrashWrapper cachedCrashEventID];
+    if (eventID.length > 0) {
+      NSString *markerPath = [[self.dir URLByAppendingPathComponent:dedupe_marker_filename(eventID)] path];
+      if ([[NSFileManager defaultManager] fileExistsAtPath:markerPath]) {
+        return;
+      }
+    }
+  }
+
   const void *handle = 0;
   ReportType report_type = serialize_diagnostic(&handle, self.sdkVersion, event, timestamp);
   if (report_type != ReportTypeNone && handle != 0) {
@@ -121,10 +134,23 @@ static const char *name_for_diagnostic_type(ReportType type);
     NSString *filename = [NSString stringWithFormat:@"%Lf_%s_%@.cap", truncl(timestamp), name_for_diagnostic_type(report_type), identifier];
     NSString *path = [[self.dir URLByAppendingPathComponent:filename] path];
     [[NSFileManager defaultManager] createFileAtPath:path contents:data attributes:0];
+
+    if ([event isKindOfClass:[MXCrashDiagnostic class]]) {
+      NSString *eventID = [BitdriftKSCrashWrapper cachedCrashEventID];
+      if (eventID.length > 0) {
+        NSString *markerPath = [[self.dir URLByAppendingPathComponent:dedupe_marker_filename(eventID)] path];
+        [[NSFileManager defaultManager] createFileAtPath:markerPath contents:[NSData data] attributes:0];
+      }
+    }
+
     bdrw_dispose_buffer_handle(&handle);
   }
 }
 @end
+
+static NSString *dedupe_marker_filename(NSString *eventID) {
+  return [NSString stringWithFormat:@"%@%@", PREVIOUS_RUN_CRASH_MARKER_PREFIX, eventID];
+}
 
 static NSString *name_for_signal(NSNumber *signal);
 static NSString *name_for_crash(MXCrashDiagnostic *event) API_AVAILABLE(ios(14.0), macos(12.0));

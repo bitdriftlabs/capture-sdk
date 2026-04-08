@@ -55,6 +55,14 @@
 #endif
 }
 
++ (NSString *_Nullable)cachedCrashEventID {
+#ifndef BITDRIFT_OMIT_KSCRASH
+    return [BitdriftKSCrashHandler cachedCrashEventID];
+#else
+    return nil;
+#endif
+}
+
 + (void)stopCrashReporter {
 #ifndef BITDRIFT_OMIT_KSCRASH
     [BitdriftKSCrashHandler stopCrashReporter];

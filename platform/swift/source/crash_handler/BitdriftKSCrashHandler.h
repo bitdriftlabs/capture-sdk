@@ -54,6 +54,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (NSDate *_Nullable)cachedCrashDate;
 
++ (NSString *_Nullable)cachedCrashEventID;
+
 + (void)stopCrashReporter;
 
 @end

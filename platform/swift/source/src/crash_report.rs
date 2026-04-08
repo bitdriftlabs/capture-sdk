@@ -45,6 +45,14 @@ pub struct CachedCrashTimestamp {
   pub found: bool,
 }
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CachedCrashEventIdResult {
+  Failure           = 0,
+  EventDoesNotExist = 1,
+  Success           = 2,
+}
+
 // Global cache for the most recently loaded KSCrash report.
 // This allows us to safely delete the report file so that it's not picked up next launch by
 // mistake.
@@ -83,6 +91,17 @@ extern "C" fn capture_cached_kscrash_timestamp() -> CachedCrashTimestamp {
       found: false,
     },
     "read cached kscrash timestamp",
+  )
+}
+
+#[no_mangle]
+extern "C" fn capture_cached_kscrash_event_id(
+  event_id_ptr: *mut *const Object,
+) -> CachedCrashEventIdResult {
+  with_handle_unexpected_or(
+    || -> anyhow::Result<CachedCrashEventIdResult> { cached_kscrash_event_id_impl(event_id_ptr) },
+    CachedCrashEventIdResult::Failure,
+    "read cached kscrash event id",
   )
 }
 
@@ -170,6 +189,30 @@ fn cached_kscrash_timestamp_impl() -> anyhow::Result<CachedCrashTimestamp> {
     nanoseconds,
     found: true,
   })
+}
+
+fn cached_kscrash_event_id_impl(
+  event_id_ptr: *mut *const Object,
+) -> anyhow::Result<CachedCrashEventIdResult> {
+  let Some(kscrash_report) = CACHED_KSCRASH_REPORT.lock().as_ref().cloned() else {
+    return Ok(CachedCrashEventIdResult::EventDoesNotExist);
+  };
+
+  let diagnostic = kscrash_report
+    .get("diagnosticMetaData")
+    .and_then(|value| value.as_object().ok())
+    .ok_or_else(|| anyhow::anyhow!("KSCrash report missing diagnostic metadata"))?;
+
+  let Some(Value::String(event_id)) = diagnostic.get("eventID") else {
+    return Ok(CachedCrashEventIdResult::EventDoesNotExist);
+  };
+
+  let nsstring = crate::ffi::make_nsstring(event_id)?;
+  unsafe {
+    *event_id_ptr = *nsstring;
+  }
+
+  Ok(CachedCrashEventIdResult::Success)
 }
 
 fn value_as_u64(value: &Value) -> Option<u64> {

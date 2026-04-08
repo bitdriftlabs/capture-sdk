@@ -46,6 +46,12 @@ typedef struct {
     bool found;
 } CachedCrashTimestamp;
 
+typedef enum {
+    CachedCrashEventIdResultFailure = 0,
+    CachedCrashEventIdResultEventDoesNotExist = 1,
+    CachedCrashEventIdResultSuccess = 2,
+} CachedCrashEventIdResult;
+
 /** Cache a KSCrash report, which will be used later for report enhancement. */
 CacheResult capture_cache_kscrash_report(NSString *reportPath);
 
@@ -54,6 +60,9 @@ NSDictionary *_Nullable capture_enhance_metrickit_diagnostic_report(const NSDict
 
 /** Get the cached KSCrash crash timestamp for the most recent previous-run crash. */
 CachedCrashTimestamp capture_cached_kscrash_timestamp(void);
+
+/** Get the cached KSCrash event identifier for the most recent previous-run crash. */
+CachedCrashEventIdResult capture_cached_kscrash_event_id(NSString * _Nullable * _Nonnull eventID);
 
 #pragma mark Crash Handling
 
@@ -237,6 +246,14 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     }
     NSTimeInterval interval = (NSTimeInterval)timestamp.seconds + ((NSTimeInterval)timestamp.nanoseconds / NSEC_PER_SEC);
     return [NSDate dateWithTimeIntervalSince1970:interval];
+}
+
++ (NSString *_Nullable)cachedCrashEventID {
+    NSString *eventID = nil;
+    if (capture_cached_kscrash_event_id(&eventID) != CachedCrashEventIdResultSuccess) {
+        return nil;
+    }
+    return eventID;
 }
 
 @end
