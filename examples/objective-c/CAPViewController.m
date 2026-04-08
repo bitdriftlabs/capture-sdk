@@ -154,7 +154,7 @@ NSString *logLevelToString(LogLevel level) {
                                                                  issueCallbackConfiguration:issueCallbackConfiguration];
     [CAPLogger
      startWithAPIKey:[self savedAPIKey]
-     sessionStrategy:[CAPSessionStrategy fixed]
+     sessionStrategy:[CAPSessionStrategy activityBased]
       configuration: config
     ];
 
