@@ -209,7 +209,7 @@ fn cached_kscrash_event_id_impl(
 
   let nsstring = crate::ffi::make_nsstring(event_id)?;
   unsafe {
-    *event_id_ptr = *nsstring;
+    *event_id_ptr = nsstring.autorelease() as *const Object;
   }
 
   Ok(CachedCrashEventIdResult::Success)
