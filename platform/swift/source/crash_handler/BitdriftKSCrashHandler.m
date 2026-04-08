@@ -18,6 +18,7 @@
 #import "ReportContext.h"
 
 #import <stdatomic.h>
+#import <time.h>
 #import <string.h>
 #import <sys/sysctl.h>
 #import <sys/utsname.h>
@@ -39,11 +40,20 @@ typedef enum {
     CacheResultSuccess = 3
 } CacheResult;
 
+typedef enum {
+    ReportCreationResultFailure = 0,
+    ReportCreationResultReportDoesNotExist = 1,
+    ReportCreationResultSuccess = 2,
+} ReportCreationResult;
+
 /** Cache a KSCrash report, which will be used later for report enhancement. */
 CacheResult capture_cache_kscrash_report(NSString *reportPath);
 
 /** Enhance a MetricKit report using the cached KSCrash report. */
 NSDictionary *_Nullable capture_enhance_metrickit_diagnostic_report(const NSDictionary *_Nullable report);
+
+/** Create a capture report directly from the cached KSCrash report. */
+ReportCreationResult capture_create_report_from_cached_kscrash_report(NSString *reportPath, NSString *sdkVersion);
 
 #pragma mark Crash Handling
 
@@ -57,7 +67,10 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
         return;
     }
 
-    g_crashHandlerReportContext.metadata.time = time(NULL);
+    struct timespec crashTime;
+    clock_gettime(CLOCK_REALTIME, &crashTime);
+    g_crashHandlerReportContext.metadata.time = crashTime.tv_sec;
+    g_crashHandlerReportContext.metadata.timeNanos = (uint32_t)crashTime.tv_nsec;
     g_crashHandlerReportContext.monitorContext = monitorContext;
     bitdrift_writeKSCrashReport(&g_crashHandlerReportContext);
 }
@@ -66,6 +79,7 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
 
 @interface BitdriftKSCrashHandler ()
 @property(nonatomic, strong) NSString *kscrashReportFilePath;
+@property(nonatomic, strong) NSString *reportCollectionDirectoryPath;
 @property(nullable, nonatomic, strong) NSNumber *didCrashLastLaunch;
 @property(class, nonatomic, readonly, strong) BitdriftKSCrashHandler *sharedInstance;
 @end
@@ -108,6 +122,7 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     }
 
     self.kscrashReportFilePath = crashReportFile;
+    self.reportCollectionDirectoryPath = [crashReportDir.absoluteURL.path stringByDeletingLastPathComponent];
 
     BOOL result = YES;
 
@@ -213,6 +228,35 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     }
 
     return capture_enhance_metrickit_diagnostic_report(metricKitReport);
+}
+
++ (BOOL)createPreviousRunIssueReportWithOutputDir:(NSURL *)outputDir sdkVersion:(NSString *)sdkVersion error:(NSError **)error {
+    return [self.sharedInstance createPreviousRunIssueReportWithOutputDir:outputDir sdkVersion:sdkVersion error:error];
+}
+
+- (BOOL)createPreviousRunIssueReportWithOutputDir:(NSURL *)outputDir sdkVersion:(NSString *)sdkVersion error:(NSError **)error {
+    if (self.kscrashReportFilePath == nil || self.didCrashLastLaunch.boolValue != YES) {
+        return NO;
+    }
+
+    NSString *identifier = [[NSUUID UUID] UUIDString];
+    NSString *filename = [NSString stringWithFormat:@"kscrash_previous_run_crash_%@.cap", identifier];
+    NSString *path = [[outputDir URLByAppendingPathComponent:filename] path];
+
+    switch (capture_create_report_from_cached_kscrash_report(path, sdkVersion)) {
+        case ReportCreationResultSuccess:
+            return YES;
+        case ReportCreationResultReportDoesNotExist:
+            return NO;
+        case ReportCreationResultFailure:
+            if (error != nil) {
+                *error = [NSError errorWithDomain:@"BitdriftKSCrashHandler" code:0 userInfo:@{
+                    NSLocalizedDescriptionKey: @"Failed to create previous run issue report",
+                    NSLocalizedFailureReasonErrorKey: @"Unable to serialize cached KSCrash report",
+                }];
+            }
+            return NO;
+    }
 }
 
 @end

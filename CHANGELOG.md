@@ -39,11 +39,11 @@
 
 **Changed**
 
-- Nothing yet!
+- Changed previous-run fatal issue reporting to use the cached KSCrash report as the canonical iOS crash source, with MetricKit used only as optional enrichment for non-crash diagnostics.
 
 **Fixed**
 
-- Nothing yet!
+- Fixed inaccurate iOS previous-run crash timestamps and duplicate previous-run crash materialization caused by relying on MetricKit crash diagnostics as the primary report source.
 
 ## [0.22.13]
 

@@ -264,11 +264,19 @@ public final class Logger {
                     // hasFatallyTerminatedOnPreviousRun may already be set if configure() succeeded
                 }
 
+                if Logger.hasFatallyTerminatedOnPreviousRun == true {
+                    _ = try? BitdriftKSCrashWrapper.createPreviousRunIssueReport(
+                        withOutputDir: Logger.reportCollectionDirectory(base: directoryURL),
+                        sdkVersion: capture_get_sdk_version()
+                    )
+                    self.underlyingLogger.processIssueReports(reportProcessingSession: .previousRun)
+                }
+
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
                 let reporter = DiagnosticEventReporter(
                     outputDir: Logger.reportCollectionDirectory(base: directoryURL),
                     sdkVersion: capture_get_sdk_version(),
-                    eventTypes: .crash,
+                    eventTypes: .hang,
                     minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC)) { [weak self] in
                     self?.underlyingLogger.processIssueReports(reportProcessingSession: .previousRun)
                 }

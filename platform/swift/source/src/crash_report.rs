@@ -15,8 +15,12 @@ use bd_error_reporter::reporter::with_handle_unexpected_or;
 use objc::runtime::Object;
 use parking_lot::Mutex;
 use std::collections::HashMap;
+use std::ffi::c_void;
+use std::ffi::CString;
 use std::fs;
 use std::path::Path;
+use std::ptr::null;
+use std::slice;
 
 struct NamedThread {
   name: String,
@@ -28,13 +32,136 @@ struct NamedThread {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CacheResult {
   /// The report was not cached due to an error
-  Failure            = 0,
+  Failure = 0,
   /// The report file does not exist
   ReportDoesNotExist = 1,
   /// Successfully cached a partial document
-  PartialSuccess     = 2,
+  PartialSuccess = 2,
   /// Successfully cached the complete document
-  Success            = 3,
+  Success = 3,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReportCreationResult {
+  Failure = 0,
+  ReportDoesNotExist = 1,
+  Success = 2,
+}
+
+#[repr(i8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ReportType {
+  NativeCrash = 5,
+}
+
+const SDK_ID: &str = "io.bitdrift.capture-apple";
+
+type BDProcessorHandle = *mut *const c_void;
+
+#[repr(C)]
+struct BDBinaryImage {
+  id: *const i8,
+  path: *const i8,
+  load_address: u64,
+}
+
+#[repr(C)]
+struct BDCPURegister {
+  name: *const i8,
+  value: u64,
+}
+
+#[repr(C)]
+struct BDStackFrame {
+  type_: i8,
+  frame_address: u64,
+  symbol_address: u64,
+  symbol_name: *const i8,
+  class_name: *const i8,
+  file_name: *const i8,
+  line: i64,
+  column: i64,
+  image_id: *const i8,
+  state_count: usize,
+  state: *const *const i8,
+  reg_count: usize,
+  regs: *const BDCPURegister,
+}
+
+#[repr(C)]
+struct BDThread {
+  name: *const i8,
+  state: *const i8,
+  active: bool,
+  index: u32,
+  priority: f32,
+  quality_of_service: i8,
+}
+
+#[repr(C)]
+struct BDDeviceMetrics {
+  time_seconds: u64,
+  time_nanos: u32,
+  timezone: *const i8,
+  manufacturer: *const i8,
+  model: *const i8,
+  os_version: *const i8,
+  os_brand: *const i8,
+  os_fingerprint: *const i8,
+  os_kernversion: *const i8,
+  power_state: i8,
+  power_charge_percent: u8,
+  network_state: i8,
+  architecture: i8,
+  display_height: u32,
+  display_width: u32,
+  display_density_dpi: u32,
+  platform: i8,
+  rotation: i8,
+  cpu_abi_count: u8,
+  cpu_abis: *const *const i8,
+}
+
+#[repr(C)]
+struct BDAppMetrics {
+  app_id: *const i8,
+  version: *const i8,
+  version_code: i64,
+  cf_bundle_version: *const i8,
+  running_state: *const i8,
+  memory_used: u64,
+  memory_free: u64,
+  memory_total: u64,
+}
+
+unsafe extern "C-unwind" {
+  fn bdrw_create_buffer_handle(
+    handle: BDProcessorHandle,
+    report_type: i8,
+    sdk_id: *const i8,
+    sdk_version: *const i8,
+  );
+  fn bdrw_get_completed_buffer(handle: BDProcessorHandle, buffer_length: *mut u64) -> *const u8;
+  fn bdrw_dispose_buffer_handle(handle: BDProcessorHandle);
+  fn bdrw_add_binary_image(handle: BDProcessorHandle, image: *const BDBinaryImage) -> bool;
+  fn bdrw_add_thread(
+    handle: BDProcessorHandle,
+    system_thread_count: u16,
+    thread_ptr: *const BDThread,
+    stack_count: u32,
+    stack: *const BDStackFrame,
+  ) -> bool;
+  fn bdrw_add_error(
+    handle: BDProcessorHandle,
+    name: *const i8,
+    reason: *const i8,
+    relation_to_next: i8,
+    stack_count: u32,
+    stack: *const BDStackFrame,
+  ) -> bool;
+  fn bdrw_add_device(handle: BDProcessorHandle, device_ptr: *const BDDeviceMetrics) -> bool;
+  fn bdrw_add_app(handle: BDProcessorHandle, app_ptr: *const BDAppMetrics) -> bool;
 }
 
 // Global cache for the most recently loaded KSCrash report.
@@ -65,6 +192,20 @@ extern "C" fn capture_enhance_metrickit_diagnostic_report(
     .unwrap_or(metrickit_report_ptr)
 }
 
+#[no_mangle]
+extern "C" fn capture_create_report_from_cached_kscrash_report(
+  report_path_ptr: *const Object,
+  sdk_version_ptr: *const Object,
+) -> ReportCreationResult {
+  with_handle_unexpected_or(
+    || -> anyhow::Result<ReportCreationResult> {
+      create_report_from_cached_kscrash_report_impl(report_path_ptr, sdk_version_ptr)
+    },
+    ReportCreationResult::Failure,
+    "create crash report from cached kscrash report",
+  )
+}
+
 // Implementation
 
 fn capture_cache_kscrash_report_impl(
@@ -73,6 +214,24 @@ fn capture_cache_kscrash_report_impl(
   let report_path = unsafe { nsstring_into_string(kscrash_report_path_ptr) }
     .map_err(|e| anyhow::anyhow!("Failed to convert KSCrash report path to string: {e}"))?;
   parse_cached_report(report_path)
+}
+
+fn create_report_from_cached_kscrash_report_impl(
+  report_path_ptr: *const Object,
+  sdk_version_ptr: *const Object,
+) -> anyhow::Result<ReportCreationResult> {
+  let report_path = unsafe { nsstring_into_string(report_path_ptr) }
+    .map_err(|e| anyhow::anyhow!("Failed to convert report path to string: {e}"))?;
+  let sdk_version = unsafe { nsstring_into_string(sdk_version_ptr) }
+    .map_err(|e| anyhow::anyhow!("Failed to convert sdk version to string: {e}"))?;
+
+  let Some(kscrash_report) = CACHED_KSCRASH_REPORT.lock().as_ref().cloned() else {
+    return Ok(ReportCreationResult::ReportDoesNotExist);
+  };
+
+  let bytes = build_report_bytes_from_kscrash_report(&kscrash_report, &sdk_version)?;
+  fs::write(report_path, bytes)?;
+  Ok(ReportCreationResult::Success)
 }
 
 fn parse_cached_report(report_path: String) -> anyhow::Result<CacheResult> {
@@ -111,13 +270,460 @@ fn parse_cached_report(report_path: String) -> anyhow::Result<CacheResult> {
 
   CACHED_KSCRASH_REPORT.lock().replace(hashmap);
 
-  Ok(
-    if was_partial {
-      CacheResult::PartialSuccess
-    } else {
-      CacheResult::Success
-    },
-  )
+  Ok(if was_partial {
+    CacheResult::PartialSuccess
+  } else {
+    CacheResult::Success
+  })
+}
+
+fn build_report_bytes_from_kscrash_report(
+  kscrash_report: &AHashMap<String, Value>,
+  sdk_version: &str,
+) -> anyhow::Result<Vec<u8>> {
+  let mut handle_ptr: *const std::ffi::c_void = null();
+  let handle: BDProcessorHandle = &mut handle_ptr;
+  let sdk_id = CString::new(SDK_ID)?;
+  let sdk_version = CString::new(sdk_version)?;
+
+  unsafe {
+    bdrw_create_buffer_handle(
+      handle,
+      ReportType::NativeCrash as i8,
+      sdk_id.as_ptr(),
+      sdk_version.as_ptr(),
+    );
+  }
+
+  let result = build_report_contents(handle, kscrash_report);
+
+  if result.is_err() {
+    unsafe {
+      bdrw_dispose_buffer_handle(handle);
+    }
+  }
+
+  result
+}
+
+fn build_report_contents(
+  handle: BDProcessorHandle,
+  kscrash_report: &AHashMap<String, Value>,
+) -> anyhow::Result<Vec<u8>> {
+  add_binary_images(handle, kscrash_report)?;
+  let crashed_thread_stack = add_threads(handle, kscrash_report)?;
+  add_error(handle, kscrash_report, crashed_thread_stack.as_deref())?;
+  add_app_metrics(handle, kscrash_report)?;
+  add_device_metrics(handle, kscrash_report)?;
+
+  let mut length = 0_u64;
+  let buffer = unsafe { bdrw_get_completed_buffer(handle, &mut length) };
+  if buffer.is_null() {
+    unsafe {
+      bdrw_dispose_buffer_handle(handle);
+    }
+    return Err(anyhow::anyhow!("Failed to serialize crash report buffer"));
+  }
+
+  let bytes = unsafe { slice::from_raw_parts(buffer, length as usize) }.to_vec();
+  unsafe {
+    bdrw_dispose_buffer_handle(handle);
+  }
+  Ok(bytes)
+}
+
+fn add_binary_images(
+  handle: BDProcessorHandle,
+  kscrash_report: &AHashMap<String, Value>,
+) -> anyhow::Result<()> {
+  let Some(Value::Array(images)) = kscrash_report.get("binaryImages") else {
+    return Ok(());
+  };
+
+  for image in images {
+    let Value::Object(image) = image else {
+      continue;
+    };
+
+    let Some(Value::String(id)) = image.get("uuid") else {
+      continue;
+    };
+    let Some(Value::String(path)) = image.get("name") else {
+      continue;
+    };
+    let Some(load_address) = image.get("loadAddress").and_then(value_as_u64) else {
+      continue;
+    };
+
+    let id = CString::new(id.as_str())?;
+    let path = CString::new(path.as_str())?;
+    let image = BDBinaryImage {
+      id: id.as_ptr(),
+      path: path.as_ptr(),
+      load_address,
+    };
+
+    unsafe {
+      let _ = bdrw_add_binary_image(handle, &image);
+    }
+  }
+
+  Ok(())
+}
+
+fn add_threads(
+  handle: BDProcessorHandle,
+  kscrash_report: &AHashMap<String, Value>,
+) -> anyhow::Result<Option<Vec<BDStackFrame>>> {
+  let Some(Value::Array(threads)) = kscrash_report.get("threads") else {
+    return Ok(None);
+  };
+
+  let system_thread_count = u16::try_from(threads.len()).unwrap_or(u16::MAX);
+  let mut crashed_thread_stack = None;
+
+  for thread in threads {
+    let Value::Object(thread) = thread else {
+      continue;
+    };
+
+    let index = thread
+      .get("index")
+      .and_then(value_as_u64)
+      .and_then(|index| u32::try_from(index).ok())
+      .unwrap_or(0);
+    let active = thread
+      .get("crashed")
+      .and_then(value_as_bool)
+      .unwrap_or(false);
+
+    let thread_name = thread
+      .get("name")
+      .and_then(value_as_string)
+      .or_else(|| thread.get("dispatchQueue").and_then(value_as_string));
+    let thread_name_c = thread_name.as_deref().map(CString::new).transpose()?;
+
+    let stack = build_stack_frames(thread)?;
+    let thread_info = BDThread {
+      name: thread_name_c
+        .as_ref()
+        .map_or(null(), |value| value.as_ptr()),
+      state: null(),
+      active,
+      index,
+      priority: 0.0,
+      quality_of_service: -1,
+    };
+
+    unsafe {
+      let _ = bdrw_add_thread(
+        handle,
+        system_thread_count,
+        &thread_info,
+        u32::try_from(stack.len()).unwrap_or(u32::MAX),
+        if stack.is_empty() {
+          null()
+        } else {
+          stack.as_ptr()
+        },
+      );
+    }
+
+    if active && crashed_thread_stack.is_none() {
+      crashed_thread_stack = Some(stack);
+    }
+  }
+
+  Ok(crashed_thread_stack)
+}
+
+fn add_error(
+  handle: BDProcessorHandle,
+  kscrash_report: &AHashMap<String, Value>,
+  crashed_thread_stack: Option<&[BDStackFrame]>,
+) -> anyhow::Result<()> {
+  let error = kscrash_report
+    .get("error")
+    .and_then(|value| value.as_object().ok());
+  let diagnostic = kscrash_report
+    .get("diagnosticMetaData")
+    .and_then(|value| value.as_object().ok());
+
+  let name = error
+    .and_then(|error| error.get("exceptionName").and_then(value_as_string))
+    .or_else(|| diagnostic.and_then(|meta| diagnostic_name(meta)))
+    .unwrap_or_else(|| "Native Crash".to_string());
+
+  let reason = error
+    .and_then(|error| error.get("crashReason").and_then(value_as_string))
+    .or_else(|| diagnostic.and_then(|meta| diagnostic_reason(meta)));
+
+  let name = CString::new(name)?;
+  let reason_c = reason.as_deref().map(CString::new).transpose()?;
+  let stack = crashed_thread_stack.unwrap_or(&[]);
+
+  unsafe {
+    let _ = bdrw_add_error(
+      handle,
+      name.as_ptr(),
+      reason_c.as_ref().map_or(null(), |value| value.as_ptr()),
+      0,
+      u32::try_from(stack.len()).unwrap_or(u32::MAX),
+      if stack.is_empty() {
+        null()
+      } else {
+        stack.as_ptr()
+      },
+    );
+  }
+
+  Ok(())
+}
+
+fn add_app_metrics(
+  handle: BDProcessorHandle,
+  kscrash_report: &AHashMap<String, Value>,
+) -> anyhow::Result<()> {
+  let system = kscrash_report
+    .get("system")
+    .and_then(|value| value.as_object().ok())
+    .ok_or_else(|| anyhow::anyhow!("KSCrash report missing system info"))?;
+
+  let app_id = CString::new(
+    system
+      .get("bundleID")
+      .and_then(value_as_string)
+      .unwrap_or_default(),
+  )?;
+  let version = CString::new(
+    system
+      .get("bundleShortVersion")
+      .and_then(value_as_string)
+      .unwrap_or_default(),
+  )?;
+  let bundle_version = CString::new(
+    system
+      .get("bundleVersion")
+      .and_then(value_as_string)
+      .unwrap_or_default(),
+  )?;
+
+  let app = BDAppMetrics {
+    app_id: app_id.as_ptr(),
+    version: version.as_ptr(),
+    version_code: 0,
+    cf_bundle_version: bundle_version.as_ptr(),
+    running_state: null(),
+    memory_used: 0,
+    memory_free: 0,
+    memory_total: 0,
+  };
+
+  unsafe {
+    let _ = bdrw_add_app(handle, &app);
+  }
+  Ok(())
+}
+
+fn add_device_metrics(
+  handle: BDProcessorHandle,
+  kscrash_report: &AHashMap<String, Value>,
+) -> anyhow::Result<()> {
+  let system = kscrash_report
+    .get("system")
+    .and_then(|value| value.as_object().ok())
+    .ok_or_else(|| anyhow::anyhow!("KSCrash report missing system info"))?;
+  let diagnostic = kscrash_report
+    .get("diagnosticMetaData")
+    .and_then(|value| value.as_object().ok())
+    .ok_or_else(|| anyhow::anyhow!("KSCrash report missing diagnostic metadata"))?;
+
+  let crashed_at = diagnostic
+    .get("crashedAt")
+    .and_then(value_as_u64)
+    .ok_or_else(|| anyhow::anyhow!("KSCrash report missing crash timestamp"))?;
+  let crashed_at_nanos = diagnostic
+    .get("crashedAtNanos")
+    .and_then(value_as_u64)
+    .and_then(|value| u32::try_from(value).ok())
+    .unwrap_or(0);
+  let model = CString::new(
+    system
+      .get("model")
+      .and_then(value_as_string)
+      .unwrap_or_default(),
+  )?;
+  let os_version = CString::new(
+    system
+      .get("osVersion")
+      .and_then(value_as_string)
+      .unwrap_or_default(),
+  )?;
+  let os_brand = CString::new(
+    system
+      .get("systemName")
+      .and_then(value_as_string)
+      .unwrap_or_default(),
+  )?;
+  let kernel_version = CString::new(
+    system
+      .get("kernelVersion")
+      .and_then(value_as_string)
+      .unwrap_or_default(),
+  )?;
+  let timezone = system
+    .get("timezone")
+    .and_then(value_as_string)
+    .map(CString::new)
+    .transpose()?;
+
+  let device = BDDeviceMetrics {
+    time_seconds: crashed_at,
+    time_nanos: crashed_at_nanos,
+    timezone: timezone.as_ref().map_or(null(), |value| value.as_ptr()),
+    manufacturer: null(),
+    model: model.as_ptr(),
+    os_version: os_version.as_ptr(),
+    os_brand: os_brand.as_ptr(),
+    os_fingerprint: null(),
+    os_kernversion: kernel_version.as_ptr(),
+    power_state: 0,
+    power_charge_percent: 0,
+    network_state: 0,
+    architecture: architecture_constant(
+      system
+        .get("binaryArchitecture")
+        .and_then(value_as_string)
+        .as_deref(),
+    ),
+    display_height: 0,
+    display_width: 0,
+    display_density_dpi: 0,
+    platform: 2,
+    rotation: 0,
+    cpu_abi_count: 0,
+    cpu_abis: null(),
+  };
+
+  unsafe {
+    let _ = bdrw_add_device(handle, &device);
+  }
+  Ok(())
+}
+
+fn build_stack_frames(thread: &AHashMap<String, Value>) -> anyhow::Result<Vec<BDStackFrame>> {
+  let Some(Value::Object(backtrace)) = thread.get("backtrace") else {
+    return Ok(Vec::new());
+  };
+  let Some(Value::Array(contents)) = backtrace.get("contents") else {
+    return Ok(Vec::new());
+  };
+
+  let mut frames = Vec::with_capacity(contents.len());
+  for frame in contents {
+    let Value::Object(frame) = frame else {
+      continue;
+    };
+    let Some(frame_address) = frame.get("address").and_then(value_as_u64) else {
+      continue;
+    };
+    let image_id = frame
+      .get("binaryUUID")
+      .and_then(value_as_string)
+      .map(CString::new)
+      .transpose()?;
+
+    frames.push(BDStackFrame {
+      type_: 2,
+      frame_address,
+      symbol_address: 0,
+      symbol_name: null(),
+      class_name: null(),
+      file_name: null(),
+      line: -1,
+      column: -1,
+      image_id: image_id.as_ref().map_or(null(), |value| value.as_ptr()),
+      state_count: 0,
+      state: null(),
+      reg_count: 0,
+      regs: null(),
+    });
+  }
+
+  Ok(frames)
+}
+
+fn value_as_u64(value: &Value) -> Option<u64> {
+  match value {
+    Value::Unsigned(value) => Some(*value),
+    Value::Signed(value) => (*value >= 0).then_some(*value as u64),
+    _ => None,
+  }
+}
+
+fn value_as_bool(value: &Value) -> Option<bool> {
+  match value {
+    Value::Bool(value) => Some(*value),
+    _ => None,
+  }
+}
+
+fn value_as_string(value: &Value) -> Option<String> {
+  match value {
+    Value::String(value) => Some(value.clone()),
+    _ => None,
+  }
+}
+
+fn architecture_constant(arch: Option<&str>) -> i8 {
+  match arch {
+    Some(arch) if arch.contains("arm64") => 2,
+    Some(arch) if arch.contains("x86_64") => 4,
+    _ => 0,
+  }
+}
+
+fn diagnostic_name(meta: &AHashMap<String, Value>) -> Option<String> {
+  let exception_type = meta.get("exceptionType").and_then(value_as_u64)?;
+  match exception_type {
+    1 => Some("EXC_BAD_ACCESS".to_string()),
+    2 => Some("EXC_BAD_INSTRUCTION".to_string()),
+    3 => Some("EXC_ARITHMETIC".to_string()),
+    4 => Some("EXC_EMULATION".to_string()),
+    5 => Some("EXC_SOFTWARE".to_string()),
+    6 => Some("EXC_BREAKPOINT".to_string()),
+    10 => Some("EXC_CRASH".to_string()),
+    _ => None,
+  }
+}
+
+fn diagnostic_reason(meta: &AHashMap<String, Value>) -> Option<String> {
+  let exception_code = meta.get("exceptionCode").and_then(value_as_u64)?;
+  let signal = meta.get("signal").and_then(value_as_u64)?;
+  Some(format!(
+    "code: {exception_code}, signal: {}",
+    signal_name(signal)
+  ))
+}
+
+fn signal_name(signal: u64) -> &'static str {
+  match signal {
+    1 => "SIGHUP",
+    2 => "SIGINT",
+    3 => "SIGQUIT",
+    4 => "SIGILL",
+    5 => "SIGTRAP",
+    6 => "SIGABRT",
+    8 => "SIGFPE",
+    9 => "SIGKILL",
+    10 => "SIGBUS",
+    11 => "SIGSEGV",
+    12 => "SIGSYS",
+    13 => "SIGPIPE",
+    14 => "SIGALRM",
+    15 => "SIGTERM",
+    _ => "UNKNOWN",
+  }
 }
 
 fn enhance_metrickit_diagnostic_report_impl(

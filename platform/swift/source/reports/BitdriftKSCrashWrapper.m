@@ -47,6 +47,16 @@
 #endif
 }
 
++ (BOOL)createPreviousRunIssueReportWithOutputDir:(NSURL *)outputDir
+                                       sdkVersion:(NSString *)sdkVersion
+                                           error:(NSError **)error {
+#ifndef BITDRIFT_OMIT_KSCRASH
+    return [BitdriftKSCrashHandler createPreviousRunIssueReportWithOutputDir:outputDir sdkVersion:sdkVersion error:error];
+#else
+    return false;
+#endif
+}
+
 + (void)stopCrashReporter {
 #ifndef BITDRIFT_OMIT_KSCRASH
     [BitdriftKSCrashHandler stopCrashReporter];

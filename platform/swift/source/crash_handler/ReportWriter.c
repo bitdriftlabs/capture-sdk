@@ -159,10 +159,67 @@ static bool writeAllThreads(BDCrashWriterHandle writer, const ReportContext* ctx
 
 static bool writeMetadata(BDCrashWriterHandle writer, const ReportContext* ctx) {
     RETURN_ON_FAIL(writeKVUnsigned(writer, "crashedAt", ctx->metadata.time));
+    RETURN_ON_FAIL(writeKVUnsigned(writer, "crashedAtNanos", ctx->metadata.timeNanos));
     RETURN_ON_FAIL(writeKVUnsigned(writer, "pid", ctx->metadata.pid));
     RETURN_ON_FAIL(writeKVUnsigned(writer, "exceptionType", ctx->monitorContext->mach.type));
     RETURN_ON_FAIL(writeKVUnsigned(writer, "exceptionCode", ctx->monitorContext->mach.code));
     RETURN_ON_FAIL(writeKVUnsigned(writer, "signal", ctx->monitorContext->signal.signum));
+    if (ctx->monitorContext->eventID != NULL) {
+        RETURN_ON_FAIL(writeKVString(writer, "eventID", ctx->monitorContext->eventID));
+    }
+    return true;
+}
+
+static bool writeErrorInfo(BDCrashWriterHandle writer, const ReportContext* ctx) {
+    RETURN_ON_FAIL(writeKVObjectBegin(writer, "error"));
+    {
+        if (ctx->monitorContext->exceptionName != NULL) {
+            RETURN_ON_FAIL(writeKVString(writer, "exceptionName", ctx->monitorContext->exceptionName));
+        }
+        if (ctx->monitorContext->crashReason != NULL) {
+            RETURN_ON_FAIL(writeKVString(writer, "crashReason", ctx->monitorContext->crashReason));
+        }
+        if (ctx->monitorContext->monitorId != NULL) {
+            RETURN_ON_FAIL(writeKVString(writer, "monitorId", ctx->monitorContext->monitorId));
+        }
+        RETURN_ON_FAIL(writeKVBoolean(writer, "stackOverflow", ctx->monitorContext->isStackOverflow));
+    }
+    RETURN_ON_FAIL(bdcrw_write_container_end(writer));
+    return true;
+}
+
+static bool writeSystemInfo(BDCrashWriterHandle writer, const ReportContext* ctx) {
+    RETURN_ON_FAIL(writeKVObjectBegin(writer, "system"));
+    {
+        if (ctx->monitorContext->System.bundleID != NULL) {
+            RETURN_ON_FAIL(writeKVString(writer, "bundleID", ctx->monitorContext->System.bundleID));
+        }
+        if (ctx->monitorContext->System.bundleShortVersion != NULL) {
+            RETURN_ON_FAIL(writeKVString(writer, "bundleShortVersion", ctx->monitorContext->System.bundleShortVersion));
+        }
+        if (ctx->monitorContext->System.bundleVersion != NULL) {
+            RETURN_ON_FAIL(writeKVString(writer, "bundleVersion", ctx->monitorContext->System.bundleVersion));
+        }
+        if (ctx->monitorContext->System.osVersion != NULL) {
+            RETURN_ON_FAIL(writeKVString(writer, "osVersion", ctx->monitorContext->System.osVersion));
+        }
+        if (ctx->monitorContext->System.systemName != NULL) {
+            RETURN_ON_FAIL(writeKVString(writer, "systemName", ctx->monitorContext->System.systemName));
+        }
+        if (ctx->monitorContext->System.kernelVersion != NULL) {
+            RETURN_ON_FAIL(writeKVString(writer, "kernelVersion", ctx->monitorContext->System.kernelVersion));
+        }
+        if (ctx->monitorContext->System.model != NULL) {
+            RETURN_ON_FAIL(writeKVString(writer, "model", ctx->monitorContext->System.model));
+        }
+        if (ctx->monitorContext->System.binaryArchitecture != NULL) {
+            RETURN_ON_FAIL(writeKVString(writer, "binaryArchitecture", ctx->monitorContext->System.binaryArchitecture));
+        }
+        if (ctx->monitorContext->System.timezone != NULL) {
+            RETURN_ON_FAIL(writeKVString(writer, "timezone", ctx->monitorContext->System.timezone));
+        }
+    }
+    RETURN_ON_FAIL(bdcrw_write_container_end(writer));
     return true;
 }
 
@@ -174,6 +231,10 @@ static bool writeReport(BDCrashWriterHandle writer, ReportContext* ctx) {
             RETURN_ON_FAIL(writeMetadata(writer, ctx));
         }
         RETURN_ON_FAIL(bdcrw_write_container_end(writer));
+
+        RETURN_ON_FAIL(writeErrorInfo(writer, ctx));
+
+        RETURN_ON_FAIL(writeSystemInfo(writer, ctx));
 
         RETURN_ON_FAIL(writeKVArrayBegin(writer, "threads"));
         {
