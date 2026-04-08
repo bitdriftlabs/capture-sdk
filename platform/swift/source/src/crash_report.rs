@@ -28,13 +28,13 @@ struct NamedThread {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CacheResult {
   /// The report was not cached due to an error
-  Failure = 0,
+  Failure            = 0,
   /// The report file does not exist
   ReportDoesNotExist = 1,
   /// Successfully cached a partial document
-  PartialSuccess = 2,
+  PartialSuccess     = 2,
   /// Successfully cached the complete document
-  Success = 3,
+  Success            = 3,
 }
 
 #[repr(C)]
@@ -132,11 +132,13 @@ fn parse_cached_report(report_path: String) -> anyhow::Result<CacheResult> {
 
   CACHED_KSCRASH_REPORT.lock().replace(hashmap);
 
-  Ok(if was_partial {
-    CacheResult::PartialSuccess
-  } else {
-    CacheResult::Success
-  })
+  Ok(
+    if was_partial {
+      CacheResult::PartialSuccess
+    } else {
+      CacheResult::Success
+    },
+  )
 }
 
 fn cached_kscrash_timestamp_impl() -> anyhow::Result<CachedCrashTimestamp> {
