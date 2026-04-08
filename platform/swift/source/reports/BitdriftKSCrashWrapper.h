@@ -52,9 +52,7 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (NSNumber *_Nullable)didCrashLastLaunch;
 
-+ (BOOL)createPreviousRunIssueReportWithOutputDir:(NSURL *)outputDir
-                                       sdkVersion:(NSString *)sdkVersion
-                                           error:(NSError **)error;
++ (NSDate *_Nullable)cachedCrashDate;
 
 + (void)stopCrashReporter;
 

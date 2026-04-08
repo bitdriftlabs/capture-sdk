@@ -47,13 +47,11 @@
 #endif
 }
 
-+ (BOOL)createPreviousRunIssueReportWithOutputDir:(NSURL *)outputDir
-                                       sdkVersion:(NSString *)sdkVersion
-                                           error:(NSError **)error {
++ (NSDate *_Nullable)cachedCrashDate {
 #ifndef BITDRIFT_OMIT_KSCRASH
-    return [BitdriftKSCrashHandler createPreviousRunIssueReportWithOutputDir:outputDir sdkVersion:sdkVersion error:error];
+    return [BitdriftKSCrashHandler cachedCrashDate];
 #else
-    return false;
+    return nil;
 #endif
 }
 

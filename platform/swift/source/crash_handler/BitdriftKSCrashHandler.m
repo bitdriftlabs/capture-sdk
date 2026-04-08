@@ -40,11 +40,11 @@ typedef enum {
     CacheResultSuccess = 3
 } CacheResult;
 
-typedef enum {
-    ReportCreationResultFailure = 0,
-    ReportCreationResultReportDoesNotExist = 1,
-    ReportCreationResultSuccess = 2,
-} ReportCreationResult;
+typedef struct {
+    uint64_t seconds;
+    uint32_t nanoseconds;
+    bool found;
+} CachedCrashTimestamp;
 
 /** Cache a KSCrash report, which will be used later for report enhancement. */
 CacheResult capture_cache_kscrash_report(NSString *reportPath);
@@ -52,8 +52,8 @@ CacheResult capture_cache_kscrash_report(NSString *reportPath);
 /** Enhance a MetricKit report using the cached KSCrash report. */
 NSDictionary *_Nullable capture_enhance_metrickit_diagnostic_report(const NSDictionary *_Nullable report);
 
-/** Create a capture report directly from the cached KSCrash report. */
-ReportCreationResult capture_create_report_from_cached_kscrash_report(NSString *reportPath, NSString *sdkVersion);
+/** Get the cached KSCrash crash timestamp for the most recent previous-run crash. */
+CachedCrashTimestamp capture_cached_kscrash_timestamp(void);
 
 #pragma mark Crash Handling
 
@@ -230,33 +230,13 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     return capture_enhance_metrickit_diagnostic_report(metricKitReport);
 }
 
-+ (BOOL)createPreviousRunIssueReportWithOutputDir:(NSURL *)outputDir sdkVersion:(NSString *)sdkVersion error:(NSError **)error {
-    return [self.sharedInstance createPreviousRunIssueReportWithOutputDir:outputDir sdkVersion:sdkVersion error:error];
-}
-
-- (BOOL)createPreviousRunIssueReportWithOutputDir:(NSURL *)outputDir sdkVersion:(NSString *)sdkVersion error:(NSError **)error {
-    if (self.kscrashReportFilePath == nil || self.didCrashLastLaunch.boolValue != YES) {
-        return NO;
++ (NSDate *_Nullable)cachedCrashDate {
+    CachedCrashTimestamp timestamp = capture_cached_kscrash_timestamp();
+    if (!timestamp.found) {
+        return nil;
     }
-
-    NSString *identifier = [[NSUUID UUID] UUIDString];
-    NSString *filename = [NSString stringWithFormat:@"kscrash_previous_run_crash_%@.cap", identifier];
-    NSString *path = [[outputDir URLByAppendingPathComponent:filename] path];
-
-    switch (capture_create_report_from_cached_kscrash_report(path, sdkVersion)) {
-        case ReportCreationResultSuccess:
-            return YES;
-        case ReportCreationResultReportDoesNotExist:
-            return NO;
-        case ReportCreationResultFailure:
-            if (error != nil) {
-                *error = [NSError errorWithDomain:@"BitdriftKSCrashHandler" code:0 userInfo:@{
-                    NSLocalizedDescriptionKey: @"Failed to create previous run issue report",
-                    NSLocalizedFailureReasonErrorKey: @"Unable to serialize cached KSCrash report",
-                }];
-            }
-            return NO;
-    }
+    NSTimeInterval interval = (NSTimeInterval)timestamp.seconds + ((NSTimeInterval)timestamp.nanoseconds / NSEC_PER_SEC);
+    return [NSDate dateWithTimeIntervalSince1970:interval];
 }
 
 @end

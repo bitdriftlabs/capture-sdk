@@ -84,9 +84,12 @@ static const char *name_for_diagnostic_type(ReportType type);
   }
 
   for (MXDiagnosticPayload *payload in payloads) {
-    NSTimeInterval timestamp = [payload.timeStampEnd timeIntervalSince1970];
     if ((self.diagnosticTypes & CAPDiagnosticTypeCrash) > 0) {
       for (MXCrashDiagnostic *event in payload.crashDiagnostics) {
+        NSDate *cachedCrashDate = [BitdriftKSCrashWrapper cachedCrashDate];
+        NSTimeInterval timestamp = cachedCrashDate != nil
+          ? cachedCrashDate.timeIntervalSince1970
+          : [payload.timeStampEnd timeIntervalSince1970];
         [self processDiagnostic:event atTimestamp:timestamp];
       }
     }
@@ -97,6 +100,7 @@ static const char *name_for_diagnostic_type(ReportType type);
         if ([duration measurementBySubtractingMeasurement:self.minimumHangDuration].doubleValue < 0) {
           continue;
         }
+        NSTimeInterval timestamp = [payload.timeStampEnd timeIntervalSince1970];
         [self processDiagnostic:event atTimestamp:timestamp];
       }
     }
