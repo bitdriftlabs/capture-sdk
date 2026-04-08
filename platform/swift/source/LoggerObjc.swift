@@ -13,6 +13,7 @@ import Foundation
 public final class CAPConfiguration: NSObject {
     let underlyingConfig: Configuration
     public let enableURLSessionIntegration: Bool
+    public let issueCallbackConfiguration: IssueCallbackConfiguration?
 
     /// Initializes a new instance of the Capture configuration.
     ///
@@ -22,6 +23,7 @@ public final class CAPConfiguration: NSObject {
     public init(enableFatalIssueReporting: Bool, enableURLSessionIntegration: Bool) {
         self.underlyingConfig = Configuration(enableFatalIssueReporting: enableFatalIssueReporting)
         self.enableURLSessionIntegration = enableURLSessionIntegration
+        self.issueCallbackConfiguration = nil
     }
 
     /// Initializes a new instance of the Capture configuration.
@@ -41,6 +43,7 @@ public final class CAPConfiguration: NSObject {
         self.underlyingConfig = Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting,
                                               apiURL: apiURL ?? URL(string: "https://api.bitdrift.io")!, rootFileURL: rootFileURL)
         self.enableURLSessionIntegration = enableURLSessionIntegration
+        self.issueCallbackConfiguration = nil
     }
 
     /// Initializes a new instance of the Capture configuration.
@@ -52,6 +55,21 @@ public final class CAPConfiguration: NSObject {
     public init(enableFatalIssueReporting: Bool, enableURLSessionIntegration: Bool, sleepMode: SleepMode) {
         self.underlyingConfig = Configuration(sleepMode: sleepMode, enableFatalIssueReporting: enableFatalIssueReporting)
         self.enableURLSessionIntegration = enableURLSessionIntegration
+        self.issueCallbackConfiguration = nil
+    }
+
+    @objc
+    public init(enableFatalIssueReporting: Bool, enableURLSessionIntegration: Bool,
+                sleepMode: SleepMode, apiURL: URL?, rootFileURL: URL?,
+                issueCallbackConfiguration: IssueCallbackConfiguration?)
+    {
+        self.underlyingConfig = Configuration(sleepMode: sleepMode,
+                                              enableFatalIssueReporting: enableFatalIssueReporting,
+                                              apiURL: apiURL ?? URL(string: "https://api.bitdrift.io")!,
+                                              rootFileURL: rootFileURL,
+                                              issueCallbackConfiguration: issueCallbackConfiguration)
+        self.enableURLSessionIntegration = enableURLSessionIntegration
+        self.issueCallbackConfiguration = issueCallbackConfiguration
     }
 }
 
