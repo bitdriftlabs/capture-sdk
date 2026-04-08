@@ -524,6 +524,10 @@ fn call_stacks_match(call_stack_a: &[u64], call_stack_b: &[u64]) -> bool {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::ffi::nsstring_into_string;
+  use ahash::AHashMap;
+  use bd_bonjson::Value;
+  use objc::runtime::Object;
   use std::io::Write;
 
   #[test]
@@ -556,5 +560,95 @@ mod tests {
     report.write("\0\0\0".as_bytes()).unwrap();
     let report_path = report.path().to_str().unwrap().to_string();
     assert!(parse_cached_report(report_path).is_err());
+  }
+
+  #[test]
+  fn cached_crash_timestamp_with_nanos_test() {
+    let mut diagnostic_meta = AHashMap::new();
+    diagnostic_meta.insert("crashedAt".to_string(), Value::Unsigned(1_234_567_890));
+    diagnostic_meta.insert("crashedAtNanos".to_string(), Value::Unsigned(500_000_000));
+
+    let mut report = AHashMap::new();
+    report.insert(
+      "diagnosticMetaData".to_string(),
+      Value::Object(diagnostic_meta),
+    );
+
+    *CACHED_KSCRASH_REPORT.lock() = Some(report);
+
+    assert_eq!(
+      cached_kscrash_timestamp_impl().unwrap(),
+      CachedCrashTimestamp {
+        seconds: 1_234_567_890,
+        nanoseconds: 500_000_000,
+        found: true,
+      }
+    );
+  }
+
+  #[test]
+  fn cached_crash_timestamp_without_nanos_test() {
+    let mut diagnostic_meta = AHashMap::new();
+    diagnostic_meta.insert("crashedAt".to_string(), Value::Unsigned(1_234_567_890));
+
+    let mut report = AHashMap::new();
+    report.insert(
+      "diagnosticMetaData".to_string(),
+      Value::Object(diagnostic_meta),
+    );
+
+    *CACHED_KSCRASH_REPORT.lock() = Some(report);
+
+    assert_eq!(
+      cached_kscrash_timestamp_impl().unwrap(),
+      CachedCrashTimestamp {
+        seconds: 1_234_567_890,
+        nanoseconds: 0,
+        found: true,
+      }
+    );
+  }
+
+  #[test]
+  fn cached_event_id_missing_test() {
+    let mut diagnostic_meta = AHashMap::new();
+    diagnostic_meta.insert("crashedAt".to_string(), Value::Unsigned(1_234_567_890));
+
+    let mut report = AHashMap::new();
+    report.insert(
+      "diagnosticMetaData".to_string(),
+      Value::Object(diagnostic_meta),
+    );
+
+    *CACHED_KSCRASH_REPORT.lock() = Some(report);
+
+    let mut event_id_ptr: *const Object = std::ptr::null();
+    let result = cached_kscrash_event_id_impl(&mut event_id_ptr).unwrap();
+    assert_eq!(result, CachedCrashEventIdResult::EventDoesNotExist);
+    assert!(event_id_ptr.is_null());
+  }
+
+  #[test]
+  fn cached_event_id_present_test() {
+    let mut diagnostic_meta = AHashMap::new();
+    diagnostic_meta.insert(
+      "eventID".to_string(),
+      Value::String("test-event-id-123".to_string()),
+    );
+
+    let mut report = AHashMap::new();
+    report.insert(
+      "diagnosticMetaData".to_string(),
+      Value::Object(diagnostic_meta),
+    );
+
+    *CACHED_KSCRASH_REPORT.lock() = Some(report);
+
+    let mut event_id_ptr: *const Object = std::ptr::null();
+    let result = cached_kscrash_event_id_impl(&mut event_id_ptr).unwrap();
+    assert_eq!(result, CachedCrashEventIdResult::Success);
+    assert!(!event_id_ptr.is_null());
+    let event_id_str = unsafe { nsstring_into_string(event_id_ptr) }.unwrap();
+    assert_eq!(event_id_str, "test-event-id-123");
   }
 }
