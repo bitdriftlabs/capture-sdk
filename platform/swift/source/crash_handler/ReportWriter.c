@@ -8,6 +8,7 @@
 #include "ReportWriter.h"
 
 #include "KSCrashMonitorContext.h"
+#include "KSBinaryImageCache.h"
 #include "KSMachineContext.h"
 #include "KSLogger.h"
 #include "KSStackCursor.h"
@@ -72,6 +73,45 @@ static bool writeKVUUID(BDCrashWriterHandle writer, const char *key, const uint8
     *p = '\0';
     
     return writeKVString(writer, key, uuid);
+}
+
+static bool writeBinaryImage(BDCrashWriterHandle writer, const ks_dyld_image_info *info) {
+    if (info == NULL || info->imageFilePath == NULL || info->imageLoadAddress == NULL) {
+        return true;
+    }
+
+    KSBinaryImage image = {0};
+    if (!ksdl_binaryImageForHeader(info->imageLoadAddress, info->imageFilePath, &image)) {
+        return true;
+    }
+
+    RETURN_ON_FAIL(bdcrw_write_map_begin(writer));
+    {
+        RETURN_ON_FAIL(writeKVString(writer, "name", info->imageFilePath));
+        RETURN_ON_FAIL(writeKVUnsigned(writer, "loadAddress", (uintptr_t)info->imageLoadAddress));
+        if (image.uuid != NULL) {
+            RETURN_ON_FAIL(writeKVUUID(writer, "uuid", image.uuid));
+        }
+    }
+    RETURN_ON_FAIL(bdcrw_write_container_end(writer));
+    return true;
+}
+
+static bool writeBinaryImages(BDCrashWriterHandle writer) {
+    uint32_t imageCount = 0;
+    const ks_dyld_image_info *images = ksbic_getImages(&imageCount);
+    if (images == NULL || imageCount == 0) {
+        return true;
+    }
+
+    RETURN_ON_FAIL(writeKVArrayBegin(writer, "binaryImages"));
+    {
+        for (uint32_t i = 0; i < imageCount; i++) {
+            RETURN_ON_FAIL(writeBinaryImage(writer, &images[i]));
+        }
+    }
+    RETURN_ON_FAIL(bdcrw_write_container_end(writer));
+    return true;
 }
 
 static bool writeBacktrace(BDCrashWriterHandle writer, const char *const key, KSStackCursor *stackCursor) {
@@ -164,7 +204,7 @@ static bool writeMetadata(BDCrashWriterHandle writer, const ReportContext* ctx) 
     RETURN_ON_FAIL(writeKVUnsigned(writer, "exceptionType", ctx->monitorContext->mach.type));
     RETURN_ON_FAIL(writeKVUnsigned(writer, "exceptionCode", ctx->monitorContext->mach.code));
     RETURN_ON_FAIL(writeKVUnsigned(writer, "signal", ctx->monitorContext->signal.signum));
-    if (ctx->monitorContext->eventID != NULL) {
+    if (ctx->monitorContext->eventID[0] != '\0') {
         RETURN_ON_FAIL(writeKVString(writer, "eventID", ctx->monitorContext->eventID));
     }
     return true;
@@ -235,6 +275,8 @@ static bool writeReport(BDCrashWriterHandle writer, ReportContext* ctx) {
         RETURN_ON_FAIL(writeErrorInfo(writer, ctx));
 
         RETURN_ON_FAIL(writeSystemInfo(writer, ctx));
+
+        RETURN_ON_FAIL(writeBinaryImages(writer));
 
         RETURN_ON_FAIL(writeKVArrayBegin(writer, "threads"));
         {

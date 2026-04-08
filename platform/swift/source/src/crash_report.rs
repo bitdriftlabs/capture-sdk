@@ -28,6 +28,11 @@ struct NamedThread {
   count: usize,
 }
 
+struct OwnedStackTrace {
+  _image_ids: Vec<CString>,
+  frames: Vec<BDStackFrame>,
+}
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CacheResult {
@@ -344,19 +349,18 @@ fn add_binary_images(
     let Value::Object(image) = image else {
       continue;
     };
-
-    let Some(Value::String(id)) = image.get("uuid") else {
+    let Some(binary_uuid) = image.get("uuid").and_then(value_as_string) else {
       continue;
     };
-    let Some(Value::String(path)) = image.get("name") else {
+    let Some(binary_name) = image.get("name").and_then(value_as_string) else {
       continue;
     };
     let Some(load_address) = image.get("loadAddress").and_then(value_as_u64) else {
       continue;
     };
 
-    let id = CString::new(id.as_str())?;
-    let path = CString::new(path.as_str())?;
+    let id = CString::new(binary_uuid)?;
+    let path = CString::new(binary_name)?;
     let image = BDBinaryImage {
       id: id.as_ptr(),
       path: path.as_ptr(),
@@ -375,12 +379,12 @@ fn add_threads(
   handle: BDProcessorHandle,
   kscrash_report: &AHashMap<String, Value>,
 ) -> anyhow::Result<Option<Vec<BDStackFrame>>> {
+  let mut crashed_thread_stack = None;
   let Some(Value::Array(threads)) = kscrash_report.get("threads") else {
     return Ok(None);
   };
 
   let system_thread_count = u16::try_from(threads.len()).unwrap_or(u16::MAX);
-  let mut crashed_thread_stack = None;
 
   for thread in threads {
     let Value::Object(thread) = thread else {
@@ -420,17 +424,17 @@ fn add_threads(
         handle,
         system_thread_count,
         &thread_info,
-        u32::try_from(stack.len()).unwrap_or(u32::MAX),
-        if stack.is_empty() {
+        u32::try_from(stack.frames.len()).unwrap_or(u32::MAX),
+        if stack.frames.is_empty() {
           null()
         } else {
-          stack.as_ptr()
+          stack.frames.as_ptr()
         },
       );
     }
 
     if active && crashed_thread_stack.is_none() {
-      crashed_thread_stack = Some(stack);
+      crashed_thread_stack = Some(stack.frames);
     }
   }
 
@@ -611,14 +615,21 @@ fn add_device_metrics(
   Ok(())
 }
 
-fn build_stack_frames(thread: &AHashMap<String, Value>) -> anyhow::Result<Vec<BDStackFrame>> {
+fn build_stack_frames(thread: &AHashMap<String, Value>) -> anyhow::Result<OwnedStackTrace> {
   let Some(Value::Object(backtrace)) = thread.get("backtrace") else {
-    return Ok(Vec::new());
+    return Ok(OwnedStackTrace {
+      _image_ids: Vec::new(),
+      frames: Vec::new(),
+    });
   };
   let Some(Value::Array(contents)) = backtrace.get("contents") else {
-    return Ok(Vec::new());
+    return Ok(OwnedStackTrace {
+      _image_ids: Vec::new(),
+      frames: Vec::new(),
+    });
   };
 
+  let mut image_ids = Vec::with_capacity(contents.len());
   let mut frames = Vec::with_capacity(contents.len());
   for frame in contents {
     let Value::Object(frame) = frame else {
@@ -627,22 +638,30 @@ fn build_stack_frames(thread: &AHashMap<String, Value>) -> anyhow::Result<Vec<BD
     let Some(frame_address) = frame.get("address").and_then(value_as_u64) else {
       continue;
     };
+    let symbol_address = frame
+      .get("offsetIntoBinaryTextSegment")
+      .and_then(value_as_u64)
+      .unwrap_or(0);
     let image_id = frame
       .get("binaryUUID")
       .and_then(value_as_string)
       .map(CString::new)
       .transpose()?;
+    if let Some(image_id) = image_id {
+      image_ids.push(image_id);
+    }
+    let image_id_ptr = image_ids.last().map_or(null(), |value| value.as_ptr());
 
     frames.push(BDStackFrame {
       type_: 2,
       frame_address,
-      symbol_address: 0,
+      symbol_address,
       symbol_name: null(),
       class_name: null(),
       file_name: null(),
       line: -1,
       column: -1,
-      image_id: image_id.as_ref().map_or(null(), |value| value.as_ptr()),
+      image_id: image_id_ptr,
       state_count: 0,
       state: null(),
       reg_count: 0,
@@ -650,7 +669,10 @@ fn build_stack_frames(thread: &AHashMap<String, Value>) -> anyhow::Result<Vec<BD
     });
   }
 
-  Ok(frames)
+  Ok(OwnedStackTrace {
+    _image_ids: image_ids,
+    frames,
+  })
 }
 
 fn value_as_u64(value: &Value) -> Option<u64> {
