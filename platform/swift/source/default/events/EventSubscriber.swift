@@ -12,6 +12,7 @@ import Foundation
 /// and emit Capture out-of-the-box in response to them.
 final class EventSubscriber {
     private let listeners = Atomic([EventListener]())
+    var previousRunSentinel: PreviousRunSentinel?
 
     func setUp(
         logger: CoreLogging,
@@ -21,7 +22,7 @@ final class EventSubscriber {
     ) {
         self.listeners.update { listeners in
             listeners = [
-                LoggerLifecycleController(logger: logger),
+                LoggerLifecycleController(logger: logger, previousRunSentinel: self.previousRunSentinel),
                 LifecycleEventListener(logger: logger),
                 DeviceStateListener(logger: logger),
                 AppUpdateEventListener(

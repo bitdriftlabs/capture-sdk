@@ -43,6 +43,7 @@ public final class Logger {
     static var issueReporterInitResult: IssueReporterInitResult = (.notInitialized, 0)
     static var hasFatallyTerminatedOnPreviousRun: Bool?
     static var diagnosticReporter = Atomic<DiagnosticEventReporter?>(nil)
+    static var previousRunSentinel: PreviousRunSentinel?
 
     private static let syncedShared = Atomic<State>(.notStarted)
 
@@ -256,13 +257,19 @@ public final class Logger {
                 }
 
                 let kscrashReportDir = Logger.kscrashReportDirectory(base: directoryURL)
+                let previousRunSentinel = PreviousRunSentinel(fileURL: Logger.previousRunSentinelPath(base: directoryURL))
+                Logger.previousRunSentinel = previousRunSentinel
+                self.eventsListenerTarget.previousRunSentinel = previousRunSentinel
                 do {
                     try BitdriftKSCrashWrapper.configure(withCrashReportDirectory: kscrashReportDir)
-                    Logger.hasFatallyTerminatedOnPreviousRun = BitdriftKSCrashWrapper.didCrashLastLaunch()?.boolValue
+                    let didCrashLastLaunch = BitdriftKSCrashWrapper.didCrashLastLaunch()?.boolValue
+                    Logger.hasFatallyTerminatedOnPreviousRun = didCrashLastLaunch ?? previousRunSentinel.previousRunEndedUnexpectedly()
                     try BitdriftKSCrashWrapper.startCrashReporter()
                 } catch {
-                    // hasFatallyTerminatedOnPreviousRun may already be set if configure() succeeded
+                    Logger.hasFatallyTerminatedOnPreviousRun = previousRunSentinel.previousRunEndedUnexpectedly()
                 }
+
+                previousRunSentinel.markForeground()
 
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
                 let reporter = DiagnosticEventReporter(
@@ -405,6 +412,10 @@ public final class Logger {
         return base.appendingPathComponent("reports/new", isDirectory: true)
     }
 
+    static func previousRunSentinelPath(base: URL) -> URL {
+        return base.appendingPathComponent("reports/previous_run_state", isDirectory: false)
+    }
+
     // MARK: - Private
 
     private static func cachedReportConfigData(base: URL) -> String? {
@@ -442,6 +453,7 @@ public final class Logger {
         self.dispatchSourceMemoryMonitor?.stop()
 
         self.dispatchSourceMemoryMonitor = nil
+        Logger.previousRunSentinel?.clear()
 
         BitdriftKSCrashWrapper.stopCrashReporter()
     }

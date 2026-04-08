@@ -1,5 +1,7 @@
 #import <Foundation/Foundation.h>
+#import <signal.h>
 #import <stdlib.h>
+#import <unistd.h>
 #import <Capture/Capture.h>
 
 #import "CAPViewController.h"
@@ -7,6 +9,19 @@ static NSString * const kDefaultCaptureAPIKey = @"<YOUR API KEY GOES HERE>";
 static NSString * const kDefaultCaptureURLString = @"https://api.bitdrift.io";
 static NSString * const kSavedCaptureAPIKeyKey = @"capture_api_key";
 static NSString * const kSavedCaptureURLKey = @"capture_api_url";
+
+static void nonChainingSigabrtHandler(int signalNumber) {
+    signal(signalNumber, SIG_DFL);
+    kill(getpid(), signalNumber);
+}
+
+static void installNonChainingSigabrtHandler(void) {
+    struct sigaction action;
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = nonChainingSigabrtHandler;
+    sigemptyset(&action.sa_mask);
+    sigaction(SIGABRT, &action, NULL);
+}
 
 @interface CAPIssueLogger : NSObject <IssueReportCallback>
 @end
@@ -292,6 +307,15 @@ NSString *logLevelToString(LogLevel level) {
                     action:@selector(triggerAbortCrash)
           forControlEvents:UIControlEventTouchUpInside];
 
+    UIButton *conflictingAbortButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    conflictingAbortButton.backgroundColor = UIColor.systemIndigoColor;
+    conflictingAbortButton.tintColor = UIColor.whiteColor;
+    [conflictingAbortButton setTitle:@"Trigger abort() With Custom Handler"
+                           forState:UIControlStateNormal];
+    [conflictingAbortButton addTarget:self
+                               action:@selector(triggerAbortCrashWithCustomSignalHandler)
+                     forControlEvents:UIControlEventTouchUpInside];
+
     UIButton *watchdogButton = [UIButton buttonWithType:UIButtonTypeSystem];
     watchdogButton.backgroundColor = UIColor.systemPurpleColor;
     watchdogButton.tintColor = UIColor.whiteColor;
@@ -310,7 +334,7 @@ NSString *logLevelToString(LogLevel level) {
                               action:@selector(startNewSession)
                     forControlEvents:UIControlEventTouchUpInside];
 
-    UIStackView *crashActionsView = [[UIStackView alloc] initWithArrangedSubviews:@[crashButton, abortButton, hangButton, watchdogButton, startNewSessionButton]];
+    UIStackView *crashActionsView = [[UIStackView alloc] initWithArrangedSubviews:@[crashButton, abortButton, conflictingAbortButton, hangButton, watchdogButton, startNewSessionButton]];
     crashActionsView.axis = UILayoutConstraintAxisVertical;
     crashActionsView.spacing = 8;
 
@@ -425,6 +449,13 @@ NSString *logLevelToString(LogLevel level) {
 
 - (void)triggerAbortCrash {
     [CAPLogger logInfo:@"About to trigger abort() crash" fields:nil];
+    abort();
+}
+
+- (void)triggerAbortCrashWithCustomSignalHandler {
+    [CAPLogger logInfo:@"Installing custom non-chaining SIGABRT handler" fields:nil];
+    installNonChainingSigabrtHandler();
+    [CAPLogger logInfo:@"About to trigger abort() crash with competing handler" fields:nil];
     abort();
 }
 
