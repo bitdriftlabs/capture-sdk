@@ -100,16 +100,22 @@ internal class IssueReporterProcessor(
      * (e.g. [ReportType.AppNotResponding] or [ReportType.NativeCrash])
      * @param timestamp The timestamp when the issue occurred
      * @param description Optional description of the issue
-     * @param traceInputStream Input stream containing the fatal issue trace data
+     * @param traceInputStream Input stream containing the fatal issue trace data. May be null for
+     * native crashes on API level 30 where tombstone data is unavailable; a skeleton report will
+     * be generated in that case.
+     * @param signalNumber The signal number from [android.app.ApplicationExitInfo.getStatus] for
+     * native crashes. Used to populate signal name and description in skeleton reports.
      */
     override fun processAppExitReport(
         fatalIssueType: Byte,
         timestamp: Long,
         description: String?,
-        traceInputStream: InputStream,
+        traceInputStream: InputStream?,
+        signalNumber: Int,
     ) {
         runCatching {
             if (fatalIssueType == ReportType.AppNotResponding) {
+                if (traceInputStream == null) return
                 streamingReportsProcessor.processAndPersistANR(
                     traceInputStream,
                     timestamp,
@@ -129,6 +135,7 @@ internal class IssueReporterProcessor(
                         deviceMetrics,
                         description,
                         traceInputStream,
+                        signalNumber,
                     )
                 builder.finish(report)
 

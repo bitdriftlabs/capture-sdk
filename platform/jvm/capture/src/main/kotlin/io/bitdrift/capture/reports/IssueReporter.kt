@@ -165,13 +165,14 @@ internal class IssueReporter(
         val lastReasonResult = latestAppExitInfoProvider.get()
         if (lastReasonResult is LatestAppExitReasonResult.Valid) {
             val lastReason = lastReasonResult.applicationExitInfo
-            lastReason.traceInputStream?.use {
+            lastReason.traceInputStream.use { traceInputStream ->
                 latestAppExitInfoProvider.convertExitReasonToFbsReportType(lastReason.reason)?.let { fatalIssueType ->
                     issueReporterProcessor?.processAppExitReport(
                         fatalIssueType = fatalIssueType,
                         timestamp = lastReason.timestamp,
                         description = lastReason.description,
-                        traceInputStream = it,
+                        traceInputStream = traceInputStream,
+                        signalNumber = lastReason.status,
                     )
                 }
             }

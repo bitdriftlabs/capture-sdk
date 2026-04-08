@@ -25,15 +25,22 @@ import java.io.InputStream
  * and converts to a FlatBuffer Report.
  */
 internal object NativeCrashProcessor {
-    private val signalDescriptions =
+    private data class SignalInfo(
+        val name: String,
+        val description: String,
+    )
+
+    private val signals =
         mapOf(
-            "SIGABRT" to "Abort program",
-            "SIGBUS" to "Bus error (bad memory access)",
-            "SIGFPE" to "Floating‑point exception",
-            "SIGILL" to "Illegal instruction",
-            "SIGSEGV" to "Segmentation violation (invalid memory reference)",
-            "SIGTRAP" to "Trace/breakpoint trap",
+            4 to SignalInfo("SIGILL", "Illegal instruction"),
+            5 to SignalInfo("SIGTRAP", "Trace/breakpoint trap"),
+            6 to SignalInfo("SIGABRT", "Abort program"),
+            7 to SignalInfo("SIGBUS", "Bus error (bad memory access)"),
+            8 to SignalInfo("SIGFPE", "Floating‑point exception"),
+            11 to SignalInfo("SIGSEGV", "Segmentation violation (invalid memory reference)"),
         )
+
+    private val signalsByName = signals.values.associateBy { it.name }
 
     fun process(
         builder: FlatBufferBuilder,
@@ -41,8 +48,13 @@ internal object NativeCrashProcessor {
         appMetrics: Int,
         deviceMetrics: Int,
         description: String?,
-        traceInputStream: InputStream,
+        traceInputStream: InputStream?,
+        signalNumber: Int = 0,
     ): Int {
+        if (traceInputStream == null) {
+            return createSkeletonReport(builder, sdk, appMetrics, deviceMetrics, description, signalNumber)
+        }
+
         val tombstone = Tombstone.parseFrom(traceInputStream)
         val nativeErrors = mutableListOf<Int>()
         val threadOffsets = mutableListOf<Int>()
@@ -139,6 +151,53 @@ internal object NativeCrashProcessor {
         )
     }
 
+    /**
+     * Creates a minimal native crash report for cases where tombstone data is unavailable
+     * (e.g. native crashes on API level 30 where [android.app.ApplicationExitInfo.getTraceInputStream]
+     * returns null). The report includes the crash description and uses empty stack traces,
+     * empty thread details, and empty binary images. When a [signalNumber] is available
+     * (from [android.app.ApplicationExitInfo.getStatus]), the signal name and description
+     * are used for the error name and reason fields.
+     */
+    private fun createSkeletonReport(
+        builder: FlatBufferBuilder,
+        sdk: Int,
+        appMetrics: Int,
+        deviceMetrics: Int,
+        description: String?,
+        signalNumber: Int = 0,
+    ): Int {
+        val signal = signals[signalNumber]
+        val name = builder.createString(signal?.name ?: description ?: "Native crash")
+        val reason = builder.createString(signal?.description ?: "Native crash")
+        val errorOffset =
+            Error.createError(
+                builder,
+                name,
+                reason,
+                Error.createStackTraceVector(builder, intArrayOf()),
+                ErrorRelation.CausedBy,
+            )
+        val threadDetailsOffset =
+            ThreadDetails.createThreadDetails(
+                builder,
+                0.toUShort(),
+                ThreadDetails.createThreadsVector(builder, intArrayOf()),
+            )
+        return Report.createReport(
+            builder,
+            sdk,
+            ReportType.NativeCrash,
+            appMetrics,
+            deviceMetrics,
+            Report.createErrorsVector(builder, intArrayOf(errorOffset)),
+            threadDetailsOffset,
+            Report.createBinaryImagesVector(builder, intArrayOf()),
+            stateOffset = 0,
+            featureFlagsOffset = 0,
+        )
+    }
+
     private fun createErrorOffset(
         builder: FlatBufferBuilder,
         description: String?,
@@ -146,10 +205,10 @@ internal object NativeCrashProcessor {
         frameOffsets: IntArray,
     ): Int {
         val signalName = tombstone.signalInfo.name
-        val reason = builder.createString(signalName.ifEmpty { description })
+        val reason = builder.createString(signalName.ifEmpty { description ?: "Native crash" })
         val causeText =
             tombstone.causesList.firstOrNull()?.humanReadable ?: tombstone.abortMessage.ifEmpty {
-                signalDescriptions[signalName] ?: "Native crash"
+                signalsByName[signalName]?.description ?: "Native crash"
             }
         val cause = builder.createString(causeText)
         return Error.createError(

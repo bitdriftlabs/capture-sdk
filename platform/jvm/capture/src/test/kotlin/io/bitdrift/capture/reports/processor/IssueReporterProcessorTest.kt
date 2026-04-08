@@ -166,6 +166,7 @@ class IssueReporterProcessorTest {
             FAKE_TIME_STAMP,
             "Input Dispatching Timed Out",
             trace,
+            signalNumber = 0,
         )
 
         verify(streamingReportProcessor).processAndPersistANR(
@@ -190,6 +191,7 @@ class IssueReporterProcessorTest {
             FAKE_TIME_STAMP,
             "Input Dispatching Timed Out",
             buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt"),
+            signalNumber = 0,
         )
 
         verify(internalLogger).logInternalError(
@@ -214,6 +216,7 @@ class IssueReporterProcessorTest {
             FAKE_TIME_STAMP,
             "Input Dispatching Timed Out",
             buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt"),
+            signalNumber = 0,
         )
 
         verify(internalLogger).logInternalError(
@@ -237,6 +240,7 @@ class IssueReporterProcessorTest {
             FAKE_TIME_STAMP,
             description,
             traceInputStream,
+            signalNumber = 0,
         )
 
         verify(issueReporterStorage).persistFatalIssue(
@@ -276,6 +280,60 @@ class IssueReporterProcessorTest {
     }
 
     @Test
+    fun processAppExitReport_whenNativeCrashWithNullTrace_shouldCreateSkeletonNativeReport() {
+        val description = "Segmentation fault"
+
+        processor.processAppExitReport(
+            ReportType.NativeCrash,
+            FAKE_TIME_STAMP,
+            description,
+            traceInputStream = null,
+            signalNumber = 11, // SIGSEGV
+        )
+
+        verify(issueReporterStorage).persistFatalIssue(
+            eq(FAKE_TIME_STAMP),
+            issueReportCaptor.capture(),
+            reportTypeCaptor.capture(),
+        )
+        val buffer = ByteBuffer.wrap(issueReportCaptor.firstValue)
+        val report = Report.getRootAsReport(buffer)
+        assertThat(report.errorsLength).isEqualTo(1)
+        assertThat(reportTypeCaptor.firstValue).isEqualTo(ReportType.NativeCrash)
+
+        val capturedError = report.errors(0)!!
+        assertThat(capturedError.name).isEqualTo("SIGSEGV")
+        assertThat(capturedError.reason).isEqualTo("Segmentation violation (invalid memory reference)")
+        assertThat(capturedError.stackTraceLength).isEqualTo(0)
+        assertThat(report.threadDetails?.threadsLength).isEqualTo(0)
+        assertThat(report.binaryImagesLength).isEqualTo(0)
+    }
+
+    @Test
+    fun processAppExitReport_whenNativeCrashWithNullTraceAndUnknownSignal_shouldFallBackToDescription() {
+        val description = "Segmentation fault"
+
+        processor.processAppExitReport(
+            ReportType.NativeCrash,
+            FAKE_TIME_STAMP,
+            description,
+            traceInputStream = null,
+            signalNumber = 0,
+        )
+
+        verify(issueReporterStorage).persistFatalIssue(
+            eq(FAKE_TIME_STAMP),
+            issueReportCaptor.capture(),
+            reportTypeCaptor.capture(),
+        )
+        val buffer = ByteBuffer.wrap(issueReportCaptor.firstValue)
+        val report = Report.getRootAsReport(buffer)
+        val capturedError = report.errors(0)!!
+        assertThat(capturedError.name).isEqualTo(description)
+        assertThat(capturedError.reason).isEqualTo("Native crash")
+    }
+
+    @Test
     fun processAppExitReport_withInvalidReason_shouldNotInteractWithStorage() {
         val description = null
         val traceInputStream = createTraceInputStream("sample native crash trace")
@@ -285,6 +343,7 @@ class IssueReporterProcessorTest {
             FAKE_TIME_STAMP,
             description,
             traceInputStream,
+            signalNumber = 0,
         )
 
         verify(issueReporterStorage, never())
