@@ -88,8 +88,8 @@ static const char *name_for_diagnostic_type(ReportType type);
 
   for (MXDiagnosticPayload *payload in payloads) {
     if ((self.diagnosticTypes & CAPDiagnosticTypeCrash) > 0) {
+      NSDate *cachedCrashDate = payload.crashDiagnostics.count == 1 ? [BitdriftKSCrashWrapper cachedCrashDate] : nil;
       for (MXCrashDiagnostic *event in payload.crashDiagnostics) {
-        NSDate *cachedCrashDate = [BitdriftKSCrashWrapper cachedCrashDate];
         NSTimeInterval timestamp = cachedCrashDate != nil
           ? cachedCrashDate.timeIntervalSince1970
           : [payload.timeStampEnd timeIntervalSince1970];
