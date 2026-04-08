@@ -131,7 +131,6 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     }
 
     self.kscrashReportFilePath = crashReportFile;
-    self.reportCollectionDirectoryPath = [crashReportDir.absoluteURL.path stringByDeletingLastPathComponent];
 
     BOOL result = YES;
 
