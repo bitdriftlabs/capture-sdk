@@ -355,7 +355,6 @@ NSString *logLevelToString(LogLevel level) {
 
     [[NSUserDefaults standardUserDefaults] setObject:apiKey forKey:kSavedCaptureAPIKeyKey];
     [[NSUserDefaults standardUserDefaults] setObject:apiURLString forKey:kSavedCaptureURLKey];
-    [[NSUserDefaults standardUserDefaults] synchronize];
 
      UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Saved"
                                                                     message:@"Restart the app to apply the new settings."
