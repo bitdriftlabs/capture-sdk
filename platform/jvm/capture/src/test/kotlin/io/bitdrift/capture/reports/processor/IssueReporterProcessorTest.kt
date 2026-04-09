@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 package io.bitdrift.capture.reports.processor
 
+import android.app.ApplicationExitInfo
 import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.any
@@ -16,6 +17,7 @@ import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
+import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.IInternalLogger
@@ -162,11 +164,12 @@ class IssueReporterProcessorTest {
         doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
         val trace = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt")
         processor.processAppExitReport(
-            fatalIssueType = ReportType.AppNotResponding,
-            FAKE_TIME_STAMP,
-            "Input Dispatching Timed Out",
-            trace,
-            signalNumber = 0,
+            applicationExit =
+                createApplicationExitInfo(
+                    timestamp = FAKE_TIME_STAMP,
+                    traceInputStream = trace,
+                    reason = ApplicationExitInfo.REASON_ANR,
+                ),
         )
 
         verify(streamingReportProcessor).processAndPersistANR(
@@ -187,11 +190,12 @@ class IssueReporterProcessorTest {
         setReportDirectoryAndThrowException(exception)
 
         processor.processAppExitReport(
-            fatalIssueType = ReportType.AppNotResponding,
-            FAKE_TIME_STAMP,
-            "Input Dispatching Timed Out",
-            buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt"),
-            signalNumber = 0,
+            applicationExit =
+                createApplicationExitInfo(
+                    timestamp = FAKE_TIME_STAMP,
+                    traceInputStream = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt"),
+                    reason = ApplicationExitInfo.REASON_ANR,
+                ),
         )
 
         verify(internalLogger).logInternalError(
@@ -212,11 +216,12 @@ class IssueReporterProcessorTest {
         setReportDirectoryAndThrowException(exception)
 
         processor.processAppExitReport(
-            fatalIssueType = ReportType.AppNotResponding,
-            FAKE_TIME_STAMP,
-            "Input Dispatching Timed Out",
-            buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt"),
-            signalNumber = 0,
+            applicationExit =
+                createApplicationExitInfo(
+                    timestamp = FAKE_TIME_STAMP,
+                    traceInputStream = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt"),
+                    reason = ApplicationExitInfo.REASON_ANR,
+                ),
         )
 
         verify(internalLogger).logInternalError(
@@ -236,11 +241,14 @@ class IssueReporterProcessorTest {
         val traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.bin")
 
         processor.processAppExitReport(
-            ReportType.NativeCrash,
-            FAKE_TIME_STAMP,
-            description,
-            traceInputStream,
-            signalNumber = 0,
+            applicationExit =
+                createApplicationExitInfo(
+                    timestamp = FAKE_TIME_STAMP,
+                    description = description,
+                    traceInputStream = traceInputStream,
+                    status = 0,
+                    reason = ApplicationExitInfo.REASON_CRASH_NATIVE,
+                ),
         )
 
         verify(issueReporterStorage).persistFatalIssue(
@@ -284,11 +292,14 @@ class IssueReporterProcessorTest {
         val description = "Segmentation fault"
 
         processor.processAppExitReport(
-            ReportType.NativeCrash,
-            FAKE_TIME_STAMP,
-            description,
-            traceInputStream = null,
-            signalNumber = 11, // SIGSEGV
+            applicationExit =
+                createApplicationExitInfo(
+                    timestamp = FAKE_TIME_STAMP,
+                    description = description,
+                    traceInputStream = null,
+                    status = 11,
+                    reason = ApplicationExitInfo.REASON_CRASH_NATIVE,
+                ),
         )
 
         verify(issueReporterStorage).persistFatalIssue(
@@ -314,11 +325,14 @@ class IssueReporterProcessorTest {
         val description = "Segmentation fault"
 
         processor.processAppExitReport(
-            ReportType.NativeCrash,
-            FAKE_TIME_STAMP,
-            description,
-            traceInputStream = null,
-            signalNumber = 0,
+            applicationExit =
+                createApplicationExitInfo(
+                    timestamp = FAKE_TIME_STAMP,
+                    description = description,
+                    traceInputStream = null,
+                    status = 0,
+                    reason = ApplicationExitInfo.REASON_CRASH_NATIVE,
+                ),
         )
 
         verify(issueReporterStorage).persistFatalIssue(
@@ -339,11 +353,14 @@ class IssueReporterProcessorTest {
         val traceInputStream = createTraceInputStream("sample native crash trace")
 
         processor.processAppExitReport(
-            ReportType.JVMCrash,
-            FAKE_TIME_STAMP,
-            description,
-            traceInputStream,
-            signalNumber = 0,
+            applicationExit =
+                createApplicationExitInfo(
+                    timestamp = FAKE_TIME_STAMP,
+                    description = description,
+                    traceInputStream = traceInputStream,
+                    status = 0,
+                    reason = ApplicationExitInfo.REASON_CRASH,
+                ),
         )
 
         verify(issueReporterStorage, never())
@@ -425,6 +442,22 @@ class IssueReporterProcessorTest {
         doThrow(exception)
             .`when`(streamingReportProcessor)
             .processAndPersistANR(any(), eq(FAKE_TIME_STAMP), eq("/some/path/foo.cap"), eq(attributes))
+    }
+
+    private fun createApplicationExitInfo(
+        timestamp: Long = FAKE_TIME_STAMP,
+        description: String? = null,
+        traceInputStream: InputStream? = null,
+        status: Int = 0,
+        reason: Int = ApplicationExitInfo.REASON_UNKNOWN,
+    ): ApplicationExitInfo {
+        val applicationExitInfo = mock<ApplicationExitInfo>()
+        whenever(applicationExitInfo.timestamp).thenReturn(timestamp)
+        whenever(applicationExitInfo.description).thenReturn(description)
+        whenever(applicationExitInfo.traceInputStream).thenReturn(traceInputStream)
+        whenever(applicationExitInfo.status).thenReturn(status)
+        whenever(applicationExitInfo.reason).thenReturn(reason)
+        return applicationExitInfo
     }
 
     private companion object {

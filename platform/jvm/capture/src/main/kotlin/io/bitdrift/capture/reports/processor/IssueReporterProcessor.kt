@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.reports.processor
 
+import android.app.ApplicationExitInfo
 import android.os.Build
 import android.os.strictmode.Violation
 import androidx.annotation.RequiresApi
@@ -95,27 +96,18 @@ internal class IssueReporterProcessor(
     }
 
     /**
-     * Processes AppTerminations due to ANRs and native crashes into packed format.
-     * @param fatalIssueType The flatbuffer type of fatal issue being processed
-     * (e.g. [ReportType.AppNotResponding] or [ReportType.NativeCrash])
-     * @param timestamp The timestamp when the issue occurred
-     * @param description Optional description of the issue
-     * @param traceInputStream Input stream containing the fatal issue trace data. May be null for
-     * native crashes on API level 30 where tombstone data is unavailable; a skeleton report will
-     * be generated in that case.
-     * @param signalNumber The signal number from [android.app.ApplicationExitInfo.getStatus] for
-     * native crashes. Used to populate signal name and description in skeleton reports.
+     * Processes an app exit report for supported fatal reasons such as ANRs and native crashes.
+     *
+     * @param applicationExit The Android framework exit record to convert into an issue report.
      */
-    override fun processAppExitReport(
-        fatalIssueType: Byte,
-        timestamp: Long,
-        description: String?,
-        traceInputStream: InputStream?,
-        signalNumber: Int,
-    ) {
+    @RequiresApi(Build.VERSION_CODES.R)
+    override fun processAppExitReport(applicationExit: ApplicationExitInfo) {
+        val fatalIssueType = applicationExit.mapToFbsReportType()
+        val timestamp: Long = applicationExit.timestamp
+        val traceInputStream: InputStream? = applicationExit.traceInputStream
+
         runCatching {
-            if (fatalIssueType == ReportType.AppNotResponding) {
-                if (traceInputStream == null) return
+            if (fatalIssueType == ReportType.AppNotResponding && traceInputStream != null) {
                 streamingReportsProcessor.processAndPersistANR(
                     traceInputStream,
                     timestamp,
@@ -133,9 +125,9 @@ internal class IssueReporterProcessor(
                         sdk,
                         appMetrics,
                         deviceMetrics,
-                        description,
+                        applicationExit.description,
                         traceInputStream,
-                        signalNumber,
+                        terminatingSignalNumber = applicationExit.status,
                     )
                 builder.finish(report)
 
@@ -300,5 +292,13 @@ internal class IssueReporterProcessor(
             "x86" -> Architecture.x86
             "x86_64" -> Architecture.x86_64
             else -> Architecture.Unknown
+        }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun ApplicationExitInfo.mapToFbsReportType(): Byte =
+        when (reason) {
+            ApplicationExitInfo.REASON_ANR -> ReportType.AppNotResponding
+            ApplicationExitInfo.REASON_CRASH_NATIVE -> ReportType.NativeCrash
+            else -> ReportType.Unknown
         }
 }

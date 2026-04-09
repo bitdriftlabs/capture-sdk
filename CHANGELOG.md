@@ -21,15 +21,13 @@
 
 **Added**
 
-- Nothing yet!
+- Native crash reports are now generated on API level 30 when tombstone data is unavailable. These reports include signal information but no stack traces.
 
 **Changed**
 
 - Nothing yet!
 
 **Fixed**
-
-- Native crash reports are now generated on API level 30 when tombstone data is unavailable. These skeleton reports include signal information but no stack traces.
 
 - Fixed an issue where 3rd-party dependencies like `androidx` were included in the released Javadoc artifacts. Also updated the style of `capture-timber` and `capture-apollo` javadocs to match. 
 

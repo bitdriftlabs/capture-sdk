@@ -11,7 +11,6 @@ import android.app.Application
 import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.annotation.RequiresApi
-import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 
 /**
  * Concrete impl of [ILatestAppExitInfoProvider]
@@ -60,13 +59,6 @@ internal class LatestAppExitInfoProvider(
             )
         }
 
-    override fun convertExitReasonToFbsReportType(exitReasonType: Int): Byte? =
-        when (exitReasonType) {
-            ApplicationExitInfo.REASON_ANR -> ReportType.AppNotResponding
-            ApplicationExitInfo.REASON_CRASH_NATIVE -> ReportType.NativeCrash
-            else -> null
-        }
-
     internal companion object {
         internal const val EXIT_REASON_EXCEPTION_MESSAGE =
             "LatestAppExitInfoProvider: Failed to retrieve LatestAppExitReasonResult"
@@ -82,11 +74,6 @@ interface ILatestAppExitInfoProvider {
      */
     @RequiresApi(Build.VERSION_CODES.R)
     fun get(): LatestAppExitReasonResult
-
-    /**
-     * Converts an [ApplicationExitInfo] reason into Flatbuffer [io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType]
-     */
-    fun convertExitReasonToFbsReportType(exitReasonType: Int): Byte?
 }
 
 /**

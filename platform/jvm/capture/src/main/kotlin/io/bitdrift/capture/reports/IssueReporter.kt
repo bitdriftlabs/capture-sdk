@@ -162,20 +162,9 @@ internal class IssueReporter(
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return
         }
-        val lastReasonResult = latestAppExitInfoProvider.get()
-        if (lastReasonResult is LatestAppExitReasonResult.Valid) {
-            val lastReason = lastReasonResult.applicationExitInfo
-            lastReason.traceInputStream.use { traceInputStream ->
-                latestAppExitInfoProvider.convertExitReasonToFbsReportType(lastReason.reason)?.let { fatalIssueType ->
-                    issueReporterProcessor?.processAppExitReport(
-                        fatalIssueType = fatalIssueType,
-                        timestamp = lastReason.timestamp,
-                        description = lastReason.description,
-                        traceInputStream = traceInputStream,
-                        signalNumber = lastReason.status,
-                    )
-                }
-            }
+        val latestAppExitReasonResult = latestAppExitInfoProvider.get()
+        if (latestAppExitReasonResult is LatestAppExitReasonResult.Valid) {
+            issueReporterProcessor?.processAppExitReport(latestAppExitReasonResult.applicationExitInfo)
         }
     }
 
