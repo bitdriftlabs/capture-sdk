@@ -119,8 +119,6 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         return LatestAppExitReasonResult.Valid(appExitReason)
     }
 
-    override fun convertExitReasonToFbsReportType(exitReasonType: Int): Byte? = null
-
     companion object {
         const val SESSION_ID = "uuid-test-sample"
         const val TIME_STAMP = 1742376168992

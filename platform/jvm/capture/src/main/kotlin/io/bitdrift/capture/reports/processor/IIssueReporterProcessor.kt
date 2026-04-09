@@ -7,31 +7,21 @@
 
 package io.bitdrift.capture.reports.processor
 
+import android.app.ApplicationExitInfo
 import android.os.Build
 import android.os.strictmode.Violation
 import androidx.annotation.RequiresApi
-import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType.Companion.AppNotResponding
-import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType.Companion.NativeCrash
-import java.io.InputStream
 
 /**
  * Process and persist issue types into disk for later processing in the shared-core layer.
  */
 interface IIssueReporterProcessor {
     /**
-     * Process AppTerminations due to ANRs and native crashes into packed format.
-     * @param fatalIssueType The flatbuffer type of fatal issue being processed
-     * (e.g. [ReportType.AppNotResponding] or [ReportType.NativeCrash]).
-     * @param timestamp The timestamp when the issue occurred.
-     * @param description Optional description of the issue.
-     * @param traceInputStream Input stream containing the fatal issue trace data.
+     * Processes an app exit report for supported fatal reasons such as ANRs and native crashes.
+     *
+     * @param applicationExit The Android framework exit record to convert into an issue report.
      */
-    fun processAppExitReport(
-        fatalIssueType: Byte,
-        timestamp: Long,
-        description: String? = null,
-        traceInputStream: InputStream,
-    )
+    fun processAppExitReport(applicationExit: ApplicationExitInfo)
 
     /**
      * Process JVM crashes into a packed format

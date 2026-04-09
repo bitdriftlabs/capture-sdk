@@ -196,7 +196,7 @@ class NativeCrashProcessorTest {
 
         val flatBufferBuilder = FlatBufferBuilder()
         val reportOffset =
-            NativeCrashProcessor.process(flatBufferBuilder, 0, 0, 0, "description", tombstoneStream)
+            NativeCrashProcessor.process(flatBufferBuilder, 0, 0, 0, "description", tombstoneStream, terminatingSignalNumber = 0)
 
         flatBufferBuilder.finish(reportOffset)
 
