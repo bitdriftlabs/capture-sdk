@@ -1,0 +1,75 @@
+name: Gradle Test App Random Native Crashes
+
+on:
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: Total number of random native crash iterations
+        required: false
+        default: '5000'
+        type: string
+
+jobs:
+  run_random_native_crashes:
+    runs-on: ubuntu-latest-8-cores
+    env:
+      SKIP_PROTO_GEN: 1
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v4
+
+      - name: Setup Android cmd line tools + NDK
+        uses: ./.github/actions/common-android-setup
+        with:
+          setup-emulator: 'true'
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: ${{ runner.os }}-avd-api-23-random-native-crashes-v1
+
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 30
+        uses: reactivecircus/android-emulator-runner@b530d96654c385303d652368551fb075bc2f0b6b
+        with:
+          channel: stable
+          force-avd-creation: false
+          api-level: 23
+          target: default
+          ram-size: 2048M
+          arch: x86_64
+          disk-size: 6144M
+          profile: Nexus 6
+          disable-animations: true
+          emulator-options: -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Run random native crashes
+        timeout-minutes: 360
+        uses: reactivecircus/android-emulator-runner@b530d96654c385303d652368551fb075bc2f0b6b
+        with:
+          channel: stable
+          force-avd-creation: false
+          api-level: 23
+          target: default
+          ram-size: 2048M
+          arch: x86_64
+          disk-size: 6144M
+          profile: Nexus 6
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            ITERATIONS="${{ github.event.inputs.iterations || '5000' }}"
+            if ! [[ "$ITERATIONS" =~ ^[0-9]+$ ]] || [[ "$ITERATIONS" -lt 1 ]]; then
+              echo "iterations must be a positive integer"
+              exit 1
+            fi
+            curl -Ls "https://get.maestro.mobile.dev" | bash
+            export PATH="$PATH:$HOME/.maestro/bin"
+            ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm gradle-test-app:assembleDebug gradle-test-app:installDebug --stacktrace
+            ITERATIONS="$ITERATIONS" maestro test tools/maestro/native-crash-loop.yaml
