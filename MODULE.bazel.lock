@@ -371,7 +371,7 @@
   "moduleExtensions": {
     "//bazel:sdk_version.bzl%sdk_version_ext": {
       "general": {
-        "bzlTransitiveDigest": "RsVjv0Ua0E+HnhvWVKlK5ipE4tT9W008QTsJkGIQuGw=",
+        "bzlTransitiveDigest": "2X6xr6xrcJt27nSrUrKNsQLUO3d8w3tY2YRRR3C4DLM=",
         "usagesDigest": "oFgdgIl1ngd+M7Z98amsr5CVLnLswhfHAAcliB3DvNM=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
