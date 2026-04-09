@@ -7,6 +7,22 @@ static NSString * const kDefaultCaptureAPIKey = @"<YOUR API KEY GOES HERE>";
 static NSString * const kDefaultCaptureURLString = @"https://api.bitdrift.io";
 static NSString * const kSavedCaptureAPIKeyKey = @"capture_api_key";
 static NSString * const kSavedCaptureURLKey = @"capture_api_url";
+static NSString * const kSavedCaptureSessionStrategyKey = @"capture_session_strategy";
+
+typedef NS_ENUM(NSUInteger, CAPSampleSessionStrategy) {
+    CAPSampleSessionStrategyFixed = 0,
+    CAPSampleSessionStrategyActivityBased = 1,
+};
+
+static NSString *sessionStrategyToString(CAPSampleSessionStrategy strategy) {
+    switch (strategy) {
+        case CAPSampleSessionStrategyActivityBased:
+            return @"Activity Based";
+        case CAPSampleSessionStrategyFixed:
+        default:
+            return @"Fixed";
+    }
+}
 
 @interface CAPIssueLogger : NSObject <IssueReportCallback>
 @end
@@ -46,10 +62,12 @@ NSString *logLevelToString(LogLevel level) {
 @property (nonatomic, strong) NSArray<NSNumber *> *logLevels;
 @property (nonatomic, assign) LogLevel selectedLogLevel;
 @property (nonatomic, weak) UIButton *pickLogLevelButton;
+@property (nonatomic, weak) UIButton *pickSessionStrategyButton;
 @property (nonatomic, weak) UITextField *apiKeyTextField;
 @property (nonatomic, weak) UITextField *apiURLTextField;
 @property (nonatomic, strong) CAPIssueLogger *issueLogger;
 @property (nonatomic, assign) BOOL watchdogExitArmed;
+@property (nonatomic, assign) CAPSampleSessionStrategy sessionStrategy;
 
 @end
 
@@ -65,6 +83,18 @@ NSString *logLevelToString(LogLevel level) {
     return apiURLString.length > 0 ? apiURLString : kDefaultCaptureURLString;
 }
 
+- (CAPSampleSessionStrategy)savedSessionStrategy {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    if ([defaults objectForKey:kSavedCaptureSessionStrategyKey] == nil) {
+        return CAPSampleSessionStrategyFixed;
+    }
+
+    NSInteger value = [defaults integerForKey:kSavedCaptureSessionStrategyKey];
+    return value == CAPSampleSessionStrategyActivityBased
+        ? CAPSampleSessionStrategyActivityBased
+        : CAPSampleSessionStrategyFixed;
+}
+
 - (instancetype)init {
     self = [super init];
 
@@ -77,6 +107,7 @@ NSString *logLevelToString(LogLevel level) {
             @(LogLevelError),
         ];
         self.selectedLogLevel = LogLevelInfo;
+        self.sessionStrategy = [self savedSessionStrategy];
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(applicationDidEnterBackground)
                                                      name:UIApplicationDidEnterBackgroundNotification
@@ -163,7 +194,9 @@ NSString *logLevelToString(LogLevel level) {
                                                                  issueCallbackConfiguration:issueCallbackConfiguration];
     [CAPLogger
      startWithAPIKey:[self savedAPIKey]
-     sessionStrategy:[CAPSessionStrategy activityBased]
+     sessionStrategy:self.sessionStrategy == CAPSampleSessionStrategyActivityBased
+         ? [CAPSessionStrategy activityBased]
+         : [CAPSessionStrategy fixed]
       configuration: config
     ];
 
@@ -186,6 +219,8 @@ NSString *logLevelToString(LogLevel level) {
 
     self.apiKeyTextField.text = [self savedAPIKey];
     self.apiURLTextField.text = [self savedAPIURLString];
+    [self.pickSessionStrategyButton setTitle:sessionStrategyToString(self.sessionStrategy)
+                                    forState:UIControlStateNormal];
 }
 
 // MARK: - Views
@@ -216,6 +251,17 @@ NSString *logLevelToString(LogLevel level) {
     apiURLTextField.delegate = self;
     apiURLTextField.text = [self savedAPIURLString];
 
+    UILabel *sessionStrategyLabel = [UILabel new];
+    sessionStrategyLabel.text = @"Session Strategy";
+
+    UIButton *pickSessionStrategyButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    pickSessionStrategyButton.backgroundColor = UIColor.lightGrayColor;
+    [pickSessionStrategyButton setTitle:sessionStrategyToString(self.sessionStrategy)
+                               forState:UIControlStateNormal];
+    [pickSessionStrategyButton addTarget:self
+                                  action:@selector(pickSessionStrategy)
+                        forControlEvents:UIControlEventTouchUpInside];
+
     UIButton *saveButton = [UIButton buttonWithType:UIButtonTypeSystem];
     saveButton.backgroundColor = UIColor.systemBlueColor;
     saveButton.tintColor = UIColor.whiteColor;
@@ -223,12 +269,13 @@ NSString *logLevelToString(LogLevel level) {
     [saveButton addTarget:self action:@selector(saveConfiguration) forControlEvents:UIControlEventTouchUpInside];
 
     UIStackView *configurationView = [[UIStackView alloc]
-                                      initWithArrangedSubviews:@[apiKeyLabel, apiKeyTextField, apiURLLabel, apiURLTextField, saveButton]];
+                                      initWithArrangedSubviews:@[apiKeyLabel, apiKeyTextField, apiURLLabel, apiURLTextField, sessionStrategyLabel, pickSessionStrategyButton, saveButton]];
     configurationView.axis = UILayoutConstraintAxisVertical;
     configurationView.spacing = 8;
 
     self.apiKeyTextField = apiKeyTextField;
     self.apiURLTextField = apiURLTextField;
+    self.pickSessionStrategyButton = pickSessionStrategyButton;
 
     return configurationView;
 }
@@ -318,6 +365,15 @@ NSString *logLevelToString(LogLevel level) {
 }
 
 - (UIView *)createCopySessionURLView {
+    UIButton *generateDeviceCodeButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    generateDeviceCodeButton.backgroundColor = UIColor.systemIndigoColor;
+    generateDeviceCodeButton.tintColor = UIColor.whiteColor;
+    [generateDeviceCodeButton setTitle:@"Generate Device Code"
+                              forState:UIControlStateNormal];
+    [generateDeviceCodeButton addTarget:self
+                                 action:@selector(generateTemporaryDeviceCode)
+                       forControlEvents:UIControlEventTouchUpInside];
+
     UIButton *copySessionURLButton = [UIButton buttonWithType:UIButtonTypeSystem];
     copySessionURLButton.backgroundColor = UIColor.systemGreenColor;
     copySessionURLButton.tintColor = UIColor.whiteColor;
@@ -327,7 +383,11 @@ NSString *logLevelToString(LogLevel level) {
                              action:@selector(copySessionURL)
                    forControlEvents:UIControlEventTouchUpInside];
 
-    return copySessionURLButton;
+    UIStackView *sessionActionsView = [[UIStackView alloc] initWithArrangedSubviews:@[generateDeviceCodeButton, copySessionURLButton]];
+    sessionActionsView.axis = UILayoutConstraintAxisVertical;
+    sessionActionsView.spacing = 8;
+
+    return sessionActionsView;
 }
 
 - (UIView *)createCopySessionIDView {
@@ -396,6 +456,30 @@ NSString *logLevelToString(LogLevel level) {
     [self presentViewController:alert animated:YES completion:nil];
 }
 
+- (void)pickSessionStrategy {
+    UIAlertController *alert = [UIAlertController
+                                alertControllerWithTitle:@"Session Strategy"
+                                message:@"Select session strategy"
+                                preferredStyle:UIAlertControllerStyleActionSheet];
+
+    __weak typeof(self) weakSelf = self;
+    [alert addAction:[UIAlertAction actionWithTitle:sessionStrategyToString(CAPSampleSessionStrategyFixed)
+                                              style:UIAlertActionStyleDefault
+                                            handler:^(__unused UIAlertAction *action) {
+        weakSelf.sessionStrategy = CAPSampleSessionStrategyFixed;
+        [weakSelf refresh];
+    }]];
+    [alert addAction:[UIAlertAction actionWithTitle:sessionStrategyToString(CAPSampleSessionStrategyActivityBased)
+                                              style:UIAlertActionStyleDefault
+                                            handler:^(__unused UIAlertAction *action) {
+        weakSelf.sessionStrategy = CAPSampleSessionStrategyActivityBased;
+        [weakSelf refresh];
+    }]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
 - (void)saveConfiguration {
     [self.view endEditing:YES];
 
@@ -404,6 +488,7 @@ NSString *logLevelToString(LogLevel level) {
 
     [[NSUserDefaults standardUserDefaults] setObject:apiKey forKey:kSavedCaptureAPIKeyKey];
     [[NSUserDefaults standardUserDefaults] setObject:apiURLString forKey:kSavedCaptureURLKey];
+    [[NSUserDefaults standardUserDefaults] setInteger:self.sessionStrategy forKey:kSavedCaptureSessionStrategyKey];
 
      UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Saved"
                                                                     message:@"Restart the app to apply the new settings."
@@ -477,6 +562,23 @@ NSString *logLevelToString(LogLevel level) {
     if (sessionURL.length > 0) {
         UIPasteboard.generalPasteboard.string = sessionURL;
     }
+}
+
+- (void)generateTemporaryDeviceCode {
+    [CAPLogger createTemporaryDeviceCodeWithCompletion:^(NSString * _Nullable deviceCode, NSError * _Nullable error) {
+        NSString *title = deviceCode != nil ? @"Device Code Generated" : @"Failed to Generate Device Code";
+        NSString *message = deviceCode != nil ? deviceCode : error.localizedDescription;
+
+        if (deviceCode.length > 0) {
+            UIPasteboard.generalPasteboard.string = deviceCode;
+        }
+
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:title
+                                                                       message:message
+                                                                preferredStyle:UIAlertControllerStyleAlert];
+        [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+        [self presentViewController:alert animated:YES completion:nil];
+    }];
 }
 
 - (void)copySessionIDRow {
