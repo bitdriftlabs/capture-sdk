@@ -24,7 +24,7 @@ final class CaptureNetworkTests: XCTestCase {
         let streamClosed = await env.testServer.streamClosed(streamId: streamID, waitTimeMs: 3000)
         XCTAssertTrue(streamClosed)
 
-        let streamID2 = await env.testServer.nextStream()
+        let streamID2 = await env.testServer.nextStream(timeout: 30)
         XCTAssertNotEqual(streamID2, -1)
         try await env.testServer.handshake(streamId: streamID2)
     }
