@@ -1,4 +1,5 @@
 load("@rules_apple//apple:apple.bzl", "apple_static_framework_import")
+load("@rules_apple//apple:docc.bzl", "docc_archive")
 load("@rules_java//java:defs.bzl", "java_binary")
 load("@rules_kotlin//kotlin:core.bzl", "define_kt_toolchain", "kt_compiler_plugin", "kt_kotlinc_options")
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_javac_options")
@@ -9,6 +10,7 @@ load(
     "xcodeproj",
     "xcschemes",
 )
+load("@sdk_version//:sdk_version.bzl", "SDK_VERSION")
 load("//bazel:android_debug_info.bzl", "android_debug_info")
 load("//bazel:framework_imports_extractor.bzl", "framework_imports_extractor")
 load("//bazel/android:artifacts.bzl", "android_artifacts")
@@ -42,9 +44,25 @@ pkg_zip(
     visibility = ["//visibility:public"],
 )
 
+docc_archive(
+    name = "Capture.doccarchive",
+    dep = "//platform/swift/source:capture_ios_static_framework",
+    diagnostic_level = "information",
+    enable_inherited_docs = True,
+    fallback_bundle_identifier = "io.bitdrift.capture",
+    fallback_bundle_version = SDK_VERSION,
+    fallback_display_name = "Capture",
+    hosting_base_path = "api/ios/{}".format(SDK_VERSION),
+    tags = [
+        "macos_only",
+    ],
+    transform_for_static_hosting = True,
+    visibility = ["//visibility:public"],
+)
+
 pkg_zip(
     name = "ios_doccarchive",
-    srcs = ["//platform/swift/source:Capture.doccarchive"],
+    srcs = [":Capture.doccarchive"],
     out = "Capture.doccarchive.ios.zip",
     tags = ["local"],
     visibility = ["//visibility:public"],
