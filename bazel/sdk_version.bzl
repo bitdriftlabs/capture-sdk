@@ -3,6 +3,7 @@ def _sdk_version_repo_impl(repository_ctx):
     repository_ctx.file("BUILD", "")
     repository_ctx.file("sdk_version.bzl", "SDK_VERSION = \"%s\"\n" % version)
 
+# this allows bazel to read the SDK version from the file buring builds
 sdk_version_repo = repository_rule(
     implementation = _sdk_version_repo_impl,
     attrs = {
