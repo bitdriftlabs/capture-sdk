@@ -1,5 +1,8 @@
 module(name = "capture-sdk")
 
+sdk_version_ext = use_extension("//bazel:sdk_version.bzl", "sdk_version_ext")
+use_repo(sdk_version_ext, "sdk_version")
+
 ####################
 # Constants
 ####################
@@ -42,7 +45,7 @@ bazel_dep(name = "apple_support", version = "1.22.1", repo_name = "build_bazel_a
 bazel_dep(name = "rules_swift", version = "2.9.0")
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
 bazel_dep(name = "rules_xcodeproj", version = "2.12.1")
-bazel_dep(name = "rules_apple", version = "4.1.1")
+bazel_dep(name = "rules_apple", version = "4.3.3")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
 bazel_dep(name = "rules_cc", version = "0.1.1")
 bazel_dep(name = "rules_java", version = "8.11.0")

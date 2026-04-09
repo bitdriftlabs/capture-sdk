@@ -3,6 +3,7 @@ load("@rules_apple//apple:docc.bzl", "docc_archive")
 load("@rules_apple//apple:ios.bzl", "ios_static_framework")
 load("@rules_cc//cc:defs.bzl", "objc_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
+load("@sdk_version//:sdk_version.bzl", "SDK_VERSION")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
 load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")
 load("//bazel:swift_header_collector.bzl", "swift_header_collector")
@@ -174,8 +175,9 @@ docc_archive(
     diagnostic_level = "information",
     enable_inherited_docs = True,
     fallback_bundle_identifier = "io.bitdrift.capture",
-    fallback_bundle_version = "1.0.0",
+    fallback_bundle_version = SDK_VERSION,
     fallback_display_name = "Capture",
+    hosting_base_path = "api/ios/{}".format(SDK_VERSION),
     tags = [
         "macos_only",
     ],
