@@ -369,6 +369,22 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
+    "//bazel:sdk_version.bzl%sdk_version_ext": {
+      "general": {
+        "bzlTransitiveDigest": "2X6xr6xrcJt27nSrUrKNsQLUO3d8w3tY2YRRR3C4DLM=",
+        "usagesDigest": "oFgdgIl1ngd+M7Z98amsr5CVLnLswhfHAAcliB3DvNM=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "sdk_version": {
+            "repoRuleId": "@@//bazel:sdk_version.bzl%sdk_version_repo",
+            "attributes": {}
+          }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
     "@@aspect_rules_esbuild+//esbuild:extensions.bzl%esbuild": {
       "general": {
         "bzlTransitiveDigest": "sCHEKLUzL/knUyFXUmzsIORGC5fGP2nV5lyg0zV6nhY=",

@@ -1,5 +1,8 @@
 module(name = "capture-sdk")
 
+sdk_version_ext = use_extension("//bazel:sdk_version.bzl", "sdk_version_ext")
+use_repo(sdk_version_ext, "sdk_version")
+
 ####################
 # Constants
 ####################
