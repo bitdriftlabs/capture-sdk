@@ -181,7 +181,7 @@ class MainViewModel(
             is StressTestAction.IncreaseMemoryPressure -> stressTestRepository.increaseMemoryPressure(action.targetPercent)
             is StressTestAction.TriggerMemoryPressureAnr -> stressTestRepository.triggerMemoryPressureAnr()
             is StressTestAction.TriggerJankyFrames -> stressTestRepository.triggerJankyFrames(action.type.durationMs)
-            is StressTestAction.TriggerStrictModeViolation -> stressTestRepository.triggerStrictModeViolation()
+            is StressTestAction.TriggerStrictModeViolation -> stressTestRepository.triggerStrictModeViolation(action.type)
 
             is ClearError -> clearError()
 
