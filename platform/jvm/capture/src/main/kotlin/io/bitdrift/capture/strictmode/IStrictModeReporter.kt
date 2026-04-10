@@ -45,7 +45,7 @@ internal object StrictModeReporter : IStrictModeReporter {
             is DiskReadViolation -> "Doing a disk read operation on a restricted thread"
             is DiskWriteViolation -> "Doing a disk write operation on a restricted thread"
             is NetworkViolation -> "Doing a network operation on a restricted thread"
-            else -> "StrictMode violation reason unavailable"
+            else -> "Unclassified StrictMode violation"
         }
     }
 }
