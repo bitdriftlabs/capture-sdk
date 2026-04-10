@@ -49,7 +49,7 @@ class FirstFragment : Fragment() {
             SdkRepository(appContext),
             NetworkTestingRepository(appContext),
             AppExitRepository(),
-            StressTestRepository(),
+            StressTestRepository(appContext),
         )
     }
 

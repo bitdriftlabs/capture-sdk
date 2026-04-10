@@ -107,7 +107,15 @@ sealed class StressTestAction : AppAction {
 
     data class TriggerJankyFrames(val type: JankType) : StressTestAction()
 
-    object TriggerStrictModeViolation : StressTestAction()
+    data class TriggerStrictModeViolation(val type: StrictModeViolationType) : StressTestAction()
+}
+
+enum class StrictModeViolationType(val displayName: String) {
+    DiskRead("Disk Read"),
+    DiskWrite("Disk Write"),
+    Network("Network"),
+    CustomSlowCall("Custom Slow Call"),
+    UntaggedSocket("Untagged Socket"),
 }
 
 sealed class GlobalFieldAction : AppAction {

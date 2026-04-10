@@ -7,14 +7,22 @@
 
 package io.bitdrift.gradletestapp.data.repository
 
+import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.os.StrictMode
 import io.bitdrift.capture.Capture
+import io.bitdrift.gradletestapp.data.model.StrictModeViolationType
 import timber.log.Timber
 import java.io.File
 import java.io.FileInputStream
+import java.net.InetSocketAddress
+import java.net.Socket
+import java.net.URL
 
-class StressTestRepository {
+class StressTestRepository(
+    private val context: Context,
+) {
     private val oomList = mutableListOf<ByteArray>()
     private var memoryPressureThread: Thread? = null
 
@@ -90,9 +98,15 @@ class StressTestRepository {
         }
     }
 
-    fun triggerStrictModeViolation() {
+    fun triggerStrictModeViolation(type: StrictModeViolationType) {
         Handler(Looper.getMainLooper()).post {
-            triggerDiskReadViolation()
+            when (type) {
+                StrictModeViolationType.DiskRead -> triggerDiskReadViolation()
+                StrictModeViolationType.DiskWrite -> triggerDiskWriteViolation()
+                StrictModeViolationType.Network -> triggerNetworkViolation()
+                StrictModeViolationType.CustomSlowCall -> triggerCustomSlowCallViolation()
+                StrictModeViolationType.UntaggedSocket -> triggerUntaggedSocketViolation()
+            }
         }
     }
 
@@ -100,6 +114,38 @@ class StressTestRepository {
         try {
             val file = File("/proc/version")
             FileInputStream(file).use { it.read() }
+        } catch (e: Exception) {
+            Timber.d("Expected exception during StrictMode test: ${e.message}")
+        }
+    }
+
+    private fun triggerDiskWriteViolation() {
+        try {
+            File(context.cacheDir, "strictmode-write.txt").outputStream().use {
+                it.write("strict-mode-write".toByteArray())
+            }
+        } catch (e: Exception) {
+            Timber.d("Expected exception during StrictMode test: ${e.message}")
+        }
+    }
+
+    private fun triggerNetworkViolation() {
+        try {
+            URL("https://10.0.2.2:1").openConnection().getInputStream().use { it.read() }
+        } catch (e: Exception) {
+            Timber.d("Expected exception during StrictMode test: ${e.message}")
+        }
+    }
+
+    private fun triggerCustomSlowCallViolation() {
+        StrictMode.noteSlowCall("Triggered custom StrictMode slow call")
+    }
+
+    private fun triggerUntaggedSocketViolation() {
+        try {
+            Socket().use { socket ->
+                socket.connect(InetSocketAddress("10.0.2.2", 1), 250)
+            }
         } catch (e: Exception) {
             Timber.d("Expected exception during StrictMode test: ${e.message}")
         }
@@ -113,4 +159,3 @@ class StressTestRepository {
         return Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
     }
 }
-

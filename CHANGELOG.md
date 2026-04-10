@@ -22,6 +22,7 @@
 **Added**
 
 - Native crash reports are now generated on API level 30 when tombstone data is unavailable. These reports include signal information but no stack traces.
+- Added experimental `CaptureStrictModeViolationListener` API for Android StrictMode integrations.
 
 **Changed**
 

@@ -35,7 +35,7 @@ class StressTestFragment : Fragment() {
             SdkRepository(appContext),
             NetworkTestingRepository(appContext),
             AppExitRepository(),
-            StressTestRepository(),
+            StressTestRepository(appContext),
         )
     }
 
@@ -62,5 +62,4 @@ class StressTestFragment : Fragment() {
         Logger.logScreenView("stress_test_fragment")
     }
 }
-
 

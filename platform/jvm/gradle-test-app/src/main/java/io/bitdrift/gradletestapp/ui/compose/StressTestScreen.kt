@@ -8,6 +8,8 @@
 package io.bitdrift.gradletestapp.ui.compose
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.selection.TextSelectionColors
@@ -20,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.JankType
+import io.bitdrift.gradletestapp.data.model.StrictModeViolationType
 import io.bitdrift.gradletestapp.data.model.StressTestAction
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
@@ -224,25 +227,29 @@ private fun JankyFramesCard(onAction: (AppAction) -> Unit) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StrictModeCard(onAction: (AppAction) -> Unit) {
     StressTestCard(title = stringResource(id = R.string.strict_mode)) {
         Text(
-            text = "Performs disk I/O on main thread to trigger StrictMode violation",
+            text = "Trigger deterministic StrictMode violations that map to the reporter fallbacks",
             style = MaterialTheme.typography.bodySmall,
             color = BitdriftColors.TextSecondary,
         )
         Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = { onAction(StressTestAction.TriggerStrictModeViolation) },
+        FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = BitdriftColors.Warning,
-                    contentColor = Color.Black,
-                ),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Trigger StrictMode Violation")
+            StrictModeViolationType.entries.forEach { type ->
+                OutlinedButton(
+                    onClick = { onAction(StressTestAction.TriggerStrictModeViolation(type)) },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
+                ) {
+                    Text(type.displayName, maxLines = 1)
+                }
+            }
         }
     }
 }
@@ -279,4 +286,3 @@ private fun StressTestCard(
         }
     }
 }
-

@@ -37,13 +37,11 @@ import io.bitdrift.capture.threading.CaptureDispatchers
  * ```
  *
  * NOTE: This is still a new experimental API and may suffer some changes.
- * When we are ready for it will open visibility to customers (please note that the
- * constructor should remain internal)
  *
  */
 @ExperimentalBitdriftApi()
 @RequiresApi(Build.VERSION_CODES.P)
-internal class CaptureStrictModeViolationListener internal constructor(
+class CaptureStrictModeViolationListener internal constructor(
     private val backgroundThreadHandler: IBackgroundThreadHandler,
     private val strictModeReporter: IStrictModeReporter,
 ) : StrictMode.OnThreadViolationListener,

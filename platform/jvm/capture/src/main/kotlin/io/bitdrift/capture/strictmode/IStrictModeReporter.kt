@@ -8,6 +8,10 @@
 package io.bitdrift.capture.strictmode
 
 import android.os.Build
+import android.os.strictmode.DiskReadViolation
+import android.os.strictmode.DiskWriteViolation
+import android.os.strictmode.ExplicitGcViolation
+import android.os.strictmode.NetworkViolation
 import android.os.strictmode.Violation
 import androidx.annotation.RequiresApi
 import io.bitdrift.capture.Capture
@@ -24,5 +28,24 @@ internal interface IStrictModeReporter {
 internal object StrictModeReporter : IStrictModeReporter {
     override fun report(violation: Violation) {
         Capture.Logger.reportStrictModeViolation(violation)
+    }
+
+    internal fun getReason(violation: Violation): String =
+        violation.message?.takeIf { it.isNotBlank() }
+            ?: strictModeFallbackReasonFor(violation)
+
+    private fun strictModeFallbackReasonFor(violation: Violation): String {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+            violation is ExplicitGcViolation
+        ) {
+            return "Calling Runtime.gc() explicitly"
+        }
+
+        return when (violation) {
+            is DiskReadViolation -> "Doing a disk read operation on a restricted thread"
+            is DiskWriteViolation -> "Doing a disk write operation on a restricted thread"
+            is NetworkViolation -> "Doing a network operation on a restricted thread"
+            else -> "StrictMode violation reason unavailable"
+        }
     }
 }

@@ -8,12 +8,14 @@
 package io.bitdrift.capture.reports.processor
 
 import android.os.Build
+import android.os.strictmode.Violation
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Error
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ErrorRelation
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.FrameType
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Report
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ThreadDetails
+import io.bitdrift.capture.strictmode.StrictModeReporter
 
 /**
  * Process JVM-related issues (crashes, violations) into a binary flatbuffer Report
@@ -83,7 +85,7 @@ internal object JvmProcessor {
             .map { error ->
                 val frames = error.stackTrace.map { getFrameDetails(builder, it) }.toIntArray()
                 val className = builder.createString(error.javaClass.name)
-                val message = error.message?.let { msg -> builder.createString(msg) } ?: 0
+                val message = error.getReason()?.let { builder.createString(it) } ?: 0
                 Error.createError(
                     builder,
                     className,
@@ -92,6 +94,15 @@ internal object JvmProcessor {
                     ErrorRelation.CausedBy,
                 )
             }.toList()
+
+    private fun Throwable.getReason(): String? =
+        if (!message.isNullOrBlank()) {
+            message
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && this is Violation) {
+            StrictModeReporter.getReason(this)
+        } else {
+            null
+        }
 
     private fun getFrameDetails(
         builder: FlatBufferBuilder,
