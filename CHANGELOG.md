@@ -1,13 +1,13 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.13...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.14...HEAD
 
 ### Both
 
 **Added**
 
-- Added distributed tracing support for network instrumentation with W3C (`traceparent`), B3 Single (`b3`), and B3 Multi (`X-B3-*`) propagation formats.
+- Nothing yet!
 
 **Changed**
 
@@ -21,7 +21,7 @@
 
 **Added**
 
-- Native crash reports are now generated on API level 30 when tombstone data is unavailable. These reports include signal information but no stack traces.
+- Nothing yet!
 
 **Changed**
 
@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Fixed an issue where 3rd-party dependencies like `androidx` were included in the released Javadoc artifacts. Also updated the style of `capture-timber` and `capture-apollo` javadocs to match. 
+- Nothing yet!
 
 ### iOS
 
@@ -44,6 +44,26 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.22.14]
+
+[0.22.14]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.14
+
+### Both
+
+**Added**
+
+- Added distributed tracing support for network instrumentation with W3C (`traceparent`), B3 Single (`b3`), and B3 Multi (`X-B3-*`) propagation formats.
+
+### Android
+
+**Added**
+
+- Native crash reports are now generated on API level 30 when tombstone data is unavailable. These reports include signal information but no stack traces.
+
+**Fixed**
+
+- Fixed an issue where 3rd-party dependencies like `androidx` were included in the released Javadoc artifacts. Also updated the style of `capture-timber` and `capture-apollo` javadocs to match. 
 
 ## [0.22.13]
 
