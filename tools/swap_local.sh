@@ -23,7 +23,99 @@ else
   fi
 fi
 
+CUSTOM_PATH_ABS="$(realpath "$CUSTOM_PATH")"
+
+echo "Using shared-core path: $CUSTOM_PATH_ABS"
+
 # Run this to swap all of the deps to a local version for easy development.
-grep bd- "$CARGO_TOML" | cut -d' ' -f1 | while read -r crate; do
-  /usr/bin/sed -i '' "s|\(${crate}\)[[:space:]]*=.*|\1.path = \"${CUSTOM_PATH}/\1\"|g" "$CARGO_TOML"
-done
+clean_fields() {
+  printf '%s' "$1" | /usr/bin/sed -E \
+    -e 's/(^|,)[[:space:]]*git[[:space:]]*=[[:space:]]*"[^"]*"//g' \
+    -e 's/(^|,)[[:space:]]*rev[[:space:]]*=[[:space:]]*"[^"]*"//g' \
+    -e 's/(^|,)[[:space:]]*path[[:space:]]*=[[:space:]]*"[^"]*"//g' \
+    -e 's/^[[:space:]]*,?[[:space:]]*//' \
+    -e 's/[[:space:]]*,?[[:space:]]*$//'
+}
+
+write_dep_start() {
+  local crate="$1"
+  local extra="$2"
+
+  if [ -n "$extra" ]; then
+    printf '%s = { path = "%s/%s", %s\n' "$crate" "$CUSTOM_PATH_ABS" "$crate" "$extra"
+  else
+    printf '%s = { path = "%s/%s"\n' "$crate" "$CUSTOM_PATH_ABS" "$crate"
+  fi
+}
+
+write_dep_single_line() {
+  local crate="$1"
+  local extra="$2"
+
+  if [ -n "$extra" ]; then
+    printf '%s = { path = "%s/%s", %s }\n' "$crate" "$CUSTOM_PATH_ABS" "$crate" "$extra"
+  else
+    printf '%s = { path = "%s/%s" }\n' "$crate" "$CUSTOM_PATH_ABS" "$crate"
+  fi
+}
+
+TMP_FILE="$(mktemp)"
+multiline_crate=""
+dependency_fields=""
+in_multiline_dependency=0
+
+rewrite_dependency_entry() {
+  local line="$1"
+
+  if [[ ! "$line" =~ ^(bd-[A-Za-z0-9-]+)[[:space:]]*=[[:space:]]*\{(.*)$ ]]; then
+    printf '%s\n' "$line" >> "$TMP_FILE"
+    return
+  fi
+
+  multiline_crate="${BASH_REMATCH[1]}"
+  dependency_fields="${BASH_REMATCH[2]}"
+
+  if [[ "$line" == *"}"* ]]; then
+    dependency_fields="${dependency_fields%%\}*}"
+    write_dep_single_line "$multiline_crate" "$(clean_fields "$dependency_fields")" >> "$TMP_FILE"
+    multiline_crate=""
+    dependency_fields=""
+    return
+  fi
+
+  write_dep_start "$multiline_crate" "$(clean_fields "$dependency_fields")" >> "$TMP_FILE"
+  in_multiline_dependency=1
+}
+
+rewrite_dependency_continuation() {
+  local line="$1"
+
+  dependency_fields="$(clean_fields "$line")"
+
+  if [[ "$line" == *"}"* ]]; then
+    if [ -n "$dependency_fields" ]; then
+      printf '%s }\n' "${dependency_fields%%\}*}" >> "$TMP_FILE"
+    else
+      printf '}\n' >> "$TMP_FILE"
+    fi
+    multiline_crate=""
+    dependency_fields=""
+    in_multiline_dependency=0
+    return
+  fi
+
+  if [ -n "$dependency_fields" ]; then
+    printf '%s\n' "$dependency_fields" >> "$TMP_FILE"
+  fi
+}
+
+while IFS= read -r line; do
+  if [ "$in_multiline_dependency" -eq 0 ]; then
+    rewrite_dependency_entry "$line"
+    continue
+  fi
+
+  rewrite_dependency_continuation "$line"
+done < "$CARGO_TOML"
+
+mv "$TMP_FILE" "$CARGO_TOML"
