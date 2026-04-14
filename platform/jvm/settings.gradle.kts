@@ -19,6 +19,7 @@ include(":replay")
 include(":capture-plugin")
 
 include(":gradle-test-app")
+include(":gradle-tv-test-app")
 
 include(":microbenchmark")
 

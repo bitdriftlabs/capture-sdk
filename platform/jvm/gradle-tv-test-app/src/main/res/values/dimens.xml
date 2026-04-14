@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="button_height">88dp</dimen>
+    <dimen name="browse_card_height">180dp</dimen>
+    <dimen name="browse_card_width">320dp</dimen>
+    <dimen name="browse_hero_height">360dp</dimen>
+    <dimen name="card_padding">24dp</dimen>
+    <dimen name="input_height">72dp</dimen>
+    <dimen name="layout_card_height">240dp</dimen>
+    <dimen name="card_layout_1_width">844dp</dimen>
+    <dimen name="card_layout_2_width">412dp</dimen>
+    <dimen name="card_layout_3_width">268dp</dimen>
+    <dimen name="card_layout_4_width">196dp</dimen>
+    <dimen name="card_layout_5_width">152dp</dimen>
+    <dimen name="overlay_panel_medium_width">360dp</dimen>
+    <dimen name="overlay_panel_wide_width">420dp</dimen>
+    <dimen name="overlay_template_height">280dp</dimen>
+    <dimen name="panel_corner_radius">20dp</dimen>
+    <dimen name="rail_label_spacing">12dp</dimen>
+    <dimen name="rail_spacing">20dp</dimen>
+    <dimen name="screen_spacing">32dp</dimen>
+    <dimen name="section_spacing">24dp</dimen>
+</resources>
