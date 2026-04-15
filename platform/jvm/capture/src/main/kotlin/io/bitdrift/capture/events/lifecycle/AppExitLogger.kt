@@ -27,7 +27,6 @@ import io.bitdrift.capture.reports.IIssueReporter
 import io.bitdrift.capture.reports.IssueReporterState
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
-import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
 import io.bitdrift.capture.utils.BuildVersionChecker
@@ -38,7 +37,7 @@ internal class AppExitLogger(
     private val versionChecker: BuildVersionChecker = BuildVersionChecker(),
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider,
-    private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
+    private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler,
     private val issueReporter: IIssueReporter?,
 ) : IJvmCrashListener {
     companion object {

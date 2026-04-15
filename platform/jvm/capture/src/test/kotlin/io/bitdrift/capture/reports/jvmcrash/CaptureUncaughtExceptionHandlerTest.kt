@@ -19,7 +19,7 @@ import org.junit.Test
 
 class CaptureUncaughtExceptionHandlerTest {
     private val crashListener: IJvmCrashListener = mock()
-    private val handler = CaptureUncaughtExceptionHandler
+    private val handler = CaptureUncaughtExceptionHandler()
     private lateinit var otherHandler: OtherCrashHandler
 
     @Before

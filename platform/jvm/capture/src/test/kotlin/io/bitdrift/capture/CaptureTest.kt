@@ -20,12 +20,14 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.ExitReason
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
+import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
+import org.mockito.Mockito.mock
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -34,6 +36,8 @@ import org.robolectric.annotation.Config
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class CaptureTest {
     private val latestAppExitInfoProvider = FakeLatestAppExitInfoProvider()
+    private val preferences = MockPreferences()
+    private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
 
     @Before
     fun tearDown() {
@@ -118,7 +122,7 @@ class CaptureTest {
     fun getPreviousRunInfo_returnsCrashForCrashReasons() {
         latestAppExitInfoProvider.setAsValidReason(exitReasonType = ApplicationExitInfo.REASON_CRASH)
 
-        val previousRunInfo = PreviousRunInfoResolver(latestAppExitInfoProvider).get()
+        val previousRunInfo = PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler).get()
 
         assertThat(previousRunInfo).isEqualTo(
             PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash),
@@ -130,7 +134,7 @@ class CaptureTest {
     fun getPreviousRunInfo_returnsNoCrashForExitSelfReason() {
         latestAppExitInfoProvider.setAsValidReason(exitReasonType = ApplicationExitInfo.REASON_EXIT_SELF)
 
-        val previousRunInfo = PreviousRunInfoResolver(latestAppExitInfoProvider).get()
+        val previousRunInfo = PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler).get()
 
         assertThat(previousRunInfo).isEqualTo(
             PreviousRunInfo(hasFatallyTerminated = false, terminationReason = ExitReason.ExitSelf),
@@ -142,7 +146,7 @@ class CaptureTest {
     fun getPreviousRunInfo_returnsNoCrashWhenNoExitInfo() {
         latestAppExitInfoProvider.setAsEmptyReason()
 
-        val previousRunInfo = PreviousRunInfoResolver(latestAppExitInfoProvider).get()
+        val previousRunInfo = PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler).get()
 
         assertThat(previousRunInfo).isEqualTo(PreviousRunInfo(hasFatallyTerminated = false, terminationReason = null))
     }
@@ -152,7 +156,7 @@ class CaptureTest {
     fun getPreviousRunInfo_returnsNullWhenProviderFails() {
         latestAppExitInfoProvider.setAsErrorResult()
 
-        val previousRunInfo = PreviousRunInfoResolver(latestAppExitInfoProvider).get()
+        val previousRunInfo = PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler).get()
 
         assertThat(previousRunInfo).isNull()
     }

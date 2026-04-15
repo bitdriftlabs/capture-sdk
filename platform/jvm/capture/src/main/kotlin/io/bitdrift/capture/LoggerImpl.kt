@@ -56,6 +56,8 @@ import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
+import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
+import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.reports.processor.IIssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
@@ -119,9 +121,11 @@ internal class LoggerImpl(
     private val eventsListenerTarget = EventsListenerTarget()
 
     private val sessionReplayTarget: ISessionReplayTarget
+    private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler()
 
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
-    private val previousRunInfoResolver = PreviousRunInfoResolver(latestAppExitInfoProvider)
+    private val previousRunInfoResolver =
+        PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler)
 
     private val issueReporter: IssueReporter? =
         if (configuration.enableFatalIssueReporting) {
@@ -129,6 +133,7 @@ internal class LoggerImpl(
                 internalLogger = this,
                 dateProvider = dateProvider,
                 latestAppExitInfoProvider = latestAppExitInfoProvider,
+                captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
             )
         } else {
             null
@@ -279,6 +284,7 @@ internal class LoggerImpl(
                 runtime,
                 memoryMetricsProvider = memoryMetricsProvider,
                 latestAppExitInfoProvider = latestAppExitInfoProvider,
+                captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
                 issueReporter = issueReporter,
             )
 
