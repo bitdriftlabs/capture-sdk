@@ -36,6 +36,8 @@ import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.reports.IssueReporterState
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.Companion.EXIT_REASON_EXCEPTION_MESSAGE
+import io.bitdrift.capture.reports.exitinfo.LegacyPreviousRunState
+import io.bitdrift.capture.reports.exitinfo.LegacyPreviousRunStateStore
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
 import io.bitdrift.capture.utils.toStringMap

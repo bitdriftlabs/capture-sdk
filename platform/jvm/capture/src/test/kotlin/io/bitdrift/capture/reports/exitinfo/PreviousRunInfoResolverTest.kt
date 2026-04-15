@@ -8,6 +8,8 @@
 package io.bitdrift.capture.reports.exitinfo
 
 import android.app.ApplicationExitInfo
+import com.nhaarman.mockitokotlin2.never
+import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.MockPreferences
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
@@ -133,5 +135,21 @@ class PreviousRunInfoResolverTest {
         val result = PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler).get()
 
         assertThat(result).isNull()
+    }
+
+    @Test
+    @Config(sdk = [24])
+    fun init_belowApi30_shouldInstallCrashHandler() {
+        val resolver = PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler)
+
+        verify(captureUncaughtExceptionHandler).install(resolver)
+    }
+
+    @Test
+    @Config(sdk = [30])
+    fun init_Api30_shouldNotInstallCrashHandler() {
+        val resolver = PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler)
+
+        verify(captureUncaughtExceptionHandler, never()).install(resolver)
     }
 }
