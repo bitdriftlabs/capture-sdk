@@ -60,6 +60,7 @@ bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "protobuf", version = "29.3")
 bazel_dep(name = "rules_rust", version = "0.65.0")
 bazel_dep(name = "rules_shell", version = "0.4.0")
+
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
 
 # Required by android_artifacts for pom_file, it's not in bazel central registry
