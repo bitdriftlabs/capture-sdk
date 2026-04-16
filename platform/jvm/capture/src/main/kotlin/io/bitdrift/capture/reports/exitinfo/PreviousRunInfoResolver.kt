@@ -9,33 +9,37 @@ package io.bitdrift.capture.reports.exitinfo
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.IPreferences
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
+import io.bitdrift.capture.utils.BuildVersionChecker
 
 /**
  * Provides [PreviousRunInfo] for the previous app session.
  *
- * On API >= 30, uses [ApplicationExitInfo] directly.
- * On API < 30, relies on manually persisted previous-run state, including when a JVM crash was recorded.
+ * On API >= 30, uses [android.app.ApplicationExitInfo] directly.
+ * On API < 30, relies on manually persisted previous-run state and only reports JVM crashes as a
+ * fatal termination reason.
  */
 internal class PreviousRunInfoResolver(
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider,
     preferences: IPreferences,
     captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler,
+    private val buildVersionChecker: BuildVersionChecker = BuildVersionChecker(),
 ) : IPreviousRunInfoResolver,
     IJvmCrashListener {
-    private val previousRunInfoLegacyStore by lazy { LegacyPreviousRunStateStore(preferences) }
+    private val previousRunInfoBelowApi30Store by lazy { PreviousRunInfoBelowApi30Store(preferences) }
 
-    private val legacyPreviousRunState: LegacyPreviousRunState?
+    private val previousRunInfoBelowApi30State: PreviousRunInfoBelowApi30State?
 
     init {
         if (isBelowApi30()) {
-            legacyPreviousRunState = previousRunInfoLegacyStore.getPreviousState()
-            previousRunInfoLegacyStore.writeState(LegacyPreviousRunState.Started)
+            previousRunInfoBelowApi30State = previousRunInfoBelowApi30Store.getPreviousState()
+            previousRunInfoBelowApi30Store.writeState(PreviousRunInfoBelowApi30State.Started)
             captureUncaughtExceptionHandler.install(this)
         } else {
-            legacyPreviousRunState = null
+            previousRunInfoBelowApi30State = null
         }
     }
 
@@ -53,22 +57,22 @@ internal class PreviousRunInfoResolver(
         thread: Thread,
         throwable: Throwable,
     ) {
-        previousRunInfoLegacyStore.writeState(LegacyPreviousRunState.JvmCrash)
+        previousRunInfoBelowApi30Store.writeState(PreviousRunInfoBelowApi30State.JvmCrash)
     }
 
-    private fun isBelowApi30() = Build.VERSION.SDK_INT < Build.VERSION_CODES.R
+    private fun isBelowApi30() = !buildVersionChecker.isAtLeast(Build.VERSION_CODES.R)
 
     private fun getFromLegacyState(): PreviousRunInfo? {
-        val previousState = legacyPreviousRunState ?: return null
+        val previousState = previousRunInfoBelowApi30State ?: return null
 
         return when (previousState) {
-            LegacyPreviousRunState.JvmCrash ->
+            PreviousRunInfoBelowApi30State.JvmCrash ->
                 PreviousRunInfo(
                     hasFatallyTerminated = true,
                     terminationReason = ExitReason.JvmCrash,
                 )
 
-            LegacyPreviousRunState.Started -> PreviousRunInfo(hasFatallyTerminated = false)
+            PreviousRunInfoBelowApi30State.Started -> PreviousRunInfo(hasFatallyTerminated = false)
         }
     }
 
@@ -107,14 +111,16 @@ data class PreviousRunInfo(
     val terminationReason: ExitReason? = null,
 )
 
-internal class LegacyPreviousRunStateStore(
+@VisibleForTesting
+internal class PreviousRunInfoBelowApi30Store(
     private val preferences: IPreferences,
 ) {
-    fun getPreviousState(): LegacyPreviousRunState? = preferences.getString(STATE_KEY)?.let(LegacyPreviousRunState::fromStorageValue)
+    fun getPreviousState(): PreviousRunInfoBelowApi30State? =
+        preferences.getString(STATE_KEY)?.let(PreviousRunInfoBelowApi30State::fromName)
 
-    fun writeState(state: LegacyPreviousRunState) {
-        val blocking = state == LegacyPreviousRunState.JvmCrash
-        preferences.setString(STATE_KEY, state.value, blocking = blocking)
+    fun writeState(state: PreviousRunInfoBelowApi30State) {
+        val blocking = state == PreviousRunInfoBelowApi30State.JvmCrash
+        preferences.setString(STATE_KEY, state.name, blocking = blocking)
     }
 
     private companion object {
@@ -122,16 +128,14 @@ internal class LegacyPreviousRunStateStore(
     }
 }
 
-internal enum class LegacyPreviousRunState(
-    /** Stable text representation*/
-    val value: String,
-) {
-    Started("started"),
-    JvmCrash("jvm_crash"),
+@VisibleForTesting
+internal enum class PreviousRunInfoBelowApi30State {
+    Started,
+    JvmCrash,
     ;
 
     companion object {
-        fun fromStorageValue(value: String): LegacyPreviousRunState? = entries.firstOrNull { it.value == value }
+        fun fromName(value: String): PreviousRunInfoBelowApi30State? = runCatching { valueOf(value) }.getOrNull()
     }
 }
 

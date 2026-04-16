@@ -15,7 +15,6 @@ import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
-import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.IInternalLogger
@@ -36,8 +35,8 @@ import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.reports.IssueReporterState
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.Companion.EXIT_REASON_EXCEPTION_MESSAGE
-import io.bitdrift.capture.reports.exitinfo.LegacyPreviousRunState
-import io.bitdrift.capture.reports.exitinfo.LegacyPreviousRunStateStore
+import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoBelowApi30State
+import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoBelowApi30Store
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
 import io.bitdrift.capture.utils.toStringMap
@@ -216,10 +215,10 @@ class AppExitLoggerTest {
 
     @Test
     fun previousRunInfoStateStore_persistsLegacyJvmCrashMarker() {
-        val previousRunInfoStateStore = LegacyPreviousRunStateStore(preferences)
+        val previousRunInfoStateStore = PreviousRunInfoBelowApi30Store(preferences)
 
-        previousRunInfoStateStore.writeState(LegacyPreviousRunState.Started)
-        previousRunInfoStateStore.writeState(LegacyPreviousRunState.JvmCrash)
+        previousRunInfoStateStore.writeState(PreviousRunInfoBelowApi30State.Started)
+        previousRunInfoStateStore.writeState(PreviousRunInfoBelowApi30State.JvmCrash)
 
         assertThat(preferences.getString("io.bitdrift.capture.previous_run_info.state")).isEqualTo("jvm_crash")
     }
