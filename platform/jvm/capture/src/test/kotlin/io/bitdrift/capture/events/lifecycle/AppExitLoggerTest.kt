@@ -220,7 +220,7 @@ class AppExitLoggerTest {
         previousRunInfoStateStore.writeState(PreviousRunInfoBelowApi30State.Started)
         previousRunInfoStateStore.writeState(PreviousRunInfoBelowApi30State.JvmCrash)
 
-        assertThat(preferences.getString("io.bitdrift.capture.previous_run_info.state")).isEqualTo("jvm_crash")
+        assertThat(preferences.getString("io.bitdrift.capture.previous_run_info.state")).isEqualTo("JvmCrash")
     }
 
     @Test
