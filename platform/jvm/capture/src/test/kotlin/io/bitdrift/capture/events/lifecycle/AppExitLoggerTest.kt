@@ -15,12 +15,14 @@ import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
+import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
+import io.bitdrift.capture.MockPreferences
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.fakes.FakeIssueReporter
@@ -34,9 +36,12 @@ import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.reports.IssueReporterState
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.Companion.EXIT_REASON_EXCEPTION_MESSAGE
+import io.bitdrift.capture.reports.exitinfo.LegacyPreviousRunState
+import io.bitdrift.capture.reports.exitinfo.LegacyPreviousRunStateStore
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
 import io.bitdrift.capture.utils.toStringMap
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
@@ -49,6 +54,7 @@ class AppExitLoggerTest {
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
     private val memoryMetricsProvider = FakeMemoryMetricsProvider()
     private val lastExitInfo = FakeLatestAppExitInfoProvider()
+    private val preferences = MockPreferences()
 
     private lateinit var appExitLogger: AppExitLogger
 
@@ -61,13 +67,23 @@ class AppExitLoggerTest {
     }
 
     @Test
-    fun testLoggerIsNotInstalledWhenRuntimeDisabled() {
+    fun testPreviousExitReasonIsNotLoggedWhenRuntimeDisabled() {
         // ARRANGE
         whenever(runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)).thenReturn(false)
         // ACT
         appExitLogger.installAppExitLogger()
         // ASSERT
         verify(captureUncaughtExceptionHandler, never()).install(any())
+        verify(logger, never()).handleInternalError(any(), any())
+        verify(logger, never()).logInternal(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+        )
     }
 
     @Test
@@ -196,6 +212,25 @@ class AppExitLoggerTest {
             argThat { i: () -> String -> i.invoke() == "AppExit" },
         )
         verify(logger).flush(true)
+    }
+
+    @Test
+    fun previousRunInfoStateStore_persistsLegacyJvmCrashMarker() {
+        val previousRunInfoStateStore = LegacyPreviousRunStateStore(preferences)
+
+        previousRunInfoStateStore.writeState(LegacyPreviousRunState.Started)
+        previousRunInfoStateStore.writeState(LegacyPreviousRunState.JvmCrash)
+
+        assertThat(preferences.getString("io.bitdrift.capture.previous_run_info.state")).isEqualTo("jvm_crash")
+    }
+
+    @Test
+    fun installAppExitLogger_whenAppExitEventsDisabled_doesNotInstallCrashHandler() {
+        whenever(runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)).thenReturn(false)
+
+        appExitLogger.installAppExitLogger()
+
+        verify(captureUncaughtExceptionHandler, never()).install(appExitLogger)
     }
 
     @Test

@@ -9,23 +9,68 @@ package io.bitdrift.capture.reports.exitinfo
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import io.bitdrift.capture.IPreferences
+import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
+import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
 
 /**
  * Provides [PreviousRunInfo] for the previous app session.
  *
  * On API >= 30, uses [ApplicationExitInfo] directly.
- * On API < 30, returns `null` (no previous run info available yet). Will be implemented in BIT-7703.
+ * On API < 30, relies on manually persisted previous-run state, including when a JVM crash was recorded.
  */
 internal class PreviousRunInfoResolver(
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider,
-) : IPreviousRunInfoResolver {
+    preferences: IPreferences,
+    captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler,
+) : IPreviousRunInfoResolver,
+    IJvmCrashListener {
+    private val previousRunInfoLegacyStore by lazy { LegacyPreviousRunStateStore(preferences) }
+
+    private val legacyPreviousRunState: LegacyPreviousRunState?
+
+    init {
+        if (isBelowApi30()) {
+            legacyPreviousRunState = previousRunInfoLegacyStore.getPreviousState()
+            previousRunInfoLegacyStore.writeState(LegacyPreviousRunState.Started)
+            captureUncaughtExceptionHandler.install(this)
+        } else {
+            legacyPreviousRunState = null
+        }
+    }
+
     override fun get(): PreviousRunInfo? =
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            // TODO (BIT-7703): Enable support below OS 11
-            null
+        if (isBelowApi30()) {
+            getFromLegacyState()
         } else {
             getFromAppExitInfo()
         }
+
+    /**
+     * Will only trigger below OS 11
+     */
+    override fun onJvmCrash(
+        thread: Thread,
+        throwable: Throwable,
+    ) {
+        previousRunInfoLegacyStore.writeState(LegacyPreviousRunState.JvmCrash)
+    }
+
+    private fun isBelowApi30() = Build.VERSION.SDK_INT < Build.VERSION_CODES.R
+
+    private fun getFromLegacyState(): PreviousRunInfo? {
+        val previousState = legacyPreviousRunState ?: return null
+
+        return when (previousState) {
+            LegacyPreviousRunState.JvmCrash ->
+                PreviousRunInfo(
+                    hasFatallyTerminated = true,
+                    terminationReason = ExitReason.JvmCrash,
+                )
+
+            LegacyPreviousRunState.Started -> PreviousRunInfo(hasFatallyTerminated = false)
+        }
+    }
 
     @RequiresApi(Build.VERSION_CODES.R)
     private fun getFromAppExitInfo(): PreviousRunInfo? =
@@ -61,6 +106,34 @@ data class PreviousRunInfo(
     val hasFatallyTerminated: Boolean,
     val terminationReason: ExitReason? = null,
 )
+
+internal class LegacyPreviousRunStateStore(
+    private val preferences: IPreferences,
+) {
+    fun getPreviousState(): LegacyPreviousRunState? = preferences.getString(STATE_KEY)?.let(LegacyPreviousRunState::fromStorageValue)
+
+    fun writeState(state: LegacyPreviousRunState) {
+        val blocking = state == LegacyPreviousRunState.JvmCrash
+        preferences.setString(STATE_KEY, state.value, blocking = blocking)
+    }
+
+    private companion object {
+        private const val STATE_KEY = "io.bitdrift.capture.previous_run_info.state"
+    }
+}
+
+internal enum class LegacyPreviousRunState(
+    /** Stable text representation*/
+    val value: String,
+) {
+    Started("started"),
+    JvmCrash("jvm_crash"),
+    ;
+
+    companion object {
+        fun fromStorageValue(value: String): LegacyPreviousRunState? = entries.firstOrNull { it.value == value }
+    }
+}
 
 /**
  * Contract for producing [PreviousRunInfo] from app exit signals.

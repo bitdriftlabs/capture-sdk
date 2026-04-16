@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Concrete implementation of [io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler]
  * that will notify the specified listener when a JVM crash has occurred.
  */
-internal object CaptureUncaughtExceptionHandler : ICaptureUncaughtExceptionHandler {
+internal class CaptureUncaughtExceptionHandler : ICaptureUncaughtExceptionHandler {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     val crashing = AtomicBoolean(false)
     private val installed = AtomicBoolean(false)

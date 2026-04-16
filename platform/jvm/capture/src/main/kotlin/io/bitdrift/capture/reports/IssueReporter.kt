@@ -20,7 +20,6 @@ import io.bitdrift.capture.reports.IssueReporterState.NotInitialized
 import io.bitdrift.capture.reports.IssueReporterState.RuntimeState
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
-import io.bitdrift.capture.reports.jvmcrash.CaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
 import io.bitdrift.capture.reports.persistence.IssueReporterStore
@@ -49,7 +48,7 @@ internal class IssueReporter(
     private val internalLogger: IInternalLogger,
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider,
-    private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler,
+    private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler,
     private val dateProvider: DateProvider,
 ) : IIssueReporter,
     IJvmCrashListener {
