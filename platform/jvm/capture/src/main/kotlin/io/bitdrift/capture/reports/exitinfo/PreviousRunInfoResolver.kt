@@ -34,7 +34,7 @@ internal class PreviousRunInfoResolver(
     private val previousRunInfoBelowApi30State: PreviousRunInfoBelowApi30State?
 
     init {
-        if (isBelowApi30()) {
+        if (!buildVersionChecker.isAtLeast(Build.VERSION_CODES.R)) {
             previousRunInfoBelowApi30State = previousRunInfoBelowApi30Store.getPreviousState()
             previousRunInfoBelowApi30Store.writeState(PreviousRunInfoBelowApi30State.Started)
             captureUncaughtExceptionHandler.install(this)
@@ -44,10 +44,10 @@ internal class PreviousRunInfoResolver(
     }
 
     override fun get(): PreviousRunInfo? =
-        if (isBelowApi30()) {
-            getFromLegacyState()
-        } else {
+        if (buildVersionChecker.isAtLeast(Build.VERSION_CODES.R)) {
             getFromAppExitInfo()
+        } else {
+            getFromBelowApi30State()
         }
 
     /**
@@ -60,9 +60,7 @@ internal class PreviousRunInfoResolver(
         previousRunInfoBelowApi30Store.writeState(PreviousRunInfoBelowApi30State.JvmCrash)
     }
 
-    private fun isBelowApi30() = !buildVersionChecker.isAtLeast(Build.VERSION_CODES.R)
-
-    private fun getFromLegacyState(): PreviousRunInfo? {
+    private fun getFromBelowApi30State(): PreviousRunInfo? {
         val previousState = previousRunInfoBelowApi30State ?: return null
 
         return when (previousState) {
