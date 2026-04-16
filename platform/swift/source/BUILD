@@ -7,6 +7,7 @@ load("@sdk_version//:sdk_version.bzl", "SDK_VERSION")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
 load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")
 load("//bazel:swift_header_collector.bzl", "swift_header_collector")
+load("@hedron_compile_commands//:refresh_compile_commands.bzl", "refresh_compile_commands")
 
 swift_library(
     name = "ios_lib",
@@ -184,3 +185,11 @@ docc_archive(
     transform_for_static_hosting = True,
     visibility = ["//visibility:public"],
 )
+
+refresh_compile_commands(
+    name = "refresh_compile_commands",
+    targets = {
+        "//platform/swift/source/...": "",
+    },
+)
+

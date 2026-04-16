@@ -60,6 +60,7 @@ bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "protobuf", version = "29.3")
 bazel_dep(name = "rules_rust", version = "0.65.0")
 bazel_dep(name = "rules_shell", version = "0.4.0")
+bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
 
 # Required by android_artifacts for pom_file, it's not in bazel central registry
 bazel_dep(name = "google_bazel_common", version = "0.0.1")
@@ -88,6 +89,12 @@ git_override(
     module_name = "google_bazel_common",
     commit = "c35b0339ae7d7ac95761f69f4a0eed033163cc80",
     remote = "https://github.com/google/bazel-common",
+)
+
+git_override(
+    module_name = "hedron_compile_commands",
+    commit = "abb61a688167623088f8768cc9264798df6a9d10",
+    remote = "https://github.com/hedronvision/bazel-compile-commands-extractor.git",
 )
 
 http_archive(
