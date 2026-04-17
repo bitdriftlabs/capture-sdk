@@ -9,7 +9,7 @@ internal import CapturePassable
 import Foundation
 
 final class ResourceUtilizationController {
-    private let queue: DispatchQueue = .serial(withLabelSuffix: "ResourceUtilizationTarget", target: .heavy)
+    private let queue: DispatchQueue
 
     private let storageProvider: StorageProvider
     private let timeProvider: TimeProvider
@@ -25,7 +25,12 @@ final class ResourceUtilizationController {
         }
     }
 
-    init(storageProvider: StorageProvider, timeProvider: TimeProvider) {
+    init(
+        storageProvider: StorageProvider,
+        timeProvider: TimeProvider,
+        queue: DispatchQueue = .serial(withLabelSuffix: "ResourceUtilizationTarget", target: .heavy)
+    ) {
+        self.queue = queue
         self.storageProvider = storageProvider
         self.timeProvider = timeProvider
 

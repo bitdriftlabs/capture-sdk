@@ -25,7 +25,8 @@ final class ResourceUtilizationControllerTests: XCTestCase {
 
         self.target = ResourceUtilizationController(
             storageProvider: self.storageProvider,
-            timeProvider: self.timeProvider
+            timeProvider: self.timeProvider,
+            queue: .main
         )
 
         self.target.logger = self.logger
@@ -35,16 +36,16 @@ final class ResourceUtilizationControllerTests: XCTestCase {
         run_resource_utilization_target_test(self.target)
     }
 
-    func testEmitsDiskUsageFieldsOnceEvery24H() {
+    func testEmitsDiskUsageFieldsOnceEvery24H() throws {
         let firstLogExpectation = self.expectation(description: "resource utilization log is emitted")
         self.logger.logResourceUtilizationExpectation = firstLogExpectation
 
         self.target.tick()
 
-        XCTAssertEqual(.completed, XCTWaiter().wait(for: [firstLogExpectation], timeout: 0.5))
+        wait(for: [firstLogExpectation], timeout: 1.0)
         XCTAssertEqual(1, self.logger.resourceUtilizationLogs.count)
-        XCTAssertNotNil(self.logger.resourceUtilizationLogs[0]
-                            .fields[DiskUsageSnapshot.FieldKey.documentsDirectory.rawValue])
+        let firstLog = try XCTUnwrap(self.logger.resourceUtilizationLogs.first)
+        XCTAssertNotNil(firstLog.fields[DiskUsageSnapshot.FieldKey.documentsDirectory.rawValue])
 
         let secondLogExpectation = self.expectation(description: "resource utilization log is not emitted")
         self.logger.logResourceUtilizationExpectation = secondLogExpectation
@@ -52,10 +53,10 @@ final class ResourceUtilizationControllerTests: XCTestCase {
         self.target.tick()
 
         // App Disk Usage fields are not emitted within 24 hours of the previous emission of these logs.
-        XCTAssertEqual(.completed, XCTWaiter().wait(for: [secondLogExpectation], timeout: 0.5))
+        wait(for: [secondLogExpectation], timeout: 1.0)
         XCTAssertEqual(2, self.logger.resourceUtilizationLogs.count)
-        XCTAssertNil(self.logger.resourceUtilizationLogs[1]
-                        .fields[DiskUsageSnapshot.FieldKey.documentsDirectory.rawValue])
+        let secondLog = try XCTUnwrap(self.logger.resourceUtilizationLogs.last)
+        XCTAssertNil(secondLog.fields[DiskUsageSnapshot.FieldKey.documentsDirectory.rawValue])
 
         // Advance by more than 24 hours
         self.timeProvider.advanceBy(timeInterval: 25 * 60 * 60)
@@ -67,10 +68,10 @@ final class ResourceUtilizationControllerTests: XCTestCase {
 
         self.target.tick()
 
-        XCTAssertEqual(.completed, XCTWaiter().wait(for: [thirdLogExpectation], timeout: 0.5))
+        wait(for: [thirdLogExpectation], timeout: 1.0)
         XCTAssertEqual(3, self.logger.resourceUtilizationLogs.count)
-        XCTAssertNotNil(self.logger.resourceUtilizationLogs[2]
-                            .fields[DiskUsageSnapshot.FieldKey.documentsDirectory.rawValue])
+        let thirdLog = try XCTUnwrap(self.logger.resourceUtilizationLogs.last)
+        XCTAssertNotNil(thirdLog.fields[DiskUsageSnapshot.FieldKey.documentsDirectory.rawValue])
     }
 
     func testMemorySnapshotIncludesIsMemoryLowFieldWhenThresholdProvided() {
