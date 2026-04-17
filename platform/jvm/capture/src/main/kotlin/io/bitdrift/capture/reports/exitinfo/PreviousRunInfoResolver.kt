@@ -114,7 +114,7 @@ internal class PreviousRunInfoBelowApi30Store(
     private val preferences: IPreferences,
 ) {
     fun getPreviousState(): PreviousRunInfoBelowApi30State? =
-        preferences.getString(STATE_KEY)?.let { PreviousRunInfoBelowApi30State.valueOf(it) }
+        preferences.getString(STATE_KEY)?.let { runCatching { PreviousRunInfoBelowApi30State.valueOf(it) }.getOrNull() }
 
     fun writeState(state: PreviousRunInfoBelowApi30State) {
         val blocking = state == PreviousRunInfoBelowApi30State.JvmCrash
@@ -130,7 +130,6 @@ internal class PreviousRunInfoBelowApi30Store(
 internal enum class PreviousRunInfoBelowApi30State {
     Started,
     JvmCrash,
-    ;
 }
 
 /**
