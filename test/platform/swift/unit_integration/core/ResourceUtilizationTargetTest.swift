@@ -13,7 +13,8 @@ final class ResourceUtilizationTargetTest: XCTestCase {
     func testTargetDoesNotCrash() {
         let target = ResourceUtilizationController(
             storageProvider: MockStorageProvider(),
-            timeProvider: MockTimeProvider()
+            timeProvider: MockTimeProvider(),
+            queue: .main
         )
 
         let logger = MockCoreLogging()
