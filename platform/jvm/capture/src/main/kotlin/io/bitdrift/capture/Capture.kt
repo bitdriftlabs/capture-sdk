@@ -267,9 +267,6 @@ object Capture {
          *
          * Must be called after [start]. Returns `null` if the logger is not initialized.
          *
-         * Note: on API 30, native crashes are reported as a fatal termination reason but do not
-         * trigger an `onBeforeSend` callback with the crash report. The `onBeforeSend` callback
-         * for native crashes is only available on API >= 31.
          */
         @JvmStatic
         @ExperimentalBitdriftApi
