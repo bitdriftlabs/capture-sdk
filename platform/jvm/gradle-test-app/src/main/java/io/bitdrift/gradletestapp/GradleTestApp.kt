@@ -8,38 +8,29 @@
 package io.bitdrift.gradletestapp
 
 import android.app.Application
-import android.content.SharedPreferences
-import androidx.preference.PreferenceManager
-import io.bitdrift.capture.Capture
+import io.bitdrift.capture.Capture.Logger.sessionUrl
+import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.diagnostics.fatalissues.CrashSdkInitializer
 import io.bitdrift.gradletestapp.diagnostics.lifecycle.ActivitySpanCallbacks
 import io.bitdrift.gradletestapp.diagnostics.papa.PapaTelemetry
 import io.bitdrift.gradletestapp.diagnostics.startup.AppStartInfoLogger
 import io.bitdrift.gradletestapp.diagnostics.strictmode.StrictModeConfigurator
-import io.bitdrift.gradletestapp.init.BitdriftInit
-import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFERRED_START_PREFS_KEY
 import timber.log.Timber
 
 /**
- * A Kotlin app entry point that initializes the Bitdrift Logger automatically only when ConfigState.isDeferredStart is set to false
+ * App entry point. Capture SDK is auto-initialized via CaptureInitializer (manifest meta-data).
  */
 class GradleTestApp : Application() {
+    private val shouldTriggerCrash = false
     override fun onCreate() {
-        super.onCreate()
-
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
-
-        if (hasDeferredSdkStartConfigured(sharedPreferences)) {
-            Timber.i("Deferred start enabled - SDK initialization skipped")
-        } else {
-            BitdriftInit.init(this, sharedPreferences)
+        if (shouldTriggerCrash) {
+            throw IllegalStateException("Crash before Application super.onCreate()")
         }
-
+        super.onCreate()
+        Timber.plant(CaptureTree())
+        Timber.i("Bitdrift auto-initialized with session_url=$sessionUrl")
         attachAdditionalMonitoringTools()
     }
-
-    private fun hasDeferredSdkStartConfigured(sharedPreferences: SharedPreferences): Boolean =
-        sharedPreferences.getBoolean(DEFERRED_START_PREFS_KEY, false)
 
     private fun attachAdditionalMonitoringTools() {
         StrictModeConfigurator.install()

@@ -21,18 +21,32 @@
 
         <meta-data android:name="io.sentry.auto-init" android:value="false" />
 
+        <!-- Opt in to Bitdrift Capture auto-init -->
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
             android:exported="false"
-            tools:node="merge"
-            >
-            <!-- Disable automatic initialization of Bitdrift ContextHolder -->
+            tools:node="merge">
             <meta-data
-                android:name="io.bitdrift.capture.ContextHolder"
-                tools:node="remove"
-                />
+                android:name="io.bitdrift.capture.CaptureInitializer"
+                android:value="androidx.startup" />
         </provider>
+
+        <!-- Bitdrift Capture auto-init configuration -->
+        <meta-data android:name="io.bitdrift.capture.API_KEY"
+                   android:value="YOUR_API_KEY_HERE" />
+        <meta-data android:name="io.bitdrift.capture.API_URL"
+                   android:value="https://api.bitdrift.io" />
+        <meta-data android:name="io.bitdrift.capture.SESSION_STRATEGY"
+                   android:value="fixed" />
+        <meta-data android:name="io.bitdrift.capture.INACTIVITY_THRESHOLD_IN_MINUTES"
+                   android:value="60" />
+        <meta-data android:name="io.bitdrift.capture.ENABLE_SESSION_REPLAY"
+                   android:value="true" />
+        <meta-data android:name="io.bitdrift.capture.ENABLE_FATAL_ISSUE_REPORTING"
+                   android:value="true" />
+        <meta-data android:name="io.bitdrift.capture.SLEEP_MODE"
+                   android:value="disabled" />
 
         <activity
             android:name=".ui.activities.MainActivity"
