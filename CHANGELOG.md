@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.14...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.15...HEAD
 
 ### Both
 
@@ -44,6 +44,22 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.22.15]
+
+[0.22.15]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.22.15
+
+### Both
+
+**Added**
+
+- `Capture.Logger.screenView` now captures an up-to-date wireframe for Session Replay at the time of the call.
+
+### Android
+
+**Added**
+
+- `Capture.Logger.getPreviousRunInfo()` now reports JVM crash terminations on API levels below 30.
 
 ## [0.22.14]
 
