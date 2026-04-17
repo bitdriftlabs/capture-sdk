@@ -388,6 +388,21 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(.completeUntilFirstUserAuthentication,
                        try! protection(at: bufferFile.path))
     }
+
+    func testLogScreenViewCapturesScreen() throws {
+        let logger = try Logger.testLogger(withAPIKey: "test_api_key")
+
+        let mockCoreLogging = MockCoreLogging()
+        let replayController = try XCTUnwrap(logger.sessionReplayController)
+        replayController.logger = mockCoreLogging
+
+        let expectation = self.expectation(description: "session replay screen log is emitted")
+        mockCoreLogging.logSessionReplayScreenExpectation = expectation
+
+        logger.logScreenView(screenName: "test_screen")
+
+        XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 1))
+    }
 }
 
 extension [Field] {

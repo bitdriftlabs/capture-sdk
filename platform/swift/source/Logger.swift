@@ -571,6 +571,8 @@ extension Logger: Logging {
     }
 
     public func logScreenView(screenName: String) {
+        // TODO(Fran): BIT-7953 reset replay timer
+        self.sessionReplayController?.captureScreen()
         self.underlyingLogger.logScreenView(screenName: screenName)
     }
 

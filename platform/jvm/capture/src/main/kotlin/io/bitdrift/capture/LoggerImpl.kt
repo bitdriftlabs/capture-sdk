@@ -93,7 +93,7 @@ internal class LoggerImpl(
     sharedOkHttpClient: OkHttpClient = OkHttpClient(),
     private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey, client = sharedOkHttpClient),
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
-    private val activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
+    activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
@@ -349,6 +349,8 @@ internal class LoggerImpl(
     }
 
     override fun logScreenView(screenName: String) {
+        // TODO(Fran): BIT-7953 reset replay timer
+        sessionReplayTarget.captureScreen()
         jankStatsMonitor?.trackScreenNameChanged(screenName)
         CaptureJniLibrary.writeScreenViewLog(this.loggerId, screenName)
     }

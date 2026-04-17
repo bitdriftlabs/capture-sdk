@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture
 
+import android.content.ContextWrapper
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.util.concurrent.MoreExecutors
@@ -18,7 +19,9 @@ import com.nhaarman.mockitokotlin2.timeout
 import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
+import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
@@ -89,9 +92,11 @@ class CaptureLoggerTest {
         fieldProvider: FieldProvider? = null,
         dateProvider: DateProvider = systemDateProvider,
         sessionStrategy: SessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
+        context: android.content.Context = ContextHolder.APP_CONTEXT,
+        windowManager: IWindowManager = WindowManager(ErrorHandler()),
         block: (LoggerImpl) -> T,
     ): T {
-        val logger = buildLogger(fieldProvider, dateProvider, sessionStrategy)
+        val logger = buildLogger(fieldProvider, dateProvider, sessionStrategy, context, windowManager)
         try {
             return block(logger)
         } finally {
@@ -243,11 +248,12 @@ class CaptureLoggerTest {
             @Suppress("UNUSED_VARIABLE")
             val deviceId = logger.deviceId
             val apiStreamId = CaptureTestJniLibrary.awaitNextApiStream()
+            assertThat(apiStreamId).isNotEqualTo(-1)
             assertThat(
                 CaptureTestJniLibrary.awaitApiServerReceivedHandshake(
                     apiStreamId,
                     mapOf(
-                        "app_id" to "io.bitdrift.capture",
+                        "app_id" to ContextHolder.APP_CONTEXT.packageName,
                         "app_version" to "?.?.?",
                         "os" to "android",
                         "device_id" to deviceId,
@@ -462,6 +468,16 @@ class CaptureLoggerTest {
             assertThat(JniRuntime(logger.loggerId).isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)).isFalse
         }
 
+    @Test
+    fun `logScreenView captures screen`() {
+        val windowManager = mock<IWindowManager>()
+        val context = ContextWrapper(ContextHolder.APP_CONTEXT)
+        withLogger(context = context, windowManager = windowManager) { logger ->
+            logger.logScreenView("test_screen")
+            verify(windowManager, timeout(1000)).getAllRootViews()
+        }
+    }
+
     private fun testServerUrl(): HttpUrl =
         HttpUrl
             .Builder()
@@ -474,6 +490,8 @@ class CaptureLoggerTest {
         fieldProvider: FieldProvider? = null,
         dateProvider: DateProvider = mock<DateProvider>(),
         sessionStrategy: SessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
+        context: android.content.Context = ContextHolder.APP_CONTEXT,
+        windowManager: IWindowManager = WindowManager(ErrorHandler()),
     ): LoggerImpl {
         val fieldProviders = fieldProvider?.let { listOf(it) }.orEmpty()
         val loggerImpl =
@@ -482,9 +500,10 @@ class CaptureLoggerTest {
                 apiUrl = testServerUrl(),
                 fieldProviders = fieldProviders,
                 sessionStrategy = sessionStrategy,
-                context = ContextHolder.APP_CONTEXT,
+                context = context,
                 dateProvider = dateProvider,
                 configuration = Configuration(),
+                windowManager = windowManager,
             )
         val sdkConfiguredDuration =
             LoggerImpl.SdkConfiguredDuration(
