@@ -39,6 +39,15 @@ typedef enum {
     CacheResultSuccess = 3
 } CacheResult;
 
+typedef struct {
+    uint64_t seconds;
+    uint32_t nanoseconds;
+    bool available;
+} CachedCrashTimestamp;
+
+/** Get the crash timestamp from the latest/previous-run KSCrash report */
+CachedCrashTimestamp capture_cached_kscrash_timestamp(void);
+
 /** Cache a KSCrash report, which will be used later for report enhancement. */
 CacheResult capture_cache_kscrash_report(NSString *reportPath);
 
@@ -56,8 +65,11 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
         // We only want to handle one crash. Don't write any reports if more come in.
         return;
     }
-
-    g_crashHandlerReportContext.metadata.time = time(NULL);
+    
+    struct timespec crashTime;
+    clock_gettime(CLOCK_REALTIME, &crashTime);
+    g_crashHandlerReportContext.metadata.time = crashTime.tv_sec;
+    g_crashHandlerReportContext.metadata.timeNanos = (uint32_t)crashTime.tv_nsec;
     g_crashHandlerReportContext.monitorContext = monitorContext;
     bitdrift_writeKSCrashReport(&g_crashHandlerReportContext);
 }
@@ -193,6 +205,16 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
 
 #undef ERROR_IF_FALSE
     return YES;
+}
+
++ (NSDate * _Nullable)cachedCrashDate {
+    CachedCrashTimestamp timestamp = capture_cached_kscrash_timestamp();
+    if (!timestamp.available) {
+        return nil;
+    }
+    NSTimeInterval interval = (NSTimeInterval)timestamp.seconds + ((NSTimeInterval)timestamp.nanoseconds / NSEC_PER_SEC);
+    
+    return [NSDate dateWithTimeIntervalSince1970:interval];
 }
 
 + (void)stopCrashReporter {

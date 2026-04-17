@@ -37,6 +37,14 @@ pub enum CacheResult {
   Success            = 3,
 }
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CachedCrashTimestamp {
+  pub seconds: u64,
+  pub nanoseconds: u32,
+  pub available: bool,
+}
+
 // Global cache for the most recently loaded KSCrash report.
 // This allows us to safely delete the report file so that it's not picked up next launch by
 // mistake.
@@ -63,6 +71,19 @@ extern "C" fn capture_enhance_metrickit_diagnostic_report(
     .inspect_err(|e| log::error!("Failed to enhance MetricKit report: {e}"))
     .unwrap_or(Some(metrickit_report_ptr))
     .unwrap_or(metrickit_report_ptr)
+}
+
+#[no_mangle]
+extern "C" fn capture_cached_kscrash_timestamp() -> CachedCrashTimestamp {
+  with_handle_unexpected_or(
+    || -> anyhow::Result<CachedCrashTimestamp> { cached_kscrash_timestamp_impl() },
+    CachedCrashTimestamp {
+      seconds: 0,
+      nanoseconds: 0,
+      available: false,
+    },
+    "cached kscrash timestamp",
+  )
 }
 
 // Implementation
@@ -148,6 +169,39 @@ fn enhance_metrickit_diagnostic_report_impl(
   let strong_ptr = unsafe { rust_value_to_objc(&enhanced_report) }
     .map_err(|e| anyhow::anyhow!("Failed to convert enhanced_report to Objective-C: {e}"))?;
   Ok(Some(*strong_ptr))
+}
+
+fn cached_kscrash_timestamp_impl() -> anyhow::Result<CachedCrashTimestamp> {
+  let Some(kscrash_report) = CACHED_KSCRASH_REPORT.lock().as_ref().cloned() else {
+    return Ok(CachedCrashTimestamp {
+      seconds: 0,
+      nanoseconds: 0,
+      available: false,
+    });
+  };
+
+  let diagnostic = kscrash_report
+    .get("diagnosticMetaData")
+    .and_then(|value| value.as_object().ok())
+    .ok_or_else(|| anyhow::anyhow!("KSCrash report missing diagnostic metadata"))?;
+
+  let seconds = diagnostic
+    .get("crashedAt")
+    .and_then(value_as_u64)
+    .ok_or_else(|| anyhow::anyhow!("KSCrash report missing crash timestamp"))?;
+
+  // crashedAtNanos could be missing in older versions of the sdk; defaulting to 0
+  let nanoseconds = diagnostic
+    .get("crashedAtNanos")
+    .and_then(value_as_u64)
+    .and_then(|value| u32::try_from(value).ok())
+    .unwrap_or(0);
+
+  Ok(CachedCrashTimestamp {
+    seconds,
+    nanoseconds,
+    available: true,
+  })
 }
 
 fn enhance_report(
@@ -418,6 +472,14 @@ fn call_stacks_match(call_stack_a: &[u64], call_stack_b: &[u64]) -> bool {
   !call_stack_a.is_empty() && call_stack_a == call_stack_b
 }
 
+fn value_as_u64(value: &Value) -> Option<u64> {
+  match value {
+    Value::Unsigned(value) => Some(*value),
+    Value::Signed(value) => (*value >= 0).then_some(*value as u64),
+    _ => None,
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -453,5 +515,74 @@ mod tests {
     report.write("\0\0\0".as_bytes()).unwrap();
     let report_path = report.path().to_str().unwrap().to_string();
     assert!(parse_cached_report(report_path).is_err());
+  }
+
+  #[test]
+  fn cached_kscrash_timestamp_includes_nanoseconds_in_timestamp_when_present() {
+    let mut diagnostic_metadata = AHashMap::new();
+    diagnostic_metadata.insert("crashedAt".to_string(), Value::Unsigned(1_000_000_000));
+    diagnostic_metadata.insert("crashedAtNanos".to_string(), Value::Unsigned(200_000_000));
+
+    let mut crash_report = AHashMap::new();
+    crash_report.insert(
+      "diagnosticMetaData".to_string(),
+      Value::Object(diagnostic_metadata),
+    );
+
+    *CACHED_KSCRASH_REPORT.lock() = Some(crash_report);
+
+    let result = cached_kscrash_timestamp_impl().unwrap();
+
+    *CACHED_KSCRASH_REPORT.lock() = None;
+
+    assert_eq!(
+      result,
+      CachedCrashTimestamp {
+        seconds: 1_000_000_000,
+        nanoseconds: 200_000_000,
+        available: true,
+      }
+    );
+  }
+
+  #[test]
+  fn cached_kscrash_timestamp_zeroes_nanoseconds_when_not_present_in_report() {
+    let mut diagnostic_metadata = AHashMap::new();
+    diagnostic_metadata.insert("crashedAt".to_string(), Value::Unsigned(1_000_000_000));
+
+    let mut crash_report = AHashMap::new();
+    crash_report.insert(
+      "diagnosticMetaData".to_string(),
+      Value::Object(diagnostic_metadata),
+    );
+
+    *CACHED_KSCRASH_REPORT.lock() = Some(crash_report);
+
+    let result = cached_kscrash_timestamp_impl().unwrap();
+
+    *CACHED_KSCRASH_REPORT.lock() = None;
+
+    assert_eq!(
+      result,
+      CachedCrashTimestamp {
+        seconds: 1_000_000_000,
+        nanoseconds: 0,
+        available: true,
+      }
+    );
+  }
+
+  #[test]
+  fn cached_kscrash_timestamp_marks_as_unavailable_on_not_having_report() {
+    let result = cached_kscrash_timestamp_impl().unwrap();
+
+    assert_eq!(
+      result,
+      CachedCrashTimestamp {
+        seconds: 0,
+        nanoseconds: 0,
+        available: false,
+      }
+    );
   }
 }

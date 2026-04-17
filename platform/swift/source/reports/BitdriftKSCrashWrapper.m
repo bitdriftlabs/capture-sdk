@@ -47,6 +47,14 @@
 #endif
 }
 
++ (NSDate * _Nullable)cachedCrashDate {
+#ifndef BITDRIFT_OMIT_KSCRASH
+    return [BitdriftKSCrashHandler cachedCrashDate];
+#else
+    return nil;
+#endif
+}
+
 + (void)stopCrashReporter {
 #ifndef BITDRIFT_OMIT_KSCRASH
     [BitdriftKSCrashHandler stopCrashReporter];

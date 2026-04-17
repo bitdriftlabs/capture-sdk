@@ -52,6 +52,14 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (NSNumber *_Nullable)didCrashLastLaunch;
 
+/**
+ * Returns the date of the last cached crash captured via KSCrash.
+ *
+ * @return date in case there's one in the report; if there's no crash report or information is missing,
+ * it'll return `nil`
+ */
++ (NSDate * _Nullable)cachedCrashDate;
+
 + (void)stopCrashReporter;
 
 @end
