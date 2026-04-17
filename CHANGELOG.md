@@ -53,13 +53,13 @@
 
 **Added**
 
-- Improvements on `Capture.Logger.screenView` to get the most up to date wireframe representation for Session Replay.
+- `Capture.Logger.screenView` now captures an up-to-date wireframe for Session Replay at the time of the call.
 
 ### Android
 
 **Added**
 
-- Add support for Capture.Logger.getPreviousRunInfo to report JVM crash terminations below API 30.
+- `Capture.Logger.getPreviousRunInfo()` now reports JVM crash terminations on API levels below 30.
 
 ## [0.22.14]
 
