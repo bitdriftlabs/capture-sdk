@@ -66,8 +66,11 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
         return;
     }
     
-    struct timespec crashTime;
-    clock_gettime(CLOCK_REALTIME, &crashTime);
+    struct timespec crashTime = {0};
+    if (clock_gettime(CLOCK_REALTIME, &crashTime) != 0) {
+        crashTime.tv_sec = time(NULL);
+        crashTime.tv_nsec = 0;
+    }
     g_crashHandlerReportContext.metadata.time = crashTime.tv_sec;
     g_crashHandlerReportContext.metadata.timeNanos = (uint32_t)crashTime.tv_nsec;
     g_crashHandlerReportContext.monitorContext = monitorContext;

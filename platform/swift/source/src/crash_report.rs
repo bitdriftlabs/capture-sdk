@@ -485,6 +485,21 @@ mod tests {
   use super::*;
   use std::io::Write;
 
+  static CACHED_KSCRASH_REPORT_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+  fn with_cached_report<T>(
+    report: Option<AHashMap<String, Value>>,
+    callback: impl FnOnce() -> T,
+  ) -> T {
+    let _test_lock = CACHED_KSCRASH_REPORT_TEST_LOCK.lock();
+    *CACHED_KSCRASH_REPORT.lock() = report;
+
+    let result = callback();
+
+    *CACHED_KSCRASH_REPORT.lock() = None;
+    result
+  }
+
   #[test]
   fn nonexistent_report_path_test() {
     assert_eq!(
@@ -529,11 +544,9 @@ mod tests {
       Value::Object(diagnostic_metadata),
     );
 
-    *CACHED_KSCRASH_REPORT.lock() = Some(crash_report);
-
-    let result = cached_kscrash_timestamp_impl().unwrap();
-
-    *CACHED_KSCRASH_REPORT.lock() = None;
+    let result = with_cached_report(Some(crash_report), || {
+      cached_kscrash_timestamp_impl().unwrap()
+    });
 
     assert_eq!(
       result,
@@ -556,11 +569,9 @@ mod tests {
       Value::Object(diagnostic_metadata),
     );
 
-    *CACHED_KSCRASH_REPORT.lock() = Some(crash_report);
-
-    let result = cached_kscrash_timestamp_impl().unwrap();
-
-    *CACHED_KSCRASH_REPORT.lock() = None;
+    let result = with_cached_report(Some(crash_report), || {
+      cached_kscrash_timestamp_impl().unwrap()
+    });
 
     assert_eq!(
       result,
@@ -574,9 +585,7 @@ mod tests {
 
   #[test]
   fn cached_kscrash_timestamp_marks_as_unavailable_on_not_having_report() {
-    let result = cached_kscrash_timestamp_impl().unwrap();
-
-    *CACHED_KSCRASH_REPORT.lock() = None;
+    let result = with_cached_report(None, || cached_kscrash_timestamp_impl().unwrap());
 
     assert_eq!(
       result,

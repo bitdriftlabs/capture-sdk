@@ -90,10 +90,10 @@ static const char *name_for_diagnostic_type(ReportType type);
         ? [BitdriftKSCrashWrapper cachedCrashDate]
         : nil;
       for (MXCrashDiagnostic *event in payload.crashDiagnostics) {
-        NSTimeInterval timestamp = ksCrashDate != nil
+        NSTimeInterval eventTimestamp = ksCrashDate != nil
           ? ksCrashDate.timeIntervalSince1970
-          : [payload.timeStampEnd timeIntervalSince1970];
-        [self processDiagnostic:event atTimestamp:timestamp];
+          : timestamp;
+        [self processDiagnostic:event atTimestamp:eventTimestamp];
       }
     }
 
