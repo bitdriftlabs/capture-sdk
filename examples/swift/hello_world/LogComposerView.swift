@@ -26,7 +26,7 @@ struct LogComposerView: View {
                         text: self.$message
                     )
 
-                    VStack(spacing: 10) {
+                    VStack(spacing: 12) {
                         ForEach(LoggerCustomer.LogLevel.allCases) { level in
                             Button(action: { self.selectedLogLevel = level }) {
                                 HStack(spacing: 12) {
@@ -64,7 +64,7 @@ struct LogComposerView: View {
                                         )
                                 )
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(PressableCardButtonStyle(cornerRadius: 18))
                         }
                     }
 
@@ -92,7 +92,6 @@ struct LogComposerView: View {
             }
         }
         .navigationTitle("Logging")
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

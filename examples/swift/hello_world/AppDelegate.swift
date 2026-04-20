@@ -13,17 +13,13 @@ import UIKit
 final class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
-    func application(_: UIApplication,
-                     didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]?) -> Bool
-    {
+    func application(
+        _: UIApplication,
+        didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
         let window = UIWindow(frame: UIScreen.main.bounds)
-        let navigationController = UINavigationController()
-
-        let contentView = ContentView(navigationController: navigationController)
-        let controller = UIHostingController(rootView: contentView)
-
-        navigationController.pushViewController(controller, animated: false)
-        window.rootViewController = navigationController
+        let contentView = ContentView()
+        window.rootViewController = UIHostingController(rootView: contentView)
         window.makeKeyAndVisible()
         self.window = window
 
