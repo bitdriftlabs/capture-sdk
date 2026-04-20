@@ -576,6 +576,8 @@ mod tests {
   fn cached_kscrash_timestamp_marks_as_unavailable_on_not_having_report() {
     let result = cached_kscrash_timestamp_impl().unwrap();
 
+    *CACHED_KSCRASH_REPORT.lock() = None;
+
     assert_eq!(
       result,
       CachedCrashTimestamp {
