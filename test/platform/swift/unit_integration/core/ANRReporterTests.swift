@@ -35,13 +35,18 @@ final class ANRReporterTests: XCTestCase {
 
         let reporter = ANRReporter(logger: logger, appStateAttributes: AppStateAttributes())
         reporter.start()
+        
+        defer { reporter.stop() }
 
+        // Wait for the ANR detection thread to exist
+        wait(timeout: 1.0, until: { self.isANRThreadRunning() == true })
+        
         // Block the main thread to trigger ANR detection (threshold is 500ms).
         Thread.sleep(forTimeInterval: 0.7)
         // Pump the run loop to fire the `.beforeWaiting` observer which logs ANREnd.
         RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.1))
 
-        XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 2))
+        wait(for: [expectation], timeout: 5)
 
         let anrLog = logger.logs[0]
         XCTAssertEqual("ANR", anrLog.message)
@@ -53,5 +58,37 @@ final class ANRReporterTests: XCTestCase {
         XCTAssert(
             try XCTUnwrap(Double(try XCTUnwrap(anrEndLog.fields?["_duration_ms"]?.encodeToString()))) > 500
         )
+    }
+}
+
+private extension ANRReporterTests {
+    func isANRThreadRunning() -> Bool {
+        var threads: thread_act_array_t?
+        var count: mach_msg_type_number_t = 0
+        // get all running threads
+        guard task_threads(mach_task_self_, &threads, &count) == KERN_SUCCESS, let threads else {
+            return false
+        }
+        
+        defer {
+            // cleanup memory used
+            vm_deallocate(
+                mach_task_self_,
+                vm_address_t(bitPattern: threads),
+                vm_size_t(count) * vm_size_t(MemoryLayout<thread_act_t>.size)
+            )
+        }
+        
+        
+        // check if the ANRReporter thread exists or not
+        for i in 0..<Int(count) {
+            guard let pthread = pthread_from_mach_thread_np(threads[i]) else { continue }
+            var name = [CChar](repeating: 0, count: 64)
+            if pthread_getname_np(pthread, &name, 64) == 0,
+               String(cString: name) == "io.bitdrift.capture.anr-reporter" {
+                return true
+            }
+        }
+        return false
     }
 }

@@ -169,6 +169,26 @@ extension XCTestCase {
             }
         }
     }
+    
+    func wait(
+        timeout: TimeInterval = 0.5,
+        interval: TimeInterval = 0.1,
+        until block: @escaping () throws -> Bool
+    ) {
+        let expectation = expectation(description: "wait for block to pass")
+        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
+            do {
+                if try block() {
+                    expectation.fulfill()
+                }
+            } catch {
+                fatalError("Waiting for operation that threw an error: \(error)")
+            }
+        }
+        
+        wait(for: [expectation], timeout: timeout)
+        timer.invalidate()
+    }
 }
 
 public func XCTAssertEqual<T: Equatable>(
