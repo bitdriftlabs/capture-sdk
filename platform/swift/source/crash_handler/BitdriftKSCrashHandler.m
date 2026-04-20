@@ -69,10 +69,8 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     struct timespec crashTime = {0};
     if (clock_gettime(CLOCK_REALTIME, &crashTime) != 0) {
         crashTime.tv_sec = time(NULL);
-        crashTime.tv_nsec = 0;
     }
     g_crashHandlerReportContext.metadata.time = crashTime.tv_sec;
-    g_crashHandlerReportContext.metadata.timeNanos = (uint32_t)crashTime.tv_nsec;
     g_crashHandlerReportContext.monitorContext = monitorContext;
     bitdrift_writeKSCrashReport(&g_crashHandlerReportContext);
 }
@@ -215,9 +213,8 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     if (!timestamp.available) {
         return nil;
     }
-    NSTimeInterval interval = (NSTimeInterval)timestamp.seconds + ((NSTimeInterval)timestamp.nanoseconds / NSEC_PER_SEC);
     
-    return [NSDate dateWithTimeIntervalSince1970:interval];
+    return [NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)timestamp.seconds];
 }
 
 + (void)stopCrashReporter {

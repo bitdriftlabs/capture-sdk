@@ -169,7 +169,7 @@ extension XCTestCase {
             }
         }
     }
-    
+
     func wait(
         timeout: TimeInterval = 0.5,
         interval: TimeInterval = 0.1,
@@ -185,7 +185,7 @@ extension XCTestCase {
                 fatalError("Waiting for operation that threw an error: \(error)")
             }
         }
-        
+
         wait(for: [expectation], timeout: timeout)
         timer.invalidate()
     }

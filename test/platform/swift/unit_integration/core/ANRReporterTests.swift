@@ -35,12 +35,12 @@ final class ANRReporterTests: XCTestCase {
 
         let reporter = ANRReporter(logger: logger, appStateAttributes: AppStateAttributes())
         reporter.start()
-        
+
         defer { reporter.stop() }
 
         // Wait for the ANR detection thread to exist
         wait(timeout: 1.0, until: { self.isANRThreadRunning() == true })
-        
+
         // Block the main thread to trigger ANR detection (threshold is 500ms).
         Thread.sleep(forTimeInterval: 0.7)
         // Pump the run loop to fire the `.beforeWaiting` observer which logs ANREnd.
@@ -69,7 +69,7 @@ private extension ANRReporterTests {
         guard task_threads(mach_task_self_, &threads, &count) == KERN_SUCCESS, let threads else {
             return false
         }
-        
+
         defer {
             // cleanup memory used
             vm_deallocate(
@@ -78,8 +78,7 @@ private extension ANRReporterTests {
                 vm_size_t(count) * vm_size_t(MemoryLayout<thread_act_t>.size)
             )
         }
-        
-        
+
         // check if the ANRReporter thread exists or not
         for i in 0..<Int(count) {
             guard let pthread = pthread_from_mach_thread_np(threads[i]) else { continue }

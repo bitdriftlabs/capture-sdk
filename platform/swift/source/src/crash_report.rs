@@ -41,7 +41,6 @@ pub enum CacheResult {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CachedCrashTimestamp {
   pub seconds: u64,
-  pub nanoseconds: u32,
   pub available: bool,
 }
 
@@ -79,7 +78,6 @@ extern "C" fn capture_cached_kscrash_timestamp() -> CachedCrashTimestamp {
     || -> anyhow::Result<CachedCrashTimestamp> { cached_kscrash_timestamp_impl() },
     CachedCrashTimestamp {
       seconds: 0,
-      nanoseconds: 0,
       available: false,
     },
     "cached kscrash timestamp",
@@ -175,7 +173,6 @@ fn cached_kscrash_timestamp_impl() -> anyhow::Result<CachedCrashTimestamp> {
   let Some(kscrash_report) = CACHED_KSCRASH_REPORT.lock().as_ref().cloned() else {
     return Ok(CachedCrashTimestamp {
       seconds: 0,
-      nanoseconds: 0,
       available: false,
     });
   };
@@ -190,16 +187,8 @@ fn cached_kscrash_timestamp_impl() -> anyhow::Result<CachedCrashTimestamp> {
     .and_then(value_as_u64)
     .ok_or_else(|| anyhow::anyhow!("KSCrash report missing crash timestamp"))?;
 
-  // crashedAtNanos could be missing in older versions of the sdk; defaulting to 0
-  let nanoseconds = diagnostic
-    .get("crashedAtNanos")
-    .and_then(value_as_u64)
-    .and_then(|value| u32::try_from(value).ok())
-    .unwrap_or(0);
-
   Ok(CachedCrashTimestamp {
     seconds,
-    nanoseconds,
     available: true,
   })
 }
@@ -533,33 +522,7 @@ mod tests {
   }
 
   #[test]
-  fn cached_kscrash_timestamp_includes_nanoseconds_in_timestamp_when_present() {
-    let mut diagnostic_metadata = AHashMap::new();
-    diagnostic_metadata.insert("crashedAt".to_string(), Value::Unsigned(1_000_000_000));
-    diagnostic_metadata.insert("crashedAtNanos".to_string(), Value::Unsigned(200_000_000));
-
-    let mut crash_report = AHashMap::new();
-    crash_report.insert(
-      "diagnosticMetaData".to_string(),
-      Value::Object(diagnostic_metadata),
-    );
-
-    let result = with_cached_report(Some(crash_report), || {
-      cached_kscrash_timestamp_impl().unwrap()
-    });
-
-    assert_eq!(
-      result,
-      CachedCrashTimestamp {
-        seconds: 1_000_000_000,
-        nanoseconds: 200_000_000,
-        available: true,
-      }
-    );
-  }
-
-  #[test]
-  fn cached_kscrash_timestamp_zeroes_nanoseconds_when_not_present_in_report() {
+  fn cached_kscrash_timestamp_includes_timestamp_when_present() {
     let mut diagnostic_metadata = AHashMap::new();
     diagnostic_metadata.insert("crashedAt".to_string(), Value::Unsigned(1_000_000_000));
 
@@ -577,7 +540,6 @@ mod tests {
       result,
       CachedCrashTimestamp {
         seconds: 1_000_000_000,
-        nanoseconds: 0,
         available: true,
       }
     );
@@ -591,7 +553,6 @@ mod tests {
       result,
       CachedCrashTimestamp {
         seconds: 0,
-        nanoseconds: 0,
         available: false,
       }
     );
