@@ -41,7 +41,6 @@ typedef enum {
 
 typedef struct {
     uint64_t seconds;
-    uint32_t nanoseconds;
     bool available;
 } CachedCrashTimestamp;
 
