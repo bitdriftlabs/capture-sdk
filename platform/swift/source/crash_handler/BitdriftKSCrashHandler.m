@@ -39,13 +39,8 @@ typedef enum {
     CacheResultSuccess = 3
 } CacheResult;
 
-typedef struct {
-    uint64_t seconds;
-    bool available;
-} CachedCrashTimestamp;
-
 /** Get the crash timestamp from the latest/previous-run KSCrash report */
-CachedCrashTimestamp capture_cached_kscrash_timestamp(void);
+uint64_t capture_cached_kscrash_timestamp(void);
 
 /** Cache a KSCrash report, which will be used later for report enhancement. */
 CacheResult capture_cache_kscrash_report(NSString *reportPath);
@@ -208,12 +203,12 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
 }
 
 + (NSDate * _Nullable)cachedCrashDate {
-    CachedCrashTimestamp timestamp = capture_cached_kscrash_timestamp();
-    if (!timestamp.available) {
+    uint64_t timestamp = capture_cached_kscrash_timestamp();
+    if (timestamp == 0) {
         return nil;
     }
     
-    return [NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)timestamp.seconds];
+    return [NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)timestamp];
 }
 
 + (void)stopCrashReporter {

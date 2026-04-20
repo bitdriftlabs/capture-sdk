@@ -37,13 +37,6 @@ pub enum CacheResult {
   Success            = 3,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CachedCrashTimestamp {
-  pub seconds: u64,
-  pub available: bool,
-}
-
 // Global cache for the most recently loaded KSCrash report.
 // This allows us to safely delete the report file so that it's not picked up next launch by
 // mistake.
@@ -73,13 +66,10 @@ extern "C" fn capture_enhance_metrickit_diagnostic_report(
 }
 
 #[no_mangle]
-extern "C" fn capture_cached_kscrash_timestamp() -> CachedCrashTimestamp {
+extern "C" fn capture_cached_kscrash_timestamp() -> u64 {
   with_handle_unexpected_or(
-    || -> anyhow::Result<CachedCrashTimestamp> { cached_kscrash_timestamp_impl() },
-    CachedCrashTimestamp {
-      seconds: 0,
-      available: false,
-    },
+    || -> anyhow::Result<u64> { cached_kscrash_timestamp_impl() },
+    0,
     "cached kscrash timestamp",
   )
 }
@@ -169,12 +159,9 @@ fn enhance_metrickit_diagnostic_report_impl(
   Ok(Some(*strong_ptr))
 }
 
-fn cached_kscrash_timestamp_impl() -> anyhow::Result<CachedCrashTimestamp> {
+fn cached_kscrash_timestamp_impl() -> anyhow::Result<u64> {
   let Some(kscrash_report) = CACHED_KSCRASH_REPORT.lock().as_ref().cloned() else {
-    return Ok(CachedCrashTimestamp {
-      seconds: 0,
-      available: false,
-    });
+    return Ok(0);
   };
 
   let diagnostic = kscrash_report
@@ -187,10 +174,7 @@ fn cached_kscrash_timestamp_impl() -> anyhow::Result<CachedCrashTimestamp> {
     .and_then(value_as_u64)
     .ok_or_else(|| anyhow::anyhow!("KSCrash report missing crash timestamp"))?;
 
-  Ok(CachedCrashTimestamp {
-    seconds,
-    available: true,
-  })
+  Ok(seconds)
 }
 
 fn enhance_report(
@@ -536,25 +520,13 @@ mod tests {
       cached_kscrash_timestamp_impl().unwrap()
     });
 
-    assert_eq!(
-      result,
-      CachedCrashTimestamp {
-        seconds: 1_000_000_000,
-        available: true,
-      }
-    );
+    assert_eq!(result, 1_000_000_000);
   }
 
   #[test]
-  fn cached_kscrash_timestamp_marks_as_unavailable_on_not_having_report() {
+  fn cached_kscrash_timestamp_returns_zero_when_not_having_report() {
     let result = with_cached_report(None, || cached_kscrash_timestamp_impl().unwrap());
 
-    assert_eq!(
-      result,
-      CachedCrashTimestamp {
-        seconds: 0,
-        available: false,
-      }
-    );
+    assert_eq!(result, 0);
   }
 }
