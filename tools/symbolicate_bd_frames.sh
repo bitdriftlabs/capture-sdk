@@ -153,6 +153,8 @@ fi
 echo ""
 echo "Extracting backtrace from dump..."
 
+ADDR_FORMAT=""
+
 # Extract all lines with a program counter address
 BACKTRACE_LINES=$(grep "pc " "$DUMP_FILE" || true)
 
@@ -167,90 +169,159 @@ if [[ -z "$BACKTRACE_LINES" ]]; then
 fi
 
 if [[ -z "$BACKTRACE_LINES" ]]; then
+    # Try "at 0x<addr> within <path>" format (Bugsnag/Firebase Crashlytics)
+    BACKTRACE_LINES=$(grep -E " at 0x[0-9a-f]+" "$DUMP_FILE" || true)
+    ADDR_FORMAT="at_0x"
+fi
+
+if [[ -z "$BACKTRACE_LINES" ]]; then
     echo "Error: No backtrace found in dump file"
     exit 1
+fi
+
+# For "at 0x" format, addresses are absolute virtual addresses.
+# We need to estimate the library base address and compute relative offsets.
+LIBRARY_BASE=0
+if [[ "$ADDR_FORMAT" == "at_0x" ]]; then
+    echo "Detected 'at 0x<addr> within <path>' format (absolute addresses)"
+    echo "Estimating library base address..."
+
+    # Look for APK paths that likely contain native code:
+    # split_config.arm64_v8a.apk (split APKs) or base.apk (non-split)
+    NATIVE_APK_PATH=$(echo "$BACKTRACE_LINES" | grep -oE 'within [^ ]+\.apk' | sed 's/^within //' | grep -E 'split_config\.arm64|split_config\.armeabi|split_config\.x86' | sort -u | head -1)
+    if [[ -z "$NATIVE_APK_PATH" ]]; then
+        # Fall back to base.apk from the app package
+        NATIVE_APK_PATH=$(echo "$BACKTRACE_LINES" | grep -oE 'within [^ ]+\.apk' | sed 's/^within //' | sort -u | head -1)
+    fi
+
+    if [[ -n "$NATIVE_APK_PATH" ]]; then
+        echo "Native library APK: $NATIVE_APK_PATH"
+        # Find minimum address from frames in that APK to estimate the library base
+        MIN_ADDR_HEX=$(echo "$BACKTRACE_LINES" | grep -F "$NATIVE_APK_PATH" | grep -oE 'at 0x[0-9a-f]+' | awk '{print $2}' | sed 's/^0x//' | sort | head -1)
+        if [[ -n "$MIN_ADDR_HEX" ]]; then
+            # Page-align down to 4KB boundary to get estimated base
+            MIN_ADDR=$((16#$MIN_ADDR_HEX))
+            LIBRARY_BASE=$(( MIN_ADDR & ~0xFFF ))
+            printf "Estimated library base: 0x%x (from min addr 0x%s)\n" "$LIBRARY_BASE" "$MIN_ADDR_HEX"
+
+            # Validate by testing one address
+            TEST_ADDR_HEX=$(echo "$BACKTRACE_LINES" | grep -F "$NATIVE_APK_PATH" | grep -oE 'at 0x[0-9a-f]+' | awk '{print $2}' | sed 's/^0x//' | tail -1)
+            TEST_OFFSET=$(( 16#$TEST_ADDR_HEX - LIBRARY_BASE ))
+            TEST_RESULT=$(printf "0x%x" $TEST_OFFSET | xargs -I {} llvm-addr2line -f -e "$SYMBOLS_FILE" {} 2>/dev/null | head -1)
+            if [[ "$TEST_RESULT" == "??" ]] || [[ -z "$TEST_RESULT" ]]; then
+                echo "Warning: Validation failed for estimated base. Symbolication may be incomplete."
+            else
+                echo "Base address validated successfully."
+            fi
+        fi
+    else
+        echo "Warning: Could not identify native APK path. Addresses will be used as-is."
+    fi
+    echo ""
 fi
 
 # Create temp file for symbol mapping
 SYMBOL_MAP_FILE="$TEMP_DIR/symbol_map.txt"
 touch "$SYMBOL_MAP_FILE"
 
-# Symbolicate addresses
-SYMBOL_COUNT=0
+# Helper: extract address from a line and return it (without 0x prefix)
+extract_addr() {
+    local line="$1"
+    if echo "$line" | grep -q "pc [0-9a-f]"; then
+        echo "$line" | grep -o 'pc [0-9a-f]*' | head -1 | awk '{print $2}'
+    elif echo "$line" | grep -qE "#[0-9]{2} 0x[0-9a-f]"; then
+        echo "$line" | grep -oE '#[0-9]{2} 0x[0-9a-f]+' | head -1 | awk '{print $2}' | sed 's/^0x//'
+    elif echo "$line" | grep -qE ' at 0x[0-9a-f]+'; then
+        echo "$line" | grep -oE ' at 0x[0-9a-f]+' | head -1 | awk '{print $2}' | sed 's/^0x//'
+    fi
+}
+
+# For "at 0x" format with a known native APK, only process lines from that APK
+# (other lines are system/JVM code that won't resolve with our symbols)
+if [[ "$ADDR_FORMAT" == "at_0x" ]] && [[ -n "$NATIVE_APK_PATH" ]]; then
+    LINES_TO_SYMBOLICATE=$(echo "$BACKTRACE_LINES" | grep -F "$NATIVE_APK_PATH" || true)
+else
+    LINES_TO_SYMBOLICATE="$BACKTRACE_LINES"
+fi
+
+# Collect unique addresses to symbolicate (avoids redundant addr2line calls)
+UNIQUE_ADDRS_FILE="$TEMP_DIR/unique_addrs.txt"
 while IFS= read -r line; do
-    # Check if line contains a pc address or #xx 0x... format
-    if echo "$line" | grep -qE "pc [0-9a-f]|#[0-9]{2} 0x[0-9a-f]"; then
-        # Extract pc address, gracefully handling bugsnag stacktrace formats
-        if echo "$line" | grep -q "pc [0-9a-f]"; then
-            ADDR=$(echo "$line" | grep -o 'pc [0-9a-f]*' | head -1 | awk '{print $2}')
-        else
-            ADDR=$(echo "$line" | grep -oE '#[0-9]{2} 0x[0-9a-f]+' | head -1 | awk '{print $2}' | sed 's/^0x//')
-        fi
-        
+    [[ -z "$line" ]] && continue
+    ADDR=$(extract_addr "$line")
+    if [[ -n "$ADDR" ]]; then
         # Extract Build ID if present on the line
         LINE_BUILD_ID=$(echo "$line" | grep -oE 'BuildId: [a-f0-9]+' | awk '{print $2}')
-        
-        # Determine target Build ID to check against (prefer downloaded symbols)
         TARGET_BUILD_ID=${SYMBOLS_BUILD_ID:-$BUILD_ID}
-        
-        # Only symbolicate if we have no constraint, or Build IDs match, or the frame uses base.apk (our module in Bugsnag style)
-        if [[ -z "$LINE_BUILD_ID" ]] || [[ -z "$TARGET_BUILD_ID" ]] || [[ "$LINE_BUILD_ID" == "$TARGET_BUILD_ID" ]] || [[ "$line" == *"base.apk"* ]]; then
-            # Strip leading zeros but keep at least one digit
-            # ${ADDR%%[!0]*} matches all leading zeros, then we strip them with #
-            # If result is empty (all zeros), we default to "0"
-            STRIPPED_ADDR="${ADDR#"${ADDR%%[!0]*}"}"
-            HEX_ADDR="0x${STRIPPED_ADDR:-0}"
-            
-            # Symbolicate the address with llvm-addr2line
-            RESULT=$(llvm-addr2line -f -e "$SYMBOLS_FILE" "$HEX_ADDR" 2>/dev/null | head -1)
-            
-            # Only store if we got a valid result (not "??" or empty)
-            if [[ -n "$RESULT" ]] && [[ "$RESULT" != "??" ]]; then
-                # Demangle Rust symbols if rustfilt is available
-                if command -v rustfilt &> /dev/null; then
-                    SYMBOL=$(echo "$RESULT" | rustfilt)
-                else
-                    SYMBOL="$RESULT"
-                fi
-                
-                # Store mapping
-                echo "$ADDR|$SYMBOL" >> "$SYMBOL_MAP_FILE"
-                SYMBOL_COUNT=$((SYMBOL_COUNT + 1))
+
+        if [[ -z "$LINE_BUILD_ID" ]] || [[ -z "$TARGET_BUILD_ID" ]] || [[ "$LINE_BUILD_ID" == "$TARGET_BUILD_ID" ]] || [[ "$line" == *".apk"* ]]; then
+            # Compute the address to pass to addr2line
+            if [[ "$ADDR_FORMAT" == "at_0x" ]] && [[ $LIBRARY_BASE -gt 0 ]] && [[ -n "$NATIVE_APK_PATH" ]] && echo "$line" | grep -qF "$NATIVE_APK_PATH"; then
+                ABS_ADDR=$((16#$ADDR))
+                REL_OFFSET=$((ABS_ADDR - LIBRARY_BASE))
+                HEX_ADDR=$(printf "0x%x" $REL_OFFSET)
+            else
+                STRIPPED_ADDR="${ADDR#"${ADDR%%[!0]*}"}"
+                HEX_ADDR="0x${STRIPPED_ADDR:-0}"
             fi
+            echo "$ADDR $HEX_ADDR"
         fi
     fi
-done <<< "$BACKTRACE_LINES"
+done <<< "$LINES_TO_SYMBOLICATE" | sort -u > "$UNIQUE_ADDRS_FILE"
+
+# Symbolicate unique addresses
+SYMBOL_COUNT=0
+while IFS=' ' read -r ADDR HEX_ADDR; do
+    [[ -z "$ADDR" ]] && continue
+
+    # Skip if already symbolicated (dedup)
+    if grep -q "^$ADDR|" "$SYMBOL_MAP_FILE" 2>/dev/null; then
+        continue
+    fi
+
+    # Symbolicate the address with llvm-addr2line
+    RESULT=$(llvm-addr2line -f -e "$SYMBOLS_FILE" "$HEX_ADDR" 2>/dev/null | head -1)
+
+    # Only store if we got a valid result (not "??" or empty)
+    if [[ -n "$RESULT" ]] && [[ "$RESULT" != "??" ]]; then
+        # Demangle Rust symbols if rustfilt is available
+        if command -v rustfilt &> /dev/null; then
+            SYMBOL=$(echo "$RESULT" | rustfilt)
+        else
+            SYMBOL="$RESULT"
+        fi
+
+        # Store mapping (use original ADDR as key)
+        echo "$ADDR|$SYMBOL" >> "$SYMBOL_MAP_FILE"
+        SYMBOL_COUNT=$((SYMBOL_COUNT + 1))
+    fi
+done < "$UNIQUE_ADDRS_FILE"
 
 echo "Found $SYMBOL_COUNT addresses to symbolicate"
 echo ""
 
 print_backtrace() {
-    # Print the full backtrace with symbolicated lines
-    while IFS= read -r line; do
-        # Check if this line has a symbolicated version
-        if echo "$line" | grep -qE "pc [0-9a-f]|#[0-9]{2} 0x[0-9a-f]"; then
-            if echo "$line" | grep -q "pc [0-9a-f]"; then
-                ADDR=$(echo "$line" | grep -o 'pc [0-9a-f]*' | head -1 | awk '{print $2}')
-            else
-                ADDR=$(echo "$line" | grep -oE '#[0-9]{2} 0x[0-9a-f]+' | head -1 | awk '{print $2}' | sed 's/^0x//')
-            fi
-            SYMBOL=$(grep "^$ADDR|" "$SYMBOL_MAP_FILE" 2>/dev/null | head -1 | cut -d'|' -f2-)
-            if [[ -n "$SYMBOL" ]]; then
-                # Replace everything after the pc/address with the symbolicated output
-                # Keep the original prefix up to the pc address
-                if echo "$line" | grep -q "pc [0-9a-f]"; then
-                    prefix=$(echo "$line" | sed -E "s/(pc [0-9a-f]+).*/\1/")
-                else
-                    prefix=$(echo "$line" | sed -E "s/(#[0-9]{2} 0x[0-9a-f]+).*/\1/")
-                fi
-                echo "$prefix [symbolicated] $SYMBOL"
-            else
-                echo "$line"
-            fi
-        else
-            echo "$line"
-        fi
-    done < "$DUMP_FILE"
+    # Build a sed script from the symbol map for fast batch replacement
+    local SED_SCRIPT="$TEMP_DIR/sed_script.sed"
+    : > "$SED_SCRIPT"
+
+    while IFS='|' read -r addr symbol; do
+        [[ -z "$addr" ]] && continue
+        # Escape sed special characters in symbol
+        escaped_symbol=$(printf '%s\n' "$symbol" | sed 's/[&/\]/\\&/g')
+        # For "pc <addr>" format: replace everything after pc+addr with symbolicated name
+        echo "s/\\(pc ${addr}\\).*/\\1 [symbolicated] ${escaped_symbol}/" >> "$SED_SCRIPT"
+        # For "#XX 0x<addr>" format
+        echo "s/\\(#[0-9][0-9] 0x${addr}\\).*/\\1 [symbolicated] ${escaped_symbol}/" >> "$SED_SCRIPT"
+        # For "at 0x<addr>" format
+        echo "s/\\( at 0x${addr}\\).*/\\1 [symbolicated] ${escaped_symbol}/" >> "$SED_SCRIPT"
+    done < "$SYMBOL_MAP_FILE"
+
+    if [[ -s "$SED_SCRIPT" ]]; then
+        sed -f "$SED_SCRIPT" "$DUMP_FILE"
+    else
+        cat "$DUMP_FILE"
+    fi
 }
 
 if [[ -n "$OUT_FILE" ]]; then
