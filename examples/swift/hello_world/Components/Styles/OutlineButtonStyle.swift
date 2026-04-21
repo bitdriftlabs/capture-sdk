@@ -68,7 +68,7 @@ private struct OutlineFeedbackLabel: View {
                         self.flashPressed = true
                     }
                     .onEnded { _ in
-                       self.flashPressed = false
+                        self.flashPressed = false
                     }
             )
     }
