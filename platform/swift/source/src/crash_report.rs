@@ -37,14 +37,6 @@ pub enum CacheResult {
   Success            = 3,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CachedCrashTimestamp {
-  pub seconds: u64,
-  pub nanoseconds: u32,
-  pub available: bool,
-}
-
 // Global cache for the most recently loaded KSCrash report.
 // This allows us to safely delete the report file so that it's not picked up next launch by
 // mistake.

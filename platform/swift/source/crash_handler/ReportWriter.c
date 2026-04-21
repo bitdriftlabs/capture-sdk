@@ -159,7 +159,6 @@ static bool writeAllThreads(BDCrashWriterHandle writer, const ReportContext* ctx
 
 static bool writeMetadata(BDCrashWriterHandle writer, const ReportContext* ctx) {
     RETURN_ON_FAIL(writeKVUnsigned(writer, "crashedAt", ctx->metadata.time));
-    RETURN_ON_FAIL(writeKVUnsigned(writer, "crashedAtNanos", ctx->metadata.timeNanos));
     RETURN_ON_FAIL(writeKVUnsigned(writer, "pid", ctx->metadata.pid));
     RETURN_ON_FAIL(writeKVUnsigned(writer, "exceptionType", ctx->monitorContext->mach.type));
     RETURN_ON_FAIL(writeKVUnsigned(writer, "exceptionCode", ctx->monitorContext->mach.code));

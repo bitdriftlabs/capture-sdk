@@ -21,7 +21,6 @@ extern "C" {
 typedef struct {
     pid_t pid;
     time_t time;
-    uint32_t timeNanos;
 } ReportMetadata;
 
 typedef struct {
