@@ -97,9 +97,8 @@ internal class PreviousRunInfoResolver(
 /**
  * Snapshot of the previous app run status.
  *
- * On API 30, native crashes will be reported as a fatal termination reason but will not
- * trigger an `onBeforeSend` callback with the crash report. The `onBeforeSend` callback
- * for native crashes is only available on API >= 31.
+ * On API < 30, relies on manually persisted previous-run state and only reports JVM crashes as a
+ * fatal termination reason.
  *
  * @property hasFatallyTerminated Whether the previous run ended in a fatal termination.
  * @property terminationReason Platform exit reason when available.
