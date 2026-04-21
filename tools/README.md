@@ -2,7 +2,7 @@
 
 ## Crash Symbolication Tool
 
-Symbolicate Android native crash stack traces using Bitdrift Capture SDK debug symbols. Supports standard Android Logcat/Tombstone traces, custom crash reporting dumps like from Bugsnag, Firebase Crashlytics absolute-address format, and raw `debuggerd` output formats.
+Symbolicate Android native crash stack traces using Bitdrift Capture SDK debug symbols. Supports standard Android Logcat/Tombstone traces, custom crash reporting dumps like from bitdrift Capture, Firebase Crashlytics absolute-address format, Bugsnag, and raw `debuggerd` output formats.
 
 ### Prerequisites
 
@@ -66,7 +66,7 @@ STACKTRACE
   #01 pc 000000000020a1bc [symbolicated] bd_workflows::engine::WorkflowsEngine::new
 ```
 
-**Absolute address format (Firebase Crashlytics / some Bugsnag):**
+**Absolute address format (bitdrift / Firebase Crashlytics):**
 ```
    <unknown> at 0x77d4f399ac [symbolicated] bd_key_value::Store::get
    <unknown> at 0x77d4edaab4 [symbolicated] tokio::sync::oneshot::Sender<T>::send

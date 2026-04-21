@@ -169,7 +169,7 @@ if [[ -z "$BACKTRACE_LINES" ]]; then
 fi
 
 if [[ -z "$BACKTRACE_LINES" ]]; then
-    # Try "at 0x<addr> within <path>" format (Bugsnag/Firebase Crashlytics)
+    # Try "at 0x<addr> within <path>" format (bitdrift/Bugsnag/Firebase Crashlytics)
     BACKTRACE_LINES=$(grep -E " at 0x[0-9a-f]+" "$DUMP_FILE" || true)
     ADDR_FORMAT="at_0x"
 fi
