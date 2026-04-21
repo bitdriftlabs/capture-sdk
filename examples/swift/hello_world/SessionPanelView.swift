@@ -14,7 +14,6 @@ struct SessionPanelView: View {
 
     init(loggerCustomer: LoggerCustomer) {
         self.loggerCustomer = loggerCustomer
-        self.currentSessionID = loggerCustomer.sessionID ?? "No Session ID"
     }
 
     var body: some View {
@@ -88,6 +87,9 @@ struct SessionPanelView: View {
                         .textSelection(.enabled)
                 }
             }
+        }
+        .onAppear {
+            self.currentSessionID = loggerCustomer.sessionID ?? "No Session ID"
         }
     }
 
