@@ -18,9 +18,7 @@ struct AutomaticCapturePanelView: View {
             Button(action: { self.loggerCustomer.performRandomNetworkRequestUsingDataTask() }) {
                 PanelRow(
                     title: "Random network request",
-                    subtitle: "Exercises URLSession auto-capture with one of the bundled sample requests.",
-                    badge: "auto",
-                    badgeColor: Theme.primary
+                    subtitle: "Exercises URLSession auto-capture with one of the bundled sample requests."
                 )
             }
             .buttonStyle(PressableCardButtonStyle())

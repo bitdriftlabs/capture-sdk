@@ -25,8 +25,6 @@ struct ManualCapturePanelView: View {
                 PanelRow(
                     title: "Manual log",
                     subtitle: "Choose a level and compose a log event before sending it.",
-                    badge: self.selectedLogLevel.badgeLabel,
-                    badgeColor: self.selectedLogLevel.tint,
                     showsChevron: true
                 )
             }
@@ -35,8 +33,7 @@ struct ManualCapturePanelView: View {
             Button(action: { self.loggerCustomer.simulateSpan() }) {
                 PanelRow(
                     title: "Span event",
-                    subtitle: "Creates a sample span and closes it after a short delay.",
-                    badge: "event"
+                    subtitle: "Creates a sample span and closes it after a short delay."
                 )
             }
             .buttonStyle(PressableCardButtonStyle())
@@ -44,8 +41,7 @@ struct ManualCapturePanelView: View {
             Button(action: { self.loggerCustomer.simulateNavigation() }) {
                 PanelRow(
                     title: "Screen navigation",
-                    subtitle: "Logs multiple screen views to exercise navigation tracking.",
-                    badge: "nav"
+                    subtitle: "Logs multiple screen views to exercise navigation tracking."
                 )
             }
             .buttonStyle(PressableCardButtonStyle())
@@ -55,9 +51,7 @@ struct ManualCapturePanelView: View {
             }) {
                 PanelRow(
                     title: "Feature flag exposure",
-                    subtitle: "Sends the demo flag `MyFlag` with variant `MyVariant`.",
-                    badge: "flag",
-                    badgeColor: Theme.primary
+                    subtitle: "Sends the demo flag `MyFlag` with variant `MyVariant`."
                 )
             }
             .buttonStyle(PressableCardButtonStyle())
