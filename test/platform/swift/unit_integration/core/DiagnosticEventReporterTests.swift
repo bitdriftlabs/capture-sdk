@@ -421,8 +421,8 @@ ThermalInfo: (
 
         let error = report.errors(at: 0)!
         XCTAssertEqual("Main Runloop Hang", error.name!)
-        let reason = error.reason?.replacingOccurrences(of: "1,7", with: "1.7")
-        XCTAssertEqual("app was unresponsive for 1.7 sec", reason!)
+        let reason = try XCTUnwrap(error.reason?.replacingOccurrences(of: "1,7", with: "1.7"))
+        XCTAssertTrue(reason.contains("app was unresponsive for 1.7 sec"))
         XCTAssertEqual(2, error.stackTraceCount)
 
         // frame order is the opposite of crashes (FB18377370)

@@ -39,6 +39,9 @@ typedef enum {
     CacheResultSuccess = 3
 } CacheResult;
 
+/** Get the crash timestamp from the latest/previous-run KSCrash report */
+uint64_t capture_cached_kscrash_timestamp(void);
+
 /** Cache a KSCrash report, which will be used later for report enhancement. */
 CacheResult capture_cache_kscrash_report(NSString *reportPath);
 
@@ -56,8 +59,12 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
         // We only want to handle one crash. Don't write any reports if more come in.
         return;
     }
-
-    g_crashHandlerReportContext.metadata.time = time(NULL);
+    
+    struct timespec crashTime = {0};
+    if (clock_gettime(CLOCK_REALTIME, &crashTime) != 0) {
+        crashTime.tv_sec = time(NULL);
+    }
+    g_crashHandlerReportContext.metadata.time = crashTime.tv_sec;
     g_crashHandlerReportContext.monitorContext = monitorContext;
     bitdrift_writeKSCrashReport(&g_crashHandlerReportContext);
 }
@@ -193,6 +200,15 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
 
 #undef ERROR_IF_FALSE
     return YES;
+}
+
++ (NSDate * _Nullable)cachedCrashDate {
+    uint64_t timestamp = capture_cached_kscrash_timestamp();
+    if (timestamp == 0) {
+        return nil;
+    }
+    
+    return [NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)timestamp];
 }
 
 + (void)stopCrashReporter {

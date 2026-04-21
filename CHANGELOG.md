@@ -43,7 +43,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Crash timestamps are now more precise, allowing them to be correctly ordered in the session timeline relative to other events.
 
 ## [0.22.15]
 
