@@ -39,14 +39,8 @@ typedef enum {
     CacheResultSuccess = 3
 } CacheResult;
 
-typedef struct {
-    uint64_t seconds;
-    uint32_t nanoseconds;
-    bool available;
-} CachedCrashTimestamp;
-
 /** Get the crash timestamp from the latest/previous-run KSCrash report */
-CachedCrashTimestamp capture_cached_kscrash_timestamp(void);
+uint64_t capture_cached_kscrash_timestamp(void);
 
 /** Cache a KSCrash report, which will be used later for report enhancement. */
 CacheResult capture_cache_kscrash_report(NSString *reportPath);
@@ -66,10 +60,11 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
         return;
     }
     
-    struct timespec crashTime;
-    clock_gettime(CLOCK_REALTIME, &crashTime);
+    struct timespec crashTime = {0};
+    if (clock_gettime(CLOCK_REALTIME, &crashTime) != 0) {
+        crashTime.tv_sec = time(NULL);
+    }
     g_crashHandlerReportContext.metadata.time = crashTime.tv_sec;
-    g_crashHandlerReportContext.metadata.timeNanos = (uint32_t)crashTime.tv_nsec;
     g_crashHandlerReportContext.monitorContext = monitorContext;
     bitdrift_writeKSCrashReport(&g_crashHandlerReportContext);
 }
@@ -208,13 +203,12 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
 }
 
 + (NSDate * _Nullable)cachedCrashDate {
-    CachedCrashTimestamp timestamp = capture_cached_kscrash_timestamp();
-    if (!timestamp.available) {
+    uint64_t timestamp = capture_cached_kscrash_timestamp();
+    if (timestamp == 0) {
         return nil;
     }
-    NSTimeInterval interval = (NSTimeInterval)timestamp.seconds + ((NSTimeInterval)timestamp.nanoseconds / NSEC_PER_SEC);
     
-    return [NSDate dateWithTimeIntervalSince1970:interval];
+    return [NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)timestamp];
 }
 
 + (void)stopCrashReporter {

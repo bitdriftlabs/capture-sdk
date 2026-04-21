@@ -74,14 +74,10 @@ extern "C" fn capture_enhance_metrickit_diagnostic_report(
 }
 
 #[no_mangle]
-extern "C" fn capture_cached_kscrash_timestamp() -> CachedCrashTimestamp {
+extern "C" fn capture_cached_kscrash_timestamp() -> u64 {
   with_handle_unexpected_or(
-    || -> anyhow::Result<CachedCrashTimestamp> { cached_kscrash_timestamp_impl() },
-    CachedCrashTimestamp {
-      seconds: 0,
-      nanoseconds: 0,
-      available: false,
-    },
+    || -> anyhow::Result<u64> { cached_kscrash_timestamp_impl() },
+    0,
     "cached kscrash timestamp",
   )
 }
@@ -171,13 +167,9 @@ fn enhance_metrickit_diagnostic_report_impl(
   Ok(Some(*strong_ptr))
 }
 
-fn cached_kscrash_timestamp_impl() -> anyhow::Result<CachedCrashTimestamp> {
+fn cached_kscrash_timestamp_impl() -> anyhow::Result<u64> {
   let Some(kscrash_report) = CACHED_KSCRASH_REPORT.lock().as_ref().cloned() else {
-    return Ok(CachedCrashTimestamp {
-      seconds: 0,
-      nanoseconds: 0,
-      available: false,
-    });
+    return Ok(0);
   };
 
   let diagnostic = kscrash_report
@@ -190,18 +182,7 @@ fn cached_kscrash_timestamp_impl() -> anyhow::Result<CachedCrashTimestamp> {
     .and_then(value_as_u64)
     .ok_or_else(|| anyhow::anyhow!("KSCrash report missing crash timestamp"))?;
 
-  // crashedAtNanos could be missing in older versions of the sdk; defaulting to 0
-  let nanoseconds = diagnostic
-    .get("crashedAtNanos")
-    .and_then(value_as_u64)
-    .and_then(|value| u32::try_from(value).ok())
-    .unwrap_or(0);
-
-  Ok(CachedCrashTimestamp {
-    seconds,
-    nanoseconds,
-    available: true,
-  })
+  Ok(seconds)
 }
 
 fn enhance_report(
@@ -485,6 +466,21 @@ mod tests {
   use super::*;
   use std::io::Write;
 
+  static CACHED_KSCRASH_REPORT_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+  fn with_cached_report<T>(
+    report: Option<AHashMap<String, Value>>,
+    callback: impl FnOnce() -> T,
+  ) -> T {
+    let _test_lock = CACHED_KSCRASH_REPORT_TEST_LOCK.lock();
+    *CACHED_KSCRASH_REPORT.lock() = report;
+
+    let result = callback();
+
+    *CACHED_KSCRASH_REPORT.lock() = None;
+    result
+  }
+
   #[test]
   fn nonexistent_report_path_test() {
     assert_eq!(
@@ -518,35 +514,7 @@ mod tests {
   }
 
   #[test]
-  fn cached_kscrash_timestamp_includes_nanoseconds_in_timestamp_when_present() {
-    let mut diagnostic_metadata = AHashMap::new();
-    diagnostic_metadata.insert("crashedAt".to_string(), Value::Unsigned(1_000_000_000));
-    diagnostic_metadata.insert("crashedAtNanos".to_string(), Value::Unsigned(200_000_000));
-
-    let mut crash_report = AHashMap::new();
-    crash_report.insert(
-      "diagnosticMetaData".to_string(),
-      Value::Object(diagnostic_metadata),
-    );
-
-    *CACHED_KSCRASH_REPORT.lock() = Some(crash_report);
-
-    let result = cached_kscrash_timestamp_impl().unwrap();
-
-    *CACHED_KSCRASH_REPORT.lock() = None;
-
-    assert_eq!(
-      result,
-      CachedCrashTimestamp {
-        seconds: 1_000_000_000,
-        nanoseconds: 200_000_000,
-        available: true,
-      }
-    );
-  }
-
-  #[test]
-  fn cached_kscrash_timestamp_zeroes_nanoseconds_when_not_present_in_report() {
+  fn cached_kscrash_timestamp_includes_timestamp_when_present() {
     let mut diagnostic_metadata = AHashMap::new();
     diagnostic_metadata.insert("crashedAt".to_string(), Value::Unsigned(1_000_000_000));
 
@@ -556,33 +524,17 @@ mod tests {
       Value::Object(diagnostic_metadata),
     );
 
-    *CACHED_KSCRASH_REPORT.lock() = Some(crash_report);
+    let result = with_cached_report(Some(crash_report), || {
+      cached_kscrash_timestamp_impl().unwrap()
+    });
 
-    let result = cached_kscrash_timestamp_impl().unwrap();
-
-    *CACHED_KSCRASH_REPORT.lock() = None;
-
-    assert_eq!(
-      result,
-      CachedCrashTimestamp {
-        seconds: 1_000_000_000,
-        nanoseconds: 0,
-        available: true,
-      }
-    );
+    assert_eq!(result, 1_000_000_000);
   }
 
   #[test]
-  fn cached_kscrash_timestamp_marks_as_unavailable_on_not_having_report() {
-    let result = cached_kscrash_timestamp_impl().unwrap();
+  fn cached_kscrash_timestamp_returns_zero_when_not_having_report() {
+    let result = with_cached_report(None, || cached_kscrash_timestamp_impl().unwrap());
 
-    assert_eq!(
-      result,
-      CachedCrashTimestamp {
-        seconds: 0,
-        nanoseconds: 0,
-        available: false,
-      }
-    );
+    assert_eq!(result, 0);
   }
 }
