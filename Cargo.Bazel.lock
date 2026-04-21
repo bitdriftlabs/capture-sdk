@@ -1,5 +1,5 @@
 {
-  "checksum": "cbe286cde37206c9d3ffa67c3d3ec3ebb9a1c4062587d29996cc8faa3230667f",
+  "checksum": "4c3c1cc30adeeed70378b1259751e65eedff91bec70d0bf55f9b25f72738938c",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -930,7 +930,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -1209,7 +1209,7 @@
               "target": "sync_wrapper"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -1588,7 +1588,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-api"
         }
@@ -1703,7 +1703,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -1741,7 +1741,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-artifact-upload"
         }
@@ -1840,7 +1840,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -1874,7 +1874,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-backoff"
         }
@@ -1930,7 +1930,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-bonjson"
         }
@@ -1994,7 +1994,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-bonjson-ffi"
         }
@@ -2100,7 +2100,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-bounded-buffer"
         }
@@ -2155,7 +2155,7 @@
               "target": "thiserror"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -2176,7 +2176,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-buffer"
         }
@@ -2291,7 +2291,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -2325,7 +2325,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-client-common"
         }
@@ -2424,7 +2424,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -2462,7 +2462,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-client-stats"
         }
@@ -2569,7 +2569,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -2599,7 +2599,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-client-stats-store"
         }
@@ -2662,7 +2662,7 @@
               "target": "thiserror"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -2692,7 +2692,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-completion"
         }
@@ -2735,7 +2735,7 @@
               "target": "thiserror"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -2756,7 +2756,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-crash-handler"
         }
@@ -2887,7 +2887,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -2921,7 +2921,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-device"
         }
@@ -2993,7 +2993,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-error-reporter"
         }
@@ -3048,7 +3048,7 @@
               "target": "parking_lot"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -3073,7 +3073,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-events"
         }
@@ -3120,7 +3120,7 @@
               "target": "log"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -3141,7 +3141,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-grpc"
         }
@@ -3296,7 +3296,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -3372,7 +3372,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-grpc-codec"
         }
@@ -3451,7 +3451,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-hyper-network"
         }
@@ -3549,7 +3549,7 @@
               "target": "serde_json"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -3583,7 +3583,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-internal-logging"
         }
@@ -3622,7 +3622,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -3643,7 +3643,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-key-value"
         }
@@ -3710,7 +3710,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -3731,7 +3731,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-log"
         }
@@ -3794,16 +3794,12 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
               "id": "tracing 0.1.44",
               "target": "tracing"
-            },
-            {
-              "id": "tracing-error 0.2.1",
-              "target": "tracing_error"
             },
             {
               "id": "tracing-log 0.2.0",
@@ -3835,7 +3831,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-log-filter"
         }
@@ -3923,7 +3919,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-log-matcher"
         }
@@ -4011,7 +4007,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-log-metadata"
         }
@@ -4071,7 +4067,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-log-primitives"
         }
@@ -4164,7 +4160,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-logger"
         }
@@ -4375,7 +4371,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -4421,7 +4417,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-macros"
         }
@@ -4481,7 +4477,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-metadata"
         }
@@ -4529,7 +4525,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-network-quality"
         }
@@ -4577,7 +4573,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-noop-network"
         }
@@ -4646,7 +4642,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-panic"
         }
@@ -4706,7 +4702,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-pgv"
         }
@@ -4808,7 +4804,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-proto"
         }
@@ -4918,7 +4914,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-proto-util"
         }
@@ -5050,7 +5046,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-report-parsers"
         }
@@ -5122,7 +5118,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-report-writer"
         }
@@ -5220,7 +5216,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-resilient-kv"
         }
@@ -5323,7 +5319,7 @@
               "target": "thiserror"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -5344,7 +5340,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-resource-utilization"
         }
@@ -5407,7 +5403,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -5428,7 +5424,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-runtime"
         }
@@ -5495,7 +5491,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -5525,7 +5521,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-server-stats"
         }
@@ -5600,7 +5596,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -5621,7 +5617,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-session"
         }
@@ -5692,7 +5688,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -5717,7 +5713,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-session-replay"
         }
@@ -5800,7 +5796,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -5821,7 +5817,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-shutdown"
         }
@@ -5856,7 +5852,7 @@
               "target": "log"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -5877,7 +5873,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-state"
         }
@@ -5956,7 +5952,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -5986,7 +5982,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-stats-common"
         }
@@ -6059,7 +6055,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-test-helpers"
         }
@@ -6229,7 +6225,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -6275,7 +6271,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-time"
         }
@@ -6322,7 +6318,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -6352,7 +6348,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "95870331620fa31795c8019b213eb8be3cbed42e"
+            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
           },
           "strip_prefix": "bd-workflows"
         }
@@ -6487,7 +6483,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -7082,7 +7078,7 @@
               "target": "futures_util"
             },
             {
-              "id": "jni 0.22.4",
+              "id": "jni 0.21.1",
               "target": "jni"
             },
             {
@@ -7343,6 +7339,45 @@
         "MIT"
       ],
       "license_file": "LICENSE-APACHE"
+    },
+    "cesu8 1.1.0": {
+      "name": "cesu8",
+      "version": "1.1.0",
+      "package_url": "https://github.com/emk/cesu8-rs",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/cesu8/1.1.0/download",
+          "sha256": "6d43a04d8753f35258c91f8ec639f792891f748a1edbd759cf1dcea3382ad83c"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "cesu8",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "cesu8",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2015",
+        "version": "1.1.0"
+      },
+      "license": "Apache-2.0/MIT",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": null
     },
     "cfg-if 1.0.4": {
       "name": "cfg-if",
@@ -9633,7 +9668,7 @@
             ],
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.52.0",
+                "id": "windows-sys 0.59.0",
                 "target": "windows_sys"
               }
             ]
@@ -11242,7 +11277,7 @@
               "target": "slab"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -11985,7 +12020,7 @@
               "target": "smallvec"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -12067,7 +12102,7 @@
               "target": "rustls_native_certs"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -12136,7 +12171,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -12250,7 +12285,7 @@
               "target": "socket2"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -13476,14 +13511,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "jni 0.22.4": {
+    "jni 0.21.1": {
       "name": "jni",
-      "version": "0.22.4",
+      "version": "0.21.1",
       "package_url": "https://github.com/jni-rs/jni-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/jni/0.22.4/download",
-          "sha256": "5efd9a482cf3a427f00d6b35f14332adc7902ce91efb778580e180ff90fa3498"
+          "url": "https://static.crates.io/crates/jni/0.21.1/download",
+          "sha256": "1a87aa2bb7d2af34197c04845522473242e1aa17c12f4935d5856491a7fb8c97"
         }
       },
       "targets": [
@@ -13491,18 +13526,6 @@
           "Library": {
             "crate_name": "jni",
             "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        },
-        {
-          "BuildScript": {
-            "crate_name": "build_script_build",
-            "crate_root": "build.rs",
             "srcs": {
               "allow_empty": true,
               "include": [
@@ -13526,6 +13549,10 @@
         "deps": {
           "common": [
             {
+              "id": "cesu8 1.1.0",
+              "target": "cesu8"
+            },
+            {
               "id": "cfg-if 1.0.4",
               "target": "cfg_if"
             },
@@ -13534,11 +13561,7 @@
               "target": "combine"
             },
             {
-              "id": "jni 0.22.4",
-              "target": "build_script_build"
-            },
-            {
-              "id": "jni-sys 0.4.1",
+              "id": "jni-sys 0.3.1",
               "target": "jni_sys"
             },
             {
@@ -13546,76 +13569,43 @@
               "target": "log"
             },
             {
-              "id": "simd_cesu8 1.1.1",
-              "target": "simd_cesu8"
-            },
-            {
-              "id": "thiserror 2.0.18",
+              "id": "thiserror 1.0.69",
               "target": "thiserror"
             }
           ],
           "selects": {
             "cfg(windows)": [
               {
-                "id": "windows-link 0.2.1",
-                "target": "windows_link"
+                "id": "windows-sys 0.45.0",
+                "target": "windows_sys"
               }
             ]
           }
         },
-        "edition": "2024",
-        "proc_macro_deps": {
-          "common": [
-            {
-              "id": "jni-macros 0.22.4",
-              "target": "jni_macros"
-            }
-          ],
-          "selects": {}
-        },
-        "version": "0.22.4"
+        "edition": "2018",
+        "version": "0.21.1"
       },
-      "build_script_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "compile_data_glob_excludes": [
-          "**/*.rs"
-        ],
-        "data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "walkdir 2.5.0",
-              "target": "walkdir"
-            }
-          ],
-          "selects": {}
-        }
-      },
-      "license": "MIT OR Apache-2.0",
+      "license": "MIT/Apache-2.0",
       "license_ids": [
         "Apache-2.0",
         "MIT"
       ],
-      "license_file": null
+      "license_file": "LICENSE-APACHE"
     },
-    "jni-macros 0.22.4": {
-      "name": "jni-macros",
-      "version": "0.22.4",
-      "package_url": "https://github.com/jni-rs/jni-rs",
+    "jni-sys 0.3.1": {
+      "name": "jni-sys",
+      "version": "0.3.1",
+      "package_url": "https://github.com/jni-rs/jni-sys",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/jni-macros/0.22.4/download",
-          "sha256": "a00109accc170f0bdb141fed3e393c565b6f5e072365c3bd58f5b062591560a3"
+          "url": "https://static.crates.io/crates/jni-sys/0.3.1/download",
+          "sha256": "41a652e1f9b6e0275df1f15b32661cf0d4b78d4d87ddec5e0c3c20f097433258"
         }
       },
       "targets": [
         {
-          "ProcMacro": {
-            "crate_name": "jni_macros",
+          "Library": {
+            "crate_name": "jni_sys",
             "crate_root": "src/lib.rs",
             "srcs": {
               "allow_empty": true,
@@ -13638,38 +13628,33 @@
           }
         }
       ],
-      "library_target_name": "jni_macros",
+      "library_target_name": "jni_sys",
       "common_attrs": {
         "compile_data_glob": [
           "**"
         ],
+        "crate_features": {
+          "common": [
+            "default"
+          ],
+          "selects": {}
+        },
         "deps": {
           "common": [
             {
-              "id": "jni-macros 0.22.4",
+              "id": "jni-sys 0.3.1",
               "target": "build_script_build"
             },
             {
-              "id": "proc-macro2 1.0.106",
-              "target": "proc_macro2"
-            },
-            {
-              "id": "quote 1.0.45",
-              "target": "quote"
-            },
-            {
-              "id": "simd_cesu8 1.1.1",
-              "target": "simd_cesu8"
-            },
-            {
-              "id": "syn 2.0.117",
-              "target": "syn"
+              "id": "jni-sys 0.4.1",
+              "target": "jni_sys",
+              "alias": "jni_sys_04"
             }
           ],
           "selects": {}
         },
-        "edition": "2024",
-        "version": "0.22.4"
+        "edition": "2021",
+        "version": "0.3.1"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -13680,23 +13665,14 @@
         ],
         "data_glob": [
           "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "rustc_version 0.4.1",
-              "target": "rustc_version"
-            }
-          ],
-          "selects": {}
-        }
+        ]
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
         "Apache-2.0",
         "MIT"
       ],
-      "license_file": null
+      "license_file": "LICENSE-APACHE"
     },
     "jni-sys 0.4.1": {
       "name": "jni-sys",
@@ -16358,7 +16334,7 @@
               "target": "thiserror"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -17146,7 +17122,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -18171,7 +18147,7 @@
               "target": "anyhow"
             },
             {
-              "id": "itertools 0.13.0",
+              "id": "itertools 0.14.0",
               "target": "itertools"
             },
             {
@@ -19747,7 +19723,7 @@
                 "target": "pin_project_lite"
               },
               {
-                "id": "tokio 1.52.0",
+                "id": "tokio 1.52.1",
                 "target": "tokio"
               },
               {
@@ -20281,7 +20257,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "windows-sys 0.52.0",
+                "id": "windows-sys 0.59.0",
                 "target": "windows_sys"
               }
             ],
@@ -20410,7 +20386,7 @@
               "alias": "pki_types"
             },
             {
-              "id": "rustls-webpki 0.103.12",
+              "id": "rustls-webpki 0.103.13",
               "target": "webpki"
             },
             {
@@ -20580,14 +20556,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "rustls-webpki 0.103.12": {
+    "rustls-webpki 0.103.13": {
       "name": "rustls-webpki",
-      "version": "0.103.12",
+      "version": "0.103.13",
       "package_url": "https://github.com/rustls/webpki",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/rustls-webpki/0.103.12/download",
-          "sha256": "8279bb85272c9f10811ae6a6c547ff594d6a7f3c6c6b02ee9726d1d0dcfcdd06"
+          "url": "https://static.crates.io/crates/rustls-webpki/0.103.13/download",
+          "sha256": "61c429a8649f110dddef65e2a5ad240f747e85f7758a6bccc7e5777bd33f756e"
         }
       },
       "targets": [
@@ -20636,7 +20612,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.103.12"
+        "version": "0.103.13"
       },
       "license": "ISC",
       "license_ids": [
@@ -21837,106 +21813,6 @@
       ],
       "license_file": "LICENSE.md"
     },
-    "simd_cesu8 1.1.1": {
-      "name": "simd_cesu8",
-      "version": "1.1.1",
-      "package_url": "https://github.com/seancroach/simd_cesu8",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/simd_cesu8/1.1.1/download",
-          "sha256": "94f90157bb87cddf702797c5dadfa0be7d266cdf49e22da2fcaa32eff75b2c33"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "simd_cesu8",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "simd_cesu8",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "crate_features": {
-          "common": [
-            "default",
-            "std"
-          ],
-          "selects": {}
-        },
-        "deps": {
-          "common": [
-            {
-              "id": "simdutf8 0.1.5",
-              "target": "simdutf8"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2021",
-        "version": "1.1.1"
-      },
-      "license": "Apache-2.0 OR MIT",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
-    "simdutf8 0.1.5": {
-      "name": "simdutf8",
-      "version": "0.1.5",
-      "package_url": "https://github.com/rusticstuff/simdutf8",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/simdutf8/0.1.5/download",
-          "sha256": "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "simdutf8",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "simdutf8",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "crate_features": {
-          "common": [
-            "std"
-          ],
-          "selects": {}
-        },
-        "edition": "2018",
-        "version": "0.1.5"
-      },
-      "license": "MIT OR Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-Apache"
-    },
     "simple-xml 0.1.10": {
       "name": "simple-xml",
       "version": "0.1.10",
@@ -22641,7 +22517,7 @@
               "target": "time"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -22936,7 +22812,7 @@
             ],
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.52.0",
+                "id": "windows-sys 0.59.0",
                 "target": "windows_sys"
               }
             ]
@@ -23090,7 +22966,7 @@
               "target": "ctor"
             },
             {
-              "id": "jni 0.22.4",
+              "id": "jni 0.21.1",
               "target": "jni"
             },
             {
@@ -23825,14 +23701,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "tokio 1.52.0": {
+    "tokio 1.52.1": {
       "name": "tokio",
-      "version": "1.52.0",
+      "version": "1.52.1",
       "package_url": "https://github.com/tokio-rs/tokio",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/tokio/1.52.0/download",
-          "sha256": "a91135f59b1cbf38c91e73cf3386fca9bb77915c45ce2771460c9d92f0f3d776"
+          "url": "https://static.crates.io/crates/tokio/1.52.1/download",
+          "sha256": "b67dee974fe86fd92cc45b7a95fdd2f99a36a6d7b0d431a231178d3d670bbcc6"
         }
       },
       "targets": [
@@ -23923,7 +23799,7 @@
           ],
           "selects": {}
         },
-        "version": "1.52.0"
+        "version": "1.52.1"
       },
       "license": "MIT",
       "license_ids": [
@@ -24029,7 +23905,7 @@
               "target": "rustls"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -24092,7 +23968,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -24163,7 +24039,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             }
           ],
@@ -24483,7 +24359,7 @@
               "target": "sync_wrapper"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -24664,7 +24540,7 @@
               "target": "sync_wrapper"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -24778,7 +24654,7 @@
               "target": "pin_project_lite"
             },
             {
-              "id": "tokio 1.52.0",
+              "id": "tokio 1.52.1",
               "target": "tokio"
             },
             {
@@ -25062,64 +24938,6 @@
         },
         "edition": "2018",
         "version": "0.1.36"
-      },
-      "license": "MIT",
-      "license_ids": [
-        "MIT"
-      ],
-      "license_file": "LICENSE"
-    },
-    "tracing-error 0.2.1": {
-      "name": "tracing-error",
-      "version": "0.2.1",
-      "package_url": "https://github.com/tokio-rs/tracing",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/tracing-error/0.2.1/download",
-          "sha256": "8b1581020d7a273442f5b45074a6a57d5757ad0a47dac0e9f0bd57b81936f3db"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "tracing_error",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "tracing_error",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "crate_features": {
-          "common": [
-            "default",
-            "traced-error"
-          ],
-          "selects": {}
-        },
-        "deps": {
-          "common": [
-            {
-              "id": "tracing 0.1.44",
-              "target": "tracing"
-            },
-            {
-              "id": "tracing-subscriber 0.3.23",
-              "target": "tracing_subscriber"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2018",
-        "version": "0.2.1"
       },
       "license": "MIT",
       "license_ids": [
@@ -27287,7 +27105,7 @@
           "selects": {
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.52.0",
+                "id": "windows-sys 0.59.0",
                 "target": "windows_sys"
               }
             ]
@@ -27405,6 +27223,56 @@
         ],
         "edition": "2021",
         "version": "0.2.1"
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "license-apache-2.0"
+    },
+    "windows-sys 0.45.0": {
+      "name": "windows-sys",
+      "version": "0.45.0",
+      "package_url": "https://github.com/microsoft/windows-rs",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/windows-sys/0.45.0/download",
+          "sha256": "75283be5efb2831d37ea142365f009c02ec203cd29a3ebecbc093d52315b66d0"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "windows_sys",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "windows_sys",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [],
+          "selects": {
+            "cfg(not(windows_raw_dylib))": [
+              {
+                "id": "windows-targets 0.42.2",
+                "target": "windows_targets"
+              }
+            ]
+          }
+        },
+        "edition": "2018",
+        "version": "0.45.0"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -27605,6 +27473,122 @@
       ],
       "license_file": "license-apache-2.0"
     },
+    "windows-targets 0.42.2": {
+      "name": "windows-targets",
+      "version": "0.42.2",
+      "package_url": "https://github.com/microsoft/windows-rs",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/windows-targets/0.42.2/download",
+          "sha256": "8e5180c00cd44c9b1c88adb3693291f1cd93605ded80c250a75d472756b4d071"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "windows_targets",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "windows_targets",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [],
+          "selects": {
+            "aarch64-pc-windows-gnullvm": [
+              {
+                "id": "windows_aarch64_gnullvm 0.42.2",
+                "target": "windows_aarch64_gnullvm"
+              }
+            ],
+            "aarch64-pc-windows-msvc": [
+              {
+                "id": "windows_aarch64_msvc 0.42.2",
+                "target": "windows_aarch64_msvc"
+              }
+            ],
+            "aarch64-uwp-windows-msvc": [
+              {
+                "id": "windows_aarch64_msvc 0.42.2",
+                "target": "windows_aarch64_msvc"
+              }
+            ],
+            "i686-pc-windows-gnu": [
+              {
+                "id": "windows_i686_gnu 0.42.2",
+                "target": "windows_i686_gnu"
+              }
+            ],
+            "i686-pc-windows-msvc": [
+              {
+                "id": "windows_i686_msvc 0.42.2",
+                "target": "windows_i686_msvc"
+              }
+            ],
+            "i686-uwp-windows-gnu": [
+              {
+                "id": "windows_i686_gnu 0.42.2",
+                "target": "windows_i686_gnu"
+              }
+            ],
+            "i686-uwp-windows-msvc": [
+              {
+                "id": "windows_i686_msvc 0.42.2",
+                "target": "windows_i686_msvc"
+              }
+            ],
+            "x86_64-pc-windows-gnu": [
+              {
+                "id": "windows_x86_64_gnu 0.42.2",
+                "target": "windows_x86_64_gnu"
+              }
+            ],
+            "x86_64-pc-windows-gnullvm": [
+              {
+                "id": "windows_x86_64_gnullvm 0.42.2",
+                "target": "windows_x86_64_gnullvm"
+              }
+            ],
+            "x86_64-pc-windows-msvc": [
+              {
+                "id": "windows_x86_64_msvc 0.42.2",
+                "target": "windows_x86_64_msvc"
+              }
+            ],
+            "x86_64-uwp-windows-gnu": [
+              {
+                "id": "windows_x86_64_gnu 0.42.2",
+                "target": "windows_x86_64_gnu"
+              }
+            ],
+            "x86_64-uwp-windows-msvc": [
+              {
+                "id": "windows_x86_64_msvc 0.42.2",
+                "target": "windows_x86_64_msvc"
+              }
+            ]
+          }
+        },
+        "edition": "2018",
+        "version": "0.42.2"
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "license-apache-2.0"
+    },
     "windows-targets 0.52.6": {
       "name": "windows-targets",
       "version": "0.52.6",
@@ -27795,6 +27779,77 @@
       ],
       "license_file": "license-apache-2.0"
     },
+    "windows_aarch64_gnullvm 0.42.2": {
+      "name": "windows_aarch64_gnullvm",
+      "version": "0.42.2",
+      "package_url": "https://github.com/microsoft/windows-rs",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/windows_aarch64_gnullvm/0.42.2/download",
+          "sha256": "597a5118570b68bc08d8d59125332c54f1ba9d9adeedeef5b99b02ba2b0698f8"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "windows_aarch64_gnullvm",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "windows_aarch64_gnullvm",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "windows_aarch64_gnullvm 0.42.2",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.42.2"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "license-apache-2.0"
+    },
     "windows_aarch64_gnullvm 0.52.6": {
       "name": "windows_aarch64_gnullvm",
       "version": "0.52.6",
@@ -27937,6 +27992,77 @@
       ],
       "license_file": "license-apache-2.0"
     },
+    "windows_aarch64_msvc 0.42.2": {
+      "name": "windows_aarch64_msvc",
+      "version": "0.42.2",
+      "package_url": "https://github.com/microsoft/windows-rs",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/windows_aarch64_msvc/0.42.2/download",
+          "sha256": "e08e8864a60f06ef0d0ff4ba04124db8b0fb3be5776a5cd47641e942e58c4d43"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "windows_aarch64_msvc",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "windows_aarch64_msvc",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "windows_aarch64_msvc 0.42.2",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.42.2"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "license-apache-2.0"
+    },
     "windows_aarch64_msvc 0.52.6": {
       "name": "windows_aarch64_msvc",
       "version": "0.52.6",
@@ -28060,6 +28186,77 @@
         },
         "edition": "2021",
         "version": "0.53.1"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "license-apache-2.0"
+    },
+    "windows_i686_gnu 0.42.2": {
+      "name": "windows_i686_gnu",
+      "version": "0.42.2",
+      "package_url": "https://github.com/microsoft/windows-rs",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/windows_i686_gnu/0.42.2/download",
+          "sha256": "c61d927d8da41da96a81f029489353e68739737d3beca43145c8afec9a31a84f"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "windows_i686_gnu",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "windows_i686_gnu",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "windows_i686_gnu 0.42.2",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.42.2"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -28363,6 +28560,77 @@
       ],
       "license_file": "license-apache-2.0"
     },
+    "windows_i686_msvc 0.42.2": {
+      "name": "windows_i686_msvc",
+      "version": "0.42.2",
+      "package_url": "https://github.com/microsoft/windows-rs",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/windows_i686_msvc/0.42.2/download",
+          "sha256": "44d840b6ec649f480a41c8d80f9c65108b92d89345dd94027bfe06ac444d1060"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "windows_i686_msvc",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "windows_i686_msvc",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "windows_i686_msvc 0.42.2",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.42.2"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "license-apache-2.0"
+    },
     "windows_i686_msvc 0.52.6": {
       "name": "windows_i686_msvc",
       "version": "0.52.6",
@@ -28486,6 +28754,77 @@
         },
         "edition": "2021",
         "version": "0.53.1"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "license-apache-2.0"
+    },
+    "windows_x86_64_gnu 0.42.2": {
+      "name": "windows_x86_64_gnu",
+      "version": "0.42.2",
+      "package_url": "https://github.com/microsoft/windows-rs",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/windows_x86_64_gnu/0.42.2/download",
+          "sha256": "8de912b8b8feb55c064867cf047dda097f92d51efad5b491dfb98f6bbb70cb36"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "windows_x86_64_gnu",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "windows_x86_64_gnu",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "windows_x86_64_gnu 0.42.2",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.42.2"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -28647,6 +28986,77 @@
       ],
       "license_file": "license-apache-2.0"
     },
+    "windows_x86_64_gnullvm 0.42.2": {
+      "name": "windows_x86_64_gnullvm",
+      "version": "0.42.2",
+      "package_url": "https://github.com/microsoft/windows-rs",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/windows_x86_64_gnullvm/0.42.2/download",
+          "sha256": "26d41b46a36d453748aedef1486d5c7a85db22e56aff34643984ea85514e94a3"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "windows_x86_64_gnullvm",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "windows_x86_64_gnullvm",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "windows_x86_64_gnullvm 0.42.2",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.42.2"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "license-apache-2.0"
+    },
     "windows_x86_64_gnullvm 0.52.6": {
       "name": "windows_x86_64_gnullvm",
       "version": "0.52.6",
@@ -28770,6 +29180,77 @@
         },
         "edition": "2021",
         "version": "0.53.1"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "license-apache-2.0"
+    },
+    "windows_x86_64_msvc 0.42.2": {
+      "name": "windows_x86_64_msvc",
+      "version": "0.42.2",
+      "package_url": "https://github.com/microsoft/windows-rs",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/windows_x86_64_msvc/0.42.2/download",
+          "sha256": "9aec5da331524158c6d1a4ac0ab1541149c0b9505fde06423b02f5ef0106b9f0"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "windows_x86_64_msvc",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "windows_x86_64_msvc",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "windows_x86_64_msvc 0.42.2",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.42.2"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -30309,6 +30790,8 @@
       "aarch64-linux-android"
     ],
     "aarch64-pc-windows-gnullvm": [],
+    "aarch64-pc-windows-msvc": [],
+    "aarch64-uwp-windows-msvc": [],
     "armv7-linux-androideabi": [
       "armv7-linux-androideabi"
     ],
@@ -30516,6 +30999,17 @@
       "x86_64-linux-android",
       "x86_64-unknown-linux-gnu"
     ],
+    "cfg(not(windows_raw_dylib))": [
+      "aarch64-apple-darwin",
+      "aarch64-apple-ios",
+      "aarch64-apple-ios-sim",
+      "aarch64-linux-android",
+      "armv7-linux-androideabi",
+      "i686-linux-android",
+      "x86_64-apple-ios",
+      "x86_64-linux-android",
+      "x86_64-unknown-linux-gnu"
+    ],
     "cfg(target_arch = \"spirv\")": [],
     "cfg(target_arch = \"wasm32\")": [],
     "cfg(target_feature = \"atomics\")": [],
@@ -30546,6 +31040,9 @@
     ],
     "i686-pc-windows-gnu": [],
     "i686-pc-windows-gnullvm": [],
+    "i686-pc-windows-msvc": [],
+    "i686-uwp-windows-gnu": [],
+    "i686-uwp-windows-msvc": [],
     "x86_64-apple-ios": [
       "x86_64-apple-ios"
     ],
@@ -30554,9 +31051,12 @@
     ],
     "x86_64-pc-windows-gnu": [],
     "x86_64-pc-windows-gnullvm": [],
+    "x86_64-pc-windows-msvc": [],
     "x86_64-unknown-linux-gnu": [
       "x86_64-unknown-linux-gnu"
-    ]
+    ],
+    "x86_64-uwp-windows-gnu": [],
+    "x86_64-uwp-windows-msvc": []
   },
   "direct_deps": [
     "ahash 0.8.12",
@@ -30591,7 +31091,7 @@
     "ctor 0.10.0",
     "flatbuffers 25.9.23",
     "futures-util 0.3.32",
-    "jni 0.22.4",
+    "jni 0.21.1",
     "log 0.4.29",
     "memmap2 0.9.10",
     "objc 0.2.7",
@@ -30604,7 +31104,7 @@
     "simple-xml 0.1.10",
     "tempfile 3.27.0",
     "time 0.3.47",
-    "tokio 1.52.0",
+    "tokio 1.52.1",
     "tracing-subscriber 0.3.23",
     "uuid 1.23.1"
   ],
