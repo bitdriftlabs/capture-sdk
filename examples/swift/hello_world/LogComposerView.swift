@@ -28,7 +28,11 @@ struct LogComposerView: View {
 
                     VStack(spacing: 12) {
                         ForEach(LoggerCustomer.LogLevel.allCases) { level in
-                            Button(action: { self.selectedLogLevel = level }) {
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    self.selectedLogLevel = level
+                                }
+                            }) {
                                 HStack(spacing: 12) {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(level.displayName)
@@ -42,13 +46,13 @@ struct LogComposerView: View {
 
                                     Spacer()
 
-                                    if self.selectedLogLevel == level {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.title3)
-                                            .foregroundColor(level.tint)
-                                    } else {
-                                        PanelBadge(text: level.badgeLabel, color: level.tint)
-                                    }
+                                    Image(systemName: self.selectedLogLevel == level
+                                        ? "checkmark.circle.fill"
+                                        : "circle"
+                                    )
+                                    .font(.title3)
+                                    .foregroundColor(level.tint)
+                                    .animation(.easeInOut(duration: 0.2), value: self.selectedLogLevel)
                                 }
                                 .padding(16)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -62,6 +66,7 @@ struct LogComposerView: View {
                                             self.selectedLogLevel == level ? level.tint : Theme.border,
                                             lineWidth: 1
                                         )
+                                        .animation(.easeInOut(duration: 0.2), value: self.selectedLogLevel)
                                 )
                             }
                             .buttonStyle(PressableCardButtonStyle(cornerRadius: 18))
