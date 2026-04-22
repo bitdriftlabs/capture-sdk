@@ -309,12 +309,14 @@ print_backtrace() {
         [[ -z "$addr" ]] && continue
         # Escape sed special characters in symbol
         escaped_symbol=$(printf '%s\n' "$symbol" | sed 's/[&/\]/\\&/g')
-        # For "pc <addr>" format: replace everything after pc+addr with symbolicated name
-        echo "s/\\(pc ${addr}\\).*/\\1 [symbolicated] ${escaped_symbol}/" >> "$SED_SCRIPT"
-        # For "#XX 0x<addr>" format
-        echo "s/\\(#[0-9][0-9] 0x${addr}\\).*/\\1 [symbolicated] ${escaped_symbol}/" >> "$SED_SCRIPT"
-        # For "at 0x<addr>" format
-        echo "s/\\( at 0x${addr}\\).*/\\1 [symbolicated] ${escaped_symbol}/" >> "$SED_SCRIPT"
+        {
+            # For "pc <addr>" format: replace everything after pc+addr with symbolicated name
+            printf 's/\\(pc %s\\).*/\\1 [symbolicated] %s/\n' "${addr}" "${escaped_symbol}"
+            # For "#XX 0x<addr>" format
+            printf 's/\\(#[0-9][0-9] 0x%s\\).*/\\1 [symbolicated] %s/\n' "${addr}" "${escaped_symbol}"
+            # For "at 0x<addr>" format
+            printf 's/\\( at 0x%s\\).*/\\1 [symbolicated] %s/\n' "${addr}" "${escaped_symbol}"
+        } >> "$SED_SCRIPT"
     done < "$SYMBOL_MAP_FILE"
 
     if [[ -s "$SED_SCRIPT" ]]; then
