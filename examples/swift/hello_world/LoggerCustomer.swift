@@ -96,7 +96,9 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         Logger
             .start(
                 withAPIKey: Configuration.storedAPIKey ?? "",
-                sessionStrategy: .fixed(),
+                sessionStrategy: .activityBased(inactivityThresholdMins: 30, onSessionIDChanged: { sessionId in
+                    print("Session changed: \(sessionId)")
+                }),
                 configuration: Capture.Configuration(
                     apiURL: apiURL,
                     issueCallbackConfiguration: issueCallbackConfiguration
@@ -182,24 +184,29 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         }
     }
 
-    func log(with level: LogLevel) {
+    func log(with level: LogLevel, message: String? = nil) {
         let fields: [String: Encodable] = [
             "date_time": Date(),
             "json_field": EncodableExampleStruct(),
             "test_k": "test_v",
         ]
 
+        let trimmedMessage = message?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedMessage = trimmedMessage?.isEmpty == false
+            ? trimmedMessage!
+            : "Sending log with level [\(level.rawValue.capitalized)]"
+
         switch level {
         case .error:
-            Logger.logError("Sending log with level [Error]", fields: fields)
+            Logger.logError(resolvedMessage, fields: fields)
         case .warning:
-            Logger.logWarning("Sending log with level [Warning]", fields: fields)
+            Logger.logWarning(resolvedMessage, fields: fields)
         case .info:
-            Logger.logInfo("Sending log with level [Info]", fields: fields)
+            Logger.logInfo(resolvedMessage, fields: fields)
         case .debug:
-            Logger.logDebug("Sending log with level [Debug]", fields: fields)
+            Logger.logDebug(resolvedMessage, fields: fields)
         case .trace:
-            Logger.logTrace("Sending log with level [Trace]", fields: fields)
+            Logger.logTrace(resolvedMessage, fields: fields)
         }
     }
 
