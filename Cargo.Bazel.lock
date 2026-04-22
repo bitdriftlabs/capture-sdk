@@ -1,5 +1,5 @@
 {
-  "checksum": "4c3c1cc30adeeed70378b1259751e65eedff91bec70d0bf55f9b25f72738938c",
+  "checksum": "4dacac1201a1b4c37cbd2b258fcb5796b48ac4e2c2e584b55fa047cdab0f6540",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -687,7 +687,7 @@
           "selects": {
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.60.2",
+                "id": "windows-sys 0.61.2",
                 "target": "windows_sys"
               }
             ]
@@ -746,7 +746,7 @@
                 "target": "once_cell_polyfill"
               },
               {
-                "id": "windows-sys 0.60.2",
+                "id": "windows-sys 0.61.2",
                 "target": "windows_sys"
               }
             ]
@@ -1588,7 +1588,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-api"
         }
@@ -1741,7 +1741,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-artifact-upload"
         }
@@ -1874,7 +1874,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-backoff"
         }
@@ -1930,7 +1930,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-bonjson"
         }
@@ -1994,7 +1994,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-bonjson-ffi"
         }
@@ -2100,7 +2100,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-bounded-buffer"
         }
@@ -2176,7 +2176,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-buffer"
         }
@@ -2325,7 +2325,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-client-common"
         }
@@ -2462,7 +2462,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-client-stats"
         }
@@ -2599,7 +2599,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-client-stats-store"
         }
@@ -2692,7 +2692,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-completion"
         }
@@ -2756,7 +2756,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-crash-handler"
         }
@@ -2921,7 +2921,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-device"
         }
@@ -2993,7 +2993,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-error-reporter"
         }
@@ -3073,7 +3073,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-events"
         }
@@ -3141,7 +3141,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-grpc"
         }
@@ -3372,7 +3372,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-grpc-codec"
         }
@@ -3451,7 +3451,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-hyper-network"
         }
@@ -3583,7 +3583,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-internal-logging"
         }
@@ -3643,7 +3643,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-key-value"
         }
@@ -3731,7 +3731,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-log"
         }
@@ -3831,7 +3831,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-log-filter"
         }
@@ -3919,7 +3919,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-log-matcher"
         }
@@ -4007,7 +4007,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-log-metadata"
         }
@@ -4067,7 +4067,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-log-primitives"
         }
@@ -4160,7 +4160,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-logger"
         }
@@ -4417,7 +4417,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-macros"
         }
@@ -4477,7 +4477,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-metadata"
         }
@@ -4525,7 +4525,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-network-quality"
         }
@@ -4573,7 +4573,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-noop-network"
         }
@@ -4642,7 +4642,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-panic"
         }
@@ -4702,7 +4702,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-pgv"
         }
@@ -4804,7 +4804,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-proto"
         }
@@ -4914,7 +4914,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-proto-util"
         }
@@ -5046,7 +5046,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-report-parsers"
         }
@@ -5118,7 +5118,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-report-writer"
         }
@@ -5216,7 +5216,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-resilient-kv"
         }
@@ -5340,7 +5340,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-resource-utilization"
         }
@@ -5424,7 +5424,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-runtime"
         }
@@ -5521,7 +5521,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-server-stats"
         }
@@ -5617,7 +5617,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-session"
         }
@@ -5713,7 +5713,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-session-replay"
         }
@@ -5817,7 +5817,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-shutdown"
         }
@@ -5873,7 +5873,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-state"
         }
@@ -5982,7 +5982,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-stats-common"
         }
@@ -6055,7 +6055,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-test-helpers"
         }
@@ -6271,7 +6271,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-time"
         }
@@ -6348,7 +6348,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "470f4ecaa9cb1ab0abadd7d1e9e1087c444ad092"
+            "Rev": "a93a1088d1e3c1692cf9ba17336749cfe7f7266a"
           },
           "strip_prefix": "bd-workflows"
         }
@@ -8513,7 +8513,7 @@
               "target": "plotters"
             },
             {
-              "id": "rayon 1.11.0",
+              "id": "rayon 1.12.0",
               "target": "rayon"
             },
             {
@@ -9668,7 +9668,7 @@
             ],
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.59.0",
+                "id": "windows-sys 0.61.2",
                 "target": "windows_sys"
               }
             ]
@@ -9957,7 +9957,7 @@
               "target": "crc32fast"
             },
             {
-              "id": "libz-sys 1.1.24",
+              "id": "libz-sys 1.1.28",
               "target": "libz_sys"
             },
             {
@@ -10117,14 +10117,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "fragile 2.0.1": {
+    "fragile 2.1.0": {
       "name": "fragile",
-      "version": "2.0.1",
+      "version": "2.1.0",
       "package_url": "https://github.com/mitsuhiko/fragile",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/fragile/2.0.1/download",
-          "sha256": "28dd6caf6059519a65843af8fe2a3ae298b14b80179855aeb4adc2c1934ee619"
+          "url": "https://static.crates.io/crates/fragile/2.1.0/download",
+          "sha256": "8878864ba14bb86e818a412bfd6f18f9eabd4ec0f008a28e8f7eb61db532fcf9"
         }
       },
       "targets": [
@@ -10146,8 +10146,26 @@
         "compile_data_glob": [
           "**"
         ],
+        "crate_features": {
+          "common": [
+            "default",
+            "future",
+            "futures-core",
+            "stream"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "futures-core 0.3.32",
+              "target": "futures_core"
+            }
+          ],
+          "selects": {}
+        },
         "edition": "2018",
-        "version": "2.0.1"
+        "version": "2.1.0"
       },
       "license": "Apache-2.0",
       "license_ids": [
@@ -10939,7 +10957,7 @@
             ],
             "cfg(all(target_arch = \"wasm32\", target_os = \"wasi\", target_env = \"p2\"))": [
               {
-                "id": "wasip2 1.0.2+wasi-0.2.9",
+                "id": "wasip2 1.0.3+wasi-0.2.9",
                 "target": "wasip2"
               }
             ],
@@ -11086,7 +11104,7 @@
             ],
             "cfg(all(target_arch = \"wasm32\", target_os = \"wasi\", target_env = \"p2\"))": [
               {
-                "id": "wasip2 1.0.2+wasi-0.2.9",
+                "id": "wasip2 1.0.3+wasi-0.2.9",
                 "target": "wasip2"
               }
             ],
@@ -11914,7 +11932,7 @@
         "deps": {
           "common": [
             {
-              "id": "typenum 1.19.0",
+              "id": "typenum 1.20.0",
               "target": "typenum"
             }
           ],
@@ -12094,7 +12112,7 @@
               "target": "hyper_util"
             },
             {
-              "id": "rustls 0.23.37",
+              "id": "rustls 0.23.38",
               "target": "rustls"
             },
             {
@@ -13774,14 +13792,14 @@
       ],
       "license_file": null
     },
-    "js-sys 0.3.91": {
+    "js-sys 0.3.95": {
       "name": "js-sys",
-      "version": "0.3.91",
+      "version": "0.3.95",
       "package_url": "https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/js-sys",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/js-sys/0.3.91/download",
-          "sha256": "b49715b7073f385ba4bc528e5747d02e66cb39c6146efb66b781f131f0fb399c"
+          "url": "https://static.crates.io/crates/js-sys/0.3.95/download",
+          "sha256": "2964e92d1d9dc3364cae4d718d93f227e3abb088e747d92e0395bfdedf1c12ca"
         }
       },
       "targets": [
@@ -13810,14 +13828,14 @@
               "target": "once_cell"
             },
             {
-              "id": "wasm-bindgen 0.2.114",
+              "id": "wasm-bindgen 0.2.118",
               "target": "wasm_bindgen"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.3.91"
+        "version": "0.3.95"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -14088,14 +14106,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "libz-sys 1.1.24": {
+    "libz-sys 1.1.28": {
       "name": "libz-sys",
-      "version": "1.1.24",
+      "version": "1.1.28",
       "package_url": "https://github.com/rust-lang/libz-sys",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/libz-sys/1.1.24/download",
-          "sha256": "4735e9cbde5aac84a5ce588f6b23a90b9b0b528f6c5a8db8a4aff300463a0839"
+          "url": "https://static.crates.io/crates/libz-sys/1.1.28/download",
+          "sha256": "fc3a226e576f50782b3305c5ccf458698f92798987f551c6a02efe8276721e22"
         }
       },
       "targets": [
@@ -14132,14 +14150,14 @@
         "deps": {
           "common": [
             {
-              "id": "libz-sys 1.1.24",
+              "id": "libz-sys 1.1.28",
               "target": "build_script_build"
             }
           ],
           "selects": {}
         },
         "edition": "2018",
-        "version": "1.1.24"
+        "version": "1.1.28"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -14158,7 +14176,7 @@
               "target": "cc"
             },
             {
-              "id": "pkg-config 0.3.32",
+              "id": "pkg-config 0.3.33",
               "target": "pkg_config"
             },
             {
@@ -14947,7 +14965,7 @@
               "target": "adler2"
             },
             {
-              "id": "simd-adler32 0.3.8",
+              "id": "simd-adler32 0.3.9",
               "target": "simd_adler32"
             }
           ],
@@ -15166,7 +15184,7 @@
               "target": "downcast"
             },
             {
-              "id": "fragile 2.0.1",
+              "id": "fragile 2.1.0",
               "target": "fragile"
             },
             {
@@ -15551,7 +15569,7 @@
           "selects": {
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.59.0",
+                "id": "windows-sys 0.61.2",
                 "target": "windows_sys",
                 "alias": "windows"
               }
@@ -15567,14 +15585,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "num-conv 0.2.0": {
+    "num-conv 0.2.1": {
       "name": "num-conv",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "package_url": "https://github.com/jhpratt/num-conv",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/num-conv/0.2.0/download",
-          "sha256": "cf97ec579c3c42f953ef76dbf8d55ac91fb219dde70e49aa4a6b7d74e9919050"
+          "url": "https://static.crates.io/crates/num-conv/0.2.1/download",
+          "sha256": "c6673768db2d862beb9b39a78fdcb1a69439615d5794a1be50caa9bc92c81967"
         }
       },
       "targets": [
@@ -15597,7 +15615,7 @@
           "**"
         ],
         "edition": "2021",
-        "version": "0.2.0"
+        "version": "0.2.1"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -16165,7 +16183,7 @@
           "selects": {
             "cfg(all(target_arch = \"wasm32\", not(target_os = \"wasi\")))": [
               {
-                "id": "js-sys 0.3.91",
+                "id": "js-sys 0.3.95",
                 "target": "js_sys"
               }
             ]
@@ -16460,11 +16478,16 @@
         "crate_features": {
           "common": [
             "default",
+            "experimental_async_runtime",
+            "experimental_trace_batch_span_processor_with_async_runtime",
             "internal-logs",
             "logs",
             "metrics",
             "percent-encoding",
             "rand",
+            "rt-tokio",
+            "tokio",
+            "tokio-stream",
             "trace"
           ],
           "selects": {}
@@ -16498,6 +16521,14 @@
             {
               "id": "thiserror 2.0.18",
               "target": "thiserror"
+            },
+            {
+              "id": "tokio 1.52.1",
+              "target": "tokio"
+            },
+            {
+              "id": "tokio-stream 0.1.18",
+              "target": "tokio_stream"
             }
           ],
           "selects": {}
@@ -16972,14 +17003,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "pkg-config 0.3.32": {
+    "pkg-config 0.3.33": {
       "name": "pkg-config",
-      "version": "0.3.32",
+      "version": "0.3.33",
       "package_url": "https://github.com/rust-lang/pkg-config-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/pkg-config/0.3.32/download",
-          "sha256": "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
+          "url": "https://static.crates.io/crates/pkg-config/0.3.33/download",
+          "sha256": "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
         }
       },
       "targets": [
@@ -17002,7 +17033,7 @@
           "**"
         ],
         "edition": "2018",
-        "version": "0.3.32"
+        "version": "0.3.33"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -17287,11 +17318,11 @@
           "selects": {
             "cfg(all(target_arch = \"wasm32\", not(target_os = \"wasi\")))": [
               {
-                "id": "wasm-bindgen 0.2.114",
+                "id": "wasm-bindgen 0.2.118",
                 "target": "wasm_bindgen"
               },
               {
-                "id": "web-sys 0.3.91",
+                "id": "web-sys 0.3.95",
                 "target": "web_sys"
               }
             ]
@@ -18859,14 +18890,14 @@
       ],
       "license_file": null
     },
-    "rand 0.8.5": {
+    "rand 0.8.6": {
       "name": "rand",
-      "version": "0.8.5",
+      "version": "0.8.6",
       "package_url": "https://github.com/rust-random/rand",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/rand/0.8.5/download",
-          "sha256": "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
+          "url": "https://static.crates.io/crates/rand/0.8.6/download",
+          "sha256": "5ca0ecfa931c29007047d1bc58e623ab12e5590e8c7cc53200d5202b69266d8a"
         }
       },
       "targets": [
@@ -18898,7 +18929,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.8.5"
+        "version": "0.8.6"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -19228,14 +19259,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "rayon 1.11.0": {
+    "rayon 1.12.0": {
       "name": "rayon",
-      "version": "1.11.0",
+      "version": "1.12.0",
       "package_url": "https://github.com/rayon-rs/rayon",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/rayon/1.11.0/download",
-          "sha256": "368f01d005bf8fd9b1206fb6fa653e6c4a81ceb1466406b81792d87c5677a58f"
+          "url": "https://static.crates.io/crates/rayon/1.12.0/download",
+          "sha256": "fb39b166781f92d482534ef4b4b1b2568f42613b53e5b6c160e24cfbfa30926d"
         }
       },
       "targets": [
@@ -19271,7 +19302,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "1.11.0"
+        "version": "1.12.0"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -19741,7 +19772,7 @@
             ],
             "cfg(target_arch = \"wasm32\")": [
               {
-                "id": "js-sys 0.3.91",
+                "id": "js-sys 0.3.95",
                 "target": "js_sys"
               },
               {
@@ -19749,15 +19780,15 @@
                 "target": "serde_json"
               },
               {
-                "id": "wasm-bindgen 0.2.114",
+                "id": "wasm-bindgen 0.2.118",
                 "target": "wasm_bindgen"
               },
               {
-                "id": "wasm-bindgen-futures 0.4.64",
+                "id": "wasm-bindgen-futures 0.4.68",
                 "target": "wasm_bindgen_futures"
               },
               {
-                "id": "web-sys 0.3.91",
+                "id": "web-sys 0.3.95",
                 "target": "web_sys"
               }
             ]
@@ -20257,7 +20288,7 @@
                 "alias": "libc_errno"
               },
               {
-                "id": "windows-sys 0.59.0",
+                "id": "windows-sys 0.61.2",
                 "target": "windows_sys"
               }
             ],
@@ -20317,14 +20348,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "rustls 0.23.37": {
+    "rustls 0.23.38": {
       "name": "rustls",
-      "version": "0.23.37",
+      "version": "0.23.38",
       "package_url": "https://github.com/rustls/rustls",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/rustls/0.23.37/download",
-          "sha256": "758025cb5fccfd3bc2fd74708fd4682be41d99e5dff73c377c0646c6012c73a4"
+          "url": "https://static.crates.io/crates/rustls/0.23.38/download",
+          "sha256": "69f9466fb2c14ea04357e91413efb882e2a6d4a406e625449bc0a5d360d53a21"
         }
       },
       "targets": [
@@ -20377,7 +20408,7 @@
               "target": "ring"
             },
             {
-              "id": "rustls 0.23.37",
+              "id": "rustls 0.23.38",
               "target": "build_script_build"
             },
             {
@@ -20401,7 +20432,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.23.37"
+        "version": "0.23.38"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -20483,7 +20514,7 @@
             ],
             "cfg(windows)": [
               {
-                "id": "schannel 0.1.28",
+                "id": "schannel 0.1.29",
                 "target": "schannel"
               }
             ]
@@ -20780,14 +20811,14 @@
       ],
       "license_file": "LICENSE-MIT"
     },
-    "schannel 0.1.28": {
+    "schannel 0.1.29": {
       "name": "schannel",
-      "version": "0.1.28",
+      "version": "0.1.29",
       "package_url": "https://github.com/steffengy/schannel-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/schannel/0.1.28/download",
-          "sha256": "891d81b926048e76efe18581bf793546b4c0eaf8448d72be8de2bbee5fd166e1"
+          "url": "https://static.crates.io/crates/schannel/0.1.29/download",
+          "sha256": "91c1b7e4904c873ef0710c1f407dde2e6287de2bebc1bbbf7d430bb7cbffd939"
         }
       },
       "targets": [
@@ -20819,7 +20850,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.1.28"
+        "version": "0.1.29"
       },
       "license": "MIT",
       "license_ids": [
@@ -21447,14 +21478,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "serde_spanned 1.0.4": {
+    "serde_spanned 1.1.1": {
       "name": "serde_spanned",
-      "version": "1.0.4",
+      "version": "1.1.1",
       "package_url": "https://github.com/toml-rs/toml",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/serde_spanned/1.0.4/download",
-          "sha256": "f8bbf91e5a4d6315eee45e704372590b30e260ee83af6639d64557f51b067776"
+          "url": "https://static.crates.io/crates/serde_spanned/1.1.1/download",
+          "sha256": "6662b5879511e06e8999a8a235d848113e942c9124f211511b16466ee2995f26"
         }
       },
       "targets": [
@@ -21493,8 +21524,8 @@
           ],
           "selects": {}
         },
-        "edition": "2021",
-        "version": "1.0.4"
+        "edition": "2024",
+        "version": "1.1.1"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -21775,14 +21806,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "simd-adler32 0.3.8": {
+    "simd-adler32 0.3.9": {
       "name": "simd-adler32",
-      "version": "0.3.8",
+      "version": "0.3.9",
       "package_url": "https://github.com/mcountryman/simd-adler32",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/simd-adler32/0.3.8/download",
-          "sha256": "e320a6c5ad31d271ad523dcf3ad13e2767ad8b1cb8f047f75a8aeaf8da139da2"
+          "url": "https://static.crates.io/crates/simd-adler32/0.3.9/download",
+          "sha256": "703d5c7ef118737c72f1af64ad2f6f8c5e1921f818cdcb97b8fe6fc69bf66214"
         }
       },
       "targets": [
@@ -21805,7 +21836,7 @@
           "**"
         ],
         "edition": "2018",
-        "version": "0.3.8"
+        "version": "0.3.9"
       },
       "license": "MIT",
       "license_ids": [
@@ -22105,7 +22136,7 @@
             ],
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.60.2",
+                "id": "windows-sys 0.61.2",
                 "target": "windows_sys"
               }
             ]
@@ -22812,7 +22843,7 @@
             ],
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.59.0",
+                "id": "windows-sys 0.61.2",
                 "target": "windows_sys"
               }
             ]
@@ -23451,7 +23482,7 @@
               "target": "itoa"
             },
             {
-              "id": "num-conv 0.2.0",
+              "id": "num-conv 0.2.1",
               "target": "num_conv"
             },
             {
@@ -23567,7 +23598,7 @@
         "deps": {
           "common": [
             {
-              "id": "num-conv 0.2.0",
+              "id": "num-conv 0.2.1",
               "target": "num_conv"
             },
             {
@@ -23901,7 +23932,7 @@
         "deps": {
           "common": [
             {
-              "id": "rustls 0.23.37",
+              "id": "rustls 0.23.38",
               "target": "rustls"
             },
             {
@@ -24098,7 +24129,7 @@
               "target": "serde_core"
             },
             {
-              "id": "serde_spanned 1.0.4",
+              "id": "serde_spanned 1.1.1",
               "target": "serde_spanned"
             },
             {
@@ -24106,7 +24137,7 @@
               "target": "toml_datetime"
             },
             {
-              "id": "toml_parser 1.0.9+spec-1.1.0",
+              "id": "toml_parser 1.1.2+spec-1.1.0",
               "target": "toml_parser"
             },
             {
@@ -24182,14 +24213,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "toml_parser 1.0.9+spec-1.1.0": {
+    "toml_parser 1.1.2+spec-1.1.0": {
       "name": "toml_parser",
-      "version": "1.0.9+spec-1.1.0",
+      "version": "1.1.2+spec-1.1.0",
       "package_url": "https://github.com/toml-rs/toml",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/toml_parser/1.0.9+spec-1.1.0/download",
-          "sha256": "702d4415e08923e7e1ef96cd5727c0dfed80b4d2fa25db9647fe5eb6f7c5a4c4"
+          "url": "https://static.crates.io/crates/toml_parser/1.1.2+spec-1.1.0/download",
+          "sha256": "a2abe9b86193656635d2411dc43050282ca48aa31c2451210f4202550afb7526"
         }
       },
       "targets": [
@@ -24221,14 +24252,14 @@
         "deps": {
           "common": [
             {
-              "id": "winnow 0.7.15",
+              "id": "winnow 1.0.2",
               "target": "winnow"
             }
           ],
           "selects": {}
         },
-        "edition": "2021",
-        "version": "1.0.9+spec-1.1.0"
+        "edition": "2024",
+        "version": "1.1.2+spec-1.1.0"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -24237,14 +24268,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "toml_writer 1.0.6+spec-1.1.0": {
+    "toml_writer 1.1.1+spec-1.1.0": {
       "name": "toml_writer",
-      "version": "1.0.6+spec-1.1.0",
+      "version": "1.1.1+spec-1.1.0",
       "package_url": "https://github.com/toml-rs/toml",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/toml_writer/1.0.6+spec-1.1.0/download",
-          "sha256": "ab16f14aed21ee8bfd8ec22513f7287cd4a91aa92e44edfe2c17ddd004e92607"
+          "url": "https://static.crates.io/crates/toml_writer/1.1.1+spec-1.1.0/download",
+          "sha256": "756daf9b1013ebe47a8776667b466417e2d4c5679d441c26230efd9ef78692db"
         }
       },
       "targets": [
@@ -24266,8 +24297,8 @@
         "compile_data_glob": [
           "**"
         ],
-        "edition": "2021",
-        "version": "1.0.6+spec-1.1.0"
+        "edition": "2024",
+        "version": "1.1.1+spec-1.1.0"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -25076,7 +25107,7 @@
           "selects": {
             "cfg(all(target_arch = \"wasm32\", not(target_os = \"wasi\")))": [
               {
-                "id": "js-sys 0.3.91",
+                "id": "js-sys 0.3.95",
                 "target": "js_sys"
               },
               {
@@ -25236,14 +25267,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "typenum 1.19.0": {
+    "typenum 1.20.0": {
       "name": "typenum",
-      "version": "1.19.0",
+      "version": "1.20.0",
       "package_url": "https://github.com/paholg/typenum",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/typenum/1.19.0/download",
-          "sha256": "562d481066bde0658276a35467c4af00bdc6ee726305698a55b86e61d7ad82bb"
+          "url": "https://static.crates.io/crates/typenum/1.20.0/download",
+          "sha256": "40ce102ab67701b8526c123c1bab5cbe42d7040ccfd0f64af1a385808d2f43de"
         }
       },
       "targets": [
@@ -25251,18 +25282,6 @@
           "Library": {
             "crate_name": "typenum",
             "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        },
-        {
-          "BuildScript": {
-            "crate_name": "build_script_build",
-            "crate_root": "build.rs",
             "srcs": {
               "allow_empty": true,
               "include": [
@@ -25283,28 +25302,8 @@
           ],
           "selects": {}
         },
-        "deps": {
-          "common": [
-            {
-              "id": "typenum 1.19.0",
-              "target": "build_script_build"
-            }
-          ],
-          "selects": {}
-        },
         "edition": "2018",
-        "version": "1.19.0"
-      },
-      "build_script_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "compile_data_glob_excludes": [
-          "**/*.rs"
-        ],
-        "data_glob": [
-          "**"
-        ]
+        "version": "1.20.0"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -26089,14 +26088,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "wasip2 1.0.2+wasi-0.2.9": {
+    "wasip2 1.0.3+wasi-0.2.9": {
       "name": "wasip2",
-      "version": "1.0.2+wasi-0.2.9",
+      "version": "1.0.3+wasi-0.2.9",
       "package_url": "https://github.com/bytecodealliance/wasi-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/wasip2/1.0.2+wasi-0.2.9/download",
-          "sha256": "9517f9239f02c069db75e65f174b3da828fe5f5b945c4dd26bd25d89c03ebcf5"
+          "url": "https://static.crates.io/crates/wasip2/1.0.3+wasi-0.2.9/download",
+          "sha256": "20064672db26d7cdc89c7798c48a0fdfac8213434a1186e5ef29fd560ae223d6"
         }
       },
       "targets": [
@@ -26121,21 +26120,21 @@
         "deps": {
           "common": [
             {
-              "id": "wit-bindgen 0.51.0",
+              "id": "wit-bindgen 0.57.1",
               "target": "wit_bindgen"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "1.0.2+wasi-0.2.9"
+        "version": "1.0.3+wasi-0.2.9"
       },
       "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
       "license_ids": [
         "Apache-2.0",
         "MIT"
       ],
-      "license_file": null
+      "license_file": "LICENSE-APACHE"
     },
     "wasip3 0.4.0+wasi-0.3.0-rc-2026-01-06": {
       "name": "wasip3",
@@ -26185,14 +26184,14 @@
       ],
       "license_file": null
     },
-    "wasm-bindgen 0.2.114": {
+    "wasm-bindgen 0.2.118": {
       "name": "wasm-bindgen",
-      "version": "0.2.114",
+      "version": "0.2.118",
       "package_url": "https://github.com/wasm-bindgen/wasm-bindgen",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/wasm-bindgen/0.2.114/download",
-          "sha256": "6532f9a5c1ece3798cb1c2cfdba640b9b3ba884f5db45973a6f442510a87d38e"
+          "url": "https://static.crates.io/crates/wasm-bindgen/0.2.118/download",
+          "sha256": "0bf938a0bacb0469e83c1e148908bd7d5a6010354cf4fb73279b7447422e3a89"
         }
       },
       "targets": [
@@ -26237,11 +26236,11 @@
               "target": "once_cell"
             },
             {
-              "id": "wasm-bindgen 0.2.114",
+              "id": "wasm-bindgen 0.2.118",
               "target": "build_script_build"
             },
             {
-              "id": "wasm-bindgen-shared 0.2.114",
+              "id": "wasm-bindgen-shared 0.2.118",
               "target": "wasm_bindgen_shared"
             }
           ],
@@ -26251,13 +26250,13 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "wasm-bindgen-macro 0.2.114",
+              "id": "wasm-bindgen-macro 0.2.118",
               "target": "wasm_bindgen_macro"
             }
           ],
           "selects": {}
         },
-        "version": "0.2.114"
+        "version": "0.2.118"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -26272,7 +26271,7 @@
         "link_deps": {
           "common": [
             {
-              "id": "wasm-bindgen-shared 0.2.114",
+              "id": "wasm-bindgen-shared 0.2.118",
               "target": "wasm_bindgen_shared"
             }
           ],
@@ -26296,14 +26295,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "wasm-bindgen-futures 0.4.64": {
+    "wasm-bindgen-futures 0.4.68": {
       "name": "wasm-bindgen-futures",
-      "version": "0.4.64",
+      "version": "0.4.68",
       "package_url": "https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/futures",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/wasm-bindgen-futures/0.4.64/download",
-          "sha256": "e9c5522b3a28661442748e09d40924dfb9ca614b21c00d3fd135720e48b67db8"
+          "url": "https://static.crates.io/crates/wasm-bindgen-futures/0.4.68/download",
+          "sha256": "f371d383f2fb139252e0bfac3b81b265689bf45b6874af544ffa4c975ac1ebf8"
         }
       },
       "targets": [
@@ -26328,33 +26327,18 @@
         "deps": {
           "common": [
             {
-              "id": "cfg-if 1.0.4",
-              "target": "cfg_if"
-            },
-            {
-              "id": "js-sys 0.3.91",
+              "id": "js-sys 0.3.95",
               "target": "js_sys"
             },
             {
-              "id": "once_cell 1.21.4",
-              "target": "once_cell"
-            },
-            {
-              "id": "wasm-bindgen 0.2.114",
+              "id": "wasm-bindgen 0.2.118",
               "target": "wasm_bindgen"
             }
           ],
-          "selects": {
-            "cfg(target_feature = \"atomics\")": [
-              {
-                "id": "web-sys 0.3.91",
-                "target": "web_sys"
-              }
-            ]
-          }
+          "selects": {}
         },
         "edition": "2021",
-        "version": "0.4.64"
+        "version": "0.4.68"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -26363,14 +26347,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "wasm-bindgen-macro 0.2.114": {
+    "wasm-bindgen-macro 0.2.118": {
       "name": "wasm-bindgen-macro",
-      "version": "0.2.114",
+      "version": "0.2.118",
       "package_url": "https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/macro",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/wasm-bindgen-macro/0.2.114/download",
-          "sha256": "18a2d50fcf105fb33bb15f00e7a77b772945a2ee45dcf454961fd843e74c18e6"
+          "url": "https://static.crates.io/crates/wasm-bindgen-macro/0.2.118/download",
+          "sha256": "eeff24f84126c0ec2db7a449f0c2ec963c6a49efe0698c4242929da037ca28ed"
         }
       },
       "targets": [
@@ -26399,14 +26383,14 @@
               "target": "quote"
             },
             {
-              "id": "wasm-bindgen-macro-support 0.2.114",
+              "id": "wasm-bindgen-macro-support 0.2.118",
               "target": "wasm_bindgen_macro_support"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.2.114"
+        "version": "0.2.118"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -26415,14 +26399,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "wasm-bindgen-macro-support 0.2.114": {
+    "wasm-bindgen-macro-support 0.2.118": {
       "name": "wasm-bindgen-macro-support",
-      "version": "0.2.114",
+      "version": "0.2.118",
       "package_url": "https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/macro-support",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/wasm-bindgen-macro-support/0.2.114/download",
-          "sha256": "03ce4caeaac547cdf713d280eda22a730824dd11e6b8c3ca9e42247b25c631e3"
+          "url": "https://static.crates.io/crates/wasm-bindgen-macro-support/0.2.118/download",
+          "sha256": "9d08065faf983b2b80a79fd87d8254c409281cf7de75fc4b773019824196c904"
         }
       },
       "targets": [
@@ -26463,14 +26447,14 @@
               "target": "syn"
             },
             {
-              "id": "wasm-bindgen-shared 0.2.114",
+              "id": "wasm-bindgen-shared 0.2.118",
               "target": "wasm_bindgen_shared"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.2.114"
+        "version": "0.2.118"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -26479,14 +26463,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "wasm-bindgen-shared 0.2.114": {
+    "wasm-bindgen-shared 0.2.118": {
       "name": "wasm-bindgen-shared",
-      "version": "0.2.114",
+      "version": "0.2.118",
       "package_url": "https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/shared",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/wasm-bindgen-shared/0.2.114/download",
-          "sha256": "75a326b8c223ee17883a4251907455a2431acc2791c98c26279376490c378c16"
+          "url": "https://static.crates.io/crates/wasm-bindgen-shared/0.2.118/download",
+          "sha256": "5fd04d9e306f1907bd13c6361b5c6bfc7b3b3c095ed3f8a9246390f8dbdee129"
         }
       },
       "targets": [
@@ -26527,14 +26511,14 @@
               "target": "unicode_ident"
             },
             {
-              "id": "wasm-bindgen-shared 0.2.114",
+              "id": "wasm-bindgen-shared 0.2.118",
               "target": "build_script_build"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.2.114"
+        "version": "0.2.118"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -26746,14 +26730,14 @@
       ],
       "license_file": null
     },
-    "web-sys 0.3.91": {
+    "web-sys 0.3.95": {
       "name": "web-sys",
-      "version": "0.3.91",
+      "version": "0.3.95",
       "package_url": "https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/web-sys",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/web-sys/0.3.91/download",
-          "sha256": "854ba17bb104abfb26ba36da9729addc7ce7f06f5c0f90f3c391f8461cca21f9"
+          "url": "https://static.crates.io/crates/web-sys/0.3.95/download",
+          "sha256": "4f2dfbb17949fa2088e5d39408c48368947b86f7834484e87b73de55bc14d97d"
         }
       },
       "targets": [
@@ -26778,18 +26762,18 @@
         "deps": {
           "common": [
             {
-              "id": "js-sys 0.3.91",
+              "id": "js-sys 0.3.95",
               "target": "js_sys"
             },
             {
-              "id": "wasm-bindgen 0.2.114",
+              "id": "wasm-bindgen 0.2.118",
               "target": "wasm_bindgen"
             }
           ],
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.3.91"
+        "version": "0.3.95"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -26832,11 +26816,11 @@
           "selects": {
             "cfg(all(target_family = \"wasm\", target_os = \"unknown\"))": [
               {
-                "id": "js-sys 0.3.91",
+                "id": "js-sys 0.3.95",
                 "target": "js_sys"
               },
               {
-                "id": "wasm-bindgen 0.2.114",
+                "id": "wasm-bindgen 0.2.118",
                 "target": "wasm_bindgen"
               }
             ]
@@ -27105,7 +27089,7 @@
           "selects": {
             "cfg(windows)": [
               {
-                "id": "windows-sys 0.59.0",
+                "id": "windows-sys 0.61.2",
                 "target": "windows_sys"
               }
             ]
@@ -29450,6 +29434,44 @@
       ],
       "license_file": "LICENSE-MIT"
     },
+    "winnow 1.0.2": {
+      "name": "winnow",
+      "version": "1.0.2",
+      "package_url": "https://github.com/winnow-rs/winnow",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/winnow/1.0.2/download",
+          "sha256": "2ee1708bef14716a11bae175f579062d4554d95be2c6829f518df847b7b3fdd0"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "winnow",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "winnow",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2021",
+        "version": "1.0.2"
+      },
+      "license": "MIT",
+      "license_ids": [
+        "MIT"
+      ],
+      "license_file": "LICENSE-MIT"
+    },
     "wit-bindgen 0.51.0": {
       "name": "wit-bindgen",
       "version": "0.51.0",
@@ -29502,6 +29524,77 @@
         },
         "edition": "2024",
         "version": "0.51.0"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
+    "wit-bindgen 0.57.1": {
+      "name": "wit-bindgen",
+      "version": "0.57.1",
+      "package_url": "https://github.com/bytecodealliance/wit-bindgen",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/wit-bindgen/0.57.1/download",
+          "sha256": "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "wit_bindgen",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "wit_bindgen",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "wit-bindgen 0.57.1",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2024",
+        "version": "0.57.1"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -31012,7 +31105,6 @@
     ],
     "cfg(target_arch = \"spirv\")": [],
     "cfg(target_arch = \"wasm32\")": [],
-    "cfg(target_feature = \"atomics\")": [],
     "cfg(target_os = \"hermit\")": [],
     "cfg(target_os = \"macos\")": [
       "aarch64-apple-darwin"
