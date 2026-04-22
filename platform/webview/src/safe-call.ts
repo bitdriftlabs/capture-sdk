@@ -64,15 +64,11 @@ export const truncate = (str: string, maxLength: number = MAX_STRING_LENGTH): st
  * - Deeply nested objects (limited by maxDepth)
  * - Excessively large output (truncated to maxLength)
  */
-export const safeStringify = (
-    value: unknown,
-    maxLength: number = MAX_STRING_LENGTH,
-    maxDepth: number = 10,
-): string => {
+export const safeStringify = (value: unknown, maxLength: number = MAX_STRING_LENGTH, maxDepth: number = 10): string => {
     try {
         let depth = 0;
         const seen = new WeakSet();
-        const result = JSON.stringify(value, function (_key, val: unknown) {
+        const result = JSON.stringify(value, (_key, val: unknown) => {
             if (typeof val === 'object' && val !== null) {
                 if (seen.has(val)) return '[Circular]';
                 seen.add(val);

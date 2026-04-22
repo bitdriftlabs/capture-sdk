@@ -207,8 +207,7 @@ const logUserInteraction = (
             // If data-redacted attribute is present, use "<redacted>" instead of actual content
             textContent = '<redacted>';
         } else {
-            const rawText =
-                (element as HTMLElement).innerText?.slice(0, 200) ?? element.textContent?.slice(0, 200);
+            const rawText = (element as HTMLElement).innerText?.slice(0, 200) ?? element.textContent?.slice(0, 200);
             if (rawText) {
                 const text = rawText.trim().replace(/\s+/g, ' ');
                 textContent = text.length > 50 ? `${text.slice(0, 50)}...` : text || undefined;
