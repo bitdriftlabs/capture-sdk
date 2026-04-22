@@ -62,6 +62,11 @@ sealed class RuntimeFeature(
      * Whether Dropped Frames reporting is enabled
      */
     data object DROPPED_EVENTS_MONITORING : RuntimeFeature("client_feature.android.dropped_frames_reporting", defaultValue = true)
+
+    /**
+     * Whether WebView Instrumentation is enabled
+     */
+    data object WEBVIEW_INSTRUMENTATION : RuntimeFeature("client_feature.android.webview_instrumentation", defaultValue = true)
 }
 
 /**
