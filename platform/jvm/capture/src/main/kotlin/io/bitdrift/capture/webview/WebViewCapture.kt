@@ -14,11 +14,14 @@ import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.LOG_TAG
+import io.bitdrift.capture.CaptureRuntimeProvider
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.ILogger
+import io.bitdrift.capture.IRuntimeProvider
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.fieldsOf
@@ -70,6 +73,7 @@ internal object WebViewCapture {
     fun instrument(
         webview: WebView,
         logger: ILogger? = null,
+        runtimeProvider: IRuntimeProvider = CaptureRuntimeProvider,
     ) {
         val effectiveLogger = logger ?: Capture.logger()
 
@@ -80,6 +84,10 @@ internal object WebViewCapture {
                 "WebView instrumentation skipped: SDK still not initialized. " +
                     "Call Capture.Logger.start() before instrumenting WebViews.",
             )
+            return
+        }
+
+        if (!runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_INSTRUMENTATION)) {
             return
         }
 
