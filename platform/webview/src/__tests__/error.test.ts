@@ -258,5 +258,139 @@ describe('error monitoring', () => {
 
             window.addEventListener = originalAddEventListener;
         });
+
+        it('should truncate very long stack traces', async () => {
+            const collector = createMessageCollector();
+            const { initPromiseRejectionMonitoring } = await import('../error');
+
+            const handlers: Array<(event: Event) => void> = [];
+            const originalAddEventListener = window.addEventListener;
+            window.addEventListener = vi.fn((type: string, handler: EventListener) => {
+                if (type === 'unhandledrejection') {
+                    handlers.push(handler);
+                }
+                originalAddEventListener.call(window, type, handler);
+            }) as typeof window.addEventListener;
+
+            initPromiseRejectionMonitoring();
+
+            const error = new Error('deep error');
+            // Simulate a huge stack trace (e.g., from deep recursion)
+            error.stack = 'Error: deep error\n' + '    at fn (/file.js:1:1)\n'.repeat(10_000);
+
+            const event = {
+                reason: error,
+                promise: Promise.resolve(),
+            } as PromiseRejectionEvent;
+
+            handlers[0](event);
+
+            const messages = collector.getMessagesByType('promiseRejection');
+            expect(messages.length).toBe(1);
+            expect(messages[0].stack!.length).toBeLessThan(error.stack!.length);
+            expect(messages[0].stack).toContain('...<truncated>');
+
+            window.addEventListener = originalAddEventListener;
+        });
+
+        it('should safely handle circular rejection reasons', async () => {
+            const collector = createMessageCollector();
+            const { initPromiseRejectionMonitoring } = await import('../error');
+
+            const handlers: Array<(event: Event) => void> = [];
+            const originalAddEventListener = window.addEventListener;
+            window.addEventListener = vi.fn((type: string, handler: EventListener) => {
+                if (type === 'unhandledrejection') {
+                    handlers.push(handler);
+                }
+                originalAddEventListener.call(window, type, handler);
+            }) as typeof window.addEventListener;
+
+            initPromiseRejectionMonitoring();
+
+            const circular: Record<string, unknown> = { code: 500 };
+            circular.self = circular;
+
+            const event = {
+                reason: circular,
+                promise: Promise.resolve(),
+            } as PromiseRejectionEvent;
+
+            expect(() => handlers[0](event)).not.toThrow();
+
+            const messages = collector.getMessagesByType('promiseRejection');
+            expect(messages.length).toBe(1);
+            expect(messages[0].reason).toContain('[Circular]');
+
+            window.addEventListener = originalAddEventListener;
+        });
+    });
+
+    describe('error monitoring truncation', () => {
+        it('should truncate very long error messages', async () => {
+            const collector = createMessageCollector();
+            const { initErrorMonitoring } = await import('../error');
+
+            const handlers: Array<(event: Event) => void> = [];
+            const originalAddEventListener = window.addEventListener;
+            window.addEventListener = vi.fn((type: string, handler: EventListener) => {
+                if (type === 'error') {
+                    handlers.push(handler);
+                }
+                originalAddEventListener.call(window, type, handler);
+            }) as typeof window.addEventListener;
+
+            initErrorMonitoring();
+
+            const hugeMessage = 'E'.repeat(100_000);
+            const errorEvent = {
+                message: hugeMessage,
+                error: new Error(hugeMessage),
+                target: window,
+            } as unknown as ErrorEvent;
+
+            handlers[0](errorEvent);
+
+            const messages = collector.getMessagesByType('error');
+            expect(messages.length).toBe(1);
+            expect(messages[0].message.length).toBeLessThan(100_000);
+            expect(messages[0].message).toContain('...<truncated>');
+
+            window.addEventListener = originalAddEventListener;
+        });
+
+        it('should truncate very long error stack traces', async () => {
+            const collector = createMessageCollector();
+            const { initErrorMonitoring } = await import('../error');
+
+            const handlers: Array<(event: Event) => void> = [];
+            const originalAddEventListener = window.addEventListener;
+            window.addEventListener = vi.fn((type: string, handler: EventListener) => {
+                if (type === 'error') {
+                    handlers.push(handler);
+                }
+                originalAddEventListener.call(window, type, handler);
+            }) as typeof window.addEventListener;
+
+            initErrorMonitoring();
+
+            const error = new TypeError('stack test');
+            error.stack = 'TypeError: stack test\n' + '    at fn (/file.js:1:1)\n'.repeat(10_000);
+
+            const errorEvent = {
+                message: 'stack test',
+                error,
+                target: window,
+            } as unknown as ErrorEvent;
+
+            handlers[0](errorEvent);
+
+            const messages = collector.getMessagesByType('error');
+            expect(messages.length).toBe(1);
+            expect(messages[0].stack!.length).toBeLessThan(error.stack!.length);
+            expect(messages[0].stack).toContain('...<truncated>');
+
+            window.addEventListener = originalAddEventListener;
+        });
     });
 });

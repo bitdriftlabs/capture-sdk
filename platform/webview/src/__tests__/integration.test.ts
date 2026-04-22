@@ -368,5 +368,41 @@ describe('integration: network interception', () => {
             expect(message.success).toBe(false);
             expect(message.error).toBe('Network error');
         });
+
+        it('should skip data URLs to avoid serializing large payloads', async () => {
+            const collector = createMessageCollector();
+            const mockFetch = createFetchMock();
+            mockFetch.mockResolvedValue(new Response('OK', { status: 200 }));
+
+            const { initNetworkInterceptor } = await import('../network');
+            initNetworkInterceptor();
+
+            // Simulate a fetch with a large data URL (e.g. base64-encoded image)
+            const dataUrl = 'data:image/png;base64,' + 'A'.repeat(10_000);
+            await fetch(dataUrl);
+
+            // The original fetch should still be called
+            expect(mockFetch).toHaveBeenCalledWith(dataUrl, undefined);
+
+            // But no network message should be logged
+            const messages = collector.getMessagesByType('networkRequest') as NetworkRequestMessage[];
+            expect(messages.length).toBe(0);
+        });
+
+        it('should skip blob URLs to avoid serializing large payloads', async () => {
+            const collector = createMessageCollector();
+            const mockFetch = createFetchMock();
+            mockFetch.mockResolvedValue(new Response('OK', { status: 200 }));
+
+            const { initNetworkInterceptor } = await import('../network');
+            initNetworkInterceptor();
+
+            await fetch('blob:https://example.com/some-uuid');
+
+            expect(mockFetch).toHaveBeenCalled();
+
+            const messages = collector.getMessagesByType('networkRequest') as NetworkRequestMessage[];
+            expect(messages.length).toBe(0);
+        });
     });
 });

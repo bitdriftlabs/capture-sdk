@@ -161,4 +161,66 @@ describe('bridge', () => {
             expect(isAnyBridgeMessage({ type: 'test', v: 1, tag: 'wrong' })).toBe(false);
         });
     });
+
+    describe('re-entrancy guard', () => {
+        it('should not stack overflow when console interceptor triggers re-entry on unknown platform', async () => {
+            // No bridge mock = unknown platform, which calls console.debug
+            // With console capture active, this would infinitely recurse without the guard
+            const consoleSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+            const { initBridge, log, createMessage } = await import('../bridge');
+
+            // Simulate console capture by overriding console.debug to call log again
+            const origDebug = console.debug;
+            console.debug = (...args: unknown[]) => {
+                origDebug.apply(console, args);
+                // This simulates what console-capture does: re-calling log from within console.debug
+                log(
+                    createMessage({
+                        type: 'customLog',
+                        level: 'debug',
+                        message: 'from interceptor',
+                    }),
+                );
+            };
+
+            initBridge();
+
+            // This should NOT cause infinite recursion
+            expect(() =>
+                log(
+                    createMessage({
+                        type: 'bridgeReady',
+                        url: 'https://example.com',
+                        instrumentationConfig: undefined,
+                    }),
+                ),
+            ).not.toThrow();
+
+            consoleSpy.mockRestore();
+        });
+    });
+
+    describe('message size limits', () => {
+        it('should truncate very large messages sent to Android bridge', async () => {
+            const androidMock = createAndroidBridgeMock();
+            const { initBridge, log, createMessage } = await import('../bridge');
+
+            initBridge();
+
+            // Create a message with a very large field
+            const hugeMessage = 'x'.repeat(100_000);
+            log(
+                createMessage({
+                    type: 'customLog',
+                    level: 'info',
+                    message: hugeMessage,
+                }),
+            );
+
+            expect(androidMock.log).toHaveBeenCalled();
+            const serialized = androidMock.log.mock.calls[0][0] as string;
+            // Should be truncated to 32KB + truncation marker
+            expect(serialized.length).toBeLessThanOrEqual(32_768 + '...<truncated>'.length);
+        });
+    });
 });

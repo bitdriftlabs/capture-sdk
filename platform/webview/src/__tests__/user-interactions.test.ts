@@ -282,4 +282,55 @@ describe('user interactions', () => {
             vi.useRealTimers();
         });
     });
+
+    describe('hardening', () => {
+        it('should not crash on deeply nested DOM when checking isClickable', async () => {
+            const collector = createMessageCollector();
+            const { initUserInteractionMonitoring } = await import('../user-interactions');
+
+            // Build a deeply nested DOM (50 levels)
+            let html = '';
+            for (let i = 0; i < 50; i++) html += '<div>';
+            html += '<span id="deep-target">deep</span>';
+            for (let i = 0; i < 50; i++) html += '</div>';
+            document.body.innerHTML = html;
+
+            const target = document.getElementById('deep-target');
+            expect(target).not.toBeNull();
+
+            initUserInteractionMonitoring();
+            collector.clear();
+
+            // Should not hang or crash - depth is capped at 15
+            expect(() => simulatePointerEvent(target as HTMLElement, 'pointerdown')).not.toThrow();
+        });
+
+        it('should not materialize entire DOM subtree for textContent', async () => {
+            const collector = createMessageCollector();
+            const { initUserInteractionMonitoring } = await import('../user-interactions');
+
+            // Create a button with massive text content via child nodes
+            const button = document.createElement('button');
+            button.id = 'big-btn';
+            for (let i = 0; i < 100; i++) {
+                const span = document.createElement('span');
+                span.textContent = 'word '.repeat(100);
+                button.appendChild(span);
+            }
+            document.body.appendChild(button);
+
+            initUserInteractionMonitoring();
+            collector.clear();
+
+            simulatePointerEvent(button, 'pointerdown');
+
+            const messages = collector.getMessagesByType('userInteraction');
+            expect(messages.length).toBeGreaterThanOrEqual(1);
+            const lastMsg = messages[messages.length - 1];
+            // textContent should be truncated, not the full ~50KB
+            if (lastMsg.textContent) {
+                expect(lastMsg.textContent.length).toBeLessThanOrEqual(53); // 50 + '...'
+            }
+        });
+    });
 });

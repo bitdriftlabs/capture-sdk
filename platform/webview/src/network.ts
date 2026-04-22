@@ -39,14 +39,21 @@ const failedResources = new Map<string, { timestamp: number; resourceType: strin
 const DEDUP_WINDOW_MS = 5000;
 
 /**
+ * Hard cap on deduplication map size. If exceeded, the map is cleared entirely
+ * to prevent unbounded memory growth under burst traffic.
+ */
+const MAP_HARD_CAP = 500;
+
+/**
  * Mark a URL as having been captured via JS interception.
  * This prevents the PerformanceObserver from double-logging it.
  */
 const markAsJsInitiated = (url: string): void => {
     jsInitiatedRequests.set(url, Date.now());
 
-    // Periodic cleanup of old entries to prevent memory growth
-    if (jsInitiatedRequests.size > 100) {
+    if (jsInitiatedRequests.size > MAP_HARD_CAP) {
+        jsInitiatedRequests.clear();
+    } else if (jsInitiatedRequests.size > 100) {
         const now = Date.now();
         for (const [key, timestamp] of jsInitiatedRequests.entries()) {
             if (now - timestamp > DEDUP_WINDOW_MS) {
@@ -87,8 +94,9 @@ const wasJsInitiated = (url: string, entryEndTime: number): boolean => {
 const markAsObserved = (url: string): void => {
     observedResources.set(url, Date.now());
 
-    // Periodic cleanup of old entries
-    if (observedResources.size > 100) {
+    if (observedResources.size > MAP_HARD_CAP) {
+        observedResources.clear();
+    } else if (observedResources.size > 100) {
         const now = Date.now();
         for (const [key, timestamp] of observedResources.entries()) {
             if (now - timestamp > DEDUP_WINDOW_MS) {
@@ -129,8 +137,9 @@ export const markResourceFailed = (url: string, resourceType: string, tagName: s
         tagName,
     });
 
-    // Periodic cleanup of old entries
-    if (failedResources.size > 100) {
+    if (failedResources.size > MAP_HARD_CAP) {
+        failedResources.clear();
+    } else if (failedResources.size > 100) {
         const now = Date.now();
         for (const [key, entry] of failedResources.entries()) {
             if (now - entry.timestamp > DEDUP_WINDOW_MS) {
@@ -154,19 +163,18 @@ const checkResourceFailed = (url: string): { failed: boolean; resourceType?: str
 };
 
 /**
- * Try to get resource timing data for a URL
+ * Try to get resource timing data for a URL.
+ * Uses getEntriesByName for O(1) lookup instead of scanning all entries.
  */
 const getResourceTiming = (url: string): PerformanceResourceTiming | undefined => {
     return safeCall(() => {
-        if (typeof performance === 'undefined' || !performance.getEntriesByType) {
+        if (typeof performance === 'undefined' || !performance.getEntriesByName) {
             return undefined;
         }
 
-        const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
-        // Find the most recent entry for this URL
-        const entry = entries.filter((e) => e.name === url).pop();
-
-        return entry;
+        const entries = performance.getEntriesByName(url, 'resource') as PerformanceResourceTiming[];
+        // Return the most recent entry for this URL
+        return entries.length > 0 ? entries[entries.length - 1] : undefined;
     });
 };
 
@@ -198,6 +206,11 @@ const interceptFetch = (): void => {
                 }
                 return { url: u, method: m };
             }) ?? { url: '', method: 'GET' };
+
+            // Skip data/blob URLs — they can be megabytes and aren't useful to log
+            if (url.startsWith('data:') || url.startsWith('blob:')) {
+                return originalFetch.call(window, input, init);
+            }
 
             try {
                 const response = await originalFetch.call(window, input, init);
@@ -271,14 +284,19 @@ const interceptXHR = (): void => {
             password?: string | null,
         ): void {
             // Store request info on the XHR instance safely
+            const urlStr = url.toString();
             safeCall(() => {
+                // Skip data/blob URLs — they can be megabytes and aren't useful to log
+                if (urlStr.startsWith('data:') || urlStr.startsWith('blob:')) {
+                    return;
+                }
                 (
                     this as XMLHttpRequest & {
                         _bitdrift?: { method: string; url: string; requestId: string };
                     }
                 )._bitdrift = {
                     method: method.toUpperCase(),
-                    url: url.toString(),
+                    url: urlStr,
                     requestId: generateRequestId(),
                 };
             });
