@@ -10,13 +10,17 @@ package io.bitdrift.capture.webview
 import android.content.Context
 import android.webkit.WebView
 import androidx.test.core.app.ApplicationProvider
+import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
+import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.spy
 import com.nhaarman.mockitokotlin2.verify
+import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.ContextHolder
+import io.bitdrift.capture.IRuntimeProvider
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
@@ -39,6 +43,7 @@ class WebViewCaptureTest {
     private lateinit var appContext: Context
     private val fieldsCaptor = argumentCaptor<ArrayFields>()
     private val messageCaptor = argumentCaptor<() -> String>()
+    private val runtimeProvider: IRuntimeProvider = mock()
 
     @Before
     fun setup() {
@@ -98,6 +103,26 @@ class WebViewCaptureTest {
             messageCaptor.capture(),
         )
         assertThat(messageCaptor.firstValue()).isEqualTo("WebView bridge script injected successfully")
+    }
+
+    @Test
+    fun instrument_withRuntimeFeatureDisabled_shouldSkipInstrumentation() {
+        startSdk(webViewConfiguration = WebViewConfiguration())
+        whenever(runtimeProvider.isRuntimeFeatureEnabled(any())).thenReturn(false)
+
+        WebViewCapture.instrument(webView, Capture.logger(), runtimeProvider)
+
+        assertThat(webView.settings.javaScriptEnabled).isFalse()
+    }
+
+    @Test
+    fun instrument_withRuntimeFeatureEnabled_shouldProceedWithInstrumentation() {
+        startSdk(webViewConfiguration = WebViewConfiguration())
+        whenever(runtimeProvider.isRuntimeFeatureEnabled(any())).thenReturn(true)
+
+        WebViewCapture.instrument(webView, Capture.logger(), runtimeProvider)
+
+        assertThat(webView.settings.javaScriptEnabled).isTrue()
     }
 
     private fun startSdk(webViewConfiguration: WebViewConfiguration?) {
