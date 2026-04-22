@@ -47,8 +47,8 @@ struct LogComposerView: View {
                                     Spacer()
 
                                     Image(systemName: self.selectedLogLevel == level
-                                        ? "checkmark.circle.fill"
-                                        : "circle"
+                                            ? "checkmark.circle.fill"
+                                            : "circle"
                                     )
                                     .font(.title3)
                                     .foregroundColor(level.tint)
