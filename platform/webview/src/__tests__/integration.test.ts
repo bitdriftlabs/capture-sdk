@@ -378,7 +378,7 @@ describe('integration: network interception', () => {
             initNetworkInterceptor();
 
             // Simulate a fetch with a large data URL (e.g. base64-encoded image)
-            const dataUrl = 'data:image/png;base64,' + 'A'.repeat(10_000);
+            const dataUrl = `data:image/png;base64,${'A'.repeat(10_000)}`;
             await fetch(dataUrl);
 
             // The original fetch should still be called

@@ -276,7 +276,7 @@ describe('error monitoring', () => {
 
             const error = new Error('deep error');
             // Simulate a huge stack trace (e.g., from deep recursion)
-            error.stack = 'Error: deep error\n' + '    at fn (/file.js:1:1)\n'.repeat(10_000);
+            error.stack = `Error:·deep·error\n${'····at·fn·(/file.js:1:1)\n'.repeat(10_000)}`;
 
             const event = {
                 reason: error,
@@ -287,7 +287,7 @@ describe('error monitoring', () => {
 
             const messages = collector.getMessagesByType('promiseRejection');
             expect(messages.length).toBe(1);
-            expect(messages[0].stack!.length).toBeLessThan(error.stack!.length);
+            expect(messages[0].stack?.length).toBeLessThan(error.stack?.length);
             expect(messages[0].stack).toContain('...<truncated>');
 
             window.addEventListener = originalAddEventListener;
@@ -375,7 +375,7 @@ describe('error monitoring', () => {
             initErrorMonitoring();
 
             const error = new TypeError('stack test');
-            error.stack = 'TypeError: stack test\n' + '    at fn (/file.js:1:1)\n'.repeat(10_000);
+            error.stack = `TypeError: stack test\n${'    at fn (/file.js:1:1)\n'.repeat(10_000)}`;
 
             const errorEvent = {
                 message: 'stack test',
@@ -387,7 +387,7 @@ describe('error monitoring', () => {
 
             const messages = collector.getMessagesByType('error');
             expect(messages.length).toBe(1);
-            expect(messages[0].stack!.length).toBeLessThan(error.stack!.length);
+            expect(messages[0].stack?.length).toBeLessThan(error.stack?.length);
             expect(messages[0].stack).toContain('...<truncated>');
 
             window.addEventListener = originalAddEventListener;

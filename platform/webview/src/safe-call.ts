@@ -49,13 +49,15 @@ export const makeSafe = <TArgs extends unknown[], TReturn>(
 /** Maximum string length for any single field sent to the native bridge. */
 export const MAX_STRING_LENGTH = 4096;
 
+const MAX_JSON_STRINGIFY_DEPTH = 20;
+
 /**
  * Truncate a string to a safe length to prevent excessive memory allocation
  * when passing data across the native bridge.
  */
 export const truncate = (str: string, maxLength: number = MAX_STRING_LENGTH): string => {
     if (str.length <= maxLength) return str;
-    return str.slice(0, maxLength) + '...<truncated>';
+    return `${str.slice(0, maxLength)}...<truncated>`;
 };
 
 /**
@@ -64,7 +66,11 @@ export const truncate = (str: string, maxLength: number = MAX_STRING_LENGTH): st
  * - Deeply nested objects (limited by maxDepth)
  * - Excessively large output (truncated to maxLength)
  */
-export const safeStringify = (value: unknown, maxLength: number = MAX_STRING_LENGTH, maxDepth: number = 10): string => {
+export const safeStringify = (
+    value: unknown,
+    maxLength: number = MAX_STRING_LENGTH,
+    maxDepth: number = MAX_JSON_STRINGIFY_DEPTH,
+): string => {
     try {
         let depth = 0;
         const seen = new WeakSet();
@@ -81,10 +87,10 @@ export const safeStringify = (value: unknown, maxLength: number = MAX_STRING_LEN
             return val;
         });
         if (result && result.length > maxLength) {
-            return result.slice(0, maxLength) + '...<truncated>';
+            return truncate(result, maxLength);
         }
         return result ?? 'undefined';
     } catch {
-        return String(value);
+        return `${value}`;
     }
 };
