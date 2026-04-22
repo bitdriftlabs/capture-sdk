@@ -6,9 +6,12 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage, pristine, isAnyBridgeMessage } from './bridge';
-import { safeCall } from './safe-call';
+import { safeCall, safeStringify, truncate, MAX_STRING_LENGTH } from './safe-call';
 
 const LEVELS = ['log', 'warn', 'error', 'info', 'debug'] as const;
+
+/** Maximum number of console args to capture beyond the first. */
+const MAX_EXTRA_ARGS = 10;
 
 /**
  * Initialize console log capture.
@@ -32,7 +35,12 @@ export const initConsoleCapture = (): void => {
                     // Convert args to strings
                     const messageStr = stringifyArg(args[0]);
                     const additionalArgs =
-                        args.length > 1 ? (args.slice(1).map(stringifyArg).filter(Boolean) as string[]) : undefined;
+                        args.length > 1
+                            ? (args
+                                  .slice(1, 1 + MAX_EXTRA_ARGS)
+                                  .map(stringifyArg)
+                                  .filter(Boolean) as string[])
+                            : undefined;
 
                     const message = createMessage({
                         type: 'console',
@@ -48,18 +56,14 @@ export const initConsoleCapture = (): void => {
 };
 
 /**
- * Convert an argument to a string representation
+ * Convert an argument to a string representation, bounded in size.
  */
 const stringifyArg = (arg: unknown): string => {
     if (arg === null) return 'null';
     if (arg === undefined) return 'undefined';
-    if (typeof arg === 'string') return arg;
+    if (typeof arg === 'string') return truncate(arg, MAX_STRING_LENGTH);
     if (typeof arg === 'number' || typeof arg === 'boolean') return String(arg);
-    if (arg instanceof Error) return `${arg.name}: ${arg.message}`;
+    if (arg instanceof Error) return truncate(`${arg.name}: ${arg.message}`, MAX_STRING_LENGTH);
 
-    try {
-        return JSON.stringify(arg, null, 0);
-    } catch {
-        return String(arg);
-    }
+    return safeStringify(arg);
 };

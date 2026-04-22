@@ -162,5 +162,71 @@ describe('console capture', () => {
             // Falls back to String(obj)
             expect(messages[0].message).toBe('[object Object]');
         });
+
+        it('should handle circular references in console args', async () => {
+            const collector = createMessageCollector();
+            const { initConsoleCapture } = await import('../console-capture');
+
+            initConsoleCapture();
+
+            const circular: Record<string, unknown> = { a: 1 };
+            circular.self = circular;
+
+            expect(() => console.log(circular)).not.toThrow();
+
+            const messages = collector.getMessagesByType('console');
+            expect(messages.length).toBe(1);
+            expect(messages[0].message).toContain('[Circular]');
+        });
+
+        it('should truncate very long string arguments', async () => {
+            const collector = createMessageCollector();
+            const { initConsoleCapture } = await import('../console-capture');
+
+            initConsoleCapture();
+
+            const hugeString = 'x'.repeat(100_000);
+            console.log(hugeString);
+
+            const messages = collector.getMessagesByType('console');
+            expect(messages.length).toBe(1);
+            expect(messages[0].message.length).toBeLessThan(100_000);
+            expect(messages[0].message).toContain('...<truncated>');
+        });
+
+        it('should cap extra arguments to 10', async () => {
+            const collector = createMessageCollector();
+            const { initConsoleCapture } = await import('../console-capture');
+
+            initConsoleCapture();
+
+            // Log 15 extra args (1 message + 15 extras = 16 total)
+            console.log('msg', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+
+            const messages = collector.getMessagesByType('console');
+            expect(messages.length).toBe(1);
+            expect(messages[0].message).toBe('msg');
+            // Should cap at 10 extra args
+            expect(messages[0].args?.length).toBeLessThanOrEqual(10);
+        });
+
+        it('should handle deeply nested objects without crashing', async () => {
+            const collector = createMessageCollector();
+            const { initConsoleCapture } = await import('../console-capture');
+
+            initConsoleCapture();
+
+            // Build deeply nested object
+            let obj: Record<string, unknown> = { value: 'leaf' };
+            for (let i = 0; i < 50; i++) {
+                obj = { child: obj };
+            }
+
+            expect(() => console.log(obj)).not.toThrow();
+
+            const messages = collector.getMessagesByType('console');
+            expect(messages.length).toBe(1);
+            expect(messages[0].message).toContain('[MaxDepth]');
+        });
     });
 });
