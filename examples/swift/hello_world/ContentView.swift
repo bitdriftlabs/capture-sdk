@@ -12,7 +12,6 @@ struct ContentView: View {
     private let loggerCustomer: LoggerCustomer
 
     init() {
-        Theme.applyNavigationAppearance()
         self.loggerCustomer = LoggerCustomer()
     }
 

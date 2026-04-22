@@ -19,7 +19,7 @@ struct PanelInputField: View {
                 .foregroundColor(Theme.textPrimary)
 
             TextField(self.placeholder, text: self.$text)
-                .autocapitalization(.none)
+                .textInputAutocapitalization(.never)
                 .disableAutocorrection(true)
                 .foregroundColor(Theme.textPrimary)
                 .padding(.horizontal, 14)

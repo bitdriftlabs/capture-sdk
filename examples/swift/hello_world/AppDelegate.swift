@@ -17,6 +17,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         _: UIApplication,
         didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        Theme.applyNavigationAppearance()
         let window = UIWindow(frame: UIScreen.main.bounds)
         let contentView = ContentView()
         window.rootViewController = UIHostingController(rootView: contentView)
