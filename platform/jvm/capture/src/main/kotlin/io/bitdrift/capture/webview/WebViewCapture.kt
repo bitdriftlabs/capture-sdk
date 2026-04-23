@@ -125,6 +125,12 @@ internal object WebViewCapture {
     ) {
         val existingClient = WebViewCompat.getWebViewClient(webview)
         webview.webViewClient = NativeWebViewClient(existingClient, logger, config)
+
+        if (config.captureConsoleLogs) {
+            val existingChromeClient = webview.webChromeClient
+            webview.webChromeClient = NativeWebChromeClient(existingChromeClient, logger)
+        }
+
         logger.logInternal(
             LogType.INTERNALSDK,
             LogLevel.DEBUG,

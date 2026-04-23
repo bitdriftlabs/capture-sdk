@@ -139,6 +139,26 @@ class WebViewCaptureTest {
     }
 
     @Test
+    fun instrument_withNativeOnlyMode_shouldSetWebChromeClientWhenConsoleLogsEnabled() {
+        val config = WebViewConfiguration.NativeOnly(captureConsoleLogs = true)
+        startSdk(webViewConfiguration = config)
+
+        WebViewCapture.instrument(webView)
+
+        assertThat(webView.webChromeClient).isInstanceOf(NativeWebChromeClient::class.java)
+    }
+
+    @Test
+    fun instrument_withNativeOnlyMode_shouldNotSetWebChromeClientWhenConsoleLogsDisabled() {
+        val config = WebViewConfiguration.NativeOnly(captureConsoleLogs = false)
+        startSdk(webViewConfiguration = config)
+
+        WebViewCapture.instrument(webView)
+
+        assertThat(webView.webChromeClient).isNull()
+    }
+
+    @Test
     fun instrument_calledTwice_shouldOnlyInstrumentOnce() {
         val config = WebViewConfiguration.javaScriptBridge()
         startSdk(webViewConfiguration = config)
@@ -177,6 +197,7 @@ class WebViewCaptureTest {
         assertThat(config.captureErrors).isTrue()
         assertThat(config.captureNavigationEvents).isTrue()
         assertThat(config.captureResourceLoads).isFalse()
+        assertThat(config.captureConsoleLogs).isTrue()
     }
 
     @Test

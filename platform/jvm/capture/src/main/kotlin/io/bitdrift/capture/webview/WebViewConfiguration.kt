@@ -27,6 +27,8 @@ sealed interface WebViewConfiguration {
         val captureErrors: Boolean = false,
         /** Enables resource load callbacks. */
         val captureResourceLoads: Boolean = false,
+        /** Enables console log capture via WebChromeClient. */
+        val captureConsoleLogs: Boolean = false,
     ) : WebViewConfiguration
 
     /**
@@ -59,6 +61,7 @@ sealed interface WebViewConfiguration {
                 capturePageViews = true,
                 captureNavigationEvents = true,
                 captureErrors = true,
+                captureConsoleLogs = true,
             )
 
         /** Full JavaScript bridge configuration with common defaults enabled. */
@@ -108,6 +111,7 @@ internal fun WebViewConfiguration.toJson(): String =
                     put("captureNavigationEvents", captureNavigationEvents)
                     put("captureErrors", captureErrors)
                     put("captureResourceLoads", captureResourceLoads)
+                    put("captureConsoleLogs", captureConsoleLogs)
                 }.toString()
         is WebViewConfiguration.JavaScriptBridge ->
             JSONObject()
