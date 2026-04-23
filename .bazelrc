@@ -119,9 +119,11 @@ build:nomacos --test_tag_filters=-macos_only --build_tag_filters=-macos_only
 build:benchmark --config=release-common
 build:benchmark-profile --config=benchmark --@rules_rust//rust/settings:extra_rustc_flag='-Cdebuginfo=2' --force_pic
 
-# Specifies that panics should automatically be treated as a panic.
+# Specifies that panics should use immediate-abort to match rust-std-mobile's prebuilt std.
+# This requires RUSTC_BOOTSTRAP=1 since immediate-abort is a nightly-only codegen option.
+build:abort-panic --action_env=RUSTC_BOOTSTRAP=1
 build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=-C
-build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=panic=abort
+build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=panic=immediate-abort
 
 # This attempts to match what cargo-fuzz does, but it's likely a moving target with many options.
 # Occasionally check back to see if anything has changed over there.

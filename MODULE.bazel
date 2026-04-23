@@ -7,7 +7,7 @@ use_repo(sdk_version_ext, "sdk_version")
 # Constants
 ####################
 
-RUST_VERSION = "1.92.0"
+RUST_VERSION = "1.95.0"
 
 OKHTTP_VERSION = "4.12.0"
 
@@ -308,24 +308,24 @@ rust.toolchain(
     #
     # tl;dr; run e.g. $ ./tools/rust_std_checksum.sh 1.82.0
     sha256s = {
-        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios-sim.tar.gz": "d7485d7e1dbe8eace07e5084cea0e0b07fb5f4ffcc60fe256be27ddf1f3e4644",
-        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios.tar.gz": "ce855e19c4a581fe066c72b722f00844fb69c1bbd2928061ec1ea7d4d51fd723",
-        "rust-std-" + RUST_VERSION + "-x86_64-apple-ios.tar.gz": "f5177ccaf167e7b74945cdc5feaf103ede69977fde99619dfde9c29cf60f386f",
-        "rust-std-" + RUST_VERSION + "-aarch64-linux-android.tar.gz": "4c6e35ec50d5550c190323a6114a5056c486bf244884aede93eb620f962a2402",
-        "rust-std-" + RUST_VERSION + "-armv7-linux-androideabi.tar.gz": "0fae0101208cad0b673b64d740c059a415a1a8b0aad412464c324967d961a762",
-        "rust-std-" + RUST_VERSION + "-i686-linux-android.tar.gz": "937bd02ed83632e785aa35290e3b20556a68db49562b0a686869a72954296856",
-        "rustc-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "9bba82c249776b282e25f4bc9c9386ea5ec81d3a2346281516c9da8910a5fd22",
-        "cargo-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "5295d590590a606d98e3f97b730fe3b4e8d96a0c78e5268232b15b3c45180d28",
-        "llvm-tools-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "5377c14533bf0a4bcdd4a06ec92dc601c624c42f5716c514ec60347280571adc",
-        "rust-std-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "b1f55aac4bc982ea67b68b262b711263005e470d31cab5d09d534bc1866d455a",
-        "clippy-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "02cb1fb33fead2b4378c37db711fda2945b7487ccc462ee1abeeb3a4ffcff312",
-        "rustfmt-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "485184f8e187dbf83ca03ea8d0d2ae4fb2c2ffec75c76a84a28fc17e617632a3",
-        "rustc-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "e133546ebb40974356cc82434e07f6a0ce15966d8b01898f97eab235c46883e8",
-        "cargo-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "2aa2b1c1df189d346f3937b4887c901b737df2663a667de17beb8f1098442bb9",
-        "llvm-tools-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "71aafc660d8c59bf0b78abbd4449085868beb70ce615e053d687cdc0191d90b7",
-        "rust-std-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "ba4e0b4a60c082e0b1cc6284a38bb144844c92f1aab09732cd1183658e08a6e7",
-        "clippy-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "cd63fc19e6047742b735e959ed615f2013df5a0653913ec37a7e17fe9b0f99d7",
-        "rustfmt-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "106cf8b4d37283445d4d79052d7fd7dd75059e5be9af8a8185e401c1b45276e2",
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios-sim.tar.gz": "fca15db408d100706648b20982d6a8ea99d6a40d05aec1b64fe68e2b4318b383",
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios.tar.gz": "6a334baff006160430ac4b9f23521699a20ce38e0c84fc72e01c92350f106b32",
+        "rust-std-" + RUST_VERSION + "-x86_64-apple-ios.tar.gz": "08ea4f3d82dc64ff42253817c164588bca473cd423494b0e6731ef27bd34f30a",
+        "rust-std-" + RUST_VERSION + "-aarch64-linux-android.tar.gz": "60b494bd5a96b9188c42b3810f9396baea20361b2433440a5caeb28076a1650d",
+        "rust-std-" + RUST_VERSION + "-armv7-linux-androideabi.tar.gz": "92b311a8ce1e32689803149fea8a296eae589ec662385bb59c6fd4d7c254550b",
+        "rust-std-" + RUST_VERSION + "-i686-linux-android.tar.gz": "c5ce94413c3fcc381826e3b4c2ebdb3468f00eee75f85088068a50652025fead",
+        "rustc-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "64f20ce6864040b822b8fbdb7dbfd892e5b04828ca8cbd1e6accef9694da3ebb",
+        "cargo-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "0421d71bd676f0d38e318bf3eb7cd1a9ca33cf5ccf70f49644950a91fa046de7",
+        "llvm-tools-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "c8b7851f83d232c2abf5dbca31af43701deca0973ac7eb7cd1741c180396b7db",
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "c64f139c2a4f973b3d8b26482673909043545db14f0b1255ed743844e9f9ce99",
+        "clippy-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "ff1fd77e514985dda551b050f762fb3e54e4b8f49a56bc69788a571d310b8d36",
+        "rustfmt-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "f2717da6e862eb570a0b973eeb1034a3b3bb6610e4a8e6da52ce6d256eb2c109",
+        "rustc-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "fef749c4abb4b4bde5ebf773bec550003ce5b4410579cecd69a365e5c0c5106a",
+        "cargo-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "47ebc468721a6ff3fb27dff33e632a4cb6246d0ea061814bcd4fe601d18c69a8",
+        "llvm-tools-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "55b57b2aff59cff2acffa1319513e7c74b0a09ef5a58e1d5f4beba4c8d911f7a",
+        "rust-std-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "edbd20f8fc0a617f85ffb79fa6c22aa6def0e570de3f94be1a6e5ab1f77f763c",
+        "clippy-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "5230c92fb0ae1346ee30a1b4e01413cc3e1ead8ded20391fb2826619775f1ccb",
+        "rustfmt-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "6d3e64adc505ad4bef6935f6e6f5e4c6956d9782607fb8394df3a5d2b30d2733",
     },
     urls = [
         # NOTE: `urls` are technically mirrors so we want to make sure we always try our own first then the official ones.
