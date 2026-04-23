@@ -15,6 +15,7 @@ export const pristine = {
         error: console.error,
         info: console.info,
         debug: console.debug,
+        trace: console.trace,
     },
 };
 
@@ -33,6 +34,8 @@ const detectPlatform = (): Platform => {
         }) ?? 'unknown'
     );
 };
+
+export const assertBridgeReady = (): boolean => detectPlatform() !== 'unknown';
 
 const sendToNative = (() => {
     // Re-entrancy guard to prevent infinite recursion when the 'unknown' platform
@@ -56,8 +59,8 @@ const sendToNative = (() => {
                         break;
                     case 'unknown':
                         // In development/testing, log to console
-                        if (typeof console !== 'undefined') {
-                            console.debug('[Bitdrift WebView]', message);
+                        if (typeof pristine.console !== 'undefined') {
+                            pristine.console.debug('[Bitdrift WebView]', message);
                         }
                         break;
                 }
@@ -71,10 +74,15 @@ const sendToNative = (() => {
 /**
  * Initialize the global bitdrift object
  */
-export const initBridge = (): void => {
+export const initBridge = (): boolean => {
     // Avoid re-initialization
     if (window.bitdrift?.log) {
-        return;
+        return false;
+    }
+
+    // Bail is bridge is not available
+    if (!assertBridgeReady()) {
+        return false;
     }
 
     window.bitdrift = {
@@ -103,6 +111,7 @@ export const initBridge = (): void => {
             sendToNative(message);
         },
     };
+    return true;
 };
 
 /**

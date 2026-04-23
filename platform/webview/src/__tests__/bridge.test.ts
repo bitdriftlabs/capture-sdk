@@ -15,6 +15,25 @@ describe('bridge', () => {
         vi.resetModules();
     });
 
+    describe('assertBridgeReady', () => {
+        it('should return true when Android bridge is available', async () => {
+            createAndroidBridgeMock();
+            const { assertBridgeReady } = await import('../bridge');
+            expect(assertBridgeReady()).toBe(true);
+        });
+
+        it('should return true when iOS bridge is available', async () => {
+            createIOSBridgeMock();
+            const { assertBridgeReady } = await import('../bridge');
+            expect(assertBridgeReady()).toBe(true);
+        });
+
+        it('should return false when no bridge is available', async () => {
+            const { assertBridgeReady } = await import('../bridge');
+            expect(assertBridgeReady()).toBe(false);
+        });
+    });
+
     describe('platform detection', () => {
         it('should detect Android platform', async () => {
             const androidMock = createAndroidBridgeMock();
@@ -71,6 +90,54 @@ describe('bridge', () => {
             ).not.toThrow();
 
             consoleSpy.mockRestore();
+        });
+    });
+
+    describe('initBridge return value', () => {
+        it('should return true when bridge is available', async () => {
+            createAndroidBridgeMock();
+            const { initBridge } = await import('../bridge');
+            expect(initBridge()).toBe(true);
+        });
+
+        it('should return false when bridge is not available (unknown platform)', async () => {
+            const { initBridge } = await import('../bridge');
+            expect(initBridge()).toBe(false);
+        });
+
+        it('should return false on re-initialization', async () => {
+            createAndroidBridgeMock();
+            const { initBridge } = await import('../bridge');
+            expect(initBridge()).toBe(true);
+            expect(initBridge()).toBe(false);
+        });
+    });
+
+    describe('pristine console usage', () => {
+        it('should use pristine.console.debug on unknown platform instead of console.debug', async () => {
+            const { log, createMessage, pristine } = await import('../bridge');
+
+            const pristineSpy = vi.spyOn(pristine.console, 'debug').mockImplementation(() => {});
+
+            log(
+                createMessage({
+                    type: 'customLog',
+                    level: 'info',
+                    message: 'test',
+                }),
+            );
+
+            expect(pristineSpy).toHaveBeenCalledWith(
+                '[Bitdrift WebView]',
+                expect.objectContaining({ type: 'customLog' }),
+            );
+            pristineSpy.mockRestore();
+        });
+
+        it('should store console.trace in pristine references', async () => {
+            const { pristine } = await import('../bridge');
+            expect(pristine.console.trace).toBeDefined();
+            expect(typeof pristine.console.trace).toBe('function');
         });
     });
 

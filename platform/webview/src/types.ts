@@ -229,8 +229,8 @@ export interface ResourceErrorMessage extends BridgeMessage {
  */
 export interface ConsoleMessage extends BridgeMessage {
     type: 'console';
-    /** Console method: log, warn, error, info, debug */
-    level: 'log' | 'warn' | 'error' | 'info' | 'debug';
+    /** Console method: log, warn, error, info, debug, trace */
+    level: 'log' | 'warn' | 'error' | 'info' | 'debug' | 'trace';
     /** Console message content */
     message: string;
     /** Additional arguments passed to console */

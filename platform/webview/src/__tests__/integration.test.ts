@@ -31,6 +31,7 @@ describe('integration: message structure validation', () => {
         error: console.error,
         info: console.info,
         debug: console.debug,
+        trace: console.trace,
     };
 
     beforeEach(() => {
@@ -44,6 +45,7 @@ describe('integration: message structure validation', () => {
         console.error = originalConsole.error;
         console.info = originalConsole.info;
         console.debug = originalConsole.debug;
+        console.trace = originalConsole.trace;
 
         Object.defineProperty(window, 'location', {
             value: { href: 'https://example.com/test' },
@@ -60,6 +62,7 @@ describe('integration: message structure validation', () => {
         console.error = originalConsole.error;
         console.info = originalConsole.info;
         console.debug = originalConsole.debug;
+        console.trace = originalConsole.trace;
     });
 
     describe('bridgeReady message', () => {
@@ -311,6 +314,26 @@ describe('integration: message structure validation', () => {
             expect(async () => {
                 await import('../index');
             }).not.toThrow();
+        });
+
+        it('should bail without sending any messages when bridge is unavailable', async () => {
+            // No bridge mock = unknown platform, assertBridgeReady returns false
+            const messages: string[] = [];
+            const origDebug = console.debug;
+            console.debug = vi.fn((...args: unknown[]) => {
+                messages.push(args.map(String).join(' '));
+                origDebug.apply(console, args);
+            });
+
+            // Import index which calls init() immediately
+            await import('../index');
+
+            // initBridge should have returned false, so no bridgeReady or
+            // internalAutoInstrumentation messages should have been sent
+            const bridgeMessages = messages.filter((m) => m.includes('bitdrift-webview-sdk'));
+            expect(bridgeMessages.length).toBe(0);
+
+            console.debug = origDebug;
         });
     });
 });
