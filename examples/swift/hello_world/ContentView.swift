@@ -11,8 +11,8 @@ import SwiftUI
 struct ContentView: View {
     private let loggerCustomer: LoggerCustomer
 
-    init() {
-        self.loggerCustomer = LoggerCustomer()
+    init(loggerCustomer: LoggerCustomer) {
+        self.loggerCustomer = loggerCustomer
     }
 
     var body: some View {

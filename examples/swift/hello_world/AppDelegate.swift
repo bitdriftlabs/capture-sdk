@@ -18,8 +18,9 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         Theme.applyNavigationAppearance()
+        let loggerCustomer = LoggerCustomer()
         let window = UIWindow(frame: UIScreen.main.bounds)
-        let contentView = ContentView()
+        let contentView = ContentView(loggerCustomer: loggerCustomer)
         window.rootViewController = UIHostingController(rootView: contentView)
         window.makeKeyAndVisible()
         self.window = window
