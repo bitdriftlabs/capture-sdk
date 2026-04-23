@@ -35,6 +35,8 @@ const detectPlatform = (): Platform => {
     );
 };
 
+export const assertBridgeReady = (): boolean => detectPlatform() !== 'unknown';
+
 const sendToNative = (() => {
     // Re-entrancy guard to prevent infinite recursion when the 'unknown' platform
     // branch logs to console.debug, which would re-enter via the console interceptor.
@@ -72,10 +74,15 @@ const sendToNative = (() => {
 /**
  * Initialize the global bitdrift object
  */
-export const initBridge = (): void => {
+export const initBridge = (): boolean => {
     // Avoid re-initialization
     if (window.bitdrift?.log) {
-        return;
+        return false;
+    }
+
+    // Bail is bridge is not available
+    if (!assertBridgeReady()) {
+        return false;
     }
 
     window.bitdrift = {
@@ -104,6 +111,7 @@ export const initBridge = (): void => {
             sendToNative(message);
         },
     };
+    return true;
 };
 
 /**
