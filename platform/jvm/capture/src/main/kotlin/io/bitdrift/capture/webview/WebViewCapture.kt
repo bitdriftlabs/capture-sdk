@@ -51,8 +51,8 @@ internal object WebViewCapture {
     private const val BRIDGE_NAME = "BitdriftLogger"
     private const val TAG_KEY_INSTRUMENTED = 0x62697464 // "bitd" in hex, unique key for setTag
 
-     /**
-      * Instruments a WebView based on the configured [WebViewConfiguration].
+    /**
+     * Instruments a WebView based on the configured [WebViewConfiguration].
      *
      * This method is idempotent - calling it multiple times on the same WebView
      * will only instrument it once.
@@ -60,7 +60,7 @@ internal object WebViewCapture {
      * Requirements:
      * - The Bitdrift SDK must be initialized before calling this method
      * - WebView monitoring must be enabled in the Capture configuration
-      * - For JavaScriptBridge mode: androidx.webkit library must be available
+     * - For JavaScriptBridge mode: androidx.webkit library must be available
      *
      * @param webview The WebView to instrument
      * @param logger Optional logger instance. If null, uses Capture.logger()
@@ -103,6 +103,7 @@ internal object WebViewCapture {
         when (webViewConfig) {
             is WebViewConfiguration.NativeOnly -> {
                 instrumentNativeOnly(webview, loggerImpl, webViewConfig)
+                return
             }
             is WebViewConfiguration.JavaScriptBridge -> {
                 val notSupportedReason = getNotSupportedReason()
@@ -123,14 +124,32 @@ internal object WebViewCapture {
         logger: IInternalLogger,
         config: WebViewConfiguration.NativeOnly,
     ) {
-        val existingClient = WebViewCompat.getWebViewClient(webview)
-        webview.webViewClient = NativeWebViewClient(existingClient, logger, config)
-        logger.logInternal(
-            LogType.INTERNALSDK,
-            LogLevel.DEBUG,
-            fieldsOf("_mode" to "native"),
-        ) {
-            "WebView instrumented with native callbacks"
+        if (config.captureConsoleLogs) {
+            runCatching {
+                val existingChromeClient = WebViewCompat.getWebChromeClient(webview)
+                webview.webChromeClient = NativeWebChromeClient(existingChromeClient, logger)
+            }.onFailure { error ->
+                logger.logInternalError(throwable = error) {
+                    "Failed to set WebChromeClient for console log capture"
+                }
+            }
+        }
+
+        runCatching {
+            val existingClient = WebViewCompat.getWebViewClient(webview)
+            webview.webViewClient = NativeWebViewClient(existingClient, logger, config)
+            webview.markAsInstrumented()
+            logger.logInternal(
+                LogType.INTERNALSDK,
+                LogLevel.DEBUG,
+                fieldsOf("_mode" to "native"),
+            ) {
+                "WebView instrumented with native callbacks"
+            }
+        }.onFailure { error ->
+            logger.logInternalError(throwable = error) {
+                "Failed to set WebViewClient"
+            }
         }
     }
 

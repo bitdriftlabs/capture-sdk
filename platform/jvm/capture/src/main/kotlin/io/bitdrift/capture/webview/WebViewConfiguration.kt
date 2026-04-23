@@ -1,4 +1,3 @@
-@file:Suppress("UndocumentedPublicClass")
 // capture-sdk - bitdrift's client SDK
 // Copyright Bitdrift, Inc. All rights reserved.
 //
@@ -13,23 +12,17 @@ import io.bitdrift.capture.providers.fieldsOf
 import org.json.JSONObject
 
 /**
- * Defines how WebView instrumentation interacts with JavaScript settings.
- */
-enum class WebViewInstrumentationMode {
-    /**
-     * Uses native WebViewClient callbacks only. No JavaScript required.
-     * Captures: page view, navigation, errors, HTTP/SSL errors, renderer crashes.
-     */
-    NATIVE_ONLY,
-
-    /**
-     * Full JavaScript bridge instrumentation. Enables JavaScript if not already enabled.
-     */
-    JAVASCRIPT_BRIDGE,
-}
-
-/**
  * Configuration for WebView instrumentation.
+ *
+ * **Note:** In order for this configuration to take effect, the `io.bitdrift.capture-plugin`
+ * Gradle plugin must be applied to your project with `automaticWebViewInstrumentation` set to `true`.
+ * Without the plugin, this configuration has no effect.
+ *
+ * When provided to [io.bitdrift.capture.Configuration], enables automatic WebView monitoring.
+ *
+ * If `null` is passed to [io.bitdrift.capture.Configuration.webViewConfiguration], WebView monitoring
+ * is disabled and any bytecode instrumentation injected by the Gradle plugin will be
+ * short-circuited (no-op).
  */
 sealed interface WebViewConfiguration {
     /**
@@ -44,6 +37,8 @@ sealed interface WebViewConfiguration {
         val captureErrors: Boolean = false,
         /** Enables resource load callbacks. */
         val captureResourceLoads: Boolean = false,
+        /** Enables console log capture via WebChromeClient. */
+        val captureConsoleLogs: Boolean = false,
     ) : WebViewConfiguration
 
     /**
@@ -68,14 +63,16 @@ sealed interface WebViewConfiguration {
         val captureUserInteractions: Boolean = false,
     ) : WebViewConfiguration
 
+    /** Factory methods for common WebView configurations. */
     companion object {
-        /** Factory methods for common configurations. */
+        /** Native-only configuration with common defaults enabled. */
         @JvmStatic
         fun nativeOnly() =
             NativeOnly(
                 capturePageViews = true,
                 captureNavigationEvents = true,
                 captureErrors = true,
+                captureConsoleLogs = true,
             )
 
         /** Full JavaScript bridge configuration with common defaults enabled. */
@@ -94,6 +91,22 @@ sealed interface WebViewConfiguration {
     }
 }
 
+/**
+ * Defines how WebView instrumentation interacts with JavaScript settings.
+ */
+enum class WebViewInstrumentationMode {
+    /**
+     * Uses native WebViewClient callbacks only. No JavaScript required.
+     * Captures: page view, navigation, errors, HTTP/SSL errors, renderer crashes.
+     */
+    NATIVE_ONLY,
+
+    /**
+     * Full JavaScript bridge instrumentation. Enables JavaScript if not already enabled.
+     */
+    JAVASCRIPT_BRIDGE,
+}
+
 internal fun WebViewConfiguration?.toFields(): ArrayFields =
     this?.let {
         fieldsOf("_webview_monitoring_configuration" to it.toJson())
@@ -109,6 +122,7 @@ internal fun WebViewConfiguration.toJson(): String =
                     put("captureNavigationEvents", captureNavigationEvents)
                     put("captureErrors", captureErrors)
                     put("captureResourceLoads", captureResourceLoads)
+                    put("captureConsoleLogs", captureConsoleLogs)
                 }.toString()
         is WebViewConfiguration.JavaScriptBridge ->
             JSONObject()

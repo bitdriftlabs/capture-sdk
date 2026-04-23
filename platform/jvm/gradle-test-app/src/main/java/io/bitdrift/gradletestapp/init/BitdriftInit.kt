@@ -13,16 +13,20 @@ import android.util.Log
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.Configuration
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.replay.SessionReplayConfiguration
+import io.bitdrift.capture.reports.IssueCallbackConfiguration
+import io.bitdrift.capture.reports.IssueReportCallback
+import io.bitdrift.capture.reports.Report
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.capture.webview.WebViewConfiguration
 import io.bitdrift.capture.webview.WebViewConfiguration.JavaScriptBridge
 import io.bitdrift.capture.webview.WebViewConfiguration.NativeOnly
 import io.bitdrift.capture.webview.WebViewInstrumentationMode
 import io.bitdrift.gradletestapp.BuildConfig
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog
+import java.util.concurrent.Executors
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_CONSOLE_LOGS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_ERRORS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_LONG_TASKS_KEY
@@ -39,11 +43,14 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
 import java.util.UUID
+import java.util.concurrent.ExecutorService
 
 /**
  * Starts bitdrift's Captures SDK with the persisted config settings
  */
 object BitdriftInit {
+    private val userUuid = UUID.randomUUID().toString()
+
     /**
      * Init sdk with the persisted settings
      */
@@ -63,6 +70,24 @@ object BitdriftInit {
             if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
             Timber.plant(CaptureTree())
             Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
+
+            @OptIn(ExperimentalBitdriftApi::class)
+            Capture.Logger.registerOpaqueUserId(userUuid)
+
+            @OptIn(ExperimentalBitdriftApi::class)
+            Capture.Logger.getPreviousRunInfo()?.let { previousRunInfo ->
+                val hasFatallyTerminated = previousRunInfo.hasFatallyTerminated.toString()
+                val reason = previousRunInfo.terminationReason?.toString() ?: ""
+                Capture.Logger.logInfo(
+                    mapOf(
+                        "hasFatallyTerminated" to hasFatallyTerminated,
+                        "reason" to reason
+                    )
+                ) {
+                    "Bitdrift PreviousRunInfo"
+                }
+            }
+
             return true
         } else {
             Timber.e("Failed to initialize Bitdrift SDK - check your API key and URL configuration")
@@ -120,18 +145,23 @@ object BitdriftInit {
 
         val sessionStrategy = getSessionStrategy(sharedPreferences)
         val webViewConfig = getWebViewConfiguration(sharedPreferences)
+
+        @OptIn(ExperimentalBitdriftApi::class)
+        val issueCallbackConfiguration = IssueCallbackConfiguration(
+            executor = buildIssueReportCallbackExecutor(),
+            issueReportCallback = CustomerIssueReportCallback(),
+        )
+
         val configuration =
             Configuration(
                 sessionReplayConfiguration = if (sessionReplayEnabled) SessionReplayConfiguration() else null,
                 enableFatalIssueReporting = fatalIssueReporterEnabled,
                 webViewConfiguration = webViewConfig,
             )
+        val fieldProviders = listOf(FieldProvider {
+            mapOf("user_id" to userUuid)
+        })
 
-        val userID = UUID.randomUUID().toString()
-        val fieldProviders =
-            listOf(
-                FieldProvider { mapOf("user_id" to userID) },
-            )
         val captureSdkInitSettings =
             CaptureSdkInitSettings(
                 apiUrl = apiUrl,
@@ -145,7 +175,7 @@ object BitdriftInit {
 
     private fun SharedPreferences.getPersistedFlag(keyName: String): Boolean = getBoolean(
         keyName,
-        false,
+        false
     )
 
     private fun getSessionStrategy(sharedPreferences: SharedPreferences): SessionStrategy =
@@ -200,6 +230,27 @@ object BitdriftInit {
         return runCatching {
             WebViewInstrumentationMode.valueOf(modeName ?: WebViewInstrumentationMode.NATIVE_ONLY.name)
         }.getOrDefault(WebViewInstrumentationMode.NATIVE_ONLY)
+    }
+
+    private fun buildIssueReportCallbackExecutor(): ExecutorService =
+        Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, "customer-issue-report-callback")
+        }
+
+    private class CustomerIssueReportCallback : IssueReportCallback {
+        override fun onBeforeReportSend(report: Report) {
+            Capture.Logger.logInfo(
+                mapOf(
+                    "reportType" to report.reportType,
+                    "session" to report.sessionId,
+                    "details" to report.details,
+                    "reason" to report.reason,
+                    "fields" to report.fields.toString(),
+                )
+            ) {
+                "Callback issue Report occurred ${report.details}: ${report.reason}"
+            }
+        }
     }
 
     private sealed class SdkConfigResult {

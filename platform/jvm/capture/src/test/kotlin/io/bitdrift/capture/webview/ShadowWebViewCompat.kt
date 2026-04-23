@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.webview
 
+import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.webkit.WebViewCompat
@@ -29,5 +30,12 @@ object ShadowWebViewCompat {
     @JvmStatic
     fun getWebViewClient(
         @Suppress("UNUSED_PARAMETER") webView: WebView,
-    ): WebViewClient? = null
+    ): WebViewClient = WebViewClient()
+
+    @Implementation
+    @JvmStatic
+    @Suppress("FunctionOnlyReturningConstant")
+    fun getWebChromeClient(
+        @Suppress("UNUSED_PARAMETER") webView: WebView,
+    ): WebChromeClient? = null
 }
