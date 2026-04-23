@@ -52,7 +52,7 @@ const sendToNative = (() => {
 
                 switch (platform) {
                     case 'ios':
-                        window.webkit?.messageHandlers?.BitdriftLogger?.postMessage(message);
+                        window.webkit?.messageHandlers?.BitdriftLogger?.postMessage(serialized);
                         break;
                     case 'android':
                         window.BitdriftLogger?.log(serialized);
