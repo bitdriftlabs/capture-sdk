@@ -15,6 +15,7 @@ export const pristine = {
         error: console.error,
         info: console.info,
         debug: console.debug,
+        trace: console.trace,
     },
 };
 
@@ -56,8 +57,8 @@ const sendToNative = (() => {
                         break;
                     case 'unknown':
                         // In development/testing, log to console
-                        if (typeof console !== 'undefined') {
-                            console.debug('[Bitdrift WebView]', message);
+                        if (typeof pristine.console !== 'undefined') {
+                            pristine.console.debug('[Bitdrift WebView]', message);
                         }
                         break;
                 }
