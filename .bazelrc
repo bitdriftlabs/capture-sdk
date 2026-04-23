@@ -120,8 +120,9 @@ build:benchmark --config=release-common
 build:benchmark-profile --config=benchmark --@rules_rust//rust/settings:extra_rustc_flag='-Cdebuginfo=2' --force_pic
 
 # Specifies that panics should use immediate-abort to match rust-std-mobile's prebuilt std.
-# This requires RUSTC_BOOTSTRAP=1 since immediate-abort is a nightly-only codegen option.
+# This requires RUSTC_BOOTSTRAP=1 and -Zunstable-options since immediate-abort is a nightly-only option.
 build:abort-panic --action_env=RUSTC_BOOTSTRAP=1
+build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=-Zunstable-options
 build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=-C
 build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=panic=immediate-abort
 
