@@ -120,11 +120,8 @@ build:benchmark --config=release-common
 build:benchmark-profile --config=benchmark --@rules_rust//rust/settings:extra_rustc_flag='-Cdebuginfo=2' --force_pic
 
 # Specifies that panics should automatically be treated as a panic.
-# NOTE: We use immediate-abort to match the panic strategy used by rust-std-mobile prebuilt std.
-# This requires RUSTC_BOOTSTRAP=1 since immediate-abort is a nightly-only option.
-build:abort-panic --action_env=RUSTC_BOOTSTRAP=1
 build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=-C
-build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=panic=immediate-abort
+build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=panic=abort
 
 # This attempts to match what cargo-fuzz does, but it's likely a moving target with many options.
 # Occasionally check back to see if anything has changed over there.
