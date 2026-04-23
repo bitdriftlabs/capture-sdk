@@ -5,35 +5,11 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@file:Suppress("UndocumentedPublicClass")
-// capture-sdk - bitdrift's client SDK
-// Copyright Bitdrift, Inc. All rights reserved.
-//
-// Use of this source code is governed by a source available license that can be found in the
-// LICENSE file or at:
-// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-
 package io.bitdrift.capture.webview
 
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.fieldsOf
 import org.json.JSONObject
-
-/**
- * Defines how WebView instrumentation interacts with JavaScript settings.
- */
-enum class WebViewInstrumentationMode {
-    /**
-     * Uses native WebViewClient callbacks only. No JavaScript required.
-     * Captures: page view, navigation, errors, HTTP/SSL errors, renderer crashes.
-     */
-    NATIVE_ONLY,
-
-    /**
-     * Full JavaScript bridge instrumentation. Enables JavaScript if not already enabled.
-     */
-    JAVASCRIPT_BRIDGE,
-}
 
 /**
  * Configuration for WebView instrumentation.
@@ -99,6 +75,22 @@ sealed interface WebViewConfiguration {
                 captureUserInteractions = true,
             )
     }
+}
+
+/**
+ * Defines how WebView instrumentation interacts with JavaScript settings.
+ */
+enum class WebViewInstrumentationMode {
+    /**
+     * Uses native WebViewClient callbacks only. No JavaScript required.
+     * Captures: page view, navigation, errors, HTTP/SSL errors, renderer crashes.
+     */
+    NATIVE_ONLY,
+
+    /**
+     * Full JavaScript bridge instrumentation. Enables JavaScript if not already enabled.
+     */
+    JAVASCRIPT_BRIDGE,
 }
 
 internal fun WebViewConfiguration?.toFields(): ArrayFields =
