@@ -15,6 +15,25 @@ describe('bridge', () => {
         vi.resetModules();
     });
 
+    describe('assertBridgeReady', () => {
+        it('should return true when Android bridge is available', async () => {
+            createAndroidBridgeMock();
+            const { assertBridgeReady } = await import('../bridge');
+            expect(assertBridgeReady()).toBe(true);
+        });
+
+        it('should return true when iOS bridge is available', async () => {
+            createIOSBridgeMock();
+            const { assertBridgeReady } = await import('../bridge');
+            expect(assertBridgeReady()).toBe(true);
+        });
+
+        it('should return false when no bridge is available', async () => {
+            const { assertBridgeReady } = await import('../bridge');
+            expect(assertBridgeReady()).toBe(false);
+        });
+    });
+
     describe('platform detection', () => {
         it('should detect Android platform', async () => {
             const androidMock = createAndroidBridgeMock();
@@ -71,6 +90,54 @@ describe('bridge', () => {
             ).not.toThrow();
 
             consoleSpy.mockRestore();
+        });
+    });
+
+    describe('initBridge return value', () => {
+        it('should return true when bridge is available', async () => {
+            createAndroidBridgeMock();
+            const { initBridge } = await import('../bridge');
+            expect(initBridge()).toBe(true);
+        });
+
+        it('should return false when bridge is not available (unknown platform)', async () => {
+            const { initBridge } = await import('../bridge');
+            expect(initBridge()).toBe(false);
+        });
+
+        it('should return false on re-initialization', async () => {
+            createAndroidBridgeMock();
+            const { initBridge } = await import('../bridge');
+            expect(initBridge()).toBe(true);
+            expect(initBridge()).toBe(false);
+        });
+    });
+
+    describe('pristine console usage', () => {
+        it('should use pristine.console.debug on unknown platform instead of console.debug', async () => {
+            const { log, createMessage, pristine } = await import('../bridge');
+
+            const pristineSpy = vi.spyOn(pristine.console, 'debug').mockImplementation(() => {});
+
+            log(
+                createMessage({
+                    type: 'customLog',
+                    level: 'info',
+                    message: 'test',
+                }),
+            );
+
+            expect(pristineSpy).toHaveBeenCalledWith(
+                '[Bitdrift WebView]',
+                expect.objectContaining({ type: 'customLog' }),
+            );
+            pristineSpy.mockRestore();
+        });
+
+        it('should store console.trace in pristine references', async () => {
+            const { pristine } = await import('../bridge');
+            expect(pristine.console.trace).toBeDefined();
+            expect(typeof pristine.console.trace).toBe('function');
         });
     });
 
@@ -159,6 +226,68 @@ describe('bridge', () => {
             expect(isAnyBridgeMessage({ type: 'test' })).toBe(false);
             expect(isAnyBridgeMessage({ type: 'test', v: 1 })).toBe(false);
             expect(isAnyBridgeMessage({ type: 'test', v: 1, tag: 'wrong' })).toBe(false);
+        });
+    });
+
+    describe('re-entrancy guard', () => {
+        it('should not stack overflow when console interceptor triggers re-entry on unknown platform', async () => {
+            // No bridge mock = unknown platform, which calls console.debug
+            // With console capture active, this would infinitely recurse without the guard
+            const consoleSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+            const { initBridge, log, createMessage } = await import('../bridge');
+
+            // Simulate console capture by overriding console.debug to call log again
+            const origDebug = console.debug;
+            console.debug = (...args: unknown[]) => {
+                origDebug.apply(console, args);
+                // This simulates what console-capture does: re-calling log from within console.debug
+                log(
+                    createMessage({
+                        type: 'customLog',
+                        level: 'debug',
+                        message: 'from interceptor',
+                    }),
+                );
+            };
+
+            initBridge();
+
+            // This should NOT cause infinite recursion
+            expect(() =>
+                log(
+                    createMessage({
+                        type: 'bridgeReady',
+                        url: 'https://example.com',
+                        instrumentationConfig: undefined,
+                    }),
+                ),
+            ).not.toThrow();
+
+            consoleSpy.mockRestore();
+        });
+    });
+
+    describe('message size limits', () => {
+        it('should truncate very large messages sent to Android bridge', async () => {
+            const androidMock = createAndroidBridgeMock();
+            const { initBridge, log, createMessage } = await import('../bridge');
+
+            initBridge();
+
+            // Create a message with a very large field
+            const hugeMessage = 'x'.repeat(100_000);
+            log(
+                createMessage({
+                    type: 'customLog',
+                    level: 'info',
+                    message: hugeMessage,
+                }),
+            );
+
+            expect(androidMock.log).toHaveBeenCalled();
+            const serialized = androidMock.log.mock.calls[0][0] as string;
+            // Should be truncated to 32KB + truncation marker
+            expect(serialized.length).toBeLessThanOrEqual(32_768 + '...<truncated>'.length);
         });
     });
 });

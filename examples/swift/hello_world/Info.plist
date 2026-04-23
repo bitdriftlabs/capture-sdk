@@ -32,5 +32,10 @@
 	<false/>
 	<key>UIStatusBarStyle</key>
 	<string>UIStatusBarStyleDefault</string>
+    <key>UILaunchScreen</key>
+    <dict>
+        <key>UIImageName</key>
+        <string></string>
+    </dict>
 </dict>
 </plist>

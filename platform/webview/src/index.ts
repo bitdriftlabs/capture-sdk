@@ -31,7 +31,10 @@ const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']
         window.bitdrift.config = config;
 
         // Initialize the bridge first
-        initBridge();
+        if (!initBridge()) {
+            // Bail if bridge initialization failed (e.g., unsupported platform, or incomplete injection)
+            return;
+        }
 
         // Send bridge ready signal immediately
         log(

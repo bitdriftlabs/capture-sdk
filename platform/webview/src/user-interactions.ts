@@ -6,10 +6,13 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
-import { safeCall, makeSafe } from './safe-call';
+import { safeCall, makeSafe, truncate } from './safe-call';
 
 /** Clickable element tags */
 const CLICKABLE_TAGS = new Set(['a', 'button', 'input', 'select', 'textarea', 'label', 'summary']);
+
+/** Maximum DOM ancestor depth for isClickable traversal */
+const MAX_CLICKABLE_DEPTH = 15;
 
 /** Rage click detection settings */
 const RAGE_CLICK_THRESHOLD = 3; // Number of clicks to trigger rage click
@@ -73,8 +76,9 @@ const isClickable = (element: Element): boolean => {
     return (
         safeCall(() => {
             let current: Element | null = element;
+            let depth = 0;
 
-            while (current) {
+            while (current && depth < MAX_CLICKABLE_DEPTH) {
                 const tagName = current.tagName.toLowerCase();
 
                 // Check tag name
@@ -100,6 +104,7 @@ const isClickable = (element: Element): boolean => {
                 }
 
                 current = current.parentElement;
+                depth++;
             }
 
             return false;
@@ -195,14 +200,18 @@ const logUserInteraction = (
         // Check if element has data-redacted attribute
         const hasDataRedacted = element.hasAttribute('data-redacted');
 
-        // Get text content, truncated
+        // Get text content, truncated. Use innerText on the element itself (not subtree)
+        // to avoid materializing enormous strings from large DOM subtrees like <body>.
         let textContent: string | undefined;
         if (hasDataRedacted) {
             // If data-redacted attribute is present, use "<redacted>" instead of actual content
             textContent = '<redacted>';
-        } else if (element.textContent) {
-            const text = element.textContent.trim().replace(/\s+/g, ' ');
-            textContent = text.length > 50 ? `${text.slice(0, 50)}...` : text || undefined;
+        } else {
+            const rawText = (element as HTMLElement).innerText?.slice(0, 200) ?? element.textContent?.slice(0, 200);
+            if (rawText) {
+                const text = rawText.trim().replace(/\s+/g, ' ');
+                textContent = text.length > 50 ? `${text.slice(0, 50)}...` : text || undefined;
+            }
         }
 
         const message = createMessage({
@@ -210,7 +219,7 @@ const logUserInteraction = (
             interactionType,
             tagName,
             elementId,
-            className: className?.slice(0, 100),
+            className: truncate(className ?? '', 200) || undefined,
             textContent,
             isClickable,
             clickCount: interactionType === 'rageClick' ? clickCount : undefined,

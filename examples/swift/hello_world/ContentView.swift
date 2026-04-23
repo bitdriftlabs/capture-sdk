@@ -9,121 +9,42 @@ import Capture
 import SwiftUI
 
 struct ContentView: View {
-    private var navigationController: UINavigationController?
     private let loggerCustomer: LoggerCustomer
 
-    @State private var currentSessionID: String
-    @State private var createdDeviceCode: String = "No Code Generated"
-    @State private var selectedLogLevel = LoggerCustomer.LogLevel.info
-
-    init(navigationController: UINavigationController?) {
+    init() {
         self.loggerCustomer = LoggerCustomer()
-        self.navigationController = navigationController
-        self.currentSessionID = self.loggerCustomer.sessionID ?? "No Session ID"
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 10) {
-                NavigationLink("Configuration") { ConfigurationView() }
-                Text("ACTIONS")
-                HStack {
-                    Button(action: { self.loggerCustomer.log(with: self.selectedLogLevel) }) {
-                        Text("Log").frame(maxWidth: .infinity)
+        NavigationView {
+            PanelScreen {
+                SessionPanelView(loggerCustomer: loggerCustomer)
+                ManualCapturePanelView(loggerCustomer: loggerCustomer)
+                AutomaticCapturePanelView(loggerCustomer: loggerCustomer)
+                DiagnosticsPanelView(loggerCustomer: loggerCustomer)
+            }
+            .navigationTitle("Debug Panel")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: ConfigurationView()) {
+                        Text("Config")
+                            .font(.body.weight(.semibold))
+                            .foregroundColor(Theme.textPrimary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Theme.secondary.opacity(0.1))
+                            .overlay(
+                                Capsule()
+                                    .stroke(Theme.secondary.opacity(0.45), lineWidth: 1)
+                            )
+                            .clipShape(Capsule())
                     }
-                    Picker("Log Level", selection: self.$selectedLogLevel, content: {
-                        ForEach(LoggerCustomer.LogLevel.allCases) { level in
-                            Text(level.rawValue).tag(level)
-                        }
-                    })
-                }
-                Button(action: { self.loggerCustomer.performRandomNetworkRequestUsingDataTask() }) {
-                    Text("Perform Random Data/Upload Request").frame(maxWidth: .infinity)
-                }
-                Button(action: {
-                    self.loggerCustomer.simulateSpan()
-                }) {
-                    Text("Simulate Span Event").frame(maxWidth: .infinity)
-                }
-                Button(action: {
-                    self.loggerCustomer.simulateNavigation()
-                }) {
-                    Text("Simulate Navigation to Screen").frame(maxWidth: .infinity)
-                }
-                Button(action: { self.loggerCustomer.setFeatureFlagExposure(name: "MyFlag", variant: "MyVariant") }) {
-                    Text("Set feature flag exposure 'MyFlag' to 'MyVariant'").frame(maxWidth: .infinity)
-                }
-                Button(action: { Thread.sleep(forTimeInterval: 5.0) }) {
-                    Text("Simulate ANR (5s)").frame(maxWidth: .infinity)
-                }
-                Button(action: {
-                    let items = [1, 2, 3]
-                    print("the fourth item: \(items[3])")
-                }) {
-                    Text("Swift Assertion Failure").frame(maxWidth: .infinity)
-                }
-                Button(action: { self.loggerCustomer.forceMemoryPressure(targetPercent: 90) }) {
-                    Text("Force Memory Pressure (90%)").frame(maxWidth: .infinity)
-                }
-                Button(action: { self.loggerCustomer.clearMemoryPressure() }) {
-                    Text("Clear Memory Pressure").frame(maxWidth: .infinity)
                 }
             }
-            .modify { view in
-                view.buttonStyle(.bordered)
-            }
-            VStack {
-                Button(action: {
-                    self.loggerCustomer.createTemporaryDeviceCode(completion: { result in
-                        switch result {
-                        case let .success(code):
-                            self.createdDeviceCode = code
-                            UIPasteboard.general.string = code
-                        case let .failure(error):
-                            self.createdDeviceCode = String(describing: error)
-                        }
-                    })
-                }) {
-                    Text("Generate Temporary Device Code").frame(maxWidth: .infinity)
-                }
-                .modify { view in
-                    view.buttonStyle(.borderedProminent)
-                }
-                Text(self.createdDeviceCode)
-            }
-            .padding(EdgeInsets(top: 10, leading: 0, bottom: 10, trailing: 0))
-            HStack {
-                Button(action: { UIPasteboard.general.string = self.loggerCustomer.sessionURL }) {
-                    Text("Copy Session URL").frame(maxWidth: .infinity)
-                }
-                .modify { view in
-                    view.buttonStyle(.borderedProminent)
-                }
-                Button(action: {
-                    self.loggerCustomer.startNewSession()
-                    self.currentSessionID = self.loggerCustomer.sessionID ?? "No Session ID"
-                }) {
-                    Text("Start New Session").frame(maxWidth: .infinity)
-                }
-                .modify { view in
-                    view.buttonStyle(.borderedProminent)
-                }
-            }
-            Text(self.currentSessionID)
         }
-        .padding(5)
+        .navigationViewStyle(.stack)
+        .accentColor(Theme.primary)
         .onAppear { self.loggerCustomer.logAppLaunchTTI() }
-    }
-}
-
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView(navigationController: nil)
-    }
-}
-
-extension View {
-    func modify(@ViewBuilder _ modifier: (Self) -> some View) -> some View {
-        return modifier(self)
     }
 }

@@ -11,21 +11,32 @@ struct ConfigurationView: View {
     @StateObject var configuration = Configuration()
 
     var body: some View {
-        Form {
-            Section(header: Text("API URL")) {
-                TextField("Enter API URL", text: $configuration.apiURL)
-                    .autocapitalization(.none)
+        PanelScreen {
+            PanelSection(
+                title: "Connection",
+                subtitle: "These values are stored in UserDefaults and applied on the next app launch."
+            ) {
+                PanelCard {
+                    PanelInputField(
+                        title: "API URL",
+                        placeholder: "Enter API URL",
+                        text: self.$configuration.apiURL
+                    )
+
+                    PanelInputField(
+                        title: "API key",
+                        placeholder: "Enter API key",
+                        text: self.$configuration.apiKey
+                    )
+                }
             }
-            Section(header: Text("API Key")) {
-                TextField("Enter API Key", text: $configuration.apiKey)
-                    .autocapitalization(.none)
+
+            PanelCard {
+                Text("Restart the app after changing configuration so the SDK is recreated with the updated endpoint and API key.")
+                    .font(.footnote)
+                    .foregroundColor(Theme.textSecondary)
             }
         }
-
-        Spacer()
-
-        Text("The app needs to be restarted for any configuration change to take effect.")
-            .font(.caption2)
-            .padding(EdgeInsets(top: 10, leading: 10, bottom: 20, trailing: 10))
+        .navigationTitle("Configuration")
     }
 }

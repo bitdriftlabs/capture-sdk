@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
-import { safeCall, makeSafe } from './safe-call';
+import { safeCall, makeSafe, truncate, safeStringify } from './safe-call';
 
 /**
  * Initialize unhandled error monitoring.
@@ -27,13 +27,13 @@ export const initErrorMonitoring = (): void => {
                 let stack: string | undefined;
 
                 if (error instanceof Error) {
-                    stack = error.stack;
+                    stack = error.stack ? truncate(error.stack) : undefined;
                 }
 
                 const message = createMessage({
                     type: 'error',
                     name: error?.name ?? 'Error',
-                    message: event.message || 'Unknown error',
+                    message: truncate(event.message || 'Unknown error'),
                     stack,
                     filename: event.filename || undefined,
                     lineno: event.lineno || undefined,
@@ -58,20 +58,16 @@ export const initPromiseRejectionMonitoring = (): void => {
 
                 if (event.reason instanceof Error) {
                     reason = event.reason.message;
-                    stack = event.reason.stack;
+                    stack = event.reason.stack ? truncate(event.reason.stack) : undefined;
                 } else if (typeof event.reason === 'string') {
                     reason = event.reason;
                 } else if (event.reason !== null && event.reason !== undefined) {
-                    try {
-                        reason = JSON.stringify(event.reason);
-                    } catch {
-                        reason = String(event.reason);
-                    }
+                    reason = safeStringify(event.reason);
                 }
 
                 const message = createMessage({
                     type: 'promiseRejection',
-                    reason,
+                    reason: truncate(reason),
                     stack: stack,
                 });
                 log(message);

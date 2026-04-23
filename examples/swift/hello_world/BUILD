@@ -27,7 +27,7 @@ apple_static_xcframework_import(
 
 swift_library(
     name = "ios_main",
-    srcs = glob(["*.swift"]),
+    srcs = glob(["**/*.swift"]),
     tags = ["manual"],
     deps = [":capture_xcframework"],
 )
@@ -58,7 +58,7 @@ ios_application(
 
 swift_library(
     name = "ios_direct",
-    srcs = glob(["*.swift"]),
+    srcs = glob(["**/*.swift"]),
     tags = ["manual"],
     deps = ["//platform/swift/source:ios_lib"],
 )
