@@ -8,7 +8,7 @@
 import { log, createMessage, pristine, isAnyBridgeMessage } from './bridge';
 import { safeCall, safeStringify, truncate, MAX_STRING_LENGTH } from './safe-call';
 
-const LEVELS = ['log', 'warn', 'error', 'info', 'debug'] as const;
+const LEVELS = ['log', 'warn', 'error', 'info', 'debug', 'trace'] as const;
 
 /** Maximum number of console args to capture beyond the first. */
 const MAX_EXTRA_ARGS = 10;
