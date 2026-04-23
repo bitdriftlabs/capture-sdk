@@ -27,6 +27,7 @@ object ShadowWebViewCompat {
 
     @Implementation
     @JvmStatic
+    @Suppress("FunctionOnlyReturningConstant")
     fun getWebViewClient(
         @Suppress("UNUSED_PARAMETER") webView: WebView,
     ): WebViewClient? = null
