@@ -31,6 +31,7 @@ describe('integration: message structure validation', () => {
         error: console.error,
         info: console.info,
         debug: console.debug,
+        trace: console.trace,
     };
 
     beforeEach(() => {
@@ -44,6 +45,7 @@ describe('integration: message structure validation', () => {
         console.error = originalConsole.error;
         console.info = originalConsole.info;
         console.debug = originalConsole.debug;
+        console.trace = originalConsole.trace;
 
         Object.defineProperty(window, 'location', {
             value: { href: 'https://example.com/test' },
@@ -60,6 +62,7 @@ describe('integration: message structure validation', () => {
         console.error = originalConsole.error;
         console.info = originalConsole.info;
         console.debug = originalConsole.debug;
+        console.trace = originalConsole.trace;
     });
 
     describe('bridgeReady message', () => {
@@ -312,6 +315,26 @@ describe('integration: message structure validation', () => {
                 await import('../index');
             }).not.toThrow();
         });
+
+        it('should bail without sending any messages when bridge is unavailable', async () => {
+            // No bridge mock = unknown platform, assertBridgeReady returns false
+            const messages: string[] = [];
+            const origDebug = console.debug;
+            console.debug = vi.fn((...args: unknown[]) => {
+                messages.push(args.map(String).join(' '));
+                origDebug.apply(console, args);
+            });
+
+            // Import index which calls init() immediately
+            await import('../index');
+
+            // initBridge should have returned false, so no bridgeReady or
+            // internalAutoInstrumentation messages should have been sent
+            const bridgeMessages = messages.filter((m) => m.includes('bitdrift-webview-sdk'));
+            expect(bridgeMessages.length).toBe(0);
+
+            console.debug = origDebug;
+        });
     });
 });
 
@@ -367,6 +390,87 @@ describe('integration: network interception', () => {
             expect(message.statusCode).toBe(0);
             expect(message.success).toBe(false);
             expect(message.error).toBe('Network error');
+        });
+
+        it('should skip data URLs to avoid serializing large payloads', async () => {
+            const collector = createMessageCollector();
+            const mockFetch = createFetchMock();
+            mockFetch.mockResolvedValue(new Response('OK', { status: 200 }));
+
+            const { initNetworkInterceptor } = await import('../network');
+            initNetworkInterceptor();
+
+            // Simulate a fetch with a large data URL (e.g. base64-encoded image)
+            const dataUrl = `data:image/png;base64,${'A'.repeat(10_000)}`;
+            await fetch(dataUrl);
+
+            // The original fetch should still be called
+            expect(mockFetch).toHaveBeenCalledWith(dataUrl, undefined);
+
+            // But no network message should be logged
+            const messages = collector.getMessagesByType('networkRequest') as NetworkRequestMessage[];
+            expect(messages.length).toBe(0);
+        });
+
+        it('should skip blob URLs to avoid serializing large payloads', async () => {
+            const collector = createMessageCollector();
+            const mockFetch = createFetchMock();
+            mockFetch.mockResolvedValue(new Response('OK', { status: 200 }));
+
+            const { initNetworkInterceptor } = await import('../network');
+            initNetworkInterceptor();
+
+            await fetch('blob:https://example.com/some-uuid');
+
+            expect(mockFetch).toHaveBeenCalled();
+
+            const messages = collector.getMessagesByType('networkRequest') as NetworkRequestMessage[];
+            expect(messages.length).toBe(0);
+        });
+
+        it('should call toJSON on resource timing entries to produce plain objects', async () => {
+            const collector = createMessageCollector();
+            const mockFetch = createFetchMock();
+            mockFetch.mockResolvedValue(new Response('OK', { status: 200, statusText: 'OK' }));
+
+            // Mock performance.getEntriesByName to return an entry with toJSON
+            const timingJSON = {
+                name: 'https://api.example.com/data',
+                entryType: 'resource',
+                startTime: 100,
+                duration: 50,
+                transferSize: 1024,
+                encodedBodySize: 900,
+                decodedBodySize: 900,
+            };
+            const mockEntry = {
+                ...timingJSON,
+                // Simulate non-enumerable/circular properties that real PerformanceResourceTiming has
+                toJSON: vi.fn(() => timingJSON),
+            };
+            const origGetEntriesByName = performance.getEntriesByName;
+            performance.getEntriesByName = vi.fn((name: string, type?: string) => {
+                if (name === 'https://api.example.com/data' && type === 'resource') {
+                    return [mockEntry] as unknown as PerformanceEntryList;
+                }
+                return origGetEntriesByName.call(performance, name, type);
+            });
+
+            const { initNetworkInterceptor } = await import('../network');
+            initNetworkInterceptor();
+
+            await fetch('https://api.example.com/data');
+
+            expect(mockEntry.toJSON).toHaveBeenCalled();
+
+            const messages = collector.getMessagesByType('networkRequest') as NetworkRequestMessage[];
+            expect(messages.length).toBe(1);
+            const timing = messages[0].timing as unknown as Record<string, unknown>;
+            expect(timing).toBeDefined();
+            expect(timing.transferSize).toBe(1024);
+            expect(timing.duration).toBe(50);
+
+            performance.getEntriesByName = origGetEntriesByName;
         });
     });
 });

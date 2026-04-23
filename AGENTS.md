@@ -54,7 +54,7 @@ Test locations:
 
 - iOS: Xcode 16.2, minimum iOS 15.0
 - Android: JDK 17, NDK 27.2, minSdk 23
-- Rust: 1.90.0
+- Rust: 1.95.0
 
 ## Key Dependencies
 

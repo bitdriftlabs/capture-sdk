@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import { safeCall } from './safe-call';
+import { safeCall, truncate } from './safe-call';
 import type { AnyBridgeMessage, AnyBridgeMessageMap, BridgeMessage, CustomLogMessage } from './types';
 
 export const pristine = {
@@ -15,6 +15,7 @@ export const pristine = {
         error: console.error,
         info: console.info,
         debug: console.debug,
+        trace: console.trace,
     },
 };
 
@@ -34,35 +35,54 @@ const detectPlatform = (): Platform => {
     );
 };
 
-const sendToNative = (message: AnyBridgeMessage): void => {
-    safeCall(() => {
-        const platform = detectPlatform();
-        const serialized = JSON.stringify(message);
+export const assertBridgeReady = (): boolean => detectPlatform() !== 'unknown';
 
-        switch (platform) {
-            case 'ios':
-                window.webkit?.messageHandlers?.BitdriftLogger?.postMessage(message);
-                break;
-            case 'android':
-                window.BitdriftLogger?.log(serialized);
-                break;
-            case 'unknown':
-                // In development/testing, log to console
-                if (typeof console !== 'undefined') {
-                    console.debug('[Bitdrift WebView]', message);
+const sendToNative = (() => {
+    // Re-entrancy guard to prevent infinite recursion when the 'unknown' platform
+    // branch logs to console.debug, which would re-enter via the console interceptor.
+    let isSending = false;
+
+    return (message: AnyBridgeMessage): void => {
+        if (isSending) return;
+        isSending = true;
+        try {
+            safeCall(() => {
+                const platform = detectPlatform();
+                const serialized = truncate(JSON.stringify(message), 32_768);
+
+                switch (platform) {
+                    case 'ios':
+                        window.webkit?.messageHandlers?.BitdriftLogger?.postMessage(serialized);
+                        break;
+                    case 'android':
+                        window.BitdriftLogger?.log(serialized);
+                        break;
+                    case 'unknown':
+                        // In development/testing, log to console
+                        if (typeof pristine.console !== 'undefined') {
+                            pristine.console.debug('[Bitdrift WebView]', message);
+                        }
+                        break;
                 }
-                break;
+            });
+        } finally {
+            isSending = false;
         }
-    });
-};
+    };
+})();
 
 /**
  * Initialize the global bitdrift object
  */
-export const initBridge = (): void => {
+export const initBridge = (): boolean => {
     // Avoid re-initialization
     if (window.bitdrift?.log) {
-        return;
+        return false;
+    }
+
+    // Bail is bridge is not available
+    if (!assertBridgeReady()) {
+        return false;
     }
 
     window.bitdrift = {
@@ -91,6 +111,7 @@ export const initBridge = (): void => {
             sendToNative(message);
         },
     };
+    return true;
 };
 
 /**

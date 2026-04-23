@@ -144,7 +144,7 @@ fn server_instance_wait_for_handshake_impl(
     ExpectedStreamEvent::Created(Some("test!".to_string())),
     Duration::seconds(5),
   ) {
-    bail!("Handshake with test API key timed out after 5s (stream_id={stream_id})",);
+    bail!("Handshake with test API key timed out after 5s (stream_id={stream_id})");
   }
   Ok(())
 }
@@ -230,7 +230,7 @@ fn server_instance_await_configuration_ack_impl(
 ) -> anyhow::Result<()> {
   let (updated_stream_id, _) = handle.blocking_next_configuration_ack();
   if stream_id != updated_stream_id {
-    bail!("Configuration ack stream_id mismatch: expected {stream_id}, got {updated_stream_id}",);
+    bail!("Configuration ack stream_id mismatch: expected {stream_id}, got {updated_stream_id}");
   }
   Ok(())
 }
