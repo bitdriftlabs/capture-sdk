@@ -427,5 +427,50 @@ describe('integration: network interception', () => {
             const messages = collector.getMessagesByType('networkRequest') as NetworkRequestMessage[];
             expect(messages.length).toBe(0);
         });
+
+        it('should call toJSON on resource timing entries to produce plain objects', async () => {
+            const collector = createMessageCollector();
+            const mockFetch = createFetchMock();
+            mockFetch.mockResolvedValue(new Response('OK', { status: 200, statusText: 'OK' }));
+
+            // Mock performance.getEntriesByName to return an entry with toJSON
+            const timingJSON = {
+                name: 'https://api.example.com/data',
+                entryType: 'resource',
+                startTime: 100,
+                duration: 50,
+                transferSize: 1024,
+                encodedBodySize: 900,
+                decodedBodySize: 900,
+            };
+            const mockEntry = {
+                ...timingJSON,
+                // Simulate non-enumerable/circular properties that real PerformanceResourceTiming has
+                toJSON: vi.fn(() => timingJSON),
+            };
+            const origGetEntriesByName = performance.getEntriesByName;
+            performance.getEntriesByName = vi.fn((name: string, type?: string) => {
+                if (name === 'https://api.example.com/data' && type === 'resource') {
+                    return [mockEntry] as unknown as PerformanceEntryList;
+                }
+                return origGetEntriesByName.call(performance, name, type);
+            });
+
+            const { initNetworkInterceptor } = await import('../network');
+            initNetworkInterceptor();
+
+            await fetch('https://api.example.com/data');
+
+            expect(mockEntry.toJSON).toHaveBeenCalled();
+
+            const messages = collector.getMessagesByType('networkRequest') as NetworkRequestMessage[];
+            expect(messages.length).toBe(1);
+            const timing = messages[0].timing as unknown as Record<string, unknown>;
+            expect(timing).toBeDefined();
+            expect(timing.transferSize).toBe(1024);
+            expect(timing.duration).toBe(50);
+
+            performance.getEntriesByName = origGetEntriesByName;
+        });
     });
 });
