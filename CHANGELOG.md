@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Hardened WebView bridge SDK against native crashes: fixed infinite recursion in bridge when console capture is active on unknown platforms, added size limits to all strings crossing the native bridge (stack traces, error messages, console args, serialized JSON), bounded DOM traversal depth for user interaction detection, capped deduplication map sizes to prevent unbounded memory growth, and skipped `data:`/`blob:` URLs in network interception to avoid serializing large payloads.
 
 ### iOS
 
