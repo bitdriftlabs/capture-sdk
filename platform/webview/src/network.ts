@@ -174,7 +174,7 @@ const getResourceTiming = (url: string): PerformanceResourceTiming | undefined =
 
         const entries = performance.getEntriesByName(url, 'resource') as PerformanceResourceTiming[];
         // Return the most recent entry for this URL
-        return entries.length > 0 ? entries[entries.length - 1] : undefined;
+        return entries.length > 0 ? entries[entries.length - 1].toJSON() : undefined;
     });
 };
 

@@ -10,6 +10,15 @@ import { log, createMessage } from './bridge';
 import { safeCall, makeSafe } from './safe-call';
 import { getCurrentPageSpanId } from './page-view';
 
+export const makeCloneableMetric = (metric: MetricType): MetricType => {
+    const { entries, ...rest } = metric;
+    // The Metric object from web-vitals contains some cloneable properties, namely PerformanceResourceTiming instances, which have circular references and non-enumerable properties that cause issues when we try to serialize the metric to send it across the native bridge. To work around this, we create a shallow clone of the metric object that only includes the enumerable properties, which are sufficient for our use case.
+    return {
+        ...rest,
+        entries: metric.entries.map((entry) => entry.toJSON()),
+    };
+};
+
 /**
  * Initialize Core Web Vitals monitoring using the web-vitals library.
  * Reports: LCP, CLS, INP, FCP, TTFB
@@ -20,7 +29,7 @@ export const initWebVitals = (): void => {
             const parentSpanId = getCurrentPageSpanId();
             const message = createMessage({
                 type: 'webVital',
-                metric,
+                metric: makeCloneableMetric(metric),
                 ...(parentSpanId && { parentSpanId }),
                 // Include the URL of the page where the metric was recorded
                 // We're purposefully stripping query params and fragments to reduce PII and cardinality.
