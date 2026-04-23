@@ -51,8 +51,8 @@ internal object WebViewCapture {
     private const val BRIDGE_NAME = "BitdriftLogger"
     private const val TAG_KEY_INSTRUMENTED = 0x62697464 // "bitd" in hex, unique key for setTag
 
-     /**
-      * Instruments a WebView based on the configured [WebViewConfiguration].
+    /**
+     * Instruments a WebView based on the configured [WebViewConfiguration].
      *
      * This method is idempotent - calling it multiple times on the same WebView
      * will only instrument it once.
@@ -60,7 +60,7 @@ internal object WebViewCapture {
      * Requirements:
      * - The Bitdrift SDK must be initialized before calling this method
      * - WebView monitoring must be enabled in the Capture configuration
-      * - For JavaScriptBridge mode: androidx.webkit library must be available
+     * - For JavaScriptBridge mode: androidx.webkit library must be available
      *
      * @param webview The WebView to instrument
      * @param logger Optional logger instance. If null, uses Capture.logger()
