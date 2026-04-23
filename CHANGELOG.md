@@ -25,11 +25,13 @@
 
 **Changed**
 
-- Nothing yet!
+- Handle `trace` console messages in WebView bridge.
 
 **Fixed**
 
-- Hardened WebView bridge SDK against native crashes: fixed infinite recursion in bridge when console capture is active on unknown platforms, added size limits to all strings crossing the native bridge (stack traces, error messages, console args, serialized JSON), bounded DOM traversal depth for user interaction detection, capped deduplication map sizes to prevent unbounded memory growth, and skipped `data:`/`blob:` URLs in network interception to avoid serializing large payloads.
+- Hardened WebView bridge SDK against native crashes: added size limits to all strings crossing the native bridge (stack traces, error messages, console args, serialized JSON), bounded DOM traversal depth for user interaction detection, capped deduplication map sizes to prevent unbounded memory growth, and skipped `data:`/`blob:` URLs in network interception to avoid serializing large payloads.
+- Added an early exit in the event that injected JavaScript is present, but the native bridge is not properly set up (e.g. missing `window.bitdrift.sendMessage` function).
+- Ensured that any console.log calls made within the injected JavaScript use the pristine un-instrumented console methods to avoid the potential for infinite recursion when the console capture is active.
 
 ### iOS
 
