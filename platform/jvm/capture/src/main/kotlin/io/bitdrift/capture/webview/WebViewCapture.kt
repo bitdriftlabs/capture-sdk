@@ -131,7 +131,7 @@ internal object WebViewCapture {
                 val existingChromeClient = WebViewCompat.getWebChromeClient(webview)
                 webview.webChromeClient = NativeWebChromeClient(existingChromeClient, logger)
             }.onFailure { error ->
-                logger.logInternalError (throwable = error) {
+                logger.logInternalError(throwable = error) {
                     "Failed to set WebChromeClient for console log capture"
                 }
             }
