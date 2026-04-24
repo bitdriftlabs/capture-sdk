@@ -53,8 +53,9 @@ sealed interface WebViewConfiguration {
         val captureUserInteractions: Boolean = false,
     ) : WebViewConfiguration
 
+    /** Factory methods for common WebView configurations. */
     companion object {
-        /** Factory methods for common configurations. */
+        /** Native-only configuration with common defaults enabled. */
         @JvmStatic
         fun nativeOnly() =
             NativeOnly(
