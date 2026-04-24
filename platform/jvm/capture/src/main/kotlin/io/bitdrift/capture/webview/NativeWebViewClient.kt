@@ -27,7 +27,6 @@ import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.providers.fieldsOf
-import io.bitdrift.capture.providers.fieldsOfOptional
 
 /**
  * A WebViewClient wrapper that captures page load events and errors via native callbacks.
@@ -54,7 +53,10 @@ internal class NativeWebViewClient(
         url: String,
         favicon: Bitmap?,
     ) {
-        val spanId = java.util.UUID.randomUUID().toString()
+        val spanId =
+            java.util.UUID
+                .randomUUID()
+                .toString()
         val startTime = System.currentTimeMillis()
         currentPageLoad = PageLoadState(url, spanId, startTime)
 
@@ -149,7 +151,7 @@ internal class NativeWebViewClient(
                 pageLoad.hasError = true
             }
         }
-        
+
         if (config.captureErrors) {
             logger.log(
                 LogLevel.WARNING,
