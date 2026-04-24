@@ -2,7 +2,7 @@
 
 ## Crash Symbolication Tool
 
-Symbolicate Android native crash stack traces using Bitdrift Capture SDK debug symbols. Supports standard Android Logcat/Tombstone traces, custom crash reporting dumps like from Bugsnag, and raw `debuggerd` output formats.
+Symbolicate Android native crash stack traces using Bitdrift Capture SDK debug symbols. Supports standard Android Logcat/Tombstone traces, custom crash reporting dumps like from bitdrift Capture, Firebase Crashlytics absolute-address format, Bugsnag, and raw `debuggerd` output formats.
 
 ### Prerequisites
 
@@ -66,7 +66,14 @@ STACKTRACE
   #01 pc 000000000020a1bc [symbolicated] bd_workflows::engine::WorkflowsEngine::new
 ```
 
-The script symbolicates any frame where the Build ID matches the provided symbols.
+**Absolute address format (bitdrift / Firebase Crashlytics):**
+```
+   <unknown> at 0x77d4f399ac [symbolicated] bd_key_value::Store::get
+   <unknown> at 0x77d4edaab4 [symbolicated] tokio::sync::oneshot::Sender<T>::send
+   <unknown> at 0x77d4edbd6c [symbolicated] <bd_buffer::buffer::volatile_ring_buffer::ProducerImpl as bd_buffer::buffer::RingBufferProducer>::reserve
+```
+
+The script symbolicates any frame where the Build ID matches the provided symbols. For dumps with absolute virtual addresses (e.g. `at 0x<addr> within <path>`), the script automatically estimates the library base address from the minimum observed address in the native APK.
 
 ### How It Works
 
@@ -74,6 +81,7 @@ The script symbolicates any frame where the Build ID matches the provided symbol
 2. Auto-detects architecture from crash dump (or uses provided `-a` flag)
 3. Downloads symbols from `https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture/{version}/`
 4. Verifies Build IDs match between dump and symbols (or selectively ignores it for supported edge cases like Bugsnag's `base.apk` frames)
-5. Symbolicates all backtrace frames matching our module or Build ID
-6. Demangles Rust symbols using `rustfilt` (if available)
-7. Auto-cleans temporary files on exit
+5. For absolute-address formats, estimates the library base address from the native APK's minimum observed address (page-aligned) and converts to relative offsets
+6. Symbolicates all backtrace frames matching our module or Build ID
+7. Demangles Rust symbols using `rustfilt` (if available)
+8. Auto-cleans temporary files on exit
