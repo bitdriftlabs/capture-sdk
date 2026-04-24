@@ -8,7 +8,6 @@
 package io.bitdrift.capture.webview
 
 import android.annotation.SuppressLint
-import android.os.Build
 import android.util.Log
 import android.webkit.WebView
 import androidx.webkit.WebViewCompat
@@ -128,8 +127,14 @@ internal object WebViewCapture {
         webview.webViewClient = NativeWebViewClient(existingClient, logger, config)
 
         if (config.captureConsoleLogs) {
-            val existingChromeClient = WebViewCompat.getWebChromeClient(webview)
-            webview.webChromeClient = NativeWebChromeClient(existingChromeClient, logger)
+            runCatching {
+                val existingChromeClient = WebViewCompat.getWebChromeClient(webview)
+                webview.webChromeClient = NativeWebChromeClient(existingChromeClient, logger)
+            }.onFailure { error ->
+                logger.logInternalError (throwable = error) {
+                    "Failed to set WebChromeClient for console log capture"
+                }
+            }
         }
 
         logger.logInternal(
