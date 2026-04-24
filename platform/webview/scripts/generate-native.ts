@@ -17,7 +17,7 @@ const kotlinOutputPath = path.join(
 
 const swiftOutputPath = path.join(
   repoRoot,
-  "platform/swift/source/webview/WebViewBridgeScript.swift",
+  "platform/swift/source/integrations/webview/WebViewBridgeScript.swift",
 );
 
 // Read the bundled JavaScript
@@ -40,12 +40,6 @@ const escapeForKotlin = (content: string): string => {
   return content.replace(/\$/g, "$${'$$'}");
 };
 
-const escapeForSwift = (content: string): string => {
-  // In Swift multi-line strings with #, we need to escape \# and interpolation
-  // using extended delimiters (#"..."#) so standard escapes don't apply
-  return content.replace(/#/g, "\\#");
-};
-
 // License header for generated files
 const licenseHeader = `// capture-sdk - bitdrift's client SDK
 // Copyright Bitdrift, Inc. All rights reserved.
@@ -65,7 +59,7 @@ if (!bundleContent.includes(CONFIG_PLACEHOLDER)) {
   process.exit(1);
 }
 
-// Split the bundle at the placeholder for Kotlin string concatenation
+// Split the bundle at the placeholder for Kotlin/Swift string concatenation
 const placeholderIndex = bundleContent.indexOf(CONFIG_PLACEHOLDER);
 const beforePlaceholder = bundleContent.substring(0, placeholderIndex);
 const afterPlaceholder = bundleContent.substring(
@@ -116,9 +110,18 @@ import Foundation
  */
 enum WebViewBridgeScript {
     /// The minified JavaScript bundle to inject into WebViews.
-    static let script = #"""
-${escapeForSwift(bundleContent)}
+
+    private static let SCRIPT_PREFIX: String = #"""
+${beforePlaceholder}
 """#
+
+    private static let SCRIPT_SUFFIX: String = #"""
+${afterPlaceholder}
+"""#
+
+    static func getScript(configuration: WebViewScriptConfiguration) -> String {
+        return Self.SCRIPT_PREFIX + configuration.toJSONString() + Self.SCRIPT_SUFFIX
+    }
 }
 `;
 

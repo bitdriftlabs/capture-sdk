@@ -109,7 +109,9 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
                 [.urlSession(
                     requestFieldProvider: CustomNetworkFieldProvider(),
                     responseFieldProvider: CustomNetworkResponseFieldProvider()
-                ), ],
+                ),
+                .webView(),
+                ],
                 disableSwizzling: false
             )
 
