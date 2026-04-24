@@ -40,21 +40,33 @@ internal class NativeWebViewClient(
     private val logger: IInternalLogger,
     private val config: WebViewConfiguration.NativeOnly,
 ) : WebViewClient() {
-    private var pageStartTime: Long = 0L
+    private data class PageLoadState(
+        val url: String,
+        val spanId: String,
+        val startTime: Long,
+        var hasError: Boolean = false,
+    )
+
+    private var currentPageLoad: PageLoadState? = null
 
     override fun onPageStarted(
         view: WebView,
         url: String,
         favicon: Bitmap?,
     ) {
-        pageStartTime = System.currentTimeMillis()
+        val spanId = java.util.UUID.randomUUID().toString()
+        val startTime = System.currentTimeMillis()
+        currentPageLoad = PageLoadState(url, spanId, startTime)
+
         if (config.capturePageViews) {
             logger.logInternal(
                 LogType.VIEW,
                 LogLevel.DEBUG,
                 fieldsOf(
                     "_url" to url,
-                    "_action" to "start",
+                    "_span_type" to "start",
+                    "_span_id" to spanId,
+                    "_span_name" to "webview.pageView",
                     "_source" to "webview",
                     "_mode" to "native",
                 ),
@@ -70,24 +82,28 @@ internal class NativeWebViewClient(
         url: String,
     ) {
         if (config.capturePageViews) {
-            val durationMs =
-                if (pageStartTime > 0) {
-                    System.currentTimeMillis() - pageStartTime
-                } else {
-                    null
+            val pageLoad = currentPageLoad
+            if (pageLoad != null && pageLoad.url == url && !pageLoad.hasError) {
+                val durationMs = System.currentTimeMillis() - pageLoad.startTime
+                logger.logInternal(
+                    LogType.VIEW,
+                    LogLevel.DEBUG,
+                    fieldsOf(
+                        "_url" to url,
+                        "_span_type" to "end",
+                        "_span_id" to pageLoad.spanId,
+                        "_span_name" to "webview.pageView",
+                        "_duration_ms" to durationMs.toString(),
+                        "_result" to "success",
+                        "_source" to "webview",
+                        "_mode" to "native",
+                    ),
+                ) {
+                    "webview.pageView"
                 }
-            val fields =
-                fieldsOfOptional(
-                    "_url" to url,
-                    "_action" to "end",
-                    "_source" to "webview",
-                    "_mode" to "native",
-                    "_duration_ms" to durationMs?.toString(),
-                )
-            logger.logInternal(LogType.VIEW, LogLevel.DEBUG, fields) {
-                "webview.pageView"
             }
         }
+        currentPageLoad = null
         originalClient?.onPageFinished(view, url)
     }
 
@@ -96,6 +112,13 @@ internal class NativeWebViewClient(
         request: WebResourceRequest,
         error: WebResourceError,
     ) {
+        if (request.isForMainFrame) {
+            val pageLoad = currentPageLoad
+            if (pageLoad != null && pageLoad.url == request.url.toString()) {
+                pageLoad.hasError = true
+            }
+        }
+
         if (config.captureErrors) {
             val message = if (request.isForMainFrame) "webview.error" else "webview.resourceError"
             logger.log(
@@ -120,6 +143,13 @@ internal class NativeWebViewClient(
         request: WebResourceRequest,
         errorResponse: WebResourceResponse,
     ) {
+        if (request.isForMainFrame) {
+            val pageLoad = currentPageLoad
+            if (pageLoad != null && pageLoad.url == request.url.toString()) {
+                pageLoad.hasError = true
+            }
+        }
+        
         if (config.captureErrors) {
             logger.log(
                 LogLevel.WARNING,
@@ -313,6 +343,11 @@ internal class NativeWebViewClient(
         description: String,
         failingUrl: String,
     ) {
+        val pageLoad = currentPageLoad
+        if (pageLoad != null && pageLoad.url == failingUrl) {
+            pageLoad.hasError = true
+        }
+
         if (config.captureErrors) {
             logger.log(
                 LogLevel.ERROR,
