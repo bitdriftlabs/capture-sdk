@@ -100,7 +100,7 @@ extension RuntimeVariable<Bool> {
 
     static let crashReporting = RuntimeVariable(
         name: "crash_reporting.enabled",
-        defaultValue: false
+        defaultValue: true
     )
 }
 

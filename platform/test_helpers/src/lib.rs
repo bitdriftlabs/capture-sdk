@@ -297,10 +297,6 @@ pub fn server_instance_configure_aggressive_uploads_impl(
         ValueKind::Bool(true),
       ),
       (
-        bd_runtime::runtime::crash_reporting::Enabled::path(),
-        ValueKind::Bool(true),
-      ),
-      (
         bd_runtime::runtime::state::UsePersistentStorage::path(),
         ValueKind::Bool(true),
       ),

@@ -58,9 +58,9 @@ sealed class IssueReporterState(
         data object Disabled : RuntimeState("RUNTIME_CONFIG_DISABLED")
 
         /**
-         * Reporting not enabled because server-side configuration is unset
+         * Reporting not enabled because the crash_reporting.enabled key is missing from config
          */
-        data object Unset : RuntimeState("RUNTIME_CONFIG_UNSET")
+        data object MissingFlag : RuntimeState("RUNTIME_CONFIG_MISSING_FLAG")
 
         /**
          * Reporting not enabled because server-side configuration is corrupted

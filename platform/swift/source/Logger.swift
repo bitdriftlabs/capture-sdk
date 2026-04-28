@@ -156,6 +156,8 @@ public final class Logger {
             return nil
         }
 
+        let isSdkDirectoryFirstCreated = !FileManager.default.fileExists(atPath: directoryURL.path)
+
         let network: URLSessionNetworkClient? = enableNetwork
             ? URLSessionNetworkClient(apiBaseURL: configuration.apiURL)
             : nil
@@ -205,6 +207,7 @@ public final class Logger {
             let fields: Fields = [
                 "_fatal_issue_reporting_state": "\(Logger.issueReporterInitResult.0)",
                 "_fatal_issue_reporting_duration_ms": Logger.issueReporterInitResult.1 * Double(MSEC_PER_SEC),
+                "_is_sdk_directory_first_created": isSdkDirectoryFirstCreated,
                 "_session_replay_enabled": (configuration.sessionReplayConfiguration != nil),
             ]
             self.underlyingLogger.logSDKStart(fields: fields, duration: duration)
@@ -245,14 +248,19 @@ public final class Logger {
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
         } else {
             Logger.issueReporterInitResult = measureTime {
-                guard let contents = Logger.cachedReportConfigData(base: directoryURL) else {
-                    return .initialized(.runtimeNotSet)
-                }
-                guard let runtimeConfig = readCachedValues(contents) else {
-                    return .initialized(.runtimeInvalid)
-                }
-                guard let enabled = runtimeConfig[RuntimeVariable.crashReporting.name] as? Bool, enabled else {
-                    return .initialized(.runtimeNotEnabled)
+                // For initial app installation/clear cache, the configuration wasn't written
+                // to disk yet, so we intentionally enable crash reporting to not miss any
+                // of those early crashes.
+                if let contents = Logger.cachedReportConfigData(base: directoryURL) {
+                    guard let runtimeConfig = readCachedValues(contents) else {
+                        return .initialized(.runtimeInvalid)
+                    }
+                    guard let enabled = runtimeConfig[RuntimeVariable.crashReporting.name] as? Bool else {
+                        return .initialized(.runtimeMissingFlag)
+                    }
+                    guard enabled else {
+                        return .initialized(.runtimeNotEnabled)
+                    }
                 }
 
                 let kscrashReportDir = Logger.kscrashReportDirectory(base: directoryURL)

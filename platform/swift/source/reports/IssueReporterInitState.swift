@@ -26,8 +26,8 @@ enum ReporterInitResolution: Equatable, Error {
     case runtimeNotEnabled
     /// Runtime config contents are not key/value pairs
     case runtimeInvalid
-    /// No runtime config found on disk
-    case runtimeNotSet
+    /// Runtime config is valid but crash reporting key is absent
+    case runtimeMissingFlag
 }
 
 typealias IssueReporterInitResult = (IssueReporterInitState, TimeInterval)
@@ -55,12 +55,12 @@ extension IssueReporterInitState: CustomStringConvertible {
                 return "CLIENT_CONFIG_DISABLED"
             case .runtimeInvalid:
                 return "RUNTIME_CONFIG_INVALID"
-            case .runtimeNotSet:
-                return "RUNTIME_CONFIG_UNSET"
             case .runtimeNotEnabled:
                 return "RUNTIME_CONFIG_DISABLED"
             case .unsupportedHardware:
                 return "UNSUPPORTED_HARDWARE"
+            case .runtimeMissingFlag:
+                return "RUNTIME_CONFIG_MISSING_FLAG"
             }
         }
     }
