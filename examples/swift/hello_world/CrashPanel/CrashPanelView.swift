@@ -44,11 +44,12 @@ struct CrashPanelView: View {
 struct CrashesView: View {
     @ObservedObject var viewModel: CrashPanelViewModel
 
-    private let registry = CrashRegistry.shared
+    @State private var selectedCrashAction: CrashActionSelection?
 
     var body: some View {
         PanelScreen {
             self.environmentSection
+            self.startupCrashSection
             self.metricKitSection
 
             ForEach(CrashCategory.allCases, id: \.rawValue) { category in
@@ -56,13 +57,22 @@ struct CrashesView: View {
                     title: category.rawValue,
                     subtitle: category.subtitle
                 ) {
-                    let crashes = self.registry.crashes(in: category)
+                    let crashes = self.viewModel.crashes(in: category)
                     ForEach(Array(crashes.enumerated()), id: \.offset) { item in
                         let crash = item.element
-                        Button(action: { crash.trigger() }) {
+                        Button(action: {
+                            self.selectedCrashAction = CrashActionSelection(crash: crash)
+                        }) {
                             PanelRow(
                                 title: crash.title,
-                                subtitle: crash.crashDescription
+                                subtitle: crash.crashDescription,
+                                badge: self.viewModel.isScheduledStartupCrash(crash)
+                                    ? "Startup"
+                                    : (crash.supportsStartupTrigger ? nil : "Now only"),
+                                badgeColor: self.viewModel.isScheduledStartupCrash(crash)
+                                    ? Theme.warning
+                                    : Theme.textSecondary,
+                                showsChevron: true
                             )
                         }
                         .buttonStyle(PressableCardButtonStyle())
@@ -72,6 +82,38 @@ struct CrashesView: View {
         }
         .navigationTitle("Crashes")
         .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog(
+            self.selectedCrashAction?.crash.title ?? "Crash actions",
+            isPresented: Binding(
+                get: { self.selectedCrashAction != nil },
+                set: { if !$0 { self.selectedCrashAction = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let selectedCrashAction {
+                Button("Trigger now", role: .destructive) {
+                    selectedCrashAction.crash.trigger()
+                }
+
+                if selectedCrashAction.crash.supportsStartupTrigger {
+                    Button("Crash on next launch") {
+                        self.viewModel.scheduleStartupCrash(selectedCrashAction.crash)
+                    }
+
+                    if self.viewModel.isScheduledStartupCrash(selectedCrashAction.crash) {
+                        Button("Clear scheduled startup crash") {
+                            self.viewModel.cancelScheduledStartupCrash()
+                        }
+                    }
+                }
+            }
+        } message: {
+            Text(
+                selectedCrashAction?.crash.supportsStartupTrigger == true
+                    ? "Choose whether to trigger this crash now or before Capture SDK initializes on the next launch."
+                    : "This crash only reproduces faithfully after app startup, so next-launch scheduling is unavailable."
+            )
+        }
     }
 
     private var environmentSection: some View {
@@ -172,6 +214,39 @@ struct CrashesView: View {
         }
     }
 
+    private var startupCrashSection: some View {
+        PanelSection(
+            title: "Next launch crash",
+            subtitle: "Schedule one crash for the next launch. It will fire before main() and before Capture SDK initialization."
+        ) {
+            PanelCard(background: Theme.surface) {
+                Text(self.viewModel.scheduledStartupCrashTitle ?? "No startup crash scheduled.")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(Theme.textPrimary)
+
+                Text("Only crashes that reproduce faithfully before main() are eligible for startup scheduling.")
+                    .font(.footnote)
+                    .foregroundColor(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if self.viewModel.scheduledStartupCrashTitle != nil {
+                    Button(action: {
+                        self.viewModel.cancelScheduledStartupCrash()
+                    }) {
+                        Text("Clear scheduled crash")
+                    }
+                    .buttonStyle(
+                        OutlineButtonStyle(
+                            stroke: Theme.warning.opacity(0.8),
+                            foreground: Theme.textPrimary,
+                            background: Theme.warning.opacity(0.1)
+                        )
+                    )
+                }
+            }
+        }
+    }
+
     private func overallStatus(for snapshot: CrashEnvironmentSnapshot) -> CrashOverallStatus {
         if snapshot.isSimulator {
             return CrashOverallStatus(
@@ -255,6 +330,10 @@ private extension CrashesView {
         let background: Color
         let message: String
     }
+
+    struct CrashActionSelection {
+        let crash: any Crash
+    }
 }
 
 private struct MetricKitCrashDiagnosticsView: View {
@@ -321,7 +400,7 @@ private struct CrashDiagnosticDetailView: View {
                 title: "Crash detail",
                 subtitle: "Heavy fields like the call stack tree are only rendered here."
             ) {
-                PanelCard(background: Color.black.opacity(0.24)) {
+                PanelCard(background: Color.black.opacity(0.2)) {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(self.record.summary)
                             .font(.headline)

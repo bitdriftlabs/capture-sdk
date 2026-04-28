@@ -14,18 +14,47 @@ import SwiftUI
 final class CrashPanelViewModel: NSObject, ObservableObject {
     @Published private(set) var recentCrashDiagnostics: [StoredCrashDiagnostic] = []
     @Published private(set) var crashEnvironment: CrashEnvironmentSnapshot
+    @Published private(set) var scheduledStartupCrashIdentifier: String?
 
     private let captureConfiguration = Capture.Configuration()
+    private let crashRegistry: CrashRegistry
     private let crashDiagnosticsStore: CrashDiagnosticsStore
 
-    init(diagnosticsStore: CrashDiagnosticsStore = .init()) {
+    init(
+        crashRegistry: CrashRegistry,
+        diagnosticsStore: CrashDiagnosticsStore = .init()
+    ) {
+        self.crashRegistry = crashRegistry
         self.crashDiagnosticsStore = diagnosticsStore
-        self.crashEnvironment = CrashEnvironmentSnapshot.capture(
+        crashEnvironment = CrashEnvironmentSnapshot.capture(
             fatalIssueReportingEnabled: self.captureConfiguration.enableFatalIssueReporting
         )
+        scheduledStartupCrashIdentifier = crashRegistry.scheduledStartupCrashIdentifier
         super.init()
-        self.crashDiagnosticsStore.clear()
+        crashDiagnosticsStore.clear()
         MXMetricManager.shared.add(self)
+    }
+
+    func crashes(in category: CrashCategory) -> [any Crash] {
+        crashRegistry.crashes(in: category)
+    }
+
+    var scheduledStartupCrashTitle: String? {
+        crashRegistry.scheduledStartupCrash?.title
+    }
+
+    func scheduleStartupCrash(_ crash: any Crash) {
+        crashRegistry.scheduleStartupCrash(crash)
+        scheduledStartupCrashIdentifier = crash.identifier
+    }
+
+    func cancelScheduledStartupCrash() {
+        crashRegistry.cancelScheduledStartupCrash()
+        scheduledStartupCrashIdentifier = nil
+    }
+
+    func isScheduledStartupCrash(_ crash: any Crash) -> Bool {
+        scheduledStartupCrashIdentifier == crash.identifier
     }
 }
 

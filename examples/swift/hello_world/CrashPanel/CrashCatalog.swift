@@ -35,12 +35,17 @@ protocol Crash: AnyObject {
     var category: CrashCategory { get }
     var title: String { get }
     var crashDescription: String { get }
+    var supportsStartupTrigger: Bool { get }
     func trigger() -> Never
 }
 
-final class CrashRegistry {
-    static let shared = CrashRegistry()
+extension Crash {
+    var identifier: String { String(describing: type(of: self)) }
+    var supportsStartupTrigger: Bool { false }
+}
 
+final class CrashRegistry {
+    private let startupStorage: StartupCrashStorage
     private let crashes: [any Crash] = [
         ForceUnwrapCrash(),
         ArrayOutOfBoundsCrash(),
@@ -69,8 +74,32 @@ final class CrashRegistry {
         OOMKillCrash(),
     ]
 
+    init(startupStorage: StartupCrashStorage = .init()) {
+        self.startupStorage = startupStorage
+    }
+
     func crashes(in category: CrashCategory) -> [any Crash] {
-        self.crashes.filter { $0.category == category }
+        crashes.filter { $0.category == category }
+    }
+
+    func scheduleStartupCrash(_ crash: any Crash) {
+        startupStorage.schedule(crash.identifier)
+    }
+
+    func cancelScheduledStartupCrash() {
+        startupStorage.clear()
+    }
+
+    var scheduledStartupCrashIdentifier: String? {
+        startupStorage.pendingIdentifier()
+    }
+
+    var scheduledStartupCrash: (any Crash)? {
+        guard let identifier = scheduledStartupCrashIdentifier else {
+            return nil
+        }
+
+        return crashes.first { $0.identifier == identifier }
     }
 }
 
@@ -174,6 +203,7 @@ final class AbortCrash: Crash {
     let category: CrashCategory = .signal
     let title = "Call abort()"
     let crashDescription = "Call abort() to send SIGABRT to the process."
+    let supportsStartupTrigger = true
 
     func trigger() -> Never {
         abort()
@@ -184,6 +214,7 @@ final class NullPointerCrash: Crash {
     let category: CrashCategory = .signal
     let title = "Dereference NULL pointer"
     let crashDescription = "Write to address 0x0 via an UnsafeMutablePointer. Produces EXC_BAD_ACCESS (SIGSEGV)."
+    let supportsStartupTrigger = true
 
     func trigger() -> Never {
         let ptr = UnsafeMutablePointer<UInt>(bitPattern: 0)
@@ -196,6 +227,7 @@ final class SIGSEGVCrash: Crash {
     let category: CrashCategory = .signal
     let title = "Raise SIGSEGV"
     let crashDescription = "Explicitly raise SIGSEGV (segmentation fault) via raise(3)."
+    let supportsStartupTrigger = true
 
     func trigger() -> Never {
         raise(SIGSEGV)
@@ -207,6 +239,7 @@ final class SIGBUSCrash: Crash {
     let category: CrashCategory = .signal
     let title = "Raise SIGBUS"
     let crashDescription = "Explicitly raise SIGBUS (bus error) via raise(3)."
+    let supportsStartupTrigger = true
 
     func trigger() -> Never {
         raise(SIGBUS)
@@ -218,6 +251,7 @@ final class SIGILLCrash: Crash {
     let category: CrashCategory = .signal
     let title = "Raise SIGILL"
     let crashDescription = "Explicitly raise SIGILL (illegal instruction) via raise(3)."
+    let supportsStartupTrigger = true
 
     func trigger() -> Never {
         raise(SIGILL)
@@ -229,6 +263,7 @@ final class SIGFPECrash: Crash {
     let category: CrashCategory = .signal
     let title = "Raise SIGFPE"
     let crashDescription = "Explicitly raise SIGFPE (floating-point exception) via raise(3)."
+    let supportsStartupTrigger = true
 
     func trigger() -> Never {
         raise(SIGFPE)
@@ -240,6 +275,7 @@ final class StackSmashCrash: Crash {
     let category: CrashCategory = .signal
     let title = "Stack smash"
     let crashDescription = "Writes past a stack buffer to corrupt the stack canary. Produces SIGABRT with a low-level stack trace."
+    let supportsStartupTrigger = true
 
     func trigger() -> Never {
         hello_world_crash_stack_smash()
@@ -279,6 +315,7 @@ final class ObjCExceptionCrash: Crash {
     let category: CrashCategory = .exception
     let title = "Objective-C exception"
     let crashDescription = "Throw an uncaught NSException."
+    let supportsStartupTrigger = true
 
     func trigger() -> Never {
         hello_world_crash_objc_exception()
@@ -290,6 +327,7 @@ final class CXXExceptionCrash: Crash {
     let category: CrashCategory = .exception
     let title = "C++ exception"
     let crashDescription = "Throw an uncaught C++ std::runtime_error."
+    let supportsStartupTrigger = true
 
     func trigger() -> Never {
         hello_world_crash_cxx_exception()
@@ -301,6 +339,7 @@ final class ObjCMsgSendCrash: Crash {
     let category: CrashCategory = .exception
     let title = "objc_msgSend to deallocated object"
     let crashDescription = "Send a message to a deallocated Objective-C object to force EXC_BAD_ACCESS."
+    let supportsStartupTrigger = true
 
     func trigger() -> Never {
         hello_world_crash_objc_msg_send()
@@ -312,6 +351,7 @@ final class UnrecognizedSelectorCrash: Crash {
     let category: CrashCategory = .exception
     let title = "Unrecognized selector"
     let crashDescription = "Send an Objective-C selector that the object does not implement."
+    let supportsStartupTrigger = true
 
     func trigger() -> Never {
         hello_world_crash_unrecognized_selector()
@@ -323,6 +363,7 @@ final class KVOCrash: Crash {
     let category: CrashCategory = .exception
     let title = "KVO misuse"
     let crashDescription = "Remove an observer that was never registered to trigger an Objective-C exception."
+    let supportsStartupTrigger = true
 
     func trigger() -> Never {
         hello_world_crash_kvo()
@@ -334,6 +375,7 @@ final class ReleasedObjectCrash: Crash {
     let category: CrashCategory = .exception
     let title = "Released object / corrupted isa"
     let crashDescription = "Corrupt an Objective-C object's isa pointer and then message it."
+    let supportsStartupTrigger = true
 
     func trigger() -> Never {
         hello_world_crash_released_object()
@@ -345,6 +387,7 @@ final class CorruptMallocCrash: Crash {
     let category: CrashCategory = .exception
     let title = "Corrupt malloc metadata"
     let crashDescription = "Write outside an allocation to corrupt allocator metadata before freeing it."
+    let supportsStartupTrigger = true
 
     func trigger() -> Never {
         hello_world_crash_corrupt_malloc()

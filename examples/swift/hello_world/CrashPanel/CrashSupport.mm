@@ -7,10 +7,54 @@
 
 #import "CrashSupport.h"
 #import <Foundation/Foundation.h>
+#import <signal.h>
+#import <stdio.h>
 #import <stdexcept>
 #import <stdlib.h>
+#import <string.h>
+#import <unistd.h>
 
 extern "C" uint64_t capture_cached_kscrash_timestamp(void);
+
+static void hello_world_startup_dispatch(const char *identifier) {
+    if (strcmp(identifier, "ObjCExceptionCrash") == 0) { hello_world_crash_objc_exception(); }
+    else if (strcmp(identifier, "CXXExceptionCrash") == 0) { hello_world_crash_cxx_exception(); }
+    else if (strcmp(identifier, "ObjCMsgSendCrash") == 0) { hello_world_crash_objc_msg_send(); }
+    else if (strcmp(identifier, "ReleasedObjectCrash") == 0) { hello_world_crash_released_object(); }
+    else if (strcmp(identifier, "CorruptMallocCrash") == 0) { hello_world_crash_corrupt_malloc(); }
+    else if (strcmp(identifier, "UnrecognizedSelectorCrash") == 0) { hello_world_crash_unrecognized_selector(); }
+    else if (strcmp(identifier, "KVOCrash") == 0) { hello_world_crash_kvo(); }
+    else if (strcmp(identifier, "StackOverflowCrash") == 0) { hello_world_crash_stack_overflow(); }
+    else if (strcmp(identifier, "StackSmashCrash") == 0) { hello_world_crash_stack_smash(); }
+    else if (strcmp(identifier, "AbortCrash") == 0) { abort(); }
+    else if (strcmp(identifier, "SIGSEGVCrash") == 0) { raise(SIGSEGV); }
+    else if (strcmp(identifier, "SIGBUSCrash") == 0) { raise(SIGBUS); }
+    else if (strcmp(identifier, "SIGILLCrash") == 0) { raise(SIGILL); }
+    else if (strcmp(identifier, "SIGFPECrash") == 0) { raise(SIGFPE); }
+    else { __builtin_trap(); }
+}
+
+__attribute__((constructor))
+static void hello_world_startup_crash_trigger(void) {
+    NSArray<NSString *> *dirs = NSSearchPathForDirectoriesInDomains(
+        NSApplicationSupportDirectory, NSUserDomainMask, YES);
+    if (dirs.count == 0) { return; }
+
+    NSString *path = [dirs[0] stringByAppendingPathComponent:@"hello_world_startup_crash"];
+    const char *cPath = path.UTF8String;
+
+    FILE *f = fopen(cPath, "r");
+    if (!f) { return; }
+
+    char identifier[256] = {0};
+    size_t n = fread(identifier, 1, sizeof(identifier) - 1, f);
+    fclose(f);
+
+    if (n == 0) { return; }
+
+    unlink(cPath);
+    hello_world_startup_dispatch(identifier);
+}
 
 void hello_world_crash_objc_exception(void) {
     @throw [NSException exceptionWithName:NSGenericException

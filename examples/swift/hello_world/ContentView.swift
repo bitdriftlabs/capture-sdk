@@ -9,10 +9,14 @@ import SwiftUI
 
 struct ContentView: View {
     private let loggerCustomer: LoggerCustomer
-    @StateObject private var crashPanelViewModel = CrashPanelViewModel()
+    @StateObject private var crashPanelViewModel: CrashPanelViewModel
 
-    init(loggerCustomer: LoggerCustomer) {
+    init(
+        loggerCustomer: LoggerCustomer,
+        crashPanelViewModel: CrashPanelViewModel
+    ) {
         self.loggerCustomer = loggerCustomer
+        _crashPanelViewModel = StateObject(wrappedValue: crashPanelViewModel)
     }
 
     var body: some View {
