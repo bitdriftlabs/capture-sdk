@@ -22,6 +22,7 @@ FOUNDATION_EXPORT void hello_world_crash_stack_overflow(void);
 FOUNDATION_EXPORT void hello_world_crash_unrecognized_selector(void);
 FOUNDATION_EXPORT void hello_world_crash_kvo(void);
 FOUNDATION_EXPORT void hello_world_crash_stack_smash(void);
+FOUNDATION_EXPORT uint64_t hello_world_cached_kscrash_timestamp(void);
 
 #ifdef __cplusplus
 }

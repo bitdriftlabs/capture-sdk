@@ -5,7 +5,9 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+import Darwin
 import Foundation
+import HelloWorldCrashSupport
 import SwiftUI
 
 struct CrashEnvironmentSnapshot {
@@ -14,6 +16,7 @@ struct CrashEnvironmentSnapshot {
     let isReleaseBuild: Bool
     let isFatalIssueReportingEnabled: Bool
     let runtimeCrashReportingState: CrashRuntimeCrashReportingState
+    let kscrashCacheState: KSCrashCacheState
 
     static func capture(fatalIssueReportingEnabled: Bool) -> CrashEnvironmentSnapshot {
         CrashEnvironmentSnapshot(
@@ -21,7 +24,8 @@ struct CrashEnvironmentSnapshot {
             isDebuggerAttached: Self.isDebuggerAttached(),
             isReleaseBuild: Self.isReleaseBuild,
             isFatalIssueReportingEnabled: fatalIssueReportingEnabled,
-            runtimeCrashReportingState: CrashRuntimeCrashReportingState.current()
+            runtimeCrashReportingState: CrashRuntimeCrashReportingState.current(),
+            kscrashCacheState: KSCrashCacheState.current()
         )
     }
 
@@ -44,6 +48,54 @@ struct CrashEnvironmentSnapshot {
 
         return (info.kp_proc.p_flag & P_TRACED) != 0
     }
+}
+
+enum KSCrashCacheState {
+    case cached(timestamp: Date)
+    case unavailable
+
+    var badge: String {
+        switch self {
+        case .cached:
+            return "Cached"
+        case .unavailable:
+            return "Unknown"
+        }
+    }
+
+    var badgeColor: Color {
+        switch self {
+        case .cached:
+            return Theme.primary
+        case .unavailable:
+            return Theme.secondary
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .cached(let timestamp):
+            return "The Rust-side KSCrash cache is populated. Cached crash timestamp: \(Self.dateFormatter.string(from: timestamp))."
+        case .unavailable:
+            return "No positive cached KSCrash timestamp was found. That usually means no KSCrash report was cached for this launch, or the cached report did not expose a timestamp."
+        }
+    }
+
+    static func current() -> KSCrashCacheState {
+        let timestamp = hello_world_cached_kscrash_timestamp()
+        guard timestamp > 0 else {
+            return .unavailable
+        }
+
+        return .cached(timestamp: Date(timeIntervalSince1970: TimeInterval(timestamp)))
+    }
+
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .medium
+        return formatter
+    }()
 }
 
 /// This will try to get the actual config value from the Capture SDK.
@@ -140,4 +192,3 @@ enum CrashRuntimeCrashReportingState: String {
         }
     }
 }
-

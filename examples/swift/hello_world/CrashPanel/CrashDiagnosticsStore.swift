@@ -5,8 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import Foundation
 import Capture
+import Foundation
 
 struct CrashDiagnosticsStore {
     static let defaultEncoder: JSONEncoder = {
@@ -14,7 +14,7 @@ struct CrashDiagnosticsStore {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         return encoder
     }()
-    
+
     private let fileURL: URL
     private let encoder: JSONEncoder
     private let fileManager: FileManager
@@ -31,20 +31,19 @@ struct CrashDiagnosticsStore {
             appropriateFor: nil,
             create: true
         )
-        
+
         self.fileURL = applicationSupportDirectory!
             .appendingPathComponent(
                 "hello_world_recent_crash_diagnostics.json",
                 isDirectory: false
             )
-        
     }
 
     func save(_ records: [StoredCrashDiagnostic]) {
         guard let data = try? self.encoder.encode(records) else {
             return
         }
-        
+
         do {
             try fileManager.createDirectory(
                 at: self.fileURL.deletingLastPathComponent(),

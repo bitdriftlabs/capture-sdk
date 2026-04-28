@@ -5,8 +5,9 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import Foundation
 import Capture
+import Foundation
+import HelloWorldCrashSupport
 import MetricKit
 import SwiftUI
 
@@ -16,7 +17,7 @@ final class CrashPanelViewModel: NSObject, ObservableObject {
 
     private let captureConfiguration = Capture.Configuration()
     private let crashDiagnosticsStore: CrashDiagnosticsStore
-    
+
     init(diagnosticsStore: CrashDiagnosticsStore = .init()) {
         self.crashDiagnosticsStore = diagnosticsStore
         self.crashEnvironment = CrashEnvironmentSnapshot.capture(
@@ -60,7 +61,7 @@ extension CrashPanelViewModel: MXMetricManagerSubscriber {
                     terminationReason: $0.terminationReason,
                     callStackTree: String(data: $0.callStackTree.jsonRepresentation(), encoding: .utf8)
                         ?? "MetricKit did not provide a UTF-8 call stack tree.",
-                    rawDiagnostic: String(describing: $0.dictionaryRepresentation())
+                    rawDiagnostic: Self.rawDiagnosticString(for: $0)
                 )
             }
 
@@ -91,5 +92,22 @@ extension CrashPanelViewModel: MXMetricManagerSubscriber {
 
         return signalNames[signalNumber]
     }
-}
 
+    private static func rawDiagnosticString(for diagnostic: MXCrashDiagnostic) -> String {
+        let representation = diagnostic.dictionaryRepresentation()
+
+        if JSONSerialization.isValidJSONObject(representation),
+           let data = try? JSONSerialization.data(
+            withJSONObject: representation,
+            options: [.prettyPrinted, .sortedKeys]
+           ),
+           let string = String(data: data, encoding: .utf8),
+           !string.isEmpty
+        {
+            return string
+        }
+
+        let fallback = String(describing: representation)
+        return fallback.isEmpty ? "MetricKit did not provide a printable raw diagnostic." : fallback
+    }
+}

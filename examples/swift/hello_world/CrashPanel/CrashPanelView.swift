@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import SwiftUI
+import UIKit
 
 struct CrashPanelView: View {
     @ObservedObject var viewModel: CrashPanelViewModel
@@ -135,6 +136,13 @@ struct CrashesView: View {
                             clientConfigurationEnabled: snapshot.isFatalIssueReportingEnabled
                         )
                     )
+
+                    CrashEnvironmentInfoRow(
+                        title: "KSCrash cache",
+                        badge: snapshot.kscrashCacheState.badge,
+                        badgeColor: snapshot.kscrashCacheState.badgeColor,
+                        detail: snapshot.kscrashCacheState.message
+                    )
                 }
             }
         }
@@ -145,10 +153,10 @@ struct CrashesView: View {
 
         return PanelSection(
             title: "Recent crashes (MetricKit)",
-            subtitle: "This section reflects crashes observed from the previous run (Catpure SDK should receive the same)"
+            subtitle: "This section reflects crashes observed from the previous run. Capture should receive the same diagnostic set."
         ) {
             NavigationLink(
-                destination: MetrickKitCrashDiagnosticsView(records: self.viewModel.recentCrashDiagnostics)
+                destination: MetricKitCrashDiagnosticsView(records: self.viewModel.recentCrashDiagnostics)
             ) {
                 PanelRow(
                     title: "View recent MetricKit diagnostics",
@@ -249,7 +257,7 @@ private extension CrashesView {
     }
 }
 
-private struct MetrickKitCrashDiagnosticsView: View {
+private struct MetricKitCrashDiagnosticsView: View {
     let records: [StoredCrashDiagnostic]
 
     private static let dateFormatter: DateFormatter = {
@@ -277,7 +285,7 @@ private struct MetrickKitCrashDiagnosticsView: View {
                             PanelRow(
                                 title: record.summary,
                                 subtitle: self.subtitle(for: record),
-                                badge: record.signalName,
+                                badge: record.exceptionName ?? record.signalName,
                                 badgeColor: Theme.secondary,
                                 showsChevron: true
                             )
@@ -292,7 +300,7 @@ private struct MetrickKitCrashDiagnosticsView: View {
     }
 
     private func subtitle(for record: StoredCrashDiagnostic) -> String {
-        var parts = [MetrickKitCrashDiagnosticsView.dateFormatter.string(from: record.receivedAt)]
+        var parts = [MetricKitCrashDiagnosticsView.dateFormatter.string(from: record.receivedAt)]
 
         if let terminationReason = record.terminationReason, !terminationReason.isEmpty {
             parts.append(terminationReason)
@@ -343,41 +351,127 @@ private struct CrashDiagnosticDetailView: View {
                     }
                 }
 
-                DisclosureGroup("Call stack tree") {
-                    CrashDiagnosticFieldView(title: "Call stack tree", value: self.record.callStackTree)
-                        .padding(.top, 12)
-                }
-                .foregroundColor(Theme.textPrimary)
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Theme.surface)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Theme.border, lineWidth: 1)
+                CrashDiagnosticLargeTextLink(
+                    title: "Call stack tree",
+                    subtitle: "Open the full stack trace in a dedicated view.",
+                    text: self.record.callStackTree
                 )
 
-                DisclosureGroup("Raw diagnostic") {
-                    CrashDiagnosticFieldView(title: "Raw diagnostic", value: self.record.rawDiagnostic)
-                        .padding(.top, 12)
-                }
-                .foregroundColor(Theme.textPrimary)
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Theme.surface)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Theme.border, lineWidth: 1)
+                CrashDiagnosticLargeTextLink(
+                    title: "Raw diagnostic",
+                    subtitle: "Open the full MetricKit raw diagnostic payload.",
+                    text: self.record.rawDiagnostic
                 )
             }
         }
         .navigationTitle("Crash detail")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct CrashDiagnosticLargeTextLink: View {
+    let title: String
+    let subtitle: String
+    let text: String
+
+    @State private var isPreparing = false
+    @State private var isShowingDestination = false
+
+    var body: some View {
+        ZStack {
+            NavigationLink(
+                destination: CrashDiagnosticLargeTextView(title: self.title, text: self.text),
+                isActive: self.$isShowingDestination
+            ) {
+                EmptyView()
+            }
+            .hidden()
+
+            Button(action: self.openDestination) {
+                PanelRow(
+                    title: self.title,
+                    subtitle: self.subtitle,
+                    badgeColor: Theme.secondary,
+                    showsChevron: !self.isPreparing
+                )
+            }
+            .buttonStyle(PressableCardButtonStyle())
+            .disabled(self.isPreparing)
+        }
+    }
+
+    private func openDestination() {
+        guard !self.isPreparing else {
+            return
+        }
+
+        self.isPreparing = true
+        DispatchQueue.main.async {
+            self.isPreparing = false
+            self.isShowingDestination = true
+        }
+    }
+}
+
+private struct CrashDiagnosticLargeTextView: View {
+    let title: String
+    let text: String
+
+    @State private var loadedText: String?
+    @State private var isPresentingShareSheet = false
+
+    var body: some View {
+        Group {
+            if let loadedText {
+                LargeCrashTextContainer(text: loadedText)
+                    .background(Theme.background.ignoresSafeArea())
+            } else {
+                ZStack {
+                    Theme.background
+                        .ignoresSafeArea()
+
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .tint(Theme.primary)
+                }
+            }
+        }
+        .navigationTitle(self.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                Button(action: self.copyText) {
+                    Image(systemName: "doc.on.doc")
+                }
+                .disabled(self.loadedText == nil)
+
+                Button(action: { self.isPresentingShareSheet = true }) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .disabled(self.loadedText == nil)
+            }
+        }
+        .sheet(isPresented: self.$isPresentingShareSheet) {
+            if let loadedText = self.loadedText {
+                ActivityViewController(activityItems: [loadedText])
+            }
+        }
+        .task {
+            guard self.loadedText == nil else {
+                return
+            }
+
+            await Task.yield()
+            self.loadedText = self.text
+        }
+    }
+
+    private func copyText() {
+        guard let loadedText = self.loadedText else {
+            return
+        }
+
+        UIPasteboard.general.string = loadedText
     }
 }
 

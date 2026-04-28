@@ -10,6 +10,8 @@
 #import <stdexcept>
 #import <stdlib.h>
 
+extern "C" uint64_t capture_cached_kscrash_timestamp(void);
+
 void hello_world_crash_objc_exception(void) {
     @throw [NSException exceptionWithName:NSGenericException
                                    reason:@"Uncaught ObjC exception from hello_world"
@@ -85,4 +87,8 @@ void hello_world_crash_stack_smash(void) {
     for (int i = 0; i < 256; i++) {
         ((volatile char *)buf)[i] = (char)0xAA;
     }
+}
+
+uint64_t hello_world_cached_kscrash_timestamp(void) {
+    return capture_cached_kscrash_timestamp();
 }

@@ -43,22 +43,93 @@ struct StoredCrashDiagnostic: Codable, Identifiable {
         self.callStackTree = callStackTree
         self.rawDiagnostic = rawDiagnostic
 
-        if let terminationReason, !terminationReason.isEmpty {
-            self.summary = terminationReason
-        } else if let signalName {
-            self.summary = signalName
-        } else if let exceptionType {
-            self.summary = "Exception \(exceptionType)"
-        } else {
-            self.summary = "Crash diagnostic"
-        }
+        self.summary = Self.crashName(
+            signalName: signalName,
+            exceptionType: exceptionType,
+            terminationReason: terminationReason
+        )
     }
 
     func exceptionDescription(type: Int) -> String {
+        if let exceptionName {
+            if let exceptionCode {
+                return "\(exceptionName) (type \(type), code \(exceptionCode))"
+            }
+
+            return "\(exceptionName) (type \(type))"
+        }
+
         if let exceptionCode {
             return "type \(type), code \(exceptionCode)"
         }
 
         return "type \(type)"
+    }
+
+    var crashName: String {
+        Self.crashName(
+            signalName: self.signalName,
+            exceptionType: self.exceptionType,
+            terminationReason: self.terminationReason
+        )
+    }
+
+    var exceptionName: String? {
+        Self.exceptionName(for: self.exceptionType)
+    }
+
+    private static func crashName(
+        signalName: String?,
+        exceptionType: Int?,
+        terminationReason: String?
+    ) -> String {
+        if let exceptionName = Self.exceptionName(for: exceptionType) {
+            return exceptionName
+        }
+
+        if let signalName {
+            return signalName
+        }
+
+        if let terminationReason, !terminationReason.isEmpty {
+            return terminationReason
+        }
+
+        return "Crash diagnostic"
+    }
+
+    private static func exceptionName(for exceptionType: Int?) -> String? {
+        guard let exceptionType else {
+            return nil
+        }
+
+        switch exceptionType {
+        case Int(EXC_BAD_ACCESS):
+            return "EXC_BAD_ACCESS"
+        case Int(EXC_BAD_INSTRUCTION):
+            return "EXC_BAD_INSTRUCTION"
+        case Int(EXC_SYSCALL):
+            return "EXC_SYSCALL"
+        case Int(EXC_MACH_SYSCALL):
+            return "EXC_MACH_SYSCALL"
+        case Int(EXC_CRASH):
+            return "EXC_CRASH"
+        case Int(EXC_RESOURCE):
+            return "EXC_RESOURCE"
+        case Int(EXC_GUARD):
+            return "EXC_GUARD"
+        case Int(EXC_CORPSE_NOTIFY):
+            return "EXC_CORPSE_NOTIFY"
+        case Int(EXC_ARITHMETIC):
+            return "EXC_ARITHMETIC"
+        case Int(EXC_EMULATION):
+            return "EXC_EMULATION"
+        case Int(EXC_SOFTWARE):
+            return "EXC_SOFTWARE"
+        case Int(EXC_BREAKPOINT):
+            return "EXC_BREAKPOINT"
+        default:
+            return nil
+        }
     }
 }
