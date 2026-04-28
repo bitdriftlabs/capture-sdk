@@ -5,23 +5,24 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import Capture
 import SwiftUI
 
 struct ContentView: View {
     private let loggerCustomer: LoggerCustomer
+    @StateObject private var crashPanelViewModel = CrashPanelViewModel()
 
-    init() {
-        self.loggerCustomer = LoggerCustomer()
+    init(loggerCustomer: LoggerCustomer) {
+        self.loggerCustomer = loggerCustomer
     }
 
     var body: some View {
         NavigationView {
             PanelScreen {
-                SessionPanelView(loggerCustomer: loggerCustomer)
-                ManualCapturePanelView(loggerCustomer: loggerCustomer)
-                AutomaticCapturePanelView(loggerCustomer: loggerCustomer)
-                DiagnosticsPanelView(loggerCustomer: loggerCustomer)
+                SessionPanelView(loggerCustomer: self.loggerCustomer)
+                ManualCapturePanelView(loggerCustomer: self.loggerCustomer)
+                AutomaticCapturePanelView(loggerCustomer: self.loggerCustomer)
+                CrashPanelView(viewModel: self.crashPanelViewModel)
+                DiagnosticsPanelView(loggerCustomer: self.loggerCustomer)
             }
             .navigationTitle("Debug Panel")
             .navigationBarTitleDisplayMode(.inline)

@@ -7,7 +7,6 @@
 
 import Capture
 import Foundation
-import MetricKit
 
 private let kDeviceId = "ios-helloworld"
 private let kOpaqueUserID = "hello-world-opaque-user-id"
@@ -125,8 +124,6 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
                 ]
             )
         }
-
-        MXMetricManager.shared.add(self)
     }
 
     func startNewSession() {
@@ -248,28 +245,6 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
     func clearMemoryPressure() {
         memoryPressureAllocations.removeAll()
         Logger.logInfo("Memory pressure cleared")
-    }
-}
-
-extension LoggerCustomer: MXMetricManagerSubscriber {
-    func didReceive(_ payloads: [MXMetricPayload]) {
-        Capture.Logger.logDebug("Did Receive MXMetricPayloads")
-        for payload in payloads {
-            Capture.Logger.logDebug(
-                "Did Receive MXMetricPayload",
-                fields: ["payload": String(data: payload.jsonRepresentation(), encoding: .utf8)]
-            )
-        }
-    }
-
-    func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        Capture.Logger.logDebug("Did Receive MXDiagnosticPayloads")
-        for payload in payloads {
-            Capture.Logger.logDebug(
-                "Did Receive MXDiagnosticPayload",
-                fields: ["payload": String(data: payload.jsonRepresentation(), encoding: .utf8)]
-            )
-        }
     }
 }
 

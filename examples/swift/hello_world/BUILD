@@ -1,5 +1,6 @@
 load("@rules_apple//apple:apple.bzl", "apple_static_xcframework_import")
 load("@rules_apple//apple:ios.bzl", "ios_application")
+load("@rules_cc//cc:defs.bzl", "objc_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")
 
@@ -25,11 +26,22 @@ apple_static_xcframework_import(
     xcframework_imports = [":expanded_xcframework"],
 )
 
+objc_library(
+    name = "crash_support",
+    srcs = ["CrashPanel/CrashSupport.mm"],
+    hdrs = ["CrashPanel/CrashSupport.h"],
+    module_name = "HelloWorldCrashSupport",
+    tags = ["manual"],
+)
+
 swift_library(
     name = "ios_main",
     srcs = glob(["**/*.swift"]),
     tags = ["manual"],
-    deps = [":capture_xcframework"],
+    deps = [
+        ":capture_xcframework",
+        ":crash_support",
+    ],
 )
 
 ios_application(
@@ -60,7 +72,10 @@ swift_library(
     name = "ios_direct",
     srcs = glob(["**/*.swift"]),
     tags = ["manual"],
-    deps = ["//platform/swift/source:ios_lib"],
+    deps = [
+        ":crash_support",
+        "//platform/swift/source:ios_lib",
+    ],
 )
 
 ios_application(
