@@ -1,10 +1,10 @@
+load("@ios_signing_overrides//:signing_overrides.bzl", "PROFILE_NAME", "TEAM_ID")
 load("@rules_apple//apple:apple.bzl", "local_provisioning_profile")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load(
     "@rules_xcodeproj//xcodeproj:defs.bzl",
     "xcode_provisioning_profile",
 )
-load("@ios_signing_overrides//:signing_overrides.bzl", "PROFILE_NAME", "TEAM_ID")
 
 sh_binary(
     name = "rewrite_symbols",
