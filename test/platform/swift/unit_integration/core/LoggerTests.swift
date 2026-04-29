@@ -334,7 +334,8 @@ final class LoggerTests: XCTestCase {
         }
 
         // Create root path with complete protection
-        let root = FileManager.default.temporaryDirectory
+        let root = FileManager.default
+            .urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(UUID().uuidString)
         let existingWithNone = root.appendingPathComponent("existingWithNone")
         try! FileManager.default.createDirectory(at: existingWithNone,
