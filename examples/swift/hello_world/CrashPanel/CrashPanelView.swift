@@ -82,6 +82,12 @@ struct CrashesView: View {
         }
         .navigationTitle("Crashes")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            self.viewModel.refreshEnvironment()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            self.viewModel.refreshEnvironment()
+        }
         .confirmationDialog(
             self.selectedCrashAction?.crash.title ?? "Crash actions",
             isPresented: Binding(

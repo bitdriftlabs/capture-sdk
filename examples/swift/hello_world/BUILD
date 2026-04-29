@@ -1,8 +1,11 @@
 load("@rules_apple//apple:apple.bzl", "apple_static_xcframework_import")
 load("@rules_apple//apple:ios.bzl", "ios_application")
+load("@rules_apple//apple:versioning.bzl", "apple_bundle_version")
 load("@rules_cc//cc:defs.bzl", "objc_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")
+
+APP_ICONS = glob(["AppAssets.xcassets/AppIcon.appiconset/**"])
 
 genrule(
     name = "expanded_xcframework",
@@ -26,6 +29,18 @@ apple_static_xcframework_import(
     xcframework_imports = [":expanded_xcframework"],
 )
 
+apple_bundle_version(
+    name = "hello_world_version",
+    build_label_pattern = "HelloWorld_{version}_build_{build}",
+    build_version = "{build}",
+    capture_groups = {
+        "build": "\\d+",
+        "version": "\\d+\\.\\d+\\.\\d+",
+    },
+    fallback_build_label = "HelloWorld_0.1.0_build_1",
+    short_version_string = "{version}",
+)
+
 objc_library(
     name = "crash_support",
     srcs = ["CrashPanel/CrashSupport.mm"],
@@ -46,8 +61,11 @@ swift_library(
 
 ios_application(
     name = "ios_app",
+    app_icons = APP_ICONS,
     bundle_id = "io.bitdrift.example.swiftapp.helloworld",
+    bundle_name = "Bitdrift Sample App",
     entitlements = "Protected.entitlements",
+    executable_name = "hello_world_app",
     families = [
         "iphone",
         "ipad",
@@ -61,6 +79,7 @@ ios_application(
     tags = [
         "no-remote",
     ],
+    version = ":hello_world_version",
     visibility = ["//visibility:public"],
     deps = [":ios_main"],
 )
@@ -80,8 +99,11 @@ swift_library(
 
 ios_application(
     name = "hello_world_app",
+    app_icons = APP_ICONS,
     bundle_id = "io.bitdrift.example.swiftapp.helloworld",
+    bundle_name = "Bitdrift Sample App",
     entitlements = "Protected.entitlements",
+    executable_name = "hello_world_app",
     families = [
         "iphone",
         "ipad",
@@ -95,6 +117,7 @@ ios_application(
     tags = [
         "no-remote",
     ],
+    version = ":hello_world_version",
     visibility = ["//visibility:public"],
     deps = [":ios_direct"],
 )

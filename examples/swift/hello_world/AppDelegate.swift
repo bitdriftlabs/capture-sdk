@@ -25,12 +25,13 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 
         return true
     }
-    
+
     private func createContentView() -> some View {
         let startupCrashStorage = StartupCrashStorage()
         let crashRegistry = CrashRegistry(startupStorage: startupCrashStorage)
-        let crashPanelViewModel = CrashPanelViewModel(crashRegistry: crashRegistry)
         let loggerCustomer = LoggerCustomer()
+        let crashPanelViewModel = CrashPanelViewModel(crashRegistry: crashRegistry)
+        crashPanelViewModel.refreshEnvironment()
         return ContentView(
             loggerCustomer: loggerCustomer,
             crashPanelViewModel: crashPanelViewModel

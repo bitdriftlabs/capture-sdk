@@ -7,7 +7,7 @@
 
 import Capture
 import Foundation
-import HelloWorldCrashSupport
+@_implementationOnly import HelloWorldCrashSupport
 import MetricKit
 import SwiftUI
 
@@ -37,6 +37,12 @@ final class CrashPanelViewModel: NSObject, ObservableObject {
 
     func crashes(in category: CrashCategory) -> [any Crash] {
         crashRegistry.crashes(in: category)
+    }
+
+    func refreshEnvironment() {
+        crashEnvironment = CrashEnvironmentSnapshot.capture(
+            fatalIssueReportingEnabled: self.captureConfiguration.enableFatalIssueReporting
+        )
     }
 
     var scheduledStartupCrashTitle: String? {
@@ -102,6 +108,7 @@ extension CrashPanelViewModel: MXMetricManagerSubscriber {
 
         DispatchQueue.main.async {
             self.recentCrashDiagnostics = updatedDiagnostics
+            self.refreshEnvironment()
         }
     }
 

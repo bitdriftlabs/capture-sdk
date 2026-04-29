@@ -385,6 +385,22 @@
         "recordedRepoMappingEntries": []
       }
     },
+    "//bazel/ios:signing_overrides.bzl%ios_signing_overrides_ext": {
+      "general": {
+        "bzlTransitiveDigest": "Svrbx33eYwHE6KIqS5QdLzthH7N9X38ERL+xFlS3W9E=",
+        "usagesDigest": "MfsmdKDu/hEZtlyJTi7TBQYE0JrpsX4Cykqwp8qS2lQ=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "ios_signing_overrides": {
+            "repoRuleId": "@@//bazel/ios:signing_overrides.bzl%ios_signing_overrides_repo",
+            "attributes": {}
+          }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
     "@@aspect_rules_esbuild+//esbuild:extensions.bzl%esbuild": {
       "general": {
         "bzlTransitiveDigest": "sCHEKLUzL/knUyFXUmzsIORGC5fGP2nV5lyg0zV6nhY=",
