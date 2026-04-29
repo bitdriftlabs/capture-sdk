@@ -344,6 +344,12 @@ final class LoggerTests: XCTestCase {
         try! FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try! (root as NSURL).setResourceValue(URLFileProtection.complete,
                                               forKey: .fileProtectionKey)
+        if try! protection(at: root.path) != .complete {
+            // Early bail if the environment does not support file protection. This happens on some github actions runners 
+            // and would cause the test to fail with permission errors when trying to set file protection.
+            // TODO: evaluate a different test strategy that doesn't rely on file protection, such as mocking the file system interactions.
+            return
+        }
 
         // Create a new directory inside the root path (should inherit complete protection)
         let existingWithComplete = root.appendingPathComponent("existingWithComplete")
