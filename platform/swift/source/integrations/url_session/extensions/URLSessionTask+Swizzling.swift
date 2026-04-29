@@ -40,6 +40,10 @@ extension URLSessionTask {
             return
         }
 
+        guard !integration.isTracingDisabledForRequest(self.originalRequest?.url) else {
+            return
+        }
+
         if URLSessionTracePropagation.hasExistingTraceHeaders(in: existingHeaders) {
             self.cap_hasExistingTraceHeaders = true
             if let sampledTraceID = URLSessionTracePropagation.extractSampledTraceID(from: existingHeaders) {

@@ -58,6 +58,16 @@ final class URLSessionIntegration {
     fileprivate static var swizzled = Atomic(false)
     static let shared = URLSessionIntegration()
 
+    private lazy var excludedPathPrefixes: [String] = {
+        guard let logger = Logger.getShared() as? Logger else { return [] }
+        let pathPrefixesToExcludeAsCsv = logger.runtimeValue(.tracingExcludedPathPrefixesCsv)
+        guard !pathPrefixesToExcludeAsCsv.isEmpty else { return [] }
+        return pathPrefixesToExcludeAsCsv
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }()
+
     var logger: Logging? {
         return self.underlyingLogger.load()
     }
@@ -81,6 +91,12 @@ final class URLSessionIntegration {
 
     var isTracingActive: Bool {
         (Logger.getShared() as? Logger)?.isTracingActive == true
+    }
+
+    func isTracingDisabledForRequest(_ url: URL?) -> Bool {
+        guard let path = url?.path else { return false }
+        if excludedPathPrefixes.isEmpty { return false }
+        return excludedPathPrefixes.contains { path.hasPrefix($0) }
     }
 
     func start(

@@ -128,4 +128,10 @@ extension RuntimeVariable<String> {
         name: "client_config.trace.propagation_mode",
         defaultValue: "w3c"
     )
+
+    /// Comma-separated list of path prefixes to exclude from trace header injection.
+    static let tracingExcludedPathPrefixesCsv = RuntimeVariable(
+        name: "client_config.trace.excluded_path_prefixes_csv",
+        defaultValue: ""
+    )
 }

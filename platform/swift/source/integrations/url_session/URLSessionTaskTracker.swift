@@ -63,6 +63,10 @@ final class URLSessionTaskTracker {
             return nil
         }
 
+        guard !integration.isTracingDisabledForRequest(task.originalRequest?.url) else {
+            return nil
+        }
+
         let traceContext = URLSessionTraceContext.make()
         task.cap_traceContext = traceContext
         return traceContext

@@ -141,6 +141,12 @@ sealed class RuntimeStringConfig(
      * - "b3-multi": use the Zipkin B3 `X-B3-*` headers
      */
     data object TRACE_PROPAGATION_MODE : RuntimeStringConfig("client_config.trace.propagation_mode", "w3c")
+
+    /**
+     * Comma-separated list of path prefixes to exclude from trace header injection.
+     * Requests whose path starts with any of these prefixes will not have trace propagation headers added.
+     */
+    data object TRACING_EXCLUDED_PATH_PREFIXES_CSV : RuntimeStringConfig("client_config.trace.excluded_path_prefixes_csv", "")
 }
 
 /**

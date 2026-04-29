@@ -39,6 +39,18 @@ class CaptureOkHttpTracingInterceptor
 
         private val traceContextFactory by lazy { TraceContextFactory() }
 
+        private val excludedPathPrefixes by lazy {
+            val pathPrefixesToExcludeAsCsv =
+                runtimeProvider.getRuntimeStringConfigValue(
+                    RuntimeStringConfig.TRACING_EXCLUDED_PATH_PREFIXES_CSV,
+                )
+            if (pathPrefixesToExcludeAsCsv.isEmpty()) {
+                emptyList()
+            } else {
+                pathPrefixesToExcludeAsCsv.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+            }
+        }
+
         override fun intercept(chain: Interceptor.Chain): Response {
             val currentLogger = Capture.logger()
             val request = chain.request()
@@ -86,7 +98,15 @@ class CaptureOkHttpTracingInterceptor
         ): Boolean =
             currentLogger.isTracingActive &&
                 propagationMode != TracePropagationMode.NONE &&
-                !isBitdriftInternalRequest(request)
+                !isBitdriftInternalRequest(request) &&
+                !isTracingDisabledForRequest(request)
+
+        private fun isTracingDisabledForRequest(request: Request): Boolean =
+            if (excludedPathPrefixes.isEmpty()) {
+                false
+            } else {
+                excludedPathPrefixes.any { request.url.encodedPath.startsWith(it, ignoreCase = true) }
+            }
 
         private fun isBitdriftInternalRequest(request: Request): Boolean = request.header(BITDRIFT_API_KEY_HEADER) != null
 

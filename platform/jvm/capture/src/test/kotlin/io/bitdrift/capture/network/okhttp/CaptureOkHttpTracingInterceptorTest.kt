@@ -17,12 +17,18 @@ import io.bitdrift.capture.fakes.FakeOkHttpInterceptorChain
 import okhttp3.Request
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
+import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import java.util.concurrent.atomic.AtomicReference
 
 class CaptureOkHttpTracingInterceptorTest {
     private val runtimeProvider: IRuntimeProvider = mock()
+
+    @Before
+    fun setUp() {
+        setExcludedPathPrefixes("")
+    }
 
     @After
     fun tearDown() {
@@ -265,8 +271,93 @@ class CaptureOkHttpTracingInterceptorTest {
         assertThat(captured.headers.size).isEqualTo(request.headers.size)
     }
 
+    @Test
+    fun intercept_whenPathIsExcluded_shouldNotAddHeaders() {
+        setActiveTracingState(isActiveTracingEnabled = true)
+        setPropagationMode("w3c")
+        setExcludedPathPrefixes("/opentelemetry.proto.collector.")
+
+        val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
+        val chain =
+            FakeOkHttpInterceptorChain(
+                Request.Builder().url("https://localhost/opentelemetry.proto.collector.trace.v1.TraceService/Export").build(),
+            )
+
+        interceptor.intercept(chain)
+
+        val request = chain.capturedRequest
+        assertThat(request.header("traceparent")).isNull()
+    }
+
+    @Test
+    fun intercept_whenPathIsNotExcluded_shouldAddHeaders() {
+        setActiveTracingState(isActiveTracingEnabled = true)
+        setPropagationMode("w3c")
+        setExcludedPathPrefixes("/opentelemetry.proto.collector.")
+
+        val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
+        val chain = FakeOkHttpInterceptorChain(Request.Builder().url("https://localhost/api/users").build())
+
+        interceptor.intercept(chain)
+
+        val request = chain.capturedRequest
+        assertThat(request.header("traceparent")).isNotNull()
+    }
+
+    @Test
+    fun intercept_whenExcludedPathPrefixesCsvIsEmpty_shouldAddHeaders() {
+        setActiveTracingState(isActiveTracingEnabled = true)
+        setPropagationMode("w3c")
+        setExcludedPathPrefixes("")
+
+        val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
+        val chain = FakeOkHttpInterceptorChain(Request.Builder().url("https://example.com").build())
+
+        interceptor.intercept(chain)
+
+        val request = chain.capturedRequest
+        assertThat(request.header("traceparent")).isNotNull()
+    }
+
+    @Test
+    fun intercept_whenExcludedPathPrefixesCsvHasOnlyCommas_shouldAddHeaders() {
+        setActiveTracingState(isActiveTracingEnabled = true)
+        setPropagationMode("w3c")
+        setExcludedPathPrefixes(",,,")
+
+        val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
+        val chain = FakeOkHttpInterceptorChain(Request.Builder().url("https://example.com/api").build())
+
+        interceptor.intercept(chain)
+
+        val request = chain.capturedRequest
+        assertThat(request.header("traceparent")).isNotNull()
+    }
+
+    @Test
+    fun intercept_whenExcludedPathPrefixesCsvHasSpacesAroundCommas_shouldStillMatch() {
+        setActiveTracingState(isActiveTracingEnabled = true)
+        setPropagationMode("w3c")
+        setExcludedPathPrefixes(" /opentelemetry.proto.collector. , /v1/metrics ")
+
+        val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
+        val chain =
+            FakeOkHttpInterceptorChain(
+                Request.Builder().url("https://localhost/opentelemetry.proto.collector.trace.v1.TraceService/Export").build(),
+            )
+
+        interceptor.intercept(chain)
+
+        val request = chain.capturedRequest
+        assertThat(request.header("traceparent")).isNull()
+    }
+
     private fun setPropagationMode(value: String) {
         whenever(runtimeProvider.getRuntimeStringConfigValue(RuntimeStringConfig.TRACE_PROPAGATION_MODE)).thenReturn(value)
+    }
+
+    private fun setExcludedPathPrefixes(value: String) {
+        whenever(runtimeProvider.getRuntimeStringConfigValue(RuntimeStringConfig.TRACING_EXCLUDED_PATH_PREFIXES_CSV)).thenReturn(value)
     }
 
     private fun setActiveTracingState(isActiveTracingEnabled: Boolean) {
