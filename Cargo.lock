@@ -136,9 +136,9 @@ checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
 
 [[package]]
 name = "async-compression"
-version = "0.4.41"
+version = "0.4.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0f9ee0f6e02ffd7ad5816e9464499fba7b3effd01123b515c41d1697c43dad1"
+checksum = "e79b3f8a79cccc2898f31920fc69f304859b3bd567490f75ebf51ae1c792a9ac"
 dependencies = [
  "compression-codecs",
  "compression-core",
@@ -263,7 +263,7 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 [[package]]
 name = "bd-api"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -296,7 +296,7 @@ dependencies = [
 [[package]]
 name = "bd-artifact-upload"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -324,7 +324,7 @@ dependencies = [
 [[package]]
 name = "bd-backoff"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "bd-workspace-hack",
  "rand 0.10.1",
@@ -334,7 +334,7 @@ dependencies = [
 [[package]]
 name = "bd-bonjson"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "ahash",
  "bd-workspace-hack",
@@ -347,7 +347,7 @@ dependencies = [
 [[package]]
 name = "bd-bonjson-ffi"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "bd-bonjson",
  "bd-workspace-hack",
@@ -360,7 +360,7 @@ dependencies = [
 [[package]]
 name = "bd-bounded-buffer"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "ahash",
  "bd-client-stats-store",
@@ -375,7 +375,7 @@ dependencies = [
 [[package]]
 name = "bd-buffer"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -407,7 +407,7 @@ dependencies = [
 [[package]]
 name = "bd-client-common"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -436,7 +436,7 @@ dependencies = [
 [[package]]
 name = "bd-client-stats"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -465,7 +465,7 @@ dependencies = [
 [[package]]
 name = "bd-client-stats-store"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -483,7 +483,7 @@ dependencies = [
 [[package]]
 name = "bd-completion"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "bd-workspace-hack",
@@ -495,7 +495,7 @@ dependencies = [
 [[package]]
 name = "bd-crash-handler"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -531,7 +531,7 @@ dependencies = [
 [[package]]
 name = "bd-device"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "bd-key-value",
@@ -545,7 +545,7 @@ dependencies = [
 [[package]]
 name = "bd-error-reporter"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "bd-client-common",
@@ -561,7 +561,7 @@ dependencies = [
 [[package]]
 name = "bd-events"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "bd-runtime",
@@ -574,7 +574,7 @@ dependencies = [
 [[package]]
 name = "bd-grpc"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -617,7 +617,7 @@ dependencies = [
 [[package]]
 name = "bd-grpc-codec"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "bd-stats-common",
  "bd-workspace-hack",
@@ -631,7 +631,7 @@ dependencies = [
 [[package]]
 name = "bd-hyper-network"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -657,7 +657,7 @@ dependencies = [
 [[package]]
 name = "bd-internal-logging"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "bd-log-primitives",
  "bd-proto",
@@ -668,7 +668,7 @@ dependencies = [
 [[package]]
 name = "bd-key-value"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "base64",
@@ -686,7 +686,7 @@ dependencies = [
 [[package]]
 name = "bd-log"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "bd-workspace-hack",
@@ -707,7 +707,7 @@ dependencies = [
 [[package]]
 name = "bd-log-filter"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "bd-client-stats-store",
@@ -725,7 +725,7 @@ dependencies = [
 [[package]]
 name = "bd-log-matcher"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "ahash",
  "anyhow",
@@ -743,7 +743,7 @@ dependencies = [
 [[package]]
 name = "bd-log-metadata"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "bd-log-primitives",
@@ -754,7 +754,7 @@ dependencies = [
 [[package]]
 name = "bd-log-primitives"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "ahash",
  "anyhow",
@@ -772,7 +772,7 @@ dependencies = [
 [[package]]
 name = "bd-logger"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -831,7 +831,7 @@ dependencies = [
 [[package]]
 name = "bd-macros"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "bd-workspace-hack",
  "proc-macro2",
@@ -842,7 +842,7 @@ dependencies = [
 [[package]]
 name = "bd-metadata"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "bd-workspace-hack",
 ]
@@ -850,7 +850,7 @@ dependencies = [
 [[package]]
 name = "bd-network-quality"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "bd-workspace-hack",
 ]
@@ -858,7 +858,7 @@ dependencies = [
 [[package]]
 name = "bd-noop-network"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -870,7 +870,7 @@ dependencies = [
 [[package]]
 name = "bd-panic"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "bd-workspace-hack",
  "color-backtrace",
@@ -881,7 +881,7 @@ dependencies = [
 [[package]]
 name = "bd-pgv"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "bd-workspace-hack",
  "log",
@@ -893,7 +893,7 @@ dependencies = [
 [[package]]
 name = "bd-proto"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "bd-pgv",
  "bd-workspace-hack",
@@ -907,7 +907,7 @@ dependencies = [
 [[package]]
 name = "bd-proto-util"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "ahash",
  "anyhow",
@@ -928,7 +928,7 @@ dependencies = [
 [[package]]
 name = "bd-report-parsers"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "bd-proto",
@@ -942,7 +942,7 @@ dependencies = [
 [[package]]
 name = "bd-report-writer"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "bd-proto",
  "bd-workspace-hack",
@@ -953,7 +953,7 @@ dependencies = [
 [[package]]
 name = "bd-resilient-kv"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "ahash",
  "anyhow",
@@ -980,7 +980,7 @@ dependencies = [
 [[package]]
 name = "bd-resource-utilization"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "bd-client-common",
@@ -997,7 +997,7 @@ dependencies = [
 [[package]]
 name = "bd-runtime"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1016,7 +1016,7 @@ dependencies = [
 [[package]]
 name = "bd-server-stats"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "bd-stats-common",
@@ -1036,7 +1036,7 @@ dependencies = [
 [[package]]
 name = "bd-session"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "bd-key-value",
@@ -1056,7 +1056,7 @@ dependencies = [
 [[package]]
 name = "bd-session-replay"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "bd-client-common",
@@ -1078,7 +1078,7 @@ dependencies = [
 [[package]]
 name = "bd-shutdown"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "bd-workspace-hack",
  "log",
@@ -1088,7 +1088,7 @@ dependencies = [
 [[package]]
 name = "bd-state"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "ahash",
  "anyhow",
@@ -1110,7 +1110,7 @@ dependencies = [
 [[package]]
 name = "bd-stats-common"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "bd-macros",
@@ -1123,7 +1123,7 @@ dependencies = [
 [[package]]
 name = "bd-test-helpers"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -1170,7 +1170,7 @@ dependencies = [
 [[package]]
 name = "bd-time"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "async-trait",
  "bd-workspace-hack",
@@ -1184,7 +1184,7 @@ dependencies = [
 [[package]]
 name = "bd-workflows"
 version = "0.1.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a646e3133c7d0c5849c2281070f6ad863626b9a4#a646e3133c7d0c5849c2281070f6ad863626b9a4"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=6bc7696dd5d778a918581cd26c3d630378077061#6bc7696dd5d778a918581cd26c3d630378077061"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1351,9 +1351,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.60"
+version = "1.2.61"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43c5703da9466b66a946814e1adf53ea2c90f10063b86290cc9eb67ce3478a20"
+checksum = "d16d90359e986641506914ba71350897565610e87ce0ad9e6f28569db3dd5c6d"
 dependencies = [
  "find-msvc-tools",
  "shlex",
@@ -1464,9 +1464,9 @@ dependencies = [
 
 [[package]]
 name = "compression-codecs"
-version = "0.4.37"
+version = "0.4.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb7b51a7d9c967fc26773061ba86150f19c50c0d65c887cb1fbe295fd16619b7"
+checksum = "ce2548391e9c1929c21bf6aa2680af86fe4c1b33e6cea9ac1cfeec0bd11218cf"
 dependencies = [
  "compression-core",
  "flate2",
@@ -1474,9 +1474,9 @@ dependencies = [
 
 [[package]]
 name = "compression-core"
-version = "0.4.31"
+version = "0.4.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75984efb6ed102a0d42db99afb6c1948f0380d1d91808d5529916e6c08b49d8d"
+checksum = "cc14f565cf027a105f7a44ccf9e5b424348421a1d8952a8fc9d499d313107789"
 
 [[package]]
 name = "concat-string"
@@ -2055,9 +2055,9 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
 name = "hybrid-array"
-version = "0.4.10"
+version = "0.4.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3944cf8cf766b40e2a1a333ee5e9b563f854d5fa49d6a8ca2764e97c6eddb214"
+checksum = "08d46837a0ed51fe95bd3b05de33cd64a1ee88fc797477ca48446872504507c5"
 dependencies = [
  "typenum",
 ]
@@ -2237,9 +2237,9 @@ dependencies = [
 
 [[package]]
 name = "idna_adapter"
-version = "1.2.1"
+version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3acae9609540aa318d1bc588455225fb2085b9ed0c4f6bd0d9d5bcd86f1a0344"
+checksum = "cb68373c0d6620ef8105e855e7745e18b0d00d3bdb07fb532e434244cdb9a714"
 dependencies = [
  "icu_normalizer",
  "icu_properties",
@@ -2378,9 +2378,9 @@ dependencies = [
 
 [[package]]
 name = "js-sys"
-version = "0.3.95"
+version = "0.3.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2964e92d1d9dc3364cae4d718d93f227e3abb088e747d92e0395bfdedf1c12ca"
+checksum = "a1840c94c045fbcf8ba2812c95db44499f7c64910a912551aaaa541decebcacf"
 dependencies = [
  "cfg-if",
  "futures-util",
@@ -2422,9 +2422,9 @@ checksum = "09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2"
 
 [[package]]
 name = "libc"
-version = "0.2.185"
+version = "0.2.186"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52ff2c0fe9bc6cb6b14a0592c2ff4fa9ceb83eea9db979b0487cd054946a2b8f"
+checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
 
 [[package]]
 name = "libz-sys"
@@ -3391,9 +3391,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.39"
+version = "0.23.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c2c118cb077cca2822033836dfb1b975355dfb784b5e8da48f7b6c5db74e60e"
+checksum = "ef86cd5876211988985292b91c96a8f2d298df24e75989a43a3c73f2d4d8168b"
 dependencies = [
  "once_cell",
  "ring",
@@ -3417,9 +3417,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-pki-types"
-version = "1.14.0"
+version = "1.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be040f8b0a225e40375822a563fa9524378b9d63112f53e19ffff34df5d33fdd"
+checksum = "30a7197ae7eb376e574fe940d068c30fe0462554a3ddbe4eca7838e049c937a9"
 dependencies = [
  "zeroize",
 ]
@@ -4364,9 +4364,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen"
-version = "0.2.118"
+version = "0.2.120"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bf938a0bacb0469e83c1e148908bd7d5a6010354cf4fb73279b7447422e3a89"
+checksum = "df52b6d9b87e0c74c9edfa1eb2d9bf85e5d63515474513aa50fa181b3c4f5db1"
 dependencies = [
  "cfg-if",
  "once_cell",
@@ -4377,9 +4377,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-futures"
-version = "0.4.68"
+version = "0.4.70"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f371d383f2fb139252e0bfac3b81b265689bf45b6874af544ffa4c975ac1ebf8"
+checksum = "af934872acec734c2d80e6617bbb5ff4f12b052dd8e6332b0817bce889516084"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -4387,9 +4387,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro"
-version = "0.2.118"
+version = "0.2.120"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eeff24f84126c0ec2db7a449f0c2ec963c6a49efe0698c4242929da037ca28ed"
+checksum = "78b1041f495fb322e64aca85f5756b2172e35cd459376e67f2a6c9dffcedb103"
 dependencies = [
  "quote",
  "wasm-bindgen-macro-support",
@@ -4397,9 +4397,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro-support"
-version = "0.2.118"
+version = "0.2.120"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d08065faf983b2b80a79fd87d8254c409281cf7de75fc4b773019824196c904"
+checksum = "9dcd0ff20416988a18ac686d4d4d0f6aae9ebf08a389ff5d29012b05af2a1b41"
 dependencies = [
  "bumpalo",
  "proc-macro2",
@@ -4410,9 +4410,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-shared"
-version = "0.2.118"
+version = "0.2.120"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fd04d9e306f1907bd13c6361b5c6bfc7b3b3c095ed3f8a9246390f8dbdee129"
+checksum = "49757b3c82ebf16c57d69365a142940b384176c24df52a087fb748e2085359ea"
 dependencies = [
  "unicode-ident",
 ]
@@ -4453,9 +4453,9 @@ dependencies = [
 
 [[package]]
 name = "web-sys"
-version = "0.3.95"
+version = "0.3.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f2dfbb17949fa2088e5d39408c48368947b86f7834484e87b73de55bc14d97d"
+checksum = "2eadbac71025cd7b0834f20d1fe8472e8495821b4e9801eb0a60bd1f19827602"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
