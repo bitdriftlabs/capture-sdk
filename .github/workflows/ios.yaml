@@ -65,7 +65,7 @@ jobs:
     timeout-minutes: 40
     needs: "pre_check"
     if: needs.pre_check.outputs.should_run == 'true'
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       # Checkout repo to Github Actions runner
       - name: Checkout
@@ -89,7 +89,7 @@ jobs:
     name: unit tests
     needs: "pre_check"
     if: needs.pre_check.outputs.should_run == 'true'
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -102,7 +102,7 @@ jobs:
         run: SKIP_PROTO_GEN=1 cargo test --package swift_bridge
 
   tests:
-    runs-on: macos-14
+    runs-on: macos-26
     needs: "pre_check"
     if: needs.pre_check.outputs.should_run == 'true'
     steps:
