@@ -1,3 +1,4 @@
+load("@ios_signing_overrides//:signing_overrides.bzl", "PROFILE_NAME", "TEAM_ID")
 load("@rules_apple//apple:apple.bzl", "local_provisioning_profile")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load(
@@ -18,12 +19,10 @@ config_setting(
     values = {"define": "ios_produce_framework_plist=true"},
 )
 
-# Bitdrift team ID
-TEAM_ID = "33XQXT255C"
-
-# If needed, change to the name shown by clicking the (i) next to
-# "Xcode Managed Profile" in the "Signing and Capabilities" tab
-PROFILE_NAME = "Wildcard"
+# Defaults come from bazel/ios/signing_overrides.bzl and can be overridden locally via:
+#   build --repo_env=APPLE_TEAM_ID=YOURTEAMID
+#   build --repo_env=APPLE_PROFILE_NAME="Your Provisioning Profile Name"
+# in .bazelrc.local.
 
 xcode_provisioning_profile(
     name = "ios_provisioning_profile",
