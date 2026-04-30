@@ -19,11 +19,22 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     ) -> Bool {
         Theme.applyNavigationAppearance()
         let window = UIWindow(frame: UIScreen.main.bounds)
-        let contentView = ContentView()
-        window.rootViewController = UIHostingController(rootView: contentView)
+        window.rootViewController = UIHostingController(rootView: createContentView())
         window.makeKeyAndVisible()
         self.window = window
 
         return true
+    }
+
+    private func createContentView() -> some View {
+        let startupCrashStorage = StartupCrashStorage()
+        let crashRegistry = CrashRegistry(startupStorage: startupCrashStorage)
+        let loggerCustomer = LoggerCustomer()
+        let crashPanelViewModel = CrashPanelViewModel(crashRegistry: crashRegistry)
+        crashPanelViewModel.refreshEnvironment()
+        return ContentView(
+            loggerCustomer: loggerCustomer,
+            crashPanelViewModel: crashPanelViewModel
+        )
     }
 }
