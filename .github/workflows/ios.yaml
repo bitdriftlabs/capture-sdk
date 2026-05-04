@@ -80,12 +80,10 @@ jobs:
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
-      - name: Resolve iOS simulator
-        run: ./ci/resolve-ios-simulator.sh
-      - run: ./bazelw build --config ci --config release-ios --ios_simulator_device="$IOS_SIMULATOR_DEVICE" --ios_simulator_version="$IOS_SIMULATOR_VERSION" //examples/swift/hello_world:ios_app
+      - run: ./bazelw build --config ci --config release-ios //examples/swift/hello_world:ios_app
         name: "Build app"
       # TODO(snowp): Add some kind of assertion that the app does that it's supposed to
-      - run: ./bazelw run --config ci --config release-ios --ios_simulator_device="$IOS_SIMULATOR_DEVICE" --ios_simulator_version="$IOS_SIMULATOR_VERSION" //examples/swift/hello_world:ios_app &> /tmp/envoy.log &
+      - run: ./bazelw run --config ci --config release-ios //examples/swift/hello_world:ios_app &> /tmp/envoy.log &
         name: "Run app"
   unit_tests:
     name: unit tests
@@ -121,10 +119,8 @@ jobs:
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
-      - name: Resolve iOS simulator
-        run: ./ci/resolve-ios-simulator.sh
       - name: Run iOS tests
-        run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/...)') --test_tag_filters=macos_only --test_output=errors --config ci --config ios --ios_simulator_device="$IOS_SIMULATOR_DEVICE" --ios_simulator_version="$IOS_SIMULATOR_VERSION"
+        run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/...)') --test_tag_filters=macos_only --test_output=errors --config ci --config ios
   verify_ios:
     runs-on: ubuntu-latest
     needs: ["tests", "swift_hello_world", "unit_tests"]

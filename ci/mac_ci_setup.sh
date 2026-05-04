@@ -2,7 +2,7 @@
 
 set -e
 
-# https://github.com/actions/runner-images/blob/main/images/macos/macos-26-Readme.md#xcode
+# https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md#xcode
 sudo xcode-select --switch /Applications/Xcode_26.0.1.app
 
 # workaround for https://github.com/actions/setup-python/issues/577#issuecomment-1365231818
