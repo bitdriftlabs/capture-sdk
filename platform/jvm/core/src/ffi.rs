@@ -9,7 +9,7 @@ use crate::jni::{initialize_class, initialize_method_handle, CachedClass, Cached
 use anyhow::bail;
 use bd_client_common::error::InvariantError;
 use bd_logger::{AnnotatedLogField, AnnotatedLogFields, LogFieldKind, LogFieldValue, LogFields};
-use jni::objects::{JMap, JObject, JObjectArray, JPrimitiveArray, JString};
+use jni::objects::{JMap, JObject, JObjectArray, JPrimitiveArray};
 use jni::signature::{Primitive, ReturnType};
 use jni::JNIEnv;
 use std::collections::HashMap;
@@ -208,41 +208,31 @@ pub fn string_arrays_to_annotated_fields(
 ) -> anyhow::Result<AnnotatedLogFields> {
   let len = env.get_array_length(keys)?;
   #[allow(clippy::cast_sign_loss)]
-  let len_usize = len as usize;
-  let mut fields = AnnotatedLogFields::with_capacity(len_usize);
+  let mut fields = AnnotatedLogFields::with_capacity(len as usize);
 
-  if len == 0 {
-    return Ok(fields);
-  }
-
+  // We intentionally keep the simpler local-frame approach here. On-device benchmarks showed that
+  // manual local-ref management was only marginally faster and not worth the added complexity.
   for i in 0 .. len {
-    let key_obj = env.get_object_array_element(keys, i)?;
-    let value_obj = env.get_object_array_element(values, i)?;
+    env.with_local_frame(4, |env| -> anyhow::Result<()> {
+      let key_obj = env.get_object_array_element(keys, i)?;
+      let value_obj = env.get_object_array_element(values, i)?;
 
-    let key_jstr: JString<'_> = key_obj.into();
-    let value_jstr: JString<'_> = value_obj.into();
+      let key = unsafe { env.get_string_unchecked(&key_obj.into()) }?
+        .to_string_lossy()
+        .to_string();
+      let value = unsafe { env.get_string_unchecked(&value_obj.into()) }?
+        .to_string_lossy()
+        .to_string();
 
-    // Extract strings and convert to owned immediately so we can release JNI refs
-    let key_str = {
-      let key = unsafe { env.get_string_unchecked(&key_jstr) }?;
-      key.to_string_lossy().into_owned()
-    };
-    let value_str = {
-      let value = unsafe { env.get_string_unchecked(&value_jstr) }?;
-      value.to_string_lossy().into_owned()
-    };
-
-    fields.insert(
-      key_str.into(),
-      AnnotatedLogField {
-        value: LogFieldValue::String(value_str),
-        kind,
-      },
-    );
-
-    // Clean up local references to avoid exhausting JNI local ref table
-    env.delete_local_ref(key_jstr)?;
-    env.delete_local_ref(value_jstr)?;
+      fields.insert(
+        key.into(),
+        AnnotatedLogField {
+          value: LogFieldValue::String(value),
+          kind,
+        },
+      );
+      Ok(())
+    })?;
   }
 
   Ok(fields)
