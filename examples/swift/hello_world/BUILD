@@ -7,6 +7,11 @@ load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")
 
 APP_ICONS = glob(["AppAssets.xcassets/AppIcon.appiconset/**"])
 
+CI_APP_ICONS = select({
+    "//bazel:is_ci": [],
+    "//conditions:default": APP_ICONS,
+})
+
 genrule(
     name = "expanded_xcframework",
     srcs = ["//:ios_xcframework_with_rust_symbols"],
@@ -61,7 +66,7 @@ swift_library(
 
 ios_application(
     name = "ios_app",
-    app_icons = APP_ICONS,
+    app_icons = CI_APP_ICONS,
     bundle_id = "io.bitdrift.example.swiftapp.helloworld",
     bundle_name = "Bitdrift Sample App",
     entitlements = "Protected.entitlements",
@@ -99,7 +104,7 @@ swift_library(
 
 ios_application(
     name = "hello_world_app",
-    app_icons = APP_ICONS,
+    app_icons = CI_APP_ICONS,
     bundle_id = "io.bitdrift.example.swiftapp.helloworld",
     bundle_name = "Bitdrift Sample App",
     entitlements = "Protected.entitlements",
