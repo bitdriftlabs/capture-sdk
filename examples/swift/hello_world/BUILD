@@ -7,6 +7,11 @@ load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")
 
 APP_ICONS = glob(["AppAssets.xcassets/AppIcon.appiconset/**"])
 
+APP_ICONS = select({
+    "//bazel:is_ci": [],
+    "//conditions:default": APP_ICONS,
+})
+
 genrule(
     name = "expanded_xcframework",
     srcs = ["//:ios_xcframework_with_rust_symbols"],
