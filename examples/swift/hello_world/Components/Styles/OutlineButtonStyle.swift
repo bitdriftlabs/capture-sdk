@@ -38,10 +38,8 @@ private struct OutlineFeedbackLabel: View {
     let foreground: Color
     let background: Color
 
-    @State private var flashPressed = false
-
     private var isActive: Bool {
-        self.configuration.isPressed || self.flashPressed
+        self.configuration.isPressed
     }
 
     var body: some View {
@@ -62,14 +60,5 @@ private struct OutlineFeedbackLabel: View {
             .scaleEffect(self.isActive ? 0.95 : 1.0)
             .opacity(self.isActive ? 0.9 : 1.0)
             .animation(.easeOut(duration: 0.1), value: self.isActive)
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        self.flashPressed = true
-                    }
-                    .onEnded { _ in
-                        self.flashPressed = false
-                    }
-            )
     }
 }
