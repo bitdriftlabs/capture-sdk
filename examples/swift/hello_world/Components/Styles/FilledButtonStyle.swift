@@ -25,10 +25,8 @@ private struct FilledFeedbackLabel: View {
     let fill: Color
     let foreground: Color
 
-    @State private var flashPressed = false
-
     private var isActive: Bool {
-        self.configuration.isPressed || self.flashPressed
+        self.configuration.isPressed
     }
 
     var body: some View {
@@ -46,14 +44,5 @@ private struct FilledFeedbackLabel: View {
             .opacity(self.isActive ? 0.9 : 1.0)
             .brightness(self.isActive ? 0.1 : 0.0)
             .animation(.easeOut(duration: 0.1), value: self.isActive)
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        self.flashPressed = true
-                    }
-                    .onEnded { _ in
-                        self.flashPressed = false
-                    }
-            )
     }
 }
