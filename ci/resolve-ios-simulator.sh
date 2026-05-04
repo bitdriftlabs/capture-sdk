@@ -1,28 +1,25 @@
 #!/bin/bash
 set -euo pipefail
 
-# Resolves an available simulator for a given platform.
-# Picks the first device from the newest available runtime.
+# Resolves an available simulator device matching the active Xcode's SDK.
 #
 # Usage: ./ci/resolve-ios-simulator.sh [platform]
 #   platform: iOS (default), tvOS, watchOS, visionOS
 #
 # Output: prints IOS_SIMULATOR_DEVICE and IOS_SIMULATOR_VERSION to stdout.
-# When run in GitHub Actions (GITHUB_ENV is set), also exports them to
-# the workflow environment.
+# When run in GitHub Actions (GITHUB_ENV is set), also exports them to the
+# workflow environment so subsequent steps can use them directly.
 
 PLATFORM="${1:-iOS}"
 
-DEVICE_JSON=$(xcrun simctl list devices "$PLATFORM" available -j \
-  | jq -c '.devices | to_entries | sort_by(.key) | reverse
-      | map(select(.value | length > 0)) | first
-      | {runtime: .key, name: .value[0].name}')
+OS_VERSION=$(xcrun --sdk iphonesimulator --show-sdk-version)
 
-DEVICE_NAME=$(echo "$DEVICE_JSON" | jq -r '.name')
-OS_VERSION=$(echo "$DEVICE_JSON" | jq -r '.runtime | split("-") | .[1:] | join(".")')
+DEVICE_NAME=$(xcrun simctl list devices "$PLATFORM" available -j \
+  | jq -r --arg version "com.apple.CoreSimulator.SimRuntime.${PLATFORM}-$(echo "$OS_VERSION" | tr '.' '-')" \
+      '.devices[$version] // [] | map(select(.isAvailable)) | first | .name // empty')
 
-if [[ -z "$DEVICE_NAME" || "$DEVICE_NAME" == "null" ]]; then
-  echo "Error: no available $PLATFORM simulator found" >&2
+if [[ -z "$DEVICE_NAME" ]]; then
+  echo "Error: no available $PLATFORM $OS_VERSION simulator found (active Xcode SDK: $OS_VERSION)" >&2
   exit 1
 fi
 
