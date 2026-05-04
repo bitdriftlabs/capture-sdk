@@ -43,6 +43,9 @@ extension Logger {
     /// - parameter fieldProviders:  An optional array of additional FieldProviders to include on the default
     ///                              Logger.
     /// - parameter dateProvider:    An optional date provider to set on the default logger.
+    /// - parameter startResult:     An optional callback invoked with the result of the SDK initialization.
+    ///                              The callback is always called on the calling thread before `start` returns.
+    ///                              On success, it receives a `Logging` instance. On failure, it receives an error.
     ///
     /// - returns: A logger integrator that can be used to enable various SDK integration.
     @discardableResult
@@ -51,7 +54,8 @@ extension Logger {
         sessionStrategy: SessionStrategy,
         configuration: Configuration = .init(),
         fieldProviders: [FieldProvider] = [],
-        dateProvider: DateProvider? = nil
+        dateProvider: DateProvider? = nil,
+        startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
     ) -> LoggerIntegrator?
     {
         return self.start(
@@ -60,7 +64,8 @@ extension Logger {
             configuration: configuration,
             fieldProviders: fieldProviders,
             dateProvider: dateProvider,
-            loggerBridgingFactoryProvider: LoggerBridgingFactory()
+            loggerBridgingFactoryProvider: LoggerBridgingFactory(),
+            startResult: startResult
         )
     }
 
@@ -71,10 +76,11 @@ extension Logger {
         configuration: Configuration,
         fieldProviders: [FieldProvider],
         dateProvider: DateProvider?,
-        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider,
+        startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
     ) -> LoggerIntegrator?
     {
-        return self.createOnce {
+        return self.createOnce(startResult: startResult) {
             let logger = Logger(
                 withAPIKey: apiKey,
                 configuration: configuration,

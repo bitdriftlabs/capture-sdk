@@ -102,7 +102,18 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
                     apiURL: apiURL,
                     issueCallbackConfiguration: issueCallbackConfiguration
                 ),
-                fieldProviders: [CustomFieldProvider()]
+                fieldProviders: [CustomFieldProvider()],
+                startResult: { result in
+                    switch result {
+                    case .success(let logger):
+                        print("SDK started successfully. " +
+                                "sessionID=\(logger.sessionID), " +
+                                "sessionURL=\(logger.sessionURL), " +
+                                "deviceID=\(logger.deviceID)")
+                    case .failure(let error):
+                        print("SDK failed to start: \(error)")
+                    }
+                }
             )?
             .enableIntegrations(
                 [.urlSession(

@@ -122,8 +122,8 @@ public final class Logger {
         storageProvider: StorageProvider,
         timeProvider: TimeProvider,
         networkDelegateQueue: DispatchQueue = .network,
-        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
-    )
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory(),
+        )
     {
         self.timeProvider = timeProvider
         let start = timeProvider.uptime()
@@ -358,7 +358,10 @@ public final class Logger {
 
     // MARK: - Static
 
-    static func createOnce(_ createLogger: () -> Logger?) -> LoggerIntegrator? {
+    static func createOnce(
+        startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil,
+        _ createLogger: () -> Logger?
+    ) -> LoggerIntegrator? {
         let state = self.syncedShared.update { state in
             guard case .notStarted = state else {
                 return
@@ -371,11 +374,13 @@ public final class Logger {
             }
         }
 
-        return switch state {
-        case .started(let logger):
-            logger
+        switch state {
+        case .started(let integrator):
+            startResult?(.success(integrator.logger))
+            return integrator
         case .notStarted, .startFailure:
-            nil
+            startResult?(.failure(SDKNotStartedfError()))
+            return nil
         }
     }
 
