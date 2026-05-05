@@ -15,7 +15,7 @@ enum IssueReporterInitState: Equatable {
 }
 
 /// Final state of an initialized crash reporter
-enum ReporterInitResolution: Equatable, Error {
+package enum ReporterInitResolution: Equatable, Error {
     /// Enabled monitoring for reports, may or may not detect any
     case monitoring
     /// Disabled due to hardware limitations
@@ -26,11 +26,39 @@ enum ReporterInitResolution: Equatable, Error {
     case runtimeNotEnabled
     /// Runtime config contents are not key/value pairs
     case runtimeInvalid
-    /// No runtime config found on disk
-    case runtimeNotSet
+    /// Runtime config is valid but crash reporting key is absent
+    case runtimeMissingFlag
 }
 
 typealias IssueReporterInitResult = (IssueReporterInitState, TimeInterval)
+
+/// Resolves the crash reporting runtime state from cached config file contents.
+///
+/// - parameter contents: The raw text content of the `reports/config.csv` file, or `nil` if the file
+///                        does not exist (e.g., fresh install).
+///
+/// - returns: The resolution indicating whether crash reporting should be enabled or why it is disabled.
+package func resolveRuntimeState(from contents: String?) -> ReporterInitResolution {
+    // For initial app installation/clear cache, the configuration wasn't written
+    // to disk yet, so we intentionally enable crash reporting to not miss any
+    // of those early crashes.
+    guard let contents else {
+        return .monitoring
+    }
+
+    guard let config = readCachedValues(contents) else {
+        return .runtimeInvalid
+    }
+
+    switch config[RuntimeVariable.crashReporting.name] {
+    case let enabled as Bool:
+        return enabled ? .monitoring : .runtimeNotEnabled
+    case nil:
+        return .runtimeMissingFlag
+    default:
+        return .runtimeInvalid
+    }
+}
 
 func measureTime<T>(operation: () -> T) -> (T, TimeInterval) {
     let start = DispatchTime.now()
@@ -55,12 +83,12 @@ extension IssueReporterInitState: CustomStringConvertible {
                 return "CLIENT_CONFIG_DISABLED"
             case .runtimeInvalid:
                 return "RUNTIME_CONFIG_INVALID"
-            case .runtimeNotSet:
-                return "RUNTIME_CONFIG_UNSET"
             case .runtimeNotEnabled:
                 return "RUNTIME_CONFIG_DISABLED"
             case .unsupportedHardware:
                 return "UNSUPPORTED_HARDWARE"
+            case .runtimeMissingFlag:
+                return "RUNTIME_CONFIG_MISSING_FLAG"
             }
         }
     }

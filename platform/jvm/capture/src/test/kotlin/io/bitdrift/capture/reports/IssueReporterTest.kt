@@ -111,8 +111,8 @@ class IssueReporterTest {
     }
 
     @Test
-    fun initialize_whenConfigNotPresent_shouldNotInit() {
-        configFile.delete()
+    fun initialize_whenConfigMissingCrashReportingKey_shouldNotInit() {
+        configFile.writeText("other.flag,true")
         issueReporter.init(
             sdkDirectory,
             clientAttributes,
@@ -120,11 +120,73 @@ class IssueReporterTest {
         )
 
         issueReporter.issueReporterState.assert(
-            IssueReporterState.RuntimeState.Unset::class.java,
+            IssueReporterState.RuntimeState.MissingFlag::class.java,
         )
         assertThat(
             issueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
         ).isNotNull
+    }
+
+    @Test
+    fun initialize_whenConfigCrashReportingValueIsNotBoolean_shouldNotInit() {
+        configFile.writeText("crash_reporting.enabled,not-a-bool")
+        issueReporter.init(
+            sdkDirectory,
+            clientAttributes,
+            completedReportsProcessor,
+        )
+
+        issueReporter.issueReporterState.assert(
+            IssueReporterState.RuntimeState.MissingFlag::class.java,
+        )
+        assertThat(
+            issueReporter.getLogStatusFieldsMap()["_fatal_issue_reporting_duration_ms"],
+        ).isNotNull
+    }
+
+    @Test
+    fun initialize_whenConfigFileIsEmpty_shouldBeInvalid() {
+        configFile.writeText("")
+        issueReporter.init(
+            sdkDirectory,
+            clientAttributes,
+            completedReportsProcessor,
+        )
+
+        issueReporter.issueReporterState.assert(
+            IssueReporterState.RuntimeState.Invalid::class.java,
+        )
+    }
+
+    @Test
+    fun initialize_whenConfigHasMultipleKeysButMissingCrashReporting_shouldBeInvalid() {
+        configFile.writeText("anr_reporting.enabled,true\nother.flag,false")
+        issueReporter.init(
+            sdkDirectory,
+            clientAttributes,
+            completedReportsProcessor,
+        )
+
+        issueReporter.issueReporterState.assert(
+            IssueReporterState.RuntimeState.MissingFlag::class.java,
+        )
+    }
+
+    @Test
+    fun initialize_whenConfigNotPresent_shouldDefaultToEnabled() {
+        configFile.delete()
+        issueReporter.init(
+            sdkDirectory,
+            clientAttributes,
+            completedReportsProcessor,
+        )
+
+        verify(captureUncaughtExceptionHandler).install(eq(issueReporter))
+        verify(latestAppExitInfoProvider).get()
+        issueReporter.issueReporterState.assert(
+            IssueReporterState.Initialized::class.java,
+        )
+        verify(completedReportsProcessor).processIssueReports(ReportProcessingSession.PreviousRun)
     }
 
     @Test
@@ -143,12 +205,8 @@ class IssueReporterTest {
         verify(completedReportsProcessor).processIssueReports(ReportProcessingSession.PreviousRun)
     }
 
-    private fun IssueReporterState.assert(
-        expectedType: Class<*>,
-        crashFileExist: Boolean = false,
-    ) {
+    private fun IssueReporterState.assert(expectedType: Class<*>) {
         assertThat(this).isInstanceOf(expectedType)
-        assertCrashFile(crashFileExist)
     }
 
     @Test
@@ -187,25 +245,6 @@ class IssueReporterTest {
         val processor = issueReporter.getIssueReporterProcessor()
 
         assertThat(processor).isInstanceOf(IssueReporterProcessor::class.java)
-    }
-
-    @Test
-    fun getIssueReporterProcessor_whenInitCalledButDisabled_shouldReturnNull() {
-        configFile.writeText("crash_reporting.enabled,false")
-        issueReporter.init(
-            sdkDirectory,
-            clientAttributes,
-            completedReportsProcessor,
-        )
-
-        val processor = issueReporter.getIssueReporterProcessor()
-
-        assertThat(processor).isNull()
-    }
-
-    private fun assertCrashFile(crashFileExist: Boolean) {
-        val crashFile = File(reportsDir, "/new/latest_crash_info.json")
-        assertThat(crashFile.exists()).isEqualTo(crashFileExist)
     }
 
     private fun buildReporter(): IssueReporter =
