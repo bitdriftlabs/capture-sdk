@@ -14,14 +14,13 @@ use bd_bonjson::{decoder, Value};
 use bd_error_reporter::reporter::with_handle_unexpected_or;
 use objc::runtime::Object;
 use parking_lot::Mutex;
-use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
 struct NamedThread {
   name: String,
   call_stack: Vec<u64>,
-  count: usize,
+  crashed: bool,
 }
 
 #[repr(C)]
@@ -41,6 +40,158 @@ pub enum CacheResult {
 // This allows us to safely delete the report file so that it's not picked up next launch by
 // mistake.
 static CACHED_KSCRASH_REPORT: Mutex<Option<AHashMap<String, Value>>> = Mutex::new(None);
+
+const ENABLE_BASE_THREAD_MATCHER: bool = true;
+const BASE_THREAD_MATCH_MIN_FRAMES: usize = 4;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct StackOverlap {
+  len: usize,
+  a_start: usize,
+  b_start: usize,
+  bottom_distance: usize,
+}
+
+impl StackOverlap {
+  const fn is_better_than(self, other: Self) -> bool {
+    if self.len != other.len {
+      return self.len > other.len;
+    }
+
+    self.bottom_distance < other.bottom_distance
+  }
+}
+
+fn best_contiguous_overlap(call_stack_a: &[u64], call_stack_b: &[u64]) -> StackOverlap {
+  let mut best_overlap = StackOverlap::default();
+  let reversed_call_stack_a: Vec<_> = call_stack_a.iter().rev().copied().collect();
+  let reversed_call_stack_b: Vec<_> = call_stack_b.iter().rev().copied().collect();
+
+  for a_start in 0 .. reversed_call_stack_a.len() {
+    for b_start in 0 .. reversed_call_stack_b.len() {
+      let mut overlap_len = 0;
+
+      while a_start + overlap_len < reversed_call_stack_a.len()
+        && b_start + overlap_len < reversed_call_stack_b.len()
+        && reversed_call_stack_a[a_start + overlap_len]
+          == reversed_call_stack_b[b_start + overlap_len]
+      {
+        overlap_len += 1;
+      }
+
+      if overlap_len == 0 {
+        continue;
+      }
+
+      let original_a_start = call_stack_a.len() - (a_start + overlap_len);
+      let original_b_start = call_stack_b.len() - (b_start + overlap_len);
+      let overlap = StackOverlap {
+        len: overlap_len,
+        a_start: original_a_start,
+        b_start: original_b_start,
+        bottom_distance: a_start + b_start,
+      };
+
+      if overlap.is_better_than(best_overlap) {
+        best_overlap = overlap;
+      }
+    }
+  }
+
+  best_overlap
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct StackPrefixMatch {
+  exact: bool,
+  matching_frames: usize,
+  shorter_len: usize,
+  len_delta: usize,
+}
+
+impl StackPrefixMatch {
+  const fn viable(self) -> bool {
+    self.exact || (self.matching_frames >= BASE_THREAD_MATCH_MIN_FRAMES && self.shorter_len > 0)
+  }
+
+  const fn is_better_than(self, other: Self) -> bool {
+    if self.exact != other.exact {
+      return self.exact;
+    }
+
+    if self.matching_frames != other.matching_frames {
+      return self.matching_frames > other.matching_frames;
+    }
+
+    self.len_delta < other.len_delta
+  }
+
+  const fn ties_with(self, other: Self) -> bool {
+    self.exact == other.exact
+      && self.matching_frames == other.matching_frames
+      && self.len_delta == other.len_delta
+  }
+}
+
+fn compare_call_stacks_from_base(call_stack_a: &[u64], call_stack_b: &[u64]) -> StackPrefixMatch {
+  let overlap = best_contiguous_overlap(call_stack_a, call_stack_b);
+  StackPrefixMatch {
+    exact: !call_stack_a.is_empty() && call_stack_a == call_stack_b,
+    matching_frames: overlap.len,
+    shorter_len: call_stack_a.len().min(call_stack_b.len()),
+    len_delta: call_stack_a.len().abs_diff(call_stack_b.len()),
+  }
+}
+
+fn is_metrickit_crash_thread(thread: &AHashMap<String, Value>) -> bool {
+  match thread.get("threadAttributed") {
+    Some(Value::Unsigned(value)) => *value != 0,
+    Some(Value::Signed(value)) => *value != 0,
+    _ => false,
+  }
+}
+
+fn crashed_candidate_indices(
+  named_threads: &[NamedThread],
+  used_named_threads: &[bool],
+) -> Vec<usize> {
+  named_threads
+    .iter()
+    .enumerate()
+    .filter_map(|(index, thread)| (!used_named_threads[index] && thread.crashed).then_some(index))
+    .collect()
+}
+
+fn metrickit_crash_thread_count(threads: &[Value]) -> usize {
+  threads
+    .iter()
+    .filter_map(|thread| {
+      let Value::Object(thread) = thread else {
+        return None;
+      };
+
+      is_metrickit_crash_thread(thread).then_some(())
+    })
+    .count()
+}
+
+fn equivalent_non_crash_candidates(
+  metrickit_thread: &AHashMap<String, Value>,
+  best_thread: &NamedThread,
+  candidate_thread: &NamedThread,
+) -> bool {
+  !is_metrickit_crash_thread(metrickit_thread)
+    && best_thread.call_stack == candidate_thread.call_stack
+}
+
+fn should_mark_ambiguous_tie(
+  metrickit_thread: &AHashMap<String, Value>,
+  best_thread: &NamedThread,
+  candidate_thread: &NamedThread,
+) -> bool {
+  best_thread.name != candidate_thread.name
+    && !equivalent_non_crash_candidates(metrickit_thread, best_thread, candidate_thread)
+}
 
 // API
 
@@ -207,7 +358,9 @@ fn diagnostic_metadata_matches_in_reports(
     return false;
   };
 
-  let check_keys = ["exceptionType", "exceptionCode", "signal", "pid"];
+  // If the low level signal and the process id match, we can say with
+  // fairly high confidence that both reports refer to the same crash.
+  let check_keys = ["signal", "pid"];
   for key in &check_keys {
     if a_meta.get(key) != b_meta.get(key) {
       return false;
@@ -230,26 +383,25 @@ fn named_threads_from_kscrash_report(
       return Err(anyhow::anyhow!("Thread is not a valid object/hashmap"));
     };
 
+    let crashed = match thread.get("crashed") {
+      Some(Value::Unsigned(value)) => *value != 0,
+      Some(Value::Signed(value)) => *value != 0,
+      _ => false,
+    };
+    let call_stack = extract_call_stack_from_kcrash_thread(thread)?;
+
+    let Some(call_stack) = call_stack else {
+      continue;
+    };
+
     let Some(Value::String(thread_name)) = thread.get("name") else {
       continue;
     };
-
-    let Some(call_stack) = extract_call_stack_from_kcrash_thread(thread)? else {
-      continue;
-    };
-
-    // Check if we already have a thread with this name
-    if let Some(existing_thread) = named_threads.iter_mut().find(|t| t.name == *thread_name) {
-      // Increment count for existing thread
-      existing_thread.count += 1;
-    } else {
-      // Create new NamedThread entry
-      named_threads.push(NamedThread {
-        name: thread_name.clone(),
-        call_stack,
-        count: 1,
-      });
-    }
+    named_threads.push(NamedThread {
+      name: thread_name.clone(),
+      call_stack,
+      crashed,
+    });
   }
 
   if named_threads.is_empty() {
@@ -313,11 +465,21 @@ fn parse_address_value(address: &Value) -> anyhow::Result<u64> {
 /// Injects thread names from a `KSCrash` report into a `MetricKit` report where their thread call
 /// stacks match.
 fn inject_thread_names_into_metrickit(
+  metrickit_report: AHashMap<String, Value>,
+  named_threads: &[NamedThread],
+) -> anyhow::Result<AHashMap<String, Value>> {
+  if ENABLE_BASE_THREAD_MATCHER {
+    inject_thread_names_into_metrickit_from_base(metrickit_report, named_threads)
+  } else {
+    inject_thread_names_into_metrickit_exact(metrickit_report, named_threads)
+  }
+}
+
+fn inject_thread_names_into_metrickit_exact(
   mut metrickit_report: AHashMap<String, Value>,
   named_threads: &[NamedThread],
 ) -> anyhow::Result<AHashMap<String, Value>> {
-  // Track how many times each named thread has been matched
-  let mut usage_counts: HashMap<String, usize> = HashMap::new();
+  let mut used_named_threads = vec![false; named_threads.len()];
 
   let Some(Value::Object(ref mut call_stack_tree)) = metrickit_report.get_mut("callStackTree")
   else {
@@ -340,23 +502,178 @@ fn inject_thread_names_into_metrickit(
       continue;
     };
 
-    // Find a matching named thread that hasn't exceeded its count limit
-    let Some(matching_thread) =
-      find_matching_named_thread_with_limit(&call_stack, named_threads, &usage_counts)
+    let Some(matching_thread_index) =
+      find_matching_named_thread_index(&call_stack, named_threads, &used_named_threads)
     else {
       continue;
     };
 
-    let thread_name = matching_thread.name.clone();
-    let current_count = usage_counts.get(&thread_name).unwrap_or(&0);
-    let new_count = current_count + 1;
-
-    usage_counts.insert(thread_name.clone(), new_count);
-
-    thread.insert("name".to_string(), Value::String(thread_name));
+    let matching_thread = &named_threads[matching_thread_index];
+    used_named_threads[matching_thread_index] = true;
+    thread.insert(
+      "name".to_string(),
+      Value::String(matching_thread.name.clone()),
+    );
   }
 
   Ok(metrickit_report)
+}
+
+fn inject_thread_names_into_metrickit_from_base(
+  mut metrickit_report: AHashMap<String, Value>,
+  named_threads: &[NamedThread],
+) -> anyhow::Result<AHashMap<String, Value>> {
+  let threads = metrickit_threads_mut(&mut metrickit_report)?;
+
+  let mut used_named_threads = vec![false; named_threads.len()];
+  let metrickit_crash_threads = metrickit_crash_thread_count(threads);
+
+  for thread in threads.iter_mut() {
+    let Some((thread, call_stack)) = get_metrickit_thread(thread)? else {
+      continue;
+    };
+
+    if try_assign_crash_thread_name(
+      thread,
+      named_threads,
+      &mut used_named_threads,
+      metrickit_crash_threads,
+    ) {
+      continue;
+    }
+
+    let Some(best_match_index) =
+      find_best_base_thread_match(thread, &call_stack, named_threads, &used_named_threads)
+    else {
+      continue;
+    };
+
+    assign_thread_name(
+      thread,
+      named_threads,
+      &mut used_named_threads,
+      best_match_index,
+    );
+  }
+
+  Ok(metrickit_report)
+}
+
+fn metrickit_threads_mut(
+  metrickit_report: &mut AHashMap<String, Value>,
+) -> anyhow::Result<&mut Vec<Value>> {
+  let Some(Value::Object(ref mut call_stack_tree)) = metrickit_report.get_mut("callStackTree")
+  else {
+    return Err(anyhow::anyhow!(
+      "MetricKit report missing 'callStackTree' object"
+    ));
+  };
+
+  let Some(Value::Array(ref mut threads)) = call_stack_tree.get_mut("callStacks") else {
+    return Err(anyhow::anyhow!("CallStackTree missing 'callStacks' array"));
+  };
+
+  Ok(threads)
+}
+
+fn get_metrickit_thread(
+  thread: &mut Value,
+) -> anyhow::Result<Option<(&mut AHashMap<String, Value>, Vec<u64>)>> {
+  let Value::Object(ref mut thread) = thread else {
+    return Err(anyhow::anyhow!("Thread is not a valid object/hashmap"));
+  };
+
+  let Ok(Some(call_stack)) = extract_call_stack_from_metrickit_thread(thread) else {
+    return Ok(None);
+  };
+
+  Ok(Some((thread, call_stack)))
+}
+
+fn try_assign_crash_thread_name(
+  thread: &mut AHashMap<String, Value>,
+  named_threads: &[NamedThread],
+  used_named_threads: &mut [bool],
+  metrickit_crash_threads: usize,
+) -> bool {
+  if metrickit_crash_threads != 1 || !is_metrickit_crash_thread(thread) {
+    return false;
+  }
+
+  let crashed_candidates = crashed_candidate_indices(named_threads, used_named_threads);
+  if crashed_candidates.len() != 1 {
+    return false;
+  }
+
+  assign_thread_name(
+    thread,
+    named_threads,
+    used_named_threads,
+    crashed_candidates[0],
+  );
+
+  true
+}
+
+fn find_best_base_thread_match(
+  metrickit_thread: &AHashMap<String, Value>,
+  call_stack: &[u64],
+  named_threads: &[NamedThread],
+  used_named_threads: &[bool],
+) -> Option<usize> {
+  let mut best_match: Option<(usize, StackPrefixMatch)> = None;
+  let mut ambiguous = false;
+
+  for (named_thread_index, named_thread) in named_threads.iter().enumerate() {
+    if used_named_threads[named_thread_index] {
+      continue;
+    }
+
+    let match_result = compare_call_stacks_from_base(call_stack, &named_thread.call_stack);
+    if !match_result.viable() {
+      continue;
+    }
+
+    match best_match {
+      None => {
+        best_match = Some((named_thread_index, match_result));
+        ambiguous = false;
+      },
+      Some((best_index, best_result)) => {
+        if match_result.is_better_than(best_result) {
+          best_match = Some((named_thread_index, match_result));
+          ambiguous = false;
+          continue;
+        }
+
+        if match_result.ties_with(best_result)
+          && named_thread_index != best_index
+          && should_mark_ambiguous_tie(metrickit_thread, &named_threads[best_index], named_thread)
+        {
+          ambiguous = true;
+        }
+      },
+    }
+  }
+
+  if ambiguous {
+    None
+  } else {
+    best_match.map(|(best_match_index, _)| best_match_index)
+  }
+}
+
+fn assign_thread_name(
+  thread: &mut AHashMap<String, Value>,
+  named_threads: &[NamedThread],
+  used_named_threads: &mut [bool],
+  matching_thread_index: usize,
+) {
+  used_named_threads[matching_thread_index] = true;
+  thread.insert(
+    "name".to_string(),
+    Value::String(named_threads[matching_thread_index].name.clone()),
+  );
 }
 
 fn extract_call_stack_from_metrickit_thread(
@@ -420,25 +737,25 @@ fn extract_call_stack_from_metrickit_frame(
   Ok(addresses)
 }
 
-/// Finds a named thread whose addresses match the given call stack addresses,
-/// but only if the thread hasn't exceeded its usage count limit
-fn find_matching_named_thread_with_limit<'a>(
+fn find_matching_named_thread_index(
   call_stack: &[u64],
-  named_threads: &'a [NamedThread],
-  usage_counts: &HashMap<String, usize>,
-) -> Option<&'a NamedThread> {
-  for named_thread in named_threads {
-    // Check if this thread has already been used up to its count limit
-    let current_usage = usage_counts.get(&named_thread.name).unwrap_or(&0);
-    if *current_usage >= named_thread.count {
-      continue;
-    }
+  named_threads: &[NamedThread],
+  used_named_threads: &[bool],
+) -> Option<usize> {
+  named_threads
+    .iter()
+    .enumerate()
+    .find_map(|(index, named_thread)| {
+      if used_named_threads[index] {
+        return None;
+      }
 
-    if call_stacks_match(call_stack, &named_thread.call_stack) {
-      return Some(named_thread);
-    }
-  }
-  None
+      if call_stacks_match(call_stack, &named_thread.call_stack) {
+        Some(index)
+      } else {
+        None
+      }
+    })
 }
 
 fn call_stacks_match(call_stack_a: &[u64], call_stack_b: &[u64]) -> bool {
