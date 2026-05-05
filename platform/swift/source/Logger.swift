@@ -248,19 +248,10 @@ public final class Logger {
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
         } else {
             Logger.issueReporterInitResult = measureTime {
-                // For initial app installation/clear cache, the configuration wasn't written
-                // to disk yet, so we intentionally enable crash reporting to not miss any
-                // of those early crashes.
-                if let contents = Logger.cachedReportConfigData(base: directoryURL) {
-                    guard let runtimeConfig = readCachedValues(contents) else {
-                        return .initialized(.runtimeInvalid)
-                    }
-                    guard let enabled = runtimeConfig[RuntimeVariable.crashReporting.name] as? Bool else {
-                        return .initialized(.runtimeMissingFlag)
-                    }
-                    guard enabled else {
-                        return .initialized(.runtimeNotEnabled)
-                    }
+                let contents = Logger.cachedReportConfigData(base: directoryURL)
+                let resolution = resolveRuntimeState(from: contents)
+                guard resolution == .monitoring else {
+                    return .initialized(resolution)
                 }
 
                 let kscrashReportDir = Logger.kscrashReportDirectory(base: directoryURL)

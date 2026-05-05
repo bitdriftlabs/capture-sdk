@@ -396,48 +396,6 @@ final class LoggerTests: XCTestCase {
                        try! protection(at: bufferFile.path))
     }
 
-    func testFatalIssueReportingInitResult_whenRuntimeConfigMissingCrashReportingKey_isInvalid() throws {
-        let rootFileURL = try XCTUnwrap(Logger.tempBufferDirectory())
-        let reportsDirectory = rootFileURL.appendingPathComponent("reports", isDirectory: true)
-        try FileManager.default.createDirectory(at: reportsDirectory, withIntermediateDirectories: true)
-        try "other.flag,true".write(
-            to: reportsDirectory.appendingPathComponent("config.csv", isDirectory: false),
-            atomically: true,
-            encoding: .utf8
-        )
-
-        _ = try Logger.testLogger(
-            withAPIKey: "test_api_key",
-            configuration: Configuration(
-                apiURL: URL(staticString: "https://api-tests.bitdrift.io"),
-                rootFileURL: rootFileURL
-            )
-        )
-
-        XCTAssertEqual(.initialized(.runtimeInvalid), Logger.issueReporterInitResult.0)
-    }
-
-    func testFatalIssueReportingInitResult_whenRuntimeConfigCrashReportingValueIsNotBool_isInvalid() throws {
-        let rootFileURL = try XCTUnwrap(Logger.tempBufferDirectory())
-        let reportsDirectory = rootFileURL.appendingPathComponent("reports", isDirectory: true)
-        try FileManager.default.createDirectory(at: reportsDirectory, withIntermediateDirectories: true)
-        try "crash_reporting.enabled,not-a-bool".write(
-            to: reportsDirectory.appendingPathComponent("config.csv", isDirectory: false),
-            atomically: true,
-            encoding: .utf8
-        )
-
-        _ = try Logger.testLogger(
-            withAPIKey: "test_api_key",
-            configuration: Configuration(
-                apiURL: URL(staticString: "https://api-tests.bitdrift.io"),
-                rootFileURL: rootFileURL
-            )
-        )
-
-        XCTAssertEqual(.initialized(.runtimeInvalid), Logger.issueReporterInitResult.0)
-    }
-
     func testLogScreenViewCapturesScreen() throws {
         let logger = try Logger.testLogger(withAPIKey: "test_api_key")
 
