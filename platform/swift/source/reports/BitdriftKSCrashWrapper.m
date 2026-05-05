@@ -23,9 +23,10 @@
 #endif
 }
 
-+ (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport {
++ (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport
+                                      useStackOverlapMatching:(BOOL)useStackOverlapMatching {
 #ifndef BITDRIFT_OMIT_KSCRASH
-    return [BitdriftKSCrashHandler enhancedMetricKitReport:metricKitReport];
+    return [BitdriftKSCrashHandler enhancedMetricKitReport:metricKitReport useStackOverlapMatching:useStackOverlapMatching];
 #else
     return metricKitReport;
 #endif

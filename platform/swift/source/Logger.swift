@@ -265,11 +265,13 @@ public final class Logger {
                 }
 
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
+                let useStackOverlapMatching = self.underlyingLogger.runtimeValue(.crashThreadMatchingByStackOverlap)
                 let reporter = DiagnosticEventReporter(
                     outputDir: Logger.reportCollectionDirectory(base: directoryURL),
                     sdkVersion: capture_get_sdk_version(),
                     eventTypes: .crash,
-                    minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC)) { [weak self] in
+                    minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC),
+                    useStackOverlapMatching: useStackOverlapMatching) { [weak self] in
                     self?.underlyingLogger.processIssueReports(reportProcessingSession: .previousRun)
                 }
                 Logger.diagnosticReporter.update { val in

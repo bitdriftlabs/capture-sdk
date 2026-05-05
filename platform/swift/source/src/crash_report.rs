@@ -41,7 +41,6 @@ pub enum CacheResult {
 // mistake.
 static CACHED_KSCRASH_REPORT: Mutex<Option<AHashMap<String, Value>>> = Mutex::new(None);
 
-const ENABLE_BASE_THREAD_MATCHER: bool = true;
 const BASE_THREAD_MATCH_MIN_FRAMES: usize = 4;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -209,8 +208,9 @@ extern "C" fn capture_cache_kscrash_report(kscrash_report_path_ptr: *const Objec
 #[no_mangle]
 extern "C" fn capture_enhance_metrickit_diagnostic_report(
   metrickit_report_ptr: *const Object,
+  use_stack_overlap_matching: bool,
 ) -> *const Object {
-  enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr)
+  enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr, use_stack_overlap_matching)
     .inspect_err(|e| log::error!("Failed to enhance MetricKit report: {e}"))
     .unwrap_or(Some(metrickit_report_ptr))
     .unwrap_or(metrickit_report_ptr)
@@ -282,6 +282,7 @@ fn parse_cached_report(report_path: String) -> anyhow::Result<CacheResult> {
 
 fn enhance_metrickit_diagnostic_report_impl(
   metrickit_report_ptr: *const Object,
+  use_stack_overlap_matching: bool,
 ) -> anyhow::Result<Option<*const Object>> {
   let value = unsafe { objc_value_to_rust(metrickit_report_ptr) }
     .map_err(|e| anyhow::anyhow!("Failed to convert metrickit_report_ptr to Rust Value: {e}"))?;
@@ -300,7 +301,7 @@ fn enhance_metrickit_diagnostic_report_impl(
     })?
     .clone();
 
-  let Some(enhanced_hashmap) = enhance_report(&metrickit_report, &kscrash_report)? else {
+  let Some(enhanced_hashmap) = enhance_report(&metrickit_report, &kscrash_report, use_stack_overlap_matching)? else {
     return Ok(None);
   };
   let enhanced_report = Value::Object(enhanced_hashmap);
@@ -331,6 +332,7 @@ fn cached_kscrash_timestamp_impl() -> anyhow::Result<u64> {
 fn enhance_report(
   metrickit_report: &AHashMap<String, Value>,
   kscrash_report: &AHashMap<String, Value>,
+  use_stack_overlap_matching: bool,
 ) -> anyhow::Result<Option<AHashMap<String, Value>>> {
   if !diagnostic_metadata_matches_in_reports(metrickit_report, kscrash_report) {
     return Ok(None);
@@ -343,7 +345,7 @@ fn enhance_report(
   };
 
   let enhanced_metrickit =
-    inject_thread_names_into_metrickit(metrickit_report.clone(), &named_threads)?;
+    inject_thread_names_into_metrickit(metrickit_report.clone(), &named_threads, use_stack_overlap_matching)?;
   Ok(Some(enhanced_metrickit))
 }
 
@@ -467,8 +469,9 @@ fn parse_address_value(address: &Value) -> anyhow::Result<u64> {
 fn inject_thread_names_into_metrickit(
   metrickit_report: AHashMap<String, Value>,
   named_threads: &[NamedThread],
+  use_stack_overlap_matching: bool,
 ) -> anyhow::Result<AHashMap<String, Value>> {
-  if ENABLE_BASE_THREAD_MATCHER {
+  if use_stack_overlap_matching {
     inject_thread_names_into_metrickit_from_base(metrickit_report, named_threads)
   } else {
     inject_thread_names_into_metrickit_exact(metrickit_report, named_threads)
