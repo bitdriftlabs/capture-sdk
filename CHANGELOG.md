@@ -15,7 +15,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Improved crash detection on initial app install and after clearing app cache.
  
 ### Android
 
