@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct WebViewScriptConfiguration: Codable {
+struct WebViewScriptConfiguration: Equatable, Codable {
     private static let encoder: JSONEncoder = JSONEncoder()
 
     private let capturePageViews: Bool

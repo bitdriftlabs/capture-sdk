@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import WebKit
+import Foundation
 
 extension Integration {
     public static func webView() -> Integration {
@@ -34,11 +35,15 @@ final class WebViewIntegration {
         logger: Logging,
         disableSwizzling: Bool
     ) {
-        guard !self.hasBeenSwizzled.load() else {
+        underlyingLogger.update { storedLogger in
+            storedLogger = logger
+        }
+
+        guard !hasBeenSwizzled.load() else {
             return
         }
 
-        self.hasBeenSwizzled.update { swizzled in
+        hasBeenSwizzled.update { swizzled in
             swizzled.toggle()
 
             if disableSwizzling {
@@ -70,7 +75,7 @@ extension WKWebView {
         let userContentController = configuration.userContentController
         userContentController.addUserScript(script)
         userContentController.add(ScriptMessageHandler(loggingProvider: WebViewLoggingProvider()), name: "BitdriftLogger")
-        let webView = self.cap_init(frame: frame, configuration: configuration)
+        let webView = cap_init(frame: frame, configuration: configuration)
         if #available(iOS 16.4, *) {
             webView.isInspectable = true
         }
@@ -83,16 +88,107 @@ extension WKWebView {
 }
 
 class ScriptMessageHandler: NSObject, WKScriptMessageHandler {
+    private let processingQueue: DispatchQueue
     private var loggingProvider: WebViewLoggingProvider?
+    private var currentPageViewSpanID: String?
+    private var activePageViewSpans = [String: Span]()
 
-    init(loggingProvider: WebViewLoggingProvider) {
+    init(
+        loggingProvider: WebViewLoggingProvider,
+        processingQueue: DispatchQueue = DispatchQueue(label: "io.bitdrift.capture.webview.processing")
+    ) {
         self.loggingProvider = loggingProvider
+        self.processingQueue = processingQueue
     }
 
     func userContentController(
         _ userContentController: WKUserContentController,
         didReceive message: WKScriptMessage
     ) {
-        print("Received message with name: \(message.name), body: \(message.body)")
+        let body = message.body
+        processingQueue.async {
+            do {
+                guard let decodedMessage = try WebViewMessageParser.decode(from: body) as? any WebViewLoggableMessage else {
+                    return
+                }
+
+                let context = WebViewLoggingContext(
+                    currentPageViewSpanID: self.currentPageViewSpanID,
+                    activePageViewSpans: self.activePageViewSpans
+                )
+
+                if let action = decodedMessage.makeLoggingAction(context: context) {
+                    self.execute(action: action)
+                }
+            } catch let exception {
+                print(exception.localizedDescription)
+            }
+        }
+    }
+
+    private func execute(action: WebViewLoggingAction) {
+        guard let logger = loggingProvider?.getLogging() else {
+            return
+        }
+
+        switch action {
+        case .log(let level, let message, let fields):
+            logger.log(level: level, message: message, fields: fields)
+        case .network(let request, let response):
+            logger.log(request, file: nil, line: nil, function: nil)
+            logger.log(response, file: nil, line: nil, function: nil)
+        case .startSpan(let id, let name, let level, let fields, let startTimeInterval, let parentSpanID):
+            let span = logger.startSpan(
+                name: name,
+                level: level,
+                file: nil,
+                line: nil,
+                function: nil,
+                fields: fields,
+                startTimeInterval: startTimeInterval,
+                parentSpanID: parentSpanID
+            )
+            activePageViewSpans[id] = span
+            currentPageViewSpanID = id
+        case .endSpan(let id, let result, let fields, let endTimeInterval):
+            activePageViewSpans.removeValue(forKey: id)?.end(
+                result,
+                file: nil,
+                line: nil,
+                function: nil,
+                fields: fields,
+                endTimeInterval: endTimeInterval
+            )
+
+            if currentPageViewSpanID == id {
+                currentPageViewSpanID = nil
+            }
+        case .completeSpan(
+            let name,
+            let level,
+            let fields,
+            let startTimeInterval,
+            let endTimeInterval,
+            let parentSpanID,
+            let result
+        ):
+            logger.startSpan(
+                name: name,
+                level: level,
+                file: nil,
+                line: nil,
+                function: nil,
+                fields: fields,
+                startTimeInterval: startTimeInterval,
+                parentSpanID: parentSpanID
+            ).end(
+                result,
+                file: nil,
+                line: nil,
+                function: nil,
+                fields: fields,
+                endTimeInterval: endTimeInterval
+            )
+        }
     }
 }
