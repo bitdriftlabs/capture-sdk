@@ -301,7 +301,12 @@ fn enhance_metrickit_diagnostic_report_impl(
     })?
     .clone();
 
-  let Some(enhanced_hashmap) = enhance_report(&metrickit_report, &kscrash_report, use_stack_overlap_matching)? else {
+  let Some(enhanced_hashmap) = enhance_report(
+    &metrickit_report,
+    &kscrash_report,
+    use_stack_overlap_matching,
+  )?
+  else {
     return Ok(None);
   };
   let enhanced_report = Value::Object(enhanced_hashmap);
@@ -338,6 +343,32 @@ fn enhance_report(
     return Ok(None);
   }
 
+  if use_stack_overlap_matching {
+    enhance_report_with_base_matching(metrickit_report, kscrash_report)
+  } else {
+    enhance_report_with_exact_matching(metrickit_report, kscrash_report)
+  }
+}
+
+fn enhance_report_with_exact_matching(
+  metrickit_report: &AHashMap<String, Value>,
+  kscrash_report: &AHashMap<String, Value>,
+) -> anyhow::Result<Option<AHashMap<String, Value>>> {
+  let named_threads = exact_named_threads_from_kscrash_report(kscrash_report)?;
+
+  let Some(named_threads) = named_threads else {
+    return Ok(None);
+  };
+
+  let enhanced_metrickit =
+    inject_thread_names_into_metrickit_exact(metrickit_report.clone(), &named_threads)?;
+  Ok(Some(enhanced_metrickit))
+}
+
+fn enhance_report_with_base_matching(
+  metrickit_report: &AHashMap<String, Value>,
+  kscrash_report: &AHashMap<String, Value>,
+) -> anyhow::Result<Option<AHashMap<String, Value>>> {
   let named_threads = named_threads_from_kscrash_report(kscrash_report)?;
 
   let Some(named_threads) = named_threads else {
@@ -345,7 +376,7 @@ fn enhance_report(
   };
 
   let enhanced_metrickit =
-    inject_thread_names_into_metrickit(metrickit_report.clone(), &named_threads, use_stack_overlap_matching)?;
+    inject_thread_names_into_metrickit_from_base(metrickit_report.clone(), &named_threads)?;
   Ok(Some(enhanced_metrickit))
 }
 
@@ -413,6 +444,43 @@ fn named_threads_from_kscrash_report(
   }
 }
 
+fn exact_named_threads_from_kscrash_report(
+  kscrash_report: &AHashMap<String, Value>,
+) -> anyhow::Result<Option<Vec<NamedThread>>> {
+  let mut named_threads: Vec<NamedThread> = Vec::new();
+
+  let Some(Value::Array(threads)) = kscrash_report.get("threads") else {
+    return Err(anyhow::anyhow!("kscrash_report missing 'threads' array"));
+  };
+
+  for thread in threads {
+    let Value::Object(thread) = thread else {
+      return Err(anyhow::anyhow!("Thread is not a valid object/hashmap"));
+    };
+
+    let call_stack = extract_call_stack_from_kcrash_thread(thread)?;
+
+    let Some(call_stack) = call_stack else {
+      continue;
+    };
+
+    let Some(Value::String(thread_name)) = thread.get("name") else {
+      continue;
+    };
+    named_threads.push(NamedThread {
+      name: thread_name.clone(),
+      call_stack,
+      crashed: false,
+    });
+  }
+
+  if named_threads.is_empty() {
+    Ok(None)
+  } else {
+    Ok(Some(named_threads))
+  }
+}
+
 fn extract_call_stack_from_kcrash_thread(
   kscrash_thread: &AHashMap<String, Value>,
 ) -> anyhow::Result<Option<Vec<u64>>> {
@@ -461,20 +529,6 @@ fn parse_address_value(address: &Value) -> anyhow::Result<u64> {
       "Address value is not a valid number (got {:?})",
       address
     )),
-  }
-}
-
-/// Injects thread names from a `KSCrash` report into a `MetricKit` report where their thread call
-/// stacks match.
-fn inject_thread_names_into_metrickit(
-  metrickit_report: AHashMap<String, Value>,
-  named_threads: &[NamedThread],
-  use_stack_overlap_matching: bool,
-) -> anyhow::Result<AHashMap<String, Value>> {
-  if use_stack_overlap_matching {
-    inject_thread_names_into_metrickit_from_base(metrickit_report, named_threads)
-  } else {
-    inject_thread_names_into_metrickit_exact(metrickit_report, named_threads)
   }
 }
 
