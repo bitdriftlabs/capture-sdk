@@ -834,6 +834,132 @@ mod tests {
 
   static CACHED_KSCRASH_REPORT_TEST_LOCK: Mutex<()> = Mutex::new(());
 
+  fn make_kscrash_thread(
+    index: i64,
+    name: Option<&str>,
+    addresses: &[u64],
+    crashed: bool,
+  ) -> AHashMap<String, Value> {
+    let mut thread = AHashMap::new();
+    thread.insert("index".to_string(), Value::Signed(index));
+    thread.insert(
+      "crashed".to_string(),
+      Value::Unsigned(if crashed { 1 } else { 0 }),
+    );
+
+    if let Some(name) = name {
+      thread.insert("name".to_string(), Value::String(name.to_string()));
+    }
+
+    let mut backtrace = AHashMap::new();
+    let contents = addresses
+      .iter()
+      .map(|address| {
+        let mut frame = AHashMap::new();
+        frame.insert("address".to_string(), Value::Unsigned(*address));
+        Value::Object(frame)
+      })
+      .collect();
+    backtrace.insert("contents".to_string(), Value::Array(contents));
+    thread.insert("backtrace".to_string(), Value::Object(backtrace));
+
+    thread
+  }
+
+  fn make_frame_chain(addresses: &[u64]) -> AHashMap<String, Value> {
+    let (first, rest) = addresses
+      .split_first()
+      .expect("MetricKit thread needs at least one frame");
+
+    let mut frame = AHashMap::new();
+    frame.insert("address".to_string(), Value::Unsigned(*first));
+    let sub_frames = if rest.is_empty() {
+      Vec::new()
+    } else {
+      vec![Value::Object(make_frame_chain(rest))]
+    };
+    frame.insert("subFrames".to_string(), Value::Array(sub_frames));
+    frame
+  }
+
+  fn make_metrickit_thread(
+    addresses_after_root_trim: &[u64],
+    thread_attributed: bool,
+  ) -> AHashMap<String, Value> {
+    let mut thread = AHashMap::new();
+    let mut full_addresses = addresses_after_root_trim.to_vec();
+    full_addresses.push(0xFFFF);
+    thread.insert(
+      "callStackRootFrames".to_string(),
+      Value::Array(vec![Value::Object(make_frame_chain(&full_addresses))]),
+    );
+    thread.insert(
+      "threadAttributed".to_string(),
+      Value::Unsigned(if thread_attributed { 1 } else { 0 }),
+    );
+    thread
+  }
+
+  fn make_kscrash_report(
+    signal: u64,
+    pid: u64,
+    threads: Vec<AHashMap<String, Value>>,
+  ) -> AHashMap<String, Value> {
+    let mut diagnostic_metadata = AHashMap::new();
+    diagnostic_metadata.insert("signal".to_string(), Value::Unsigned(signal));
+    diagnostic_metadata.insert("pid".to_string(), Value::Unsigned(pid));
+
+    let mut report = AHashMap::new();
+    report.insert(
+      "diagnosticMetaData".to_string(),
+      Value::Object(diagnostic_metadata),
+    );
+    report.insert(
+      "threads".to_string(),
+      Value::Array(threads.into_iter().map(Value::Object).collect()),
+    );
+    report
+  }
+
+  fn make_metrickit_report(
+    signal: u64,
+    pid: u64,
+    threads: Vec<AHashMap<String, Value>>,
+  ) -> AHashMap<String, Value> {
+    let mut diagnostic_metadata = AHashMap::new();
+    diagnostic_metadata.insert("signal".to_string(), Value::Unsigned(signal));
+    diagnostic_metadata.insert("pid".to_string(), Value::Unsigned(pid));
+
+    let mut call_stack_tree = AHashMap::new();
+    call_stack_tree.insert(
+      "callStacks".to_string(),
+      Value::Array(threads.into_iter().map(Value::Object).collect()),
+    );
+
+    let mut report = AHashMap::new();
+    report.insert(
+      "diagnosticMetaData".to_string(),
+      Value::Object(diagnostic_metadata),
+    );
+    report.insert("callStackTree".to_string(), Value::Object(call_stack_tree));
+    report
+  }
+
+  fn metrickit_thread_name(report: &AHashMap<String, Value>, index: usize) -> Option<&str> {
+    report
+      .get("callStackTree")
+      .and_then(|value| value.as_object().ok())
+      .and_then(|call_stack_tree| call_stack_tree.get("callStacks"))
+      .and_then(|value| value.as_array().ok())
+      .and_then(|threads| threads.get(index))
+      .and_then(|thread| thread.as_object().ok())
+      .and_then(|thread| thread.get("name"))
+      .and_then(|value| match value {
+        Value::String(value) => Some(value.as_str()),
+        _ => None,
+      })
+  }
+
   fn with_cached_report<T>(
     report: Option<AHashMap<String, Value>>,
     callback: impl FnOnce() -> T,
@@ -902,5 +1028,181 @@ mod tests {
     let result = with_cached_report(None, || cached_kscrash_timestamp_impl().unwrap());
 
     assert_eq!(result, 0);
+  }
+
+  #[test]
+  fn enrichment_exact_matching_does_not_use_base_overlap_matches() {
+    let kscrash_report = make_kscrash_report(
+      11,
+      123,
+      vec![make_kscrash_thread(
+        0,
+        Some("worker"),
+        &[0x10, 0x20, 0x30, 0x40],
+        false,
+      )],
+    );
+    let metrickit_report = make_metrickit_report(
+      11,
+      123,
+      vec![make_metrickit_thread(
+        &[0x99, 0x10, 0x20, 0x30, 0x40],
+        false,
+      )],
+    );
+
+    let enhanced_report = enhance_report(&metrickit_report, &kscrash_report, false)
+      .unwrap()
+      .expect("expected report");
+
+    assert_eq!(metrickit_thread_name(&enhanced_report, 0), None);
+  }
+
+  #[test]
+  fn enrichment_base_matching_uses_stack_overlap_matches() {
+    let kscrash_report = make_kscrash_report(
+      11,
+      123,
+      vec![make_kscrash_thread(
+        0,
+        Some("worker"),
+        &[0x10, 0x20, 0x30, 0x40],
+        false,
+      )],
+    );
+    let metrickit_report = make_metrickit_report(
+      11,
+      123,
+      vec![make_metrickit_thread(
+        &[0x99, 0x10, 0x20, 0x30, 0x40],
+        false,
+      )],
+    );
+
+    let enhanced_report = enhance_report(&metrickit_report, &kscrash_report, true)
+      .unwrap()
+      .expect("expected report");
+
+    assert_eq!(metrickit_thread_name(&enhanced_report, 0), Some("worker"));
+  }
+
+  #[test]
+  fn enrichment_returns_none_when_metadata_mismatches() {
+    let kscrash_report = make_kscrash_report(
+      11,
+      123,
+      vec![make_kscrash_thread(
+        0,
+        Some("worker"),
+        &[0x10, 0x20, 0x30, 0x40],
+        false,
+      )],
+    );
+    let metrickit_report = make_metrickit_report(
+      10,
+      123,
+      vec![make_metrickit_thread(&[0x10, 0x20, 0x30, 0x40], false)],
+    );
+
+    let enhanced_report = enhance_report(&metrickit_report, &kscrash_report, true).unwrap();
+
+    assert_eq!(enhanced_report, None);
+  }
+
+  #[test]
+  fn enrichment_base_matching_does_not_invent_name_for_unnamed_crash_thread() {
+    let kscrash_report = make_kscrash_report(
+      11,
+      123,
+      vec![
+        make_kscrash_thread(0, None, &[0x10, 0x20, 0x30, 0x40], true),
+        make_kscrash_thread(1, Some("worker"), &[0xAA, 0xBB, 0xCC, 0xDD], false),
+      ],
+    );
+    let metrickit_report = make_metrickit_report(
+      11,
+      123,
+      vec![make_metrickit_thread(&[0x10, 0x20, 0x30, 0x40], true)],
+    );
+
+    let enhanced_report = enhance_report(&metrickit_report, &kscrash_report, true)
+      .unwrap()
+      .expect("expected report");
+
+    assert_eq!(metrickit_thread_name(&enhanced_report, 0), None);
+  }
+
+  #[test]
+  fn enrichment_base_matching_leaves_ambiguous_ties_unnamed() {
+    let kscrash_report = make_kscrash_report(
+      11,
+      123,
+      vec![
+        make_kscrash_thread(0, Some("worker-a"), &[0x99, 0x20, 0x30, 0x40], false),
+        make_kscrash_thread(1, Some("worker-b"), &[0x88, 0x20, 0x30, 0x40], false),
+      ],
+    );
+    let metrickit_report = make_metrickit_report(
+      11,
+      123,
+      vec![make_metrickit_thread(&[0x10, 0x20, 0x30, 0x40], false)],
+    );
+
+    let enhanced_report = enhance_report(&metrickit_report, &kscrash_report, true)
+      .unwrap()
+      .expect("expected report");
+
+    assert_eq!(metrickit_thread_name(&enhanced_report, 0), None);
+  }
+
+  #[test]
+  fn enrichment_base_matching_allows_same_name_ties() {
+    let kscrash_report = make_kscrash_report(
+      11,
+      123,
+      vec![
+        make_kscrash_thread(0, Some("worker"), &[0x99, 0x20, 0x30, 0x40, 0x50], false),
+        make_kscrash_thread(1, Some("worker"), &[0x88, 0x20, 0x30, 0x40, 0x50], false),
+      ],
+    );
+    let metrickit_report = make_metrickit_report(
+      11,
+      123,
+      vec![make_metrickit_thread(
+        &[0x10, 0x20, 0x30, 0x40, 0x50],
+        false,
+      )],
+    );
+
+    let enhanced_report = enhance_report(&metrickit_report, &kscrash_report, true)
+      .unwrap()
+      .expect("expected report");
+
+    assert_eq!(metrickit_thread_name(&enhanced_report, 0), Some("worker"));
+  }
+
+  #[test]
+  fn enrichment_base_matching_requires_minimum_overlap_threshold() {
+    let kscrash_report = make_kscrash_report(
+      11,
+      123,
+      vec![make_kscrash_thread(
+        0,
+        Some("worker"),
+        &[0x99, 0x20, 0x30, 0x40],
+        false,
+      )],
+    );
+    let metrickit_report = make_metrickit_report(
+      11,
+      123,
+      vec![make_metrickit_thread(&[0x10, 0x20, 0x30, 0x40], false)],
+    );
+
+    let enhanced_report = enhance_report(&metrickit_report, &kscrash_report, true)
+      .unwrap()
+      .expect("expected report");
+
+    assert_eq!(metrickit_thread_name(&enhanced_report, 0), None);
   }
 }
